@@ -64,7 +64,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
 
     public TeacherId? Teacher(LastName lastName)
     {
-        using var e = Teachers(lastName).GetEnumerator();
+        using var e = Teachers(lastName)
+            .GetEnumerator();
         if (!e.MoveNext())
         {
             return null;
@@ -108,7 +109,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         var firstNameParts = default(NameParts<Word>);
         var firstNameSpan = firstName.AsSpan();
         var splitName = firstNameSpan.Split(NameConstants.DoubleNameSeparator);
-        var firstNameE = firstNameParts.AsRef().GetEnumerator();
+        var firstNameE = firstNameParts.AsRef()
+            .GetEnumerator();
 
         foreach (var partRange in splitName)
         {

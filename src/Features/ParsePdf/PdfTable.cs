@@ -23,7 +23,30 @@ public readonly record struct PdfBox(double Left, double Top, double Right, doub
         }
     }
 
-    public bool Contains(double x, double y) => Left <= x && x < Right && Top <= y && y < Bottom;
+    public bool Contains(double x, double y)
+    {
+        if (!(Left <= x))
+        {
+            return false;
+        }
+
+        if (!(x < Right))
+        {
+            return false;
+        }
+
+        if (!(Top <= y))
+        {
+            return false;
+        }
+
+        if (!(y < Bottom))
+        {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 public readonly record struct PdfBorder(bool Vertical, double Position, double Start, double End);

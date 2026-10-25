@@ -153,7 +153,8 @@ public record struct UnsizedBitArray64
     public readonly BitArray64 Flipped(int length)
     {
         var x = this;
-        return x.Flipped().WithShrunkLen(length);
+        return x.Flipped()
+            .WithShrunkLen(length);
     }
 
     [Pure]

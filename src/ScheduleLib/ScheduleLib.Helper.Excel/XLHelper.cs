@@ -8,7 +8,8 @@ public static class ExcelLibExtensions
 {
     public static ExcelRangeException Exception(this IXLCell cell, string message, Exception? inner = null)
     {
-        return new(cell.ActualRange().RangeAddress.ToString()!, message, inner);
+        return new(cell.ActualRange().RangeAddress
+            .ToString()!, message, inner);
     }
     public static ExcelRangeException Exception(this IXLRow row, string message, Exception? inner = null)
     {

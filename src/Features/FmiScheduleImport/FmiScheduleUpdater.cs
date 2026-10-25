@@ -55,7 +55,9 @@ public sealed class FmiScheduleUpdater(
                     return true;
                 }
 
-                if (!previous.Sources.Select(s => s.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
+                if (!previous.Sources.Select(s => s.Year)
+                    .Order()
+                    .SequenceEqual(new[] { 1, 2, 3 }))
                 {
                     return true;
                 }
@@ -75,7 +77,9 @@ public sealed class FmiScheduleUpdater(
             }
         }
         var downloads = await download(cancellationToken);
-        if (!downloads.Select(d => d.Link.Year).Order().SequenceEqual(new[] { 1, 2, 3 }))
+        if (!downloads.Select(d => d.Link.Year)
+            .Order()
+            .SequenceEqual(new[] { 1, 2, 3 }))
         {
             throw new FormatException("An update requires all three bachelor schedules.");
         }
@@ -93,9 +97,11 @@ public sealed class FmiScheduleUpdater(
             return operationValue8;
         }
 
-        var sources = downloads.Select(ProjectValue).ToArray();
+        var sources = downloads.Select(ProjectValue)
+            .ToArray();
         var changed = sources.Where(s => !string.Equals(
-            previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256, s.Sha256, StringComparison.OrdinalIgnoreCase)).ToArray();
+            previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256, s.Sha256, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)
         {
             return new(false, previous.PeriodStart);
@@ -104,7 +110,9 @@ public sealed class FmiScheduleUpdater(
         var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         // A single period represents this complete snapshot. Each changed source
         // contributes its upload date, or today when the site supplies none.
-        var period = changed.Select(s => s.UploadDate ?? today).DefaultIfEmpty(today).Max();
+        var period = changed.Select(s => s.UploadDate ?? today)
+            .DefaultIfEmpty(today)
+            .Max();
         if (period > today)
         {
             throw new FormatException($"Schedule upload date {period:yyyy-MM-dd} is in the future.");

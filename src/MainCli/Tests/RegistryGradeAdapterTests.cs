@@ -218,15 +218,20 @@ public sealed class RegistryGradeAdapterTests
             else
             {
                 int int32 = ++reads;
-                bool condition;
-                if (int32 == 1)
+                bool CalculateCondition()
                 {
-                    condition = true;
+                    if (int32 == 1)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return matches;
+                    }
                 }
-                else
-                {
-                    condition = matches;
-                }
+
+                bool condition = CalculateCondition();
+
 
                 string text;
                 if (condition)
@@ -402,7 +407,10 @@ public sealed class RegistryGradeAdapterTests
                 redirect.Headers.Location = new("/evaluation", UriKind.Relative);
                 return Task.FromResult(redirect);
             }
-            if (++reads == 1)
+            bool conditionResult;
+            int conditionValue = ++reads;
+            conditionResult = conditionValue == 1;
+            if (conditionResult)
             {
                 global::System.Net.Http.HttpResponseMessage CalculateResult()
                 {
@@ -413,15 +421,25 @@ public sealed class RegistryGradeAdapterTests
                 return Task.FromResult(CalculateResult());
             }
             // Legacy read authentication may retry the GET, but must never replay the POST.
-            bool condition;
-            if (readStatus == 401)
+            bool CalculateCondition()
             {
-                condition = reads > 2;
+                if (readStatus == 401)
+                {
+                    if (reads > 2)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                condition = false;
-            }
+
+            bool condition = CalculateCondition();
+
 
             global::System.Net.Http.HttpResponseMessage result2;
             if (condition)
@@ -779,7 +797,8 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         var document = await context.Browser.OpenAsync("https://registry.test/grades");
-        await document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")!.SubmitAsync();
+        await document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")!
+            .SubmitAsync();
         Assert.Equal(expected: 2, actual: posts);
         Assert.Equal(expected: 1, actual: auth.Calls);
     }
@@ -936,14 +955,15 @@ public sealed class RegistryGradeAdapterTests
             client,
             handler);
         using var settings = await CliSettings.Load(new());
-        settings.Tree.Defaults.Moodle().ConfigureValue(x => x.Credentials = new ValueCredentialsSource
-        {
-            Value = new()
+        settings.Tree.Defaults.Moodle()
+            .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
             {
-                Login = "test",
-                Password = "test",
-            },
-        });
+                Value = new()
+                {
+                    Login = "test",
+                    Password = "test",
+                },
+            });
         var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
         await using var provider = AppConfiguration.BuildServiceProvider(collection);
@@ -982,7 +1002,18 @@ public sealed class RegistryGradeAdapterTests
             }
 
             await entered.Task.WaitAsync(CalculateTimeout());
-            Assert.True(accountLock.Held || !cancel);
+            bool conditionResult;
+            if (accountLock.Held)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = cancel;
+                conditionResult = !(conditionResult);
+            }
+
+            Assert.True(conditionResult);
             if (cancel)
             {
                 cancellation.Cancel();
@@ -1000,8 +1031,11 @@ public sealed class RegistryGradeAdapterTests
             Assert.True(handler.Disposed);
             Assert.Equal(expected: 1, actual: handler.Posts);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: exit, actual: result.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Empty(result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray());
+            Assert.Equal(expected: exit, actual: result.RootElement.GetProperty("exitCode")
+                .GetInt32());
+            Assert.Empty(result.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .EnumerateArray());
             if (cancel)
             {
                 Assert.False(pending.Task.IsCompleted);

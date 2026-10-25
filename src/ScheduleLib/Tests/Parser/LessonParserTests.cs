@@ -98,7 +98,8 @@ public sealed class LessonParserTests
         ProcessSpaces? spaces = null)
     {
         var lexer = LessonParsingHelper.CreateLexer();
-        using var enumerator = lines.Select(x => x.AsMemory()).GetEnumerator();
+        using var enumerator = lines.Select(x => x.AsMemory())
+            .GetEnumerator();
         lexer.Reset(enumerator);
         var parameters = new ParseLessonsParams
         {
@@ -109,7 +110,8 @@ public sealed class LessonParserTests
         {
             parameters.ProcessSpacesCourseName = spaces;
         }
-        return LessonParsingHelper.ParseLessons(parameters).ToArray();
+        return LessonParsingHelper.ParseLessons(parameters)
+            .ToArray();
     }
 
     [Fact]
@@ -352,13 +354,15 @@ public sealed class LessonParserTests
             {
                 return false;
             }
-            if (!lessonName.AsSpan().Equals(
+            if (!lessonName.AsSpan()
+                .Equals(
                     lesson.LessonName.Span,
                     StringComparison.CurrentCultureIgnoreCase))
             {
                 return false;
             }
-            if (!groupName.AsSpan().Equals(
+            if (!groupName.AsSpan()
+                .Equals(
                     lesson.PartitionHint.Span,
                     StringComparison.CurrentCultureIgnoreCase))
             {
@@ -896,7 +900,8 @@ public sealed class LessonParserTests
             return ts;
         }
 
-        var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9).Add(CalculateTs()));
+        var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9)
+            .Add(CalculateTs()));
         Assert.Equal(expected: time, actual: l.StartTime);
         Assert.Equal(expected: "opț", actual: l.GroupName.Span);
         Assert.Equal(expected: LessonType.Unspecified, actual: l.LessonType);

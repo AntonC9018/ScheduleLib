@@ -113,7 +113,8 @@ public class DriveCommands
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
-            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>().Get();
+            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>()
+                .Get();
             if (config is null)
             {
                 return await Finish(
@@ -213,22 +214,28 @@ public class DriveCommands
         async Task<int> Finish(int exit, string[] errors)
         {
             StreamNewArtifacts();
-            if (output is not null
-                && output.PublishedPaths.Count > 0
-                && !output.PublishedPaths.Contains(output.ManifestPath))
+            if (output is not null)
             {
-                try
+                if (output.PublishedPaths.Count > 0)
                 {
-                    await output.Complete("partial", CancellationToken.None);
+                    if (!output.PublishedPaths.Contains(output.ManifestPath))
+                    {
+                        try
+                        {
+                            await output.Complete("partial", CancellationToken.None);
+                        }
+                        catch (Exception)
+                        {
+                            warnings.Add("Could not publish partial bundle manifest.");
+                        }
+                        StreamNewArtifacts();
+                    }
                 }
-                catch (Exception)
-                {
-                    warnings.Add("Could not publish partial bundle manifest.");
-                }
-                StreamNewArtifacts();
             }
-            var allWarnings = warnings.Concat(data?.Warnings ?? []).ToArray();
-            var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}").ToArray() ?? [];
+            var allWarnings = warnings.Concat(data?.Warnings ?? [])
+                .ToArray();
+            var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}")
+                .ToArray() ?? [];
             var success = "preview";
             if (apply.Apply)
             {

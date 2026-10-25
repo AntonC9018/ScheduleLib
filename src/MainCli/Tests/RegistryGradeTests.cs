@@ -78,10 +78,15 @@ public sealed class RegistryGradeTests
                     new() { Profile = "first-alias" },
                     new() { Json = true },
                     new()));
-            Assert.Equal(expected: "preview", actual: capture.Result().GetProperty("status").GetString());
+            Assert.Equal(expected: "preview", actual: capture.Result()
+                .GetProperty("status")
+                .GetString());
             Assert.Equal(expected: 0, actual: fake.Submissions);
             Assert.False(fake.Held);
-            Assert.Single(capture.Result().GetProperty("data").GetProperty("notices").EnumerateArray());
+            Assert.Single(capture.Result()
+                .GetProperty("data")
+                .GetProperty("notices")
+                .EnumerateArray());
         }
         using (var capture = new Capture())
         {
@@ -99,11 +104,19 @@ public sealed class RegistryGradeTests
             Assert.Equal(expected: fake.Target, actual: fake.LockTarget);
             Assert.Equal(
                 expected: 2,
-                actual: capture.Result().GetProperty("data").GetProperty("outcomes")[0].GetProperty("grades")[0]
-                    .GetProperty("roundedGrade").GetInt32());
+                actual: capture.Result()
+                    .GetProperty("data")
+                    .GetProperty("outcomes")[0]
+                    .GetProperty("grades")[0]
+                    .GetProperty("roundedGrade")
+                    .GetInt32());
             Assert.All(
-                capture.Result().GetProperty("data").GetProperty("outcomes").EnumerateArray(),
-                x => Assert.Equal(expected: "completed", actual: x.GetProperty("status").GetString()));
+                capture.Result()
+                    .GetProperty("data")
+                    .GetProperty("outcomes")
+                    .EnumerateArray(),
+                x => Assert.Equal(expected: "completed", actual: x.GetProperty("status")
+                    .GetString()));
             Assert.True(fake.Disposed);
             Assert.False(fake.Held);
         }
@@ -131,12 +144,22 @@ public sealed class RegistryGradeTests
         int exit,
         string status)
     {
+        Exception CalculateInner()
+        {
+            if (rejected)
+            {
+                return new RegistrySubmissionRejectedException("rejected");
+            }
+
+            return new IOException("lost response");
+        }
+
         await using var fake = new Fake
         {
             FailAt = 1,
             Failure = new RegistryActionExecutionException(
-                started,
-                rejected ? new RegistrySubmissionRejectedException("rejected") : new IOException("lost response")),
+                        started,
+                        CalculateInner()),
         };
         using var capture = new Capture();
         Assert.Equal(
@@ -160,9 +183,13 @@ public sealed class RegistryGradeTests
 
         int actual2 = fake.Submissions;
         Assert.Equal(expected: expected2, actual: actual2);
-        var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status").GetString());
-        Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
+        var outcomes = capture.Result()
+            .GetProperty("data")
+            .GetProperty("outcomes");
+        Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status")
+            .GetString());
     }
 
     [Theory]
@@ -184,10 +211,15 @@ public sealed class RegistryGradeTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("status").GetString());
-        Assert.Equal(expected: status, actual: outcomes[1].GetProperty("status").GetString());
-        Assert.Equal(expected: "not-attempted", actual: outcomes[2].GetProperty("status").GetString());
+        var outcomes = capture.Result()
+            .GetProperty("data")
+            .GetProperty("outcomes");
+        Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: status, actual: outcomes[1].GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "not-attempted", actual: outcomes[2].GetProperty("status")
+            .GetString());
         Assert.Equal(expected: 2, actual: fake.Executions);
         int expected2;
         if (started)
@@ -210,12 +242,25 @@ public sealed class RegistryGradeTests
     [InlineData(7)]
     public async Task BeforeSubmissionFailuresHaveDocumentedExits(int exit)
     {
+        Exception CalculateException()
+        {
+            if (exit == 1)
+            {
+                return new Exception("unexpected");
+            }
+
+            if (exit == 4)
+            {
+                return new RegistryAuthenticationException("Moodle credentials missing");
+            }
+
+            return new IOException("read failed");
+        }
+
         await using var fake = new Fake
         {
             PlanFailure =
-                exit == 1 ? new Exception("unexpected") :
-                exit == 4 ? new RegistryAuthenticationException("Moodle credentials missing") :
-                new IOException("read failed"),
+                        CalculateException(),
             Busy = exit == 7,
         };
         using var capture = new Capture();
@@ -233,7 +278,9 @@ public sealed class RegistryGradeTests
             Assert.Equal(expected: 0, actual: fake.Plans);
         }
 
-        Assert.Equal(expected: "failed", actual: capture.Result().GetProperty("status").GetString());
+        Assert.Equal(expected: "failed", actual: capture.Result()
+            .GetProperty("status")
+            .GetString());
     }
 
     [Fact]
@@ -249,7 +296,9 @@ public sealed class RegistryGradeTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        Assert.Equal(expected: "partial", actual: capture.Result().GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: capture.Result()
+            .GetProperty("status")
+            .GetString());
         Assert.Equal(expected: 3, actual: fake.Submissions);
     }
 
@@ -279,7 +328,8 @@ public sealed class RegistryGradeTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First(x =>
+        var lesson = schedule.EnumerateWeeklyLessons()
+            .First(x =>
             schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         var groupInfo = schedule.Get(lesson.Lesson.Groups[0]);
         global::System.Uri CalculateUri()
@@ -316,7 +366,8 @@ public sealed class RegistryGradeTests
                 $"Anul {groupInfo.Grade.Value}",
                 schedule.Get(lesson.Lesson.Course).FullName,
                 "Atestare 1",
-            }.Select(x => (Name: x, Href: (string?) null)).ToList(),
+            }.Select(x => (Name: x, Href: (string?) null))
+                .ToList(),
             Attempts =
             [
                 new()
@@ -397,10 +448,10 @@ public sealed class RegistryGradeTests
 
             return CheckCondition();
         });
-        Assert.Contains(plan.Notices, x => x.Kind == "omitted" && x.Detail.Contains("no grade"));
-        Assert.Contains(plan.Notices, x => x.Kind == "omitted" && x.Detail.Contains("Expelled"));
-        Assert.Contains(plan.Notices, x => x.Kind == "unmatched" && x.Detail.Contains("Registry student"));
-        Assert.Contains(plan.Notices, x => x.Kind == "unmatched" && x.Detail.Contains("Moodle student"));
+        Assert.Contains(plan.Notices, x => { if (!(x.Kind == "omitted")) { return false; } if (!(x.Detail.Contains("no grade"))) { return false; } return true; });
+        Assert.Contains(plan.Notices, x => { if (!(x.Kind == "omitted")) { return false; } if (!(x.Detail.Contains("Expelled"))) { return false; } return true; });
+        Assert.Contains(plan.Notices, x => { if (!(x.Kind == "unmatched")) { return false; } if (!(x.Detail.Contains("Registry student"))) { return false; } return true; });
+        Assert.Contains(plan.Notices, x => { if (!(x.Kind == "unmatched")) { return false; } if (!(x.Detail.Contains("Moodle student"))) { return false; } return true; });
         Assert.Contains(plan.Notices, x => x.Kind == "unsupported");
         using (var cancelled = new CancellationTokenSource())
         {
@@ -437,7 +488,7 @@ public sealed class RegistryGradeTests
             CancellationToken = default,
         });
         Assert.Empty(empty.Actions);
-        Assert.Contains(empty.Notices, x => x.Kind == "omitted" && x.Detail.Contains("No mapped grades"));
+        Assert.Contains(empty.Notices, x => { if (!(x.Kind == "omitted")) { return false; } if (!(x.Detail.Contains("No mapped grades"))) { return false; } return true; });
         Assert.Equal(expected: 1, actual: navigator.Submissions);
 
         quiz.Path.Clear();
@@ -502,7 +553,8 @@ public sealed class RegistryGradeTests
                 throw PlanFailure;
             }
 
-            RegistryGradeAction[] actions = Enumerable.Range(start: 1, count: 3).Select(i =>
+            RegistryGradeAction[] actions = Enumerable.Range(start: 1, count: 3)
+                .Select(i =>
             {
                 string CalculateDestination()
                 {
@@ -541,7 +593,8 @@ public sealed class RegistryGradeTests
 
                                     return Task.CompletedTask;
                                 });
-            }).ToArray();
+            })
+                .ToArray();
             return Task.FromResult(new RegistryGradePlan(actions, [new(Kind: "omitted", Detail: "Ungraded student")]));
         }
 

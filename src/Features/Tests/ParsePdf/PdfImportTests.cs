@@ -21,20 +21,36 @@ public sealed class PdfImportTests
 
         var expected = JsonSerializer.Deserialize<PdfScheduleCell[]>(
                     CalculateJson(),
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!.Where(c => c.Source == source).ToArray();
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!
+            .Where(c => c.Source == source)
+            .ToArray();
         // Compare semantics, independent of the order in which a PDF library discovers cells.
         static string Key(PdfScheduleCell c) => $"{c.Page}|{string.Join(',', c.Groups)}|{c.Day}|{c.Start}|{c.Alternative}|{c.Text}";
-        var missing = expected.Select(Key).Except(actual.Select(Key)).ToArray();
-        var extra = actual.Select(Key).Except(expected.Select(Key)).ToArray();
-        bool conditionResult;
-        if (missing.Length == 0)
+        var missing = expected.Select(Key)
+            .Except(actual.Select(Key))
+            .ToArray();
+        var extra = actual.Select(Key)
+            .Except(expected.Select(Key))
+            .ToArray();
+        bool CalculateConditionResult()
         {
-            conditionResult = extra.Length == 0;
+            if (missing.Length == 0)
+            {
+                if (extra.Length == 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         Assert.True(conditionResult,
             (string) $"Missing:\n{string.Join("\n---\n", missing)}\nUnexpected:\n{string.Join("\n---\n", extra)}");
@@ -68,7 +84,10 @@ public sealed class PdfImportTests
         global::ScheduleLib.Import.Pdf.PdfScheduleCell expected2 = repaired;
         global::ScheduleLib.Import.Pdf.PdfScheduleCell actual2 = PdfTextNormalizer.RepairMissingParity(repaired);
         Assert.Equal(expected: expected2, actual: actual2);
-        var monday = cell with { Day = "Luni" };
+        var monday = cell with
+        {
+            Day = "Luni",
+        };
         global::ScheduleLib.Import.Pdf.PdfScheduleCell expected3 = monday;
         global::ScheduleLib.Import.Pdf.PdfScheduleCell actual3 = PdfTextNormalizer.RepairMissingParity(monday);
         Assert.Equal(expected: expected3, actual: actual3);

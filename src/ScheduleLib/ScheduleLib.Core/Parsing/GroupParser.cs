@@ -166,15 +166,20 @@ public static class GroupHelper
                 }
                 else
                 {
-                    bool conditionResult;
-                    if (ch == ')')
+                    bool CalculateConditionResult()
                     {
-                        conditionResult = isParen;
+                        if (ch == ')')
+                        {
+                            return isParen;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
-                    else
-                    {
-                        conditionResult = false;
-                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
 
                     if (conditionResult)
                     {

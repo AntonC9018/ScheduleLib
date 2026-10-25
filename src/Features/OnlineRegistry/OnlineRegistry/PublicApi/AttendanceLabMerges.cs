@@ -9,7 +9,10 @@ public static class AttendanceLabMerges
     internal static bool TryDestination(Schedule schedule, IReadOnlyList<RegistryLabMergeRule> rules,
         StudentsLookupKey source, out GroupPartitionKey destination)
     {
-        destination = source.GroupPartition with { SubGroup = SubGroup.All };
+        destination = source.GroupPartition with
+        {
+            SubGroup = SubGroup.All,
+        };
         bool CheckCondition()
         {
             if (source.LessonType != LessonType.Lab)
@@ -68,12 +71,8 @@ public static class AttendanceLabMerges
         }
 
         // Do not invent a source partition merely because a merge exists.
-        if (schedule.WeeklyLessons.Any(item => item.Base.Data.Course == source.CourseId
-           && item.Base.Data.Groups.IsSingleGroup && item.Base.Data.Groups[0] == group
-           && item.Base.Data.Type == LessonType.Lab && item.Base.Data.GroupPartitionKey == partition)
-           || schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == source.CourseId
-               && merge.Group == group && merge.Specialization == partition.Specialization
-               && merge.Alternative == partition.Alternative && merge.SurvivingSubGroup == partition.SubGroup))
+        if (schedule.WeeklyLessons.Any(item => { if (!(item.Base.Data.Course == source.CourseId)) { return false; } if (!(item.Base.Data.Groups.IsSingleGroup)) { return false; } if (!(item.Base.Data.Groups[0] == group)) { return false; } if (!(item.Base.Data.Type == LessonType.Lab)) { return false; } if (!(item.Base.Data.GroupPartitionKey == partition)) { return false; } return true; })
+           || schedule.AutomaticLabSubGroupMerges.Any(merge => { if (!(merge.Course == source.CourseId)) { return false; } if (!(merge.Group == group)) { return false; } if (!(merge.Specialization == partition.Specialization)) { return false; } if (!(merge.Alternative == partition.Alternative)) { return false; } if (!(merge.SurvivingSubGroup == partition.SubGroup)) { return false; } return true; }))
         {
             return true;
         }
@@ -93,7 +92,10 @@ public static class AttendanceLabMerges
                 continue;
             }
 
-            var key = entry.Key with { GroupPartition = partition };
+            var key = entry.Key with
+            {
+                GroupPartition = partition,
+            };
             if (result.ContainsKey(key))
             {
                 continue; // An explicitly supplied whole-group sheet takes precedence.
@@ -130,12 +132,17 @@ public static class AttendanceLabMerges
         }
 
         var names = NamesInDb.Create([.. sources.SelectMany(source => source.StudentNames
-            .OrderBy(student => student.Value).Select(student => student.Key))]);
+            .OrderBy(student => student.Value)
+            .Select(student => student.Key))]);
         global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.AttendanceDate>? nullable;
         if (dated)
         {
-            nullable = [.. sources.SelectMany(source => source.Dates!.Value).Distinct()
-                .OrderBy(date => date.Year).ThenBy(date => date.Month).ThenBy(date => date.Day).ThenBy(date => date.Time)];
+            nullable = [.. sources.SelectMany(source => source.Dates!.Value)
+                .Distinct()
+                .OrderBy(date => date.Year)
+                .ThenBy(date => date.Month)
+                .ThenBy(date => date.Day)
+                .ThenBy(date => date.Time)];
         }
         else
         {
@@ -154,12 +161,14 @@ public static class AttendanceLabMerges
                 if (dates is { } targetDates)
                 {
                     var matches = source.Dates!.Value.Select((date, position) => (Date: date, Position: position))
-                        .Where(column => column.Date == targetDates[index]).ToArray();
+                        .Where(column => column.Date == targetDates[index])
+                        .ToArray();
                     day = matches.Length == 1 ? matches[0].Position : -1;
                 }
                 if (day >= 0 && day < source.Attendance.DayCount)
                 {
-                    marks.AddRange(source.Attendance.Day(day).AsArray());
+                    marks.AddRange(source.Attendance.Day(day)
+                        .AsArray());
                 }
                 else
                 {

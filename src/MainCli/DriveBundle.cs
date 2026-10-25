@@ -16,12 +16,13 @@ public static class DriveBundle
             "Teacher workbook, PDFs and ICS use the latest period and all groups/partitions/teachers; the selected profile is not an export filter. Free rooms inspect every weekly period.");
         await output.Publish(
             "all-teachers.xlsx",
-            async (stream, ct) => await services.GetRequiredService<GenerateAllTeachersExcelTaskHandler>().Run(new()
-            {
-                Schedule = schedule,
-                CancellationToken = ct,
-                OutputDirectory = stream,
-            }),
+            async (stream, ct) => await services.GetRequiredService<GenerateAllTeachersExcelTaskHandler>()
+                .Run(new()
+                {
+                    Schedule = schedule,
+                    CancellationToken = ct,
+                    OutputDirectory = stream,
+                }),
             token);
         await output.Publish(
             "free-rooms.xlsx",
@@ -38,12 +39,13 @@ public static class DriveBundle
                 CancellationToken = token,
                 PublishArtifact = output.Publish,
             });
-        await services.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
-        {
-            CancellationToken = token,
-            PublishArtifact = output.Publish,
-            ReportOmission = warnings.Add,
-        });
+        await services.GetRequiredService<GenerateIcsCalendarsTaskHandler>()
+            .RunAsync(new()
+            {
+                CancellationToken = token,
+                PublishArtifact = output.Publish,
+                ReportOmission = warnings.Add,
+            });
         token.ThrowIfCancellationRequested();
         // Only this invocation's successfully published schedule artifacts, never directory enumeration or prior manifest entries.
         global::ScheduleLib.Cli.DriveArtifact ProjectValue(string x)
@@ -66,6 +68,7 @@ public static class DriveBundle
 
             return false;
         })
-            .Select(ProjectValue).ToArray();
+            .Select(ProjectValue)
+            .ToArray();
     }
 }

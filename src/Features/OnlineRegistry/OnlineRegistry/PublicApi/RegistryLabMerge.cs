@@ -16,7 +16,24 @@ internal static class RegistryLabMerges
     internal static RegistryLabMergeRule? Find(IReadOnlyList<RegistryLabMergeRule> rules,
         Schedule schedule, CourseId course, in LessonGroups groups, GroupPartitionKey partition)
     {
-        if (!groups.IsSingleGroup || course.IsInvalid || partition != GroupPartitionKey.All)
+        bool conditionResult2;
+        if (!groups.IsSingleGroup)
+        {
+            conditionResult2 = true;
+        }
+        else
+        {
+            if (course.IsInvalid)
+            {
+                conditionResult2 = true;
+            }
+            else
+            {
+                conditionResult2 = partition != GroupPartitionKey.All;
+            }
+        }
+
+        if (conditionResult2)
         {
             return null;
         }
@@ -98,21 +115,27 @@ internal static class RegistryLabMerges
         LessonMatchParams parameters)
     {
         var filter = parameters.Filter;
-        bool conditionResult;
-        if (filter.Groups.IsWildcard)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (filter.Groups.IsWildcard)
+            {
+                return true;
+            }
+            else
+            {
+                return filter.Groups.IsCombined;
+            }
         }
-        else
-        {
-            conditionResult = filter.Groups.IsCombined;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         var rule = conditionResult ? null
             : Find(rules, parameters.Schedule, filter.CourseId, filter.Groups.Value, filter.GroupPartition);
         if (rule is null)
         {
-            var ordinary = MatchLessonHelper.MatchLessonsInSchedule(parameters).ToList();
+            var ordinary = MatchLessonHelper.MatchLessonsInSchedule(parameters)
+                .ToList();
             return new(ordinary, ordinary.Count == 0 ? filter.GroupPartition
                 : parameters.Schedule.Get(ordinary[0]).Lesson.GroupPartitionKey);
         }
@@ -128,14 +151,48 @@ internal static class RegistryLabMerges
             }
 
             var lesson = parameters.Schedule.Get(id).Lesson;
-            if (lesson.Type == LessonType.Lab && lesson.GroupPartitionKey == survivingPartition
-               && lesson.Groups.IsSingleGroup && lesson.Groups[0] == filter.Groups.Value[0])
+            bool CalculateConditionResult()
+            {
+                if (lesson.Type == LessonType.Lab)
+                {
+                    if (lesson.GroupPartitionKey == survivingPartition)
+                    {
+                        if (lesson.Groups.IsSingleGroup)
+                        {
+                            if (lesson.Groups[0] == filter.Groups.Value[0])
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 return true;
             }
 
             return false;
-        }).ToList();
+        })
+            .ToList();
         if (lessons.Count == 0)
         {
             throw new InvalidOperationException("Surviving registry lab merge lessons not found.");

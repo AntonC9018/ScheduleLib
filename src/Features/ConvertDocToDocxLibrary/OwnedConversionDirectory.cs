@@ -10,7 +10,8 @@ public sealed class OwnedConversionDirectory : IDisposable
     public static OwnedConversionDirectory Create(string parent)
     {
         string path1 = Path.GetFullPath(parent);
-        string toString = Guid.NewGuid().ToString("N");
+        string toString = Guid.NewGuid()
+            .ToString("N");
         string text = $"schedulelib-doc-{toString}";
         string path2 = (string) text;
         var path = Path.Combine(path1, path2);

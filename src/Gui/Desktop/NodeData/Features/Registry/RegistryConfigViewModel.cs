@@ -52,11 +52,14 @@ public sealed class RegistryConfigViewModel(
                     else
                     {
                         b1 = new();
-                        b1.Log().SetAll();
-                        b1.Process().SetAll();
+                        b1.Log()
+                            .SetAll();
+                        b1.Process()
+                            .SetAll();
                     }
 
-                    b1.DryRun().SetAll(value);
+                    b1.DryRun()
+                        .SetAll(value);
                     return b1.Build();
                 });
 
@@ -72,7 +75,8 @@ public sealed class RegistryConfigViewModel(
         services.ConfigurePropertySetDefaults(b =>
         {
             b.PropertiesWithType<CredentialsSource>(p => p.UseVm(ObservableCredentials.Id));
-            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials).UseVm(ObservableCredentials.Id));
+            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials)
+                .UseVm(ObservableCredentials.Id));
         });
 
         services.AddRegistry<IEquationCommandsDerivation>(opts =>
@@ -137,11 +141,14 @@ public sealed class RegistryConfigViewModel(
             else
             {
                 b = new();
-                b.Log().SetAll();
-                b.Process().SetAll();
+                b.Log()
+                    .SetAll();
+                b.Process()
+                    .SetAll();
             }
 
-            b.DryRun().SetAll(value ?? false);
+            b.DryRun()
+                .SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
         }
     }

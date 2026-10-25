@@ -337,7 +337,8 @@ public sealed class RegistryScrapingTests
         global::ScheduleLib.Parsing.GroupParser.GroupParseContext context2 = context;
         string s = $"IA25({alias})ru";
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context2, s);
-        result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!.AsMemory();
+        result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!
+            .AsMemory();
         Assert.True(result.IsWildcard);
         Assert.Null(result.GroupNumber);
         Assert.Equal(expected: 2, actual: result.Grade.Value);

@@ -22,7 +22,7 @@ public sealed class AuthenticationTests
         using var auth = fixture.Auth;
         var builder = auth.Login(Teacher, fixture.Services);
         Assert.Throws<InvalidOperationException>(() => { _ = builder.Execute(default); });
-        Assert.Equal(0, fixture.Tokens.Consents);
+        Assert.Equal(expected: 0, actual: fixture.Tokens.Consents);
     }
 
     [Fact]
@@ -227,7 +227,8 @@ public sealed class AuthenticationTests
             new TokenResponse { AccessToken = "cancelled" },
             cancelled.Token));
         Assert.Equal(expected: "old", actual: (await store.GetAsync<TokenResponse>(Teacher)).AccessToken);
-        var writes = Enumerable.Range(start: 0, count: 12).Select(i => store.Write(
+        var writes = Enumerable.Range(start: 0, count: 12)
+            .Select(i => store.Write(
             new TokenResponse { AccessToken = i.ToString() },
             default));
         await Task.WhenAll(writes);
@@ -273,7 +274,8 @@ public sealed class AuthenticationTests
             Console.SetOut(output);
             Assert.Equal(expected: 2, actual: await CliHost.Run(args));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode")
+                .GetInt32());
         }
         finally
         {
@@ -293,7 +295,8 @@ public sealed class AuthenticationTests
             Console.SetOut(output);
             Assert.Equal(expected: 3, actual: await CliHost.Run(["auth", verb, "google", "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Contains(expectedSubstring: "--profile", actualString: result.RootElement.GetProperty("errors")[0].GetString());
+            Assert.Contains(expectedSubstring: "--profile", actualString: result.RootElement.GetProperty("errors")[0]
+                .GetString());
         }
         finally
         {
@@ -315,8 +318,11 @@ public sealed class AuthenticationTests
                 actual: await CliHost.Run(
                     ["auth", "status", "google", "--profile", Teacher, "--project", fixture.Root, "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "auth status google", actual: result.RootElement.GetProperty("command").GetString());
-            Assert.Equal(expected: Teacher, actual: result.RootElement.GetProperty("data").GetProperty("profile").GetString());
+            Assert.Equal(expected: "auth status google", actual: result.RootElement.GetProperty("command")
+                .GetString());
+            Assert.Equal(expected: Teacher, actual: result.RootElement.GetProperty("data")
+                .GetProperty("profile")
+                .GetString());
             string[] CalculateCollection()
             {
                 string[] collection = Directory.GetFileSystemEntries(fixture.Root);
@@ -356,11 +362,13 @@ public sealed class AuthenticationTests
         {
             ["Google:ClientId"] = "configured-client",
             ["Google:ClientSecret"] = "configured-client-secret",
-        }).Build());
+        })
+            .Build());
         services.AddSingleton<IGoogleCredentialAuthorization>(_ => fixture.Auth);
         await using var container = services.BuildServiceProvider();
         await using var scope = container.CreateAsyncScope();
-        var config = settings.Get(GoogleCalendarConfig.Key)!.Credentials!.Build();
+        var config = settings.Get(GoogleCalendarConfig.Key)!.Credentials!
+            .Build();
         var resolver = scope.ServiceProvider.GetRequiredService<GoogleCredentialResolver>();
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() => resolver.Resolve(
             config,
@@ -405,8 +413,10 @@ public sealed class AuthenticationTests
                                 new() { Json = true },
                                 CalculateCancellationToken()));
             using var json = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "cancelled", actual: json.RootElement.GetProperty("status").GetString());
-            Assert.Equal(expected: 130, actual: json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: "cancelled", actual: json.RootElement.GetProperty("status")
+                .GetString());
+            Assert.Equal(expected: 130, actual: json.RootElement.GetProperty("exitCode")
+                .GetInt32());
             Assert.Equal(expected: JsonValueKind.Null, actual: json.RootElement.GetProperty("data").ValueKind);
         }
         finally
@@ -448,7 +458,8 @@ public sealed class AuthenticationTests
 
         private static string CalculatePath2()
         {
-            string toString = Guid.NewGuid().ToString("N");
+            string toString = Guid.NewGuid()
+                .ToString("N");
             string text = $"schedulelib-auth-{toString}";
             string path2 = (string) text;
             return path2;

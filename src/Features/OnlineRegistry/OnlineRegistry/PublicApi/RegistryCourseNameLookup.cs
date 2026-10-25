@@ -61,23 +61,36 @@ public static class RegistryCourseNameLookup
 
         var normalized = Normalize(parsed.Name);
         var candidates = lookup.LookupModule.Courses
-            .Select(course => (Name: Normalize(course.Key), Id: course.Value)).ToArray();
+            .Select(course => (Name: Normalize(course.Key), Id: course.Value))
+            .ToArray();
         var normalizedMatches = candidates.Where(course => course.Name == normalized)
-            .Select(course => course.Id).Distinct().ToArray();
+            .Select(course => course.Id)
+            .Distinct()
+            .ToArray();
         if (normalizedMatches.Length != 0)
         {
             return normalizedMatches.Length == 1 ? normalizedMatches[0] : null;
         }
 
-        bool conditionResult;
-        if (normalized.Length < 12)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (normalized.Length < 12)
+            {
+                return true;
+            }
+            else
+            {
+                if (maxDistance == 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = maxDistance == 0;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -109,7 +122,9 @@ public static class RegistryCourseNameLookup
 
             return CheckCondition();
         })
-            .Select(course => course.Id).Distinct().ToArray();
+            .Select(course => course.Id)
+            .Distinct()
+            .ToArray();
         return approximate.Length == 1 ? approximate[0] : null;
     }
 
@@ -134,7 +149,8 @@ public static class RegistryCourseNameLookup
 
     private static int Distance(string first, string second)
     {
-        var previous = Enumerable.Range(start: 0, count: second.Length + 1).ToArray();
+        var previous = Enumerable.Range(start: 0, count: second.Length + 1)
+            .ToArray();
         var current = new int[second.Length + 1];
         for (var i = 1; i <= first.Length; i++)
         {

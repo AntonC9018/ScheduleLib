@@ -12,10 +12,12 @@ public static class DefaultConfig
 {
     public static void AddDefaultConfig(this TreeBuilder b)
     {
-        b.BaseNode.GetOrAdd(ScheduleDerivationConfig.Key).SetValue(new() { AutoMergeLabSubGroups = false });
+        b.BaseNode.GetOrAdd(ScheduleDerivationConfig.Key)
+            .SetValue(new() { AutoMergeLabSubGroups = false });
         b.Defaults.Configure(defaults =>
         {
-            defaults.Registry().Configure(x =>
+            defaults.Registry()
+                .Configure(x =>
             {
                 x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                 x.CommandDerivation<AnyDayDerivation>();
@@ -23,25 +25,31 @@ public static class DefaultConfig
                 var f = CommandProcessingConfig.Process
                     .WithLog(LessonEquationCommandTypes.All);
                 x.ProcessingFlags(f);
-                x.Credentials().FromConfig();
-                x.Value().GroupMatchRules.Add(new()
-                {
-                    Faculty = "DJ",
-                    SubGroup = SpecialSubGroups.Eng.Value!,
-                    Language = Language.En,
-                    MatchByLanguage = true,
-                    AllowParentGroup = true,
-                });
+                x.Credentials()
+                    .FromConfig();
+                x.Value().GroupMatchRules
+                    .Add(new()
+                    {
+                        Faculty = "DJ",
+                        SubGroup = SpecialSubGroups.Eng.Value!,
+                        Language = Language.En,
+                        MatchByLanguage = true,
+                        AllowParentGroup = true,
+                    });
             });
 
-            defaults.LessonTopics().Manifest(topics =>
+            defaults.LessonTopics()
+                .Manifest(topics =>
             {
                 _ = topics;
             });
 
-            defaults.Moodle().Credentials().FromConfig();
+            defaults.Moodle()
+                .Credentials()
+                .FromConfig();
 
-            defaults.DeadlinesExcel().ConfigureValue(x =>
+            defaults.DeadlinesExcel()
+                .ConfigureValue(x =>
             {
                 x.BadColor = Color.Red;
                 x.GoodColor = Color.LightGreen;
@@ -57,18 +65,21 @@ public static class DefaultConfig
                 ApiKeysSource = new GlobalConfigurationApiKeysSource("Google"),
             };
 
-            defaults.GoogleDrive().ConfigureValue(x =>
+            defaults.GoogleDrive()
+                .ConfigureValue(x =>
             {
                 x.Credentials = credentials;
                 x.DriveFolderName = "orar";
             });
-            defaults.GoogleCalendar().ConfigureValue(x =>
+            defaults.GoogleCalendar()
+                .ConfigureValue(x =>
             {
                 x.Credentials = credentials;
                 x.CalendarName = "lessons";
             });
 
-            defaults.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>
+            defaults.Builder(RegistryLessonFilterConfig.Key)
+                .ConfigureValue(x =>
             {
                 // x.SkipAttendance = AttendanceMode.Zi;
             });
@@ -76,14 +87,16 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Curmanschii Anton", t =>
         {
-            t.LessonTopics().Configure(x =>
+            t.LessonTopics()
+                .Configure(x =>
             {
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);
                 x.FallbackProvider<NoNameProvider>(LessonType.Curs);
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
             });
 
-            t.LabTasks().ConfigureValue(x =>
+            t.LabTasks()
+                .ConfigureValue(x =>
             {
                 const string baseUrl = "https://github.com/AntonC9018/uniCourse_dataStructuresAndAlgorithms/blob/master/ru/labs/";
 
@@ -114,14 +127,17 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Iatasina Tamara", t =>
         {
-            t.Moodle().Remove();
-            t.LessonTopics().Configure(x =>
+            t.Moodle()
+                .Remove();
+            t.LessonTopics()
+                .Configure(x =>
             {
                 x.FallbackProvider<LabAutoNumberingNameProviderFactory>(LessonType.Lab);
                 x.FallbackProvider<NoNameProvider>(LessonType.Prelegere);
                 x.FallbackProvider<NoNameProvider>(LessonType.Curs);
             });
-            t.Builder(RegistryLessonFilterConfig.Key).ConfigureValue(x =>
+            t.Builder(RegistryLessonFilterConfig.Key)
+                .ConfigureValue(x =>
             {
                 x.SkipAttendance = AttendanceMode.FrecventaRedusa;
             });
@@ -129,11 +145,15 @@ public static class DefaultConfig
 
         b.Defaults.TeacherLayer("Nartea Nichita", t =>
         {
-            t.Moodle().Remove();
-            t.GoogleDrive().Remove();
-            t.Registry().ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
+            t.Moodle()
+                .Remove();
+            t.GoogleDrive()
+                .Remove();
+            t.Registry()
+                .ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
 
-            t.LessonTopics().Configure(x =>
+            t.LessonTopics()
+                .Configure(x =>
             {
                 x.FallbackProvider<NoNameProvider>(LessonType.Curs);
                 x.FallbackProvider<NoNameProvider>(LessonType.Lab);
@@ -143,7 +163,8 @@ public static class DefaultConfig
         foreach (var teacher in new[] { "Visnevschi Vlada", "Pugaci Diana", "Tretiacova Elizaveta", "Plesca Natalia" })
         {
             b.Defaults.TeacherLayer(teacher, t =>
-                t.Registry().ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone));
+                t.Registry()
+                    .ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone));
         }
     }
 }

@@ -25,22 +25,32 @@ public static partial class ScheduleBuilderHelper
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstWeeklyLesson, s.WeeklyLessons.Count);
         ArgumentOutOfRangeException.ThrowIfNegative(firstOneTimeLesson);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstOneTimeLesson, s.OneTimeLessons.Count);
-        bool conditionResult;
-        if (config is null)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
-        }
-        else
-        {
-            if (firstWeeklyLesson == s.WeeklyLessons.Count)
+            if (config is null)
             {
-                conditionResult = firstOneTimeLesson == s.OneTimeLessons.Count;
+                return true;
             }
             else
             {
-                conditionResult = false;
+                if (firstWeeklyLesson == s.WeeklyLessons.Count)
+                {
+                    if (firstOneTimeLesson == s.OneTimeLessons.Count)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
         }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -66,12 +76,18 @@ public static partial class ScheduleBuilderHelper
         {
             throw MissingImplicitSplitStudyYearException.ForNoGroupParseContext();
         }
-        if (studyYear is { } currentYear
-            && !s.GroupParseContextIsExplicit
-            && config.Scopes.Any(static scope => scope.StudyYear is not null)
-            && !config.Scopes.Any(scope => scope.StudyYear == currentYear))
+        if (studyYear is { } currentYear)
         {
-            throw MissingImplicitSplitStudyYearException.ForNoMatchingWallClockYear(currentYear);
+            if (!s.GroupParseContextIsExplicit)
+            {
+                if (config.Scopes.Any(static scope => scope.StudyYear is not null))
+                {
+                    if (!config.Scopes.Any(scope => scope.StudyYear == currentYear))
+                    {
+                        throw MissingImplicitSplitStudyYearException.ForNoMatchingWallClockYear(currentYear);
+                    }
+                }
+            }
         }
         // A null study year matches only year-less scopes (see ImplicitSplitScope.Matches).
 
@@ -136,15 +152,25 @@ public static partial class ScheduleBuilderHelper
                     ResolveSpecialization(scope, names, courseName, ref spec);
                     ResolveAlternative(scope, names, courseName, ref alt);
                 }
-                bool conditionResult;
-                if (spec is null)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = alt is null;
+                    if (spec is null)
+                    {
+                        if (alt is null)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {

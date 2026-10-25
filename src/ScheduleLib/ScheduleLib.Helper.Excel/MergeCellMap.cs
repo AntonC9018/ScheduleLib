@@ -17,7 +17,8 @@ public sealed class MergeCellMap
     {
         _cellWidths = new Dictionary<CellPosition, int>();
 
-        var mergeCells = worksheetPart.Worksheet.Elements<MergeCells>().FirstOrDefault();
+        var mergeCells = worksheetPart.Worksheet.Elements<MergeCells>()
+            .FirstOrDefault();
         if (mergeCells == null)
         {
             return;

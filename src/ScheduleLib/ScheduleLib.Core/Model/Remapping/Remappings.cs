@@ -33,7 +33,7 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
             var destination = value.Value;
             if (destination is null)
             {
-                throw new ArgumentException("The specialization must not be All.", nameof(value));
+                throw new ArgumentException(message: "The specialization must not be All.", paramName: nameof(value));
             }
             AddDestination(destination);
         }
@@ -43,7 +43,7 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
             var destination = value.Value;
             if (destination is null)
             {
-                throw new ArgumentException("The alternative must not be All.", nameof(value));
+                throw new ArgumentException(message: "The alternative must not be All.", paramName: nameof(value));
             }
             AddDestination(destination);
         }

@@ -113,7 +113,8 @@ public static class WebsiteJsonScheduleHelper
             }
 
             var day = dayGroup.Key;
-            var weekdayLabel = day.ToString().ToUpper();
+            var weekdayLabel = day.ToString()
+                .ToUpper();
 
             var daysDto = new ScheduleDaysDto
             {
@@ -159,7 +160,9 @@ public static class WebsiteJsonScheduleHelper
         var course = schedule.Get(firstLesson.Lesson.Course);
         listBuilder.Append(course.FullName);
 
-        var hasMixedParity = lessons.Select(l => l.Date.Parity).Distinct().Count() > 1;
+        var hasMixedParity = lessons.Select(l => l.Date.Parity)
+            .Distinct()
+            .Count() > 1;
 
         // Lesson type and details in parentheses
         {

@@ -140,7 +140,8 @@ public partial class RegistryCommands
                     ["Select a teacher with --profile. Use config profiles to list supported teachers."]);
             }
 
-            await using var session = await CreateProvider().Open(
+            await using var session = await CreateProvider()
+                .Open(
                 source,
                 settings,
                 cancellation.Token);
@@ -152,7 +153,8 @@ public partial class RegistryCommands
                 liveDiagnostics.Reported += StreamDiagnostic;
             }
 
-            await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply ? await CreateAccountLock()
+                .Acquire(target, cancellation.Token) : null;
             // The planner discovers a course's assignments before applying its groups in sequence.
             var stopped = false;
             if (cleanupIntakeLabs)
@@ -371,7 +373,8 @@ public partial class RegistryCommands
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status)
+                .ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,
@@ -379,7 +382,8 @@ public partial class RegistryCommands
                 total = outcomes.Count,
                 counts,
             };
-            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status}").ToArray();
+            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status}")
+                .ToArray();
             var data = new RegistrySyncResult(
                 target,
                 outcomes,

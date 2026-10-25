@@ -53,7 +53,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                 .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course))
                 .ToArray();
 
-            if (lessonsBySubgroup.GroupBy(x => x.Key.Course).Any(course => course.Count() > 1
+            if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
+                .Any(course => course.Count() > 1
                 && course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
             {
                 throw new NotImplementedException("Shared labs not implemented");
@@ -67,7 +68,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                 {
                     Lessons = l.Select(x => x.Id),
                     Semester = _studyYear.Value.Semester,
-                }).ToArray();
+                })
+                    .ToArray();
                 if (scheduledLessons.Length == 0)
                 {
                     continue;
@@ -201,7 +203,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                         int lastCellColumn3 = labCols;
                         var labsRange = iXLWorksheet2.Range(
                             firstCellRow: firstCellRow3, firstCellColumn: firstCellColumn3, lastCellRow: lastCellRow3, lastCellColumn: lastCellColumn3);
-                        foreach (var x in labsRange.Cells().WithIndex())
+                        foreach (var x in labsRange.Cells()
+                            .WithIndex())
                         {
                             var t = tasks[x.Index];
                             x.Item.SetValue(t.Name);

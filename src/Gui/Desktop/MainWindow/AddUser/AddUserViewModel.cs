@@ -79,7 +79,8 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            if (_tree.GetAllMarkers().Any(x => x.TeacherName == it.Name))
+            if (_tree.GetAllMarkers()
+                .Any(x => x.TeacherName == it.Name))
             {
                 return false;
             }
@@ -104,7 +105,8 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
         _updateTreeHelper.ExecTreeAction(() =>
         {
             var layer = _tree.Defaults.CreateUiLayer();
-            var val = layer.Builder<TeacherLayerConfig>().Value();
+            var val = layer.Builder<TeacherLayerConfig>()
+                .Value();
             val.TeacherName = name;
             return new([_tree.BaseNode, layer.Node]);
         });

@@ -94,7 +94,8 @@ public static class WordScheduleParser
 
         foreach (var table in tables)
         {
-            var rows = table.ChildElements.OfType<TableRow>().ToList();
+            var rows = table.ChildElements.OfType<TableRow>()
+                .ToList();
             // NOTE: has to be copyable, but also pass-by-reference.
             using var rowEnumerator = new CopyableRowEnumerator(rows.GetEnumerator());
             if (!rowEnumerator.MoveNext())
@@ -182,7 +183,8 @@ public static class WordScheduleParser
 
                                 {
                                     var group = state.CurrentGroups.GetEnumerator();
-                                    var newGroup = newGroupsArr.EnumerateWithPosition().GetEnumerator();
+                                    var newGroup = newGroupsArr.EnumerateWithPosition()
+                                        .GetEnumerator();
                                     while (true)
                                     {
                                         bool g = group.MoveNext();
@@ -391,7 +393,8 @@ public static class WordScheduleParser
 
                         // May be two paragraphs, may be one
                         {
-                            using var paragraphs = cell.Cell.ChildElements.OfType<Paragraph>().GetEnumerator();
+                            using var paragraphs = cell.Cell.ChildElements.OfType<Paragraph>()
+                                .GetEnumerator();
                             if (!paragraphs.MoveNext())
                             {
                                 throw new NotSupportedException("Invalid time slot cell");
@@ -569,7 +572,8 @@ public static class WordScheduleParser
         IEnumerator<TableCell>? cellEnumerator = null;
         try
         {
-            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+            cellEnumerator = rowEnumerator.Current.Cells()
+                .GetEnumerator();
             if (!cellEnumerator.MoveNext())
             {
                 throw new NotSupportedException("Empty table not supported");
@@ -663,7 +667,8 @@ public static class WordScheduleParser
             // Now make sure we skip the same size on the next row.
             rowEnumerator.MoveNext();
             cellEnumerator.Dispose();
-            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+            cellEnumerator = rowEnumerator.Current.Cells()
+                .GetEnumerator();
 
             if (!cellEnumerator.MoveNext())
             {

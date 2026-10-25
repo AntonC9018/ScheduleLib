@@ -75,7 +75,8 @@ public sealed class SettingsWriteTests
                 "RegistryConfig.courseNames",
                 "--profile",
                 "Visnevschi Vlada"));
-        Assert.Equal(expected: "Schedule course", actual: configured.RootElement.GetProperty("Registry course").GetString());
+        Assert.Equal(expected: "Schedule course", actual: configured.RootElement.GetProperty("Registry course")
+            .GetString());
         Assert.Empty(
             await files.Get(
                 "RegistryConfig.courseNames",
@@ -170,12 +171,17 @@ public sealed class SettingsWriteTests
         var result = await files.Get("LessonAttendanceConfig.sources");
         using var document = JsonDocument.Parse(result);
         var source = document.RootElement[0];
-        Assert.Equal(expected: 2, actual: source.GetProperty("studentNameColumn").GetInt32());
-        Assert.Equal(expected: "Date", actual: source.GetProperty("headerFormat").GetString());
-        Assert.Equal(expected: "ValidateAndBind", actual: source.GetProperty("dateMode").GetString());
+        Assert.Equal(expected: 2, actual: source.GetProperty("studentNameColumn")
+            .GetInt32());
+        Assert.Equal(expected: "Date", actual: source.GetProperty("headerFormat")
+            .GetString());
+        Assert.Equal(expected: "ValidateAndBind", actual: source.GetProperty("dateMode")
+            .GetString());
         Assert.Equal(
             expected: "Synthetic course IA2601 (lab)",
-            actual: source.GetProperty("worksheetNames").GetProperty("group shorthand").GetString());
+            actual: source.GetProperty("worksheetNames")
+                .GetProperty("group shorthand")
+                .GetString());
     }
 
     [Fact]
@@ -462,7 +468,8 @@ public sealed class SettingsWriteTests
             Assert.True(result.Exit == 0, CalculateUserMessage());
             Assert.Empty(result.Error);
             using var document = JsonDocument.Parse(result.Output);
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
         }
 
         public async Task<string> Get(string key, params string[] args)
@@ -472,7 +479,8 @@ public sealed class SettingsWriteTests
                 {
                     "get",
                     key,
-                }.Concat(args).ToArray());
+                }.Concat(args)
+                    .ToArray());
             string CalculateUserMessage()
             {
                 string text = $"{result.Output}{result.Error}";
@@ -482,14 +490,17 @@ public sealed class SettingsWriteTests
 
             Assert.True(result.Exit == 0, CalculateUserMessage());
             using var document = JsonDocument.Parse(result.Output);
-            return document.RootElement.GetProperty("data").GetProperty("value").ToString();
+            return document.RootElement.GetProperty("data")
+                .GetProperty("value")
+                .ToString();
         }
 
         public void Dispose() => Directory.Delete(Root, recursive: true);
 
         private static string CalculatePath2()
         {
-            string toString = Guid.NewGuid().ToString("N");
+            string toString = Guid.NewGuid()
+                .ToString("N");
             string text = $"schedulelib-writes-{toString}";
             string path2 = (string) text;
             return path2;

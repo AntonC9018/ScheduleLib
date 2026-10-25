@@ -64,7 +64,8 @@ public partial class QueryCommands
                 return Finish(CliExit.InvalidArguments, ["Group names must not be empty."]);
             }
 
-            var names = requested.Distinct(StringComparer.Ordinal).ToArray();
+            var names = requested.Distinct(StringComparer.Ordinal)
+                .ToArray();
             if (names.Length != requested.Length)
             {
                 warnings.Add("Repeated group names were reported once.");
@@ -81,14 +82,18 @@ public partial class QueryCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var known = schedule.EnumerateGroups().Select(x => x.Item.Name).ToArray();
-            var unknown = names.Where(name => !known.Contains(name, StringComparer.Ordinal)).ToArray();
+            var known = schedule.EnumerateGroups()
+                .Select(x => x.Item.Name)
+                .ToArray();
+            var unknown = names.Where(name => !known.Contains(name, StringComparer.Ordinal))
+                .ToArray();
             if (unknown.Length > 0)
             {
                 return Finish(CliExit.InvalidArguments, [UnknownGroups(unknown: unknown, known: known)]);
             }
 
-            var ambiguous = names.Where(name => known.Count(x => x == name) > 1).ToArray();
+            var ambiguous = names.Where(name => known.Count(x => x == name) > 1)
+                .ToArray();
             if (ambiguous.Length > 0)
             {
                 return Finish(
@@ -100,12 +105,14 @@ public partial class QueryCommands
             var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
             var sections = handler.Sections(names, cancellation.Token);
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            var resultSections = sections.Select(ToSection).ToArray();
+            var resultSections = sections.Select(ToSection)
+                .ToArray();
             var result = new FreeHoursResult(names, resultSections);
 
             FreeHoursSectionResult ToSection(FreeHoursSection section)
             {
-                var days = section.Days.Select(ToDay).ToArray();
+                var days = section.Days.Select(ToDay)
+                    .ToArray();
                 return new(
                     Group: section.Group,
                     Parity: section.Parity.ToString(),
@@ -115,14 +122,17 @@ public partial class QueryCommands
 
             FreeHoursDayResult ToDay(FreeHoursDay day)
             {
-                var intervals = day.Intervals.Select(ToInterval).ToArray();
+                var intervals = day.Intervals.Select(ToInterval)
+                    .ToArray();
                 return new(day.Day.ToString(), intervals);
             }
 
             FreeHoursIntervalResult ToInterval(FreeHoursInterval interval)
             {
-                var start = time.GetTimeSlotInterval(interval.Start).Start.ToString("HH:mm");
-                var end = time.GetTimeSlotInterval(interval.EndInclusive).End.ToString("HH:mm");
+                var start = time.GetTimeSlotInterval(interval.Start).Start
+                    .ToString("HH:mm");
+                var end = time.GetTimeSlotInterval(interval.EndInclusive).End
+                    .ToString("HH:mm");
                 return new(Start: start, End: end);
             }
 
@@ -142,8 +152,10 @@ public partial class QueryCommands
                         output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
                         foreach (var day in section.Days)
                         {
-                            output.WriteHuman(
-                                $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}");
+                            var cliOutput = output;
+                            string line = $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
+                            cliOutput.WriteHuman(
+line);
                         }
                     };
                 cliCommandContext.StreamItem(

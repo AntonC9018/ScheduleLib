@@ -34,15 +34,25 @@ internal static class CliRemoteFailure
         GoogleFailureMessages messages,
         bool partialBundle = false)
     {
-        bool conditionResult;
-        if (context.Cancellation.IsCancellationRequested)
+        bool CalculateConditionResult()
         {
-            conditionResult = error is OperationCanceledException or GooglePreSendTransportException;
+            if (context.Cancellation.IsCancellationRequested)
+            {
+                if (error is OperationCanceledException or GooglePreSendTransportException)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -52,15 +62,25 @@ internal static class CliRemoteFailure
         {
             return new(CliExit.AuthenticationRequired, [authentication.Message]);
         }
-        bool conditionResult2;
-        if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
+        bool CalculateConditionResult2()
         {
-            conditionResult2 = true;
+            if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
+            {
+                return true;
+            }
+            else
+            {
+                if (error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
-        else
-        {
-            conditionResult2 = error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized };
-        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
 
         if (conditionResult2)
         {

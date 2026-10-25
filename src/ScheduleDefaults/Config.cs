@@ -345,9 +345,22 @@ public static class Config
         {
             bool EqualFirstPart(ref TeacherBuilderModel.NameModel x, string first, string last)
             {
-                return (x.FirstName.Longer()[0] is { } l
-                    && new Word(l).Span.IsEitherShortForOther(new Word(first).Span.Shortened)
-                    && IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x.LastName[0], y: last));
+                if (!(x.FirstName.Longer()[0] is { } l))
+                {
+                    return false;
+                }
+
+                if (!(new Word(l).Span.IsEitherShortForOther(new Word(first).Span.Shortened)))
+                {
+                    return false;
+                }
+
+                if (!(IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x.LastName[0], y: last)))
+                {
+                    return false;
+                }
+
+                return true;
             }
 
             if (EqualFirstPart(ref x, first: "Maria", last: "Cristei"))

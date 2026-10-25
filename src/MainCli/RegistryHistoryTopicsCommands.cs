@@ -82,7 +82,8 @@ public partial class RegistryCommands
                     CliExit.InvalidArguments,
                     "Private history output requires a regular directory named .registry-history.");
             }
-            var analysis = await CreateHistoryTopicsProvider().DiscoverTopics(settings, cancellation.Token);
+            var analysis = await CreateHistoryTopicsProvider()
+                .DiscoverTopics(settings, cancellation.Token);
             var output = await outputDirectory.Save(
                 analysis,
                 cancellation.Token);

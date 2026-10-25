@@ -112,7 +112,8 @@ public static class AppTasks
             case AppTask.PullCurriculaFromOneDrive:
                 {
                     // TODO: Move to per-user config
-                    var conf = c.Services.GetRequiredService<IConfiguration>().GetMicrosoftGraphAuth();
+                    var conf = c.Services.GetRequiredService<IConfiguration>()
+                        .GetMicrosoftGraphAuth();
                     await CurriculaDownloadTasks.PullCurriculaToDisk(conf, c.CancellationToken);
                     break;
                 }

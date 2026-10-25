@@ -176,7 +176,10 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
-        var lecture = lab with { LessonType = LessonType.Curs };
+        var lecture = lab with
+        {
+            LessonType = LessonType.Curs,
+        };
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Ana"]), (lecture, ["Synthetic Ana"]));
         global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
@@ -202,7 +205,10 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
-        var lecture = lab with { LessonType = LessonType.Curs };
+        var lecture = lab with
+        {
+            LessonType = LessonType.Curs,
+        };
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"]));
         global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
@@ -221,7 +227,8 @@ public sealed class RegistryStudentCoverageTests
         global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(diagnostics, item => item.Kind == "attendance-students-not-in-registry");
         string actualString2 = single.Detail;
         Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
-        var unknown = diagnostics.Where(item => item.Kind == "unmatched-attendance-students").ToArray();
+        var unknown = diagnostics.Where(item => item.Kind == "unmatched-attendance-students")
+            .ToArray();
         Assert.Equal(expected: 2, actual: unknown.Length);
         Assert.Contains(unknown, item => item.Detail.Contains("for Curs", StringComparison.Ordinal));
         Assert.Contains(unknown, item => item.Detail.Contains("for Lab", StringComparison.Ordinal));
@@ -232,7 +239,10 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var lab = fixture.Key(fixture.First);
-        var lecture = lab with { LessonType = LessonType.Curs };
+        var lecture = lab with
+        {
+            LessonType = LessonType.Curs,
+        };
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((lab, ["Synthetic Boris"]), (lecture, ["Synthetic Ana"]));
         global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
@@ -253,8 +263,14 @@ public sealed class RegistryStudentCoverageTests
     public void EqualUnknownCountsForDifferentSubgroupsProduceSeparateDiagnostics()
     {
         var fixture = new Fixture();
-        var first = fixture.Key(fixture.First) with { GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All) };
-        var second = first with { GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All) };
+        var first = fixture.Key(fixture.First) with
+        {
+            GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All),
+        };
+        var second = first with
+        {
+            GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All),
+        };
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Boris"]));
         global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
@@ -268,7 +284,9 @@ public sealed class RegistryStudentCoverageTests
         global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> routedKeys3 = [second];
         global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.StudentsLookupKey> membershipKeys3 = [second];
         registryStudentCoverage2.Observe(students2, routedKeys: routedKeys3, membershipKeys: membershipKeys3);
-        var unknown = fixture.Report(coverage).Items.Where(item => item.Kind == "unmatched-attendance-students").ToArray();
+        var unknown = fixture.Report(coverage).Items
+            .Where(item => item.Kind == "unmatched-attendance-students")
+            .ToArray();
         Assert.Equal(expected: 2, actual: unknown.Length);
         Assert.Contains(unknown, item => item.Detail.Contains("(subgroup I)", StringComparison.Ordinal));
         Assert.Contains(unknown, item => item.Detail.Contains("(subgroup II)", StringComparison.Ordinal));
@@ -278,8 +296,14 @@ public sealed class RegistryStudentCoverageTests
     public void AnotherSubgroupCannotHideMissingEnrollment()
     {
         var fixture = new Fixture();
-        var first = fixture.Key(fixture.First) with { GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All) };
-        var second = first with { GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All) };
+        var first = fixture.Key(fixture.First) with
+        {
+            GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All),
+        };
+        var second = first with
+        {
+            GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All),
+        };
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = fixture.Attendance((first, ["Synthetic Ana"]), (second, ["Synthetic Ana"]));
         global::System.Collections.Generic.IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
@@ -343,7 +367,11 @@ public sealed class RegistryStudentCoverageTests
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
-    private static HtmlStudent[] Roster(params string[] names) => names.Select(name => new HtmlStudent(name, false)).ToArray();
+    private static HtmlStudent[] Roster(params string[] names)
+    {
+        return names.Select(name => new HtmlStudent(name, false))
+            .ToArray();
+    }
 
     private sealed class Fixture
     {
@@ -373,7 +401,8 @@ public sealed class RegistryStudentCoverageTests
                 var list = builder.List(source.Key);
                 foreach (var name in source.Names)
                 {
-                    list.Student(NameHelper.Parse(name)).Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
+                    list.Student(NameHelper.Parse(name))
+                        .Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
                 }
             }
             return builder.Build();

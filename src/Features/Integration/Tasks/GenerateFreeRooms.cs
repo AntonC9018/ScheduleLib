@@ -26,7 +26,8 @@ public sealed partial class GenerateFreeRoomsTaskHandler
     public async ValueTask Run(RunParams p)
     {
         var rooms = PreprocessedRooms(_schedule.EnumerateWeeklyLessons());
-        var allRooms = rooms.Distinct().ToHashSet();
+        var allRooms = rooms.Distinct()
+            .ToHashSet();
 
         await using var spreadsheet = await Spreadsheet.CreateNewAsync(
             p.OutputStream,

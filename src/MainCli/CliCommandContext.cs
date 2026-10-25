@@ -67,7 +67,8 @@ public sealed class CliCommandContext : IDisposable
         ResultArguments arguments,
         CancellationToken token)
     {
-        var runId = Guid.NewGuid().ToString("N");
+        var runId = Guid.NewGuid()
+            .ToString("N");
         Output = new CliOutput(
             command: command,
             runId: runId,
@@ -94,15 +95,20 @@ public sealed class CliCommandContext : IDisposable
 
     public bool Start()
     {
-        bool conditionResult;
-        if (Output.Json)
+        bool CalculateConditionResult()
         {
-            conditionResult = Output.Jsonl;
+            if (Output.Json)
+            {
+                return Output.Jsonl;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -121,15 +127,25 @@ public sealed class CliCommandContext : IDisposable
         bool partial = false,
         bool cancellation = true)
     {
-        bool conditionResult;
-        if (cancellation)
+        bool CalculateConditionResult()
         {
-            conditionResult = exit == CliExit.Cancelled;
+            if (cancellation)
+            {
+                if (exit == CliExit.Cancelled)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -139,15 +155,25 @@ public sealed class CliCommandContext : IDisposable
         {
             return success;
         }
-        bool conditionResult2;
-        if (partial)
+        bool CalculateConditionResult2()
         {
-            conditionResult2 = true;
+            if (partial)
+            {
+                return true;
+            }
+            else
+            {
+                if (exit == CliExit.Partial)
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
-        else
-        {
-            conditionResult2 = exit == CliExit.Partial;
-        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
 
         if (conditionResult2)
         {
@@ -316,22 +342,28 @@ public sealed class CliCommandContext : IDisposable
 
     public async Task<string[]> CompleteArtifacts(int exit)
     {
-        if (exit != CliExit.Success
-            && Artifacts is { } artifacts
-            && artifacts.PublishedPaths.Count > 0
-            && !artifacts.PublishedPaths.Contains(artifacts.ManifestPath))
+        if (exit != CliExit.Success)
         {
-            try
+            if (Artifacts is { } artifacts)
             {
-                await artifacts.Complete("partial", CancellationToken.None);
+                if (artifacts.PublishedPaths.Count > 0)
+                {
+                    if (!artifacts.PublishedPaths.Contains(artifacts.ManifestPath))
+                    {
+                        try
+                        {
+                            await artifacts.Complete("partial", CancellationToken.None);
+                        }
+                        catch (Exception error)
+                        {
+                            global::System.Collections.Generic.List<string> list = Warnings;
+                            string item = $"Could not publish partial output manifest: {error.Message}";
+                            list.Add(item);
+                        }
+                        StreamArtifacts();
+                    }
+                }
             }
-            catch (Exception error)
-            {
-                global::System.Collections.Generic.List<string> list = Warnings;
-                string item = $"Could not publish partial output manifest: {error.Message}";
-                list.Add(item);
-            }
-            StreamArtifacts();
         }
         return Artifacts?.PublishedPaths.ToArray() ?? [];
     }

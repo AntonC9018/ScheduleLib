@@ -49,7 +49,8 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         ScheduleLib.Scraping.Common.Credentials credentials;
         try
         {
-            credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>().Get();
+            credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>()
+                .Get();
             bool CheckCondition()
             {
                 if (credentials is null)
@@ -99,13 +100,14 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         using (context)
         {
             var quiz = await context.ScrapeQuizAttempts(quizId, cancellationToken: token);
-            return await services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>().Plan(new()
-            {
-                Quiz = quiz,
-                RegistryNavigator = configured.CreateNavigator(token),
-                Semester = services.GetCurrentSemester(),
-                CancellationToken = token,
-            });
+            return await services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>()
+                .Plan(new()
+                {
+                    Quiz = quiz,
+                    RegistryNavigator = configured.CreateNavigator(token),
+                    Semester = services.GetCurrentSemester(),
+                    CancellationToken = token,
+                });
         }
     }
 }

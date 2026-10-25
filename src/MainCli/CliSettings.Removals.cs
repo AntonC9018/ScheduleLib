@@ -73,7 +73,8 @@ public static partial class CliSettings
                     ["operation", "key", "item"],
                     file);
                 ValidateOperation(action, json);
-                if (isProfile && action["key"]!.GetValue<string>().Split('.')[0] == "ScheduleDerivationConfig")
+                if (isProfile && action["key"]!.GetValue<string>()
+                    .Split('.')[0] == "ScheduleDerivationConfig")
                 {
                     throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 }
@@ -111,7 +112,8 @@ public static partial class CliSettings
         var members = new List<PropertyInfo>();
         foreach (var part in parts.Skip(1))
         {
-            var property = json.GetTypeInfo(type).Properties.FirstOrDefault(x => x.Name == part);
+            var property = json.GetTypeInfo(type).Properties
+                .FirstOrDefault(x => x.Name == part);
             if (property?.AttributeProvider is not PropertyInfo member)
             {
                 throw new JsonException($"Unsupported operation key: {key}");
@@ -161,7 +163,18 @@ public static partial class CliSettings
             return;
         }
 
-        if (!list || operation is not ("remove" or "clear") || (operation == "remove") != hasItem)
+        if (!list)
+        {
+            throw new JsonException(
+                $"Unsupported {operation} operation for {key}; remove accepts a block or collection --item, clear accepts a collection.");
+        }
+
+        if (operation is not ("remove" or "clear"))
+        {
+            throw new JsonException(
+                $"Unsupported {operation} operation for {key}; remove accepts a block or collection --item, clear accepts a collection.");
+        }
+        if ((operation == "remove") != hasItem)
         {
             throw new JsonException(
                 $"Unsupported {operation} operation for {key}; remove accepts a block or collection --item, clear accepts a collection.");
@@ -281,7 +294,8 @@ public static partial class CliSettings
         object item,
         object value)
     {
-        return (bool) typeof(IEqualityComparer<>).MakeGenericType(element).GetMethod("Equals", [element, element])!
+        return (bool) typeof(IEqualityComparer<>).MakeGenericType(element)
+            .GetMethod("Equals", [element, element])!
             .Invoke(
                 comparer,
                 [item, value])!;
@@ -326,7 +340,8 @@ public static partial class CliSettings
         }
 
         typeof(CliSettings).GetMethod(nameof(AddTypedOperation), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(path.Block).Invoke(null, [node, action, path.Members, provider, json]);
+            .MakeGenericMethod(path.Block)
+            .Invoke(null, [node, action, path.Members, provider, json]);
     }
 
     private static void AddTypedOperation<T>(
@@ -338,7 +353,8 @@ public static partial class CliSettings
     {
         global::Anton.LayeredData.NodeDataKey<T> CalculateKey()
         {
-            string[] split = action["key"]!.GetValue<string>().Split('.');
+            string[] split = action["key"]!.GetValue<string>()
+                .Split('.');
             int int32 = 0;
             string value2 = split[int32];
             global::Anton.LayeredData.NodeDataKey value3 = new(value2);
@@ -377,7 +393,9 @@ public static partial class CliSettings
                 global::System.Type serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
                 var basic = iServiceProvider.GetRequiredService(
                     serviceType);
-                basic.GetType().GetMethod("Reset")!.Invoke(basic, [list]);
+                basic.GetType()
+                    .GetMethod("Reset")!
+                    .Invoke(basic, [list]);
             }
             else
             {
@@ -448,7 +466,8 @@ public static partial class CliSettings
             return;
         }
 
-        foreach (var action in actions.Cast<JsonObject>().ToArray())
+        foreach (var action in actions.Cast<JsonObject>()
+            .ToArray())
         {
             var actionKey = action["key"]!.GetValue<string>();
             bool conditionResult;

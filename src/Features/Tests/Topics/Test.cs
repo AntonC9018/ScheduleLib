@@ -42,7 +42,8 @@ public sealed class Test
             .Distinct();
 
         var teacherId = teachers.First();
-        var teacherName = schedule.Get(teacherId).PersonName.AsNameFields();
+        var teacherName = schedule.Get(teacherId).PersonName
+            .AsNameFields();
         global::ScheduleLib.Parsing.Name CalculateName()
         {
             global::ScheduleLib.Parsing.Name name = new Name(teacherName);

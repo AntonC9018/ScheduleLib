@@ -104,7 +104,8 @@ public static partial class ScheduleBuilderHelper
             .GroupBy(x => x.Value)
             .Select(x =>
             {
-                var names = x.Select(x1 => x1.Key).OrderByDescending(static a => a.Length);
+                var names = x.Select(x1 => x1.Key)
+                    .OrderByDescending(static a => a.Length);
                 return (x.Key, Names: names.ToImmutableArray());
             });
 

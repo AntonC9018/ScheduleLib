@@ -43,15 +43,25 @@ public static partial class CliSettings
             cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
-        bool conditionResult;
-        if (!unset)
+        bool CalculateConditionResult()
         {
-            conditionResult = operation is null;
+            if (!unset)
+            {
+                if (operation is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -125,7 +135,8 @@ public static partial class CliSettings
             cancellationToken);
         var exists = File.Exists(file);
         var envelope = exists
-            ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!.AsObject()
+            ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!
+                .AsObject()
             : new JsonObject { ["schemaVersion"] = 1 };
         var before = envelope.ToJsonString();
         if (action is not null)
@@ -174,7 +185,8 @@ public static partial class CliSettings
 
         return new(
             File: file,
-            Scope: scope.ToString().ToLowerInvariant(),
+            Scope: scope.ToString()
+                .ToLowerInvariant(),
             Profile: arguments.Profile,
             Key: key,
             changed);
@@ -224,7 +236,8 @@ public static partial class CliSettings
             value2 = new[]
             {
                 "defaults",
-            }.Concat(parts).ToArray();
+            }.Concat(parts)
+                .ToArray();
         }
         else
         {
@@ -232,7 +245,8 @@ public static partial class CliSettings
             {
                 "profiles",
                 profile,
-            }.Concat(parts).ToArray();
+            }.Concat(parts)
+                .ToArray();
         }
 
         var path = value2;
@@ -263,7 +277,8 @@ public static partial class CliSettings
             return;
         }
         current.Remove(path[^1]);
-        foreach (var parent in parents.AsEnumerable().Reverse())
+        foreach (var parent in parents.AsEnumerable()
+            .Reverse())
         {
             if (parent.Parent[parent.Key] is JsonObject { Count: 0 })
             {

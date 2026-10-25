@@ -15,7 +15,8 @@ public sealed class ScheduleDerivationConfig : INodeData<ScheduleDerivationConfi
     {
         services.AddConfigProvider(Key);
         services.RegisterBasicOperationsAndMergers<ScheduleDerivationConfig>();
-        services.AddOptions<ScheduleDerivationOptions>().Configure<TreeBuilder, IServiceProvider>((options, tree, provider) =>
+        services.AddOptions<ScheduleDerivationOptions>()
+            .Configure<TreeBuilder, IServiceProvider>((options, tree, provider) =>
             options.AutoMergeLabSubGroups = new NodePath([tree.BaseNode])
                 .ConstructValue(Key, provider)?.AutoMergeLabSubGroups ?? false);
     }

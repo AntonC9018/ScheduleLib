@@ -64,8 +64,21 @@ public readonly record struct CourseLabTasksBuilder(
 public readonly ref struct OptionBuilder(ref Option value)
 {
     private readonly ref Option _value = ref value;
-    public void Language(Language lang) => _value = _value with { Language = lang };
-    public void Type(string type) => _value = _value with { Type = type };
+    public void Language(Language lang)
+    {
+        _value = _value with
+        {
+            Language = lang,
+        };
+    }
+
+    public void Type(string type)
+    {
+        _value = _value with
+        {
+            Type = type,
+        };
+    }
 }
 
 public static class LabTasksBuilderExtensions
@@ -114,7 +127,8 @@ public static class LabTasksBuilderExtensions
         }
         public CourseOptionLabTasksBuilder CourseDefault(string name)
         {
-            return c.Course(name).Default();
+            return c.Course(name)
+                .Default();
         }
     }
 }

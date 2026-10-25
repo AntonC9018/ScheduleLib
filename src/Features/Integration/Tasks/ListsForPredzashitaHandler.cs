@@ -105,10 +105,12 @@ public sealed partial class ListsForPredzashitaTaskHandler
         return (_options.Commissions ?? Commissions).Select(x =>
             new Commission<Name>
             {
-                Members = x.Members.Select((y, index) => ParseCommissionMember(commissionNumber: x.Number, memberNumber: index + 1, y.Name)).ToArray(),
+                Members = x.Members.Select((y, index) => ParseCommissionMember(commissionNumber: x.Number, memberNumber: index + 1, y.Name))
+                    .ToArray(),
                 Number = x.Number,
                 Room = x.Room,
-            }).ToArray();
+            })
+            .ToArray();
     }
 
     private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)

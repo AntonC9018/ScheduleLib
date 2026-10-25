@@ -59,38 +59,44 @@ internal static class CliConfigExecution
         var status = CliCommandContext.Status(exit);
         var jsonStatus = CliCommandContext.Status(exit, cancellation: false);
 
-        if (exit == CliExit.Success && verb == "profiles" && data is IReadOnlyList<string> profiles)
+        if (exit == CliExit.Success)
         {
-            for (var index = 0; index < profiles.Count; index++)
+            if (verb == "profiles")
             {
-                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string status2 = "completed";
-                object item = new { profile = profiles[index] };
-                cliOutput.EmitItem(
-                    id: id2, status: status2, item);
-            }
-
-            return context.Finish(new CliCompletion<T>(
-                exit,
-                errors,
-                data)
-            {
-                Summary = new { profileCount = profiles.Count },
-                Status = status,
-                JsonStatus = jsonStatus,
-                RenderHuman = _ =>
+                if (data is IReadOnlyList<string> profiles)
                 {
-                    foreach (var profile in profiles)
+                    for (var index = 0; index < profiles.Count; index++)
                     {
-                        cli.WriteHuman(profile);
+                        global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                        string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        string status2 = "completed";
+                        object item = new { profile = profiles[index] };
+                        cliOutput.EmitItem(
+                            id: id2, status: status2, item);
                     }
 
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"succeeded: {profiles.Count} profiles.";
-                    cliOutput.WriteHuman(line);
-                },
-            });
+                    return context.Finish(new CliCompletion<T>(
+                        exit,
+                        errors,
+                        data)
+                    {
+                        Summary = new { profileCount = profiles.Count },
+                        Status = status,
+                        JsonStatus = jsonStatus,
+                        RenderHuman = _ =>
+                        {
+                            foreach (var profile in profiles)
+                            {
+                                cli.WriteHuman(profile);
+                            }
+
+                            global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                            string line = $"succeeded: {profiles.Count} profiles.";
+                            cliOutput.WriteHuman(line);
+                        },
+                    });
+                }
+            }
         }
 
         return context.Finish(new CliCompletion<T>(

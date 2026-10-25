@@ -184,7 +184,8 @@ public sealed class GroupPdfTests
         lessonBuilder2.Alternative(alternative);
 
         var schedule = builder.Build();
-        var accessor = schedule.EnumerateAllLessons().Single();
+        var accessor = schedule.EnumerateAllLessons()
+            .Single();
 
         var services = new LessonTextDisplayHandler.Services(
             new SubGroupNumberDisplayHandler(),
@@ -211,15 +212,25 @@ public sealed class GroupPdfTests
         public string BoldPrefix = "";
         public void Span(string str, bool isBold = false)
         {
-            bool conditionResult;
-            if (isBold)
+            bool CalculateConditionResult()
             {
-                conditionResult = BoldPrefix == "";
+                if (isBold)
+                {
+                    if (BoldPrefix == "")
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

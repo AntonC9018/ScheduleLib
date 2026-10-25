@@ -163,7 +163,8 @@ public sealed class RegistryGradePreflightTests
         await services.InitializeSchedule(default);
         await using var scope = services.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First(x =>
+        var lesson = schedule.EnumerateWeeklyLessons()
+            .First(x =>
             schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         using var cancellation = new CancellationTokenSource();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -191,22 +192,32 @@ public sealed class RegistryGradePreflightTests
             {
                 bool CheckCondition()
                 {
-                    bool conditionResult;
-                    if (defect == "lost-first")
+                    bool CalculateConditionResult()
                     {
-                        conditionResult = true;
-                    }
-                    else
-                    {
-                        if (defect == "lost-later")
+                        if (defect == "lost-first")
                         {
-                            conditionResult = number == 2;
+                            return true;
                         }
                         else
                         {
-                            conditionResult = false;
+                            if (defect == "lost-later")
+                            {
+                                if (number == 2)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     }
+
+                    bool conditionResult = CalculateConditionResult();
+
 
                     if (conditionResult)
                     {
@@ -223,22 +234,32 @@ public sealed class RegistryGradePreflightTests
 
                 bool CheckCondition2()
                 {
-                    bool conditionResult2;
-                    if (defect == "cancel-first")
+                    bool CalculateConditionResult2()
                     {
-                        conditionResult2 = true;
-                    }
-                    else
-                    {
-                        if (defect == "cancel-later")
+                        if (defect == "cancel-first")
                         {
-                            conditionResult2 = number == 2;
+                            return true;
                         }
                         else
                         {
-                            conditionResult2 = false;
+                            if (defect == "cancel-later")
+                            {
+                                if (number == 2)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     }
+
+                    bool conditionResult2 = CalculateConditionResult2();
+
 
                     if (conditionResult2)
                     {
@@ -259,9 +280,19 @@ public sealed class RegistryGradePreflightTests
             var extra = number == invalidForm && defect == "duplicate"
                 ? "<input type='text' name='grade[1]' value='5'>"
                 : "";
+            string CalculateText()
+            {
+                if (number == 1)
+                {
+                    return "Popescu Ion";
+                }
+
+                return "Ionescu Ana";
+            }
+
             return Task.FromResult(
-                Response(
-                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{(number == 1 ? "Popescu Ion" : "Ionescu Ana")}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
+                            Response(
+                                $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{(CalculateText())}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -291,7 +322,8 @@ public sealed class RegistryGradePreflightTests
                 $"Anul {schedule.Get(lesson.Lesson.Groups[0]).Grade.Value}",
                 schedule.Get(lesson.Lesson.Course).FullName,
                 "Atestare 1",
-            }.Select(x => (Name: x, Href: (string?) null)).ToList(),
+            }.Select(x => (Name: x, Href: (string?) null))
+                .ToList(),
             Attempts =
             [
                 new()
@@ -353,14 +385,34 @@ public sealed class RegistryGradePreflightTests
             Assert.True(session.Disposed);
             using var result = JsonDocument.Parse(output.ToString());
             var root = result.RootElement;
-            Assert.Equal(expected: exit, actual: root.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: exit, actual: root.GetProperty("exitCode")
+                .GetInt32());
+            string CalculateExpected()
+            {
+                if (exit == 130)
+                {
+                    return "cancelled";
+                }
+
+                if (posts == 0)
+                {
+                    return "failed";
+                }
+
+                return "partial";
+            }
+
             Assert.Equal(
-                expected: exit == 130 ? "cancelled" : posts == 0 ? "failed" : "partial",
-                actual: root.GetProperty("status").GetString());
+                            expected: CalculateExpected(),
+                            actual: root.GetProperty("status")
+                                .GetString());
             Assert.Equal(
                 expected: statuses,
-                actual: root.GetProperty("data").GetProperty("outcomes").EnumerateArray()
-                    .Select(x => x.GetProperty("status").GetString()));
+                actual: root.GetProperty("data")
+                    .GetProperty("outcomes")
+                    .EnumerateArray()
+                    .Select(x => x.GetProperty("status")
+                        .GetString()));
             if (invalidForm != 0)
             {
                 Assert.Equal(expected: invalidForm, actual: navigator.Documents.Count);
@@ -400,7 +452,8 @@ public sealed class RegistryGradePreflightTests
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
             return Task.FromResult<IEnumerable<GroupLink>>(
-                Enumerable.Range(start: 1, count: 2).Select(i =>
+                Enumerable.Range(start: 1, count: 2)
+                    .Select(i =>
                 {
                     global::System.Uri CalculateUri()
                     {
@@ -472,8 +525,23 @@ public sealed class RegistryGradePreflightTests
             Assert.Equal(expected: 2, actual: plan.Actions.Count);
             if (defect.StartsWith("mutate", StringComparison.Ordinal))
             {
-                navigator.Documents[defect == "mutate-first" ? 0 : 1].QuerySelector<IHtmlInputElement>("input")!
-                    .RemoveAttribute("name");
+                var list = navigator.Documents;
+                int index;
+                if (defect == "mutate-first")
+                {
+                    index = 0;
+                }
+                else
+                {
+                    index = 1;
+                }
+
+                var iDocument = list[index];
+                string selectors = "input";
+                var querySelector = iDocument.QuerySelector<IHtmlInputElement>(selectors);
+                var iHtmlInputElement = querySelector!;
+                string name = "name";
+                iHtmlInputElement.RemoveAttribute(name);
             }
 
             return plan;

@@ -13,7 +13,10 @@ public sealed class RegistryAssessmentTests
     [InlineData(true)]
     public void LineEndingNormalizationDoesNotCauseRepeatedTopicUpdates(bool changedText)
     {
-        var lesson = Lessons()[0] with { Topic = "First line\nSecond line" };
+        var lesson = Lessons()[0] with
+        {
+            Topic = "First line\nSecond line",
+        };
         global::ScheduleLib.OnlineRegistry.LessonInstance lesson2 = lesson;
         string topic;
         if (changedText)
@@ -58,10 +61,12 @@ public sealed class RegistryAssessmentTests
     [Fact]
     public void SharedDestinationUsesIndependentParentTopicSequences()
     {
-        var lessons = Lessons().Select((lesson, index) => lesson with
-        {
-            LessonId = new WeeklyLessonId(index).AsAny(),
-        }).ToArray();
+        var lessons = Lessons()
+            .Select((lesson, index) => lesson with
+            {
+                LessonId = new WeeklyLessonId(index).AsAny(),
+            })
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, [], [], Topic,
             lesson => [new GroupId(lesson.LessonId.Id % 2)]);
         Assert.Equal(expected: new[] { "Topic 1", "Topic 1", "Topic 2", "Topic 2" }, actual: result.Local.Select(lesson => lesson.Topic));
@@ -70,10 +75,12 @@ public sealed class RegistryAssessmentTests
     [Fact]
     public void AssessmentCompactsOnlyItsParentSequence()
     {
-        var lessons = Lessons().Select((lesson, index) => lesson with
-        {
-            LessonId = new WeeklyLessonId(index).AsAny(),
-        }).ToArray();
+        var lessons = Lessons()
+            .Select((lesson, index) => lesson with
+            {
+                LessonId = new WeeklyLessonId(index).AsAny(),
+            })
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, [Remote(lessons[1], "Atestare 1")], [], Topic,
             lesson => [new GroupId(lesson.LessonId.Id % 2)]);
         Assert.Equal(expected: new[] { "Topic 1", "Atestare 1", "Topic 2", "Topic 1" }, actual: result.Local.Select(lesson => lesson.Topic));
@@ -83,10 +90,12 @@ public sealed class RegistryAssessmentTests
     [Fact]
     public void SharedAudienceOrderDoesNotSplitItsTopicSequence()
     {
-        var lessons = Lessons().Select((lesson, index) => lesson with
-        {
-            LessonId = new WeeklyLessonId(index).AsAny(),
-        }).ToArray();
+        var lessons = Lessons()
+            .Select((lesson, index) => lesson with
+            {
+                LessonId = new WeeklyLessonId(index).AsAny(),
+            })
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, [], [], Topic, lesson => lesson.LessonId.Id switch
         {
             0 => [new GroupId(1), new GroupId(0)],
@@ -100,10 +109,12 @@ public sealed class RegistryAssessmentTests
     [Fact]
     public void ExistingRegistryFallbackRetainsDestinationOrderAcrossParents()
     {
-        var lessons = Lessons().Select((lesson, index) => lesson with
-        {
-            LessonId = new WeeklyLessonId(index).AsAny(),
-        }).ToArray();
+        var lessons = Lessons()
+            .Select((lesson, index) => lesson with
+            {
+                LessonId = new WeeklyLessonId(index).AsAny(),
+            })
+            .ToArray();
         global::ScheduleLib.OnlineRegistry.RemoteLessonInstance ProjectValue(global::ScheduleLib.OnlineRegistry.LessonInstance lesson, int index)
         {
             global::ScheduleLib.OnlineRegistry.LessonInstance operationValue = lesson;
@@ -122,7 +133,8 @@ public sealed class RegistryAssessmentTests
             return operationValue4;
         }
 
-        var remote = lessons.Select(ProjectValue).ToArray();
+        var remote = lessons.Select(ProjectValue)
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[3])], (_, _) => null,
             lesson => [new GroupId(lesson.LessonId.Id % 2)]);
         Assert.Equal(expected: new[] { "Existing topic 1", "Existing topic 2", "Existing topic 3", "Atestare 1" },
@@ -137,7 +149,8 @@ public sealed class RegistryAssessmentTests
         var result = RegistryAssessments.Arrange(lessons, [assessment], [], Topic);
         Assert.Equal(expected: new[] { "Topic 1", "Atestare 1", "Topic 2", "Topic 3" }, actual: result.Local.Select(x => x.Topic));
         Assert.Equal(expected: lessons.Select(x => x.Attendance), actual: result.Local.Select(x => x.Attendance));
-        var rerun = RegistryAssessments.Arrange(result.Local.ToArray(), result.Local.Select(x => Remote(x, x.Topic!)).ToArray(), [], Topic);
+        var rerun = RegistryAssessments.Arrange(result.Local.ToArray(), result.Local.Select(x => Remote(x, x.Topic!))
+            .ToArray(), [], Topic);
         Assert.Equal(expected: result.Local, actual: rerun.Local);
     }
 
@@ -150,7 +163,8 @@ public sealed class RegistryAssessmentTests
             [Rule(lessons[2], lessons[3])], Topic);
         Assert.Equal(expected: new[] { "Topic 1", "Topic 2", "Atestare 1", "Atestare 2" }, actual: result.Local.Select(x => x.Topic));
         Assert.Equal(expected: lessons.Select(x => x.DateTime), actual: result.Local.Select(x => x.DateTime));
-        var rerun = RegistryAssessments.Arrange(result.Local.ToArray(), result.Local.Select(x => Remote(x, x.Topic!)).ToArray(),
+        var rerun = RegistryAssessments.Arrange(result.Local.ToArray(), result.Local.Select(x => Remote(x, x.Topic!))
+            .ToArray(),
             [Rule(lessons[2], lessons[3])], Topic);
         Assert.Equal(expected: result.Local, actual: rerun.Local);
     }
@@ -159,7 +173,10 @@ public sealed class RegistryAssessmentTests
     public void ExistingAssessmentOutsideTimetableIsProtectedFromDeletion()
     {
         var lessons = Lessons();
-        var remote = Remote(lessons[0] with { DateTime = lessons[0].DateTime.AddDays(-7) }, "Atestare");
+        var remote = Remote(lessons[0] with
+        {
+            DateTime = lessons[0].DateTime.AddDays(-7),
+        }, "Atestare");
         var result = RegistryAssessments.Arrange(lessons, [remote], [], Topic);
         Assert.Empty(result.Remote);
         Assert.Equal(expected: "Topic 1", actual: result.Local[0].Topic);
@@ -170,7 +187,10 @@ public sealed class RegistryAssessmentTests
     {
         var lessons = Lessons();
         Assert.Throws<InvalidOperationException>(() => RegistryAssessments.Arrange(lessons, [],
-            [Rule(lessons[0] with { DateTime = lessons[0].DateTime.AddDays(1) })], Topic));
+            [Rule(lessons[0] with
+            {
+            DateTime = lessons[0].DateTime.AddDays(1),
+            })], Topic));
         Assert.Throws<InvalidOperationException>(() => RegistryAssessments.Arrange(lessons, [],
             [Rule(lessons[0], lessons[0])], Topic));
     }
@@ -179,7 +199,10 @@ public sealed class RegistryAssessmentTests
     public void OtherLessonTypesKeepTheirOwnTopicSequence()
     {
         var lessons = Lessons();
-        lessons[2] = lessons[2] with { RegistryLessonType = LessonType.Lab };
+        lessons[2] = lessons[2] with
+        {
+            RegistryLessonType = LessonType.Lab,
+        };
         var result = RegistryAssessments.Arrange(lessons, [Remote(lessons[1], "Atestare")], [], Topic);
         Assert.Equal(expected: new[] { "Topic 1", "Atestare", "Topic 1", "Topic 2" }, actual: result.Local.Select(x => x.Topic));
     }
@@ -224,7 +247,8 @@ public sealed class RegistryAssessmentTests
             return operationValue6;
         }
 
-        var remote = lessons.Select(ProjectValue).ToArray();
+        var remote = lessons.Select(ProjectValue)
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[2], lessons[3])], Topic);
         var schedule = new ScheduleBuilder().Build();
         var derivation = new SameDayDerivation();
@@ -234,7 +258,8 @@ public sealed class RegistryAssessmentTests
         var commands = deriveCommands.ToArray();
         Assert.Equal(expected: 4, actual: commands.Length);
         Assert.All(commands, command => Assert.Equal(expected: LessonEquationCommandType.Update, actual: command.Type));
-        var rerun = RegistryAssessments.Arrange(Lessons(), result.Local.Select(lesson => Remote(lesson, lesson.Topic!)).ToArray(),
+        var rerun = RegistryAssessments.Arrange(Lessons(), result.Local.Select(lesson => Remote(lesson, lesson.Topic!))
+            .ToArray(),
             [Rule(lessons[2], lessons[3])], Topic);
         global::ScheduleLib.OnlineRegistry.Impl.SameDayDerivation sameDayDerivation2 = derivation;
         global::ScheduleLib.OnlineRegistry.GetLessonEquationCommandsParams p2 = new(schedule, rerun.Remote, rerun.Local);
@@ -271,7 +296,9 @@ public sealed class RegistryAssessmentTests
             return partition;
         }
 
-        Assert.Empty(RegistryAssessments.Find(rules, schedule, course, [group], CalculatePartition()));
+        var collection9 = RegistryAssessments.Find(rules, schedule, course, [group], CalculatePartition());
+        System.Collections.IEnumerable collection10 = collection9;
+        Assert.Empty(collection10);
         var alternativeRule = Rule(Lessons()[0]);
         alternativeRule.Alternative = "Synthetic elective";
         global::ScheduleLib.GroupPartitionKey CalculatePartition2()
@@ -283,8 +310,10 @@ public sealed class RegistryAssessmentTests
             return partition2;
         }
 
-        Assert.Single(RegistryAssessments.Find([alternativeRule], schedule, course, [group],
-                    CalculatePartition2()));
+        var collection11 = RegistryAssessments.Find([alternativeRule], schedule, course, [group],
+                    CalculatePartition2());
+        IEnumerable<RegistryAssessmentRule> collection12 = collection11;
+        Assert.Single(collection12);
         global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryAssessmentRule> collection7 = RegistryAssessments.Find([alternativeRule], schedule, course, [group], GroupPartitionKey.All);
         global::System.Collections.IEnumerable collection8 = collection7;
         Assert.Empty(collection8);
@@ -312,7 +341,8 @@ public sealed class RegistryAssessmentTests
             return operationValue4;
         }
 
-        var remote = lessons.Select(ProjectValue).ToArray();
+        var remote = lessons.Select(ProjectValue)
+            .ToArray();
         var result = RegistryAssessments.Arrange(lessons, remote, [Rule(lessons[3])], (_, _) => null);
         Assert.Equal(expected: new[] { "Existing topic 1", "Existing topic 2", "Existing topic 3", "Atestare 1" }, actual: result.Local.Select(x => x.Topic));
     }
@@ -321,8 +351,15 @@ public sealed class RegistryAssessmentTests
     public void AssessmentWithMissingTypeUsesItsExactScheduledTime()
     {
         var lessons = Lessons();
-        lessons[2] = lessons[2] with { DateTime = lessons[1].DateTime.AddHours(2), RegistryLessonType = LessonType.Lab };
-        var remote = Remote(lessons[1], "Atestare 1") with { LessonType = LessonType.Unspecified };
+        lessons[2] = lessons[2] with
+        {
+            DateTime = lessons[1].DateTime.AddHours(2),
+            RegistryLessonType = LessonType.Lab,
+        };
+        var remote = Remote(lessons[1], "Atestare 1") with
+        {
+            LessonType = LessonType.Unspecified,
+        };
         var result = RegistryAssessments.Arrange(lessons, [remote], [], Topic);
         Assert.Equal(expected: "Atestare 1", actual: result.Local[1].Topic);
         Assert.Equal(expected: "Topic 1", actual: result.Local[2].Topic);
@@ -336,20 +373,23 @@ public sealed class RegistryAssessmentTests
             Course = "Synthetic course",
             Group = "IA2601",
             LessonType = LessonType.Curs,
-            Dates = lessons.Select(x => DateOnly.FromDateTime(x.DateTime)).ToList(),
+            Dates = lessons.Select(x => DateOnly.FromDateTime(x.DateTime))
+                .ToList(),
         };
     }
 
     private static LessonInstance[] Lessons()
     {
-        return Enumerable.Range(start: 0, count: 4).Select(index => new LessonInstance
-        {
-            LessonId = default,
-            DateTime = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 45, second: 0).AddDays(index * 7),
-            Topic = null,
-            Attendance = [Attendance.Present],
-            RegistryLessonType = LessonType.Curs,
-        }).ToArray();
+        return Enumerable.Range(start: 0, count: 4)
+            .Select(index => new LessonInstance
+            {
+                LessonId = default,
+                DateTime = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 45, second: 0).AddDays(index * 7),
+                Topic = null,
+                Attendance = [Attendance.Present],
+                RegistryLessonType = LessonType.Curs,
+            })
+            .ToArray();
     }
 
     private static RemoteLessonInstance Remote(LessonInstance lesson, string topic)

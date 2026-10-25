@@ -296,11 +296,13 @@ public static class MoodlePathParser
 
     private static QualificationType? ParseQualificationType(string text)
     {
-        if (text.AsSpan().StartsWith("Licen", StringComparison.OrdinalIgnoreCase))
+        if (text.AsSpan()
+            .StartsWith("Licen", StringComparison.OrdinalIgnoreCase))
         {
             return QualificationType.Licenta;
         }
-        if (text.AsSpan().StartsWith("Master", StringComparison.OrdinalIgnoreCase))
+        if (text.AsSpan()
+            .StartsWith("Master", StringComparison.OrdinalIgnoreCase))
         {
             return QualificationType.Master;
         }

@@ -148,7 +148,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
             {
                 await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
                 {
-                    await service.Events.Insert(ev, calendarId).ExecuteAsync(token);
+                    await service.Events.Insert(ev, calendarId)
+                        .ExecuteAsync(token);
                 });
             });
         }
@@ -222,7 +223,8 @@ internal static class GoogleCalendarServiceExtensions
         {
             try
             {
-                var response = await service.CalendarList.Get(calendarName).ExecuteAsync(cancellationToken);
+                var response = await service.CalendarList.Get(calendarName)
+                    .ExecuteAsync(cancellationToken);
                 _ = response;
                 return true;
             }
@@ -240,19 +242,22 @@ internal static class GoogleCalendarServiceExtensions
     {
         var calendars = await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
         {
-            var calendars = await service.CalendarList.List().ExecuteAsync(cancellationToken);
+            var calendars = await service.CalendarList.List()
+                .ExecuteAsync(cancellationToken);
             return calendars;
         });
         if (calendars.Items.FirstOrDefault(x => x.Summary == calendar.Summary) is { } c)
         {
             await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
             {
-                await service.Calendars.Delete(c.Id).ExecuteAsync(cancellationToken);
+                await service.Calendars.Delete(c.Id)
+                    .ExecuteAsync(cancellationToken);
             });
         }
         return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
         {
-            var result = await service.Calendars.Insert(calendar).ExecuteAsync(cancellationToken);
+            var result = await service.Calendars.Insert(calendar)
+                .ExecuteAsync(cancellationToken);
             return result.Id;
         });
     }

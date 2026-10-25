@@ -193,7 +193,8 @@ public sealed class SpecializationRegistryBuilder()
 
     private ImmutableArray<Specialization> Intern(ReadOnlySpan<Specialization> values)
     {
-        var key = string.Join("|", values.ToArray().Select(x => x.Value));
+        var key = string.Join("|", values.ToArray()
+            .Select(x => x.Value));
         if (_sets.TryGetValue(key, out var set))
         {
             return set;

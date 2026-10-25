@@ -44,7 +44,12 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         public Action<string>? ReportOmission { get; init; }
     }
 
-    public void Run(RunParams p) => RunAsync(p).GetAwaiter().GetResult();
+    public void Run(RunParams p)
+    {
+        RunAsync(p)
+            .GetAwaiter()
+            .GetResult();
+    }
 
     public async Task RunAsync(RunParams p)
     {

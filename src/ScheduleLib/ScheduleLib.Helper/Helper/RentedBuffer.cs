@@ -74,7 +74,8 @@ public static class RentedEnumerableExtensions
                     if (written == arr.Length)
                     {
                         var bigger = ArrayPool<T>.Shared.Rent(arr.Length * 2);
-                        arr.AsSpan(start: 0, length: written).CopyTo(bigger);
+                        arr.AsSpan(start: 0, length: written)
+                            .CopyTo(bigger);
                         ArrayPool<T>.Shared.Return(arr);
                         arr = bigger;
                     }

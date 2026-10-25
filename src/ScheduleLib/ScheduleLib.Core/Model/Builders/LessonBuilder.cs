@@ -688,9 +688,24 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            if (a.Group.SubGroup != b.Group.SubGroup
-                || a.Group.Specialization != b.Group.Specialization
-                || a.Group.Alternative != b.Group.Alternative)
+            bool conditionResult;
+            if (a.Group.SubGroup != b.Group.SubGroup)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                if (a.Group.Specialization != b.Group.Specialization)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    conditionResult = a.Group.Alternative != b.Group.Alternative;
+                }
+            }
+
+            if (conditionResult)
             {
                 ret.SubGroup = true;
             }

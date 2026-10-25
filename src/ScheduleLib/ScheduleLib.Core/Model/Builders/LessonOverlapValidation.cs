@@ -142,7 +142,24 @@ public static partial class ScheduleBuilderHelper
     }
 
     private static bool ValuesIntersect(string? a, string? b)
-        => a is null || b is null || a == b;
+    {
+        if (a is null)
+        {
+            return true;
+        }
+
+        if (b is null)
+        {
+            return true;
+        }
+
+        if (a == b)
+        {
+            return true;
+        }
+
+        return false;
+    }
 
     private static bool Intersects(SubGroup a, SubGroup b)
         => ValuesIntersect(a: a.Value, b: b.Value);
@@ -182,15 +199,25 @@ public static partial class ScheduleBuilderHelper
         var groupName = s.Groups.Ref(shared.Value).Name;
         foreach (var entry in allowlist)
         {
-            bool conditionResult;
-            if (aName == entry.CourseA)
+            bool CalculateConditionResult()
             {
-                conditionResult = bName == entry.CourseB;
+                if (aName == entry.CourseA)
+                {
+                    if (bName == entry.CourseB)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -237,7 +264,9 @@ public static partial class ScheduleBuilderHelper
         GroupId shared)
     {
         var sb = new StringBuilder();
-        sb.Append("  shared group '").Append(s.Groups.Ref(shared.Value).Name).Append("':\n    ");
+        sb.Append("  shared group '")
+            .Append(s.Groups.Ref(shared.Value).Name)
+            .Append("':\n    ");
         AppendLesson(sb, s, a);
         sb.Append("\n    ");
         AppendLesson(sb, s, b);

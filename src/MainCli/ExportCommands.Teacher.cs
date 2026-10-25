@@ -110,15 +110,25 @@ public partial class ExportCommands
 
             using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
-            bool conditionResult;
-            if (!preDefense)
+            bool CalculateConditionResult()
             {
-                conditionResult = teacher is null;
+                if (!preDefense)
+                {
+                    if (teacher is null)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -150,7 +160,8 @@ public partial class ExportCommands
             if (!preDefense)
             {
                 var deadlinesConfig = scope.ServiceProvider
-                    .GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>().Get();
+                    .GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>()
+                    .Get();
                 if (deadlinesConfig is null)
                 {
                     return await Finish(
@@ -242,9 +253,13 @@ public partial class ExportCommands
                         [$"Selected teacher '{teacher}' is absent from this schedule."]);
                 }
 
-                var schedule = scope.ServiceProvider.GetRequiredService<Schedule>().Filter(
-                    FilterHelper.Builder().WithTeacher(teacherId).WithLessonType(LessonType.Lab));
-                if (!schedule.EnumerateLessons().Any())
+                var schedule = scope.ServiceProvider.GetRequiredService<Schedule>()
+                    .Filter(
+                    FilterHelper.Builder()
+                        .WithTeacher(teacherId)
+                        .WithLessonType(LessonType.Lab));
+                if (!schedule.EnumerateLessons()
+                    .Any())
                 {
                     return await Finish(
                         CliExit.InvalidConfiguration,
@@ -255,8 +270,10 @@ public partial class ExportCommands
                     "Laboratory deadlines inspect every period using coded academic date ranges. The existing handler cannot combine shared/all-group labs with other partition/course combinations in a group.");
                 foreach (var group in schedule.Groups)
                 {
-                    var partitions = schedule.EnumerateLessons().Where(x => x.Lesson.Group == group)
-                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course)).ToArray();
+                    var partitions = schedule.EnumerateLessons()
+                        .Where(x => x.Lesson.Group == group)
+                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course))
+                        .ToArray();
                     if (partitions.Length > 1 && partitions.Any(x => x.Key.Partition == GroupPartitionKey.All))
                     {
                         return await Finish(

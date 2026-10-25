@@ -52,7 +52,10 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
     /// for every supplied group, over all weekly periods. Cancellation is observed while
     /// the lessons are enumerated and before the result is handed back.</summary>
     public FreeHoursSection[] Sections(string[] groups, CancellationToken cancellationToken = default)
-        => Sections(groups, _schedule.EnumerateWeeklyLessons().Select(x => x), cancellationToken);
+    {
+        return Sections(groups, _schedule.EnumerateWeeklyLessons()
+                .Select(x => x), cancellationToken);
+    }
 
     internal FreeHoursSection[] Sections(string[] groups, IEnumerable<WeeklyLessonAccessor> lessons, CancellationToken cancellationToken)
     {

@@ -138,7 +138,9 @@ public sealed class ScheduleCellParserTests
 
     private static ParsedLesson Parse(ScheduleImportContext context, string text)
     {
-        using var lines = text.Split('\n').Select(x => x.AsMemory()).GetEnumerator();
+        using var lines = text.Split('\n')
+            .Select(x => x.AsMemory())
+            .GetEnumerator();
         var parser = context.ParserFactory.Create();
         parser.Lexer.Reset(lines);
         global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Lesson.ParsedLesson> collection = parser.ParseLessons(new StringBuilder());

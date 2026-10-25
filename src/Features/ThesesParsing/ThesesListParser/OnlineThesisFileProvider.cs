@@ -17,7 +17,8 @@ public sealed class OnlineThesesFileProvider : IThesesFileProvider
 
     public static void Register(IServiceCollection services)
     {
-        services.AddOptions<OnlineThesesFileProviderOptions>().ValidateDataAnnotations();
+        services.AddOptions<OnlineThesesFileProviderOptions>()
+            .ValidateDataAnnotations();
         services.AddScoped<IThesesFileProvider, OnlineThesesFileProvider>();
         // DriveFileLoader.Register(services);
     }

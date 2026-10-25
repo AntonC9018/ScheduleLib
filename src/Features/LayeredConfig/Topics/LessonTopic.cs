@@ -95,12 +95,17 @@ public sealed class LessonTopicMap : ClassMap<LessonTopic>
 {
     public LessonTopicMap(LessonTopicDefaults defaults, bool hasLessonType = true, bool hasLanguage = true)
     {
-        Map(m => m.Name).Name("name");
-        Map(m => m.Series).Name("series").Optional();
+        Map(m => m.Name)
+            .Name("name");
+        Map(m => m.Series)
+            .Name("series")
+            .Optional();
 
         if (hasLessonType)
         {
-            var lessonTypeMap = Map(m => m.LessonType).Name("lessonType").Optional();
+            var lessonTypeMap = Map(m => m.LessonType)
+                .Name("lessonType")
+                .Optional();
             lessonTypeMap.EnumConverter(opts =>
             {
                 opts.Include(LessonType.Curs);
@@ -115,18 +120,22 @@ public sealed class LessonTopicMap : ClassMap<LessonTopic>
         }
         else
         {
-            Map(m => m.LessonType).Ignore();
+            Map(m => m.LessonType)
+                .Ignore();
         }
 
         if (hasLanguage)
         {
-            var languageMap = Map(m => m.Language).Name("language").Optional();
+            var languageMap = Map(m => m.Language)
+                .Name("language")
+                .Optional();
             languageMap.EnumConverter();
             languageMap.Default(defaults.Language ?? Language.None);
         }
         else
         {
-            Map(m => m.Language).Ignore();
+            Map(m => m.Language)
+                .Ignore();
         }
     }
 }
@@ -808,7 +817,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         var foundLessonTypes = GetLessonTypesExistingInSchedule(builder, _schedule);
         var ltypes = hooks.GetLessonTypesToProcess(foundLessonTypes);
 
-        var providers = OneForEach.Enum<LessonType>().CreateSparseArray<ILessonNameProvider>();
+        var providers = OneForEach.Enum<LessonType>()
+            .CreateSparseArray<ILessonNameProvider>();
         foreach (var lessonType in ltypes.ToProcess.SetValues())
         {
             if (builder._lists.TryGetValue(lessonType, out var list))

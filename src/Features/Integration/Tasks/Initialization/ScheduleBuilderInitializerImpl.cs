@@ -65,7 +65,8 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             global::System.Linq.IOrderedEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor> thenBy = orderBy.ThenBy(keySelector2);
             global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor, global::ScheduleLib.AttendanceMode> keySelector3 = x => x.AttendanceMode;
             var scheduleDirs = thenBy.ThenBy(keySelector3);
-            var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear).ToArray();
+            var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear)
+                .ToArray();
             if (matchingDirs.Length == 0)
             {
                 throw new DirectoryNotFoundException($"No schedule sources for coded study year {studyYear.StudyYear} and semester {studyYear.Semester} under {opts.DataDirectory}.");
@@ -115,7 +116,8 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                             System.Text.Json.JsonSerializer.Serialize(context.TimeConfig, new System.Text.Json.JsonSerializerOptions { IncludeFields = true }),
                             CalculateSerialize(),
                             CalculateSerialize2(),
-                            string.Join(";", builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString()).Select(x => $"{x.Key}={x.Value}")));
+                            string.Join(";", builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
+                                .Select(x => $"{x.Key}={x.Value}")));
         await loader.Load(
             context,
             cancellationToken,

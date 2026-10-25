@@ -477,22 +477,27 @@ public static class NameDisplayHelper
         else
         {
             var res = AppendFirstName();
-            bool conditionResult2;
-            if (res == WhichFirstName.Full)
+            bool CalculateConditionResult2()
             {
-                conditionResult2 = true;
-            }
-            else
-            {
-                if (res == WhichFirstName.Short)
+                if (res == WhichFirstName.Full)
                 {
-                    conditionResult2 = p.InsertSpaceAfterShortName;
+                    return true;
                 }
                 else
                 {
-                    conditionResult2 = false;
+                    if (res == WhichFirstName.Short)
+                    {
+                        return p.InsertSpaceAfterShortName;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
+
+            bool conditionResult2 = CalculateConditionResult2();
+
 
             if (conditionResult2)
             {
@@ -549,15 +554,25 @@ public static class NameDisplayHelper
                     return false;
                 }
 
-                bool conditionResult;
-                if (f[1].Full is null)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = f[1].Short is not null;
+                    if (f[1].Full is null)
+                    {
+                        if (f[1].Short is not null)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {

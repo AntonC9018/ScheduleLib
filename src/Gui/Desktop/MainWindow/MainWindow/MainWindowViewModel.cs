@@ -58,7 +58,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             RemoveSelectedUserCommand.NotifyCanExecuteChanged();
         });
 
-        _dataStore.UiSelectedNodeViewModel.NodeSelected().Sub(node =>
+        _dataStore.UiSelectedNodeViewModel.NodeSelected()
+            .Sub(node =>
         {
             _ = node;
             EnableSelectedUserCommand.NotifyCanExecuteChanged();

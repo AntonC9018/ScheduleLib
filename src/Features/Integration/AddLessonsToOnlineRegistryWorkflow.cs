@@ -153,7 +153,8 @@ public sealed partial class CurrentTeacherLessonFilterProvider
 
     public ILessonFilter Get()
     {
-        var b = _sp.LessonFilterBuilder().CurrentTeacher();
+        var b = _sp.LessonFilterBuilder()
+            .CurrentTeacher();
 
         if (_lessonFilterConfig.Get() is { } filterConfig)
         {

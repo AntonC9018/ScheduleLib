@@ -125,7 +125,8 @@ internal static class RegistryAssessments
             }
 
             return CheckCondition();
-        }).ToArray();
+        })
+            .ToArray();
     }
 
     // Attendance stays tied to the timetable occurrence. Only regular topics use the compacted index.
@@ -142,11 +143,15 @@ internal static class RegistryAssessments
             }
 
             var types = local.Where(lesson => lesson.DateTime == assessment.DateTime)
-                .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
+                .Select(lesson => lesson.RegistryLessonType)
+                .Distinct()
+                .ToArray();
             if (types.Length == 0)
             {
                 types = local.Where(lesson => lesson.DateTime.Date == assessment.DateTime.Date)
-                .Select(lesson => lesson.RegistryLessonType).Distinct().ToArray();
+                .Select(lesson => lesson.RegistryLessonType)
+                    .Distinct()
+                    .ToArray();
             }
 
             if (types.Length == 0)
@@ -163,9 +168,13 @@ internal static class RegistryAssessments
                 throw new InvalidOperationException("An assessment without a lesson type requires an unambiguous scheduled lesson type.");
             }
 
-            return assessment with { LessonType = types[0] };
+            return assessment with
+            {
+                LessonType = types[0],
+            };
         }
-        remote = remote.Select(ProjectValue).ToArray();
+        remote = remote.Select(ProjectValue)
+            .ToArray();
         var reserved = new Dictionary<int, string>();
         var protectedRemote = new HashSet<int>();
         var configuredTypes = new HashSet<LessonType>();
@@ -176,18 +185,23 @@ internal static class RegistryAssessments
                 throw new InvalidOperationException("Assessment rules require one explicit lesson type per scope.");
             }
 
-            if (rule.Dates.Count != rule.Dates.Distinct().Count())
+            if (rule.Dates.Count != rule.Dates.Distinct()
+                .Count())
             {
                 throw new InvalidOperationException("Assessment dates must be distinct within a scope.");
             }
 
             var existing = remote.Where(x => x.LessonType == rule.LessonType && RegistryAssessmentTopics.IsAssessment(x.Topic))
-                .OrderBy(x => x.DateTime).ToArray();
-            var dates = rule.Dates.Order().ToArray();
+                .OrderBy(x => x.DateTime)
+                .ToArray();
+            var dates = rule.Dates.Order()
+                .ToArray();
             for (int i = 0; i < dates.Length; i++)
             {
-                var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => local[index].RegistryLessonType == rule.LessonType
-                    && DateOnly.FromDateTime(local[index].DateTime) == dates[i]).ToArray();
+                var candidates = Enumerable.Range(start: 0, count: local.Length)
+                    .Where(index => local[index].RegistryLessonType == rule.LessonType
+                    && DateOnly.FromDateTime(local[index].DateTime) == dates[i])
+                    .ToArray();
                 if (candidates.Length != 1)
                 {
                     throw new InvalidOperationException("An assessment date must identify exactly one scheduled lesson of its type.");
@@ -249,54 +263,120 @@ internal static class RegistryAssessments
         var indexes = new Dictionary<(LessonType Type, LessonGroups Groups), int>();
         var registryIndexes = new Dictionary<LessonType, int>();
         var useRegistryTopics = new HashSet<LessonType>();
-        var registryTopics = remote.Where(lesson => !string.IsNullOrWhiteSpace(lesson.Topic)
-                && !RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+        var registryTopics = remote.Where(lesson => { if (!(!string.IsNullOrWhiteSpace(lesson.Topic))) { return false; } if (!(!RegistryAssessmentTopics.IsAssessment(lesson.Topic))) { return false; } return true; })
             .GroupBy(lesson => lesson.LessonType)
-            .ToDictionary(keySelector: group => group.Key, elementSelector: group => group.OrderBy(lesson => lesson.DateTime).Select(lesson => lesson.Topic!).ToArray());
+            .ToDictionary(keySelector: group => group.Key, elementSelector: group => group.OrderBy(lesson => lesson.DateTime)
+                .Select(lesson => lesson.Topic!)
+                .ToArray());
         for (int i = 0; i < local.Length; i++)
         {
             var lesson = local[i];
             if (reserved.TryGetValue(i, out var topic))
             {
-                local[i] = lesson with { Topic = topic };
+                local[i] = lesson with
+                {
+                    Topic = topic,
+                };
             }
             else
             {
-                var topicGroups = getTopicGroups is null ? new LessonGroups() : getTopicGroups(lesson).Ordered();
+                var topicGroups = getTopicGroups is null ? new LessonGroups() : getTopicGroups(lesson)
+                    .Ordered();
                 var topicKey = (Type: lesson.RegistryLessonType, Groups: topicGroups);
                 var index = indexes.GetValueOrDefault(topicKey);
                 var registryIndex = registryIndexes.GetValueOrDefault(lesson.RegistryLessonType);
                 var regularTopic = getTopic(lesson, index);
-                if (registryIndex == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
+                bool CalculateConditionResult2()
+                {
+                    if (registryIndex == 0)
+                    {
+                        if (regularTopic is null)
+                        {
+                            if (configuredTypes.Contains(lesson.RegistryLessonType))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
+
+                if (conditionResult2)
                 {
                     useRegistryTopics.Add(lesson.RegistryLessonType);
                 }
 
                 if (useRegistryTopics.Contains(lesson.RegistryLessonType))
                 {
-                    regularTopic = registryTopics.GetValueOrDefault(lesson.RegistryLessonType)?.ElementAtOrDefault(registryIndex) ?? "";
+                    regularTopic = registryTopics.GetValueOrDefault(lesson.RegistryLessonType)
+                        ?.ElementAtOrDefault(registryIndex) ?? "";
                 }
 
-                if (regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType)
-                    && remote.Any(existing => existing.DateTime.Date == lesson.DateTime.Date
-                        && existing.LessonType == lesson.RegistryLessonType && RegistryAssessmentTopics.IsAssessment(existing.Topic)))
+                bool CalculateConditionResult3()
+                {
+                    if (regularTopic is null)
+                    {
+                        if (configuredTypes.Contains(lesson.RegistryLessonType))
+                        {
+                            if (remote.Any(existing => { if (!(existing.DateTime.Date == lesson.DateTime.Date)) { return false; } if (!(existing.LessonType == lesson.RegistryLessonType)) { return false; } if (!(RegistryAssessmentTopics.IsAssessment(existing.Topic))) { return false; } return true; }))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                bool conditionResult3 = CalculateConditionResult3();
+
+
+                if (conditionResult3)
                 {
                     throw new InvalidOperationException("Moving an assessment requires a regular topic for the freed occurrence.");
                 }
 
-                local[i] = lesson with { Topic = regularTopic };
+                local[i] = lesson with
+                {
+                    Topic = regularTopic,
+                };
                 indexes[topicKey] = index + 1;
                 registryIndexes[lesson.RegistryLessonType] = registryIndex + 1;
             }
         }
-        return (local, remote.Where((_, index) => !protectedRemote.Contains(index)).ToArray());
+        return (local, remote.Where((_, index) => !protectedRemote.Contains(index))
+            .ToArray());
 
         bool ReserveExisting(RemoteLessonInstance assessment)
         {
-            var candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime == assessment.DateTime) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
+            var candidates = Enumerable.Range(start: 0, count: local.Length)
+                .Where(index => { bool CalculateConditionResult() { if (local[index].DateTime == assessment.DateTime) { if (assessment.LessonType == LessonType.Unspecified) { return true; } else { if (local[index].RegistryLessonType == assessment.LessonType) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+                .ToArray();
             if (candidates.Length == 0)
             {
-                candidates = Enumerable.Range(start: 0, count: local.Length).Where(index => { bool conditionResult; if (local[index].DateTime.Date == assessment.DateTime.Date) { if (assessment.LessonType == LessonType.Unspecified) { conditionResult = true; } else { conditionResult = local[index].RegistryLessonType == assessment.LessonType; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
+                candidates = Enumerable.Range(start: 0, count: local.Length)
+                    .Where(index => { bool CalculateConditionResult() { if (local[index].DateTime.Date == assessment.DateTime.Date) { if (assessment.LessonType == LessonType.Unspecified) { return true; } else { if (local[index].RegistryLessonType == assessment.LessonType) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+                    .ToArray();
             }
 
             if (candidates.Length == 0)

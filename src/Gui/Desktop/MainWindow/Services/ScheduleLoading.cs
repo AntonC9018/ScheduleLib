@@ -31,7 +31,8 @@ public sealed class ScheduleLoading
                     await sp.InitializeSchedule(cancellationToken);
                     Dispatcher.UIThread.Post(() =>
                     {
-                        _names.Value = sp.GetRequiredService<ScheduleProvider>().Get();
+                        _names.Value = sp.GetRequiredService<ScheduleProvider>()
+                            .Get();
                     });
                 },
                 cancellationToken);

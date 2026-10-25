@@ -118,10 +118,12 @@ public partial class ExportCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.LatestPeriodSchedule();
-            lessonCount = schedule.EnumerateWeeklyLessons().Count();
+            lessonCount = schedule.EnumerateWeeklyLessons()
+                .Count();
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var omitted = all.EnumerateWeeklyLessons().Count() - lessonCount;
+            var omitted = all.EnumerateWeeklyLessons()
+                .Count() - lessonCount;
             if (omitted > 0)
             {
                 global::System.Collections.Generic.List<string> list = warnings;
@@ -148,20 +150,22 @@ public partial class ExportCommands
 
             if (calendar)
             {
-                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                    ReportOmission = warnings.Add,
-                });
+                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>()
+                    .RunAsync(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                        ReportOmission = warnings.Add,
+                    });
             }
             else
             {
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                });
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>()
+                    .Run(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                    });
             }
 
             StreamNew();

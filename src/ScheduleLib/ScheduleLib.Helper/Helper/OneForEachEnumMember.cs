@@ -353,7 +353,8 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             throw new JsonException("Expected an object");
         }
 
-        var ret = OneForEach.Enum<TEnum>().RentArray<TValue>();
+        var ret = OneForEach.Enum<TEnum>()
+            .RentArray<TValue>();
         try
         {
             while (reader.Read())

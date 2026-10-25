@@ -15,7 +15,9 @@ public sealed class ScheduleExportTests
         Assert.Equal(expected: 0, actual: await CliHost.Run(["export", format, "--help"]));
         using var capture = new Capture();
         Assert.Equal(expected: 2, actual: await CliHost.Run(["export", format, "--unknown", "--json"]));
-        Assert.Equal(expected: 2, actual: capture.Result().GetProperty("exitCode").GetInt32());
+        Assert.Equal(expected: 2, actual: capture.Result()
+            .GetProperty("exitCode")
+            .GetInt32());
     }
 
     [Theory]
@@ -39,8 +41,10 @@ public sealed class ScheduleExportTests
                         new(),
                         CalculateToken()));
         var result = capture.Result();
-        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode").GetInt32());
-        Assert.Empty(result.GetProperty("outputs").EnumerateArray());
+        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Empty(result.GetProperty("outputs")
+            .EnumerateArray());
     }
 
     [Fact]
@@ -51,20 +55,31 @@ public sealed class ScheduleExportTests
         var calendars = Path.Combine(temp.Path, "ics");
         await Export(false, pdfs);
         var calendarResult = await Export(true, calendars);
-        var names = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf").Select(Path.GetFileNameWithoutExtension).Order().ToArray();
+        var names = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Order()
+            .ToArray();
         Assert.True(names.Length > 5);
         Assert.Contains(names, x => x!.Contains('_')); // Existing partition artifacts.
         Assert.Contains(names, x => x!.StartsWith("IA"));
-        var calendarNames = Directory.GetFiles(path: calendars, searchPattern: "*.ics").Select(Path.GetFileNameWithoutExtension).Order()
+        var calendarNames = Directory.GetFiles(path: calendars, searchPattern: "*.ics")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Order()
             .ToArray();
         Assert.NotEmpty(calendarNames);
-        var skipped = calendarResult.GetProperty("warnings").EnumerateArray()
-            .Select(x => x.GetString()!).Where(x => x.StartsWith("Skipping calendar "))
-            .Select(x => x["Skipping calendar ".Length..x.IndexOf(".ics:")]).ToArray();
-        Assert.Equal(expected: names.Except(skipped).Order(), actual: calendarNames);
+        var skipped = calendarResult.GetProperty("warnings")
+            .EnumerateArray()
+            .Select(x => x.GetString()!)
+            .Where(x => x.StartsWith("Skipping calendar "))
+            .Select(x => x["Skipping calendar ".Length..x.IndexOf(".ics:")])
+            .ToArray();
+        Assert.Equal(expected: names.Except(skipped)
+            .Order(), actual: calendarNames);
         Assert.Contains(calendarNames, x => x!.Contains('_'));
         Assert.Contains(calendarNames, x => x!.StartsWith("IA"));
-        var pdf = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf").First(x => Path.GetFileName(x).StartsWith("IA"));
+        var pdf = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf")
+            .First(x => Path.GetFileName(x)
+            .StartsWith("IA"));
         Assert.StartsWith(expectedStartString: "%PDF-", actualString: System.Text.Encoding.ASCII.GetString(await File.ReadAllBytesAsync(pdf)));
         if (OperatingSystem.IsLinux() && File.Exists("/usr/bin/pdftotext"))
         {
@@ -85,7 +100,8 @@ public sealed class ScheduleExportTests
                 expectedSubstring: "423/4",
                 actualString: string.Join(
                     " ",
-                    await Task.WhenAll(Directory.GetFiles(path: calendars, searchPattern: "*.ics").Select(x => File.ReadAllTextAsync(x)))));
+                    await Task.WhenAll(Directory.GetFiles(path: calendars, searchPattern: "*.ics")
+                        .Select(x => File.ReadAllTextAsync(x)))));
         }
         foreach (var path in Directory.GetFiles(path: calendars, searchPattern: "*.ics"))
         {
@@ -140,20 +156,22 @@ public sealed class ScheduleExportTests
         if (calendar)
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = Publish,
-                }));
+                scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>()
+                    .RunAsync(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = Publish,
+                    }));
         }
         else
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = Publish,
-                }));
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>()
+                    .Run(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = Publish,
+                    }));
         }
 
         Assert.Equal(expected: 1, actual: count);
@@ -181,8 +199,10 @@ public sealed class ScheduleExportTests
                         new() { Directory = temp.Path }));
         var result = capture.Result();
         Assert.Contains(
-            result.GetProperty("warnings").EnumerateArray(),
-            x => x.GetString()!.StartsWith("Skipping calendar"));
+            result.GetProperty("warnings")
+                .EnumerateArray(),
+            x => x.GetString()!
+                .StartsWith("Skipping calendar"));
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics");
@@ -217,8 +237,11 @@ public sealed class ScheduleExportTests
                 Source(),
                 new() { Directory = destination }));
         var result = capture.Result();
-        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status").GetString());
-        Assert.True(result.GetProperty("data").GetProperty("lessonCount").GetInt32() > 0);
+        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status")
+            .GetString());
+        Assert.True(result.GetProperty("data")
+            .GetProperty("lessonCount")
+            .GetInt32() > 0);
         bool CalculateCondition()
         {
             string path = Path.Combine(destination, "schedulelib-manifest.json");

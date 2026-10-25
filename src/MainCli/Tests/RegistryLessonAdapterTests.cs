@@ -33,8 +33,18 @@ public sealed class RegistryLessonAdapterTests
     {
         const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
         const string detail = "/studregistry/LessonAttendance/LessonDetail/42";
+        string CalculateText()
+        {
+            if (scenario == "identity")
+            {
+                return "43";
+            }
+
+            return "42";
+        }
+
         var details =
-            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{(scenario == "identity" ? "43" : "42")}'></form>";
+                    $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{(CalculateText())}'></form>";
         string text;
         if (scenario == "present")
         {

@@ -166,15 +166,25 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             foreach (var group in await registryNav.GetGroups(course))
             {
-                bool conditionResult;
-                if (group.Groups.IsWildcard)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = true;
+                    if (group.Groups.IsWildcard)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (group.Groups.Value.Count == 0)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = group.Groups.Value.Count == 0;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -362,11 +372,14 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                 int FindColumnIndex(string name)
                 {
-                    return table.Rows[0].Cells.WithIndex().Where(x =>
+                    return table.Rows[0].Cells.WithIndex()
+                        .Where(x =>
                     {
-                        var t = x.Item.TextContent.AsSpan().Trim();
+                        var t = x.Item.TextContent.AsSpan()
+                            .Trim();
                         return t.SequenceEqual(name);
-                    }).Single().Index;
+                    })
+                        .Single().Index;
                 }
             }
         }

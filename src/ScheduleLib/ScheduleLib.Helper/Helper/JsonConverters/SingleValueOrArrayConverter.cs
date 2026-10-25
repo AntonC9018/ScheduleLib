@@ -142,11 +142,48 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 TCollection tCollection = (TCollection) (object) list;
                 return tCollection;
             }
-            if (genericTypeDef == typeof(IEnumerable<>)
-                || genericTypeDef == typeof(ICollection<>)
-                || genericTypeDef == typeof(IList<>)
-                || genericTypeDef == typeof(IReadOnlyCollection<>)
-                || genericTypeDef == typeof(IReadOnlyList<>))
+            bool CalculateConditionResult()
+            {
+                if (genericTypeDef == typeof(IEnumerable<>))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (genericTypeDef == typeof(ICollection<>))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (genericTypeDef == typeof(IList<>))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (genericTypeDef == typeof(IReadOnlyCollection<>))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                if (genericTypeDef == typeof(IReadOnlyList<>))
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 return (TCollection) (object) items;
             }

@@ -32,16 +32,22 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(expected: SubGroup.All, actual: lesson.Lesson.SubGroup);
         Assert.Equal(expected: DayOfWeek.Thursday, actual: lesson.Date.DayOfWeek);
         Assert.Equal(expected: PeriodId.Unspecified, actual: lesson.Date.Period);
-        Assert.Equal(expected: 3, actual: raw.EnumerateWeeklyLessons().Count());
+        Assert.Equal(expected: 3, actual: raw.EnumerateWeeklyLessons()
+            .Count());
         Assert.Equal(expected: 3, actual: merged.WeeklyLessons.Length); // Stable raw lookup IDs.
         global::ScheduleLib.ScheduleFilter CalculateFilter()
         {
-            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder().WithTeacher(fixture.OldTeacher);
+            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder()
+                .WithTeacher(fixture.OldTeacher);
             return filter;
         }
 
-        Assert.Empty(merged.Filter(CalculateFilter()).Lessons);
-        Assert.Single(merged.Filter(FilterHelper.Builder().WithTeacher(fixture.NewTeacher).WithLatestPeriod(merged)).Lessons);
+        var filter2 = merged.Filter(CalculateFilter());
+        System.Collections.IEnumerable collection = filter2.Lessons;
+        Assert.Empty(collection);
+        Assert.Single(merged.Filter(FilterHelper.Builder()
+            .WithTeacher(fixture.NewTeacher)
+            .WithLatestPeriod(merged)).Lessons);
 
         var weekly = new ManualWeeklyScheduledDateProvider(Config.StudyWeeks, Config.HolidayPeriods);
         var helper = new ScheduleDateProviderHelper(merged, LessonTimeConfig.CreateDefault(), Config.SemesterIntervalProvider());
@@ -52,10 +58,12 @@ public sealed class AutomaticLabSubGroupMergeTests
         var events = new ScheduledTimeEventsProvider(eventsProvider2, helper2);
         var parameters = new GetDateTimesParams
         {
-            Lessons = raw.EnumerateAllLessons().Select(x => x.Id),
+            Lessons = raw.EnumerateAllLessons()
+                .Select(x => x.Id),
             Semester = Semester.Sem1
         };
-        var occurrences = dates.Get(parameters).ToArray();
+        var occurrences = dates.Get(parameters)
+            .ToArray();
         Assert.NotEmpty(occurrences);
         Assert.True(occurrences[0].DateTime < fixture.Latest.Model.Start.ToDateTime(TimeOnly.MinValue));
         Assert.All(occurrences, x => Assert.Equal(expected: lesson.Id.AsAny(), actual: x.LessonId));
@@ -133,7 +141,9 @@ public sealed class AutomaticLabSubGroupMergeTests
         var merged = LabSubGroupMerges.Project(raw, true);
         Assert.Empty(merged.AutomaticLabSubGroupMerges);
         Assert.Single(merged.LabSubGroupMergeDiagnostics);
-        Assert.Equal(expected: raw.EnumerateAllLessons().Select(x => x.Id), actual: merged.EnumerateAllLessons().Select(x => x.Id));
+        Assert.Equal(expected: raw.EnumerateAllLessons()
+            .Select(x => x.Id), actual: merged.EnumerateAllLessons()
+            .Select(x => x.Id));
         Assert.Equal(expected: raw.WeeklyLessons.ToArray(), actual: merged.WeeklyLessons.ToArray());
     }
 
@@ -175,12 +185,15 @@ public sealed class AutomaticLabSubGroupMergeTests
         var raw = fixture.Build();
         var merged = LabSubGroupMerges.Project(raw, true);
         Assert.Equal(expected: 2, actual: merged.AutomaticLabSubGroupMerges.Length);
-        var partitioned = Assert.Single(merged.EnumerateWeeklyLessons().Where(x => x.Lesson.Specialization == specialization));
+        var partitioned = Assert.Single(merged.EnumerateWeeklyLessons()
+            .Where(x => x.Lesson.Specialization == specialization));
         global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, specialization, alternative);
         global::ScheduleLib.GroupPartitionKey actual2 = partitioned.Lesson.GroupPartitionKey;
         Assert.Equal(expected: expected2, actual: actual2);
-        Assert.Equal(expected: raw.EnumerateAllLessons().Count(x => x.Lesson.Group == otherGroup),
-            actual: merged.EnumerateAllLessons().Count(x => x.Lesson.Group == otherGroup));
+        Assert.Equal(expected: raw.EnumerateAllLessons()
+            .Count(x => x.Lesson.Group == otherGroup),
+            actual: merged.EnumerateAllLessons()
+                .Count(x => x.Lesson.Group == otherGroup));
         Assert.Contains(merged.EnumerateAllLessons(), x => x.Lesson.Course == otherCourse);
         Assert.Contains(merged.EnumerateAllLessons(), x => x.Lesson.Type == LessonType.Curs);
         Assert.Contains(merged.EnumerateAllLessons(), x => x.Lesson.SubGroup == SpecialSubGroups.Beginners);
@@ -286,7 +299,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         var projected = AttendanceLabMerges.Project(attendance, schedule, []);
         var merged = Assert.Single(projected.Where(entry => entry.Key.GroupPartition.SubGroup == SubGroup.All));
         Assert.Equal(expected: 2, actual: merged.Value.StudentNames.Count);
-        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(0).AsArray());
+        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(0)
+            .AsArray());
     }
 
     [Theory]
@@ -312,7 +326,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         var parser = new AttendanceListsExcelParser(groupParser, lookup, lessonTypeParser, subGroupRemapper, specializationRegistry);
         global::ScheduleLib.ScheduleFilter CalculateFilter()
         {
-            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder().WithTeacher(fixture.OldTeacher);
+            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder()
+                .WithTeacher(fixture.OldTeacher);
             return filter;
         }
 

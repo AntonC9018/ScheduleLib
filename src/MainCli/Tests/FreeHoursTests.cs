@@ -59,15 +59,21 @@ public sealed class FreeHoursTests
             return groups;
         }
 
-        var data = (await Execute(CalculateGroups())).GetProperty("data");
+        var data = (await Execute(CalculateGroups()))
+            .GetProperty("data");
         Assert.Equal(
             expected: new[]
             {
                 "M2301",
                 "IA2301",
             },
-            actual: data.GetProperty("groups").EnumerateArray().Select(x => x.GetString()).ToArray());
-        var sections = data.GetProperty("sections").EnumerateArray().ToArray();
+            actual: data.GetProperty("groups")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
+        var sections = data.GetProperty("sections")
+            .EnumerateArray()
+            .ToArray();
         Assert.Equal(expected: 8, actual: sections.Length);
         Assert.Equal(
             expected: new[]
@@ -81,7 +87,8 @@ public sealed class FreeHoursTests
                 "IA2301/OddWeek/whole",
                 "IA2301/OddWeek/every",
             },
-            actual: sections.Select(Name).ToArray());
+            actual: sections.Select(Name)
+                .ToArray());
         foreach (var section in sections)
         {
             Assert.Equal(
@@ -93,7 +100,11 @@ public sealed class FreeHoursTests
                     "Thursday",
                     "Friday",
                 },
-                actual: section.GetProperty("days").EnumerateArray().Select(x => x.GetProperty("day").GetString()).ToArray());
+                actual: section.GetProperty("days")
+                    .EnumerateArray()
+                    .Select(x => x.GetProperty("day")
+                    .GetString())
+                    .ToArray());
         }
 
         // The fixture's two parities differ for M2301 on Wednesday.
@@ -123,7 +134,10 @@ public sealed class FreeHoursTests
             return groups;
         }
 
-        var mia = (await Execute(CalculateGroups())).GetProperty("data").GetProperty("sections").EnumerateArray()
+        var mia = (await Execute(CalculateGroups()))
+            .GetProperty("data")
+            .GetProperty("sections")
+            .EnumerateArray()
                     .ToArray();
         Assert.Equal(
             expected: new[]
@@ -133,7 +147,8 @@ public sealed class FreeHoursTests
                 "MIASD2501/OddWeek/whole",
                 "MIASD2501/OddWeek/every",
             },
-            actual: mia.Select(Name).ToArray());
+            actual: mia.Select(Name)
+                .ToArray());
         string expected2 = "Tuesday: 08:00-16:30,18:30-20:00 | ";
         string actual2 = Day(mia[0], "Tuesday");
         Assert.Equal(expected: expected2, actual: actual2);
@@ -154,7 +169,11 @@ public sealed class FreeHoursTests
             return groups2;
         }
 
-        var dj = (await Execute(CalculateGroups2())).GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
+        var dj = (await Execute(CalculateGroups2()))
+            .GetProperty("data")
+            .GetProperty("sections")
+            .EnumerateArray()
+            .ToArray();
         Assert.Equal(
             expected: new[]
             {
@@ -163,7 +182,8 @@ public sealed class FreeHoursTests
                 "DJ2301/OddWeek/whole",
                 "DJ2301/OddWeek/every",
             },
-            actual: dj.Select(Name).ToArray());
+            actual: dj.Select(Name)
+                .ToArray());
         string expected6 = "Tuesday: 08:00-11:15,13:15-20:00 | ";
         string actual6 = Day(dj[2], "Tuesday");
         Assert.Equal(expected: expected6, actual: actual6);
@@ -188,7 +208,8 @@ public sealed class FreeHoursTests
                     new()));
             string[] CalculateActual()
             {
-                string[] actual2 = output.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                string[] actual2 = output.ToString()
+                    .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
                 return actual2;
             }
 
@@ -348,7 +369,8 @@ public sealed class FreeHoursTests
                                                                             CalculateBlock7());
         string CalculateActual()
         {
-            string actual2 = builder.ToString().Replace("\r\n", "\n");
+            string actual2 = builder.ToString()
+                .Replace("\r\n", "\n");
             return actual2;
         }
 
@@ -372,16 +394,23 @@ public sealed class FreeHoursTests
         }
 
         var result = await Execute(CalculateGroups(), expected: 2);
-        Assert.Equal(expected: "failed", actual: result.GetProperty("status").GetString());
+        Assert.Equal(expected: "failed", actual: result.GetProperty("status")
+            .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
-        Assert.Equal(expected: 2, actual: result.GetProperty("exitCode").GetInt32());
+        Assert.Equal(expected: 2, actual: result.GetProperty("exitCode")
+            .GetInt32());
         Assert.Equal(
             expected: new[]
             {
                 "Unknown group 'NOPE'.",
             },
-            actual: result.GetProperty("errors").EnumerateArray().Select(x => x.GetString()).ToArray());
-        Assert.Empty(result.GetProperty("warnings").EnumerateArray().Select(x => x.GetString()));
+            actual: result.GetProperty("errors")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
+        Assert.Empty(result.GetProperty("warnings")
+            .EnumerateArray()
+            .Select(x => x.GetString()));
         global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups2()
         {
             global::ScheduleLib.Cli.FreeHoursArguments groups2 = For("ia2301");
@@ -389,7 +418,8 @@ public sealed class FreeHoursTests
         }
 
         var suggestion = await Execute(CalculateGroups2(), expected: 2);
-        Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?", actual: suggestion.GetProperty("errors")[0].GetString());
+        Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?", actual: suggestion.GetProperty("errors")[0]
+            .GetString());
     }
 
     [Fact]
@@ -412,12 +442,19 @@ public sealed class FreeHoursTests
                 {
                     "IA2301",
                 },
-                actual: result.RootElement.GetProperty("data").GetProperty("groups").EnumerateArray().Select(x => x.GetString())
+                actual: result.RootElement.GetProperty("data")
+                    .GetProperty("groups")
+                    .EnumerateArray()
+                    .Select(x => x.GetString())
                     .ToArray());
-            Assert.Equal(expected: 4, actual: result.RootElement.GetProperty("data").GetProperty("sections").GetArrayLength());
+            Assert.Equal(expected: 4, actual: result.RootElement.GetProperty("data")
+                .GetProperty("sections")
+                .GetArrayLength());
             Assert.Contains(
                 "Repeated group names were reported once.",
-                result.RootElement.GetProperty("warnings").EnumerateArray().Select(x => x.GetString() ?? ""));
+                result.RootElement.GetProperty("warnings")
+                    .EnumerateArray()
+                    .Select(x => x.GetString() ?? ""));
         }
         finally
         {
@@ -447,7 +484,9 @@ public sealed class FreeHoursTests
         using (var workbook = new XLWorkbook(
                            CalculateFile()))
         {
-            workbook.Worksheet(1).Rows(firstRow: 4, lastRow: 18).Delete();
+            workbook.Worksheet(1)
+                .Rows(firstRow: 4, lastRow: 18)
+                .Delete();
             global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
             string file2 = Path.Combine(zi, "master.xlsx");
             xLWorkbook.SaveAs(file2);
@@ -468,7 +507,10 @@ public sealed class FreeHoursTests
                     },
                     new() { Json = true }));
             using var result = JsonDocument.Parse(output.ToString());
-            var sections = result.RootElement.GetProperty("data").GetProperty("sections").EnumerateArray().ToArray();
+            var sections = result.RootElement.GetProperty("data")
+                .GetProperty("sections")
+                .EnumerateArray()
+                .ToArray();
             Assert.Equal(expected: 4, actual: sections.Length);
             foreach (var section in sections)
             {
@@ -517,7 +559,8 @@ public sealed class FreeHoursTests
         var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
 
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var groupId = schedule.EnumerateGroups().Single(x => x.Item.Name == "IA2301").Id;
+        var groupId = schedule.EnumerateGroups()
+            .Single(x => x.Item.Name == "IA2301").Id;
         var lessons = schedule.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Groups.Contains(groupId) && x.Date.Parity.IsMatch(Parity.EvenWeek))
             .ToArray();
@@ -573,15 +616,20 @@ public sealed class FreeHoursTests
                             CalculateQuery(),
                             cancellation.Token,
                             expected: 130);
-        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: "failed", actual: result.GetProperty("status").GetString());
+        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Equal(expected: "failed", actual: result.GetProperty("status")
+            .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
         Assert.Equal(
             expected: new[]
             {
                 "Cancelled.",
             },
-            actual: result.GetProperty("errors").EnumerateArray().Select(x => x.GetString()).ToArray());
+            actual: result.GetProperty("errors")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
     }
 
     [Fact]
@@ -597,12 +645,14 @@ public sealed class FreeHoursTests
                 new()
                 {
                     NoCache = true,
-                    DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
+                    DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid()
+                        .ToString()),
                 },
                 new() { Json = true });
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 3, actual: exit);
-            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode")
+                .GetInt32());
         }
         finally
         {
@@ -621,11 +671,17 @@ public sealed class FreeHoursTests
     private static string Day(JsonElement section, string day)
     {
         return Days(
-            section.GetProperty("days").EnumerateArray()
-                .Where(x => x.GetProperty("day").GetString() == day));
+            section.GetProperty("days")
+                .EnumerateArray()
+                .Where(x => x.GetProperty("day")
+                    .GetString() == day));
     }
 
-    private static string Days(JsonElement section) => Days(section.GetProperty("days").EnumerateArray());
+    private static string Days(JsonElement section)
+    {
+        return Days(section.GetProperty("days")
+            .EnumerateArray());
+    }
 
     private static string Days(IEnumerable<JsonElement> days) => string.Concat(days.Select(Day));
 
@@ -670,8 +726,10 @@ public sealed class FreeHoursTests
                 cancellationToken);
             Assert.Equal(expected: expected, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "query free-hours", actual: document.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "query free-hours", actual: document.RootElement.GetProperty("command")
+                .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
             global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
             {

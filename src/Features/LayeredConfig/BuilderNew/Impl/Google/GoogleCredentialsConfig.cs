@@ -155,15 +155,25 @@ public sealed class GoogleCredentialResolver : IDisposable
         { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
-        bool conditionResult;
-        if (string.IsNullOrWhiteSpace(secrets.ClientId))
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (string.IsNullOrWhiteSpace(secrets.ClientId))
+            {
+                return true;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = string.IsNullOrWhiteSpace(secrets.ClientSecret);
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -178,7 +188,8 @@ public sealed class GoogleCredentialResolver : IDisposable
         });
         _flows.Add(flow);
         var token = await flow.LoadTokenAsync(user, cancellationToken);
-        if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? []).Any())
+        if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? [])
+            .Any())
         {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }

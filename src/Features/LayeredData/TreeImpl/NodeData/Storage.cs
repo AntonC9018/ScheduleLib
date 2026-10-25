@@ -36,7 +36,11 @@ public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
     }
 
     public readonly bool IsEmpty => MaybeList() is not { } x || x.Count == 0;
-    public readonly void Add(IUpdater<T> value) => List().Add(value);
+    public readonly void Add(IUpdater<T> value)
+    {
+        List()
+            .Add(value);
+    }
 
     public IEnumerator<IUpdater<T>> GetEnumerator()
     {

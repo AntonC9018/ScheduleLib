@@ -99,9 +99,13 @@ public sealed class RegistryLabDestinationTests
                     new() { Json = true },
                     new() { Apply = false }));
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "preview", actual: result.RootElement.GetProperty("status").GetString());
-            Assert.Equal(expected: 0, actual: result.RootElement.GetProperty("errors").GetArrayLength());
-            Assert.True(result.RootElement.GetProperty("data").GetProperty("outcomes").GetArrayLength() > 0);
+            Assert.Equal(expected: "preview", actual: result.RootElement.GetProperty("status")
+                .GetString());
+            Assert.Equal(expected: 0, actual: result.RootElement.GetProperty("errors")
+                .GetArrayLength());
+            Assert.True(result.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .GetArrayLength() > 0);
             Assert.True(navigator.Reads > 0);
         }
         finally
@@ -129,8 +133,9 @@ public sealed class RegistryLabDestinationTests
         Assert.NotEmpty(plan);
         Assert.Contains(
             plan,
-            action => action.Destination == "https://registry.test/explicit-group" && action.Topic == "lab");
-        var fallback = plan.Where(action => action.Destination == navigator.Group.Uri.ToString()).ToArray();
+            action => { if (!(action.Destination == "https://registry.test/explicit-group")) { return false; } if (!(action.Topic == "lab")) { return false; } return true; });
+        var fallback = plan.Where(action => action.Destination == navigator.Group.Uri.ToString())
+            .ToArray();
         Assert.NotEmpty(fallback);
         Assert.All(fallback, action => Assert.Equal(expected: "lab (IA2404 (ru) /spec:DezvoltareaAplicatiilor)", actual: action.Topic));
         Assert.All(fallback, action => Assert.Equal(expected: DayOfWeek.Friday, actual: action.Date.DayOfWeek));
@@ -254,19 +259,57 @@ public sealed class RegistryLabDestinationTests
             int actual2 = exit;
             Assert.Equal(expected: expected3, actual: actual2);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            var outcomes = result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+            var outcomes = result.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .EnumerateArray()
+                .ToArray();
             Assert.Equal(expected: 2, actual: outcomes.Length);
-            Assert.All(outcomes, action => Assert.Equal(expected: "delete", actual: action.GetProperty("kind").GetString()));
+            Assert.All(outcomes, action => Assert.Equal(expected: "delete", actual: action.GetProperty("kind")
+                .GetString()));
             Assert.All(
                 outcomes,
-                action => Assert.Equal(expected: navigator.Group.Uri.ToString(), actual: action.GetProperty("destination").GetString()));
-            Assert.Equal(expected: 1, actual: outcomes[0].GetProperty("attendanceCount").GetInt32());
+                action => Assert.Equal(expected: navigator.Group.Uri.ToString(), actual: action.GetProperty("destination")
+                    .GetString()));
+            Assert.Equal(expected: 1, actual: outcomes[0].GetProperty("attendanceCount")
+                .GetInt32());
+            string CalculateExpected2()
+            {
+                if (apply)
+                {
+                    if (failDelete)
+                    {
+                        return "uncertain";
+                    }
+
+                    return "completed";
+                }
+
+                return "planned";
+            }
+
             Assert.Equal(
-                expected: apply ? failDelete ? "uncertain" : "completed" : "planned",
-                actual: outcomes[0].GetProperty("status").GetString());
+                            expected: CalculateExpected2(),
+                            actual: outcomes[0].GetProperty("status")
+                                .GetString());
+            string CalculateExpected3()
+            {
+                if (failDelete)
+                {
+                    return "not-attempted";
+                }
+
+                if (apply)
+                {
+                    return "completed";
+                }
+
+                return "planned";
+            }
+
             Assert.Equal(
-                expected: failDelete ? "not-attempted" : apply ? "completed" : "planned",
-                actual: outcomes[1].GetProperty("status").GetString());
+                            expected: CalculateExpected3(),
+                            actual: outcomes[1].GetProperty("status")
+                                .GetString());
             int expected4;
             if (apply)
             {
@@ -289,15 +332,25 @@ public sealed class RegistryLabDestinationTests
 
             int actual3 = navigator.DeleteCalls;
             Assert.Equal(expected: expected4, actual: actual3);
-            bool condition;
-            if (apply)
+            bool CalculateCondition()
             {
-                condition = !failDelete;
+                if (apply)
+                {
+                    if (!failDelete)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                condition = false;
-            }
+
+            bool condition = CalculateCondition();
+
 
             int expected5;
             if (condition)
@@ -377,15 +430,23 @@ public sealed class RegistryLabDestinationTests
                 new() { Apply = true });
             Assert.Equal(expected: 0, actual: exit);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            var actions = result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
-            Assert.Equal(expected: "omitted", actual: actions[0].GetProperty("status").GetString());
-            Assert.Contains(expectedSubstring: "refused", actualString: actions[0].GetProperty("detail").GetString());
-            Assert.Equal(expected: "completed", actual: actions[1].GetProperty("status").GetString());
+            var actions = result.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .EnumerateArray()
+                .ToArray();
+            Assert.Equal(expected: "omitted", actual: actions[0].GetProperty("status")
+                .GetString());
+            Assert.Contains(expectedSubstring: "refused", actualString: actions[0].GetProperty("detail")
+                .GetString());
+            Assert.Equal(expected: "completed", actual: actions[1].GetProperty("status")
+                .GetString());
             Assert.Equal(expected: 2, actual: navigator.DeleteCalls);
             Assert.Equal(expected: 3, actual: navigator.Lessons.Count);
             Assert.Contains(
-                result.RootElement.GetProperty("warnings").EnumerateArray(),
-                warning => warning.GetString()!.Contains("refused", StringComparison.Ordinal));
+                result.RootElement.GetProperty("warnings")
+                    .EnumerateArray(),
+                warning => warning.GetString()!
+                    .Contains("refused", StringComparison.Ordinal));
         }
         finally
         {
@@ -409,7 +470,10 @@ public sealed class RegistryLabDestinationTests
             new(),
             async actions =>
             {
-                navigator.Lessons[1] = navigator.Lessons[1] with { Mark = "am" };
+                navigator.Lessons[1] = navigator.Lessons[1] with
+                {
+                    Mark = "am",
+                };
                 var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(() =>
                     actions[0].Execute(default));
                 Assert.False(error.SubmissionStarted);
@@ -527,17 +591,29 @@ public sealed class RegistryLabDestinationTests
             fixture.Attendance(),
             new IndexedTopics());
         var secondParent = plan.Where(action => action.Topic!.Contains("IA2404", StringComparison.Ordinal))
-            .OrderBy(action => action.Date).ToArray();
+            .OrderBy(action => action.Date)
+            .ToArray();
         Assert.StartsWith(expectedStartString: "Topic 1 (", actualString: secondParent[0].Topic);
         Assert.StartsWith(expectedStartString: "Topic 2 (", actualString: secondParent[1].Topic);
         await secondParent[0].Execute(default);
-        Assert.Equal(
-            expected: new[]
+        string CalculateText()
+        {
+            if (existingOtherMark)
             {
-                existingOtherMark ? "9" : "",
+                return "9";
+            }
+
+            return "";
+        }
+
+        string[] expected2 = new[]
+                    {
+                CalculateText(),
                 "am",
-            },
-            actual: Assert.Single(navigator.SubmittedMarks));
+                    };
+        string[] actual2 = Assert.Single(navigator.SubmittedMarks);
+        Assert.Equal(
+                    expected: expected2, actual: actual2);
         Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unmatched-attendance-students");
     }
 
@@ -562,9 +638,11 @@ public sealed class RegistryLabDestinationTests
             true,
             topics: new IndexedTopics());
         var firstTuesday = plan.Where(action => action.Date.DayOfWeek == DayOfWeek.Tuesday)
-            .OrderBy(action => action.Date).First();
+            .OrderBy(action => action.Date)
+            .First();
         var firstWednesday = plan.Where(action => action.Date.DayOfWeek == DayOfWeek.Wednesday)
-            .OrderBy(action => action.Date).First();
+            .OrderBy(action => action.Date)
+            .First();
         string expectedStartString2;
         if (assessments)
         {
@@ -668,9 +746,11 @@ public sealed class RegistryLabDestinationTests
                 or "unmatched-attendance-students"
                 or "attendance-students-not-in-registry");
         var first = plan.Where(action => action.Destination == navigator.Group.Uri.ToString())
-            .OrderBy(action => action.Date).First();
+            .OrderBy(action => action.Date)
+            .First();
         var se = plan.Where(action => action.Destination == "https://registry.test/se-group")
-            .OrderBy(action => action.Date).First();
+            .OrderBy(action => action.Date)
+            .First();
         Assert.Equal(expected: first.Date, actual: se.Date);
         Assert.Equal(expected: first.Topic, actual: se.Topic);
         await first.Execute(default);
@@ -953,15 +1033,20 @@ public sealed class RegistryLabDestinationTests
                     lesson.Specialization(_partition.Specialization);
                     lesson.Type(LessonType.Lab);
                     global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
-                    bool condition;
-                    if (group == _parents[0])
+                    bool CalculateCondition()
                     {
-                        condition = true;
+                        if (group == _parents[0])
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return sameDayLabs;
+                        }
                     }
-                    else
-                    {
-                        condition = sameDayLabs;
-                    }
+
+                    bool condition = CalculateCondition();
+
 
                     global::System.DayOfWeek dayOfWeek;
                     if (condition)
@@ -975,15 +1060,25 @@ public sealed class RegistryLabDestinationTests
 
                     lessonBuilder.DayOfWeek(dayOfWeek);
                     global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
-                    bool condition2;
-                    if (sameDayLabs)
+                    bool CalculateCondition2()
                     {
-                        condition2 = group == _parents[1];
+                        if (sameDayLabs)
+                        {
+                            if (group == _parents[1])
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
-                    else
-                    {
-                        condition2 = false;
-                    }
+
+                    bool condition2 = CalculateCondition2();
+
 
                     int index;
                     if (condition2)
@@ -1169,7 +1264,8 @@ public sealed class RegistryLabDestinationTests
             StudentAttendanceList? attendance = null,
             ILessonTopics? topics = null)
         {
-            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
+            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+                .Plan(
                         new()
                         {
                             Navigator = navigator,
@@ -1179,7 +1275,8 @@ public sealed class RegistryLabDestinationTests
                             Semester = Semester.Sem1,
                             Diagnostics = diagnostics,
                             LessonFilter =
-                                _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+                                _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>()
+                                    .Get(),
                         },
                         explicitApply: explicitApply);
         }
@@ -1190,7 +1287,8 @@ public sealed class RegistryLabDestinationTests
             StudentAttendanceList attendance,
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> callback)
         {
-            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(
+            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+                .PlanGroups(
                         new()
                         {
                             Navigator = navigator,
@@ -1200,14 +1298,17 @@ public sealed class RegistryLabDestinationTests
                             Semester = Semester.Sem1,
                             Diagnostics = diagnostics,
                             LessonFilter =
-                                _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+                                _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>()
+                                    .Get(),
                         },
                         callback);
         }
 
         public void ConfigureDeletePolicy()
         {
-            _provider.GetRequiredService<TreeBuilder>().Defaults.Builder<RegistryConfig>().ConfigureValue(config =>
+            _provider.GetRequiredService<TreeBuilder>().Defaults
+                .Builder<RegistryConfig>()
+                .ConfigureValue(config =>
             {
                 global::ScheduleLib.OnlineRegistry.RegistryConfig registryConfig = config;
                 registryConfig.ExtraLessonInstanceAction = ExtraLessonInstanceAction.Delete;
@@ -1215,13 +1316,16 @@ public sealed class RegistryLabDestinationTests
             Assert.Equal(
                 expected: ExtraLessonInstanceAction.Delete,
                 actual: _scope.ServiceProvider
-                    .GetRequiredService<Anton.LayeredData.Retrieval.DataProvider<BuiltRegistryConfig>>().Get()!
+                    .GetRequiredService<Anton.LayeredData.Retrieval.DataProvider<BuiltRegistryConfig>>()
+                    .Get()!
                     .ExtraLessonInstanceAction);
         }
 
         public void ConfigureLectureAssessments()
         {
-            _provider.GetRequiredService<TreeBuilder>().Defaults.Builder<RegistryConfig>().ConfigureValue(config =>
+            _provider.GetRequiredService<TreeBuilder>().Defaults
+                .Builder<RegistryConfig>()
+                .ConfigureValue(config =>
                 config.Assessments =
                 [
                     new()
@@ -1245,7 +1349,8 @@ public sealed class RegistryLabDestinationTests
                 ]);
             Assert.Single(
                 _scope.ServiceProvider
-                    .GetRequiredService<Anton.LayeredData.Retrieval.DataProvider<BuiltRegistryConfig>>().Get()!
+                    .GetRequiredService<Anton.LayeredData.Retrieval.DataProvider<BuiltRegistryConfig>>()
+                    .Get()!
                     .Assessments);
         }
 
@@ -1291,10 +1396,12 @@ public sealed class RegistryLabDestinationTests
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
             CancellationToken token)
         {
-            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanIntakeLabCleanup(
+            return _scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+                .PlanIntakeLabCleanup(
                         navigator,
                         Semester.Sem1,
-                        _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>().Get(),
+                        _scope.ServiceProvider.GetRequiredService<CurrentTeacherLessonFilterProvider>()
+                            .Get(),
                         diagnostics,
                         onGroupPlanned,
                         token);
@@ -1556,7 +1663,8 @@ public sealed class RegistryLabDestinationTests
             }
 
             var id = int.Parse(
-                document.QuerySelector("input")!.GetAttribute("value")!,
+                document.QuerySelector("input")!
+                    .GetAttribute("value")!,
                 System.Globalization.CultureInfo.InvariantCulture);
             if (id == RefusedLessonId)
             {

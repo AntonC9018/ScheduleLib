@@ -376,7 +376,8 @@ public static class TeacherBuilderHelper
             {
                 return null;
             }
-            var longer = name.FirstName.Longer().Map(x => new Word(x ?? ""));
+            var longer = name.FirstName.Longer()
+                .Map(x => new Word(x ?? ""));
             if (longer.All(x => x == Word.Empty))
             {
                 if (lookup.Count > 0)
@@ -674,7 +675,8 @@ public static class TeacherNameHelper
             }
 
             var ret = new NameParts<OptionalNamePart>();
-            var retPartE = ret.AsRef().GetEnumerator();
+            var retPartE = ret.AsRef()
+                .GetEnumerator();
             while (true)
             {
                 if (!retPartE.MoveNext())
@@ -683,15 +685,25 @@ public static class TeacherNameHelper
                 }
 
                 bool isShort = false;
-                bool conditionResult;
-                if (!bparser.IsEmpty)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = bparser.Current == WordHelper.ShortenedWordCharacter;
+                    if (!bparser.IsEmpty)
+                    {
+                        if (bparser.Current == WordHelper.ShortenedWordCharacter)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {

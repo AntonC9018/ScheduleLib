@@ -36,7 +36,8 @@ public static class TasksHelper
     {
         using var stream = File.OpenRead(p.InputPath);
         using var word = WordprocessingDocument.Open(stream, isEditable: false);
-        var studyWeeks = ParityExcelParser.Parse(word).ToArray();
+        var studyWeeks = ParityExcelParser.Parse(word)
+            .ToArray();
         var ret = new ManualWeeklyScheduledDateProvider(
             studyWeeks: studyWeeks,
             holidays: p.Holidays);
@@ -174,7 +175,9 @@ public static class TasksHelper
 
             context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson: firstWeeklyLesson, firstOneTimeLesson: firstOneTimeLesson);
 
-            var pdfs = Directory.EnumerateFiles(path: dirName, searchPattern: "*.pdf", SearchOption.TopDirectoryOnly).Order().ToArray();
+            var pdfs = Directory.EnumerateFiles(path: dirName, searchPattern: "*.pdf", SearchOption.TopDirectoryOnly)
+                .Order()
+                .ToArray();
             if (pdfs.Length == 0)
             {
                 return;

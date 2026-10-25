@@ -27,8 +27,10 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
 {
     public async Task<IReadOnlyList<CurriculaFile>> List(CurriculaSource source, CancellationToken token)
     {
-        var root = await graph.Users[source.Owner].Drive.Root.ItemWithPath(source.Path).Request()
-            .Select("folder,parentReference,id").GetAsync(token);
+        var root = await graph.Users[source.Owner].Drive.Root.ItemWithPath(source.Path)
+            .Request()
+            .Select("folder,parentReference,id")
+            .GetAsync(token);
         bool CheckCondition()
         {
             if (root.Folder is null)
@@ -56,7 +58,9 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
 
         var driveId = root.ParentReference.DriveId;
         var files = new List<CurriculaFile>();
-        var groups = await graph.Drives[driveId].Items[root.Id].Children.Request().Select("name,id,folder,file").GetAsync(token);
+        var groups = await graph.Drives[driveId].Items[root.Id].Children.Request()
+            .Select("name,id,folder,file")
+            .GetAsync(token);
         while (groups is not null)
         {
             foreach (var group in groups)
@@ -67,7 +71,9 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
                     continue;
                 }
 
-                var documents = await graph.Drives[driveId].Items[group.Id].Children.Request().Select("name,id,folder,file").GetAsync(token);
+                var documents = await graph.Drives[driveId].Items[group.Id].Children.Request()
+                    .Select("name,id,folder,file")
+                    .GetAsync(token);
                 while (documents is not null)
                 {
                     foreach (var document in documents.Where(x => x.File is not null))
@@ -84,8 +90,12 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
         }
         return files;
     }
-    public Task<Stream> Download(CurriculaFile file, CancellationToken token) =>
-        graph.Drives[file.DriveId].Items[file.Id].Content.Request().GetAsync(token);
+    public Task<Stream> Download(CurriculaFile file, CancellationToken token)
+    {
+        return graph.Drives[file.DriveId].Items[file.Id].Content.Request()
+            .GetAsync(token);
+    }
+
     public void Dispose() => owner?.Dispose();
 }
 

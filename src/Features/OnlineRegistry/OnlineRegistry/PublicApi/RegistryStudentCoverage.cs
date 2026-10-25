@@ -35,8 +35,10 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
         var complete = true;
         foreach (var key in membershipKeys.Distinct())
         {
-            var matchingSources = attendance.StudentNameSources(key).ToArray();
-            var coveredGroups = matchingSources.SelectMany(source => source.Key.Groups).ToHashSet();
+            var matchingSources = attendance.StudentNameSources(key)
+                .ToArray();
+            var coveredGroups = matchingSources.SelectMany(source => source.Key.Groups)
+                .ToHashSet();
             bool CheckCondition()
             {
                 if (matchingSources.Length == 0)
@@ -70,7 +72,9 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
                 global::ScheduleLib.OnlineRegistry.NamesInDb namesInDb;
                 if (sources.TryGetValue(audience, out var known))
                 {
-                    global::ScheduleLib.OnlineRegistry.NamesInDb create = NamesInDb.Create([.. known.Concat(source.Names).Select(student => student.Key).Distinct(NameComparer)]);
+                    global::ScheduleLib.OnlineRegistry.NamesInDb create = NamesInDb.Create([.. known.Concat(source.Names)
+                        .Select(student => student.Key)
+                        .Distinct(NameComparer)]);
                     namesInDb = create;
                 }
                 else
@@ -130,7 +134,8 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
             var sources = new Dictionary<StudentsLookupKey, NamesInDb>(component[0].Sources);
             for (var index = 0; index < component.Count; index++)
             {
-                foreach (var roster in remaining.Where(roster => roster.Sources.Keys.Any(sources.ContainsKey)).ToArray())
+                foreach (var roster in remaining.Where(roster => roster.Sources.Keys.Any(sources.ContainsKey))
+                    .ToArray())
                 {
                     component.Add(roster);
                     remaining.Remove(roster);
@@ -144,20 +149,27 @@ internal sealed class RegistryStudentCoverage(StudentAttendanceList attendance,
             foreach (var roster in component.Where(roster => { if (!(roster.Complete)) { return false; } if (!(roster.Sources.Count != 0)) { return false; } return true; }))
             {
                 var names = NamesInDb.Create([.. roster.Sources.SelectMany(source => { global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> select = source.Value.Select(student => student.Key); global::System.Collections.Generic.HashSet<global::ScheduleLib.Parsing.Name> second; if (_sources.TryGetValue(source.Key, out var coverage)) { second = coverage.Names; } else { second = []; } global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> second2 = second; global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Name> concat = select.Concat(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     second2); return concat; }).Distinct(NameComparer)]);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     second2); return concat; })
+                    .Distinct(NameComparer)]);
                 _ = StudentNameRemapHelper.Create(roster.Students, names, unknown, aliases);
             }
-            var count = unknown.Distinct(NameComparer).Count();
+            var count = unknown.Distinct(NameComparer)
+                .Count();
             if (count == 0)
             {
                 continue;
             }
 
-            var groups = string.Join(", ", sources.Keys.SelectMany(key => key.Groups).Distinct()
-                .Select(parent => schedule.Get(parent).Name).Order(StringComparer.Ordinal));
+            var groups = string.Join(", ", sources.Keys.SelectMany(key => key.Groups)
+                .Distinct()
+                .Select(parent => schedule.Get(parent).Name)
+                .Order(StringComparer.Ordinal));
             var partitions = string.Join("; ", sources.Keys.Select(key => RegistrySyncDiagnostics.DescribePartition(key.GroupPartition))
-                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
-            var types = string.Join(", ", sources.Keys.Select(key => key.LessonType).Distinct().Order());
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal));
+            var types = string.Join(", ", sources.Keys.Select(key => key.LessonType)
+                .Distinct()
+                .Order());
             diagnostics.Add(kind: "unmatched-attendance-students", course: schedule.Get(course).FullName,
                 @group: groups,
                 detail: $"{count} registry students have no matching attendance row after all relevant rosters were considered for {types} ({partitions}). Check attendance worksheets and name mappings.");

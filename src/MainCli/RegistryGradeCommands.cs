@@ -104,14 +104,17 @@ public partial class RegistryCommands
                     ["Select a teacher with --profile. Use config profiles to list supported teachers."]);
             }
 
-            await using var session = await CreateProvider().Open(
+            await using var session = await CreateProvider()
+                .Open(
                 source,
                 settings,
                 cancellation.Token);
             target = session.Target;
-            await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply ? await CreateAccountLock()
+                .Acquire(target, cancellation.Token) : null;
             // Every invocation derives current remote state; no preview transaction is replayed.
-            var plan = await CreateGradePlanner().Plan(
+            var plan = await CreateGradePlanner()
+                .Plan(
                 session,
                 quiz.QuizId!,
                 cancellation.Token);
@@ -238,8 +241,10 @@ public partial class RegistryCommands
                                             CalculateLine());
                     foreach (var grade in outcome.Grades)
                     {
-                        output.WriteHuman(
-                            $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})");
+                        var cliOutput = output;
+                        string line2 = $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
+                        cliOutput.WriteHuman(
+line2);
                     }
                 };
             cliCommandContext.StreamItem(
@@ -266,7 +271,8 @@ public partial class RegistryCommands
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status)
+                .ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,
@@ -275,7 +281,8 @@ public partial class RegistryCommands
                 counts,
                 notices,
             };
-            var actions = outcomes.Select(x => $"grades: {x.Status}").ToArray();
+            var actions = outcomes.Select(x => $"grades: {x.Status}")
+                .ToArray();
             var data = new RegistryGradeResult(
                 target,
                 quiz.QuizId,

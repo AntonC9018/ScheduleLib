@@ -23,13 +23,15 @@ public static class ExcelTeacherListParser
             return false;
         }
         var worksheet = workbook.WorksheetParts.First().Worksheet;
-        var sheetData = worksheet.Elements<SheetData>().First();
+        var sheetData = worksheet.Elements<SheetData>()
+            .First();
         var stringTable = ParsedStringTable.Create(workbook);
 
         int skippedRows = 2;
 
         int rowIndex = 0;
-        using var rowEnumerator = sheetData.Elements<Row>().GetEnumerator();
+        using var rowEnumerator = sheetData.Elements<Row>()
+            .GetEnumerator();
         if (!SkipTitleRows())
         {
             return false;

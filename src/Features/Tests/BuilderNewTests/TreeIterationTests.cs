@@ -112,15 +112,25 @@ public sealed class TreeIterationTests
         foreach (var x in e)
         {
             // Skip children when we process Root
-            bool conditionResult;
-            if (x.LayerName == "Root")
+            bool CalculateConditionResult()
             {
-                conditionResult = x.State == DfsVisitationState.Process;
+                if (x.LayerName == "Root")
+                {
+                    if (x.State == DfsVisitationState.Process)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -153,15 +163,25 @@ public sealed class TreeIterationTests
         // Act
         foreach (var x in e)
         {
-            bool conditionResult;
-            if (x.LayerName == "Child1")
+            bool CalculateConditionResult()
             {
-                conditionResult = x.State == DfsVisitationState.BeforeProcess;
+                if (x.LayerName == "Child1")
+                {
+                    if (x.State == DfsVisitationState.BeforeProcess)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -254,7 +274,8 @@ public sealed class TreeIterationTests
 
     private List<VisitRecord> CollectStates(DfsEnumerable e)
     {
-        var x = e.AddContext(RecorderContext.Key, () => new()).Last();
+        var x = e.AddContext(RecorderContext.Key, () => new())
+            .Last();
         return x.Get(RecorderContext.Key).Records;
     }
 }
@@ -314,15 +335,43 @@ file static class VisitSequence
         }
         if (filtered.Count != expected.Count)
         {
+            string CalculateText()
+            {
+                string join = string.Join(", ", expected);
+                string text = $" Expected: {join}.";
+                return text;
+            }
+
+            string CalculateText2()
+            {
+                string join2 = string.Join(", ", actual);
+                string text2 = $" Recorded sequence: {join2}";
+                return text2;
+            }
+
             Assert.Fail(
-                (string) $"{($"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count}).")}{($" Expected: {string.Join(", ", expected)}.")}{($" Recorded sequence: {string.Join(", ", actual)}")}");
+                                        (string) $"{($"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count}).")}{(CalculateText())}{(CalculateText2())}");
         }
         for (int i = 0; i < expected.Count; i++)
         {
             if (filtered[i] != expected[i])
             {
+                string CalculateText3()
+                {
+                    string join3 = string.Join(", ", expected);
+                    string text3 = $" Expected: {join3}.";
+                    return text3;
+                }
+
+                string CalculateText4()
+                {
+                    string join4 = string.Join(", ", actual);
+                    string text4 = $" Recorded sequence: {join4}";
+                    return text4;
+                }
+
                 Assert.Fail(
-                    (string) $"{($"The expected visits did not match exactly.")}{($" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}.")}{($" Expected: {string.Join(", ", expected)}.")}{($" Recorded sequence: {string.Join(", ", actual)}")}");
+                                                    (string) $"{($"The expected visits did not match exactly.")}{($" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}.")}{(CalculateText3())}{(CalculateText4())}");
             }
         }
     }

@@ -38,25 +38,37 @@ public static class CommissionParser
         }
         var worksheetPart = workbook.WorksheetParts.First();
         var worksheet = worksheetPart.Worksheet;
-        var sheetData = worksheet.Elements<SheetData>().First();
+        var sheetData = worksheet.Elements<SheetData>()
+            .First();
         var stringTable = ParsedStringTable.Create(workbook);
         var widths = MergeCellMap.Create(worksheetPart);
 
         var state = new ParsingState();
-        using var rows = sheetData.IndexedRows().GetEnumerator();
+        using var rows = sheetData.IndexedRows()
+            .GetEnumerator();
         var ret = ImmutableArray.CreateBuilder<Commission>();
         while (rows.MoveNext())
         {
             var row = rows.Current;
-            bool conditionResult;
-            if (row.IsJump)
+            bool CalculateConditionResult()
             {
-                conditionResult = state.Action == Action.NameRow;
+                if (row.IsJump)
+                {
+                    if (state.Action == Action.NameRow)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

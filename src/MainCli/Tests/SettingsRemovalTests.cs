@@ -110,7 +110,10 @@ public sealed class SettingsRemovalTests
             "project");
         Assert.Equal(
             expected: "[]",
-            actual: (await files.Get("LessonAttendanceConfig.sources")).Replace(" ", "").Replace("\n", "").Replace("\r", ""));
+            actual: (await files.Get("LessonAttendanceConfig.sources"))
+                .Replace(" ", "")
+                .Replace("\n", "")
+                .Replace("\r", ""));
         await files.Success(
             "unset",
             "LessonAttendanceConfig.sources",

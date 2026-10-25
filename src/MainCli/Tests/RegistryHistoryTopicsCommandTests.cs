@@ -21,7 +21,8 @@ public sealed class RegistryHistoryTopicsCommandTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -43,7 +44,8 @@ public sealed class RegistryHistoryTopicsCommandTests
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: output.ToString());
             Assert.DoesNotContain(expectedSubstring: "private.test", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
             string[] collection = Directory.GetFiles(path: directory, searchPattern: "*.json");
             global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
             var inventory = Assert.Single(collection2);
@@ -87,7 +89,8 @@ public sealed class RegistryHistoryTopicsCommandTests
 
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 

@@ -130,7 +130,8 @@ internal static class HtmlSearch
         var rows = p.Document.QuerySelectorAll<IHtmlDivElement>(path);
         foreach (var row in rows)
         {
-            var urls = row.QuerySelectorAll<IHtmlAnchorElement>("a").ToArray();
+            var urls = row.QuerySelectorAll<IHtmlAnchorElement>("a")
+                .ToArray();
             if (urls.Length != 2)
             {
                 throw new InvalidOperationException("Expected 2 urls");
@@ -188,15 +189,25 @@ internal static class HtmlSearch
                 {
                     continue;
                 }
-                bool conditionResult;
-                if (groupForSearch.IsWildcard)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = groups.Count == 0;
+                    if (groupForSearch.IsWildcard)
+                    {
+                        if (groups.Count == 0)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -334,7 +345,8 @@ internal static class HtmlSearch
                 var b = ArrayBuilder.Create<Attendance>(_e._attendanceTable.StudentCount);
                 foreach (var x in attendanceValues)
                 {
-                    var t = x.TextContent.AsSpan().Trim();
+                    var t = x.TextContent.AsSpan()
+                        .Trim();
                     var attendance = AttendanceHelper.Parse(t);
                     b.Add(attendance);
                 }
@@ -428,7 +440,8 @@ internal static class HtmlSearch
                 lessonType = ParseLessonType(typeText, errorHandler);
             }
 
-            var anchor = children.OfType<IHtmlAnchorElement>().First();
+            var anchor = children.OfType<IHtmlAnchorElement>()
+                .First();
 
             DateTime dateTime;
             {
@@ -465,7 +478,8 @@ internal static class HtmlSearch
             parser.SkipWhitespace();
 
             // Padded with space at the end.
-            var t = parser.PeekSpanUntilEnd().TrimEnd();
+            var t = parser.PeekSpanUntilEnd()
+                .TrimEnd();
             var topic = t.ToString();
             return topic;
         }
@@ -591,7 +605,9 @@ internal static class HtmlSearch
     internal static async ValueTask<ScanLessonResult> ScanLessonsDocumentForLessonInstances(
         ScanLessonsParams p)
     {
-        var tables = p.Document.QuerySelectorAll<IHtmlTableElement>("table").Take(2).ToArray();
+        var tables = p.Document.QuerySelectorAll<IHtmlTableElement>("table")
+            .Take(2)
+            .ToArray();
         var lessonTable = new EditableLessonsHelper(tables[0], p.ErrorHandler);
         global::AngleSharp.Html.Dom.IHtmlTableElement? table2;
         if (tables.Length > 1)
@@ -773,7 +789,8 @@ internal static class HtmlSearch
     {
         var form = GetLessonForm(doc);
         cancellationToken.ThrowIfCancellationRequested();
-        var ret = await form.SubmitAsync().WaitAsync(cancellationToken) ?? throw new IOException("Registry returned no submission response.");
+        var ret = await form.SubmitAsync()
+            .WaitAsync(cancellationToken) ?? throw new IOException("Registry returned no submission response.");
         var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
             .SelectMany(x => x.Children)
             .SelectMany(x => x.Children)
@@ -789,15 +806,19 @@ internal static class HtmlSearch
     private static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
     {
         var t = x.ChildNodes
-            .FirstOrDefault(a => a.NodeType == NodeType.Text && a.TextContent.AsSpan().Trim().Length > 0)
+            .FirstOrDefault(a => a.NodeType == NodeType.Text && a.TextContent.AsSpan()
+                .Trim().Length > 0)
             ?? x.Children[0];
-        var text = t.TextContent.AsSpan().Trim();
+        var text = t.TextContent.AsSpan()
+            .Trim();
         Debug.Assert(!text.EndsWith(" exmatr"));
         var i = x.QuerySelector("i.text-danger");
         bool isExtmatr = false;
         if (i != null)
         {
-            isExtmatr = i.TextContent.AsSpan().Trim().SequenceEqual("exmatr");
+            isExtmatr = i.TextContent.AsSpan()
+                .Trim()
+                .SequenceEqual("exmatr");
         }
         return new HtmlStudent(text.ToString(), isExtmatr);
     }

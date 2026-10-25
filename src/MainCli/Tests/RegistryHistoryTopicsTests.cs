@@ -11,16 +11,27 @@ public sealed class RegistryHistoryTopicsTests
     public void CourseIdentityUsesNormalizedNamesAndSemester()
     {
         var comparer = RegistryHistoryCourseIdentityComparer.Instance;
-        var first = new RegistryHistoryCourse(" Systems, ", 1, new Uri("https://registry.test/first"));
-        var same = new RegistryHistoryCourse("systems", 1, new Uri("https://registry.test/other"));
+        string name = " Systems, ";
+        int semester = 1;
+        var uri = new Uri("https://registry.test/first");
+        var first = new RegistryHistoryCourse(name, semester, uri);
+        string name2 = "systems";
+        int semester2 = 1;
+        var uri2 = new Uri("https://registry.test/other");
+        var same = new RegistryHistoryCourse(name2, semester2, uri2);
         var otherSemester = same with
         {
             Semester = 2,
         };
-        Assert.True(comparer.Equals(first, same));
-        Assert.Equal(comparer.GetHashCode(first), comparer.GetHashCode(same));
-        Assert.False(comparer.Equals(first, otherSemester));
-        Assert.Equal(2, new[] { first, same, otherSemester }.Distinct(comparer).Count());
+        bool condition = comparer.Equals(first, same);
+        Assert.True(condition);
+        int expected = comparer.GetHashCode(first);
+        int actual = comparer.GetHashCode(same);
+        Assert.Equal(expected: expected, actual: actual);
+        bool condition2 = comparer.Equals(first, otherSemester);
+        Assert.False(condition2);
+        Assert.Equal(expected: 2, actual: new[] { first, same, otherSemester }.Distinct(comparer)
+            .Count());
     }
 
     private static readonly Uri Index = new("https://registry.test/studregistry/LessonAttendance");
@@ -270,7 +281,8 @@ public sealed class RegistryHistoryTopicsTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -346,9 +358,11 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Contains(expectedSubstring: "raw ambiguous group", actualString: original);
             using var inventory = JsonDocument.Parse(original);
             Assert.All(
-                inventory.RootElement.GetProperty("sources").EnumerateArray(),
+                inventory.RootElement.GetProperty("sources")
+                    .EnumerateArray(),
                 source =>
-                    Assert.Equal(expected: "requires-group-mapping", actual: source.GetProperty("courseMapping").GetString()));
+                    Assert.Equal(expected: "requires-group-mapping", actual: source.GetProperty("courseMapping")
+                        .GetString()));
             string path = Path.Combine(directory, "manifest.json");
             bool condition = File.Exists(path);
             Assert.False(condition);
@@ -480,10 +494,10 @@ public sealed class RegistryHistoryTopicsTests
         Assert.Equal(expected: 2, actual: analysis.Selection.Candidates.Count);
         Assert.Contains(
             analysis.Selection.Candidates,
-            candidate => candidate.CurrentCourse.Name == "Systems" && candidate.Historical.Year == "2024/25");
+            candidate => { if (!(candidate.CurrentCourse.Name == "Systems")) { return false; } if (!(candidate.Historical.Year == "2024/25")) { return false; } return true; });
         Assert.Contains(
             analysis.Selection.Candidates,
-            candidate => candidate.CurrentCourse.Name == "Other" && candidate.Historical.Year == "2023/24");
+            candidate => { if (!(candidate.CurrentCourse.Name == "Other")) { return false; } if (!(candidate.Historical.Year == "2023/24")) { return false; } return true; });
         Assert.Contains(requests, path => path.EndsWith("/LessonsList/8", StringComparison.Ordinal));
         Assert.DoesNotContain(
             requests,
@@ -539,7 +553,8 @@ public sealed class RegistryHistoryTopicsTests
         var (analysis, _) = await ReadThreeYearHistory(duplicateCurrent: true);
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -555,16 +570,20 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Equal(expected: 2, actual: result.CsvFiles.Count);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
-            Assert.Equal(expected: 2, actual: inventory.RootElement.GetProperty("unresolved").GetArrayLength());
-            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("historical").GetArrayLength());
+            Assert.Equal(expected: 2, actual: inventory.RootElement.GetProperty("unresolved")
+                .GetArrayLength());
+            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("historical")
+                .GetArrayLength());
             var sources = inventory.RootElement.GetProperty("sources");
             Assert.Equal(expected: 2, actual: sources.GetArrayLength());
             Assert.All(
                 sources.EnumerateArray(),
                 source =>
                 {
-                    Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping").GetString());
-                    Assert.Equal(expected: "2024/25", actual: source.GetProperty("year").GetString());
+                    Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping")
+                        .GetString());
+                    Assert.Equal(expected: "2024/25", actual: source.GetProperty("year")
+                        .GetString());
                 });
             Assert.Contains(
                 expectedSubstring: "Synthetic first",
@@ -585,7 +604,8 @@ public sealed class RegistryHistoryTopicsTests
         var (analysis, _) = await ReadThreeYearHistory(latestDuplicate: true);
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -605,8 +625,10 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Equal(expected: 4, actual: sources.GetArrayLength());
             Assert.All(
                 sources.EnumerateArray(),
-                source => Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping").GetString()));
-            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("unresolved").GetArrayLength());
+                source => Assert.Equal(expected: "ambiguous-course", actual: source.GetProperty("courseMapping")
+                    .GetString()));
+            Assert.Equal(expected: 1, actual: inventory.RootElement.GetProperty("unresolved")
+                .GetArrayLength());
         }
         finally
         {
@@ -672,11 +694,24 @@ public sealed class RegistryHistoryTopicsTests
                         }.Select(value =>
                             $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>"))}</select></form><div id='nav-1'>{string.Concat(
                         courseIds.Select(id =>
-                            $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(id >= 6 ? "Other" : "Systems")}</a></span></div>"))}</div><div id='nav-2'></div>";
+                        {
+                            string CalculateText()
+                            {
+                                if (id >= 6)
+                                {
+                                    return "Other";
+                                }
+
+                                return "Systems";
+                            }
+
+                            return $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{(CalculateText())}</a></span></div>";
+                        }))}</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
             {
-                var id = uri.AbsolutePath.Split('/').Last();
+                var id = uri.AbsolutePath.Split('/')
+                    .Last();
                 string text2 = $"<a href='/studregistry/LessonAttendance/LessonsList/{id}'>Group</a>";
                 string text3 = $"<form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>{(text2)}<a href='/studregistry/Evaluation/Index/1'>grades</a></div></div></div></form>";
                 html =
@@ -788,7 +823,8 @@ public sealed class RegistryHistoryTopicsTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -862,7 +898,8 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Contains(expectedSubstring: "Synthetic second", actualString: csv);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
-            var dates = Assert.Single(inventory.RootElement.GetProperty("sources").EnumerateArray())
+            var dates = Assert.Single(inventory.RootElement.GetProperty("sources")
+                .EnumerateArray())
                 .GetProperty("dates");
             Assert.Equal(
                 expected: new[]
@@ -870,7 +907,8 @@ public sealed class RegistryHistoryTopicsTests
                     date,
                     date.AddDays(14),
                 },
-                actual: dates.EnumerateArray().Select(x => x.GetDateTime()));
+                actual: dates.EnumerateArray()
+                    .Select(x => x.GetDateTime()));
         }
         finally
         {

@@ -11,7 +11,8 @@ public sealed class CurrentSourceMergeTests
     {
         string CalculatePath2()
         {
-            string toString = Guid.NewGuid().ToString("N");
+            string toString = Guid.NewGuid()
+                .ToString("N");
             string text = $"schedulelib-period-cache-{toString}";
             string path2 = (string) text;
             return path2;
@@ -45,7 +46,8 @@ public sealed class CurrentSourceMergeTests
                         day: 11),
                 },
                 actual: raw.Periods.Select(x => x.Start));
-            var cloudLabs = raw.EnumerateWeeklyLessons().Where(x =>
+            var cloudLabs = raw.EnumerateWeeklyLessons()
+                .Where(x =>
             {
                 bool CheckCondition()
                 {
@@ -64,7 +66,8 @@ public sealed class CurrentSourceMergeTests
                         return false;
                     }
 
-                    if (!(raw.Get(x.Lesson.Course).Names.Any(name => name.Contains(
+                    if (!(raw.Get(x.Lesson.Course).Names
+                        .Any(name => name.Contains(
                                             "Cloud",
                                             StringComparison.OrdinalIgnoreCase))))
                     {
@@ -79,14 +82,10 @@ public sealed class CurrentSourceMergeTests
                 .ToArray();
             Assert.Contains(
                 cloudLabs,
-                x => x.Date.Period == new PeriodId(1)
-                    && x.Date.DayOfWeek == DayOfWeek.Tuesday
-                    && x.Date.Parity == Parity.EveryWeek);
+                x => { if (!(x.Date.Period == new PeriodId(1))) { return false; } if (!(x.Date.DayOfWeek == DayOfWeek.Tuesday)) { return false; } if (!(x.Date.Parity == Parity.EveryWeek)) { return false; } return true; });
             Assert.DoesNotContain(
                 cloudLabs,
-                x => x.Date.Period == new PeriodId(2)
-                    && x.Date.DayOfWeek == DayOfWeek.Tuesday
-                    && x.Date.Parity == Parity.EveryWeek);
+                x => { if (!(x.Date.Period == new PeriodId(2))) { return false; } if (!(x.Date.DayOfWeek == DayOfWeek.Tuesday)) { return false; } if (!(x.Date.Parity == Parity.EveryWeek)) { return false; } return true; });
             global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cacheDirectory, searchPattern: "*.json");
             var cache = Assert.Single(collection);
             var originalCache = await File.ReadAllBytesAsync(cache);
@@ -119,13 +118,30 @@ public sealed class CurrentSourceMergeTests
             var ai = Assert.Single(
                 merged.AutomaticLabSubGroupMerges.Where(x =>
                     merged.Get(x.Group).Name == "IA2404"
-                    && merged.Get(x.Course).Names.Any(name => name.StartsWith(
+                    && merged.Get(x.Course).Names
+                        .Any(name => name.StartsWith(
                         "Intel",
                         StringComparison.OrdinalIgnoreCase))));
-            var labs = merged.EnumerateWeeklyLessons().Where(x =>
-                    x.Lesson.Course == ai.Course
-                    && x.Lesson.Groups.Contains(ai.Group)
-                    && x.Lesson.Type == LessonType.Lab)
+            var labs = merged.EnumerateWeeklyLessons()
+                .Where(x =>
+                {
+                    if (!(x.Lesson.Course == ai.Course))
+                    {
+                        return false;
+                    }
+
+                    if (!(x.Lesson.Groups.Contains(ai.Group)))
+                    {
+                        return false;
+                    }
+
+                    if (!(x.Lesson.Type == LessonType.Lab))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                })
                 .ToArray();
             Assert.NotEmpty(labs);
             Assert.All(
@@ -137,16 +153,10 @@ public sealed class CurrentSourceMergeTests
                 });
             Assert.Contains(
                 raw.EnumerateWeeklyLessons(),
-                x => x.Lesson.Course == ai.Course
-                    && x.Lesson.Group == ai.Group
-                    && x.Date.Period == new PeriodId(0)
-                    && x.Lesson.SubGroup == new SubGroup("I"));
+                x => { if (!(x.Lesson.Course == ai.Course)) { return false; } if (!(x.Lesson.Group == ai.Group)) { return false; } if (!(x.Date.Period == new PeriodId(0))) { return false; } if (!(x.Lesson.SubGroup == new SubGroup("I"))) { return false; } return true; });
             Assert.Contains(
                 raw.EnumerateWeeklyLessons(),
-                x => x.Lesson.Course == ai.Course
-                    && x.Lesson.Group == ai.Group
-                    && x.Date.Period == new PeriodId(0)
-                    && x.Lesson.SubGroup == new SubGroup("II"));
+                x => { if (!(x.Lesson.Course == ai.Course)) { return false; } if (!(x.Lesson.Group == ai.Group)) { return false; } if (!(x.Date.Period == new PeriodId(0))) { return false; } if (!(x.Lesson.SubGroup == new SubGroup("II"))) { return false; } return true; });
             var weekly = new ManualWeeklyScheduledDateProvider(
                 ScheduleLib.ScheduleDefaults.Config.StudyWeeks,
                 ScheduleLib.ScheduleDefaults.Config.HolidayPeriods);
@@ -159,7 +169,8 @@ public sealed class CurrentSourceMergeTests
                 {
                     Lessons = labs.Select(x => x.Id.AsAny()),
                     Semester = Semester.Sem1,
-                }).ToArray();
+                })
+                .ToArray();
             Assert.NotEmpty(dates);
             Assert.True(
                 dates.Min(x => x.DateTime)
@@ -179,7 +190,8 @@ public sealed class CurrentSourceMergeTests
     {
         string CalculatePath2()
         {
-            string toString = Guid.NewGuid().ToString("N");
+            string toString = Guid.NewGuid()
+                .ToString("N");
             string text = $"schedulelib-word-after-pdf-{toString}";
             string path2 = (string) text;
             return path2;
@@ -224,14 +236,17 @@ public sealed class CurrentSourceMergeTests
                 cacheDirectory: cache,
                 enabled: false);
             Assert.Equal(expected: 3, actual: fresh.Periods.Length);
-            var older = fresh.EnumerateWeeklyLessons().Where(x =>
+            var older = fresh.EnumerateWeeklyLessons()
+                .Where(x =>
                     x.Date.Period == new PeriodId(0)
                     && x.Lesson.Alternative == new Alternative("Antreprenoriat inovativ"))
                 .ToArray();
             Assert.NotEmpty(older);
-            var courses = older.Select(x => x.Lesson.Course).ToHashSet();
+            var courses = older.Select(x => x.Lesson.Course)
+                .ToHashSet();
             var later = fresh.EnumerateWeeklyLessons()
-                .Where(x => x.Date.Period == new PeriodId(2) && courses.Contains(x.Lesson.Course)).ToArray();
+                .Where(x => x.Date.Period == new PeriodId(2) && courses.Contains(x.Lesson.Course))
+                .ToArray();
             Assert.NotEmpty(later);
             Assert.All(later, x =>
             {
@@ -245,9 +260,16 @@ public sealed class CurrentSourceMergeTests
             });
             Assert.Contains(
                 fresh.EnumerateWeeklyLessons(),
-                x => x.Date.Period == new PeriodId(1)
-                    && x.Lesson.Alternative.Value is { } alternative
-                    && alternative.StartsWith("Antreprenoriat Gr.", StringComparison.Ordinal));
+                x =>
+                {
+                    if (!(x.Date.Period == new PeriodId(1)))
+                    { return false; }
+                    if (!(x.Lesson.Alternative.Value is { } alternative))
+                    { return false; }
+                    if (!(alternative.StartsWith("Antreprenoriat Gr.", StringComparison.Ordinal)))
+                    { return false; }
+                    return true;
+                });
             Assert.Equal(
                 expected: Describe(fresh),
                 actual: Describe(
@@ -292,7 +314,8 @@ public sealed class CurrentSourceMergeTests
 
     private static string[] Describe(Schedule schedule)
     {
-        return schedule.EnumerateWeeklyLessons().Select(x =>
+        return schedule.EnumerateWeeklyLessons()
+            .Select(x =>
             $"{x.Id}|{x.Lesson.Course}|{x.Lesson.Groups.ToString(schedule)}|{x.Lesson.GroupPartitionKey}|{x.Lesson.Type}|{x.Date}")
             .ToArray();
     }

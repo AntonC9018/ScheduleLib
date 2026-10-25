@@ -76,22 +76,32 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-                bool conditionResult;
-                if (!invoked)
+                bool CalculateConditionResult()
                 {
-                    if (context.ParseResult?.ParseError is not null)
+                    if (!invoked)
                     {
-                        conditionResult = true;
+                        if (context.ParseResult?.ParseError is not null)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (exit == ExitCodes.ValidationError)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     }
                     else
                     {
-                        conditionResult = exit == ExitCodes.ValidationError;
+                        return false;
                     }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 inputFailure = conditionResult;
                 if (!invoked && context.ParseResult?.ParseError is not null)
@@ -99,29 +109,39 @@ public static class CliHost
                     parseDetail = context.ParseResult.ParseError.ToString();
                 }
 
-                bool conditionResult2;
-                if (exit != CliExit.Success)
+                bool CalculateConditionResult2()
                 {
-                    if (!invoked)
+                    if (exit != CliExit.Success)
                     {
-                        if (args.Contains("--json"))
+                        if (!invoked)
                         {
-                            conditionResult2 = true;
+                            if (args.Contains("--json"))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                if (args.Contains("--jsonl"))
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
                         }
                         else
                         {
-                            conditionResult2 = args.Contains("--jsonl");
+                            return false;
                         }
                     }
                     else
                     {
-                        conditionResult2 = false;
+                        return false;
                     }
                 }
-                else
-                {
-                    conditionResult2 = false;
-                }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
 
                 if (conditionResult2)
                 {
@@ -150,15 +170,20 @@ public static class CliHost
             }
 
             var result = await runner.RunAsync(CalculateArgs());
-            bool conditionResult;
-            if (result == 0)
+            bool CalculateConditionResult4()
             {
-                conditionResult = true;
+                if (result == 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    return invoked;
+                }
             }
-            else
-            {
-                conditionResult = invoked;
-            }
+
+            bool conditionResult = CalculateConditionResult4();
+
 
             if (conditionResult)
             {
@@ -167,15 +192,20 @@ public static class CliHost
 
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            bool conditionResult2;
-            if (hasJson)
+            bool CalculateConditionResult2()
             {
-                conditionResult2 = hasJsonl;
+                if (hasJson)
+                {
+                    return hasJsonl;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult2 = false;
-            }
+
+            bool conditionResult2 = CalculateConditionResult2();
+
 
             if (conditionResult2)
             {
@@ -188,7 +218,8 @@ public static class CliHost
             var details = new List<string>();
             if (capture is not null)
             {
-                foreach (var line in capture.GetError().Split('\n'))
+                foreach (var line in capture.GetError()
+                    .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -196,7 +227,8 @@ public static class CliHost
                         details.Add(trimmed);
                     }
                 }
-                foreach (var line in capture.GetOut().Split('\n'))
+                foreach (var line in capture.GetOut()
+                    .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -228,15 +260,20 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            bool conditionResult3;
-            if (hasJson)
+            bool CalculateConditionResult3()
             {
-                conditionResult3 = hasJsonl;
+                if (hasJson)
+                {
+                    return hasJsonl;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult3 = false;
-            }
+
+            bool conditionResult3 = CalculateConditionResult3();
+
 
             if (conditionResult3)
             {
@@ -257,7 +294,8 @@ public static class CliHost
             if (conditionResult4)
             {
                 string command = "cli";
-                string runId = Guid.NewGuid().ToString("N");
+                string runId = Guid.NewGuid()
+                    .ToString("N");
                 bool json = false;
                 bool jsonl = true;
                 var output = new CliOutput(
@@ -287,15 +325,20 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
-            bool conditionResult;
-            if (hasJson)
+            bool CalculateConditionResult()
             {
-                conditionResult = hasJsonl;
+                if (hasJson)
+                {
+                    return hasJsonl;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -305,7 +348,8 @@ public static class CliHost
             if (hasJsonl)
             {
                 string command = "cli";
-                string runId = Guid.NewGuid().ToString("N");
+                string runId = Guid.NewGuid()
+                    .ToString("N");
                 bool json = false;
                 bool jsonl = true;
                 var output = new CliOutput(
@@ -329,7 +373,8 @@ public static class CliHost
                 {
                     int schemaVersion = 1;
                     string command2 = "cli";
-                    string runId2 = Guid.NewGuid().ToString("N");
+                    string runId2 = Guid.NewGuid()
+                        .ToString("N");
                     string status = "failed";
                     int exitCode = exit;
                     string[] outputs = [];
@@ -513,7 +558,8 @@ public partial class QueryCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            if (query.Room is { } room && !schedule.EnumerateWeeklyLessons().Any(x => x.Lesson.Room.Id == room))
+            if (query.Room is { } room && !schedule.EnumerateWeeklyLessons()
+                .Any(x => x.Lesson.Room.Id == room))
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -522,19 +568,30 @@ public partial class QueryCommands
             }
 
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            foreach (var lesson in schedule.Filter(FilterHelper.Builder().WithLatestPeriod(schedule))
+            foreach (var lesson in schedule.Filter(FilterHelper.Builder()
+                .WithLatestPeriod(schedule))
                          .EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
-                bool conditionResult2;
-                if (query.Room is { } r)
+                bool CalculateConditionResult2()
                 {
-                    conditionResult2 = lesson.Lesson.Room.Id != r;
+                    if (query.Room is { } r)
+                    {
+                        if (lesson.Lesson.Room.Id != r)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult2 = false;
-                }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
 
                 if (conditionResult2)
                 {
@@ -605,7 +662,9 @@ public partial class QueryCommands
                                     interval.End.ToString("HH:mm"),
                                     lesson.Lesson.Room.Id,
                                     schedule.Get(lesson.Lesson.Course).FullName,
-                                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray());
+                                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
+                                        .ToString())
+                                        .ToArray());
                 lessons.Add(item);
                 global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
                 string id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);

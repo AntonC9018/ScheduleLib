@@ -145,7 +145,8 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             Command: _command,
             RunId: _runId,
             Status: status,
-            _owned.Select(x => new OwnedArtifact(Name: x.Key, Sha256: x.Value)).ToArray());
+            _owned.Select(x => new OwnedArtifact(Name: x.Key, Sha256: x.Value))
+                .ToArray());
         await AtomicFile.Publish(
             ManifestPath,
             (stream, ct) => JsonSerializer.SerializeAsync(

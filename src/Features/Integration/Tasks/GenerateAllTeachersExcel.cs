@@ -155,7 +155,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
         void ConfigureMerges()
         {
-            var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
+            var mergeCells = worksheet.Elements<MergeCells>()
+                .FirstOrDefault();
             if (mergeCells is null)
             {
                 mergeCells = new MergeCells();

@@ -707,7 +707,8 @@ public sealed class RegistryHistoryTests
             }
             var historical = request.RequestUri.Query.Contains("2024%2F25", StringComparison.Ordinal);
             var years = historical
-                ? Years.Replace("selected value='2025/26'", "value='2025/26'").Replace(
+                ? Years.Replace("selected value='2025/26'", "value='2025/26'")
+                    .Replace(
                     "value='2024/25'>2024/25",
                     "selected value='2024/25'>2024/25")
                 : Years;

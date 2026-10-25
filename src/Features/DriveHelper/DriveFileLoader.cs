@@ -20,7 +20,8 @@ public sealed class DriveFileLoader : IDisposable
 
     public static void Register(IServiceCollection services)
     {
-        services.AddOptions<DriveFileLoaderOptions>().ValidateDataAnnotations();
+        services.AddOptions<DriveFileLoaderOptions>()
+            .ValidateDataAnnotations();
         services.ConfigureOptions<DefaultDriveFileLoaderConfigureOptions>();
         services.AddScoped<DriveFileLoader>();
     }
@@ -100,7 +101,8 @@ public sealed partial class DefaultDriveFileLoaderConfigureOptions : IConfigureO
 
     public void Configure(DriveFileLoaderOptions options)
     {
-        options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey").Get<string>()
+        options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey")
+            .Get<string>()
             ?? throw new InvalidOperationException("Expected to find Google:ApiKey in the configuration");
     }
 }

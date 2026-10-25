@@ -34,7 +34,8 @@ public static class RegistryGradeForm
     {
         var form = document.QuerySelector<IHtmlFormElement>("form")
             ?? throw new InvalidOperationException("Registry grade form is missing.");
-        var inputs = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]").ToArray();
+        var inputs = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
+            .ToArray();
         bool CheckCondition()
         {
             if (inputs.Length == 0)
@@ -47,7 +48,9 @@ public static class RegistryGradeForm
                 return true;
             }
 
-            if (inputs.Select(input => input.Name).Distinct(StringComparer.Ordinal).Count() != inputs.Length)
+            if (inputs.Select(input => input.Name)
+                .Distinct(StringComparer.Ordinal)
+                .Count() != inputs.Length)
             {
                 return true;
             }

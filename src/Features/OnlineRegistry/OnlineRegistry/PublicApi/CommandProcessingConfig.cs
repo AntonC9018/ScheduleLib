@@ -20,21 +20,24 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
     public readonly CommandProcessingConfig WithProcess(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.Process().Set(types);
+        b.Process()
+            .Set(types);
         return b.Build();
     }
 
     public readonly CommandProcessingConfig WithDryRun(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.DryRun().Set(types);
+        b.DryRun()
+            .Set(types);
         return b.Build();
     }
 
     public readonly CommandProcessingConfig WithLog(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.Log().Set(types);
+        b.Log()
+            .Set(types);
         return b.Build();
     }
 
@@ -54,7 +57,8 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
             var b = Builder();
             var dryRun = b.DryRun().RestoredSlice;
             var doNotProcess = dryRun;
-            b.Process().ClearArray(doNotProcess);
+            b.Process()
+                .ClearArray(doNotProcess);
             return b.Build();
         }
     }
@@ -201,7 +205,8 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         var b = new CommandProcessingConfigBuilder();
         foreach (var x in model)
         {
-            b.Portion(x.Key).ResetArray(x.Value);
+            b.Portion(x.Key)
+                .ResetArray(x.Value);
         }
         return b.Build();
     }
@@ -211,7 +216,8 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         CommandProcessingConfig value,
         JsonSerializerOptions options)
     {
-        using var model = OneForEach.Enum<CommandProcessingConfigPortion>().RentArray<EnumBitArray<LessonEquationCommandType>>();
+        using var model = OneForEach.Enum<CommandProcessingConfigPortion>()
+            .RentArray<EnumBitArray<LessonEquationCommandType>>();
         var b = value.Builder();
         foreach (var x in model)
         {

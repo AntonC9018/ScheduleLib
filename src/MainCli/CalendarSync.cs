@@ -87,7 +87,27 @@ public static class CalendarSync
         string? profile = null,
         Action<CalendarReport>? onOutcome = null)
     {
-        if (string.IsNullOrWhiteSpace(name) || name.Equals("primary", StringComparison.OrdinalIgnoreCase))
+        bool CalculateConditionResult2()
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return true;
+            }
+            else
+            {
+                if (name.Equals("primary", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
+
+        if (conditionResult2)
         {
             throw new ArgumentException("Primary calendars cannot be replaced; configure a named secondary calendar.");
         }
@@ -607,9 +627,32 @@ public static class CalendarSync
             string[] errors,
             bool reportRemaining = true)
         {
-            if (apply && exit != 0 && reportRemaining)
+            bool CalculateConditionResult()
             {
-                var finished = outcomes.Select(PlanId).ToHashSet(StringComparer.Ordinal);
+                if (apply)
+                {
+                    if (exit != 0)
+                    {
+                        return reportRemaining;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
+            {
+                var finished = outcomes.Select(PlanId)
+                    .ToHashSet(StringComparer.Ordinal);
                 foreach (var step in plan.Where(step => !finished.Contains(step.Id)))
                 {
                     var skipped = new CalendarActionOutcome(

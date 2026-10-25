@@ -126,23 +126,27 @@ public static class DriveSync
             local.TryAdd(artifact.Name, artifact);
         }
 
-        var cloudNames = remote.Select(x => x.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cloudNames = remote.Select(x => x.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var actions = new List<DriveAction>();
         // Preserve legacy matching: every duplicate remote name is updated, unmatched remote files are deleted.
         actions.AddRange(
-            remote.Where(x => !local.ContainsKey(x.Name)).Select(x => new DriveAction(
+            remote.Where(x => !local.ContainsKey(x.Name))
+                .Select(x => new DriveAction(
                 Action: "delete",
                 Name: x.Name,
                 FileId: x.Id,
                 LocalPath: null)));
         actions.AddRange(
-            local.Values.Where(x => !cloudNames.Contains(x.Name)).Select(x => new DriveAction(
+            local.Values.Where(x => !cloudNames.Contains(x.Name))
+                .Select(x => new DriveAction(
                 Action: "create",
                 Name: x.Name,
                 FileId: null,
                 LocalPath: x.Path)));
         actions.AddRange(
-            remote.Where(x => local.ContainsKey(x.Name)).Select(x => new DriveAction(
+            remote.Where(x => local.ContainsKey(x.Name))
+                .Select(x => new DriveAction(
                 Action: "update",
                 Name: x.Name,
                 FileId: x.Id,

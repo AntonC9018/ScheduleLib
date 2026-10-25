@@ -71,7 +71,8 @@ public sealed class UiTreeSerializer
     public async ValueTask Serialize(TreeBuilder tree)
     {
         await using var output = _outputProvider.GetWrite(tree);
-        await _serializer.SerializeUiLayers(output, tree).ConfigureAwait(false);
+        await _serializer.SerializeUiLayers(output, tree)
+            .ConfigureAwait(false);
         if (_settings.OpenAfterSave)
         {
             ExplorerHelper.TryOpenExplorerAndSelectFile(_settings.DatabaseFilePath);
@@ -96,7 +97,8 @@ public sealed class UiTreeSerializer
         }
         await using (output)
         {
-            await _serializer.DeserializeUiLayers(output, tree).ConfigureAwait(false);
+            await _serializer.DeserializeUiLayers(output, tree)
+                .ConfigureAwait(false);
         }
     }
 }

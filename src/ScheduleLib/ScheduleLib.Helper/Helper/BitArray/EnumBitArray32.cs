@@ -242,7 +242,12 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
         }
     }
 
-    public SetEnumValuesEnumerator GetEnumerator() => SetValues().GetEnumerator();
+    public SetEnumValuesEnumerator GetEnumerator()
+    {
+        return SetValues()
+            .GetEnumerator();
+    }
+
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

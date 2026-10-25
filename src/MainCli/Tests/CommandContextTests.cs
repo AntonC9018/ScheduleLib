@@ -119,11 +119,13 @@ public sealed class CommandContextTests
                 var paths = await context.CompleteArtifacts(failure.ExitCode);
                 Assert.Contains(context.Artifacts.ManifestPath, paths);
                 using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(context.Artifacts.ManifestPath));
-                Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
+                Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
+                    .GetString());
             }
             string CalculateRunId()
             {
-                string runId2 = Guid.NewGuid().ToString("N");
+                string runId2 = Guid.NewGuid()
+                    .ToString("N");
                 return runId2;
             }
 

@@ -60,7 +60,8 @@ public sealed partial class AttendanceListsExcelParser
         {
             var contentColumns = sheet.CellsUsed(XLCellsUsedOptions.Contents)
                 .Where(cell => !IsEmptyCell(cell))
-                .Select(cell => cell.Address.ColumnNumber).ToHashSet();
+                .Select(cell => cell.Address.ColumnNumber)
+                .ToHashSet();
             if (p.ParseParameters.HeaderFormat.FormatType != HeaderFormatType.Nothing
                 && sheet.FirstRowUsed(XLCellsUsedOptions.Contents) is { } firstRow)
             {
@@ -486,7 +487,8 @@ public sealed partial class AttendanceListsExcelParser
                 // Source subgroup sheets remain meaningful after their labs are projected away.
                 // Match the active destination, but keep the source key for row composition.
                 var schedule = _schedule;
-                var candidates = schedule.EnumerateLessons().Where(item =>
+                var candidates = schedule.EnumerateLessons()
+                    .Where(item =>
                 {
                     global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateSource()
                     {
@@ -502,7 +504,9 @@ public sealed partial class AttendanceListsExcelParser
                                         && AttendanceLabMerges.TryDestination(schedule.Source, labMerges,
                                             CalculateSource(), out _);
                 })
-                    .Select(item => item.Lesson.Course).Distinct().ToArray();
+                    .Select(item => item.Lesson.Course)
+                    .Distinct()
+                    .ToArray();
                 if (candidates.Length > 1)
                 {
                     throw new InvalidOperationException($"Multiple merged lab courses match worksheet '{excelName}'. Specify its course.");
@@ -517,7 +521,10 @@ public sealed partial class AttendanceListsExcelParser
                     target.CourseId = candidates[0];
                     target.LessonType = LessonType.Lab;
                     target.GroupPartition = rule is null ? destination
-                        : destination with { SubGroup = new(rule.SourceSubGroup) };
+                        : destination with
+                        {
+                            SubGroup = new(rule.SourceSubGroup),
+                        };
                     var ignored = additionallyIgnoredFields;
                     ignored.LessonType = false;
                     if (LookupLesson(target, _schedule, ignored, target.GroupPartition) is { } projected)
@@ -862,7 +869,8 @@ public sealed partial class AttendanceListsExcelParser
             builder.SetLen(cellCount);
         }
 
-        using var cellE = row.Cells(usedCellsOnly: false).GetEnumerator();
+        using var cellE = row.Cells(usedCellsOnly: false)
+            .GetEnumerator();
         while (true)
         {
             if (!cellE.MoveNext())
@@ -1077,8 +1085,10 @@ public sealed partial class AttendanceListsExcelParser
             return;
         }
 
-        using var rowE = sheet.Rows().SkipWhile(row => row.RowNumber() < firstRow.RowNumber())
-            .GetEnumerator().RememberIsDone();
+        using var rowE = sheet.Rows()
+            .SkipWhile(row => row.RowNumber() < firstRow.RowNumber())
+            .GetEnumerator()
+            .RememberIsDone();
         bool conditionResult;
         if (header.HeaderType != HeaderType.None)
         {
@@ -1153,7 +1163,8 @@ public sealed partial class AttendanceListsExcelParser
             var row = rowE.Current;
 
             var lastColumn = Math.Max(studentNameColumn, row.LastCellUsed()?.Address.ColumnNumber ?? studentNameColumn);
-            using var cells = row.Cells(firstColumn: studentNameColumn, lastColumn: lastColumn).GetEnumerator();
+            using var cells = row.Cells(firstColumn: studentNameColumn, lastColumn: lastColumn)
+                .GetEnumerator();
             if (!cells.MoveNext())
             {
                 break;
@@ -1305,7 +1316,9 @@ public sealed partial class AttendanceListsExcelParser
         // Handle empty cells
         if (c.FirstOffset is null)
         {
-            var columnNumber = cell.AsRange().FirstColumn().ColumnNumber();
+            var columnNumber = cell.AsRange()
+                .FirstColumn()
+                .ColumnNumber();
             if (columnNumber < c.StudentNameColumn)
             {
                 return HeaderColumnValidationResult.SkipEmpty;
@@ -1353,7 +1366,8 @@ public sealed partial class AttendanceListsExcelParser
             // Some sanity checks.
             Debug.Assert(!c.IsInEmptyStreak);
             Debug.Assert(c.FirstOffset.HasValue);
-            var colNumber = range.FirstColumn().ColumnNumber();
+            var colNumber = range.FirstColumn()
+                .ColumnNumber();
             Debug.Assert(colNumber > c.PreviousOffset.Value);
             c.PreviousOffset = new(colNumber);
         }
@@ -1398,7 +1412,8 @@ public sealed partial class AttendanceListsExcelParser
 
     private static bool IsIrrelevantColumnHeader(XLCellValue value)
     {
-        return value.TryGetText(out var text) && text.Trim().ToLowerInvariant()
+        return value.TryGetText(out var text) && text.Trim()
+            .ToLowerInvariant()
             is "nr." or "nr" or "no." or "no" or "№" or "#" or "număr" or "numar" or "number";
     }
 
@@ -1467,8 +1482,41 @@ public sealed partial class AttendanceListsExcelParser
             }
 
             int fieldIndex = cell.Address.ColumnNumber - table.RangeAddress.FirstAddress.ColumnNumber;
-            if (fieldIndex >= 0 && fieldIndex < table.Fields.Count()
-                && number == fieldIndex + 1 && table.Field(fieldIndex).Name == text)
+            bool CalculateConditionResult()
+            {
+                if (fieldIndex >= 0)
+                {
+                    if (fieldIndex < table.Fields.Count())
+                    {
+                        if (number == fieldIndex + 1)
+                        {
+                            if (table.Field(fieldIndex).Name == text)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 return true;
             }
@@ -1483,7 +1531,8 @@ public sealed partial class AttendanceListsExcelParser
             return false;
         }
 
-        if (text.Trim().ToLowerInvariant() is "name" or "student" or "student name"
+        if (text.Trim()
+            .ToLowerInvariant() is "name" or "student" or "student name"
            or "nume" or "nume, prenume" or "nume prenume" or "nume și prenume" or "nume si prenume"
            or "фио" or "ф.и.о." or "имя")
         {

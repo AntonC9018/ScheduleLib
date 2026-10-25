@@ -40,7 +40,8 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
 
     public ConfigurableEnumConverter(EnumConverterOptions<T> options)
     {
-        var allValues = GetValues(typeof(T)).Cast<T>();
+        var allValues = GetValues(typeof(T))
+            .Cast<T>();
 
         // Always exclude Invalid and Count
         var filtered = allValues.Where(v =>

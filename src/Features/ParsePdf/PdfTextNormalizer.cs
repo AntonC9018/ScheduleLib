@@ -8,13 +8,17 @@ public static class PdfTextNormalizer
     {
         char separator = '\n';
         string[] split = text.Split('\n');
-        global::System.Func<string, string> selector = l => Regex.Replace(l, @"[ \t]+", " ").Trim();
+        global::System.Func<string, string> selector = l => Regex.Replace(l, @"[ \t]+", " ")
+            .Trim();
         global::System.Collections.Generic.IEnumerable<string> values = split.Select(selector);
         text = string.Join(separator, values);
         text = Regex.Replace(text, @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă", "Securitatea cibernetică");
-        text = text.Replace("UI/U X", "UI/UX").Replace("145a/4/4", "145a/4")
-            .Replace("Disciplină umanistică opțională: ", "").Replace("cal cul.", "calcul.")
-            .Replace("Tehnol.progr.v", "Tehnol.progr.").Replace(" (IȘE)", "");
+        text = text.Replace("UI/U X", "UI/UX")
+            .Replace("145a/4/4", "145a/4")
+            .Replace("Disciplină umanistică opțională: ", "")
+            .Replace("cal cul.", "calcul.")
+            .Replace("Tehnol.progr.v", "Tehnol.progr.")
+            .Replace(" (IȘE)", "");
         text = Regex.Replace(text, @",\s*\)", ")");
         text = Regex.Replace(text, @"(?m)(\([^()]*\))\)+(?=$|\s)", "$1");
         text = Regex.Replace(text, @",\s*", ", ");
@@ -39,7 +43,9 @@ public static class PdfTextNormalizer
             var match = pattern.Match(line);
             if (!match.Success)
             { remaining.Add(line); continue; }
-            var names = Regex.Matches(input: match.Groups[2].Value, pattern: @"\[(.*?)\]").Select(m => m.Groups[1].Value).ToArray();
+            var names = Regex.Matches(input: match.Groups[2].Value, pattern: @"\[(.*?)\]")
+                .Select(m => m.Groups[1].Value)
+                .ToArray();
             var groups = cell.Groups.Where(g =>
             {
                 string CalculateValue()
@@ -51,7 +57,8 @@ public static class PdfTextNormalizer
                 }
 
                 return names.Contains(CalculateValue());
-            }).ToArray();
+            })
+                .ToArray();
             if (groups.Length == 0 || groups.Length != names.Length)
             {
                 throw new FormatException($"Unknown cohort membership: {line}");
@@ -62,12 +69,15 @@ public static class PdfTextNormalizer
                 Groups = groups,
                 Text = (string) $"{course}\n{match.Groups[3].Value}",
                 Alternative = (string) $"Antreprenoriat Gr.{match.Groups[1].Value}",
-                Cohort = match.Groups[2].Value
+                Cohort = match.Groups[2].Value,
             };
         }
         if (remaining.Count > 0)
         {
-            yield return cell with { Text = string.Join('\n', remaining) };
+            yield return cell with
+            {
+                Text = string.Join('\n', remaining),
+            };
         }
     }
 
@@ -135,7 +145,11 @@ public static class PdfTextNormalizer
             }
 
             lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", CalculateNewValue()) : (string) $"{lines[0]}{($" ({rule.Parity})")}";
-            return cell with { Text = string.Join('\n', lines), Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md" };
+            return cell with
+            {
+                Text = string.Join('\n', lines),
+                Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md",
+            };
         }
         return cell;
     }

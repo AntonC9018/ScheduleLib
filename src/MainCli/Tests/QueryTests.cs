@@ -49,27 +49,42 @@ public sealed class QueryTests
     public async Task PortableDocxAndXlsxFixtureUsesPredicatesAndCleanJson()
     {
         var all = await Execute(new());
-        Assert.NotEmpty(all.GetProperty("data").EnumerateArray());
+        Assert.NotEmpty(all.GetProperty("data")
+            .EnumerateArray());
         var first = all.GetProperty("data")[0];
-        var room = first.GetProperty("room").GetString()!;
-        var day = Enum.Parse<DayOfWeek>(first.GetProperty("day").GetString()!);
-        var parity = Enum.Parse<Parity>(first.GetProperty("parity").GetString()!);
+        var room = first.GetProperty("room")
+            .GetString()!;
+        var day = Enum.Parse<DayOfWeek>(first.GetProperty("day")
+            .GetString()!);
+        var parity = Enum.Parse<Parity>(first.GetProperty("parity")
+            .GetString()!);
         var filtered = await Execute(new()
         {
             Room = room,
             Day = day,
             Parity = parity,
-            BeforeSlot = first.GetProperty("slot").GetInt32(),
+            BeforeSlot = first.GetProperty("slot")
+                .GetInt32(),
         });
-        Assert.NotEmpty(filtered.GetProperty("data").EnumerateArray());
-        foreach (var lesson in filtered.GetProperty("data").EnumerateArray())
+        Assert.NotEmpty(filtered.GetProperty("data")
+            .EnumerateArray());
+        foreach (var lesson in filtered.GetProperty("data")
+            .EnumerateArray())
         {
-            Assert.Equal(expected: room, actual: lesson.GetProperty("room").GetString());
-            Assert.Equal(expected: day.ToString(), actual: lesson.GetProperty("day").GetString());
-            Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity").GetString()!).IsMatch(parity));
-            Assert.True(lesson.GetProperty("slot").GetInt32() <= first.GetProperty("slot").GetInt32());
+            Assert.Equal(expected: room, actual: lesson.GetProperty("room")
+                .GetString());
+            Assert.Equal(expected: day.ToString(), actual: lesson.GetProperty("day")
+                .GetString());
+            Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity")
+                .GetString()!)
+                .IsMatch(parity));
+            Assert.True(lesson.GetProperty("slot")
+                .GetInt32() <= first.GetProperty("slot")
+                .GetInt32());
         }
-        Assert.Empty((await Execute(new() { Day = DayOfWeek.Sunday })).GetProperty("data").EnumerateArray());
+        Assert.Empty((await Execute(new() { Day = DayOfWeek.Sunday }))
+            .GetProperty("data")
+            .EnumerateArray());
     }
 
     [Fact]
@@ -79,7 +94,11 @@ public sealed class QueryTests
             expected: 3,
             actual: await new FixtureQuery().Lessons(
                 new(),
-                new() { DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()) },
+                new()
+                {
+                    DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid()
+                    .ToString())
+                },
                 new()));
     }
 
@@ -152,7 +171,9 @@ public sealed class QueryTests
             string destFileName2 = Path.Combine(zi, "master.xlsx");
             File.Copy(
                             sourceFileName: sourceFileName3, destFileName: destFileName2);
-            Assert.NotEmpty((await Execute(new(), directory)).GetProperty("data").EnumerateArray());
+            Assert.NotEmpty((await Execute(new(), directory))
+                .GetProperty("data")
+                .EnumerateArray());
         }
         finally
         {
@@ -188,7 +209,8 @@ public sealed class QueryTests
             Console.SetOut(output);
             Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--day", "invalid", "--json"]));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 2, actual: document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: 2, actual: document.RootElement.GetProperty("exitCode")
+                .GetInt32());
         }
         finally
         {
@@ -210,7 +232,8 @@ public sealed class QueryTests
         var original = Console.Out;
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -322,9 +345,12 @@ public sealed class QueryTests
 
                 int actual2 = exit;
                 Assert.Equal(expected: expected2, actual: actual2);
-                Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode").GetInt32());
-                Assert.Equal(expected: "failed", actual: json.RootElement.GetProperty("status").GetString());
-                Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
+                Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+                Assert.Equal(expected: "failed", actual: json.RootElement.GetProperty("status")
+                    .GetString());
+                Assert.Empty(json.RootElement.GetProperty("outputs")
+                    .EnumerateArray());
                 Assert.True(initializer.Called);
                 global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(
                         path: directory,
@@ -416,8 +442,10 @@ public sealed class QueryTests
                 new() { Json = true });
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "query lessons", actual: document.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "query lessons", actual: document.RootElement.GetProperty("command")
+                .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
             global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
             {

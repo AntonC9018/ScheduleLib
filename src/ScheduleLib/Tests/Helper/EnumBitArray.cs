@@ -144,7 +144,8 @@ public sealed class EnumBitArrayTests
         bitArray.Set(TestDay.Thursday);
         bitArray.Set(TestDay.Saturday);
 
-        var values = bitArray.SetValues().ToList();
+        var values = bitArray.SetValues()
+            .ToList();
         Assert.Equal(expected: 3, actual: values.Count);
         Assert.Equal(expected: TestDay.Tuesday, actual: values[0]);
         Assert.Equal(expected: TestDay.Thursday, actual: values[1]);
@@ -155,7 +156,8 @@ public sealed class EnumBitArrayTests
     public void SetValuesEmpty()
     {
         var bitArray = new EnumBitArray<TestDay>();
-        var values = bitArray.SetValues().ToList();
+        var values = bitArray.SetValues()
+            .ToList();
         Assert.Empty(values);
     }
 

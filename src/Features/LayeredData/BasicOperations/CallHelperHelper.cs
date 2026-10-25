@@ -29,7 +29,8 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
                 throw new ArgumentException(message: $"Type {type} does not implement {_interfaceType.FullName}<T>", paramName: nameof(implType));
             }
             var types = inter.GetGenericArguments();
-            if (types.Length != _methodInfo.GetGenericMethodDefinition().GetGenericArguments().Length)
+            if (types.Length != _methodInfo.GetGenericMethodDefinition()
+                .GetGenericArguments().Length)
             {
                 throw new InvalidOperationException($"Argument count mismatch");
             }

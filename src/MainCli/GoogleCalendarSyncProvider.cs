@@ -45,8 +45,11 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
         return googleCalendarSyncProvider;
     }
 
-    public async Task<string> GetAccount(CancellationToken token) =>
-        (await _service.Calendars.Get("primary").ExecuteAsync(token)).Id;
+    public async Task<string> GetAccount(CancellationToken token)
+    {
+        return (await _service.Calendars.Get("primary")
+            .ExecuteAsync(token)).Id;
+    }
 
     public async Task<IReadOnlyList<CalendarDestination>> ListCalendars(CancellationToken token)
     {
@@ -82,8 +85,11 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
         return result;
     }
 
-    public async Task DeleteCalendar(string calendarId, CancellationToken token) =>
-        await _service.Calendars.Delete(calendarId).ExecuteAsync(token);
+    public async Task DeleteCalendar(string calendarId, CancellationToken token)
+    {
+        await _service.Calendars.Delete(calendarId)
+            .ExecuteAsync(token);
+    }
 
     public async Task<string> CreateCalendar(string summary, CancellationToken token)
     {
@@ -101,8 +107,11 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
     public async Task<string> CreateEvent(
         string calendarId,
         Event desired,
-        CancellationToken token) =>
-        RequireCreatedId((await _service.Events.Insert(desired, calendarId).ExecuteAsync(token)).Id);
+        CancellationToken token)
+    {
+        return RequireCreatedId((await _service.Events.Insert(desired, calendarId)
+            .ExecuteAsync(token)).Id);
+    }
 
     private static string RequireCreatedId(string? id)
     {

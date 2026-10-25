@@ -270,9 +270,25 @@ public sealed class DriveSyncTests
                     new() { Json = true },
                     new() { Apply = apply }));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: apply ? "applied" : "preview", actual: json.RootElement.GetProperty("status").GetString());
-            var actions = json.RootElement.GetProperty("data").GetProperty("actions").EnumerateArray().ToArray();
-            var names = actions.Select(x => x.GetProperty("name").GetString()).ToArray();
+            string CalculateExpected()
+            {
+                if (apply)
+                {
+                    return "applied";
+                }
+
+                return "preview";
+            }
+
+            Assert.Equal(expected: CalculateExpected(), actual: json.RootElement.GetProperty("status")
+                            .GetString());
+            var actions = json.RootElement.GetProperty("data")
+                .GetProperty("actions")
+                .EnumerateArray()
+                .ToArray();
+            var names = actions.Select(x => x.GetProperty("name")
+                .GetString())
+                .ToArray();
             Assert.Contains("all-teachers.xlsx", names);
             Assert.Contains("free-rooms.xlsx", names);
             Assert.Contains(names, x => x!.EndsWith(".pdf", StringComparison.Ordinal));
@@ -289,7 +305,8 @@ public sealed class DriveSyncTests
                 expectedStartString: "%PDF-",
                 actualString: System.Text.Encoding.ASCII.GetString(
                     await File.ReadAllBytesAsync(
-                        Directory.GetFiles(path: temp.Path, searchPattern: "*.pdf").First(x => !x.EndsWith(
+                        Directory.GetFiles(path: temp.Path, searchPattern: "*.pdf")
+                            .First(x => !x.EndsWith(
                             "caller.pdf",
                             StringComparison.Ordinal)))));
             string CalculatePath2()
@@ -365,8 +382,10 @@ public sealed class DriveSyncTests
                     new() { Json = true },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 4, actual: json.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
+            Assert.Equal(expected: 4, actual: json.RootElement.GetProperty("exitCode")
+                .GetInt32());
+            Assert.Empty(json.RootElement.GetProperty("outputs")
+                .EnumerateArray());
         }
         finally
         {
@@ -586,14 +605,16 @@ public sealed class DriveSyncTests
                 }
 
                 return ProjectValue();
-            }).ToArray();
+            })
+                .ToArray();
         }
 
         public void Dispose() => Directory.Delete(Path, true);
 
         private static string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
     }

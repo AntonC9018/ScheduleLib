@@ -41,7 +41,8 @@ public sealed class HtmlTests
                 courseNames.Add(courseName);
                 return new(courseNames.Count);
             },
-        }).ToArray();
+        })
+            .ToArray();
         var resultWithNames = result.Zip(courseNames, (a, b) => new
         {
             Url = a.Url.ToString(),
@@ -80,7 +81,8 @@ public sealed class HtmlTests
                 return [new(groups.Count)];
             },
             ParseErrorHandler = c => throw new Exception("Wrapped parse error", c.Exception),
-        }).ToArray();
+        })
+            .ToArray();
 
         var mapped = result.Zip(groups, (a, b) => new
         {
@@ -113,7 +115,8 @@ public sealed class HtmlTests
         var numeric = resolver.Resolve(CalculateGroupForSearch2());
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
-        registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
+        registryBuilder.Set([futureSpecialization])
+            .ApplyTo(_ => { });
         var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
             MakeGroupForSearch(futureSpecialization.Value!));
 
@@ -194,12 +197,14 @@ public sealed class HtmlTests
             await using var stream = File.OpenRead(CreateLessonHtmlPath);
             using var reader1 = new StreamReader(stream);
             var str = await reader1.ReadToEndAsync();
-            addDoc = await browser.OpenAsync(req => req.Content(str).Address("https://test.com"));
+            addDoc = await browser.OpenAsync(req => req.Content(str)
+                .Address("https://test.com"));
         }
 
         global::AngleSharp.Html.Dom.IHtmlTableElement table = HtmlSearch.FindAttendanceTable(addDoc);
         var students = HtmlSearch.FindStudents(table);
-        var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present).ToArray();
+        var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present)
+            .ToArray();
         attendance[0] = Attendance.MotivatedAbsent;
         attendance[1] = Attendance.NotPresent;
         attendance[10] = Attendance.NotPresent;
@@ -220,7 +225,9 @@ public sealed class HtmlTests
             });
         });
 
-        var lessonId = schedule.EnumerateWeeklyLessons().First().Id.AsAny();
+        var lessonId = schedule.EnumerateWeeklyLessons()
+            .First().Id
+            .AsAny();
         HtmlSearch.UpdateForm(new()
         {
             Schedule = schedule,

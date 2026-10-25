@@ -45,7 +45,9 @@ public sealed class SerializationTests
             },
             CommandProcessingConfig = CommandProcessingConfig.DryRun,
         };
-        t1a.Builder<RegistryConfig>().Enable().SetValue(value);
+        t1a.Builder<RegistryConfig>()
+            .Enable()
+            .SetValue(value);
 
         var serializer = sp.GetRequiredService<TreeSerializer>();
         var output = new MemoryStream();
@@ -68,7 +70,8 @@ public sealed class SerializationTests
         });
 
         var child0 = t2.BaseNode.ChildNodes[0];
-        var config = child0.Get(RegistryConfig.Key).Value.GetValue();
+        var config = child0.Get(RegistryConfig.Key).Value
+            .GetValue();
         Assert.Equal(expected: value, actual: config, Comparer.Instance);
     }
 }

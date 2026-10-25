@@ -33,7 +33,8 @@ public sealed class ScheduleSanityChecksTests
     public void UnknownSubGroupReportsTheMatchingRegistrySelector()
     {
         var registryBuilder = new SpecializationRegistryBuilder();
-        registryBuilder.Set([Specialization.CV]).ApplyTo(_ => { });
+        registryBuilder.Set([Specialization.CV])
+            .ApplyTo(_ => { });
 
         var schedule = new ScheduleBuilder
         {
@@ -55,10 +56,12 @@ public sealed class ScheduleSanityChecksTests
     public void AcceptsAllNumericAndSpecialSubGroups()
     {
         var schedule = new ScheduleBuilder();
-        schedule.RegularLesson().SubGroup(SubGroup.All);
+        schedule.RegularLesson()
+            .SubGroup(SubGroup.All);
         foreach (var special in SpecialSubGroups.AllSpecial)
         {
-            schedule.RegularLesson().SubGroup(special);
+            schedule.RegularLesson()
+                .SubGroup(special);
         }
         for (int number = 1; number <= 10; number++)
         {
@@ -301,7 +304,8 @@ public sealed class ScheduleSanityChecksTests
     {
         var future = new Specialization("Future track");
         var registryBuilder = new SpecializationRegistryBuilder();
-        registryBuilder.Set([future]).ApplyTo(_ => { });
+        registryBuilder.Set([future])
+            .ApplyTo(_ => { });
         var (context, group) = CreateDocContext(registryBuilder.Build());
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
@@ -319,7 +323,8 @@ public sealed class ScheduleSanityChecksTests
     {
         var future = new Specialization("Future track");
         var registryBuilder = new SpecializationRegistryBuilder();
-        registryBuilder.Set([future]).ApplyTo(_ => { });
+        registryBuilder.Set([future])
+            .ApplyTo(_ => { });
         // The default matcher knows nothing about "Future track", so the
         // abbreviated group name only classifies through the injected matcher.
         var matcher = new SubGroupPrefixMatcher([new SubGroup(future.Value!)]);

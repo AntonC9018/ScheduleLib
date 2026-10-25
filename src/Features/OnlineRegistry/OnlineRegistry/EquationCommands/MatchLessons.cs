@@ -89,15 +89,20 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
-            bool conditionResult;
-            if (yielded)
+            bool CalculateConditionResult()
             {
-                conditionResult = true;
+                if (yielded)
+                {
+                    return true;
+                }
+                else
+                {
+                    return p.Filter.Groups.IsCombined;
+                }
             }
-            else
-            {
-                conditionResult = p.Filter.Groups.IsCombined;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

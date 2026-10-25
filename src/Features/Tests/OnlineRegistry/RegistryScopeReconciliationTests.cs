@@ -16,12 +16,16 @@ public sealed class RegistryScopeReconciliationTests
             return date;
         }
 
-        var saved = Remote(0, CalculateDate(), "Old") with { LessonType = LessonType.Unspecified };
+        var saved = Remote(0, CalculateDate(), "Old") with
+        {
+            LessonType = LessonType.Unspecified,
+        };
         var inferred = new Dictionary<Uri, LessonType>();
         var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(), local, [saved],
             ["A"], Scope, new AnyDayDerivation(), inferredTypes: inferred);
         var commands = RegistryScopeReconciliation.Derive(new ScheduleBuilder().Build(), local, [saved],
-            owners, Scope, new AnyDayDerivation(), inferred).ToArray();
+            owners, Scope, new AnyDayDerivation(), inferred)
+            .ToArray();
         Assert.Equal(expected: LessonEquationCommandType.Update, actual: Assert.Single(commands).Type);
         Assert.Equal(expected: saved.ViewUri, actual: commands[0].Remote.ViewUri);
     }
@@ -33,7 +37,8 @@ public sealed class RegistryScopeReconciliationTests
         var saved = Remote(1, local[1].DateTime, "Old (B)");
         var owners = Assign(local, [saved], false);
         var commands = RegistryScopeReconciliation.Derive(new ScheduleBuilder().Build(), local, [saved],
-            owners, Scope, new AnyDayDerivation()).ToArray();
+            owners, Scope, new AnyDayDerivation())
+            .ToArray();
         Assert.Contains(commands, command => command.Type == LessonEquationCommandType.Create && command.Local.LessonId == local[0].LessonId);
         var update = Assert.Single(commands.Where(command => command.Type == LessonEquationCommandType.Update));
         Assert.Equal(expected: local[1].LessonId, actual: update.Local.LessonId);
@@ -43,7 +48,10 @@ public sealed class RegistryScopeReconciliationTests
     [Fact]
     public void AnOldLabCannotBeRepurposedAsALectureInTheSameScope()
     {
-        var local = new[] { Local(id: 0, hour: 9) with { RegistryLessonType = LessonType.Curs } };
+        var local = new[] { Local(id: 0, hour: 9) with
+        {
+        RegistryLessonType = LessonType.Curs,
+        } };
         var saved = Remote(0, local[0].DateTime, "Old (A)");
         global::ScheduleLib.Schedule schedule = new ScheduleBuilder().Build();
         global::ScheduleLib.OnlineRegistry.LessonInstance[] local2 = local;

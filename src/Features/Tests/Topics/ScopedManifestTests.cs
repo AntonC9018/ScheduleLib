@@ -20,7 +20,8 @@ public sealed class ScopedManifestTests
     public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(int? semester, bool enabled, bool unspecifiedLanguage, bool allowMissingLessonTypes)
     {
         string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid().ToString("N");
+        string toString = Guid.NewGuid()
+            .ToString("N");
         string text = $"scoped-topics-{toString}";
         string path2 = (string) text;
         var directory = Path.Combine(path1, path2);
@@ -114,22 +115,31 @@ public sealed class ScopedManifestTests
                 return expected2;
             }
 
-            Assert.Equal(expected: CalculateExpected(), actual: topics.Get(CalculateKey()));
-            Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with { LessonType = LessonType.Curs }));
+            string? expected3 = CalculateExpected();
+            string? actual2 = topics.Get(CalculateKey());
+            Assert.Equal(expected: expected3, actual: actual2);
+            Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with
+            {
+                LessonType = LessonType.Curs,
+            }));
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(course, otherGroup, GroupPartitionKey.All);
                 return key2;
             }
 
-            Assert.Null(topics.Get(CalculateKey2()));
+            string? objectValue = topics.Get(CalculateKey2());
+            object? objectValue2 = objectValue;
+            Assert.Null(objectValue2);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key3 = Key(otherCourse, group, GroupPartitionKey.All);
                 return key3;
             }
 
-            Assert.Null(topics.Get(CalculateKey3()));
+            string? objectValue3 = topics.Get(CalculateKey3());
+            object? objectValue4 = objectValue3;
+            Assert.Null(objectValue4);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey4()
             {
                 global::ScheduleLib.CourseId courseId2 = course;
@@ -141,7 +151,9 @@ public sealed class ScopedManifestTests
                 return key4;
             }
 
-            Assert.Null(topics.Get(CalculateKey4()));
+            string? objectValue5 = topics.Get(CalculateKey4());
+            object? objectValue6 = objectValue5;
+            Assert.Null(objectValue6);
         }
         finally
         {

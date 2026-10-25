@@ -20,7 +20,8 @@ public sealed partial class UpdateTreeHelper
         {
             var ret = change();
             return ValueTask.FromResult(ret);
-        }).EnsureCompletedSync();
+        })
+            .EnsureCompletedSync();
     }
 
     public async ValueTask ExecTreeActionAsync(Func<ValueTask<NodePath>> change)

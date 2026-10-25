@@ -15,27 +15,41 @@ internal static class RegistryLectureAudience
         {
             if (!schedule.IsLessonActive(candidate.Id) || candidate.Id == id
                 || candidate.Lesson.SubGroup != SubGroup.All && !candidate.Lesson.SubGroup.IsLanguageSubGroup()
-                || !(candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }).Equals(source.Lesson))
+                || !(candidate.Lesson with
+                {
+                    Groups = source.Lesson.Groups,
+                    SubGroup = source.Lesson.SubGroup,
+                }).Equals(source.Lesson))
             {
                 continue;
             }
 
-            bool conditionResult;
-            if (source.Weekly is { } weekly)
+            bool CalculateConditionResult()
             {
-                if (candidate.Weekly is { } otherWeekly)
+                if (source.Weekly is { } weekly)
                 {
-                    conditionResult = weekly.Date == otherWeekly.Date;
+                    if (candidate.Weekly is { } otherWeekly)
+                    {
+                        if (weekly.Date == otherWeekly.Date)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
-                    conditionResult = false;
+                    return false;
                 }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -70,6 +84,7 @@ internal static class RegistryLectureAudience
             string item = RegistryTopicScope.Format(schedule, candidate.Lesson.Groups, candidate.Lesson.GroupPartitionKey);
             list.Add(item);
         }
-        return string.Join(", ", scopes.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal));
+        return string.Join(", ", scopes.Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.Ordinal));
     }
 }

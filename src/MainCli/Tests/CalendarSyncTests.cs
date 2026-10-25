@@ -41,7 +41,10 @@ public sealed class CalendarSyncTests
 
                 if (CheckCondition())
                 {
-                    context.StreamUpdate(report with { Human = new ThrowingMessage() });
+                    context.StreamUpdate(report with
+                    {
+                        Human = new ThrowingMessage(),
+                    });
                 }
             }));
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
@@ -163,17 +166,32 @@ public sealed class CalendarSyncTests
             }
 
             Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
-            Assert.Equal(expected: ["0", "1", "2"], actual: reports.Where(x => x.Status == "planned").Select(x => x.Id));
+            Assert.Equal(expected: ["0", "1", "2"], actual: reports.Where(x => x.Status == "planned")
+                .Select(x => x.Id));
             string expected4 = "create event: planned; calendar ; event ; desired index 0";
-            string actual5 = reports.Single(x => x.Id == "2").Human.Format(CultureInfo.CurrentCulture);
+            string actual5 = reports.Single(x => x.Id == "2").Human
+                .Format(CultureInfo.CurrentCulture);
             Assert.Equal(
                 expected: expected4, actual: actual5);
             Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
-                actual: item.EnumerateObject().Select(x => x.Name));
-            Assert.Equal(expected: start?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("start").GetString());
-            Assert.Equal(expected: end?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("end").GetString());
-            Assert.Equal(expected: missingDates ? JsonValueKind.Null : JsonValueKind.Array,
-                actual: item.GetProperty("recurrence").ValueKind);
+                actual: item.EnumerateObject()
+                    .Select(x => x.Name));
+            Assert.Equal(expected: start?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("start")
+                .GetString());
+            Assert.Equal(expected: end?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("end")
+                .GetString());
+            JsonValueKind CalculateExpected()
+            {
+                if (missingDates)
+                {
+                    return JsonValueKind.Null;
+                }
+
+                return JsonValueKind.Array;
+            }
+
+            Assert.Equal(expected: CalculateExpected(),
+                            actual: item.GetProperty("recurrence").ValueKind);
             object expected5 = desired;
             global::Google.Apis.Calendar.v3.Data.Event actual6 = Assert.Single(result.DesiredEvents);
             object actual7 = actual6;
@@ -348,7 +366,8 @@ public sealed class CalendarSyncTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -430,8 +449,10 @@ public sealed class CalendarSyncTests
                     new() { Json = true },
                     new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "calendar sync", actual: document.RootElement.GetProperty("command").GetString());
-            Assert.Equal(expected: 3, actual: document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: "calendar sync", actual: document.RootElement.GetProperty("command")
+                .GetString());
+            Assert.Equal(expected: 3, actual: document.RootElement.GetProperty("exitCode")
+                .GetInt32());
         }
         finally
         {
@@ -462,17 +483,23 @@ public sealed class CalendarSyncTests
                     new()));
             using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
             var data = document.RootElement.GetProperty("data");
-            Assert.Equal(expected: "preview", actual: document.RootElement.GetProperty("status").GetString());
-            Assert.NotEmpty(data.GetProperty("desiredEvents").EnumerateArray());
-            var desiredCount = data.GetProperty("desiredEvents").GetArrayLength();
-            var calendarName = data.GetProperty("calendarName").GetString();
+            Assert.Equal(expected: "preview", actual: document.RootElement.GetProperty("status")
+                .GetString());
+            Assert.NotEmpty(data.GetProperty("desiredEvents")
+                .EnumerateArray());
+            var desiredCount = data.GetProperty("desiredEvents")
+                .GetArrayLength();
+            var calendarName = data.GetProperty("calendarName")
+                .GetString();
             Assert.Equal(
                 expected: new[]
                 {
                     $"Create calendar {calendarName} with a new ID",
                     $"Create {desiredCount} events with new IDs",
                 },
-                actual: document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
+                actual: document.RootElement.GetProperty("actions")
+                    .EnumerateArray()
+                    .Select(x => x.GetString()));
             Assert.Empty(fake.Writes);
         }
         finally
@@ -589,7 +616,27 @@ public sealed class CalendarSyncTests
 
             Writes.Add(CalculateItem());
             _events++;
-            if (Fail == "cancel-second" && _events == 2)
+            bool CalculateConditionResult()
+            {
+                if (Fail == "cancel-second")
+                {
+                    if (_events == 2)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 Cancellation!.Cancel();
                 throw new OperationCanceledException(token);

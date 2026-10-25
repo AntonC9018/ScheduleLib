@@ -88,7 +88,14 @@ public sealed class ScheduleFromDocTestExclusive1
 public sealed class EnumMembersDataAttribute<T> : MemberDataAttributeBase
     where T : struct, Enum
 {
-    public static IEnumerable<object[]> Members => Enum.GetValues<T>().Select(x => new object[] { x });
+    public static IEnumerable<object[]> Members
+    {
+        get
+        {
+            return Enum.GetValues<T>()
+                .Select(x => new object[] { x });
+        }
+    }
 
     public EnumMembersDataAttribute() : base(nameof(Members), [])
     {

@@ -50,7 +50,8 @@ public sealed class LayerPathTests
             .AddLayerPath()
             .Process()
             .Where(x => x.Value.Node.IsLeaf())
-            .Select(x => x.ContextCollection.Get(LayerPathContext.Key).Path());
+            .Select(x => x.ContextCollection.Get(LayerPathContext.Key)
+                .Path());
 
         Assert.Collection(paths,
             p1 =>

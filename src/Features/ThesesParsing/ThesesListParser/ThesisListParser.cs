@@ -172,7 +172,8 @@ public sealed class ThesisListParser(
                 case Action.Data:
                     {
                         var thesis = new ThesisInParsing();
-                        var cells = row.CellsWithMergedAppearingOnce().ToArray();
+                        var cells = row.CellsWithMergedAppearingOnce()
+                            .ToArray();
                         if (cells.All(x => x.Value.IsBlank))
                         {
                             break;
@@ -247,7 +248,8 @@ public sealed class ThesisListParser(
                 throw cell.Exception("Row count > 1");
             }
             columnMappings.AddAt(
-                range.FirstColumn().ColumnNumber(),
+                range.FirstColumn()
+                    .ColumnNumber(),
                 new(column, range.ColumnCount()));
             if (column != Column.Unknown)
             {
@@ -292,7 +294,8 @@ public sealed class ThesisListParser(
         ref ThesisInParsing thesis)
     {
         var range = cell.ActualRange();
-        if (!state.ColumnMappings.TryFind(range.FirstColumn().ColumnNumber(), out var column))
+        if (!state.ColumnMappings.TryFind(range.FirstColumn()
+            .ColumnNumber(), out var column))
         {
             return false;
         }

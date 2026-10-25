@@ -89,7 +89,8 @@ public class CalendarCommands
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
-            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>().Get();
+            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>()
+                .Get();
             if (config is null)
             {
                 return Finish(

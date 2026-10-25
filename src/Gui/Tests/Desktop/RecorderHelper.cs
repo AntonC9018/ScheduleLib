@@ -56,17 +56,28 @@ public sealed class AllRecorders : IDisposable
     public AllRecorders(EventRecorderSource s, MainWindowViewModel main)
     {
         var store = main._dataStore;
-        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed).SetName("NodePath");
-        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed).SetName("SelectedLayer");
-        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed).SetName("SelectedNode");
-        SelectedUiNode = s.Record(store.UiSelectedNodeViewModel.NodeSelected()).SetName("UiSelectedNode");
-        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged).SetName("LayerLevel");
-        NodeSelected = s.Record(main.NodeSelection).SetName("NodeSelectionProperty");
-        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged.As()).SetName("NodeData");
-        Main = s.Record(main).SetName("MainProperty");
-        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand).SetName("CanEnableSelectedUser");
-        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand).SetName("CanRemoveSelectedUser");
-        TreeChangedRecorder = s.Record(store.TreeStructureChanged.As()).SetName("TreeStructureChanged");
+        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed)
+            .SetName("NodePath");
+        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed)
+            .SetName("SelectedLayer");
+        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed)
+            .SetName("SelectedNode");
+        SelectedUiNode = s.Record(store.UiSelectedNodeViewModel.NodeSelected())
+            .SetName("UiSelectedNode");
+        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged)
+            .SetName("LayerLevel");
+        NodeSelected = s.Record(main.NodeSelection)
+            .SetName("NodeSelectionProperty");
+        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged.As())
+            .SetName("NodeData");
+        Main = s.Record(main)
+            .SetName("MainProperty");
+        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand)
+            .SetName("CanEnableSelectedUser");
+        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand)
+            .SetName("CanRemoveSelectedUser");
+        TreeChangedRecorder = s.Record(store.TreeStructureChanged.As())
+            .SetName("TreeStructureChanged");
     }
 
     public void Dispose()
@@ -246,7 +257,8 @@ public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
         {
             return x => f(x.GetPayload<T>());
         }
-        Assert.Collection(Events, a.Select(Wrapped).ToArray());
+        Assert.Collection(Events, a.Select(Wrapped)
+            .ToArray());
     }
 }
 

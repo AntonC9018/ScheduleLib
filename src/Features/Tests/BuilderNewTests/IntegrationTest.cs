@@ -54,7 +54,8 @@ public sealed class IntegrationTest
 
         await serviceProvider.InitializeSchedule(cancellationToken);
 
-        var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>().Get();
+        var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>()
+            .Get();
 
         var outputDirectory = new OutputDirectory("output");
         outputDirectory.Initialize();

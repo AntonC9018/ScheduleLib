@@ -134,7 +134,9 @@ public partial class AuthCommands
                         resolved.Get(GoogleCalendarConfig.Key)?.Credentials,
                         resolved.Get(GoogleDriveConfig.Key)?.Credentials,
                     }
-                    .Where(x => x is not null).Select(x => x!.Build()).ToArray();
+                    .Where(x => x is not null)
+                    .Select(x => x!.Build())
+                    .ToArray();
                 if (credentials.Length == 0)
                 {
                     return CliAuthenticationExecution.Finish(

@@ -92,13 +92,15 @@ public static class MarkerConfigExtension
                 .ToList();
             foreach (var x in deletionList)
             {
-                b.CreateBuilder(x.Parent).RemoveNode(x.Node);
+                b.CreateBuilder(x.Parent)
+                    .RemoveNode(x.Node);
             }
         }
 
         public IEnumerable<TeacherLayerConfig> GetAllMarkers()
         {
-            return b.GetMarkerNodes().Select(x => x.Config);
+            return b.GetMarkerNodes()
+                .Select(x => x.Config);
         }
     }
 }
@@ -153,7 +155,8 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
         {
             return null;
         }
-        var ret = c.Get(LayerPathContext.Key).Path();
+        var ret = c.Get(LayerPathContext.Key)
+            .Path();
         return ret;
 
         static bool CheckEquality(TeacherLayerConfig? existing, TeacherLayerConfig scoped)

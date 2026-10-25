@@ -32,8 +32,10 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
     private static IPublicClientApplication Application(MicrosoftAuthConfig config)
     {
         return PublicClientApplicationBuilder
-            .Create(config.ClientId).WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
-            .WithRedirectUri("http://localhost").Build();
+            .Create(config.ClientId)
+            .WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
+            .WithRedirectUri("http://localhost")
+            .Build();
     }
 
     public async Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)
@@ -41,7 +43,8 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
         var app = Application(config);
         var cache = new SupportedCache(app, []);
         var result = await app.AcquireTokenInteractive(CurriculaDownloadTasks.ApiRequiredScopes)
-            .WithUseEmbeddedWebView(false).ExecuteAsync(token);
+            .WithUseEmbeddedWebView(false)
+            .ExecuteAsync(token);
         return ToToken(cache, result);
     }
 
@@ -362,15 +365,25 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
 
     private static void Validate(MicrosoftAuthConfig config, string profile)
     {
-        bool conditionResult;
-        if (string.IsNullOrWhiteSpace(config.TenantId))
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (string.IsNullOrWhiteSpace(config.TenantId))
+            {
+                return true;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(config.ClientId))
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = string.IsNullOrWhiteSpace(config.ClientId);
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -380,12 +393,49 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
 
     private static void EnsureUsable(MicrosoftToken authorization, string profile)
     {
-        if (string.IsNullOrWhiteSpace(authorization.AccessToken)
-            || string.IsNullOrWhiteSpace(authorization.AccountId)
-            || authorization.Cache.Length == 0
-            || authorization.ExpiresOn <= DateTimeOffset.UtcNow
-            || CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
-                .Any())
+        bool CalculateConditionResult()
+        {
+            if (string.IsNullOrWhiteSpace(authorization.AccessToken))
+            {
+                return true;
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(authorization.AccountId))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (authorization.Cache.Length == 0)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (authorization.ExpiresOn <= DateTimeOffset.UtcNow)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
+                   .Any())
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }

@@ -141,15 +141,20 @@ public sealed class CliOutput
 
     public void WriteHuman(string line)
     {
-        bool conditionResult;
-        if (Json)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (Json)
+            {
+                return true;
+            }
+            else
+            {
+                return Jsonl;
+            }
         }
-        else
-        {
-            conditionResult = Jsonl;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -165,15 +170,20 @@ public sealed class CliOutput
 
     public void WriteHuman<TMessage>(TMessage message) where TMessage : ICliMessage
     {
-        bool conditionResult;
-        if (Json)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (Json)
+            {
+                return true;
+            }
+            else
+            {
+                return Jsonl;
+            }
         }
-        else
-        {
-            conditionResult = Jsonl;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -368,7 +378,11 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
     private sealed class Logger(CliOutput output, string category, Func<IExternalScopeProvider> scopeProvider)
         : Microsoft.Extensions.Logging.ILogger
     {
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => scopeProvider().Push(state);
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull
+        {
+            return scopeProvider()
+                .Push(state);
+        }
 
         // Matches the original Serilog console configuration, whose default
         // minimum is Information. Debug/Trace never reached stderr before and
@@ -390,11 +404,13 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
             }
 
             var message = formatter(state, exception);
-            var properties = ExtractProperties(state)?.ToDictionary(
+            var properties = ExtractProperties(state)
+                ?.ToDictionary(
 keySelector: pair => pair.Key, elementSelector: pair => pair.Value, StringComparer.Ordinal)
                 ?? new Dictionary<string, object?>(StringComparer.Ordinal);
             var scopes = new List<string>();
-            scopeProvider().ForEachScope(
+            scopeProvider()
+                .ForEachScope(
                 (scope, collected) =>
                 {
                     if (scope is IEnumerable<KeyValuePair<string, object?>> named)

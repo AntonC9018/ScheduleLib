@@ -292,15 +292,20 @@ public static class CourseNameParsing
         CourseIter a,
         CourseIter b)
     {
-        bool conditionResult;
-        if (a.IsDone)
+        bool CalculateConditionResult2()
         {
-            conditionResult = b.IsDone;
+            if (a.IsDone)
+            {
+                return b.IsDone;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult2();
+
 
         if (conditionResult)
         {
@@ -311,15 +316,20 @@ public static class CourseNameParsing
             CourseIter a,
             CourseIter b)
         {
-            bool conditionResult;
-            if (!a.IsDone)
+            bool CalculateConditionResult()
             {
-                conditionResult = a.CanIgnoreCurrent;
+                if (!a.IsDone)
+                {
+                    return a.CanIgnoreCurrent;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

@@ -36,7 +36,8 @@ public sealed class PermutationTests
     {
         int[] items = [1, 2, 3];
         var permutationsEnumerable = PermutationHelper.Generate(items);
-        var permutations = permutationsEnumerable.Select(x => x.ToArray()).ToArray();
+        var permutations = permutationsEnumerable.Select(x => x.ToArray())
+            .ToArray();
         return Verify(permutations, Settings);
     }
 }

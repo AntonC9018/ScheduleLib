@@ -30,7 +30,8 @@ public static class DocToDocxConversionHelper
         }
         using var staging = OwnedConversionDirectory.Create(Path.GetTempPath());
         var cancellationPath = Path.Combine(staging.DirectoryPath, "cancel");
-        var nonce = Guid.NewGuid().ToString("N");
+        var nonce = Guid.NewGuid()
+            .ToString("N");
         var processInfo = new ProcessStartInfo(converterPath)
         {
             UseShellExecute = false,
@@ -150,7 +151,8 @@ public static class DocToDocxConversionHelper
     {
         try
         {
-            await process.WaitForExitAsync().WaitAsync(timeout);
+            await process.WaitForExitAsync()
+                .WaitAsync(timeout);
             return true;
         }
         catch (TimeoutException) { return false; }

@@ -122,9 +122,11 @@ public sealed class TeacherExportTests
         global::ClosedXML.Excel.IXLCell cell8 = sheet.Cell(row: 2, column: 8);
         int actual9 = cell8.GetValue<int>();
         Assert.Equal(expected: expected9, actual: actual9);
-        Assert.Equal(expected: 2, actual: sheet.LastRowUsed()!.RowNumber());
+        Assert.Equal(expected: 2, actual: sheet.LastRowUsed()!
+            .RowNumber());
         Assert.Contains(expectedSubstring: "not part of any commission", actualString: result.Stderr);
-        Assert.Single(result.Json.GetProperty("warnings").EnumerateArray());
+        Assert.Single(result.Json.GetProperty("warnings")
+            .EnumerateArray());
         AssertManifest(
             result.Json,
             files.Output.Directory!,
@@ -149,7 +151,8 @@ public sealed class TeacherExportTests
             files.Settings));
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Contains(expectedSubstring: "commission", actualString: result.Stderr);
-        Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
+        Assert.Empty(result.Json.GetProperty("outputs")
+            .EnumerateArray());
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
         bool CalculateCondition()
         {
@@ -279,10 +282,15 @@ public sealed class TeacherExportTests
             files.Settings));
 
         Assert.Equal(expected: 3, actual: result.Exit);
-        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status").GetString());
-        Assert.Equal(expected: "export pre-defense", actual: result.Json.GetProperty("command").GetString());
-        var error = Assert.Single(result.Json.GetProperty("errors").EnumerateArray()).GetString();
+        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "export pre-defense", actual: result.Json.GetProperty("command")
+            .GetString());
+        var error = Assert.Single(result.Json.GetProperty("errors")
+            .EnumerateArray())
+            .GetString();
         Assert.Contains(
             expectedSubstring: duplicate switch
             {
@@ -292,10 +300,15 @@ public sealed class TeacherExportTests
             },
             actualString: error);
         Assert.Contains(error!, result.Stderr);
-        Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
-        Assert.Empty(result.Json.GetProperty("warnings").EnumerateArray());
-        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data").GetProperty("workbookCount").GetInt32());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data").GetProperty("outputDirectory").ValueKind);
+        Assert.Empty(result.Json.GetProperty("outputs")
+            .EnumerateArray());
+        Assert.Empty(result.Json.GetProperty("warnings")
+            .EnumerateArray());
+        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data")
+            .GetProperty("workbookCount")
+            .GetInt32());
+        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data")
+            .GetProperty("outputDirectory").ValueKind);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
         Assert.Equal(expected: originalSource, actual: await File.ReadAllBytesAsync(files.SourceFile));
         Assert.Equal(expected: settings, actual: await File.ReadAllTextAsync(settingsFile));
@@ -365,10 +378,15 @@ public sealed class TeacherExportTests
             files.Settings));
 
         Assert.Equal(expected: 3, actual: result.Exit);
-        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status").GetString());
-        Assert.Equal(expected: "export lab-deadlines", actual: result.Json.GetProperty("command").GetString());
-        var error = Assert.Single(result.Json.GetProperty("errors").EnumerateArray()).GetString();
+        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "export lab-deadlines", actual: result.Json.GetProperty("command")
+            .GetString());
+        var error = Assert.Single(result.Json.GetProperty("errors")
+            .EnumerateArray())
+            .GetString();
         Assert.Contains(expectedSubstring: "maxTaskRows", actualString: error);
         Assert.Contains(expectedSubstring: "Curmanschii Anton", actualString: error);
         Assert.Contains(expectedSubstring: "between 1 and 1048575", actualString: error);
@@ -380,10 +398,15 @@ public sealed class TeacherExportTests
 
         Assert.Contains(expectedSubstring: CalculateExpectedSubstring(), actualString: error);
         Assert.Contains(error!, result.Stderr);
-        Assert.Empty(result.Json.GetProperty("outputs").EnumerateArray());
-        Assert.Empty(result.Json.GetProperty("warnings").EnumerateArray());
-        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data").GetProperty("workbookCount").GetInt32());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data").GetProperty("outputDirectory").ValueKind);
+        Assert.Empty(result.Json.GetProperty("outputs")
+            .EnumerateArray());
+        Assert.Empty(result.Json.GetProperty("warnings")
+            .EnumerateArray());
+        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data")
+            .GetProperty("workbookCount")
+            .GetInt32());
+        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data")
+            .GetProperty("outputDirectory").ValueKind);
         Assert.Equal(expected: 0, actual: files.Export.SourceReads);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
         Assert.Equal(expected: originalSource, actual: await File.ReadAllBytesAsync(files.SourceFile));
@@ -483,7 +506,9 @@ public sealed class TeacherExportTests
             files.Settings));
         Assert.Equal(expected: 0, actual: first.Exit);
         Assert.Equal(expected: 0, actual: second.Exit);
-        var directory = first.Json.GetProperty("data").GetProperty("outputDirectory").GetString()!;
+        var directory = first.Json.GetProperty("data")
+            .GetProperty("outputDirectory")
+            .GetString()!;
         string CalculateExpected()
         {
             string expected2 = Path.Combine(files.Path, "output");
@@ -493,7 +518,9 @@ public sealed class TeacherExportTests
         string expected3 = CalculateExpected();
         string? actual2 = Path.GetDirectoryName(directory);
         Assert.Equal(expected: expected3, actual: actual2);
-        Assert.NotEqual(expected: directory, actual: second.Json.GetProperty("data").GetProperty("outputDirectory").GetString());
+        Assert.NotEqual(expected: directory, actual: second.Json.GetProperty("data")
+            .GetProperty("outputDirectory")
+            .GetString());
         var notes = Path.Combine(directory, "notes.txt");
         await File.WriteAllTextAsync(path: notes, contents: "keep me");
         var replaced = await Capture(() => files.Export.PreDefense(
@@ -581,15 +608,18 @@ public sealed class TeacherExportTests
             new() { Json = true },
             files.Settings));
         Assert.Equal(expected: 6, actual: result.Exit);
-        Assert.Equal(expected: "partial", actual: result.Json.GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: result.Json.GetProperty("status")
+            .GetString());
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(collision));
         string path2 = Path.Combine(files.Output.Directory!, "comisia_7.xlsx");
         bool condition = File.Exists(path2);
         Assert.True(condition);
         using var manifest = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(files.Output.Directory!, "schedulelib-manifest.json")));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
-        Assert.Single(manifest.RootElement.GetProperty("Artifacts").EnumerateArray());
+        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
+            .GetString());
+        Assert.Single(manifest.RootElement.GetProperty("Artifacts")
+            .EnumerateArray());
     }
 
     [Fact]
@@ -625,7 +655,8 @@ public sealed class TeacherExportTests
                         CalculateCancellationToken());
         });
         Assert.Equal(expected: 130, actual: cancelled.Exit);
-        Assert.Equal(expected: "cancelled", actual: cancelled.Json.GetProperty("status").GetString());
+        Assert.Equal(expected: "cancelled", actual: cancelled.Json.GetProperty("status")
+            .GetString());
         string path = Path.Combine(files.Output.Directory!, "deadlines.xlsx");
         bool condition = File.Exists(path);
         Assert.False(condition);
@@ -648,16 +679,22 @@ public sealed class TeacherExportTests
         string command,
         string artifact)
     {
-        Assert.Equal(expected: 1, actual: result.GetProperty("schemaVersion").GetInt32());
-        Assert.Equal(expected: command, actual: result.GetProperty("command").GetString());
-        Assert.Equal(expected: 1, actual: result.GetProperty("data").GetProperty("workbookCount").GetInt32());
+        Assert.Equal(expected: 1, actual: result.GetProperty("schemaVersion")
+            .GetInt32());
+        Assert.Equal(expected: command, actual: result.GetProperty("command")
+            .GetString());
+        Assert.Equal(expected: 1, actual: result.GetProperty("data")
+            .GetProperty("workbookCount")
+            .GetInt32());
         Assert.Equal(
             expected: new[]
             {
                 Path.Combine(directory, artifact),
                 Path.Combine(directory, "schedulelib-manifest.json"),
             },
-            actual: result.GetProperty("outputs").EnumerateArray().Select(x => x.GetString()));
+            actual: result.GetProperty("outputs")
+                .EnumerateArray()
+                .Select(x => x.GetString()));
         string CalculateJson()
         {
             string path = Path.Combine(directory, "schedulelib-manifest.json");
@@ -666,8 +703,11 @@ public sealed class TeacherExportTests
         }
 
         using var manifest = JsonDocument.Parse(CalculateJson());
-        Assert.Equal(expected: command, actual: manifest.RootElement.GetProperty("Command").GetString());
-        Assert.Equal(expected: artifact, actual: manifest.RootElement.GetProperty("Artifacts")[0].GetProperty("Name").GetString());
+        Assert.Equal(expected: command, actual: manifest.RootElement.GetProperty("Command")
+            .GetString());
+        Assert.Equal(expected: artifact, actual: manifest.RootElement.GetProperty("Artifacts")[0]
+            .GetProperty("Name")
+            .GetString());
     }
 
     private static async Task<(int Exit, JsonElement Json, string Stderr)> Capture(Func<Task<int>> run)
@@ -755,7 +795,8 @@ public sealed class TeacherExportTests
             using var book = new XLWorkbook(
                             CalculateFile());
             var sheet = book.Worksheet(1);
-            sheet.Range("D4:E18").Clear(XLClearOptions.Contents);
+            sheet.Range("D4:E18")
+                .Clear(XLClearOptions.Contents);
             sheet.Cell("B2").Value = "Sem. I\n01.09.2026 – 13.12.2026";
             sheet.Cell("D3").Value = "MIA 2601";
             sheet.Cell("E3").Value = "IASD 2601";
@@ -849,7 +890,8 @@ public sealed class TeacherExportTests
                     return grade;
                 }
 
-                x.Range().Grade(CalculateGrade());
+                x.Range()
+                    .Grade(CalculateGrade());
             });
             services.AddSingleton(dates.Build());
             services.Configure<PreDefenseOptions>(x =>

@@ -75,12 +75,14 @@ public static class FilterHelper
 
         public IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons()
         {
-            return s.EnumerateLessons().WhereNotNull(x => x.Weekly);
+            return s.EnumerateLessons()
+                .WhereNotNull(x => x.Weekly);
         }
 
         public IEnumerable<OneTimeLessonAccessor> EnumerateOneTimeLessons()
         {
-            return s.EnumerateLessons().WhereNotNull(x => x.OneTime);
+            return s.EnumerateLessons()
+                .WhereNotNull(x => x.OneTime);
         }
     }
 
@@ -180,7 +182,8 @@ public static class FilterHelper
     [SuppressMessage(category: "ReSharper", checkId: "PossibleMultipleEnumeration")]
     public static FilteredSchedule Filter(this Schedule schedule, in ScheduleFilter filter)
     {
-        var lessons = GetRegularLessons(filter).ToArray();
+        var lessons = GetRegularLessons(filter)
+            .ToArray();
 
         GroupId[] groups;
         TimeSlot[] timeSlots;
@@ -233,7 +236,8 @@ public static class FilterHelper
 
                 static PartitionKey[]? ToKeys<T>(IEnumerable<T>? values, Func<T, PartitionKey> convert)
                 {
-                    return values?.Select(convert).ToArray();
+                    return values?.Select(convert)
+                        .ToArray();
                 }
             }
 
@@ -511,15 +515,20 @@ public static class FilterHelper
                     }
 
                     var p = weekly.Date.Period;
-                    bool conditionResult;
-                    if (p.IsUnspecified)
+                    bool CalculateConditionResult()
                     {
-                        conditionResult = filter.PeriodFilter.UnspecifiedIsAll;
+                        if (p.IsUnspecified)
+                        {
+                            return filter.PeriodFilter.UnspecifiedIsAll;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
-                    else
-                    {
-                        conditionResult = false;
-                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
 
                     if (conditionResult)
                     {
@@ -605,11 +614,13 @@ public static class FilterHelper
 
             TimeSlot FindMin()
             {
-                using var e = lessons.AsEnumerable().GetEnumerator();
+                using var e = lessons.AsEnumerable()
+                    .GetEnumerator();
                 bool ok = e.MoveNext();
                 Debug.Assert(ok);
 
-                var min1 = schedule.Get(e.Current).GetTimeSlot();
+                var min1 = schedule.Get(e.Current)
+                    .GetTimeSlot();
                 while (true)
                 {
                     if (min1 == TimeSlot.First)
@@ -622,7 +633,8 @@ public static class FilterHelper
                         return min1;
                     }
 
-                    var t = schedule.Get(e.Current).GetTimeSlot();
+                    var t = schedule.Get(e.Current)
+                        .GetTimeSlot();
                     if (t < min1)
                     {
                         min1 = t;
@@ -635,7 +647,8 @@ public static class FilterHelper
                 var max1 = TimeSlot.First;
                 foreach (var l in lessons)
                 {
-                    var t = schedule.Get(l).GetTimeSlot();
+                    var t = schedule.Get(l)
+                        .GetTimeSlot();
                     if (t > max1)
                     {
                         max1 = t;
@@ -666,7 +679,8 @@ public static class FilterHelper
                     throw Unreachable();
                 }
             }
-            return ret.Order().ToArray();
+            return ret.Order()
+                .ToArray();
         }
 
         TeacherId[] TeachersFromLessons()

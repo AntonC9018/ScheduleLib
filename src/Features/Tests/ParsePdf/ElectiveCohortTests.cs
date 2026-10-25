@@ -38,7 +38,8 @@ public sealed class ElectiveCohortTests
                 Text: "",
                 Alternative: "Antreprenoriat Gr.2"),
         ]);
-        var ids = groups.Select(g => context.Schedule.Group(g).Id).ToArray();
+        var ids = groups.Select(g => context.Schedule.Group(g).Id)
+            .ToArray();
         var lesson = new ParsedLesson
         {
             LessonName = "Antreprenoriat inovativ".AsMemory(),
@@ -99,7 +100,10 @@ public sealed class ElectiveCohortTests
             Text: "Antreprenoriat inovativ (curs)",
             Alternative: "Antreprenoriat Gr.1");
         var cohorts = new ElectiveCohorts(context,
-            [cell, cell with { Alternative = "Antreprenoriat Gr.2" }]);
+            [cell, cell with
+            {
+            Alternative = "Antreprenoriat Gr.2",
+            }]);
 
         PdfScheduleImporter.Import(context,
             [cell],

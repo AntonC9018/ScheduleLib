@@ -114,15 +114,25 @@ public sealed partial class LessonTextDisplayHandler
                 var oneTime = p.Lesson.OneTime!.Value;
                 date = oneTime.Date.Date.ToString("dd.MM.yy");
             }
-            bool conditionResult;
-            if (_config.PrintsGroupNames)
+            bool CalculateConditionResult()
             {
-                conditionResult = p.Lesson.Lesson.Groups.Count > 0;
+                if (_config.PrintsGroupNames)
+                {
+                    if (p.Lesson.Lesson.Groups.Count > 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             bool appendGroups = conditionResult;
             bool CheckCondition()

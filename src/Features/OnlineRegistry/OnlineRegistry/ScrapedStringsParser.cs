@@ -144,8 +144,24 @@ public static partial class RegistryScraping
             }
             reader.MoveTo(bparser.Position);
             // Historical ordinary groups sometimes separate the faculty and year.
-            if (reader.CanPeekCount(2) && reader.PeekSpan(2)[0] == '_'
-                && char.IsAsciiDigit(reader.PeekSpan(2)[1]))
+            bool conditionResult;
+            if (reader.CanPeekCount(2))
+            {
+                if (reader.PeekSpan(2)[0] == '_')
+                {
+                    conditionResult = char.IsAsciiDigit(reader.PeekSpan(2)[1]);
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 reader.Move();
             }

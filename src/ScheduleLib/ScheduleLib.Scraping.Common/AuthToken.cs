@@ -148,7 +148,8 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
 
     public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
-        var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
+        var html = await _browser.Get()
+            .OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
         if (html.StatusCode != HttpStatusCode.OK)
         {
             return false;
@@ -203,35 +204,46 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
         {
             // AngleSharp cannot cancel submission; end this owned browsing session and
             // observe any later transport fault without waiting for it to finish.
-            _browser.Get().Dispose();
+            _browser.Get()
+                .Dispose();
             _ = submission.ContinueWith(task => _ = task.Exception,
                 CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
             throw;
         }
-        bool conditionResult;
-        if (response.StatusCode == HttpStatusCode.OK)
+        bool CalculateConditionResult()
         {
-            if (response.QuerySelector("input[type=password]") is null)
+            if (response.StatusCode == HttpStatusCode.OK)
             {
-                if (_formConfig.AuthenticationSuccessSelector is not { } selector)
+                if (response.QuerySelector("input[type=password]") is null)
                 {
-                    conditionResult = true;
+                    if (_formConfig.AuthenticationSuccessSelector is not { } selector)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (response.QuerySelector(selector) is not null)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
                 }
                 else
                 {
-                    conditionResult = response.QuerySelector(selector) is not null;
+                    return false;
                 }
             }
             else
             {
-                conditionResult = false;
+                return false;
             }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {

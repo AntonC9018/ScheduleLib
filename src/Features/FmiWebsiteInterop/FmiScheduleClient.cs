@@ -21,7 +21,8 @@ public sealed class FmiScheduleClient(HttpClient http)
         foreach (var link in links)
         {
             var bytes = await http.GetByteArrayAsync(link.Url, cancellationToken);
-            if (!bytes.AsSpan().StartsWith("%PDF-"u8))
+            if (!bytes.AsSpan()
+                .StartsWith("%PDF-"u8))
             {
                 throw new FormatException($"{link.Url} did not return a PDF.");
             }
@@ -39,12 +40,14 @@ public sealed class FmiScheduleClient(HttpClient http)
         var prefix = new StringBuilder();
         var links = new Dictionary<int, FmiScheduleLink>();
         Visit(document.Body ?? throw new FormatException("Schedule page has no body."));
-        if (!links.Keys.Order().SequenceEqual(new[] { 1, 2, 3 }))
+        if (!links.Keys.Order()
+            .SequenceEqual(new[] { 1, 2, 3 }))
         {
             throw new FormatException("Expected exactly the three regular bachelor schedule PDFs.");
         }
 
-        return links.Values.OrderBy(l => l.Year).ToArray();
+        return links.Values.OrderBy(l => l.Year)
+            .ToArray();
 
         void Visit(INode node)
         {
@@ -102,7 +105,8 @@ public sealed class FmiScheduleClient(HttpClient http)
     {
         // Only metadata explicitly attached to this schedule. Semester ranges,
         // WordPress page dates, URL directories and PDF creation dates are not upload dates.
-        var value = link.GetAttribute("data-upload-date") ?? link.QuerySelector("time[datetime]")?.GetAttribute("datetime");
+        var value = link.GetAttribute("data-upload-date") ?? link.QuerySelector("time[datetime]")
+            ?.GetAttribute("datetime");
         if (value is null)
         {
             var labelled = Regex.Match(input: link.GetAttribute("title") ?? link.TextContent,

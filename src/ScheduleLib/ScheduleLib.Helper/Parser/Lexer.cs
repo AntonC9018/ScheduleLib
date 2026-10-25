@@ -198,7 +198,8 @@ public static class StructLexerExtensions
 
                 if (!CanAppendOneMore(ref lexer, p.ConcattedTypes))
                 {
-                    var ret = p.StringBuilder.ToStringAndClear().AsMemory();
+                    var ret = p.StringBuilder.ToStringAndClear()
+                        .AsMemory();
                     return ret;
                 }
             }
@@ -268,7 +269,8 @@ public static class StructLexerExtensions
                 {
                     if (isUsingStringBuilder)
                     {
-                        return maybeUsedStringBuilder!.ToStringAndClear().AsMemory();
+                        return maybeUsedStringBuilder!.ToStringAndClear()
+                            .AsMemory();
                     }
                     else
                     {

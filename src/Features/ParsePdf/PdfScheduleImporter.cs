@@ -39,7 +39,10 @@ public static class PdfScheduleImporter
         var dayParser = new DayNameParser(new());
         foreach (var table in tables)
         {
-            var xs = table.Cells.SelectMany(c => new[] { c.Bounds.Left, c.Bounds.Right }).Distinct().Order().ToArray();
+            var xs = table.Cells.SelectMany(c => new[] { c.Bounds.Left, c.Bounds.Right })
+                .Distinct()
+                .Order()
+                .ToArray();
             if (xs.Length < 4)
             {
                 throw new FormatException($"{source}, page {table.Page}: expected day, time and group columns.");
@@ -47,7 +50,9 @@ public static class PdfScheduleImporter
 
             var left = xs[2];
             var right = xs[^1];
-            var headers = table.Cells.Where(c => Group.IsMatch(c.Text)).OrderBy(c => c.Bounds.Left).ToArray();
+            var headers = table.Cells.Where(c => Group.IsMatch(c.Text))
+                .OrderBy(c => c.Bounds.Left)
+                .ToArray();
             if (headers.Length > 0)
             {
                 (string Name, double Center) ProjectValue(global::ScheduleLib.Import.Pdf.PdfTableCell c)
@@ -60,15 +65,18 @@ public static class PdfScheduleImporter
                     return (Name: operationValue, Center: operationValue5);
                 }
 
-                columns = headers.Select(ProjectValue).ToArray();
+                columns = headers.Select(ProjectValue)
+                    .ToArray();
             }
             if (columns.Length == 0)
             {
                 throw new FormatException($"{source}, page {table.Page}: missing group header.");
             }
 
-            var days = table.Cells.Where(c => c.Bounds.Left == xs[0] && c.Text.Length > 0).ToArray();
-            var times = table.Cells.Where(c => c.Bounds.Left == xs[1] && c.Text.Length > 0).ToArray();
+            var days = table.Cells.Where(c => c.Bounds.Left == xs[0] && c.Text.Length > 0)
+                .ToArray();
+            var times = table.Cells.Where(c => c.Bounds.Left == xs[1] && c.Text.Length > 0)
+                .ToArray();
             foreach (var day in days)
             {
                 if (dayParser.Map(day.Text) is null)
@@ -113,9 +121,13 @@ public static class PdfScheduleImporter
                     continue;
                 }
 
-                var day = days.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom).ToArray();
-                var time = times.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom).ToArray();
-                var groups = columns.Where(c => box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right).Select(c => c.Name).ToArray();
+                var day = days.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom)
+                    .ToArray();
+                var time = times.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom)
+                    .ToArray();
+                var groups = columns.Where(c => box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right)
+                    .Select(c => c.Name)
+                    .ToArray();
                 bool CheckCondition2()
                 {
                     if (day.Length != 1)
@@ -173,14 +185,16 @@ public static class PdfScheduleImporter
                 var day = context.DayNameParser.Map(cell.Day) ?? throw new FormatException($"Unknown day: {cell.Day}");
                 var time = context.TimeConfig.FindTimeSlotByStartTime(TimeOnly.Parse(cell.Start, CultureInfo.InvariantCulture))
                     ?? throw new FormatException($"Unknown start time: {cell.Start}");
-                foreach (var parsed in context.ParseLessons(cell.Text.Split('\n').Select(l => l.AsMemory())))
+                foreach (var parsed in context.ParseLessons(cell.Text.Split('\n')
+                    .Select(l => l.AsMemory())))
                 {
                     var lesson = parsed;
                     var names = cell.Groups;
                     var namedGroup = names.FirstOrDefault(g => g.Split('(')[0] == lesson.PartitionHint.ToString());
                     if (namedGroup is not null)
                     { names = [namedGroup]; lesson.PartitionHint = default; }
-                    var groups = names.Select(g => context.Schedule.Group(g).Id).ToArray();
+                    var groups = names.Select(g => context.Schedule.Group(g).Id)
+                        .ToArray();
                     global::ScheduleLib.Parsing.Lesson.ParsedLesson lesson2 = lesson;
                     global::System.DayOfWeek day2 = day;
                     global::TimeSlot timeSlot = time;

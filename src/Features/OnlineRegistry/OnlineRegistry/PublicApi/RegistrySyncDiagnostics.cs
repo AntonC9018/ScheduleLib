@@ -62,7 +62,8 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
 
     public void ReportMissingCourses(IReadOnlySet<CourseId> courses)
     {
-        foreach (var target in _remaining.Where(target => !courses.Contains(target.Course)).ToArray())
+        foreach (var target in _remaining.Where(target => !courses.Contains(target.Course))
+            .ToArray())
         {
             string CalculateGroup()
             {
@@ -116,14 +117,18 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
             return;
         }
 
-        var intake = schedule.EnumerateGroups().Where(group => SameIntake(first: host, second: group.Item)).ToArray();
+        var intake = schedule.EnumerateGroups()
+            .Where(group => SameIntake(first: host, second: group.Item))
+            .ToArray();
         if (intake.Any(group => group.Item.Language == Language.None)
-            || intake.GroupBy(group => group.Item.Language).Any(groups => groups.Count() > 1))
+            || intake.GroupBy(group => group.Item.Language)
+                .Any(groups => groups.Count() > 1))
         {
             return;
         }
 
-        foreach (var target in _remaining.Where(target => target.Course == source.Lesson.Course).ToArray())
+        foreach (var target in _remaining.Where(target => target.Course == source.Lesson.Course)
+            .ToArray())
         {
             var audience = schedule.Get(target.Group);
             bool CheckCondition2()
@@ -138,10 +143,7 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
                     return true;
                 }
 
-                if (!rules.Any(rule => rule.MatchByLanguage && rule.AllowParentGroup
-                                    && rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase)
-                                    && rule.Language == audience.Language && rule.Language != host.Language
-                                    && rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value))
+                if (!rules.Any(rule => { if (!(rule.MatchByLanguage)) { return false; } if (!(rule.AllowParentGroup)) { return false; } if (!(rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase))) { return false; } if (!(rule.Language == audience.Language)) { return false; } if (!(rule.Language != host.Language)) { return false; } if (!(rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)) { return false; } return true; }))
                 {
                     return true;
                 }
@@ -156,10 +158,15 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
 
             // Language partitions in a separate parent can attend the exact same lecture.
             // Its existing parent-language destination already synchronizes that event.
-            var shared = schedule.EnumerateAllLessons().Any(candidate =>
+            var shared = schedule.EnumerateAllLessons()
+                .Any(candidate =>
                 candidate.Lesson.Groups.IsSingleGroup && candidate.Lesson.Groups[0] == target.Group
                 && candidate.Lesson.GroupPartitionKey == target.Partition
-                && (candidate.Lesson with { Groups = source.Lesson.Groups, SubGroup = source.Lesson.SubGroup }) == source.Lesson
+                && (candidate.Lesson with
+                {
+                    Groups = source.Lesson.Groups,
+                    SubGroup = source.Lesson.SubGroup,
+                }) == source.Lesson
                 && SameDate(first: source, second: candidate));
             if (shared)
             {
@@ -170,9 +177,27 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
 
     private static bool SameIntake(Group first, Group second)
     {
-        return first.Faculty.Name.Equals(second.Faculty.Name, StringComparison.OrdinalIgnoreCase)
-        && first.Grade == second.Grade && first.AttendanceMode == second.AttendanceMode
-        && first.QualificationType == second.QualificationType;
+        if (!(first.Faculty.Name.Equals(second.Faculty.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        if (!(first.Grade == second.Grade))
+        {
+            return false;
+        }
+
+        if (!(first.AttendanceMode == second.AttendanceMode))
+        {
+            return false;
+        }
+
+        if (!(first.QualificationType == second.QualificationType))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool SameDate(AnyLessonAccessor first, AnyLessonAccessor second)
@@ -202,7 +227,8 @@ internal sealed class RegistryTargetCoverage(Schedule schedule, IEnumerable<Regi
 
     public void ReportMissingGroups(CourseId course)
     {
-        foreach (var target in _remaining.Where(target => target.Course == course).ToArray())
+        foreach (var target in _remaining.Where(target => target.Course == course)
+            .ToArray())
         {
             var partition = RegistrySyncDiagnostics.DescribePartition(target.Partition);
             string CalculateGroup()

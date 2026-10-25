@@ -82,12 +82,15 @@ public partial class ExportCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var grouping = full.TeacherGrouping(FilterHelper.Builder().WithLatestPeriod(full));
+            var grouping = full.TeacherGrouping(FilterHelper.Builder()
+                .WithLatestPeriod(full));
             var slugLookup =
-                await scope.ServiceProvider.GetRequiredService<ISlugProvider>().SlugMap(cancellation.Token);
+                await scope.ServiceProvider.GetRequiredService<ISlugProvider>()
+                    .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugLookup.Values.Select(x => $"{x}.json"));
             var latest = scope.ServiceProvider.LatestPeriodSchedule();
-            var teacherless = latest.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
+            var teacherless = latest.EnumerateWeeklyLessons()
+                .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
                 global::System.Collections.Generic.List<string> list = warnings;
@@ -193,16 +196,24 @@ public partial class ExportCommands
                     OutputDirectory: output?.DirectoryPath,
                     files.Count,
                     ZipPath: zipPath,
-                    MissingSlugs: missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                    OmittedEmpty: omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+                    MissingSlugs: missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
+                    OmittedEmpty: omittedEmpty.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray()))
             {
                 Summary = new
                 {
                     outputDirectory = output?.DirectoryPath,
                     fileCount = files.Count,
                     zipPath,
-                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                    omittedEmpty = omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    missingSlugs = missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
+                    omittedEmpty = omittedEmpty.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
                     artifactCount = paths.Length,
                 },
                 Paths = paths,
@@ -380,14 +391,18 @@ public partial class ExportCommands
                     OutputDirectory: output?.DirectoryPath,
                     files.Count,
                     ZipPath: zipPath,
-                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+                    missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray()))
             {
                 Summary = new
                 {
                     outputDirectory = output?.DirectoryPath,
                     fileCount = files.Count,
                     zipPath,
-                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    missingSlugs = missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
                     artifactCount = paths.Length,
                 },
                 Paths = paths,
@@ -409,17 +424,44 @@ public partial class ExportCommands
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
-            if (string.IsNullOrWhiteSpace(name)
-                || name != Path.GetFileName(name)
-                || name is "." or ".."
-                || name.Contains('\\')
-                || name.Contains('/')
-                || name.Contains(':')
-                || string.Equals(
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (name != Path.GetFileName(name))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (name is "." or "..")
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (name.Contains('\\'))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (name.Contains('/'))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (name.Contains(':'))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+
+            if (string.Equals(
                     name,
                     "schedulelib-manifest.json",
-                    StringComparison.OrdinalIgnoreCase)
-                || string.Equals(
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException($"Invalid website artifact name: {name}");
+            }
+            if (string.Equals(
                     name,
                     ".schedulelib-output.lock",
                     StringComparison.OrdinalIgnoreCase))
@@ -486,14 +528,17 @@ public partial class ExportCommands
     private static void VerifyZip(string zipPath, IEnumerable<string> expectedNames)
     {
         using var zip = ZipFile.OpenRead(zipPath);
-        var actual = zip.Entries.Where(x => !string.IsNullOrEmpty(x.Name)).Select(x => x.FullName)
+        var actual = zip.Entries.Where(x => !string.IsNullOrEmpty(x.Name))
+            .Select(x => x.FullName)
             .ToHashSet(StringComparer.Ordinal);
         var expected = expectedNames.ToHashSet(StringComparer.Ordinal);
         if (!actual.SetEquals(expected))
         {
-            var missing = expected.Except(actual, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal)
+            var missing = expected.Except(actual, StringComparer.Ordinal)
+                .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            var extra = actual.Except(expected, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal)
+            var extra = actual.Except(expected, StringComparer.Ordinal)
+                .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
             throw new InvalidDataException(
                 $"ZIP content mismatch in {zipPath}: missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");

@@ -106,13 +106,16 @@ public static class ConfigExtensions
 
             {
                 var h = services.AddOpenHierarchy<IEquationCommandsDerivation>();
-                h.AddDerived<AnyDayDerivation>().SetImmutable();
-                h.AddDerived<SameDayDerivation>().SetImmutable();
+                h.AddDerived<AnyDayDerivation>()
+                    .SetImmutable();
+                h.AddDerived<SameDayDerivation>()
+                    .SetImmutable();
             }
             // TODO: This should function as a provider then? doing work in DI is not good.
             services.AddScoped<IRegistryErrorHandler>(sp =>
             {
-                var config = sp.GetRequiredService<DataProvider<BuiltRegistryConfig>>().Get();
+                var config = sp.GetRequiredService<DataProvider<BuiltRegistryConfig>>()
+                    .Get();
                 if (config is null)
                 {
                     throw new InvalidOperationException("Registry not enabled.");

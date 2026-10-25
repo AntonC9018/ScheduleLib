@@ -83,12 +83,18 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(DateOnly start)
     {
-        Model.LessonDateRange = Model.LessonDateRange with { Start = start };
+        Model.LessonDateRange = Model.LessonDateRange with
+        {
+            Start = start,
+        };
     }
 
     public void LessonsEndInclusive(DateOnly end)
     {
-        Model.LessonDateRange = Model.LessonDateRange with { EndInclusive = end };
+        Model.LessonDateRange = Model.LessonDateRange with
+        {
+            EndInclusive = end,
+        };
     }
 
     public void QualificationType(QualificationType type)

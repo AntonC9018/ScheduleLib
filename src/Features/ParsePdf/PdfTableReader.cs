@@ -12,7 +12,9 @@ public static class PdfTableReader
     public static IReadOnlyList<PdfScheduleTable> Read(Stream input)
     {
         using var document = PdfDocument.Open(input);
-        return document.GetPages().Select(ReadPage).ToArray();
+        return document.GetPages()
+            .Select(ReadPage)
+            .ToArray();
     }
 
     private static PdfScheduleTable ReadPage(Page page)
@@ -71,7 +73,8 @@ public static class PdfTableReader
             return operationValue4;
         }
 
-        return new(page.Number, borders, boxes.Select(ProjectValue).ToArray());
+        return new(page.Number, borders, boxes.Select(ProjectValue)
+            .ToArray());
     }
 
     public static IReadOnlyList<PdfBorder> JoinBorders(IEnumerable<PdfBorder> borders)
@@ -97,7 +100,10 @@ public static class PdfTableReader
                 {
                     if (current is { } previous && border.Start <= previous.End + Tolerance)
                     {
-                        current = previous with { End = Math.Max(previous.End, border.End) };
+                        current = previous with
+                        {
+                            End = Math.Max(previous.End, border.End),
+                        };
                     }
                     else
                     {
@@ -106,7 +112,10 @@ public static class PdfTableReader
                             result.Add(completed);
                         }
 
-                        current = border with { Position = position };
+                        current = border with
+                        {
+                            Position = position,
+                        };
                     }
                 }
                 if (current is { } last)
@@ -120,13 +129,18 @@ public static class PdfTableReader
 
     public static IReadOnlyList<PdfBox> FindCells(IReadOnlyList<PdfBorder> borders)
     {
-        var vertical = borders.Where(b => b.Vertical).ToArray();
-        var horizontal = borders.Where(b => !b.Vertical).ToArray();
+        var vertical = borders.Where(b => b.Vertical)
+            .ToArray();
+        var horizontal = borders.Where(b => !b.Vertical)
+            .ToArray();
         var points = (from v in vertical
                       from h in horizontal
                       where v.Start <= h.Position + Tolerance && v.End >= h.Position - Tolerance
                          && h.Start <= v.Position + Tolerance && h.End >= v.Position - Tolerance
-                      select (X: v.Position, Y: h.Position)).Distinct().OrderBy(p => p.X).ThenBy(p => p.Y).ToArray();
+                      select (X: v.Position, Y: h.Position)).Distinct()
+            .OrderBy(p => p.X)
+            .ThenBy(p => p.Y)
+            .ToArray();
         var result = new List<PdfBox>();
         foreach (var point in points)
         {
@@ -183,19 +197,24 @@ public static class PdfTableReader
     }
 
     private static bool Connects(IEnumerable<PdfBorder> borders, double position, double start, double end) =>
-        borders.Any(b => b.Position == position && b.Start <= start + Tolerance && b.End >= end - Tolerance);
+        borders.Any(b => { if (!(b.Position == position)) { return false; } if (!(b.Start <= start + Tolerance)) { return false; } if (!(b.End >= end - Tolerance)) { return false; } return true; });
 
     public static IReadOnlyList<PdfBox> RecoverPartialBorders(IEnumerable<PdfBox> cells, IReadOnlyList<PdfBorder> borders)
     {
         var result = new List<PdfBox>();
         foreach (var box in cells)
         {
-            var internalBorders = borders.Where(b => b.Vertical && box.Left + 2 < b.Position && b.Position < box.Right - 2
-                && Math.Min(b.End, box.Bottom) - Math.Max(b.Start, box.Top) > 5).ToArray();
+            var internalBorders = borders.Where(b => { if (!(b.Vertical)) { return false; } if (!(box.Left + 2 < b.Position)) { return false; } if (!(b.Position < box.Right - 2)) { return false; } if (!(Math.Min(b.End, box.Bottom) - Math.Max(b.Start, box.Top) > 5)) { return false; } return true; })
+                .ToArray();
             if (internalBorders.Length == 0)
             { result.Add(box); continue; }
             var ys = internalBorders.SelectMany(b => new[] { b.Start, b.End })
-                .Where(y => box.Top + 2 < y && y < box.Bottom - 2).Append(box.Top).Append(box.Bottom).Distinct().Order().ToArray();
+                .Where(y => box.Top + 2 < y && y < box.Bottom - 2)
+                .Append(box.Top)
+                .Append(box.Bottom)
+                .Distinct()
+                .Order()
+                .ToArray();
             for (int row = 1; row < ys.Length; row++)
             {
                 double[] value3 = ys;
@@ -203,7 +222,12 @@ public static class PdfTableReader
                 double doubleValue = value3[int323] + ys[row];
                 var middle = (doubleValue) / 2;
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
-                    .Select(b => b.Position).Append(box.Left).Append(box.Right).Distinct().Order().ToArray();
+                    .Select(b => b.Position)
+                    .Append(box.Left)
+                    .Append(box.Right)
+                    .Distinct()
+                    .Order()
+                    .ToArray();
                 for (int column = 1; column < xs.Length; column++)
                 {
                     global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfBox> list = result;
@@ -220,7 +244,8 @@ public static class PdfTableReader
                 }
             }
         }
-        return result.Distinct().ToArray();
+        return result.Distinct()
+            .ToArray();
     }
 
     private static string ReadText(Page page, PdfBox bounds)
@@ -246,7 +271,8 @@ public static class PdfTableReader
             return bounds.Contains(
                                     x: CalculateX(),
                                     y: CalculateY());
-        }).ToArray();
+        })
+            .ToArray();
         if (letters.Length == 0)
         {
             return "";
@@ -254,7 +280,9 @@ public static class PdfTableReader
         // Rotated day labels read from the bottom of the page towards the top.
         if (letters.Count(l => Math.Abs(l.EndBaseLine.Y - l.StartBaseLine.Y) > Math.Abs(l.EndBaseLine.X - l.StartBaseLine.X)) > letters.Length / 2)
         {
-            return string.Concat(letters.OrderBy(l => l.StartBaseLine.Y).Select(l => l.Value)).Trim();
+            return string.Concat(letters.OrderBy(l => l.StartBaseLine.Y)
+                .Select(l => l.Value))
+                .Trim();
         }
 
         var rows = new List<List<Letter>>();
@@ -281,7 +309,10 @@ public static class PdfTableReader
                 text.Append(letter.Value);
                 previous = letter;
             }
-            return text.ToString().Trim();
-        }).Where(line => line.Length > 0)).Trim();
+            return text.ToString()
+                .Trim();
+        })
+            .Where(line => line.Length > 0))
+            .Trim();
     }
 }

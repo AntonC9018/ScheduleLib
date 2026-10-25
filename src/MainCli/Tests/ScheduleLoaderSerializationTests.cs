@@ -46,7 +46,10 @@ public sealed class ScheduleLoaderSerializationTests
                 loader.ConfigurationIdentity = "configuration v2";
                 break;
             case "empty-hash":
-                await ScheduleSerializer.Serialize().Input(Schedule.Empty).Output(temp.FilePath).ExecuteAsync();
+                await ScheduleSerializer.Serialize()
+                    .Input(Schedule.Empty)
+                    .Output(temp.FilePath)
+                    .ExecuteAsync();
                 break;
             case "corrupt-json":
                 await File.WriteAllTextAsync(path: temp.FilePath, contents: "{corrupt");
@@ -96,13 +99,15 @@ public sealed class ScheduleLoaderSerializationTests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 loader.Load(CreateContext(),
                     cancellation.Token,
-                    bypassCache: true).AsTask());
+                    bypassCache: true)
+                    .AsTask());
         }
         else
         {
             await Assert.ThrowsAsync<IOException>(() => loader.Load(CreateContext(),
                 cancellation.Token,
-                bypassCache: true).AsTask());
+                bypassCache: true)
+                .AsTask());
         }
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
         using var input = new MemoryStream(previous);
@@ -169,7 +174,8 @@ public sealed class ScheduleLoaderSerializationTests
 
         private static string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
     }

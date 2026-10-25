@@ -30,11 +30,17 @@ internal static class RegistryScopeReconciliation
                 continue;
             }
             var candidates = local.Where(lesson => lesson.DateTime == row.DateTime
-                && MatchesType(lesson, row)).Select(getScope).Distinct().ToArray();
+                && MatchesType(lesson, row))
+                .Select(getScope)
+                .Distinct()
+                .ToArray();
             if (candidates.Length == 0)
             {
                 candidates = local.Where(lesson => lesson.DateTime.Date == row.DateTime.Date
-                && MatchesType(lesson, row)).Select(getScope).Distinct().ToArray();
+                && MatchesType(lesson, row))
+                    .Select(getScope)
+                    .Distinct()
+                    .ToArray();
             }
 
             if (candidates.Length == 1)
@@ -54,7 +60,12 @@ internal static class RegistryScopeReconciliation
         }
 
         var legacyLocal = local.Where(lesson => !remote.Any(row => { if (!(owners.TryGetValue(row.ViewUri, out var scope))) { return false; } if (!(scope == getScope(lesson))) { return false; } if (!(row.DateTime == lesson.DateTime)) { return false; } if (!(MatchesType(lesson, row))) { return false; } return true; }))
-            .Select(lesson => lesson with { Topic = attributionTopic, Attendance = null }).ToArray();
+            .Select(lesson => lesson with
+            {
+                Topic = attributionTopic,
+                Attendance = null,
+            })
+            .ToArray();
         foreach (var type in legacy.GroupBy(row => row.LessonType))
         {
             foreach (var command in derivation.DeriveCommands(new(schedule, type,
@@ -89,7 +100,10 @@ internal static class RegistryScopeReconciliation
                         ? inferred == audience.Key.Type
                         : audience.Any(lesson => lesson.DateTime == row.DateTime)
                             || local.Where(lesson => getScope(lesson) == audience.Key.Scope)
-                                .Select(lesson => lesson.RegistryLessonType).Distinct().Count() == 1))).ToArray();
+                                .Select(lesson => lesson.RegistryLessonType)
+                                .Distinct()
+                                .Count() == 1)))
+                .ToArray();
             foreach (var row in matching)
             {
                 consumed.Add(row.ViewUri);

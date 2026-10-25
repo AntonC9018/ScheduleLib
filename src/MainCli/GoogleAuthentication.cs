@@ -268,7 +268,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         string path = AccountFile(teacher: teacher, clientId: secrets.ClientId);
         var store = new AtomicTokenStore(path);
         var previous = await store.GetAsync<TokenResponse>(teacher);
-        var scopes = LoginScopes.Union(previous?.Scope?.Split(' ') ?? []).ToArray();
+        var scopes = LoginScopes.Union(previous?.Scope?.Split(' ') ?? [])
+            .ToArray();
         TokenResponse result;
         try
         {
@@ -379,8 +380,11 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         return createCredential;
     }
 
-    private static bool Usable(TokenResponse authorization, string[] scopes) =>
-        !string.IsNullOrEmpty(authorization.AccessToken) && !scopes.Except(authorization.Scope?.Split(' ') ?? []).Any();
+    private static bool Usable(TokenResponse authorization, string[] scopes)
+    {
+        return !string.IsNullOrEmpty(authorization.AccessToken) && !scopes.Except(authorization.Scope?.Split(' ') ?? [])
+            .Any();
+    }
 
     private static async Task<ClientSecrets> Secrets(
         BuiltGoogleCredentialsConfig config,
@@ -391,15 +395,25 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         try
         {
             var result = await config.ApiKeysSource.Get(services, token);
-            bool conditionResult;
-            if (string.IsNullOrWhiteSpace(result.ClientId))
+            bool CalculateConditionResult()
             {
-                conditionResult = true;
+                if (string.IsNullOrWhiteSpace(result.ClientId))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(result.ClientSecret))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = string.IsNullOrWhiteSpace(result.ClientSecret);
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -431,7 +445,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
 
         var accounts = new List<AuthAccountStatus>();
-        foreach (var path in Directory.EnumerateFiles(path: directory, searchPattern: "*.json").Order())
+        foreach (var path in Directory.EnumerateFiles(path: directory, searchPattern: "*.json")
+            .Order())
         {
             token.ThrowIfCancellationRequested();
             var authorization = await new AtomicTokenStore(path).GetAsync<TokenResponse>(teacher);

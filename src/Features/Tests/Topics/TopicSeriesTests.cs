@@ -15,7 +15,8 @@ public sealed class TopicSeriesTests
     public async Task ManifestTypeAndLanguageFilterInterleavedCsvRows()
     {
         string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid().ToString("N");
+        string toString = Guid.NewGuid()
+            .ToString("N");
         string text = $"topic-interleaved-{toString}";
         string path2 = (string) text;
         var directory = Path.Combine(path1, path2);
@@ -95,28 +96,36 @@ public sealed class TopicSeriesTests
                 return key;
             }
 
-            Assert.Equal(expected: "Russian lab", actual: topics.Get(CalculateKey()));
+            string expected2 = "Russian lab";
+            string? actual2 = topics.Get(CalculateKey());
+            Assert.Equal(expected: expected2, actual: actual2);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(english, LessonType.Lab);
                 return key2;
             }
 
-            Assert.Equal(expected: "English lab", actual: topics.Get(CalculateKey2()));
+            string expected3 = "English lab";
+            string? actual3 = topics.Get(CalculateKey2());
+            Assert.Equal(expected: expected3, actual: actual3);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key3 = Key(russian, LessonType.Curs);
                 return key3;
             }
 
-            Assert.Null(topics.Get(CalculateKey3()));
+            string? objectValue = topics.Get(CalculateKey3());
+            object? objectValue2 = objectValue;
+            Assert.Null(objectValue2);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey4()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key4 = Key(english, LessonType.Curs);
                 return key4;
             }
 
-            Assert.Null(topics.Get(CalculateKey4()));
+            string? objectValue3 = topics.Get(CalculateKey4());
+            object? objectValue4 = objectValue3;
+            Assert.Null(objectValue4);
         }
         finally
         {
@@ -128,7 +137,8 @@ public sealed class TopicSeriesTests
     public async Task InterleavedSeriesPreserveTypesLanguagesPartitionsAndSequenceOrder()
     {
         string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid().ToString("N");
+        string toString = Guid.NewGuid()
+            .ToString("N");
         string text = $"topic-series-{toString}";
         string path2 = (string) text;
         var directory = Path.Combine(path1, path2);
@@ -202,14 +212,18 @@ public sealed class TopicSeriesTests
                 return key;
             }
 
-            Assert.Null(topics.Get(CalculateKey()));
+            string? objectValue = topics.Get(CalculateKey());
+            object? objectValue2 = objectValue;
+            Assert.Null(objectValue2);
             global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
             {
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(english, LessonType.Curs, GroupPartitionKey.All, 0);
                 return key2;
             }
 
-            Assert.Null(topics.Get(CalculateKey2()));
+            string? objectValue3 = topics.Get(CalculateKey2());
+            object? objectValue4 = objectValue3;
+            Assert.Null(objectValue4);
 
             AttendanceLookupKey Key(GroupId group, LessonType type, GroupPartitionKey partition, int index)
             {
@@ -228,21 +242,25 @@ public sealed class TopicSeriesTests
                     return key;
                 }
 
-                Assert.Equal(expected: first, actual: topics.Get(CalculateKey()));
+                string? actual2 = topics.Get(CalculateKey());
+                Assert.Equal(expected: first, actual: actual2);
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
                 {
                     global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(group, type, partition, 1);
                     return key2;
                 }
 
-                Assert.Equal(expected: second, actual: topics.Get(CalculateKey2()));
+                string? actual3 = topics.Get(CalculateKey2());
+                Assert.Equal(expected: second, actual: actual3);
                 global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
                 {
                     global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key3 = Key(group, type, partition, 2);
                     return key3;
                 }
 
-                Assert.Null(topics.Get(CalculateKey3()));
+                string? objectValue = topics.Get(CalculateKey3());
+                object? objectValue2 = objectValue;
+                Assert.Null(objectValue2);
             }
 
             void AddLesson(GroupId group, LessonType type, SubGroup subgroup)

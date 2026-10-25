@@ -89,7 +89,9 @@ public sealed class AttendanceCompositionTests
                 Value = groups,
                 IsWildcard = true
             },
-                            partition, course, LessonType.Lab, 0, CalculateDateTime())).AsArray().ToArray();
+                            partition, course, LessonType.Lab, 0, CalculateDateTime()))
+                .AsArray()
+                .ToArray();
         }
 
         void Add(GroupId parent, string name, int day, Attendance attendance)
@@ -112,7 +114,8 @@ public sealed class AttendanceCompositionTests
                 return name2;
             }
 
-            parentList.Student(CalculateName()).Day(attendance);
+            parentList.Student(CalculateName())
+                .Day(attendance);
         }
     }
 }

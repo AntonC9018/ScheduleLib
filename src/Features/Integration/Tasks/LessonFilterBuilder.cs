@@ -122,15 +122,18 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
                 {
                     Id = c.Lessons[0],
                     Course = c.Schedule.Get(lesson.Course).FullName,
-                    Teachers = string.Join(",", lesson.Teachers.Select(x => s.Get(x).PersonName.ToString())),
-                    Groups = string.Join(",", lesson.Groups.Select(x => s.Get(x).Name.ToString())),
+                    Teachers = string.Join(",", lesson.Teachers.Select(x => s.Get(x).PersonName
+                        .ToString())),
+                    Groups = string.Join(",", lesson.Groups.Select(x => s.Get(x).Name
+                        .ToString())),
                     Type = lesson.Type,
                 },
             });
         }
         {
             // Remove lessons for other teachers.
-            c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers.Contains(teacherId));
+            c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers
+                .Contains(teacherId));
         }
         return LessonValidity.None;
 

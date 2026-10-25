@@ -172,7 +172,8 @@ public static class SerializationModels
         Schedule schedule,
         string hash)
     {
-        var regularLessons = schedule.EnumerateWeeklyLessons().Select(wl =>
+        var regularLessons = schedule.EnumerateWeeklyLessons()
+            .Select(wl =>
         {
             var ret = new WeeklyLessonModel
             {
@@ -183,8 +184,10 @@ public static class SerializationModels
             };
             ret.SetCommon(wl.Lesson);
             return ret;
-        }).ToImmutableArray();
-        var oneTimeLessons = schedule.EnumerateOneTimeLessons().Select(ol =>
+        })
+            .ToImmutableArray();
+        var oneTimeLessons = schedule.EnumerateOneTimeLessons()
+            .Select(ol =>
         {
             var ret = new OneTimeLessonModel
             {
@@ -193,30 +196,35 @@ public static class SerializationModels
             };
             ret.SetCommon(ol.Lesson);
             return ret;
-        }).ToImmutableArray();
+        })
+            .ToImmutableArray();
 
         var groups = schedule.Groups.Select(g => new GroupModel
         {
             Name = g.Name,
             Language = g.Language,
-        }).ToImmutableArray();
+        })
+            .ToImmutableArray();
 
         var teachers = schedule.Teachers.Select(t => new PersonModel
         {
             FirstName = t.PersonName.FirstName,
             LastName = t.PersonName.LastName,
-        }).ToImmutableArray();
+        })
+            .ToImmutableArray();
 
         var courses = schedule.Courses.Select(c => new CourseModel
         {
             Names = c.Names,
-        }).ToImmutableArray();
+        })
+            .ToImmutableArray();
 
         var periods = schedule.Periods.Select(p => new PeriodModel
         {
             Start = p.Start,
             End = p.End,
-        }).ToImmutableArray();
+        })
+            .ToImmutableArray();
 
         var model = new ScheduleModel
         {

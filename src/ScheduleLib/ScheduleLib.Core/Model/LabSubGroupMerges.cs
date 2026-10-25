@@ -41,14 +41,17 @@ public static class LabSubGroupMerges
         var diagnostics = ImmutableArray.CreateBuilder<LabSubGroupMergeDiagnostic>();
         var suppressed = ImmutableHashSet.CreateBuilder<WeeklyLessonId>();
         var lessons = source.WeeklyLessons.ToBuilder();
-        var labs = source.EnumerateWeeklyLessons().Where(x => x.Lesson.Type == LessonType.Lab).ToArray();
+        var labs = source.EnumerateWeeklyLessons()
+            .Where(x => x.Lesson.Type == LessonType.Lab)
+            .ToArray();
         var candidates = labs.Where(x => { if (!(x.Lesson.Groups.IsSingleGroup)) { return false; } if (!(!x.Lesson.Groups.IsEmpty)) { return false; } return true; })
             .GroupBy(x => new Key(x.Lesson.Course, x.Lesson.Group, x.Lesson.Specialization, x.Lesson.Alternative));
 
         foreach (var candidate in candidates)
         {
             var key = candidate.Key;
-            var numeric = candidate.Where(x => IsNumeric(x.Lesson.SubGroup)).ToArray();
+            var numeric = candidate.Where(x => IsNumeric(x.Lesson.SubGroup))
+                .ToArray();
             if (numeric.Length == 0)
             {
                 continue;
@@ -56,14 +59,18 @@ public static class LabSubGroupMerges
 
             var applicable = source.EnumerateWeeklyLessons()
                             .Where(x => x.Lesson.Groups.Contains(key.Group) && x.Date.Period.IsSpecified)
-                            .Select(x => x.Date.Period).Distinct().OrderBy(x => source.Get(x).Start).ToArray();
+                            .Select(x => x.Date.Period)
+                .Distinct()
+                .OrderBy(x => source.Get(x).Start)
+                .ToArray();
             if (applicable.Length < 2)
             {
                 Diagnose("At least two dated schedule periods are required.");
                 continue;
             }
-            if (candidate.Any(x => { bool conditionResult; if (x.Date.Period.IsUnspecified) { if (IsNumeric(x.Lesson.SubGroup)) { conditionResult = true; } else { conditionResult = x.Lesson.SubGroup == SubGroup.All; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; })
-                || applicable.Zip(applicable.Skip(1)).Any(pair =>
+            if (candidate.Any(x => { bool CalculateConditionResult() { if (x.Date.Period.IsUnspecified) { if (IsNumeric(x.Lesson.SubGroup)) { return true; } else { if (x.Lesson.SubGroup == SubGroup.All) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+                || applicable.Zip(applicable.Skip(1))
+                    .Any(pair =>
                     source.Get(pair.First).End != source.Get(pair.Second).Start
                     || source.Get(pair.First).Start >= source.Get(pair.Second).Start))
             {
@@ -109,45 +116,73 @@ public static class LabSubGroupMerges
                 continue;
             }
             var latest = applicable[^1];
-            var current = candidate.Where(x => x.Date.Period == latest).ToArray();
-            var currentNumeric = current.Where(x => IsNumeric(x.Lesson.SubGroup)).ToArray();
-            var labels = currentNumeric.Select(x => x.Lesson.SubGroup).Distinct().ToArray();
-            var whole = current.Where(x => x.Lesson.SubGroup == SubGroup.All).ToArray();
+            var current = candidate.Where(x => x.Date.Period == latest)
+                .ToArray();
+            var currentNumeric = current.Where(x => IsNumeric(x.Lesson.SubGroup))
+                .ToArray();
+            var labels = currentNumeric.Select(x => x.Lesson.SubGroup)
+                .Distinct()
+                .ToArray();
+            var whole = current.Where(x => x.Lesson.SubGroup == SubGroup.All)
+                .ToArray();
             if (labels.Length > 1)
             {
                 var previousLabels = numeric.Where(x => x.Date.Period != latest)
-                    .Select(x => x.Lesson.SubGroup).Distinct().ToArray();
-                if (previousLabels.Except(labels).Any())
+                    .Select(x => x.Lesson.SubGroup)
+                    .Distinct()
+                    .ToArray();
+                if (previousLabels.Except(labels)
+                    .Any())
                 {
                     Diagnose("More than one numeric subgroup survives.");
                 }
 
                 continue;
             }
-            bool conditionResult2;
-            if (labels.Length == 0)
+            bool CalculateConditionResult2()
             {
-                conditionResult2 = whole.Length == 0;
+                if (labels.Length == 0)
+                {
+                    if (whole.Length == 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult2 = false;
-            }
+
+            bool conditionResult2 = CalculateConditionResult2();
+
 
             if (conditionResult2)
             {
                 Diagnose("The latest group period has no replacement labs for this course partition.");
                 continue;
             }
-            bool conditionResult3;
-            if (labels.Length == 1)
+            bool CalculateConditionResult3()
             {
-                conditionResult3 = whole.Length != 0;
+                if (labels.Length == 1)
+                {
+                    if (whole.Length != 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult3 = false;
-            }
+
+            bool conditionResult3 = CalculateConditionResult3();
+
 
             if (conditionResult3)
             {
@@ -160,36 +195,50 @@ public static class LabSubGroupMerges
             // inferring from an arbitrary union of historical subgroup labels.
             var before = Array.Empty<WeeklyLessonAccessor>();
             var valid = true;
-            foreach (var previous in applicable.Reverse().Skip(1))
+            foreach (var previous in applicable.Reverse()
+                .Skip(1))
             {
-                var previousLabs = candidate.Where(x => { bool conditionResult; if (x.Date.Period == previous) { if (IsNumeric(x.Lesson.SubGroup)) { conditionResult = true; } else { conditionResult = x.Lesson.SubGroup == SubGroup.All; } } else { conditionResult = false; } if (conditionResult) { return true; } return false; }).ToArray();
+                var previousLabs = candidate.Where(x => { bool CalculateConditionResult() { if (x.Date.Period == previous) { if (IsNumeric(x.Lesson.SubGroup)) { return true; } else { if (x.Lesson.SubGroup == SubGroup.All) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+                    .ToArray();
                 var previousLabels = previousLabs.Where(x => IsNumeric(x.Lesson.SubGroup))
-                    .Select(x => x.Lesson.SubGroup).Distinct().ToArray();
+                    .Select(x => x.Lesson.SubGroup)
+                    .Distinct()
+                    .ToArray();
                 if (previousLabels.Length >= 2)
                 { before = previousLabs; break; }
-                bool conditionResult5;
-                if (previousLabs.Length == 0)
+                bool CalculateConditionResult5()
                 {
-                    conditionResult5 = true;
-                }
-                else
-                {
-                    if (labels.Length == 1)
+                    if (previousLabs.Length == 0)
                     {
-                        if (previousLabels.Length == 1)
-                        {
-                            conditionResult5 = previousLabels[0] != labels[0];
-                        }
-                        else
-                        {
-                            conditionResult5 = false;
-                        }
+                        return true;
                     }
                     else
                     {
-                        conditionResult5 = false;
+                        if (labels.Length == 1)
+                        {
+                            if (previousLabels.Length == 1)
+                            {
+                                if (previousLabels[0] != labels[0])
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult5 = CalculateConditionResult5();
+
 
                 if (conditionResult5)
                 {
@@ -197,15 +246,25 @@ public static class LabSubGroupMerges
                     break;
                 }
             }
-            bool conditionResult4;
-            if (!valid)
+            bool CalculateConditionResult4()
             {
-                conditionResult4 = true;
+                if (!valid)
+                {
+                    return true;
+                }
+                else
+                {
+                    if (before.Length == 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult4 = before.Length == 0;
-            }
+
+            bool conditionResult4 = CalculateConditionResult4();
+
 
             if (conditionResult4)
             {
@@ -231,8 +290,17 @@ public static class LabSubGroupMerges
             {
                 suppressed.Remove(item.Id);
                 var lesson = lessons[item.Id.Id];
-                lesson.Base = lesson.Base with { Data = lesson.Base.Data with { SubGroup = SubGroup.All } };
-                lesson.Date = lesson.Date with { Period = PeriodId.Unspecified };
+                lesson.Base = lesson.Base with
+                {
+                    Data = lesson.Base.Data with
+                    {
+                        SubGroup = SubGroup.All,
+                    },
+                };
+                lesson.Date = lesson.Date with
+                {
+                    Period = PeriodId.Unspecified,
+                };
                 lessons[item.Id.Id] = lesson;
             }
 

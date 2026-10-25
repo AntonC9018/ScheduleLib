@@ -33,7 +33,8 @@ internal static class RegistryHistoryTopicFiles
         CancellationToken token)
     {
         directory.EnsureCreated();
-        var runId = Guid.NewGuid().ToString("N");
+        var runId = Guid.NewGuid()
+            .ToString("N");
         var files = new List<string>();
         var sources = new List<RegistryHistoryTopicFileSource>();
         var exports = SelectExports(analysis);
@@ -55,7 +56,8 @@ internal static class RegistryHistoryTopicFiles
                     var name = $"topics-{runId}-{files.Count + 1}.csv";
                     await WriteTopics(directory, name, ordered, token);
                     files.Add(name);
-                    var dates = ordered.Select(lesson => lesson.Date).ToArray();
+                    var dates = ordered.Select(lesson => lesson.Date)
+                        .ToArray();
                     var source = new RegistryHistoryTopicFileSource(
                         File: name,
                         CurrentCourse: candidate.CurrentCourse.Name,

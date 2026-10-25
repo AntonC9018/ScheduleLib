@@ -46,19 +46,23 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     private readonly EnumBitArray<T> RestoreSlice(UnsizedBitArray64 array)
     {
-        var ret = array.ShiftedRightWithDataLoss(_offset).WithShrunkLen(_Length);
+        var ret = array.ShiftedRightWithDataLoss(_offset)
+            .WithShrunkLen(_Length);
         return new(ret.AsUnsized());
     }
 
     public void ResetArray(EnumBitArray<T> array)
     {
-        _impl.ClearArray(UnsizedBitArray64.GetMask(array.Length).ShiftedLeft(_offset));
-        _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.ClearArray(UnsizedBitArray64.GetMask(array.Length)
+            .ShiftedLeft(_offset));
+        _impl.SetArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public void SetArray(EnumBitArray<T> array)
     {
-        _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.SetArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public void SetAll(bool value = true)
@@ -75,7 +79,8 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public void ClearArray(EnumBitArray<T> array)
     {
-        _impl.ClearArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.ClearArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public readonly EnumBitArray<T> RestoredSlice => RestoreSlice(_impl);

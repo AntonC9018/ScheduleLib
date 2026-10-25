@@ -44,28 +44,40 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TempDirectory();
         var result = await Export(temp.Path);
-        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status").GetString());
+        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status")
+            .GetString());
         var data = result.GetProperty("data");
-        Assert.Equal(expected: 127, actual: data.GetProperty("lessonCount").GetInt32());
+        Assert.Equal(expected: 127, actual: data.GetProperty("lessonCount")
+            .GetInt32());
         Assert.Equal(
             expected: new[]
             {
                 "par",
                 "impar",
             },
-            actual: data.GetProperty("worksheets").EnumerateArray().Select(x => x.GetString()).ToArray());
-        Assert.Equal(expected: temp.Path, actual: data.GetProperty("outputDirectory").GetString());
+            actual: data.GetProperty("worksheets")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
+        Assert.Equal(expected: temp.Path, actual: data.GetProperty("outputDirectory")
+            .GetString());
         Assert.Equal(
             expected: new[]
             {
                 Path.Combine(temp.Path, "free-rooms.xlsx"),
                 Path.Combine(temp.Path, "schedulelib-manifest.json"),
             },
-            actual: result.GetProperty("outputs").EnumerateArray().Select(x => x.GetString()).ToArray());
+            actual: result.GetProperty("outputs")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
         Assert.Contains(
             "Free rooms inspect every weekly period, not only the latest one.",
-            result.GetProperty("warnings").EnumerateArray().Select(x => x.GetString() ?? ""));
+            result.GetProperty("warnings")
+                .EnumerateArray()
+                .Select(x => x.GetString() ?? ""));
 
         string CalculateFile()
         {
@@ -80,7 +92,8 @@ public sealed class FreeRoomsTests
                 "par",
                 "impar",
             },
-            actual: workbook.Worksheets.Select(x => x.Name).ToArray());
+            actual: workbook.Worksheets.Select(x => x.Name)
+                .ToArray());
         foreach (var sheet in workbook.Worksheets)
         {
             // Six days that have lessons, each a single-cell header followed by seven time slots.
@@ -94,9 +107,14 @@ public sealed class FreeRoomsTests
                     (Row: 37, Day: "Vineri"),
                     (Row: 46, Day: "Sâmbătă"),
                 },
-                actual: sheet.RowsUsed().Where(x => x.CellsUsed().Count() == 1)
-                    .Select(x => (Row: x.RowNumber(), Day: x.Cell(1).GetFormattedString())).ToArray());
-            Assert.Equal(expected: 53, actual: sheet.LastRowUsed()!.RowNumber());
+                actual: sheet.RowsUsed()
+                    .Where(x => x.CellsUsed()
+                    .Count() == 1)
+                    .Select(x => (Row: x.RowNumber(), Day: x.Cell(1)
+                        .GetFormattedString()))
+                    .ToArray());
+            Assert.Equal(expected: 53, actual: sheet.LastRowUsed()!
+                .RowNumber());
             string[] expected2 = new[]
                 {
                     "8:00-9:30",
@@ -235,12 +253,18 @@ public sealed class FreeRoomsTests
 
         using var manifest = JsonDocument.Parse(
                     await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "export free-rooms", actual: manifest.RootElement.GetProperty("Command").GetString());
-        Assert.Equal(expected: "succeeded", actual: manifest.RootElement.GetProperty("Status").GetString());
+        Assert.Equal(expected: "export free-rooms", actual: manifest.RootElement.GetProperty("Command")
+            .GetString());
+        Assert.Equal(expected: "succeeded", actual: manifest.RootElement.GetProperty("Status")
+            .GetString());
         Assert.Equal(
             expected: "free-rooms.xlsx",
-            actual: manifest.RootElement.GetProperty("Artifacts")[0].GetProperty("Name").GetString());
-        Assert.Equal(expected: 64, actual: manifest.RootElement.GetProperty("Artifacts")[0].GetProperty("Sha256").GetString()!.Length);
+            actual: manifest.RootElement.GetProperty("Artifacts")[0]
+                .GetProperty("Name")
+                .GetString());
+        Assert.Equal(expected: 64, actual: manifest.RootElement.GetProperty("Artifacts")[0]
+            .GetProperty("Sha256")
+            .GetString()!.Length);
     }
 
     [Fact]
@@ -248,7 +272,9 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TempDirectory();
         var result = await Export(null, settings: new() { Project = temp.Path });
-        var directory = result.GetProperty("data").GetProperty("outputDirectory").GetString()!;
+        var directory = result.GetProperty("data")
+            .GetProperty("outputDirectory")
+            .GetString()!;
         string CalculateExpected()
         {
             string expected2 = Path.Combine(temp.Path, "output");
@@ -270,7 +296,10 @@ public sealed class FreeRoomsTests
                 Path.Combine(directory, "free-rooms.xlsx"),
                 Path.Combine(directory, "schedulelib-manifest.json"),
             },
-            actual: result.GetProperty("outputs").EnumerateArray().Select(x => x.GetString()).ToArray());
+            actual: result.GetProperty("outputs")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
     }
 
     [Fact]
@@ -296,18 +325,25 @@ public sealed class FreeRoomsTests
         using (var workbook = new XLWorkbook(
                            CalculateFile()))
         {
-            workbook.Worksheet(1).Rows(firstRow: 4, lastRow: 18).Delete();
+            workbook.Worksheet(1)
+                .Rows(firstRow: 4, lastRow: 18)
+                .Delete();
             global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
             string file3 = Path.Combine(zi, "master.xlsx");
             xLWorkbook.SaveAs(file3);
         }
         using var output = new TempDirectory();
         var result = await Export(outputDirectory: output.Path, dataDirectory: source.Path);
-        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: 0, actual: result.GetProperty("data").GetProperty("lessonCount").GetInt32());
+        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Equal(expected: 0, actual: result.GetProperty("data")
+            .GetProperty("lessonCount")
+            .GetInt32());
         Assert.Contains(
             "The schedule contains no weekly lessons; the workbook has no day rows.",
-            result.GetProperty("warnings").EnumerateArray().Select(x => x.GetString() ?? ""));
+            result.GetProperty("warnings")
+                .EnumerateArray()
+                .Select(x => x.GetString() ?? ""));
         string CalculateFile2()
         {
             string file2 = Path.Combine(output.Path, "free-rooms.xlsx");
@@ -321,7 +357,8 @@ public sealed class FreeRoomsTests
                 "par",
                 "impar",
             },
-            actual: book.Worksheets.Select(x => x.Name).ToArray());
+            actual: book.Worksheets.Select(x => x.Name)
+                .ToArray());
         Assert.All(book.Worksheets, sheet => Assert.Null(sheet.LastRowUsed()));
     }
 
@@ -366,13 +403,16 @@ public sealed class FreeRoomsTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
+                        DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid()
+                            .ToString()),
                     },
                     new() { Directory = temp.Path },
                     new() { Json = true }));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status").GetString());
+            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode")
+                .GetInt32());
+            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status")
+                .GetString());
             bool CalculateCondition()
             {
                 string path = Path.Combine(temp.Path, "schedulelib-manifest.json");
@@ -396,8 +436,11 @@ public sealed class FreeRoomsTests
     private static string[] Row(IXLWorksheet sheet, int row)
     {
         return sheet.Row(row)
-            .Cells(firstColumn: 1, lastColumn: sheet.LastColumnUsed()!.ColumnNumber())
-            .Select(x => x.GetFormattedString()).Where(x => x.Length != 0).ToArray();
+            .Cells(firstColumn: 1, lastColumn: sheet.LastColumnUsed()!
+                .ColumnNumber())
+            .Select(x => x.GetFormattedString())
+            .Where(x => x.Length != 0)
+            .ToArray();
     }
 
     private static async Task<JsonElement> Export(
@@ -422,8 +465,10 @@ public sealed class FreeRoomsTests
                 settings);
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "export free-rooms", actual: document.RootElement.GetProperty("command").GetString());
+            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "export free-rooms", actual: document.RootElement.GetProperty("command")
+                .GetString());
             return document.RootElement.Clone();
         }
         finally

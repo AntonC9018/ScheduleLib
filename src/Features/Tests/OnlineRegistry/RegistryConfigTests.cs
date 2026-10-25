@@ -58,8 +58,7 @@ public sealed class RegistryConfigTests
 
             return CheckCondition();
         });
-        Assert.Contains(result, rule => rule.Faculty == "IA" && rule.SubGroup == "eng"
-            && rule.Language == Language.En && rule.MatchByLanguage);
+        Assert.Contains(result, rule => { if (!(rule.Faculty == "IA")) { return false; } if (!(rule.SubGroup == "eng")) { return false; } if (!(rule.Language == Language.En)) { return false; } if (!(rule.MatchByLanguage)) { return false; } return true; });
     }
 
     [Fact]

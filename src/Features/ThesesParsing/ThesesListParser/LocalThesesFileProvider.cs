@@ -9,7 +9,8 @@ public sealed class LocalThesesFileProvider(
 {
     public static void Register(IServiceCollection services)
     {
-        services.AddOptions<LocalThesesFileProviderOptions>().ValidateDataAnnotations();
+        services.AddOptions<LocalThesesFileProviderOptions>()
+            .ValidateDataAnnotations();
         services.AddSingleton<IThesesFileProvider, LocalThesesFileProvider>();
     }
 

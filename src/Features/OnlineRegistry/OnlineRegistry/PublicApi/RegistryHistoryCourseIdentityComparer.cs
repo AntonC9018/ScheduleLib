@@ -11,7 +11,7 @@ public sealed class RegistryHistoryCourseIdentityComparer : IEqualityComparer<Re
 
     public bool Equals(RegistryHistoryCourse? x, RegistryHistoryCourse? y)
     {
-        if (ReferenceEquals(x, y))
+        if (ReferenceEquals(objA: x, objB: y))
         {
             return true;
         }
@@ -40,6 +40,6 @@ public sealed class RegistryHistoryCourseIdentityComparer : IEqualityComparer<Re
     {
         var name = RegistryHistoryTopicSelection.NormalizeCourseName(course.Name);
         var nameHash = StringComparer.OrdinalIgnoreCase.GetHashCode(name);
-        return HashCode.Combine(course.Semester, nameHash);
+        return HashCode.Combine(value1: course.Semester, value2: nameHash);
     }
 }

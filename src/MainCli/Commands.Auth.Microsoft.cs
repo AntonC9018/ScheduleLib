@@ -72,7 +72,8 @@ public static class MicrosoftCliConfiguration
     {
         try
         {
-            return CredentialHelper.CreateDefaultConfiguration(typeof(Commands).Assembly).GetMicrosoftGraphAuth();
+            return CredentialHelper.CreateDefaultConfiguration(typeof(Commands).Assembly)
+                .GetMicrosoftGraphAuth();
         }
         catch (InvalidOperationException)
         {

@@ -11,7 +11,8 @@ public static class MappingsHelper
         ColumnSearchRules<TColumn> searchRules)
         where TColumn : struct, Enum
     {
-        var columnsMap = OneForEach.Enum<TColumn>().RentArray<int>();
+        var columnsMap = OneForEach.Enum<TColumn>()
+            .RentArray<int>();
         try
         {
             const int notFound = -1;
@@ -23,7 +24,9 @@ public static class MappingsHelper
                     // reached end of line
                     break;
                 }
-                var columnNumber = cell.ActualRange().FirstColumn().ColumnNumber();
+                var columnNumber = cell.ActualRange()
+                    .FirstColumn()
+                    .ColumnNumber();
                 TColumn? FindColumn()
                 {
                     foreach (var x in searchRules.Array)
@@ -77,7 +80,9 @@ public static class MappingsHelper
         var ret = new EnumBitArray<TColumn>();
         foreach (var cell in cells)
         {
-            var number = cell.ActualRange().FirstColumn().ColumnNumber();
+            var number = cell.ActualRange()
+                .FirstColumn()
+                .ColumnNumber();
             if (FindColumn(columnNumbers, number) is not { } c)
             {
                 continue;

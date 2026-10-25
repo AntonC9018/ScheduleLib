@@ -53,7 +53,8 @@ public sealed class CombinedGroupMatchingTests
                 return id;
             }
 
-            fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.Groups.Add(CalculateId());
+            fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.Groups
+                .Add(CalculateId());
         }
 
         var schedule = fixture.Build();
@@ -74,15 +75,20 @@ public sealed class CombinedGroupMatchingTests
         global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
         global::System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
-        bool condition;
-        if (combined)
+        bool CalculateCondition()
         {
-            condition = sharedLab;
+            if (combined)
+            {
+                return sharedLab;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            condition = false;
-        }
+
+        bool condition = CalculateCondition();
+
 
         int expected2;
         if (condition)
@@ -188,7 +194,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1) }, actual: Match(fixture, "I_IA24(SAWM)").ToArray());
+        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1) }, actual: Match(fixture, "I_IA24(SAWM)")
+            .ToArray());
     }
 
     [Fact]
@@ -197,7 +204,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)", specialization: Specialization.All);
         fixture.Add("IA2402(ru)", specialization: Specialization.All);
-        Assert.Equal(expected: new[] { new GroupId(1) }, actual: Match(fixture, "I_IA2402ru").ToArray());
+        Assert.Equal(expected: new[] { new GroupId(1) }, actual: Match(fixture, "I_IA2402ru")
+            .ToArray());
     }
 
     [Fact]
@@ -217,7 +225,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[] { new GroupId(0) }, actual: Match(fixture, "I_IA24(SAWM)ru").ToArray());
+        Assert.Equal(expected: new[] { new GroupId(0) }, actual: Match(fixture, "I_IA24(SAWM)ru")
+            .ToArray());
     }
 
     [Fact]
@@ -238,7 +247,8 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("IA2401(ru)", specialization: Specialization.GA2D);
         fixture.Add("IA2402(ru)", specialization: Specialization.GA2D, otherCourse: true);
         fixture.Add("IA2403(ru)");
-        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1), new GroupId(2) }, actual: Match(fixture, "IA24(GA2D)ru").ToArray());
+        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1), new GroupId(2) }, actual: Match(fixture, "IA24(GA2D)ru")
+            .ToArray());
     }
 
     [Fact]
@@ -305,7 +315,8 @@ public sealed class CombinedGroupMatchingTests
             {
                 failures++;
             },
-        }).ToArray();
+        })
+            .ToArray();
         Assert.Single(result);
         Assert.Equal(expected: 1, actual: failures);
         Assert.Equal(expected: 1, actual: searches);
@@ -368,7 +379,8 @@ public sealed class CombinedGroupMatchingTests
             GroupPartitionResolver = Resolver,
             SearchGroupId = (ref GroupForSearch group) => { searches++; return [new GroupId(0)]; },
             ParseErrorHandler = _ => Assert.Fail("Known legacy markers should parse."),
-        }).ToArray();
+        })
+            .ToArray();
         Assert.Empty(result);
         Assert.Equal(expected: 0, actual: searches);
     }
@@ -420,7 +432,8 @@ public sealed class CombinedGroupMatchingTests
             return id;
         }
 
-        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.Groups.Add(CalculateId());
+        fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.Groups
+            .Add(CalculateId());
         var schedule = fixture.Build();
         var groups = new FoundGroups
         {
@@ -460,7 +473,8 @@ public sealed class CombinedGroupMatchingTests
                 return [new GroupId(0), new GroupId(1)];
             },
             ParseErrorHandler = _ => Assert.Fail("Confirmed combined label should parse."),
-        }).ToArray();
+        })
+            .ToArray();
         var link = Assert.Single(result);
         Assert.True(link.Groups.IsCombined);
         Assert.True(link.Groups.IsWildcard);
@@ -515,7 +529,8 @@ public sealed class CombinedGroupMatchingTests
                         Value = parents,
                         IsWildcard = false
                     }, CalculateGroupPartition()),
-                    fixture.Builder.LookupModule!.LessonsByCourse, schedule)).ToArray();
+                    fixture.Builder.LookupModule!.LessonsByCourse, schedule))
+            .ToArray();
         var lesson = Assert.Single(lessons);
         global::ScheduleLib.SubGroup CalculateExpected()
         {
@@ -602,7 +617,9 @@ public sealed class CombinedGroupMatchingTests
             return partition3;
         }
 
-        Assert.Equal(expected: GroupPartitionKey.All, actual: GroupsNavigator.NormalizePartition(schedule, matched, CalculatePartition3()));
+        var expected2 = GroupPartitionKey.All;
+        var actual2 = GroupsNavigator.NormalizePartition(schedule, matched, CalculatePartition3());
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -624,7 +641,8 @@ public sealed class CombinedGroupMatchingTests
         }
 
         Assert.Equal(expected: new[] { new GroupId(0) }, actual: GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course,
-                    CalculatePartition(), group, [EnglishRule]).ToArray());
+                    CalculatePartition(), group, [EnglishRule])
+            .ToArray());
     }
 
     [Fact]
@@ -682,7 +700,8 @@ public sealed class CombinedGroupMatchingTests
         }
 
         Assert.Equal(expected: new[] { new GroupId(0) }, actual: GroupsNavigator.FindGroupMatch(explicitSubgroup.Build(), explicitSubgroup.Course,
-                    CalculatePartition3(), group, [rule]).ToArray());
+                    CalculatePartition3(), group, [rule])
+            .ToArray());
     }
 
     [Fact]
@@ -763,7 +782,8 @@ public sealed class CombinedGroupMatchingTests
             GroupPartitionResolver = Resolver,
             SearchGroupId = (ref GroupForSearch group) => [new GroupId(0)],
             ParseErrorHandler = _ => Assert.Fail("SE markers should parse."),
-        }).ToArray();
+        })
+            .ToArray();
         Assert.Equal(expected: 2, actual: result.Length);
         var ordinary = Assert.Single(result, link => link.Uri.ToString() == "https://registry.test/ordinary");
         var additional = Assert.Single(result, link => link.Uri.ToString() == "https://registry.test/additional");
@@ -808,7 +828,8 @@ public sealed class CombinedGroupMatchingTests
         Config.ConfigureRemappings(remappings);
         if (!parsed.SubGroupName.IsEmpty)
         {
-            parsed.SubGroupName = remappings.SubGroupNameRemappings.Remap(parsed.SubGroupName).Value!.AsMemory();
+            parsed.SubGroupName = remappings.SubGroupNameRemappings.Remap(parsed.SubGroupName).Value!
+                .AsMemory();
         }
         return parsed;
     }

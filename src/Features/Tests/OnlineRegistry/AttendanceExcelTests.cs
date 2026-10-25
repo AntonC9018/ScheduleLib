@@ -19,7 +19,8 @@ public sealed class AttendanceExcelTests
     {
         var builder = new StudentAttendanceListBuilder();
         builder.HintMaxCount(days);
-        builder.AddLessonTypes(Enumerable.Repeat(LessonType.Curs, days).ToArray());
+        builder.AddLessonTypes(Enumerable.Repeat(LessonType.Curs, days)
+            .ToArray());
         var result = builder.Build(Attendance.Present);
         Assert.Empty(result.Names);
         Assert.Equal(expected: days, actual: result.Attendance.DayCount);
@@ -230,7 +231,8 @@ public sealed class AttendanceExcelTests
             </form>
             """;
         var document = await BrowsingContext.New(Configuration.Default)
-            .OpenAsync(request => request.Content(html).Address("https://registry.test/add"));
+            .OpenAsync(request => request.Content(html)
+                .Address("https://registry.test/add"));
         global::AngleSharp.Html.Dom.IHtmlTableElement table = HtmlSearch.FindAttendanceTable(document);
         var htmlStudents = HtmlSearch.FindStudents(table);
         var dbNames = studentAttendance.StudentNames(attendanceKey);
@@ -238,7 +240,9 @@ public sealed class AttendanceExcelTests
         var attendanceForHtml = remapper.RemapToHtml(lessonAttendance.AsArray());
         AddLessonsToOnlineRegistryTaskHandler.UpdateAttendanceForRegistry(attendanceForHtml, htmlStudents);
 
-        var lessonId = schedule.EnumerateWeeklyLessons().Single().Id.AsAny();
+        var lessonId = schedule.EnumerateWeeklyLessons()
+            .Single().Id
+            .AsAny();
         HtmlSearch.UpdateForm(new()
         {
             Schedule = schedule,
@@ -254,7 +258,8 @@ public sealed class AttendanceExcelTests
             },
         });
 
-        var submission = HtmlSearch.GetLessonForm(document).GetSubmission()!;
+        var submission = HtmlSearch.GetLessonForm(document)
+            .GetSubmission()!;
         using var reader = new StreamReader(submission.Body);
         string ProjectValue(string[] @field)
         {
@@ -334,7 +339,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         sheet.Cell(row: 2, column: 3).Value = "na";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { DateMode = AttendanceDateMode.ValidateAndBind },
             attendance, filtered, workbook));
         var list = attendance.Build(Attendance.Present);
@@ -348,7 +354,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey())
+            .Student(0));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
         {
             global::ScheduleLib.CourseId course3 = course;
@@ -358,7 +365,8 @@ public sealed class AttendanceExcelTests
             return key2;
         }
 
-        Assert.Equal(expected: Attendance.NotApplicable, actual: list.Get(CalculateKey2()).Student(0));
+        Assert.Equal(expected: Attendance.NotApplicable, actual: list.Get(CalculateKey2())
+            .Student(0));
         // A scheduled date with no attendance column leaves attendance unchanged.
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
         {
@@ -382,7 +390,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { DateMode = AttendanceDateMode.ValidateAndBind },
             attendance, filtered, workbook));
         var list = attendance.Build(Attendance.Present);
@@ -395,7 +404,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey())
+            .Student(0));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
         {
             global::ScheduleLib.CourseId course3 = course;
@@ -420,7 +430,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
         var error = Assert.ThrowsAny<Exception>(() =>
-            CreateParser(builder).Parse(new(
+            CreateParser(builder)
+                .Parse(new(
                 new() { DateMode = AttendanceDateMode.ValidateAndBind },
                 attendance, filtered, workbook)));
         Assert.Contains(expectedSubstring: "Synthetic course IA2601", actualString: error.Message);
@@ -437,7 +448,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
         Assert.ThrowsAny<Exception>(() =>
-            CreateParser(builder).Parse(new(
+            CreateParser(builder)
+                .Parse(new(
                 new() { DateMode = AttendanceDateMode.ValidateAndBind },
                 attendance, filtered, workbook)));
     }
@@ -452,7 +464,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { HeaderFormat = new() { FormatType = HeaderFormatType.Date } },
             attendance, filtered, workbook));
         var list = attendance.Build(Attendance.Present);
@@ -466,7 +479,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey())
+            .Student(0));
     }
     [Fact]
     public void NumberedWorkbookLayoutImportsEverySheetAndMixedDateHeaders()
@@ -495,23 +509,27 @@ public sealed class AttendanceExcelTests
             dictionary.Add(key: key2, value: value2);
         }
         builder.RefreshLookup();
-        var filtered = builder.Build().Filter(new());
+        var filtered = builder.Build()
+            .Filter(new());
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new()
             {
                 WorksheetNames = aliases,
                 HeaderFormat = new() { FormatType = HeaderFormatType.Date },
                 DateMode = AttendanceDateMode.ValidateAndBind,
             }, attendance, filtered, workbook));
-        var lists = attendance.Build(Attendance.Present).ToArray();
+        var lists = attendance.Build(Attendance.Present)
+            .ToArray();
         // Two sheets include both lecture and lab columns; all 13 sheets import.
         Assert.Equal(expected: 15, actual: lists.Length);
         Assert.All(lists, list => Assert.True(list.Value.StudentNames.Count > 0));
         Assert.All(lists, list => Assert.Equal(expected: list.Value.Attendance.DayCount, actual: list.Value.Dates!.Value.Length));
         Assert.Equal(expected: 2, actual: lists.Count(list => list.Key.LessonType == LessonType.Curs));
         Assert.Equal(expected: 13, actual: lists.Count(list => list.Key.LessonType == LessonType.Lab));
-        Assert.Contains(lists, list => list.Value.Attendance.Values.Any(day => day.AsArray().Contains(Attendance.NotPresent)));
+        Assert.Contains(lists, list => list.Value.Attendance.Values.Any(day => day.AsArray()
+            .Contains(Attendance.NotPresent)));
     }
 
     [Fact]
@@ -532,7 +550,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 5).Value = "na";
         sheet.Cell(row: 2, column: 6).Value = "ignored outside header";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new()
             {
                 StudentNameColumn = 2,
@@ -549,7 +568,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: lists.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: lists.Get(CalculateKey())
+            .Student(0));
         global::System.DateTime CalculateDateTime()
         {
             global::System.DateTime dateTime3 = new(year: 2026, month: 9, day: 2);
@@ -563,7 +583,8 @@ public sealed class AttendanceExcelTests
                         Value = [group]
                     }, GroupPartitionKey.All,
                     course, LessonType.Curs, dayIndex: 0, dateTime: CalculateDateTime());
-        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: lists.Get(lecture).Student(0));
+        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: lists.Get(lecture)
+            .Student(0));
         global::System.DateTime CalculateDateTime2()
         {
             global::System.DateTime dateTime4 = new(year: 2026, month: 9, day: 9);
@@ -577,7 +598,8 @@ public sealed class AttendanceExcelTests
                         Value = [group]
                     }, GroupPartitionKey.All,
                     course, LessonType.Curs, dayIndex: 0, dateTime: CalculateDateTime2());
-        Assert.Equal(expected: Attendance.NotApplicable, actual: lists.Get(laterLecture).Student(0));
+        Assert.Equal(expected: Attendance.NotApplicable, actual: lists.Get(laterLecture)
+            .Student(0));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
         {
             global::ScheduleLib.CourseId course3 = course;
@@ -645,7 +667,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "am";
         sheet.Cell(row: 2, column: 3).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(new() { DateMode = AttendanceDateMode.ValidateAndBind }, attendance, filtered, workbook));
+        CreateParser(builder)
+            .Parse(new(new() { DateMode = AttendanceDateMode.ValidateAndBind }, attendance, filtered, workbook));
         var list = attendance.Build(Attendance.Present);
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
         {
@@ -656,7 +679,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: list.Get(CalculateKey())
+            .Student(0));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
         {
             global::ScheduleLib.CourseId course3 = course;
@@ -666,7 +690,8 @@ public sealed class AttendanceExcelTests
             return key2;
         }
 
-        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: list.Get(CalculateKey2()).Student(0));
+        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: list.Get(CalculateKey2())
+            .Student(0));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
         {
             global::ScheduleLib.CourseId course4 = course;
@@ -691,7 +716,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         sheet.Cell(row: 2, column: 3).Value = "am";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { DateMode = AttendanceDateMode.ValidateAndBind }, attendance, filtered, workbook));
         global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
         {
@@ -702,7 +728,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: 0, actual: attendance.Build(Attendance.Present).Get(CalculateKey()).StudentCount);
+        Assert.Equal(expected: 0, actual: attendance.Build(Attendance.Present)
+            .Get(CalculateKey()).StudentCount);
     }
 
     [Theory]
@@ -787,9 +814,12 @@ public sealed class AttendanceExcelTests
         var list = Assert.Single(collection2);
         Assert.Equal(expected: 2, actual: list.Value.StudentNames.Count);
         Assert.Equal(expected: 2, actual: list.Value.Attendance.DayCount);
-        Assert.Equal(expected: Attendance.NotPresent, actual: list.Value.Attendance.Day(0).Student(0));
-        Assert.Equal(expected: Attendance.Present, actual: list.Value.Attendance.Day(0).Student(1));
-        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: list.Value.Attendance.Day(1).Student(1));
+        Assert.Equal(expected: Attendance.NotPresent, actual: list.Value.Attendance.Day(0)
+            .Student(0));
+        Assert.Equal(expected: Attendance.Present, actual: list.Value.Attendance.Day(0)
+            .Student(1));
+        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: list.Value.Attendance.Day(1)
+            .Student(1));
     }
 
     [Fact]
@@ -805,7 +835,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 3).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 4).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { StudentNameColumn = 3 }, attendance, filtered, workbook));
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList CalculateCollection()
         {
@@ -829,7 +860,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 3).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new() { HeaderFormat = new() { FormatType = HeaderFormatType.IgnoreHeader } },
             attendance, filtered, workbook));
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList CalculateCollection()
@@ -859,7 +891,8 @@ public sealed class AttendanceExcelTests
         whitespace.Cell(row: 1, column: 1).Value = "   ";
         whitespace.Cell(row: 2, column: 3).Value = "\t";
         var emptyTable = workbook.AddWorksheet("Unmatched empty table");
-        emptyTable.Range("A1:C3").CreateTable();
+        emptyTable.Range("A1:C3")
+            .CreateTable();
         var valid = workbook.AddWorksheet("Synthetic course IA2601");
         int studentRow = format == HeaderFormatType.Nothing ? 1 : 2;
         if (studentRow == 2)
@@ -875,7 +908,8 @@ public sealed class AttendanceExcelTests
         valid.Cell(row: studentRow, column: 1).Value = "Synthetic Student";
         valid.Cell(row: studentRow, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new()
             {
                 HeaderFormat = new() { FormatType = format },
@@ -893,7 +927,8 @@ public sealed class AttendanceExcelTests
             return key;
         }
 
-        Assert.Equal(expected: Attendance.NotPresent, actual: lists.Get(CalculateKey()).Student(0));
+        Assert.Equal(expected: Attendance.NotPresent, actual: lists.Get(CalculateKey())
+            .Student(0));
     }
 
     [Fact]
@@ -902,9 +937,11 @@ public sealed class AttendanceExcelTests
         var (builder, filtered, _, _) = CreateDateBindingFixture();
         using var workbook = new XLWorkbook();
         workbook.AddWorksheet("Unmatched empty sheet");
-        workbook.AddWorksheet("Unmatched formatted sheet").Range("A1:D50").Style.Font.Bold = true;
+        workbook.AddWorksheet("Unmatched formatted sheet")
+            .Range("A1:D50").Style.Font.Bold = true;
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder).Parse(new(
+        CreateParser(builder)
+            .Parse(new(
             new()
             {
                 HeaderFormat = new() { FormatType = HeaderFormatType.Date },

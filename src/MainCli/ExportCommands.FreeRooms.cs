@@ -60,7 +60,8 @@ public partial class ExportCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            lessonCount = schedule.EnumerateWeeklyLessons().Count();
+            lessonCount = schedule.EnumerateWeeklyLessons()
+                .Count();
             warnings.Add("Free rooms inspect every weekly period, not only the latest one.");
             if (lessonCount == 0)
             {
@@ -80,7 +81,8 @@ public partial class ExportCommands
                     token.ThrowIfCancellationRequested();
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);
-                    var sheets = workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.OfType<Sheet>().ToArray() ?? [];
+                    var sheets = workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.OfType<Sheet>()
+                        .ToArray() ?? [];
                     if (sheets.Length == 0 || workbook.WorkbookPart?.WorksheetParts.Any() != true)
                     {
                         throw new InvalidDataException("Generated free-room workbook has no usable worksheet.");

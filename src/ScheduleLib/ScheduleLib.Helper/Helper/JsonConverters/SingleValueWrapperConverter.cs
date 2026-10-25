@@ -35,15 +35,20 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        bool conditionResult;
-        if (typeToConvert.IsPrimitive)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (typeToConvert.IsPrimitive)
+            {
+                return true;
+            }
+            else
+            {
+                return typeToConvert.IsEnum;
+            }
         }
-        else
-        {
-            conditionResult = typeToConvert.IsEnum;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -146,9 +151,12 @@ file static class Accessors
             var paramType = paramArr[0].ParameterType;
 
             // find members whose type equals the constructor parameter type
-            var matchingProps = properties.Where(p => p.PropertyType == paramType).Cast<MemberInfo>();
-            var matchingFields = fields.Where(f => f.FieldType == paramType).Cast<MemberInfo>();
-            using var matchingMembers = matchingProps.Concat(matchingFields).GetEnumerator();
+            var matchingProps = properties.Where(p => p.PropertyType == paramType)
+                .Cast<MemberInfo>();
+            var matchingFields = fields.Where(f => f.FieldType == paramType)
+                .Cast<MemberInfo>();
+            using var matchingMembers = matchingProps.Concat(matchingFields)
+                .GetEnumerator();
 
             if (!matchingMembers.MoveNext())
             {
@@ -181,7 +189,8 @@ file static class Accessors
         // Compile: (TValue v) => new T(v)
         var valueParam = Expression.Parameter(typeof(TValue), "value");
         var newExpr = Expression.New(constructor, valueParam);
-        var creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam).Compile();
+        var creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam)
+            .Compile();
 
         // Compile: (T t) => t.Value
         var tParam = Expression.Parameter(typeof(T), "t");
@@ -189,7 +198,8 @@ file static class Accessors
             ? Expression.Property(tParam, prop)
             : Expression.Field(tParam, (FieldInfo) getterPropOrField);
 
-        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam).Compile();
+        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam)
+            .Compile();
         return new()
         {
             Creator = creator,

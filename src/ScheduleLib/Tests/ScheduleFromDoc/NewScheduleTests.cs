@@ -34,7 +34,8 @@ public sealed class NewScheduleTests
                 var groups = x.Lesson.Groups;
                 var groupNames = groups.Select(g => schedule.Get(g).Name);
                 var teacher = x.Lesson.Teachers[0];
-                var teacherName = schedule.Get(teacher).PersonName.ToString();
+                var teacherName = schedule.Get(teacher).PersonName
+                    .ToString();
                 return new
                 {
                     Groups = groupNames,

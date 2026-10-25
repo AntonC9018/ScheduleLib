@@ -33,7 +33,8 @@ public static class StringSearchHelper
 
             preprocess.Preprocess(ref parser);
 
-            var remainingMem = parser.SourceUntilEnd().Trim();
+            var remainingMem = parser.SourceUntilEnd()
+                .Trim();
             var remainingSpan = remainingMem.Span;
             if (remainingSpan.Length == 0)
             {

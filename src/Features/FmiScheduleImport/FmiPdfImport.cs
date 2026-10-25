@@ -16,7 +16,8 @@ public static class FmiPdfImport
     public static async Task GenerateAsync(ScheduleUpdate update, string outputPath, bool strict = false,
         CancellationToken cancellationToken = default)
     {
-        if (Directory.Exists(outputPath) && Directory.EnumerateFileSystemEntries(outputPath).Any())
+        if (Directory.Exists(outputPath) && Directory.EnumerateFileSystemEntries(outputPath)
+            .Any())
         {
             throw new IOException("Output directory must be absent or empty.");
         }
@@ -103,7 +104,8 @@ public static class FmiPdfImport
                         Cells = cells.Count,
                         Groups = schedule.Groups.Length,
                         Teachers = schedule.Teachers.Length,
-                        Lessons = schedule.EnumerateAllLessons().Count(),
+                        Lessons = schedule.EnumerateAllLessons()
+                            .Count(),
                         SourceConflicts = sourceConflicts,
                         CohortProjection = "Teaching-section Gr.1/Gr.2 are temporarily projected onto elective alternatives, independently of academic-group I/II. Shared lectures belong to both. See README for model limitations.",
                     }, new JsonSerializerOptions { WriteIndented = true }));

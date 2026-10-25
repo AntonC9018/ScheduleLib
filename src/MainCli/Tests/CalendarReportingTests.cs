@@ -65,9 +65,13 @@ public sealed class CalendarReportingTests
             if (jsonl)
             {
                 using var document = JsonDocument.Parse(text.ToString());
-                Assert.Equal(expected: "desired-0", actual: document.RootElement.GetProperty("id").GetString());
-                Assert.Equal(expected: 0, actual: document.RootElement.GetProperty("item").GetProperty("index").GetInt32());
-                Assert.DoesNotContain("human", document.RootElement.EnumerateObject().Select(x => x.Name));
+                Assert.Equal(expected: "desired-0", actual: document.RootElement.GetProperty("id")
+                    .GetString());
+                Assert.Equal(expected: 0, actual: document.RootElement.GetProperty("item")
+                    .GetProperty("index")
+                    .GetInt32());
+                Assert.DoesNotContain("human", document.RootElement.EnumerateObject()
+                    .Select(x => x.Name));
             }
             else
             {
@@ -122,7 +126,9 @@ public sealed class CalendarReportingTests
                     "Create calendar Lessons with a new ID",
                     "Create 3 events with new IDs",
                 },
-                actual: document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
+                actual: document.RootElement.GetProperty("actions")
+                    .EnumerateArray()
+                    .Select(x => x.GetString()));
         }
         finally
         {

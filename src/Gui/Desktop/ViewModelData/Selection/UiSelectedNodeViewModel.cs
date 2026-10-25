@@ -35,7 +35,15 @@ public sealed record class UiNode
         }
     }
 
-    public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
+    public TeacherLayerConfig Marker
+    {
+        get
+        {
+            return Leaf.Node.Get(TeacherLayerConfig.Key).Value
+                .GetValue()!;
+        }
+    }
+
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();
     public override string ToString() => IsNull ? "No User" : Name.ToString();
@@ -72,7 +80,8 @@ public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable
                 .Process()
                 .Where(x => x.Value.Node.IsLeaf())
                 .Where(x => x.Node == value.Leaf.Node)
-                .Select(x => x.Get(LayerPathContext.Key).Path())
+                .Select(x => x.Get(LayerPathContext.Key)
+                    .Path())
                 .FirstOrDefault(path);
         }
         _path.NodePath.Set(path);

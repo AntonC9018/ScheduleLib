@@ -248,7 +248,8 @@ public static class LessonParsingHelper
         {
             return false;
         }
-        if (!lexer.CanPeek(2) || !lexer.Peek(2).Is('-'))
+        if (!lexer.CanPeek(2) || !lexer.Peek(2)
+            .Is('-'))
         {
             return false;
         }
@@ -364,15 +365,20 @@ public static class LessonParsingHelper
                     foreach (var mod in lesson.Modifiers)
                     {
                         bool isDefaultKey = mod.Key == SubLessonModifiersKey.Default;
-                        bool conditionResult;
-                        if (isDefaultKey)
+                        bool CalculateConditionResult()
                         {
-                            conditionResult = shouldNotOutputDefaultKey;
+                            if (isDefaultKey)
+                            {
+                                return shouldNotOutputDefaultKey;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
-                        else
-                        {
-                            conditionResult = false;
-                        }
+
+                        bool conditionResult = CalculateConditionResult();
+
 
                         if (conditionResult)
                         {
@@ -829,7 +835,8 @@ public static class LessonParsingHelper
 
                         SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                         {
-                            if (!lexer.Peek(2).Is('-'))
+                            if (!lexer.Peek(2)
+                                .Is('-'))
                             {
                                 return null;
                             }
@@ -919,7 +926,8 @@ public static class LessonParsingHelper
                         }
                         lexer.Move();
                         var number = tokNum.Value.Span[0] - '0';
-                        return SubGroup.CreateNumeric(number).Value.AsMemory();
+                        return SubGroup.CreateNumeric(number).Value
+                            .AsMemory();
                     }
 
                     static bool IsParsingInsideSubgroupAlready(ParsingContext c)
@@ -1934,9 +1942,34 @@ public sealed class RoomParser
                 }
                 var t = lexer.Current;
                 // Move this out of here?
-                if (t.Is(',')
-                    || t.Type == TokenType.Whitespace
-                    || t.Type == TokenType.EndOfLine)
+                bool CalculateConditionResult2()
+                {
+                    if (t.Is(','))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (t.Type == TokenType.Whitespace)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (t.Type == TokenType.EndOfLine)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                    }
+                }
+
+                bool conditionResult = CalculateConditionResult2();
+
+
+                if (conditionResult)
                 {
                     return true;
                 }
@@ -1997,9 +2030,34 @@ public sealed class RoomParser
                     return false;
                 }
                 var t = lexer.Current;
-                if (t.Type == LessonTokenType.Word
-                    && t.Value.Length == 1
-                    && char.IsLetter(t.Value.Span[0]))
+                bool CalculateConditionResult()
+                {
+                    if (t.Type == LessonTokenType.Word)
+                    {
+                        if (t.Value.Length == 1)
+                        {
+                            if (char.IsLetter(t.Value.Span[0]))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                bool conditionResult = CalculateConditionResult();
+
+
+                if (conditionResult)
                 {
                     lexer.Move();
                     return true;

@@ -43,7 +43,8 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
         var ret = KeyEqualityCallHelper.GetHashCodeUsingService(_serviceProvider, obj);
         if (typeof(T).IsInterface)
         {
-            ret ^= obj.GetType().GetHashCode();
+            ret ^= obj.GetType()
+                .GetHashCode();
         }
         return ret;
     }

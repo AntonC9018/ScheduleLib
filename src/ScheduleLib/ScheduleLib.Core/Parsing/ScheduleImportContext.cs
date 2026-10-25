@@ -327,15 +327,20 @@ public sealed class ScheduleImportContext
         builder.Alternative(input.Alternative);
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
-        bool conditionResult;
-        if (lesson.GroupName.IsEmpty)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (lesson.GroupName.IsEmpty)
+            {
+                return true;
+            }
+            else
+            {
+                return groupNameHandledAsSubgroup;
+            }
         }
-        else
-        {
-            conditionResult = groupNameHandledAsSubgroup;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -421,7 +426,8 @@ public sealed class DayNameParser(DayNameProvider p)
 
     public DayOfWeek? Map(ReadOnlySpan<char> s)
     {
-        if (_days.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(s, out var day))
+        if (_days.GetAlternateLookup<ReadOnlySpan<char>>()
+            .TryGetValue(s, out var day))
         {
             return day;
         }

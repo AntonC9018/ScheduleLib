@@ -74,7 +74,8 @@ public static class BaseExtensions
         {
             builder.MutableGuard();
             var x = builder.Enable();
-            value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Copy(value);
+            value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>()
+                .Copy(value);
             x.SetValue(value);
             return value;
         }
@@ -85,7 +86,8 @@ public static class BaseExtensions
             var x = builder.Enable();
             if (x.GetValue() is not { } val)
             {
-                val = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Empty();
+                val = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>()
+                    .Empty();
                 if (val is null)
                 {
                     throw new InvalidOperationException("Root BasicOperations is supposed to create actual objects, not null.");

@@ -81,10 +81,7 @@ public sealed class CliJsonlTests
 
             var early = await WaitFor(
                             () => stdoutCapture.Snapshot(),
-                            s => s.Contains("\"event\":\"start\"")
-                                && s.Contains("\"id\":\"0\"")
-                                && s.Contains("completed")
-                                && !s.Contains("\"event\":\"final\""),
+                            s => { if (!(s.Contains("\"event\":\"start\""))) { return false; } if (!(s.Contains("\"id\":\"0\""))) { return false; } if (!(s.Contains("completed"))) { return false; } if (!(!s.Contains("\"event\":\"final\""))) { return false; } return true; },
                             CalculateTimeout());
             Assert.Contains(expectedSubstring: "\"event\":\"start\"", actualString: early);
             Assert.Contains(expectedSubstring: "\"id\":\"0\"", actualString: early);
@@ -102,8 +99,10 @@ public sealed class CliJsonlTests
             Assert.True(
                 condition2, userMessage);
             var final = JsonDocument.Parse(lines[^1]).RootElement;
-            Assert.Equal(expected: "final", actual: final.GetProperty("event").GetString());
-            Assert.Equal(expected: "applied", actual: final.GetProperty("status").GetString());
+            Assert.Equal(expected: "final", actual: final.GetProperty("event")
+                .GetString());
+            Assert.Equal(expected: "applied", actual: final.GetProperty("status")
+                .GetString());
             // Final must not repeat the full outcomes array.
             bool CalculateCondition()
             {
@@ -142,20 +141,33 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(lines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "registry sync", actual: root.GetProperty("command").GetString());
-            Assert.Equal(expected: i, actual: root.GetProperty("seq").GetInt32());
+            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "registry sync", actual: root.GetProperty("command")
+                .GetString());
+            Assert.Equal(expected: i, actual: root.GetProperty("seq")
+                .GetInt32());
             if (runId is null)
             {
-                runId = root.GetProperty("runId").GetString();
+                runId = root.GetProperty("runId")
+                    .GetString();
             }
-            Assert.Equal(expected: runId, actual: root.GetProperty("runId").GetString());
+            Assert.Equal(expected: runId, actual: root.GetProperty("runId")
+                .GetString());
         }
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement.GetProperty("event").GetString());
-        Assert.Equal(expected: "final", actual: JsonDocument.Parse(lines[^1]).RootElement.GetProperty("event").GetString());
+        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement
+            .GetProperty("event")
+            .GetString());
+        Assert.Equal(expected: "final", actual: JsonDocument.Parse(lines[^1]).RootElement
+            .GetProperty("event")
+            .GetString());
         // Stable identity: each action id appears, preview emits planned once.
-        var ids = lines.Skip(1).Take(lines.Length - 2)
-            .Select(l => JsonDocument.Parse(l).RootElement.GetProperty("id").GetString()).ToArray();
+        var ids = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .Select(l => JsonDocument.Parse(l).RootElement
+                .GetProperty("id")
+                .GetString())
+            .ToArray();
         Assert.Equal(
             expected: new[]
             {
@@ -171,9 +183,12 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(errLines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: "log", actual: root.GetProperty("event").GetString());
-            Assert.Equal(expected: i, actual: root.GetProperty("seq").GetInt32());
-            Assert.Equal(expected: runId, actual: root.GetProperty("runId").GetString());
+            Assert.Equal(expected: "log", actual: root.GetProperty("event")
+                .GetString());
+            Assert.Equal(expected: i, actual: root.GetProperty("seq")
+                .GetInt32());
+            Assert.Equal(expected: runId, actual: root.GetProperty("runId")
+                .GetString());
         }
         // Stdout contains no human text.
         foreach (var line in lines)
@@ -218,15 +233,19 @@ public sealed class CliJsonlTests
             Console.SetError(originalError);
         }
         Assert.Empty(stdout.ToString());
-        var lines = stderr.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = stderr.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 5, actual: lines.Length);
         foreach (var line in lines)
         {
             using var doc = JsonDocument.Parse(line);
             var root = doc.RootElement;
-            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId").GetString());
-            Assert.Equal(expected: "log", actual: root.GetProperty("event").GetString());
+            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId")
+                .GetString());
+            Assert.Equal(expected: "log", actual: root.GetProperty("event")
+                .GetString());
         }
         Assert.Contains(expectedSubstring: "Information", actualString: lines[0]);
         Assert.Contains(expectedSubstring: "Warning", actualString: lines[1]);
@@ -272,7 +291,8 @@ public sealed class CliJsonlTests
             await provider.InitializeSchedule(default);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var lesson = schedule.EnumerateWeeklyLessons().First();
+            var lesson = schedule.EnumerateWeeklyLessons()
+                .First();
             global::System.Uri CalculateUri()
             {
                 global::System.Uri uri2 = new("https://registry.test/group");
@@ -322,14 +342,21 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 3, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 2, actual: lines.Length);
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement.GetProperty("event").GetString());
+        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement
+            .GetProperty("event")
+            .GetString());
         var final = JsonDocument.Parse(lines[1]).RootElement;
-        Assert.Equal(expected: "final", actual: final.GetProperty("event").GetString());
-        Assert.Equal(expected: "failed", actual: final.GetProperty("status").GetString());
-        Assert.Equal(expected: 3, actual: final.GetProperty("exitCode").GetInt32());
-        Assert.NotEmpty(final.GetProperty("errors").EnumerateArray());
+        Assert.Equal(expected: "final", actual: final.GetProperty("event")
+            .GetString());
+        Assert.Equal(expected: "failed", actual: final.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 3, actual: final.GetProperty("exitCode")
+            .GetInt32());
+        Assert.NotEmpty(final.GetProperty("errors")
+            .EnumerateArray());
         using var err = JsonDocument.Parse(stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]);
-        Assert.Equal(expected: "log", actual: err.RootElement.GetProperty("event").GetString());
+        Assert.Equal(expected: "log", actual: err.RootElement.GetProperty("event")
+            .GetString());
 
         // Invalid quiz id is an argument error before planning.
         var (gradeExit, gradeStdout, _) = await CaptureJsonl(() =>
@@ -343,7 +370,8 @@ public sealed class CliJsonlTests
         Assert.Equal(
             expected: "final",
             actual: JsonDocument.Parse(gradeStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)[^1]).RootElement
-                .GetProperty("event").GetString());
+                .GetProperty("event")
+                .GetString());
     }
 
     [Fact]
@@ -358,11 +386,17 @@ public sealed class CliJsonlTests
             Console.SetOut(stdout);
             Console.SetError(stderr);
             Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--unknown-flag", "--jsonl"]));
-            var outLines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var outLines = stdout.ToString()
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(expected: 2, actual: outLines.Length);
-            Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement.GetProperty("event").GetString());
-            Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[1]).RootElement.GetProperty("event").GetString());
-            var errLines = stderr.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement
+                .GetProperty("event")
+                .GetString());
+            Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[1]).RootElement
+                .GetProperty("event")
+                .GetString());
+            var errLines = stderr.ToString()
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.NotEmpty(errLines);
             foreach (var line in errLines)
             {
@@ -387,17 +421,26 @@ public sealed class CliJsonlTests
             new() { Apply = true }));
         Assert.Equal(expected: 130, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var items = lines.Skip(1).Take(lines.Length - 2).Select(l => JsonDocument.Parse(l)).Select(d => d.RootElement)
+        var items = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .Select(l => JsonDocument.Parse(l))
+            .Select(d => d.RootElement)
             .ToArray();
         Assert.Contains(
             items,
-            x => x.GetProperty("id").GetString() == "0" && x.GetProperty("status").GetString() == "completed");
+            x => x.GetProperty("id")
+                .GetString() == "0" && x.GetProperty("status")
+                .GetString() == "completed");
         Assert.Contains(
             items,
-            x => x.GetProperty("id").GetString() == "1" && x.GetProperty("status").GetString() == "uncertain");
+            x => x.GetProperty("id")
+                .GetString() == "1" && x.GetProperty("status")
+                .GetString() == "uncertain");
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status").GetString());
-        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode").GetInt32());
+        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode")
+            .GetInt32());
         bool CalculateCondition()
         {
             bool condition = final.TryGetProperty("outcomes", out _);
@@ -432,7 +475,8 @@ public sealed class CliJsonlTests
         string json = split[index];
         global::System.Text.Json.JsonDocument parse = JsonDocument.Parse(json);
         var failFinal = parse.RootElement;
-        Assert.Equal(expected: "partial", actual: failFinal.GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: failFinal.GetProperty("status")
+            .GetString());
     }
 
     [Fact]
@@ -454,13 +498,19 @@ public sealed class CliJsonlTests
                     new() { Profile = "synthetic-teacher" },
                     new() { Json = true },
                     new()));
-            var text = stdout.ToString().Trim();
+            var text = stdout.ToString()
+                .Trim();
             Assert.StartsWith(expectedStartString: "{", actualString: text);
             using var doc = JsonDocument.Parse(text);
-            Assert.Equal(expected: 1, actual: doc.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: "registry sync", actual: doc.RootElement.GetProperty("command").GetString());
-            Assert.Equal(expected: "preview", actual: doc.RootElement.GetProperty("status").GetString());
-            Assert.Equal(expected: 3, actual: doc.RootElement.GetProperty("data").GetProperty("outcomes").GetArrayLength());
+            Assert.Equal(expected: 1, actual: doc.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: "registry sync", actual: doc.RootElement.GetProperty("command")
+                .GetString());
+            Assert.Equal(expected: "preview", actual: doc.RootElement.GetProperty("status")
+                .GetString());
+            Assert.Equal(expected: 3, actual: doc.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .GetArrayLength());
             // Plain --json keeps existing stderr format (human warning text, not JSONL).
             Assert.Contains(expectedSubstring: "positional", actualString: stderr.ToString());
             Assert.DoesNotContain(expectedSubstring: "\"event\":\"log\"", actualString: stderr.ToString());
@@ -489,7 +539,8 @@ public sealed class CliJsonlTests
             Console.SetOut(stdout);
             Console.SetError(stderr);
             output.EmitStart();
-            var writers = Enumerable.Range(start: 0, count: 8).Select((worker) => Task.Run(() =>
+            var writers = Enumerable.Range(start: 0, count: 8)
+                .Select((worker) => Task.Run(() =>
             {
                 for (var i = 0; i < 50; i++)
                 {
@@ -515,7 +566,8 @@ public sealed class CliJsonlTests
 
                     output.WriteWarning(CalculateMessage());
                 }
-            })).ToArray();
+            }))
+                .ToArray();
             await Task.WhenAll(writers);
             output.EmitFinal(
                 "succeeded",
@@ -531,7 +583,8 @@ public sealed class CliJsonlTests
         }
         // Allocation, serialization, write and flush hold one lock per record,
         // so file order matches sequence order on each independent stream.
-        var outLines = stdout.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var outLines = stdout.Snapshot()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         int CalculateExpected()
         {
             int int32 = 1 + 400;
@@ -544,17 +597,25 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(outLines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: i, actual: root.GetProperty("seq").GetInt32());
-            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId").GetString());
+            Assert.Equal(expected: i, actual: root.GetProperty("seq")
+                .GetInt32());
+            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId")
+                .GetString());
         }
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement.GetProperty("event").GetString());
-        Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[^1]).RootElement.GetProperty("event").GetString());
-        var errLines = stderr.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement
+            .GetProperty("event")
+            .GetString());
+        Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[^1]).RootElement
+            .GetProperty("event")
+            .GetString());
+        var errLines = stderr.Snapshot()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 400, actual: errLines.Length);
         for (var i = 0; i < errLines.Length; i++)
         {
             using var doc = JsonDocument.Parse(errLines[i]);
-            Assert.Equal(expected: i, actual: doc.RootElement.GetProperty("seq").GetInt32());
+            Assert.Equal(expected: i, actual: doc.RootElement.GetProperty("seq")
+                .GetInt32());
         }
     }
 
@@ -598,33 +659,53 @@ public sealed class CliJsonlTests
         Assert.Empty(stdout.ToString());
         // Debug never reached stderr before and stays filtered; the existing
         // Information/Error content, levels and occurrence are preserved.
-        var lines = stderr.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = stderr.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 2, actual: lines.Length);
         using var info = JsonDocument.Parse(lines[0]);
-        Assert.Equal(expected: "Information", actual: info.RootElement.GetProperty("level").GetString());
-        Assert.Equal(expected: "Synthetic information 42", actual: info.RootElement.GetProperty("message").GetString());
-        Assert.Equal(expected: 42, actual: info.RootElement.GetProperty("properties").GetProperty("Value").GetInt32());
+        Assert.Equal(expected: "Information", actual: info.RootElement.GetProperty("level")
+            .GetString());
+        Assert.Equal(expected: "Synthetic information 42", actual: info.RootElement.GetProperty("message")
+            .GetString());
+        Assert.Equal(expected: 42, actual: info.RootElement.GetProperty("properties")
+            .GetProperty("Value")
+            .GetInt32());
         Assert.Contains(
             "synthetic-scope",
-            info.RootElement.GetProperty("scopes").EnumerateArray().Select(x => x.GetString()));
-        Assert.Equal(expected: "synthetic", actual: info.RootElement.GetProperty("category").GetString());
-        bool condition;
-        if (info.RootElement.TryGetProperty("timestamp", out var timestamp))
+            info.RootElement.GetProperty("scopes")
+                .EnumerateArray()
+                .Select(x => x.GetString()));
+        Assert.Equal(expected: "synthetic", actual: info.RootElement.GetProperty("category")
+            .GetString());
+        bool CalculateCondition()
         {
-            condition = DateTimeOffset.TryParse(timestamp.GetString(), out _);
+            if (info.RootElement.TryGetProperty("timestamp", out var timestamp))
+            {
+                if (DateTimeOffset.TryParse(timestamp.GetString(), out _))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            condition = false;
-        }
+
+        bool condition = CalculateCondition();
+
 
         Assert.True(
             condition);
         using var error = JsonDocument.Parse(lines[1]);
-        Assert.Equal(expected: "Error", actual: error.RootElement.GetProperty("level").GetString());
+        Assert.Equal(expected: "Error", actual: error.RootElement.GetProperty("level")
+            .GetString());
         Assert.Contains(
             expectedSubstring: "System.InvalidOperationException: synthetic failure",
-            actualString: error.RootElement.GetProperty("exception").GetString());
+            actualString: error.RootElement.GetProperty("exception")
+                .GetString());
     }
 
     [Fact]
@@ -652,10 +733,14 @@ public sealed class CliJsonlTests
             var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var count = 0;
             await Task.WhenAll(
-                Enumerable.Range(start: 0, count: 2).Select(index => Task.Run(async () =>
+                Enumerable.Range(start: 0, count: 2)
+                    .Select(index => Task.Run(async () =>
                 {
                     using var child = logger.BeginScope("child-" + index);
-                    if (Interlocked.Increment(ref count) == 2)
+                    bool conditionResult;
+                    int conditionValue = Interlocked.Increment(ref count);
+                    conditionResult = conditionValue == 2;
+                    if (conditionResult)
                     {
                         bothStarted.SetResult();
                     }
@@ -669,20 +754,26 @@ public sealed class CliJsonlTests
         {
             Console.SetError(originalError);
         }
-        var lines = stderr.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = stderr.Snapshot()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 3, actual: lines.Length);
         foreach (var line in lines.Take(2))
         {
             using var record = JsonDocument.Parse(line);
             var properties = record.RootElement.GetProperty("properties");
-            Assert.Equal(expected: "shared", actual: properties.GetProperty("Parent").GetString());
-            var scopes = record.RootElement.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
+            Assert.Equal(expected: "shared", actual: properties.GetProperty("Parent")
+                .GetString());
+            var scopes = record.RootElement.GetProperty("scopes")
+                .EnumerateArray()
+                .Select(scope => scope.GetString())
                 .ToArray();
             Assert.Equal(expected: 2, actual: scopes.Length);
-            Assert.Contains("child-" + properties.GetProperty("Index").GetInt32(), scopes);
+            Assert.Contains("child-" + properties.GetProperty("Index")
+                .GetInt32(), scopes);
         }
         using var last = JsonDocument.Parse(lines[^1]);
-        Assert.Single(last.RootElement.GetProperty("scopes").EnumerateArray());
+        Assert.Single(last.RootElement.GetProperty("scopes")
+            .EnumerateArray());
     }
 
     [Fact]
@@ -700,7 +791,8 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(originalOut);
         }
-        var lines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = stdout.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.True(lines.Length > 1);
         int int32 = lines.Length - 1;
         string expected2 = $"succeeded: {int32} profiles.";
@@ -738,15 +830,24 @@ public sealed class CliJsonlTests
             Console.SetError(originalError);
         }
         Assert.Equal(expected: 130, actual: exit);
-        var lines = stdout.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var items = lines.Skip(1).Take(lines.Length - 2).ToArray();
+        var lines = stdout.Snapshot()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var items = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .ToArray();
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status").GetString());
-        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode").GetInt32());
+        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode")
+            .GetInt32());
         // Counts persist accurately: the summary count matches emitted rows,
         // never zero when rows already streamed and never the full set.
-        Assert.Equal(expected: items.Length, actual: final.GetProperty("data").GetProperty("count").GetInt32());
-        Assert.DoesNotContain("lessons", final.GetProperty("data").EnumerateObject().Select(x => x.Name));
+        Assert.Equal(expected: items.Length, actual: final.GetProperty("data")
+            .GetProperty("count")
+            .GetInt32());
+        Assert.DoesNotContain("lessons", final.GetProperty("data")
+            .EnumerateObject()
+            .Select(x => x.Name));
     }
 
     [Fact]
@@ -766,7 +867,27 @@ public sealed class CliJsonlTests
             onOutcome: update =>
             {
                 updates.Add(update);
-                if (update.Id == "0" && update.Status == "completed")
+                bool CalculateConditionResult()
+                {
+                    if (update.Id == "0")
+                    {
+                        if (update.Status == "completed")
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                bool conditionResult = CalculateConditionResult();
+
+
+                if (conditionResult)
                 {
                     cancellation.Cancel();
                 }
@@ -775,7 +896,8 @@ public sealed class CliJsonlTests
         Assert.Single(result.Outcomes);
         Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
-        Assert.Equal(expected: ["1", "2"], actual: updates.Where(update => update.Status == "not-attempted").Select(update => update.Id));
+        Assert.Equal(expected: ["1", "2"], actual: updates.Where(update => update.Status == "not-attempted")
+            .Select(update => update.Id));
     }
 
     [Fact]
@@ -803,7 +925,8 @@ public sealed class CliJsonlTests
         // streams as items with the deleted/desired payloads.
         Assert.Equal(
             expected: ["0", "1", "2", "3"],
-            actual: previewUpdates.Where((update) => update.Status == "planned").Select((update) => update.Id));
+            actual: previewUpdates.Where((update) => update.Status == "planned")
+                .Select((update) => update.Id));
         Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status);
         var deleted = previewUpdates.Single((update) => update.Id == "deleted-0");
         string CalculateJson()
@@ -814,7 +937,8 @@ public sealed class CliJsonlTests
 
         Assert.Equal(
                     expected: "Old",
-                    actual: JsonDocument.Parse(CalculateJson()).RootElement.GetProperty("summary")
+                    actual: JsonDocument.Parse(CalculateJson()).RootElement
+                        .GetProperty("summary")
                         .GetString());
         Assert.Equal(
             expected: ["Desired A", "Desired B"],
@@ -830,7 +954,8 @@ public sealed class CliJsonlTests
                     }
 
                     return JsonDocument.Parse(CalculateJson()).RootElement
-                                        .GetProperty("summary").GetString();
+                                        .GetProperty("summary")
+                        .GetString();
                 }));
 
         var applyUpdates = new List<CalendarReport>();
@@ -858,7 +983,8 @@ public sealed class CliJsonlTests
         {
             Assert.Equal(
                 expected: ["planned", "completed"],
-                actual: applyUpdates.Where((update) => update.Id == id).Select((update) => update.Status));
+                actual: applyUpdates.Where((update) => update.Id == id)
+                    .Select((update) => update.Status));
         }
 
         Assert.Equal(expected: "new", actual: applied.Outcomes[1].CalendarId);
@@ -883,11 +1009,16 @@ public sealed class CliJsonlTests
             {
                 // Fail on the first terminal transition (after 3 planned plus
                 // 2 selection reports): the delete already completed remotely.
-                if (++calls == 6)
+                bool conditionResult;
+                int conditionValue = ++calls;
+                conditionResult = conditionValue == 6;
+                if (conditionResult)
                 {
                     throw new InvalidOperationException("synthetic render failure");
                 }
-            }).GetAwaiter().GetResult());
+            })
+            .GetAwaiter()
+            .GetResult());
         Assert.IsAssignableFrom<CliOutputStreamingException>(failure);
         // Rendering stopped further mutations without retrying or reclassifying.
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
@@ -958,7 +1089,8 @@ public sealed class CliJsonlTests
         {
             Assert.Equal(
                 expected: ["planned", "completed"],
-                actual: applyUpdates.Where((update) => update.Id == id).Select((update) => update.Status));
+                actual: applyUpdates.Where((update) => update.Id == id)
+                    .Select((update) => update.Status));
         }
     }
 
@@ -989,7 +1121,10 @@ public sealed class CliJsonlTests
             {
                 // Fail on the first terminal transition (after 2 planned
                 // reports): the delete already completed remotely.
-                if (++calls == 3)
+                bool conditionResult;
+                int conditionValue = ++calls;
+                conditionResult = conditionValue == 3;
+                if (conditionResult)
                 {
                     throw new InvalidOperationException("synthetic render failure");
                 }
@@ -1031,16 +1166,25 @@ public sealed class CliJsonlTests
         }
         Assert.Equal(expected: 6, actual: exit);
         Assert.Equal(expected: [0, 1], actual: fake.Executed.OrderBy((index) => index));
-        var lines = stdout.Snapshot().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = stdout.Snapshot()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "partial", actual: final.GetProperty("status").GetString());
-        Assert.Equal(expected: 6, actual: final.GetProperty("exitCode").GetInt32());
-        Assert.Contains(expectedSubstring: "Output streaming failed", actualString: final.GetProperty("errors").EnumerateArray().First().GetString());
+        Assert.Equal(expected: "partial", actual: final.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 6, actual: final.GetProperty("exitCode")
+            .GetInt32());
+        Assert.Contains(expectedSubstring: "Output streaming failed", actualString: final.GetProperty("errors")
+            .EnumerateArray()
+            .First()
+            .GetString());
         var data = final.GetProperty("data");
-        Assert.Equal(expected: 3, actual: data.GetProperty("total").GetInt32());
+        Assert.Equal(expected: 3, actual: data.GetProperty("total")
+            .GetInt32());
         // Both executed actions keep their completed remote outcomes even
         // though the second one's rendering failed; nothing was retried.
-        Assert.Equal(expected: 2, actual: data.GetProperty("counts").GetProperty("completed").GetInt32());
+        Assert.Equal(expected: 2, actual: data.GetProperty("counts")
+            .GetProperty("completed")
+            .GetInt32());
         bool CalculateCondition()
         {
             bool condition = final.TryGetProperty("outcomes", out _);
@@ -1068,8 +1212,13 @@ public sealed class CliJsonlTests
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: 3, actual: final.GetProperty("data").GetProperty("total").GetInt32());
-        Assert.Equal(expected: 3, actual: final.GetProperty("data").GetProperty("counts").GetProperty("planned").GetInt32());
+        Assert.Equal(expected: 3, actual: final.GetProperty("data")
+            .GetProperty("total")
+            .GetInt32());
+        Assert.Equal(expected: 3, actual: final.GetProperty("data")
+            .GetProperty("counts")
+            .GetProperty("planned")
+            .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
 
         var (queryExit, queryStdout, _) = await CaptureJsonl(() => new FixtureQuery().Lessons(
@@ -1084,8 +1233,11 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 0, actual: queryExit);
         var queryLines = queryStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var queryFinal = JsonDocument.Parse(queryLines[^1]).RootElement;
-        Assert.Equal(expected: queryLines.Length - 2, actual: queryFinal.GetProperty("data").GetProperty("count").GetInt32());
-        Assert.Single(queryFinal.GetProperty("data").EnumerateObject());
+        Assert.Equal(expected: queryLines.Length - 2, actual: queryFinal.GetProperty("data")
+            .GetProperty("count")
+            .GetInt32());
+        Assert.Single(queryFinal.GetProperty("data")
+            .EnumerateObject());
 
         var historyDirectory = NewHistoryDirectory();
         try
@@ -1106,10 +1258,14 @@ public sealed class CliJsonlTests
 
             Assert.Equal(expected: CalculateExpected(), actual: historyLines.Length);
             var historyFinal = JsonDocument.Parse(historyLines[^1]).RootElement;
-            Assert.Equal(expected: 1, actual: historyFinal.GetProperty("data").GetProperty("years").GetInt32());
+            Assert.Equal(expected: 1, actual: historyFinal.GetProperty("data")
+                .GetProperty("years")
+                .GetInt32());
             Assert.Equal(
                 expected: ["courses", "groups", "years"],
-                actual: historyFinal.GetProperty("data").EnumerateObject().Select((property) => property.Name)
+                actual: historyFinal.GetProperty("data")
+                    .EnumerateObject()
+                    .Select((property) => property.Name)
                     .OrderBy((name) => name));
             Assert.DoesNotContain(expectedSubstring: "private-course", actualString: historyStdout);
         }
@@ -1135,24 +1291,35 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 0, actual: exit);
         Assert.Empty(fake.Writes);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var items = lines.Skip(1).Take(lines.Length - 2)
-            .Select((line) => JsonDocument.Parse(line).RootElement).ToArray();
+        var items = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .Select((line) => JsonDocument.Parse(line).RootElement)
+            .ToArray();
         // Planned action ids are plan-order indexes shared with apply mode.
         // (The fixture's configured calendar name differs from the fake's
         // existing calendar, so this preview has no delete step; the
         // sync-layer test above covers deleted-event selection items.)
-        var planned = items.Where((item) => item.GetProperty("status").GetString() == "planned").ToArray();
+        var planned = items.Where((item) => item.GetProperty("status")
+            .GetString() == "planned")
+            .ToArray();
         Assert.Equal(
-            expected: Enumerable.Range(start: 0, count: planned.Length).Select((index) =>
+            expected: Enumerable.Range(start: 0, count: planned.Length)
+                .Select((index) =>
                 index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-            actual: planned.Select((item) => item.GetProperty("id").GetString()));
+            actual: planned.Select((item) => item.GetProperty("id")
+                .GetString()));
         Assert.Contains(
             items,
-            (item) => item.GetProperty("id").GetString()?.StartsWith("desired-", StringComparison.Ordinal) == true);
+            (item) => item.GetProperty("id")
+                .GetString()
+                ?.StartsWith("desired-", StringComparison.Ordinal) == true);
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: "preview", actual: final.GetProperty("status").GetString());
-        Assert.True(final.GetProperty("data").GetProperty("desiredCount").GetInt32() > 0);
+        Assert.Equal(expected: "preview", actual: final.GetProperty("status")
+            .GetString());
+        Assert.True(final.GetProperty("data")
+            .GetProperty("desiredCount")
+            .GetInt32() > 0);
         Assert.DoesNotContain(expectedSubstring: "\"desiredEvents\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"deletedEvents\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
@@ -1176,21 +1343,32 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 0, actual: exit);
         Assert.Empty(fake.Writes);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var items = lines.Skip(1).Take(lines.Length - 2)
-            .Select((line) => JsonDocument.Parse(line).RootElement).ToArray();
+        var items = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .Select((line) => JsonDocument.Parse(line).RootElement)
+            .ToArray();
         Assert.Contains(
             items,
-            (item) => item.GetProperty("id").GetString()?.StartsWith("artifact:", StringComparison.Ordinal) == true);
-        var planned = items.Where((item) => item.GetProperty("status").GetString() == "planned").ToArray();
+            (item) => item.GetProperty("id")
+                .GetString()
+                ?.StartsWith("artifact:", StringComparison.Ordinal) == true);
+        var planned = items.Where((item) => item.GetProperty("status")
+            .GetString() == "planned")
+            .ToArray();
         Assert.NotEmpty(planned);
         Assert.Equal(
-            expected: Enumerable.Range(start: 0, count: planned.Length).Select((index) =>
+            expected: Enumerable.Range(start: 0, count: planned.Length)
+                .Select((index) =>
                 index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-            actual: planned.Select((item) => item.GetProperty("id").GetString()));
+            actual: planned.Select((item) => item.GetProperty("id")
+                .GetString()));
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: "preview", actual: final.GetProperty("status").GetString());
-        Assert.Equal(expected: planned.Length, actual: final.GetProperty("data").GetProperty("actionCount").GetInt32());
+        Assert.Equal(expected: "preview", actual: final.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: planned.Length, actual: final.GetProperty("data")
+            .GetProperty("actionCount")
+            .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"actions\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
     }
@@ -1202,17 +1380,24 @@ public sealed class CliJsonlTests
         var (exit, stdout, _) = await CaptureJsonl(() => new ConfigCommands().Profiles(new(), new() { Jsonl = true }));
         Assert.Equal(expected: 0, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var items = lines.Skip(1).Take(lines.Length - 2).ToArray();
+        var items = lines.Skip(1)
+            .Take(lines.Length - 2)
+            .ToArray();
         Assert.NotEmpty(items);
         foreach (var line in items)
         {
             using var doc = JsonDocument.Parse(line);
-            Assert.Equal(expected: "completed", actual: doc.RootElement.GetProperty("status").GetString());
-            Assert.NotEmpty(doc.RootElement.GetProperty("item").GetProperty("profile").GetString()!);
+            Assert.Equal(expected: "completed", actual: doc.RootElement.GetProperty("status")
+                .GetString());
+            Assert.NotEmpty(doc.RootElement.GetProperty("item")
+                .GetProperty("profile")
+                .GetString()!);
         }
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: items.Length, actual: final.GetProperty("data").GetProperty("profileCount").GetInt32());
+        Assert.Equal(expected: items.Length, actual: final.GetProperty("data")
+            .GetProperty("profileCount")
+            .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"profiles\"", actualString: finalLine);
 
         var (authExit, authStdout, _) = await CaptureJsonl(() => new AuthCommands().Status(
@@ -1222,9 +1407,14 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 0, actual: authExit);
         var authLines = authStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var authFinal = JsonDocument.Parse(authLines[^1]).RootElement;
-        Assert.Equal(expected: "succeeded", actual: authFinal.GetProperty("status").GetString());
-        Assert.Equal(expected: 0, actual: authFinal.GetProperty("data").GetProperty("accountCount").GetInt32());
-        Assert.False(authFinal.GetProperty("data").GetProperty("provisioned").GetBoolean());
+        Assert.Equal(expected: "succeeded", actual: authFinal.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 0, actual: authFinal.GetProperty("data")
+            .GetProperty("accountCount")
+            .GetInt32());
+        Assert.False(authFinal.GetProperty("data")
+            .GetProperty("provisioned")
+            .GetBoolean());
         Assert.DoesNotContain(expectedSubstring: "\"accounts\"", actualString: authLines[^1]);
     }
 
@@ -1241,20 +1431,32 @@ public sealed class CliJsonlTests
                     new() { Jsonl = true }));
             Assert.Equal(expected: 0, actual: exit);
             var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var items = lines.Skip(1).Take(lines.Length - 2)
-                .Select((line) => JsonDocument.Parse(line).RootElement).ToArray();
+            var items = lines.Skip(1)
+                .Take(lines.Length - 2)
+                .Select((line) => JsonDocument.Parse(line).RootElement)
+                .ToArray();
             Assert.Equal(
                 expected: 2,
                 actual: items.Count((item) =>
-                    item.GetProperty("id").GetString()?.StartsWith("year-", StringComparison.Ordinal) == true));
+                    item.GetProperty("id")
+                        .GetString()
+                        ?.StartsWith("year-", StringComparison.Ordinal) == true));
             Assert.Equal(
                 expected: 1,
                 actual: items.Count((item) =>
-                    item.GetProperty("id").GetString()?.StartsWith("candidate-", StringComparison.Ordinal) == true));
+                    item.GetProperty("id")
+                        .GetString()
+                        ?.StartsWith("candidate-", StringComparison.Ordinal) == true));
             var final = JsonDocument.Parse(lines[^1]).RootElement;
-            Assert.Equal(expected: 1, actual: final.GetProperty("data").GetProperty("courses").GetInt32());
-            Assert.Equal(expected: 1, actual: final.GetProperty("data").GetProperty("candidates").GetInt32());
-            Assert.Equal(expected: 0, actual: final.GetProperty("data").GetProperty("unresolved").GetInt32());
+            Assert.Equal(expected: 1, actual: final.GetProperty("data")
+                .GetProperty("courses")
+                .GetInt32());
+            Assert.Equal(expected: 1, actual: final.GetProperty("data")
+                .GetProperty("candidates")
+                .GetInt32());
+            Assert.Equal(expected: 0, actual: final.GetProperty("data")
+                .GetProperty("unresolved")
+                .GetInt32());
             Assert.DoesNotContain(expectedSubstring: "canary-course", actualString: stdout);
             Assert.DoesNotContain(expectedSubstring: "canary-group", actualString: stdout);
             Assert.DoesNotContain(expectedSubstring: "canary-historical-topic", actualString: stdout);
@@ -1284,7 +1486,8 @@ public sealed class CliJsonlTests
                     new() { Profile = "synthetic-teacher" },
                     new(),
                     new()));
-            var lines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var lines = stdout.ToString()
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(expected: 3, actual: lines.Count((line) => line.Contains(": planned")));
             Assert.Single(lines, (line) => line.StartsWith("preview:", StringComparison.Ordinal));
         }
@@ -1475,8 +1678,10 @@ public sealed class CliJsonlTests
             Console.SetError(stderr);
             foreach (var (name, run) in cases)
             {
-                stdout.GetStringBuilder().Clear();
-                stderr.GetStringBuilder().Clear();
+                stdout.GetStringBuilder()
+                    .Clear();
+                stderr.GetStringBuilder()
+                    .Clear();
                 Assert.Equal(expected: 2, actual: await run());
                 bool CalculateCondition()
                 {
@@ -1506,7 +1711,8 @@ public sealed class CliJsonlTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -1519,7 +1725,8 @@ public sealed class CliJsonlTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -1859,7 +2066,8 @@ public sealed class CliJsonlTests
         {
             lock (this)
             {
-                return GetStringBuilder().ToString();
+                return GetStringBuilder()
+                    .ToString();
             }
         }
 
@@ -1894,7 +2102,11 @@ public sealed class CliJsonlTests
     {
         private readonly HashSet<int> _failOn = failOn.ToHashSet();
         private int _lines;
-        public string Snapshot() => GetStringBuilder().ToString();
+        public string Snapshot()
+        {
+            return GetStringBuilder()
+                .ToString();
+        }
 
         public override void WriteLine(string? value)
         {
@@ -1922,7 +2134,8 @@ public sealed class CliJsonlTests
             _previousDirectory = Environment.CurrentDirectory;
             string CalculatePath2()
             {
-                string path2 = Guid.NewGuid().ToString("N");
+                string path2 = Guid.NewGuid()
+                    .ToString("N");
                 return path2;
             }
 
@@ -2082,17 +2295,43 @@ public sealed class CliJsonlTests
                                             Executed.Add(index);
                                         }
 
-                                        if (ActionFailure is not null && index == 0)
+                                        if (ActionFailure is not null)
                                         {
-                                            throw ActionFailure;
+                                            if (index == 0)
+                                            {
+                                                throw ActionFailure;
+                                            }
                                         }
 
-                                        if (BlockSecond is not null && index == 1)
+                                        if (BlockSecond is not null)
                                         {
-                                            await BlockSecond;
+                                            if (index == 1)
+                                            {
+                                                await BlockSecond;
+                                            }
                                         }
 
-                                        if (CancelSecond && index == 1)
+                                        bool CalculateConditionResult()
+                                        {
+                                            if (CancelSecond)
+                                            {
+                                                if (index == 1)
+                                                {
+                                                    return true;
+                                                }
+
+                                                return false;
+                                            }
+                                            else
+                                            {
+                                                return false;
+                                            }
+                                        }
+
+                                        bool conditionResult = CalculateConditionResult();
+
+
+                                        if (conditionResult)
                                         {
                                             throw new OperationCanceledException();
                                         }
@@ -2105,7 +2344,8 @@ public sealed class CliJsonlTests
                 }
 
                 return ProjectValue();
-            }).ToArray();
+            })
+                .ToArray();
             return Task.FromResult(actions);
         }
 
@@ -2208,10 +2448,18 @@ public sealed class CliJsonlTests
 
         public async Task<IDocument> GetHtml(Uri uri)
         {
+            string CalculateSource()
+            {
+                if (uri.AbsolutePath == "/group")
+                {
+                    return "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>";
+                }
+
+                return "<html></html>";
+            }
+
             return await new HtmlParser().ParseDocumentAsync(
-                uri.AbsolutePath == "/group"
-                    ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
-                    : "<html></html>");
+                            CalculateSource());
         }
 
         public Task SubmitLesson(IDocument document) =>

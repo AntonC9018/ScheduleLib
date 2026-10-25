@@ -218,15 +218,25 @@ public readonly struct SizedItemArray<T>
         }
 
         int remainingSizeEnd = availableSize - sizeOfItems;
-        bool conditionResult;
-        if (offset > 0)
+        bool CalculateConditionResult()
         {
-            conditionResult = remainingSizeEnd > 0;
+            if (offset > 0)
+            {
+                if (remainingSizeEnd > 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -247,15 +257,25 @@ public readonly struct SizedItemArray<T>
             return ReplaceItemStatus.Spliced;
         }
 
-        bool conditionResult2;
-        if (offset == 0)
+        bool CalculateConditionResult2()
         {
-            conditionResult2 = remainingSizeEnd > 0;
+            if (offset == 0)
+            {
+                if (remainingSizeEnd > 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult2 = false;
-        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
 
         if (conditionResult2)
         {
@@ -264,15 +284,25 @@ public readonly struct SizedItemArray<T>
             return ReplaceItemStatus.PartlyReplaced;
         }
 
-        bool conditionResult3;
-        if (offset > 0)
+        bool CalculateConditionResult3()
         {
-            conditionResult3 = remainingSizeEnd == 0;
+            if (offset > 0)
+            {
+                if (remainingSizeEnd == 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult3 = false;
-        }
+
+        bool conditionResult3 = CalculateConditionResult3();
+
 
         if (conditionResult3)
         {

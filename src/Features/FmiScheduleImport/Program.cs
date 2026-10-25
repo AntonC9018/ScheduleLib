@@ -35,7 +35,8 @@ var result = await updater.RunAsync(args[0], async (update, token) =>
     var root = Path.GetFullPath(args[1]);
     Directory.CreateDirectory(root);
     string path1 = root;
-    string toString = Guid.NewGuid().ToString("N");
+    string toString = Guid.NewGuid()
+        .ToString("N");
     string text = $".import-{toString}";
     string path2 = (string) text;
     var staging = Path.Combine(path1, path2);

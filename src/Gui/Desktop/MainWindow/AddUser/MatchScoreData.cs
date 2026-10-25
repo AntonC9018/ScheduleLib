@@ -50,15 +50,25 @@ public readonly record struct MatchScore(
                     {
                         var p = parsedPart[i];
                         var e = existingFieldValue[i];
-                        bool conditionResult;
-                        if (p == null)
+                        bool CalculateConditionResult()
                         {
-                            conditionResult = e == null;
+                            if (p == null)
+                            {
+                                if (e == null)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
-                        else
-                        {
-                            conditionResult = false;
-                        }
+
+                        bool conditionResult = CalculateConditionResult();
+
 
                         if (conditionResult)
                         {
@@ -122,6 +132,7 @@ public readonly record struct MatchScore(
 
     public override string ToString()
     {
-        return AsInt().ToString();
+        return AsInt()
+            .ToString();
     }
 }

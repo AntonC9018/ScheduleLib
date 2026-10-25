@@ -208,35 +208,44 @@ public sealed class IntegrationTestHelper : IDisposable
                     {
                         Course = schedule.Get(lesson.Course).FullName,
                         Date = x.OneTime?.Date.Date,
-                        Groups = lesson.Groups.Select(id => schedule.Get(id).Name).ToArray(),
+                        Groups = lesson.Groups.Select(id => schedule.Get(id).Name)
+                            .ToArray(),
                         Id = x.Id.Id,
                         Period = periodModel,
                         RepeatableDate = repeatableDateModel,
                         Room = lesson.Room.IsValid ? schedule.Get(lesson.Room) : null,
-                        Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName.ToString()).ToArray(),
+                        Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName
+                            .ToString())
+                            .ToArray(),
                         Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
                         LessonType = lesson.Type,
                         SubGroup = lesson.SubGroup.Value,
                         Specialization = lesson.Specialization.Value,
                     };
-                }).ToArray(),
-            Groups = schedule.EnumerateGroups().Select(g =>
+                })
+                .ToArray(),
+            Groups = schedule.EnumerateGroups()
+                .Select(g =>
                 {
                     return new ReadableGroupModel
                     {
                         Id = g.Id.Value,
                         Name = g.Item.Name,
                     };
-                }).ToArray(),
-            Courses = schedule.EnumerateCourses().Select(c =>
+                })
+                .ToArray(),
+            Courses = schedule.EnumerateCourses()
+                .Select(c =>
                 {
                     return new ReadableCourseModel
                     {
                         Id = c.Id.Id,
                         Names = c.Item.Names.ToArray(),
                     };
-                }).ToArray(),
-            Periods = schedule.EnumeratePeriods().Select(p =>
+                })
+                .ToArray(),
+            Periods = schedule.EnumeratePeriods()
+                .Select(p =>
                 {
                     return new ReadablePeriodModel
                     {
@@ -244,7 +253,8 @@ public sealed class IntegrationTestHelper : IDisposable
                         Start = p.Item.Start,
                         End = p.Item.End,
                     };
-                }).ToArray(),
+                })
+                .ToArray(),
         };
         var options = new JsonSerializerOptions
         {

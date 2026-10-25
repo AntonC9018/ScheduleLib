@@ -290,19 +290,26 @@ public static class EnumerableExtensions
         IComparer<T> comparer,
         MergeDuplicateBehavior duplicateBehavior)
     {
-        using var e1 = a.GetEnumerator().RememberIsDone();
-        using var e2 = b.GetEnumerator().RememberIsDone();
+        using var e1 = a.GetEnumerator()
+            .RememberIsDone();
+        using var e2 = b.GetEnumerator()
+            .RememberIsDone();
         while (true)
         {
-            bool conditionResult;
-            if (e1.IsDone)
+            bool CalculateConditionResult()
             {
-                conditionResult = true;
+                if (e1.IsDone)
+                {
+                    return true;
+                }
+                else
+                {
+                    return e2.IsDone;
+                }
             }
-            else
-            {
-                conditionResult = e2.IsDone;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

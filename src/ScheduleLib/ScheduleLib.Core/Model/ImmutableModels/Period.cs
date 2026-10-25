@@ -50,7 +50,8 @@ public static class PeriodHelper
         {
             return existingEnd;
         }
-        return GetStudyYearEnd(period.Start).AddDays(1);
+        return GetStudyYearEnd(period.Start)
+            .AddDays(1);
     }
 
     // This might be different in other countries and stuff, this should be service ideally.

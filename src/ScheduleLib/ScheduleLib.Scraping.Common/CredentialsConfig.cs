@@ -26,8 +26,10 @@ public abstract class CredentialsSource
     public static void Register(IServiceCollection services)
     {
         var hierarchy = services.AddOpenHierarchy<CredentialsSource>();
-        hierarchy.AddDerived<ValueCredentialsSource>().SetImmutable();
-        hierarchy.AddDerived<AppConfigCredentialsSource>().SetImmutable();
+        hierarchy.AddDerived<ValueCredentialsSource>()
+            .SetImmutable();
+        hierarchy.AddDerived<AppConfigCredentialsSource>()
+            .SetImmutable();
     }
 }
 

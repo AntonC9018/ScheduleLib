@@ -21,7 +21,8 @@ public sealed class MatchingContextTests
         lists.AddExisting(DT3);
         var context = lists.CreateContext();
 
-        var e = context.IteratePotentialMappings().GetEnumerator();
+        var e = context.IteratePotentialMappings()
+            .GetEnumerator();
         e.CheckNext(all: DT1, existing: DT2);
         e.CheckNext(all: DT1, existing: DT3);
         e.CheckNext(all: DT2, existing: DT2);
@@ -51,7 +52,8 @@ public sealed class MatchingContextTests
 
         context.UseUpMatch(CalculateM());
 
-        var e = context.IteratePotentialMappings().GetEnumerator();
+        var e = context.IteratePotentialMappings()
+            .GetEnumerator();
         e.CheckNext(all: DT1, existing: DT4);
         e.CheckNext(all: DT1, existing: DT5);
         e.CheckNext(all: DT3, existing: DT4);
@@ -73,7 +75,8 @@ public sealed class MatchingContextTests
         var context = lists.CreateContext();
 
         {
-            var e = context.IteratePotentialMappings().GetEnumerator();
+            var e = context.IteratePotentialMappings()
+                .GetEnumerator();
             e.CheckNext(all: DT1, existing: DT4);
             context.UseUpMatch(e.Current.Mapping);
             e.CheckNext(all: DT2, existing: DT5);
@@ -84,7 +87,8 @@ public sealed class MatchingContextTests
         }
 
         {
-            var e = context.IteratePotentialMappings().GetEnumerator();
+            var e = context.IteratePotentialMappings()
+                .GetEnumerator();
             e.CheckNext(all: DT2, existing: DT6);
             e.CheckLast();
         }
@@ -98,7 +102,8 @@ public sealed class MatchingContextTests
 
         var context = lists.CreateContext();
 
-        var e = context.IteratePotentialMappings().GetEnumerator();
+        var e = context.IteratePotentialMappings()
+            .GetEnumerator();
         e.CheckLast();
     }
 
@@ -110,7 +115,8 @@ public sealed class MatchingContextTests
 
         var context = lists.CreateContext();
 
-        var e = context.IteratePotentialMappings().GetEnumerator();
+        var e = context.IteratePotentialMappings()
+            .GetEnumerator();
         e.CheckLast();
     }
 }

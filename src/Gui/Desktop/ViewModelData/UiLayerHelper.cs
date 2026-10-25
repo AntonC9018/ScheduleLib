@@ -31,7 +31,8 @@ public static class UiLayerHelper
         {
             Debug.Assert(!builder.Node.IsOnEditableLayer());
             var b = builder.AddLayer(UiTeacherLayer);
-            b.Builder(TeacherLayerConfig.Key).Enable();
+            b.Builder(TeacherLayerConfig.Key)
+                .Enable();
             return b;
         }
 
@@ -47,7 +48,8 @@ public static class UiLayerHelper
         public NodeBuilder MaybeCreateUiLayer(TeacherLayerConfig config)
         {
             var b = MaybeCreateUiLayer(builder);
-            b.Builder(TeacherLayerConfig.Key).CopyValue(config);
+            b.Builder(TeacherLayerConfig.Key)
+                .CopyValue(config);
             return b;
         }
     }
@@ -72,7 +74,8 @@ public static class UiLayerHelper
             Stream output,
             TreeBuilder configRoot)
         {
-            var uiLayers = configRoot.GetUiLayers().Select(x => x.Node);
+            var uiLayers = configRoot.GetUiLayers()
+                .Select(x => x.Node);
             await helper.SerializeValues(uiLayers, output, serializeLayerName: false)
                 .ConfigureAwait(false);
             output.SetLength(output.Position);
@@ -107,7 +110,8 @@ public static class UiLayerHelper
                         var ret = markerLayer.MaybeCreateUiLayer();
                         return ret;
                     }
-                }).ConfigureAwait(false);
+                })
+                .ConfigureAwait(false);
         }
     }
 }

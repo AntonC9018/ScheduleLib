@@ -159,7 +159,8 @@ public sealed class MicrosoftTests
                 new() { Profile = Teacher },
                 new() { Json = true }));
         var result = capture.Result();
-        Assert.Equal(expected: "auth login microsoft", actual: result.GetProperty("command").GetString());
+        Assert.Equal(expected: "auth login microsoft", actual: result.GetProperty("command")
+            .GetString());
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: result.GetRawText());
         Assert.DoesNotContain(expectedSubstring: "cache-secret", actualString: result.GetRawText());
         Assert.Equal(expected: 1, actual: tokens.Consents);
@@ -239,8 +240,13 @@ public sealed class MicrosoftTests
         var result = capture.Result();
         Assert.Equal(
             expected: CurriculaDownloadTasks.ConfiguredSource.Owner,
-            actual: result.GetProperty("data").GetProperty("source").GetProperty("owner").GetString());
-        Assert.Equal(expected: 1, actual: result.GetProperty("data").GetProperty("documentCount").GetInt32());
+            actual: result.GetProperty("data")
+                .GetProperty("source")
+                .GetProperty("owner")
+                .GetString());
+        Assert.Equal(expected: 1, actual: result.GetProperty("data")
+            .GetProperty("documentCount")
+            .GetInt32());
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -352,7 +358,9 @@ public sealed class MicrosoftTests
                 new() { Profile = Teacher },
                 new() { Directory = temp.Path },
                 new() { Json = true }));
-        Assert.Contains(expectedSubstring: "2024-2025", actualString: capture.Result().GetProperty("errors")[0].GetString());
+        Assert.Contains(expectedSubstring: "2024-2025", actualString: capture.Result()
+            .GetProperty("errors")[0]
+            .GetString());
         var missing = new MissingAuthenticationCommands();
         Assert.Equal(
             expected: 4,
@@ -549,7 +557,8 @@ public sealed class MicrosoftTests
                 new() { Directory = temp.Path },
                 new() { Json = true }));
         var result = capture.Result();
-        Assert.Equal(expected: "partial", actual: result.GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: result.GetProperty("status")
+            .GetString());
         string CalculatePath()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.doc");
@@ -576,8 +585,10 @@ public sealed class MicrosoftTests
 
         using var manifest = JsonDocument.Parse(
                     await File.ReadAllTextAsync(CalculatePath2()));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
-        Assert.Single(manifest.RootElement.GetProperty("Artifacts").EnumerateArray());
+        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
+            .GetString());
+        Assert.Single(manifest.RootElement.GetProperty("Artifacts")
+            .EnumerateArray());
     }
 
     [Fact]
@@ -610,8 +621,10 @@ public sealed class MicrosoftTests
 
         Assert.Empty(CalculateCollection2());
         var result = capture.Result();
-        Assert.Equal(expected: "cancelled", actual: result.GetProperty("status").GetString());
-        Assert.Equal(expected: 2, actual: result.GetProperty("outputs").GetArrayLength());
+        Assert.Equal(expected: "cancelled", actual: result.GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: 2, actual: result.GetProperty("outputs")
+            .GetArrayLength());
         string CalculatePath()
         {
             string path2 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
@@ -620,7 +633,8 @@ public sealed class MicrosoftTests
 
         using var manifest = JsonDocument.Parse(
                     await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
+        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
+            .GetString());
     }
 
     [Fact]
@@ -733,9 +747,22 @@ public sealed class MicrosoftTests
                 new() { Directory = temp.Path },
                 new() { Json = true }));
         var result = capture.Result();
-        Assert.Equal(expected: expected, actual: result.GetProperty("exitCode").GetInt32());
-        Assert.Equal(expected: partial ? "partial" : "failed", actual: result.GetProperty("status").GetString());
-        var error = result.GetProperty("errors")[0].GetString();
+        Assert.Equal(expected: expected, actual: result.GetProperty("exitCode")
+            .GetInt32());
+        string CalculateExpected()
+        {
+            if (partial)
+            {
+                return "partial";
+            }
+
+            return "failed";
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: result.GetProperty("status")
+                    .GetString());
+        var error = result.GetProperty("errors")[0]
+            .GetString();
         string expected2;
         if (busy)
         {
@@ -808,8 +835,10 @@ public sealed class MicrosoftTests
 
             using var manifest = JsonDocument.Parse(
                             await File.ReadAllTextAsync(CalculatePath()));
-            Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status").GetString());
-            Assert.Single(manifest.RootElement.GetProperty("Artifacts").EnumerateArray());
+            Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
+                .GetString());
+            Assert.Single(manifest.RootElement.GetProperty("Artifacts")
+                .EnumerateArray());
         }
         else
         {
@@ -844,7 +873,8 @@ public sealed class MicrosoftTests
                 new() { Directory = temp.Path },
                 new() { Json = true }));
         var result = capture.Result();
-        Assert.Equal(expected: "Curricula download or local publication failed.", actual: result.GetProperty("errors")[0].GetString());
+        Assert.Equal(expected: "Curricula download or local publication failed.", actual: result.GetProperty("errors")[0]
+            .GetString());
         string CalculateActualString()
         {
             string text = $"{result.GetRawText()}{capture.Errors}";
@@ -884,10 +914,32 @@ public sealed class MicrosoftTests
             var authentication = new DelegateAuthenticationProvider(request =>
             {
                 // Preflight succeeds; fail during middleware authentication, before the terminal fixture handler.
-                if (++calls > 1
-                    && (!partial
-                        || request.RequestUri!.AbsolutePath.EndsWith("/content", StringComparison.Ordinal)
-                        && Handler.ContentRequests == 1))
+                bool conditionResult;
+                int conditionValue = ++calls;
+                if (conditionValue > 1)
+                {
+                    if (!partial)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        if (request.RequestUri!.AbsolutePath.EndsWith("/content", StringComparison.Ordinal))
+                        {
+                            conditionResult = Handler.ContentRequests == 1;
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+
+                if (conditionResult)
                 {
                     Assert.Contains(
                         expectedSubstring: "Microsoft.Graph.AuthenticationHandler",
@@ -907,7 +959,8 @@ public sealed class MicrosoftTests
             var clientField = typeof(HttpProvider).GetField(
                 "httpClient",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            ((HttpClient) clientField.GetValue(http)!).Dispose();
+            ((HttpClient) clientField.GetValue(http)!)
+                .Dispose();
             global::System.Reflection.FieldInfo fieldInfo = clientField;
             object obj2 = http;
             global::System.Net.Http.HttpClient value2 = GraphClientFactory.Create(authenticationProvider: null, finalHandler: Handler);
@@ -1108,22 +1161,32 @@ public sealed class MicrosoftTests
                 ContentRequests++;
                 bool CheckCondition()
                 {
-                    bool conditionResult;
-                    if (cancelDownload)
+                    bool CalculateConditionResult()
                     {
-                        if (!paginate)
+                        if (cancelDownload)
                         {
-                            conditionResult = true;
+                            if (!paginate)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                if (ContentRequests == 2)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
                         }
                         else
                         {
-                            conditionResult = ContentRequests == 2;
+                            return false;
                         }
                     }
-                    else
-                    {
-                        conditionResult = false;
-                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
 
                     if (conditionResult)
                     {
@@ -1140,22 +1203,32 @@ public sealed class MicrosoftTests
                 }
                 bool CheckCondition2()
                 {
-                    bool conditionResult2;
-                    if (invalidDocx)
+                    bool CalculateConditionResult2()
                     {
-                        if (!paginate)
+                        if (invalidDocx)
                         {
-                            conditionResult2 = true;
+                            if (!paginate)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                if (ContentRequests == 2)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
                         }
                         else
                         {
-                            conditionResult2 = ContentRequests == 2;
+                            return false;
                         }
                     }
-                    else
-                    {
-                        conditionResult2 = false;
-                    }
+
+                    bool conditionResult2 = CalculateConditionResult2();
+
 
                     if (conditionResult2)
                     {
@@ -1243,12 +1316,22 @@ public sealed class MicrosoftTests
                     json = "{\"id\":\"root\",\"folder\":{},\"parentReference\":{\"driveId\":\"drive\"}}";
                 }
 
-                response = new(missingSource ? HttpStatusCode.NotFound : HttpStatusCode.OK)
+                HttpStatusCode CalculateStatusCode()
+                {
+                    if (missingSource)
+                    {
+                        return HttpStatusCode.NotFound;
+                    }
+
+                    return HttpStatusCode.OK;
+                }
+
+                response = new(CalculateStatusCode())
                 {
                     Content = new StringContent(
-                        json,
-                        Encoding.UTF8,
-                        "application/json"),
+                                        json,
+                                        Encoding.UTF8,
+                                        "application/json"),
                 };
             }
             response.RequestMessage = request;
@@ -1331,7 +1414,8 @@ public sealed class MicrosoftTests
 
         private static string CalculatePath2()
         {
-            string toString = Guid.NewGuid().ToString("N");
+            string toString = Guid.NewGuid()
+                .ToString("N");
             string text = $"schedulelib-microsoft-{toString}";
             string path2 = (string) text;
             return path2;

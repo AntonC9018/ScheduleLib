@@ -55,29 +55,37 @@ public sealed class ScheduleLoader
             }
         }
 
-        if (!bypassCache && CachedPath is { } existingPath && File.Exists(existingPath))
+        if (!bypassCache)
         {
-            SerializationModels.ScheduleModel? model = null;
-            try
+            if (CachedPath is { } existingPath)
             {
-                await using var input = new FileStream(existingPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
-                model = await ScheduleSerializer.Deserialize(input, cancellationToken);
-            }
-            catch (System.Text.Json.JsonException) { }
-            catch (InvalidDataException) { }
-            if (model is not null && model.Hash == hashHex)
-            {
-                ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
-                // Cache models already contain the explicit PDF cohort assignments;
-                // reuse the same import policy before the builder validates them.
-                if (Components.OfType<DirectoryScheduleLoaderComponent>().Any(component =>
-                    Directory.EnumerateFiles(path: component.DirectoryPath.Value, searchPattern: "*.pdf", SearchOption.AllDirectories).Any()))
+                if (File.Exists(existingPath))
                 {
-                    context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
-                    context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
-                }
+                    SerializationModels.ScheduleModel? model = null;
+                    try
+                    {
+                        await using var input = new FileStream(existingPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                        model = await ScheduleSerializer.Deserialize(input, cancellationToken);
+                    }
+                    catch (System.Text.Json.JsonException) { }
+                    catch (InvalidDataException) { }
+                    if (model is not null && model.Hash == hashHex)
+                    {
+                        ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
+                        // Cache models already contain the explicit PDF cohort assignments;
+                        // reuse the same import policy before the builder validates them.
+                        if (Components.OfType<DirectoryScheduleLoaderComponent>()
+                            .Any(component =>
+                            Directory.EnumerateFiles(path: component.DirectoryPath.Value, searchPattern: "*.pdf", SearchOption.AllDirectories)
+                                .Any()))
+                        {
+                            context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
+                            context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
+                        }
 
-                return;
+                        return;
+                    }
+                }
             }
         }
 
@@ -278,10 +286,14 @@ public sealed class ConsultationsLoaderComponent(
 
     private static readonly ColumnSearchRules<Column> ColumnNames = ColumnSearchRules.Create<Column>(b =>
     {
-        b.Column(Column.Name).ExactMatch("Numele/Prenumele");
-        b.Column(Column.Day).ExactMatch("Ziua");
-        b.Column(Column.Time).ExactMatch("Ora");
-        b.Column(Column.Room).ExactMatch("Sala");
+        b.Column(Column.Name)
+            .ExactMatch("Numele/Prenumele");
+        b.Column(Column.Day)
+            .ExactMatch("Ziua");
+        b.Column(Column.Time)
+            .ExactMatch("Ora");
+        b.Column(Column.Room)
+            .ExactMatch("Sala");
     });
 
     private struct RowData()
@@ -327,15 +339,25 @@ public sealed class ConsultationsLoaderComponent(
                     {
                         var parser = new SequenceReader(t);
                         var name = NameHelper.TryParseName(ref parser);
-                        bool conditionResult;
-                        if (!parser.IsEmpty)
+                        bool CalculateConditionResult()
                         {
-                            conditionResult = true;
+                            if (!parser.IsEmpty)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                if (name is null)
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
                         }
-                        else
-                        {
-                            conditionResult = name is null;
-                        }
+
+                        bool conditionResult = CalculateConditionResult();
+
 
                         if (conditionResult)
                         {
@@ -412,13 +434,15 @@ public sealed class ConsultationsLoaderComponent(
         using var mappings = headerRow.FindMappings(ColumnNames);
 
         const int dataRowStart = headerRowNumber + 1;
-        int potentialDataRowEnd = worksheet.LastRowUsed()!.RowNumber();
+        int potentialDataRowEnd = worksheet.LastRowUsed()!
+            .RowNumber();
         var dataRows = worksheet.Rows(firstRow: dataRowStart, lastRow: potentialDataRowEnd);
         var processor = new Processor(context.TimeConfig, context.DayNameParser);
         foreach (var dataRow in dataRows)
         {
             processor.Clear();
-            var setRows = dataRow.Cells().ProcessRow(ref processor, mappings);
+            var setRows = dataRow.Cells()
+                .ProcessRow(ref processor, mappings);
             if (setRows.AreNoneSet)
             {
                 break;
@@ -622,8 +646,10 @@ public static class HashHelper
                 {
                     return xs.Count.CompareTo(ys.Count);
                 }
-                using var xe = xs.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
-                using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
+                using var xe = xs.OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .GetEnumerator();
+                using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .GetEnumerator();
                 while (xe.MoveNext() && ye.MoveNext())
                 {
                     int c = string.Compare(strA: xe.Current.Key, strB: ye.Current.Key, StringComparison.Ordinal);

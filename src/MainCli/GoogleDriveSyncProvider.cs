@@ -114,8 +114,11 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         return files;
     }
 
-    public async Task Delete(string fileId, CancellationToken token) =>
-        await _service.Files.Delete(fileId).ExecuteAsync(token);
+    public async Task Delete(string fileId, CancellationToken token)
+    {
+        await _service.Files.Delete(fileId)
+            .ExecuteAsync(token);
+    }
 
     public Task<string> Create(
         string folderId,
@@ -208,7 +211,8 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         return value.Replace(
             "\\",
             "\\\\",
-            StringComparison.Ordinal).Replace(
+            StringComparison.Ordinal)
+            .Replace(
             "'",
             "\\'",
             StringComparison.Ordinal);

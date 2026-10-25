@@ -17,7 +17,8 @@ public static class RegistrationHelper
         services.AddOptions<OpenHierarchyOptions>();
 
         services.AddSingleton<TreeSerializer>();
-        services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey).Configure(opts =>
+        services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey)
+            .Configure(opts =>
         {
             _ = opts;
             // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;

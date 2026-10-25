@@ -27,7 +27,8 @@ public sealed partial class App : Application
         services.AddSingleton<TreeContext>();
         services.AddSingleton<UiTreeSerializer>();
         services.AddSingleton<IUiTreeOutputProvider, UiTreeOutputProvider>();
-        services.AddOptions<UiTreeSerializerSettings>().Configure(x =>
+        services.AddOptions<UiTreeSerializerSettings>()
+            .Configure(x =>
         {
             x.OpenAfterSave = true;
         });
@@ -101,7 +102,8 @@ public sealed partial class App : Application
     private void DisableAvaloniaDataAnnotationValidation()
     {
         var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>()
+                .ToArray();
 
         foreach (var plugin in dataValidationPluginsToRemove)
         {

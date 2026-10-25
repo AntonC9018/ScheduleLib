@@ -23,7 +23,8 @@ public sealed class PdfLessonImportTests
             Start: "8:00",
             Text: "15:00 HTML (lab, imp)\nG.Marin 326/4",
             Alternative: alternative);
-        var groups = cell.Groups.Select(g => context.Schedule.Group(g).Id).ToArray();
+        var groups = cell.Groups.Select(g => context.Schedule.Group(g).Id)
+            .ToArray();
         var calls = 0;
 
         global::ScheduleLib.Parsing.ScheduleImportContext context2 = context;
@@ -106,7 +107,10 @@ public sealed class PdfLessonImportTests
     {
         var context = CreateContext();
         var first = Cell();
-        var next = first with { Page = 2 };
+        var next = first with
+        {
+            Page = 2,
+        };
         var failure = new FormatException("Callback failure");
         var calls = 0;
 
@@ -151,7 +155,10 @@ public sealed class PdfLessonImportTests
     public void InvalidTimeOverrideKeepsDomainErrorInsideCellContext()
     {
         var context = CreateContext();
-        var cell = Cell() with { Text = "7:13 HTML (lab)" };
+        var cell = Cell() with
+        {
+            Text = "7:13 HTML (lab)",
+        };
 
         var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(context, [cell]));
 

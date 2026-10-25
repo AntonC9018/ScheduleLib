@@ -15,15 +15,20 @@ public static class ComparisonHelper
         var comparer = EqualityComparer<T?>.Default;
         bool xdefault = comparer.Equals(x: x, y: default);
         bool ydefault = comparer.Equals(x: y, y: default);
-        bool conditionResult;
-        if (xdefault)
+        bool CalculateConditionResult()
         {
-            conditionResult = ydefault;
+            if (xdefault)
+            {
+                return ydefault;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -47,45 +52,75 @@ public static class ComparisonHelper
         [NotNullWhen(false)] T? y,
         out int score)
     {
-        bool conditionResult;
-        if (x is null)
+        bool CalculateConditionResult()
         {
-            conditionResult = y is null;
+            if (x is null)
+            {
+                if (y is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
             score = 0;
             return true;
         }
-        bool conditionResult2;
-        if (x is not null)
+        bool CalculateConditionResult2()
         {
-            conditionResult2 = y is null;
+            if (x is not null)
+            {
+                if (y is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult2 = false;
-        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
 
         if (conditionResult2)
         {
             score = 1;
             return true;
         }
-        bool conditionResult3;
-        if (x is null)
+        bool CalculateConditionResult3()
         {
-            conditionResult3 = y is not null;
+            if (x is null)
+            {
+                if (y is not null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult3 = false;
-        }
+
+        bool conditionResult3 = CalculateConditionResult3();
+
 
         if (conditionResult3)
         {
@@ -150,15 +185,25 @@ public static class StructComparisonHelper
         Func<T, T, bool> comparer)
         where T : struct
     {
-        bool conditionResult;
-        if (x is null)
+        bool CalculateConditionResult()
         {
-            conditionResult = y is null;
+            if (x is null)
+            {
+                if (y is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -179,15 +224,25 @@ public static class StructComparisonHelper
     public static bool ValueEquals<T>(this T? x, T? y)
         where T : struct, IEquatable<T>
     {
-        bool conditionResult;
-        if (x is null)
+        bool CalculateConditionResult()
         {
-            conditionResult = y is null;
+            if (x is null)
+            {
+                if (y is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {

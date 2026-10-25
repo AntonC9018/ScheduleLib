@@ -20,7 +20,8 @@ public sealed partial class NodeDataEditorViewModel(
         {
             return field ??= _configTypesProvider
                 .ConfigTypes
-                .Where(x => _modelResolver.Supported.Contains(x.Key)).ToArray();
+                .Where(x => _modelResolver.Supported.Contains(x.Key))
+                .ToArray();
         }
     }
 

@@ -48,7 +48,8 @@ public static class MoodleQuizScraper
             }
             throw new InvalidOperationException("Expected span or anchor in path");
         }
-        var path = pathItems.Select(ProjectValue).ToList();
+        var path = pathItems.Select(ProjectValue)
+            .ToList();
 
         // Set page size
         var pageSizeInput = (IHtmlInputElement) page.QuerySelector("#id_pagesize")!;
@@ -57,7 +58,8 @@ public static class MoodleQuizScraper
         // Submit the form
         var submitButton = (IHtmlInputElement) page.QuerySelector("#id_submitbutton")!;
         cancellationToken.ThrowIfCancellationRequested();
-        page = await submitButton.Form!.SubmitAsync().WaitAsync(cancellationToken);
+        page = await submitButton.Form!.SubmitAsync()
+            .WaitAsync(cancellationToken);
 
         // Find the attempts table
         var attemptsElement = page.QuerySelector("table#attempts");
@@ -84,7 +86,9 @@ public static class MoodleQuizScraper
         }
 
         // Parse data rows
-        var rows = table.QuerySelectorAll("tbody tr").Cast<IHtmlTableRowElement>().ToList();
+        var rows = table.QuerySelectorAll("tbody tr")
+            .Cast<IHtmlTableRowElement>()
+            .ToList();
 
         foreach (var row in rows)
         {
@@ -124,12 +128,18 @@ public static class MoodleQuizScraper
             {
                 break;
             }
-            var email = rowSearch.FindCell("email").MaybeExtractText();
-            var state = ParseAttemptState(rowSearch.FindCell("state").MaybeExtractText());
-            var timeStart = ParseDateTime(rowSearch.FindCell("timestart").MaybeExtractText());
-            var timeFinish = ParseDateTime(rowSearch.FindCell("timefinish").MaybeExtractText());
-            var duration = ParseDuration(rowSearch.FindCell("duration").MaybeExtractText());
-            var grade = ParseGrade(rowSearch.FindCell("sumgrades").MaybeExtractText());
+            var email = rowSearch.FindCell("email")
+                .MaybeExtractText();
+            var state = ParseAttemptState(rowSearch.FindCell("state")
+                .MaybeExtractText());
+            var timeStart = ParseDateTime(rowSearch.FindCell("timestart")
+                .MaybeExtractText());
+            var timeFinish = ParseDateTime(rowSearch.FindCell("timefinish")
+                .MaybeExtractText());
+            var duration = ParseDuration(rowSearch.FindCell("duration")
+                .MaybeExtractText());
+            var grade = ParseGrade(rowSearch.FindCell("sumgrades")
+                .MaybeExtractText());
             global::QuizModels.MoodleQuizScraper.CellSearchResult x = new(nameCell);
             var reviewLink = ExtractReviewLink(x);
             var questionGrades = ExtractQuestionGrades(rowSearch);
@@ -178,7 +188,8 @@ public static class MoodleQuizScraper
             }
 
             var columnMapping = new Dictionary<string, int>();
-            var headers = headerRow.QuerySelectorAll("th").ToList();
+            var headers = headerRow.QuerySelectorAll("th")
+                .ToList();
 
             for (int i = 0; i < headers.Count; i++)
             {
@@ -443,7 +454,8 @@ public static class MoodleQuizScraper
             return default;
         }
 
-        var parts = grade.Replace("Marcat ", "").Split([" din "], StringSplitOptions.None);
+        var parts = grade.Replace("Marcat ", "")
+            .Split([" din "], StringSplitOptions.None);
         if (parts.Length != 2)
         {
             return default;
@@ -481,7 +493,9 @@ public static class MoodleQuizScraper
             const string s = "Salvat:";
             if (x.StartsWith(s))
             {
-                return x.AsSpan()[s.Length..].Trim().ToString();
+                return x.AsSpan()[s.Length..]
+                    .Trim()
+                    .ToString();
             }
         }
         return null;
@@ -589,8 +603,10 @@ public static class MoodleQuizScraper
             var rows = summaryTable.QuerySelectorAll("tr");
             foreach (var row in rows)
             {
-                var header = row.QuerySelector("th").MaybeExtractText();
-                var value = row.QuerySelector("td").MaybeExtractText();
+                var header = row.QuerySelector("th")
+                    .MaybeExtractText();
+                var value = row.QuerySelector("td")
+                    .MaybeExtractText();
 
                 if (header is null || value is null)
                 {
@@ -712,7 +728,8 @@ public static class MoodleQuizScraper
             {
                 var checkbox = answerDiv.QuerySelector("input[type=checkbox]");
                 var label = answerDiv.QuerySelector("div[data-region=answer-label]");
-                var isCorrect = answerDiv.GetAttribute("class")?.Contains("correct") ?? false;
+                var isCorrect = answerDiv.GetAttribute("class")
+                    ?.Contains("correct") ?? false;
                 var isChecked = checkbox?.HasAttribute("checked") ?? false;
                 if (label != null)
                 {
@@ -728,13 +745,17 @@ public static class MoodleQuizScraper
 
         // Comment
         var commentDiv = questionDiv.QuerySelector(".comment");
-        var comment = commentDiv?.QuerySelector("p")?.TextContent.Trim() ?? "";
-        var commentLink = commentDiv?.QuerySelector("a")?.GetAttribute("href") ?? "";
+        var comment = commentDiv?.QuerySelector("p")
+            ?.TextContent.Trim() ?? "";
+        var commentLink = commentDiv?.QuerySelector("a")
+            ?.GetAttribute("href") ?? "";
 
         // Feedback
         var feedbackDiv = questionDiv.QuerySelector(".feedback");
-        var feedback = feedbackDiv?.QuerySelector(".specificfeedback")?.TextContent.Trim() ?? "";
-        var correctAnswer = feedbackDiv?.QuerySelector(".rightanswer")?.TextContent.Trim() ?? "";
+        var feedback = feedbackDiv?.QuerySelector(".specificfeedback")
+            ?.TextContent.Trim() ?? "";
+        var correctAnswer = feedbackDiv?.QuerySelector(".rightanswer")
+            ?.TextContent.Trim() ?? "";
 
         // Response history
         var historyTable = questionDiv.QuerySelector(".history table");
@@ -775,7 +796,8 @@ public static class MoodleQuizScraper
         int stepIndex = 1;
         foreach (var row in rows)
         {
-            var cells = row.QuerySelectorAll("td").ToList();
+            var cells = row.QuerySelectorAll("td")
+                .ToList();
             if (cells.Count >= 5)
             {
                 var actionContent = cells[2].TextContent.Trim();
@@ -1119,9 +1141,12 @@ file static class Accessors
             var paramType = ctor.Params[0].ParameterType;
 
             // find members whose type equals the constructor parameter type
-            var matchingProps = properties.Where(p => p.PropertyType == paramType).Cast<MemberInfo>();
-            var matchingFields = fields.Where(f => f.FieldType == paramType).Cast<MemberInfo>();
-            using var matchingMembers = matchingProps.Concat(matchingFields).GetEnumerator();
+            var matchingProps = properties.Where(p => p.PropertyType == paramType)
+                .Cast<MemberInfo>();
+            var matchingFields = fields.Where(f => f.FieldType == paramType)
+                .Cast<MemberInfo>();
+            using var matchingMembers = matchingProps.Concat(matchingFields)
+                .GetEnumerator();
 
             if (!matchingMembers.MoveNext())
             {
@@ -1163,7 +1188,8 @@ file static class Accessors
             // Compile: (TValue v) => new T(v)
             var valueParam = Expression.Parameter(typeof(TValue), "value");
             var newExpr = Expression.New(info.Constructor, valueParam);
-            creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam).Compile();
+            creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam)
+                .Compile();
         }
 
         // Compile: (T t) => t.Value
@@ -1172,7 +1198,8 @@ file static class Accessors
             ? Expression.Property(tParam, prop)
             : Expression.Field(tParam, (FieldInfo) info.Member);
 
-        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam).Compile();
+        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam)
+            .Compile();
         return new()
         {
             Creator = creator,
@@ -1222,15 +1249,20 @@ file sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        bool conditionResult;
-        if (typeToConvert.IsPrimitive)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (typeToConvert.IsPrimitive)
+            {
+                return true;
+            }
+            else
+            {
+                return typeToConvert.IsEnum;
+            }
         }
-        else
-        {
-            conditionResult = typeToConvert.IsEnum;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {

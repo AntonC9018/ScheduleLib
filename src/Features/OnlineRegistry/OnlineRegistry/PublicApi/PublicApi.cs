@@ -117,7 +117,8 @@ public sealed class GroupsNavigator
                 return new LessonGroups();
             },
             ParseErrorHandler = _ => { },
-        }).ToArray();
+        })
+            .ToArray();
         var rules = config?.GroupMatchRules ?? [];
         var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
@@ -133,7 +134,8 @@ public sealed class GroupsNavigator
 
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 var target = group;
-                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups, target, rule, partitionResolver)).ToArray();
+                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups, target, rule, partitionResolver))
+                    .ToArray();
                 var ids = FindGroupMatch(_schedule, courseLink.CourseId, partitionResolver.Resolve(group), group, applicableRules);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
@@ -210,8 +212,24 @@ public sealed class GroupsNavigator
     internal static GroupPartitionKey NormalizePartition(Schedule schedule, in LessonGroups parents, GroupPartitionKey partition,
         IReadOnlyList<RegistryGroupMatchRule>? rules = null)
     {
-        if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All)
-            && parents.Count != 0 && parents.All(id => schedule.Get(id).Language == Language.En))
+        bool conditionResult;
+        if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All))
+        {
+            if (parents.Count != 0)
+            {
+                conditionResult = parents.All(id => schedule.Get(id).Language == Language.En);
+            }
+            else
+            {
+                conditionResult = false;
+            }
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return GroupPartitionKey.All;
         }
@@ -222,10 +240,33 @@ public sealed class GroupsNavigator
             {
                 foreach (var rule in rules)
                 {
-                    if (rule.MatchByLanguage && rule.AllowParentGroup
-                        && partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All)
-                        && parents.All(id => schedule.Get(id).Language == rule.Language
-                            && schedule.Get(id).Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)))
+                    bool conditionResult2;
+                    if (rule.MatchByLanguage)
+                    {
+                        if (rule.AllowParentGroup)
+                        {
+                            if (partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All))
+                            {
+                                conditionResult2 = parents.All(id => schedule.Get(id).Language == rule.Language
+                            && schedule.Get(id).Faculty.Name
+                                .Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase));
+                            }
+                            else
+                            {
+                                conditionResult2 = false;
+                            }
+                        }
+                        else
+                        {
+                            conditionResult2 = false;
+                        }
+                    }
+                    else
+                    {
+                        conditionResult2 = false;
+                    }
+
+                    if (conditionResult2)
                     {
                         return GroupPartitionKey.All;
                     }
@@ -281,7 +322,24 @@ public sealed class GroupsNavigator
                 languages.Add(candidate.Item.Language);
             }
         }
-        if (combined && group.Language is null && languages.Count != 1)
+        bool conditionResult;
+        if (combined)
+        {
+            if (group.Language is null)
+            {
+                conditionResult = languages.Count != 1;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             return new LessonGroups();
         }
@@ -316,8 +374,24 @@ public sealed class GroupsNavigator
     {
         foreach (var rule in rules)
         {
-            if (!rule.MatchByLanguage || !group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase)
-                || partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All))
+            bool conditionResult2;
+            if (!rule.MatchByLanguage)
+            {
+                conditionResult2 = true;
+            }
+            else
+            {
+                if (!group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
+                {
+                    conditionResult2 = true;
+                }
+                else
+                {
+                    conditionResult2 = partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
+                }
+            }
+
+            if (conditionResult2)
             {
                 continue;
             }
@@ -325,10 +399,13 @@ public sealed class GroupsNavigator
             var cohortSearch = group;
             cohortSearch.GroupNumber = null;
             cohortSearch.Language = null;
-            var cohort = schedule.EnumerateGroups().Where(candidate => IsMatch(candidate.Item, cohortSearch)).ToArray();
+            var cohort = schedule.EnumerateGroups()
+                .Where(candidate => IsMatch(candidate.Item, cohortSearch))
+                .ToArray();
             // Do not infer shared audiences when an intake has multiple parents of one language.
             if (cohort.Any(candidate => candidate.Item.Language == Language.None)
-                || cohort.GroupBy(candidate => candidate.Item.Language).Any(parents => parents.Count() > 1))
+                || cohort.GroupBy(candidate => candidate.Item.Language)
+                    .Any(parents => parents.Count() > 1))
             {
                 continue;
             }
@@ -348,29 +425,39 @@ public sealed class GroupsNavigator
                         continue;
                     }
 
-                    bool conditionResult;
-                    if (lesson.Lesson.GroupPartitionKey == partition)
+                    bool CalculateConditionResult()
                     {
-                        conditionResult = true;
-                    }
-                    else
-                    {
-                        if (rule.AllowParentGroup)
+                        if (lesson.Lesson.GroupPartitionKey == partition)
                         {
-                            if (parent.Item.Language == rule.Language)
-                            {
-                                conditionResult = lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All;
-                            }
-                            else
-                            {
-                                conditionResult = false;
-                            }
+                            return true;
                         }
                         else
                         {
-                            conditionResult = false;
+                            if (rule.AllowParentGroup)
+                            {
+                                if (parent.Item.Language == rule.Language)
+                                {
+                                    if (lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
+                                    {
+                                        return true;
+                                    }
+
+                                    return false;
+                                }
+                                else
+                                {
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     }
+
+                    bool conditionResult = CalculateConditionResult();
+
 
                     if (conditionResult)
                     {
@@ -441,8 +528,18 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     public readonly IServiceProvider ServiceProvider;
     public readonly CancellationToken CancellationToken;
 
-    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Courses().Get(semester);
-    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) => Groups().Get(course);
+    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+    {
+        return Courses()
+            .Get(semester);
+    }
+
+    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course)
+    {
+        return Groups()
+            .Get(course);
+    }
+
     public Task SubmitLesson(IDocument document) => SubmitLesson(document, null);
     public async Task SubmitLesson(IDocument document, Action? onSubmissionStarted)
     {
@@ -465,7 +562,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
             .Select(anchor => new Uri(anchor.Href))
             .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
-            .Distinct().ToArray();
+            .Distinct()
+            .ToArray();
         if (redirect.Location is null || listLinks.Length != 1)
         {
             throw new IOException("Registry lesson confirmation destination is unavailable.");
@@ -480,15 +578,26 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
         var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
         var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
-        if (!DateTime.TryParse(expectedDate, System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None, out var date) || expectedMode is null || expectedTopic is null)
+        bool conditionValue = DateTime.TryParse(expectedDate, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var date);
+        if (!conditionValue)
+        {
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        }
+
+        if (expectedMode is null)
+        {
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        }
+        if (expectedTopic is null)
         {
             throw new IOException("Registry lesson confirmation fields are unavailable.");
         }
 
         var expectedAttendance = form.QuerySelectorAll<IHtmlInputElement>("input[name]")
             .Where(input => input.Name?.EndsWith(".NotaStr", StringComparison.Ordinal) == true)
-            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+            .Select(input => (Name: input.Name, Value: input.Value))
+            .ToArray();
 
         var list = await GetHtml(destination);
         RequireConfirmationPage(list);
@@ -499,7 +608,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
             .Select(anchor => new Uri(anchor.Href))
             .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
-            .Distinct().ToArray();
+            .Distinct()
+            .ToArray();
         var matches = 0;
         foreach (var edit in editLinks)
         {
@@ -507,38 +617,48 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             RequireConfirmationPage(saved);
             var savedForm = HtmlSearch.GetLessonForm(saved);
             var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
-            bool conditionResult;
-            if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
-                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate))
+            bool CalculateConditionResult()
             {
-                if (savedDate == date)
+                if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
+                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate))
                 {
-                    if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode)
+                    if (savedDate == date)
                     {
-                        if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n"))
+                        if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode)
                         {
-                            conditionResult = expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
-                    && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value));
+                            if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n"))
+                            {
+                                if (expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
+                       && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                                {
+                                    return true;
+                                }
+
+                                return false;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                         else
                         {
-                            conditionResult = false;
+                            return false;
                         }
                     }
                     else
                     {
-                        conditionResult = false;
+                        return false;
                     }
                 }
                 else
                 {
-                    conditionResult = false;
+                    return false;
                 }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -550,12 +670,57 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             throw new IOException("Registry saved lesson values could not be uniquely confirmed.");
         }
 
-        static bool SameOrigin(Uri first, Uri second) => first.Scheme == second.Scheme && first.Host == second.Host && first.Port == second.Port;
+        static bool SameOrigin(Uri first, Uri second)
+        {
+            if (!(first.Scheme == second.Scheme))
+            {
+                return false;
+            }
+
+            if (!(first.Host == second.Host))
+            {
+                return false;
+            }
+
+            if (!(first.Port == second.Port))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         static void RequireConfirmationPage(IDocument page)
         {
             // A failed read cannot prove rejection of the already-attempted POST.
-            if (page.StatusCode != HttpStatusCode.OK || IsLoginAddress(page.Url)
-                || page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+            bool CalculateConditionResult()
+            {
+                if (page.StatusCode != HttpStatusCode.OK)
+                {
+                    return true;
+                }
+                else
+                {
+                    if (IsLoginAddress(page.Url))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 throw new IOException("Registry lesson confirmation read failed.");
             }
@@ -578,9 +743,9 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 var origin = new Uri(document.Url);
                 var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
                     .Select(anchor => new Uri(anchor.Href))
-                    .Where(uri => uri.Scheme == origin.Scheme && uri.Host == origin.Host && uri.Port == origin.Port
-                        && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
-                    .Distinct().ToArray();
+                    .Where(uri => { if (!(uri.Scheme == origin.Scheme)) { return false; } if (!(uri.Host == origin.Host)) { return false; } if (!(uri.Port == origin.Port)) { return false; } if (!(uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))) { return false; } return true; })
+                    .Distinct()
+                    .ToArray();
                 var lessonId = form.QuerySelector<IHtmlInputElement>("input[name=lessonId]")?.Value;
                 if (error.Location is null || listLinks.Length != 1
                     || string.IsNullOrWhiteSpace(lessonId) || !lessonId.All(char.IsAsciiDigit)
@@ -596,22 +761,50 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 }
 
                 var list = await GetHtml(destination);
-                if (list.StatusCode != HttpStatusCode.OK || IsLoginAddress(list.Url)
-                    || list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                bool CalculateConditionResult2()
+                {
+                    if (list.StatusCode != HttpStatusCode.OK)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (IsLoginAddress(list.Url))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                    }
+                }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
+
+                if (conditionResult2)
                 {
                     throw new IOException("Registry deletion confirmation read failed.");
                 }
 
                 var table = list.QuerySelector<IHtmlTableElement>("table")
                     ?? throw new IOException("Registry deletion confirmation table is missing.");
-                if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]").All(anchor =>
+                if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .All(anchor =>
                         !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
                     || table.Rows.Length == 0)
                 {
                     throw new IOException("Registry deletion confirmation page is unrecognized.");
                 }
 
-                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]").Any(anchor =>
+                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Any(anchor =>
                 {
                     bool conditionResult;
                     if (new Uri(anchor.Href).AbsolutePath is var path)
@@ -686,7 +879,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
     private static bool IsLoginAddress(string address)
     {
-        var path = address.Split('?', '#')[0].TrimEnd('/');
+        var path = address.Split('?', '#')[0]
+            .TrimEnd('/');
         return path.EndsWith("/login", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -695,7 +889,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         if ((int) response.StatusCode is >= 400 and < 500
             || response.QuerySelector("input[type=password]") is not null
             || IsLoginAddress(response.Url)
-            || response.QuerySelectorAll(".validation-summary-errors").Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
+            || response.QuerySelectorAll(".validation-summary-errors")
+                .Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
         {
             throw new RegistrySubmissionRejectedException($"Registry rejected {operation}.");
         }
@@ -711,7 +906,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var form = RegistryGradeForm.Validate(document);
         token.ThrowIfCancellationRequested();
         var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
-            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+            .Select(input => (Name: input.Name, Value: input.Value))
+            .ToArray();
         try
         {
             var response = await SubmitOnce(form, token, onSubmissionStarted);
@@ -730,10 +926,35 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         }
         var saved = await Context.Browser.OpenAsync(document.Url, token);
         var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
-        if (saved.StatusCode != HttpStatusCode.OK
-            || saved.QuerySelector("input[type=password], .validation-summary-errors") is not null
-            || expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
-                || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+        bool CalculateConditionResult()
+        {
+            if (saved.StatusCode != HttpStatusCode.OK)
+            {
+                return true;
+            }
+            else
+            {
+                if (saved.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                {
+                    return true;
+                }
+                else
+                {
+                    if (expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
+                   || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+            }
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             throw new IOException("Registry saved grades could not be confirmed.");
         }

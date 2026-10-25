@@ -442,7 +442,8 @@ public sealed class MultiChoiceQuestionBuilder
             };
 
             // Find closest standard percentage
-            var closest = standards.OrderBy(s => Math.Abs(s - absValue)).First();
+            var closest = standards.OrderBy(s => Math.Abs(s - absValue))
+                .First();
             return closest * sign;
         }
 
@@ -545,10 +546,14 @@ public sealed class Example
                 .Name("magic_1")
                 .QuestionText("Что из следующего является примером использования одного или нескольких magic значений?")
                 .DefaultGrade(1.0m)
-                .Answer(a => a.Code("var v = get_value(1, 2, true);").Fraction(1.0m))
-                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar has_parents = false;\nvar v = get_value(age, child_count, has_parents);").Fraction(0.0m))
-                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);").Fraction(1.0m))
-                .Answer(a => a.Code("var v = get_value(age: 1, child_count: 2, has_parents: true);").Fraction(0.0m)))
+                .Answer(a => a.Code("var v = get_value(1, 2, true);")
+                    .Fraction(1.0m))
+                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar has_parents = false;\nvar v = get_value(age, child_count, has_parents);")
+                    .Fraction(0.0m))
+                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);")
+                    .Fraction(1.0m))
+                .Answer(a => a.Code("var v = get_value(age: 1, child_count: 2, has_parents: true);")
+                    .Fraction(0.0m)))
             .Build();
 
         // Serialize to XML

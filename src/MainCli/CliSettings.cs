@@ -114,13 +114,16 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public IReadOnlyDictionary<string, SettingsValue> Inspect()
     {
         var values = new SortedDictionary<string, SettingsValue>(StringComparer.Ordinal);
-        foreach (var key in Path.Path.SelectMany(x => x.ConfigKeys).Distinct().Where(x => x != TeacherLayerConfig.Key))
+        foreach (var key in Path.Path.SelectMany(x => x.ConfigKeys)
+            .Distinct()
+            .Where(x => x != TeacherLayerConfig.Key))
         {
             var type = NodeDataKey.Registry.GetTypeFromKey(key);
             var value = typeof(ResolvedSettings).GetMethod(
                     nameof(GetNode),
                     BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(type).Invoke(this, [key]);
+                .MakeGenericMethod(type)
+                .Invoke(this, [key]);
             global::System.Collections.Generic.SortedDictionary<string, global::ScheduleLib.Cli.SettingsValue> sortedDictionary = values;
             string key2 = key.Value;
             global::System.Text.Json.Nodes.JsonNode? value2 = (JsonNode?) value;
@@ -134,7 +137,8 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public SettingsValue Inspect(string key)
     {
         var parts = key.Split('.');
-        if (!Inspect().TryGetValue(parts[0], out var block))
+        if (!Inspect()
+            .TryGetValue(parts[0], out var block))
         {
             throw new JsonException($"Unknown setting key: {key}");
         }
@@ -200,9 +204,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     }
 
                     return CheckCondition();
-                }).Order().ToArray(),
+                })
+                    .Order()
+                    .ToArray(),
             })
-            .Where(source => source.Keys.Count != 0).ToArray();
+            .Where(source => source.Keys.Count != 0)
+            .ToArray();
     }
 
     private JsonNode? GetNode<T>(NodeDataKey key) where T : class
@@ -218,7 +225,8 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     {
         foreach (var path in _profilePaths.Values.Prepend(Path))
         {
-            foreach (var key in path.Path.SelectMany(x => x.ConfigKeys).Distinct()
+            foreach (var key in path.Path.SelectMany(x => x.ConfigKeys)
+                .Distinct()
                          .Where(x => x != TeacherLayerConfig.Key))
             {
                 try
@@ -232,7 +240,8 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     typeof(ResolvedSettings).GetMethod(
                                                 nameof(ValidateBlock),
                                                 BindingFlags.NonPublic | BindingFlags.Instance)!
-                                            .MakeGenericMethod(CalculateTypeArguments()).Invoke(this, [path, key]);
+                                            .MakeGenericMethod(CalculateTypeArguments())
+                        .Invoke(this, [path, key]);
                 }
                 catch (TargetInvocationException e) when (e.InnerException is { } error)
                 {
@@ -321,7 +330,8 @@ public static partial class CliSettings
         {
             var tree = provider.GetRequiredService<TreeBuilder>();
             tree.AddDefaultConfig();
-            var codeProfiles = tree.GetMarkerNodes().ToDictionary(
+            var codeProfiles = tree.GetMarkerNodes()
+                .ToDictionary(
 keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Builder.Node, StringComparer.Ordinal);
             if (arguments.Profile is { } teacher && !codeProfiles.ContainsKey(teacher))
             {
@@ -385,7 +395,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
             var selectedSources = defaultSources;
             foreach (var coded in codeProfiles)
             {
-                var path = defaultsPath.ToImmutable().ToBuilder();
+                var path = defaultsPath.ToImmutable()
+                    .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
                 global::System.Collections.Generic.List<global::ScheduleLib.Cli.SettingsSource> list = sources;
@@ -448,7 +459,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
             global::System.Text.Json.JsonSerializerOptions json3 = json;
             string? projectDirectory2 = project;
             string? profile2 = arguments.Profile;
-            global::System.Collections.Generic.IReadOnlyList<string> profiles = codeProfiles.Keys.Order().ToArray();
+            global::System.Collections.Generic.IReadOnlyList<string> profiles = codeProfiles.Keys.Order()
+                .ToArray();
             global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Cli.SettingsSource> sources2 = selectedSources;
             global::System.Collections.Generic.IReadOnlyDictionary<string, global::Anton.LayeredData.TreeEnumeration.NodePath> profilePaths2 = profilePaths;
             global::Anton.LayeredData.TreeEnumeration.NodePath globalPath2 = new(defaultsPath.ToImmutable());
@@ -471,15 +483,25 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 }
 
                 var actions = GetOperations(file.Operations, profile);
-                bool conditionResult;
-                if (values is null)
+                bool CalculateConditionResult()
                 {
-                    conditionResult = actions is null;
+                    if (values is null)
+                    {
+                        if (actions is null)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -517,7 +539,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 string name2 = name;
                 string file2 = file.Path;
                 global::System.Collections.Generic.IEnumerable<string> leafKeys = LeafKeys(values);
-                global::System.Collections.Generic.IEnumerable<string> second = actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [];
+                global::System.Collections.Generic.IEnumerable<string> second = actions?.Cast<JsonObject>()
+                    .Select(x => x["key"]!.GetValue<string>()) ?? [];
                 global::System.Collections.Generic.IEnumerable<string> concat = leafKeys.Concat(
                     second);
                 global::System.Collections.Generic.IReadOnlyList<string> keys = concat.ToArray();
@@ -534,7 +557,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
                 }
 
                 var node = new MutableNode();
-                new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x =>
+                new NodeBuilder(node, provider).GoogleCalendar()
+                    .ConfigureValue(x =>
                 {
                     global::ScheduleLib.Application.Config.GoogleCalendarConfig googleCalendarConfig = x;
                     googleCalendarConfig.CalendarName = calendar;
@@ -731,15 +755,25 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
 
             foreach (var setting in values)
             {
-                bool conditionResult;
-                if (location.StartsWith("profiles.", StringComparison.Ordinal))
+                bool CalculateConditionResult()
                 {
-                    conditionResult = setting.Key == "ScheduleDerivationConfig";
+                    if (location.StartsWith("profiles.", StringComparison.Ordinal))
+                    {
+                        if (setting.Key == "ScheduleDerivationConfig")
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -791,7 +825,8 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
     {
         typeof(CliSettings)
             .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+            .MakeGenericMethod(value.GetType())
+            .Invoke(null, [node, key, value]);
     }
 
     private static void SetTypedValue<T>(
@@ -849,22 +884,32 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
         {
             foreach (var entry in obj)
             {
-                bool conditionResult;
-                if (IsSecret(entry.Key))
+                bool CalculateConditionResult()
                 {
-                    conditionResult = true;
-                }
-                else
-                {
-                    if (entry.Key == "$type")
+                    if (IsSecret(entry.Key))
                     {
-                        conditionResult = entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource";
+                        return true;
                     }
                     else
                     {
-                        conditionResult = false;
+                        if (entry.Key == "$type")
+                        {
+                            if (entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -1078,11 +1123,32 @@ keySelector: x => x.Config.TeacherName.ToString(), elementSelector: x => x.Build
 
     private static bool IsSecret(string key)
     {
-        return key.Contains("password", StringComparison.OrdinalIgnoreCase)
-            || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
-            || key.Contains("token", StringComparison.OrdinalIgnoreCase)
-            || key.Equals("apiKey", StringComparison.OrdinalIgnoreCase)
-            || key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
+        if (key.Contains("password", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Contains("secret", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Contains("token", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Equals("apiKey", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Equals("accessKey", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     internal static JsonNode? Redact(JsonNode? node)

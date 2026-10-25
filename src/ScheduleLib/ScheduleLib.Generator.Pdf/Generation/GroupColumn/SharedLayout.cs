@@ -156,7 +156,8 @@ public static class ColumnArrangementHelper
             Groups = schedule.Groups,
             AllGroupingSets = groupingsValues,
             OccupiedGroupPositions = BitArray32.Empty(schedule.Groups.Length),
-            AllGroupingArrays = groupingsValues.Select(x => x.ToArray()).ToArray(),
+            AllGroupingArrays = groupingsValues.Select(x => x.ToArray())
+                .ToArray(),
             ColumnOrder = columnOrder,
         };
 

@@ -66,15 +66,20 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
             }
 
             bool isCurrentSpace = _withoutSpaces.Current == ' ';
-            bool conditionResult2;
-            if (!isCurrentSpace)
+            bool CalculateConditionResult2()
             {
-                conditionResult2 = isPrevPunctuation;
+                if (!isCurrentSpace)
+                {
+                    return isPrevPunctuation;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult2 = false;
-            }
+
+            bool conditionResult2 = CalculateConditionResult2();
+
 
             if (conditionResult2)
             {

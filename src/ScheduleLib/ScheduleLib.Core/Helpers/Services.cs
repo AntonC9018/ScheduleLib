@@ -13,7 +13,8 @@ public sealed class DayNameProvider
 
     private static string[] CreateNames()
     {
-        var arr = OneForEach.Enum<DayOfWeek>().CreateArray<string>();
+        var arr = OneForEach.Enum<DayOfWeek>()
+            .CreateArray<string>();
         void Set(DayOfWeek day, string name)
         {
             arr[day] = name;

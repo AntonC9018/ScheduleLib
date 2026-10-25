@@ -65,7 +65,8 @@ public static class ParityExcelParser
             throw InvalidParityDocumentException.ForNoBody();
         }
 
-        var table = body.Descendants<Table>().First();
+        var table = body.Descendants<Table>()
+            .First();
         var rows = table.ChildElements.OfType<TableRow>();
         using var rowEnumerator = rows.GetEnumerator();
 
@@ -156,7 +157,8 @@ public static class ParityExcelParser
 
             bool CompareHeader(string expectedText)
             {
-                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan().Trim();
+                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan()
+                    .Trim();
                 return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: weekHeaderText, y: expectedText.AsSpan());
             }
 
@@ -271,7 +273,8 @@ public static class ParityExcelParser
         for (int i = 0; i < MonthNames.Length; i++)
         {
             var monthName = MonthNames[i];
-            if (monthName.AsSpan().Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (monthName.AsSpan()
+                .Equals(name, StringComparison.OrdinalIgnoreCase))
             {
                 var month = (Month) (i + 1);
                 return month;

@@ -92,15 +92,20 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void StartQueueing()
     {
-        bool conditionResult;
-        if (_keyQueue.IsEmpty)
+        bool CalculateConditionResult()
         {
-            conditionResult = _latestActions.IsEmpty;
+            if (_keyQueue.IsEmpty)
+            {
+                return _latestActions.IsEmpty;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         bool areQueuesEmpty = conditionResult;
         var prevState = Interlocked.CompareExchange(

@@ -241,7 +241,9 @@ public sealed class StudentAttendanceListBuilder()
     public Result Build(
         Attendance? missingDaysFiller)
     {
-        var maxDayCount = _students.Select(x => x.Attendances.Count).DefaultIfEmpty(0).Max();
+        var maxDayCount = _students.Select(x => x.Attendances.Count)
+            .DefaultIfEmpty(0)
+            .Max();
         maxDayCount = Math.Max(maxDayCount, _maxCountHint);
         if (missingDaysFiller is { } f)
         {
@@ -420,7 +422,8 @@ public readonly struct AllStudentAttendanceListBuilder()
                     {
                         dates2 = lessonTypes.Select((type, index) => (Type: type, Index: index))
                                 .Where(column => column.Type == lessonType)
-                                .Select(column => dates[column.Index]).ToImmutableArray();
+                                .Select(column => dates[column.Index])
+                            .ToImmutableArray();
                     }
                     else
                     {
@@ -468,22 +471,28 @@ public readonly struct StudentAttendanceList
         {
             return list.StudentNames;
         }
-        bool conditionResult;
-        if (key.Groups.IsSingleGroup)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (key.Groups.IsSingleGroup)
+            {
+                return true;
+            }
+            else
+            {
+                return key.Groups.IsEmpty;
+            }
         }
-        else
-        {
-            conditionResult = key.Groups.IsEmpty;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
             return NamesInDb.Empty;
         }
 
-        return NamesInDb.Create([.. ParentLists(key).SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
+        return NamesInDb.Create([.. ParentLists(key)
+            .SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
             .Select(student => student.Key))]);
     }
 
@@ -495,15 +504,20 @@ public readonly struct StudentAttendanceList
             yield return (key, list.StudentNames);
             yield break;
         }
-        bool conditionResult;
-        if (key.Groups.IsSingleGroup)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (key.Groups.IsSingleGroup)
+            {
+                return true;
+            }
+            else
+            {
+                return key.Groups.IsEmpty;
+            }
         }
-        else
-        {
-            conditionResult = key.Groups.IsEmpty;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -539,15 +553,20 @@ public readonly struct StudentAttendanceList
             return GetDay(key, list);
         }
 
-        bool conditionResult;
-        if (attendanceKey.Groups.IsSingleGroup)
+        bool CalculateConditionResult()
         {
-            conditionResult = true;
+            if (attendanceKey.Groups.IsSingleGroup)
+            {
+                return true;
+            }
+            else
+            {
+                return attendanceKey.Groups.IsEmpty;
+            }
         }
-        else
-        {
-            conditionResult = attendanceKey.Groups.IsEmpty;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -559,17 +578,28 @@ public readonly struct StudentAttendanceList
         {
             // Separate sheets require dates: a shared audience's ordinal does not identify a parent's day.
             var active = key.ActiveGroups is not { } activeGroups || activeGroups.Contains(parent.Parent);
-            bool conditionResult2;
-            if (active)
+            bool CalculateConditionResult2()
             {
-                conditionResult2 = parent.Attendance.Dates is not null;
-            }
-            else
-            {
-                conditionResult2 = false;
+                if (active)
+                {
+                    if (parent.Attendance.Dates is not null)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
 
-            var day = conditionResult2 ? GetDay(key, parent.Attendance).AsArray() : [];
+            bool conditionResult2 = CalculateConditionResult2();
+
+
+            var day = conditionResult2 ? GetDay(key, parent.Attendance)
+                .AsArray() : [];
             if (day.Length == parent.Attendance.StudentNames.Count)
             {
                 attendance.AddRange(day);

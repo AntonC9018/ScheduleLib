@@ -244,7 +244,8 @@ public sealed class Db
             })),
         ];
 
-        _ids = _teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last").ToArray();
+        _ids = _teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last")
+            .ToArray();
     }
 
     public void Check(NameParts<Word> firstName, int expected)

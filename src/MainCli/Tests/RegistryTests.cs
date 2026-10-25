@@ -36,7 +36,8 @@ public sealed class RegistryTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.IsSingleGroup);
+        var lesson = schedule.EnumerateWeeklyLessons()
+            .First(item => item.Lesson.Groups.IsSingleGroup);
         schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualFr;
         global::System.Uri CalculateUri()
         {
@@ -62,14 +63,15 @@ public sealed class RegistryTests
                                 uri: CalculateUri(),
                                 evaluationUri: CalculateEvaluationUri()));
         var diagnostics = new RegistrySyncDiagnostics();
-        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(new()
-        {
-            Navigator = navigator,
-            Attendance = new([]),
-            LessonTopics = NoLessonTopics.Instance,
-            Semester = Semester.Sem2,
-            Diagnostics = diagnostics,
-        });
+        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+            .Plan(new()
+            {
+                Navigator = navigator,
+                Attendance = new([]),
+                LessonTopics = NoLessonTopics.Instance,
+                Semester = Semester.Sem2,
+                Diagnostics = diagnostics,
+            });
         Assert.Empty(plan);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-schedule-dates");
         Assert.Equal(expected: 0, actual: navigator.Submissions);
@@ -138,8 +140,10 @@ public sealed class RegistryTests
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = singleDestination
-            ? schedule.EnumerateWeeklyLessons().First(item => item.Lesson.Groups.Count > 1)
-            : schedule.EnumerateWeeklyLessons().First();
+            ? schedule.EnumerateWeeklyLessons()
+                .First(item => item.Lesson.Groups.Count > 1)
+            : schedule.EnumerateWeeklyLessons()
+                .First();
         var destinationGroups = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups;
         bool CheckCondition2()
         {
@@ -181,7 +185,8 @@ public sealed class RegistryTests
                                         evaluationUri: CalculateEvaluationUri()));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
-        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Plan(
+        var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+            .Plan(
             new()
             {
                 Navigator = navigator,
@@ -272,7 +277,9 @@ public sealed class RegistryTests
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
-        var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
+        var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
+            .EnumerateWeeklyLessons()
+            .First();
         global::System.Uri CalculateUri()
         {
             global::System.Uri uri2 = new("https://registry.test/group");
@@ -298,7 +305,8 @@ public sealed class RegistryTests
                                 evaluationUri: CalculateEvaluationUri()))
         { TwoGroups = true };
         var delivered = 0;
-        await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().PlanGroups(
+        await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+            .PlanGroups(
             new()
             {
                 Navigator = navigator,
@@ -376,12 +384,35 @@ public sealed class RegistryTests
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: !failSubmission, actual: fake.LaterScanStarted);
         var result = capture.Result();
-        Assert.Equal(expected: apply ? "partial" : "failed", actual: result.GetProperty("status").GetString());
-        var outcomes = result.GetProperty("data").GetProperty("outcomes");
+        string CalculateExpected()
+        {
+            if (apply)
+            {
+                return "partial";
+            }
+
+            return "failed";
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: result.GetProperty("status")
+                    .GetString());
+        var outcomes = result.GetProperty("data")
+            .GetProperty("outcomes");
         Assert.Equal(expected: 1, actual: outcomes.GetArrayLength());
+        string CalculateExpected2()
+        {
+            if (actionStatus == "preview")
+            {
+                return "planned";
+            }
+
+            return actionStatus;
+        }
+
         Assert.Equal(
-            expected: actionStatus == "preview" ? "planned" : actionStatus,
-            actual: outcomes[0].GetProperty("status").GetString());
+                    expected: CalculateExpected2(),
+                    actual: outcomes[0].GetProperty("status")
+                        .GetString());
     }
 
     [Theory]
@@ -412,7 +443,8 @@ public sealed class RegistryTests
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First();
+        var lesson = schedule.EnumerateWeeklyLessons()
+            .First();
         global::System.Uri CalculateUri()
         {
             global::System.Uri uri2 = new("https://registry.test/group");
@@ -457,9 +489,13 @@ public sealed class RegistryTests
                     new() { Profile = "test" },
                     new() { Json = true },
                     new() { Apply = true }));
-            var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-            Assert.Equal(expected: "failed", actual: outcomes[0].GetProperty("status").GetString());
-            Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
+            var outcomes = capture.Result()
+                .GetProperty("data")
+                .GetProperty("outcomes");
+            Assert.Equal(expected: "failed", actual: outcomes[0].GetProperty("status")
+                .GetString());
+            Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status")
+                .GetString());
             Assert.Equal(expected: 0, actual: navigator.Submissions);
             Assert.Equal(expected: 1, actual: navigator.FormReads);
         }
@@ -498,7 +534,9 @@ public sealed class RegistryTests
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await provider.InitializeSchedule(default);
         await using var scope = provider.CreateAsyncScope();
-        var lesson = scope.ServiceProvider.GetRequiredService<Schedule>().EnumerateWeeklyLessons().First();
+        var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
+            .EnumerateWeeklyLessons()
+            .First();
         global::System.Uri CalculateUri()
         {
             global::System.Uri uri2 = new("https://registry.test/group");
@@ -528,13 +566,14 @@ public sealed class RegistryTests
             SubmissionFailure = submitted,
         };
         var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(() =>
-            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>().Run(new()
-            {
-                Navigator = navigator,
-                Attendance = new([]),
-                LessonTopics = NoLessonTopics.Instance,
-                Semester = Semester.Sem2,
-            }));
+            scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
+                .Run(new()
+                {
+                    Navigator = navigator,
+                    Attendance = new([]),
+                    LessonTopics = NoLessonTopics.Instance,
+                    Semester = Semester.Sem2,
+                }));
         Assert.Equal(expected: submitted, actual: error.SubmissionStarted);
         Assert.IsType<InvalidOperationException>(error.InnerException);
         Assert.Equal(expected: 1, actual: navigator.FormReads);
@@ -567,11 +606,17 @@ public sealed class RegistryTests
         Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
         Assert.Equal(expected: 1, actual: fake.Plans);
         var result = capture.Result();
-        Assert.Equal(expected: "preview", actual: result.GetProperty("status").GetString());
+        Assert.Equal(expected: "preview", actual: result.GetProperty("status")
+            .GetString());
         Assert.Equal(
             expected: "actual-account",
-            actual: result.GetProperty("data").GetProperty("target").GetProperty("account").GetString());
-        Assert.Equal(expected: 3, actual: result.GetProperty("data").GetProperty("outcomes").GetArrayLength());
+            actual: result.GetProperty("data")
+                .GetProperty("target")
+                .GetProperty("account")
+                .GetString());
+        Assert.Equal(expected: 3, actual: result.GetProperty("data")
+            .GetProperty("outcomes")
+            .GetArrayLength());
     }
 
     [Fact]
@@ -599,8 +644,12 @@ public sealed class RegistryTests
         Assert.Equal(expected: 3, actual: fake.Navigator.Submissions);
         Assert.Equal(expected: fake.Target, actual: locks.Target);
         Assert.All(
-            capture.Result().GetProperty("data").GetProperty("outcomes").EnumerateArray(),
-            x => Assert.Equal(expected: "completed", actual: x.GetProperty("status").GetString()));
+            capture.Result()
+                .GetProperty("data")
+                .GetProperty("outcomes")
+                .EnumerateArray(),
+            x => Assert.Equal(expected: "completed", actual: x.GetProperty("status")
+                .GetString()));
     }
 
     [Fact]
@@ -616,8 +665,11 @@ public sealed class RegistryTests
                 new() { Json = true },
                 new() { Apply = true }));
         Assert.Equal(expected: 1, actual: fake.Navigator.Submissions);
-        var outcome = capture.Result().GetProperty("data").GetProperty("outcomes")[0];
-        Assert.Equal(expected: "uncertain", actual: outcome.GetProperty("status").GetString());
+        var outcome = capture.Result()
+            .GetProperty("data")
+            .GetProperty("outcomes")[0];
+        Assert.Equal(expected: "uncertain", actual: outcome.GetProperty("status")
+            .GetString());
     }
 
     [Fact]
@@ -632,9 +684,13 @@ public sealed class RegistryTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("status").GetString());
-        Assert.Equal(expected: "uncertain", actual: outcomes[1].GetProperty("status").GetString());
+        var outcomes = capture.Result()
+            .GetProperty("data")
+            .GetProperty("outcomes");
+        Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "uncertain", actual: outcomes[1].GetProperty("status")
+            .GetString());
     }
 
     [Theory]
@@ -651,11 +707,21 @@ public sealed class RegistryTests
         int exit,
         string status)
     {
+        Exception CalculateInner()
+        {
+            if (submitted)
+            {
+                return new RegistrySubmissionRejectedException("rejected");
+            }
+
+            return new IOException("form read failed");
+        }
+
         await using var fake = new FakeProvider
         {
             ActionFailure = new RegistryActionExecutionException(
-                submitted,
-                submitted ? new RegistrySubmissionRejectedException("rejected") : new IOException("form read failed")),
+                        submitted,
+                        CalculateInner()),
         };
         using var capture = new Capture();
         Assert.Equal(
@@ -665,9 +731,13 @@ public sealed class RegistryTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        var outcomes = capture.Result().GetProperty("data").GetProperty("outcomes");
-        Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status").GetString());
-        Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status").GetString());
+        var outcomes = capture.Result()
+            .GetProperty("data")
+            .GetProperty("outcomes");
+        Assert.Equal(expected: status, actual: outcomes[0].GetProperty("status")
+            .GetString());
+        Assert.Equal(expected: "not-attempted", actual: outcomes[1].GetProperty("status")
+            .GetString());
     }
 
     [Fact]
@@ -682,7 +752,9 @@ public sealed class RegistryTests
                 new() { Profile = "teacher" },
                 new() { Json = true },
                 new() { Apply = true }));
-        Assert.Equal(expected: "partial", actual: capture.Result().GetProperty("status").GetString());
+        Assert.Equal(expected: "partial", actual: capture.Result()
+            .GetProperty("status")
+            .GetString());
     }
 
     [Theory]
@@ -748,8 +820,11 @@ public sealed class RegistryTests
                 new()));
         var final = jsonl ? capture.FinalRecord() : capture.Result();
         var data = final.GetProperty("data");
-        Assert.Equal(expected: "IA2502", actual: data.GetProperty("diagnostics")[0].GetProperty("group").GetString());
-        Assert.Contains(expectedSubstring: "English subgroup", actualString: final.GetProperty("warnings")[1].GetString());
+        Assert.Equal(expected: "IA2502", actual: data.GetProperty("diagnostics")[0]
+            .GetProperty("group")
+            .GetString());
+        Assert.Contains(expectedSubstring: "English subgroup", actualString: final.GetProperty("warnings")[1]
+            .GetString());
         Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
     }
 
@@ -925,7 +1000,27 @@ public sealed class RegistryTests
                                             throw new InvalidOperationException("validation failure");
                                         }
 
-                                        if (CancelSecond && kind == "update")
+                                        bool CalculateConditionResult()
+                                        {
+                                            if (CancelSecond)
+                                            {
+                                                if (kind == "update")
+                                                {
+                                                    return true;
+                                                }
+
+                                                return false;
+                                            }
+                                            else
+                                            {
+                                                return false;
+                                            }
+                                        }
+
+                                        bool conditionResult = CalculateConditionResult();
+
+
+                                        if (conditionResult)
                                         {
                                             throw new OperationCanceledException();
                                         }
@@ -936,7 +1031,8 @@ public sealed class RegistryTests
                 }
 
                 return ProjectValue();
-            }).ToArray();
+            })
+                .ToArray();
             return Task.FromResult(actions);
         }
 
@@ -1031,10 +1127,18 @@ public sealed class RegistryTests
                 GroupReads++;
             }
 
+            string CalculateSource()
+            {
+                if (isGroup)
+                {
+                    return "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>";
+                }
+
+                return "<html></html>";
+            }
+
             return await new HtmlParser().ParseDocumentAsync(
-                isGroup
-                    ? "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>"
-                    : "<html></html>");
+                            CalculateSource());
         }
 
         public Task SubmitLesson(IDocument document)
@@ -1092,7 +1196,27 @@ public sealed class RegistryTests
                 throw new InvalidOperationException("read failure");
             }
 
-            var extraStudent = InvalidFirstForm && FormReads == 1 ? "<tr><td>Extra student</td></tr>" : "";
+            bool CalculateConditionResult()
+            {
+                if (InvalidFirstForm)
+                {
+                    if (FormReads == 1)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            var extraStudent = conditionResult ? "<tr><td>Extra student</td></tr>" : "";
             return await new HtmlParser().ParseDocumentAsync(
                 (string) $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>{extraStudent}</table></form>");
         }
@@ -1126,7 +1250,9 @@ public sealed class RegistryTests
         public JsonElement FinalRecord()
         {
             using var doc =
-                JsonDocument.Parse(_text.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries).Last());
+                JsonDocument.Parse(_text.ToString()
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .Last());
             return doc.RootElement.Clone();
         }
 

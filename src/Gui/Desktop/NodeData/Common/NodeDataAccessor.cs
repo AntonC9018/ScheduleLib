@@ -54,7 +54,8 @@ public sealed class NodeDataAccessor<T> : IDisposable
 
     private NodeDataBuilder<T> _CreateBuilder()
     {
-        return _tree.CreateBuilder(SelectedNode!).Builder(_key);
+        return _tree.CreateBuilder(SelectedNode!)
+            .Builder(_key);
     }
 
     public NodeDataBuilder<T> Builder()
@@ -114,7 +115,8 @@ public sealed class NodeDataAccessor<T> : IDisposable
         }
         if (IsEditable)
         {
-            return _CreateBuilder().Value();
+            return _CreateBuilder()
+                .Value();
         }
 #pragma warning disable CS0162 // Unreachable code detected
         if (constructsValue)
@@ -136,7 +138,8 @@ public sealed class NodeDataAccessor<T> : IDisposable
         }
         else
         {
-            var ret = _CreateBuilder().TryGetValue();
+            var ret = _CreateBuilder()
+                .TryGetValue();
             return ret;
         }
 #pragma warning restore CS0162 // Unreachable code detected

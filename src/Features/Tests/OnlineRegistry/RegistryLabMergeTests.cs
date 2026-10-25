@@ -20,7 +20,8 @@ public sealed class RegistryLabMergeTests
         var lesson = schedule.Get(id);
         Assert.Equal(expected: DayOfWeek.Monday, actual: lesson.Weekly!.Value.Date.DayOfWeek);
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
-        Assert.Equal(expected: 2, actual: fixture.Schedule.EnumerateAllLessons().Count());
+        Assert.Equal(expected: 2, actual: fixture.Schedule.EnumerateAllLessons()
+            .Count());
         Assert.Contains(fixture.Schedule.EnumerateAllLessons(), item => item.Weekly!.Value.Date.DayOfWeek == DayOfWeek.Wednesday);
     }
 
@@ -126,7 +127,8 @@ public sealed class RegistryLabMergeTests
             return name2;
         }
 
-        first.Student(CalculateName()).Day(Attendance.NotPresent);
+        first.Student(CalculateName())
+            .Day(Attendance.NotPresent);
         first.HintMaxCount(1);
         global::ScheduleLib.GroupPartitionKey CalculateGroupPartition2()
         {
@@ -149,11 +151,14 @@ public sealed class RegistryLabMergeTests
         student.Day(Attendance.MotivatedAbsent);
         student.Day(Attendance.NotPresent);
         var canonical = builder.Build(Attendance.Present);
-        Assert.Equal(expected: 2, actual: AttendanceLabMerges.Project(canonical, fixture.Schedule, []).Count());
+        Assert.Equal(expected: 2, actual: AttendanceLabMerges.Project(canonical, fixture.Schedule, [])
+            .Count());
         var result = AttendanceLabMerges.Project(canonical, fixture.Schedule, fixture.Rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
-        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(0).AsArray());
-        Assert.Equal(expected: new[] { Attendance.None, Attendance.NotPresent }, actual: merged.Value.Attendance.Day(1).AsArray());
+        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(0)
+            .AsArray());
+        Assert.Equal(expected: new[] { Attendance.None, Attendance.NotPresent }, actual: merged.Value.Attendance.Day(1)
+            .AsArray());
         Assert.Equal(expected: 2, actual: merged.Value.StudentNames.Count);
     }
 
@@ -226,9 +231,12 @@ public sealed class RegistryLabMergeTests
         var result = AttendanceLabMerges.Project(attendance, schedule, rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
         Assert.Equal(expected: 3, actual: merged.Value.Dates!.Value.Length);
-        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.None }, actual: merged.Value.Attendance.Day(0).AsArray());
-        Assert.Equal(expected: new[] { Attendance.None, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(1).AsArray());
-        Assert.Equal(expected: new[] { Attendance.MotivatedAbsent, Attendance.None }, actual: merged.Value.Attendance.Day(2).AsArray());
+        Assert.Equal(expected: new[] { Attendance.NotPresent, Attendance.None }, actual: merged.Value.Attendance.Day(0)
+            .AsArray());
+        Assert.Equal(expected: new[] { Attendance.None, Attendance.MotivatedAbsent }, actual: merged.Value.Attendance.Day(1)
+            .AsArray());
+        Assert.Equal(expected: new[] { Attendance.MotivatedAbsent, Attendance.None }, actual: merged.Value.Attendance.Day(2)
+            .AsArray());
     }
 
     [Fact]
@@ -257,7 +265,8 @@ public sealed class RegistryLabMergeTests
         }
 
         builder.List(CalculateKey())
-                                    .Student(CalculateName()).Day(Attendance.NotPresent);
+                                    .Student(CalculateName())
+            .Day(Attendance.NotPresent);
         global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey2()
         {
             global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new([fixture.Group], GroupPartitionKey.All, fixture.Course, LessonType.Lab);
@@ -271,13 +280,15 @@ public sealed class RegistryLabMergeTests
         }
 
         builder.List(CalculateKey2())
-                            .Student(CalculateName2()).Day(Attendance.MotivatedAbsent);
+                            .Student(CalculateName2())
+            .Day(Attendance.MotivatedAbsent);
         global::ScheduleLib.OnlineRegistry.StudentAttendanceList attendance = builder.Build(Attendance.Present);
         global::ScheduleLib.Schedule schedule = fixture.Schedule;
         global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryLabMergeRule> rules = fixture.Rules;
         var result = AttendanceLabMerges.Project(attendance, schedule, rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
-        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: Assert.Single(merged.Value.Attendance.Day(0).AsArray()));
+        Assert.Equal(expected: Attendance.MotivatedAbsent, actual: Assert.Single(merged.Value.Attendance.Day(0)
+            .AsArray()));
     }
 
     [Theory]
@@ -308,7 +319,8 @@ public sealed class RegistryLabMergeTests
             return name;
         }
 
-        first.Student(CalculateName()).Day(Attendance.NotPresent);
+        first.Student(CalculateName())
+            .Day(Attendance.NotPresent);
         global::ScheduleLib.GroupPartitionKey CalculateGroupPartition2()
         {
             global::ScheduleLib.SubGroup subGroup2 = new SubGroup("II");
@@ -340,7 +352,8 @@ public sealed class RegistryLabMergeTests
             return name2;
         }
 
-        second.Student(CalculateName2()).Day(Attendance.MotivatedAbsent);
+        second.Student(CalculateName2())
+            .Day(Attendance.MotivatedAbsent);
         if (!duplicateName)
         {
             second.AddAttendanceDates([new() {

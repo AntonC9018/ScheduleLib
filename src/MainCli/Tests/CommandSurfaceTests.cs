@@ -62,7 +62,9 @@ public sealed class CommandSurfaceTests
         {
             Console.SetOut(output);
             Console.SetError(error);
-            var arguments = operation.Split(' ').Concat(["--project", directory, "--help"]).ToArray();
+            var arguments = operation.Split(' ')
+                .Concat(["--project", directory, "--help"])
+                .ToArray();
             Assert.Equal(expected: 0, actual: await CliHost.Run(arguments));
             string CalculateExpectedSubstring()
             {
@@ -143,11 +145,16 @@ public sealed class CommandSurfaceTests
             Console.SetError(error);
             Assert.Equal(expected: 2, actual: await CliHost.Run([.. arguments, "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status").GetString());
-            Assert.Empty(result.RootElement.GetProperty("outputs").EnumerateArray());
-            Assert.Empty(result.RootElement.GetProperty("actions").EnumerateArray());
+            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion")
+                .GetInt32());
+            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode")
+                .GetInt32());
+            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status")
+                .GetString());
+            Assert.Empty(result.RootElement.GetProperty("outputs")
+                .EnumerateArray());
+            Assert.Empty(result.RootElement.GetProperty("actions")
+                .EnumerateArray());
             Assert.NotEmpty(error.ToString());
         }
         finally

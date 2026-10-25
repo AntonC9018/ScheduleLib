@@ -89,7 +89,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             .ToArray();
 
         // error if there are public fields
-        if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance).Any())
+        if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)
+            .Any())
         {
             throw new InvalidOperationException($"Type `{typeof(T).Name}` should only have properties");
         }

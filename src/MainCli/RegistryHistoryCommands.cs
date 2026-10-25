@@ -80,7 +80,8 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         Credentials credentials;
         try
         {
-            credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>().Get();
+            credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>()
+                .Get();
             bool CheckCondition()
             {
                 if (credentials is null)
@@ -112,7 +113,8 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
                 "Registry credentials are missing; configure the selected teacher's existing credential source.");
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
-        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()?.HttpCallDelay
+        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()
+            ?.HttpCallDelay
             ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         using var context = await RegistryScraping.CreateHistoryContext(
             credentials,
@@ -166,7 +168,8 @@ public partial class RegistryCommands
                     "Private local storage requires a regular directory named .registry-history.");
             }
             var directory = Path.GetFullPath(history.LocalDirectory);
-            var summary = await CreateHistoryProvider().Discover(
+            var summary = await CreateHistoryProvider()
+                .Discover(
                 settings,
                 history.Year,
                 cancellation.Token);

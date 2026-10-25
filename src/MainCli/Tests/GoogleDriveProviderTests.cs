@@ -22,7 +22,8 @@ public sealed class GoogleDriveProviderTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -533,7 +534,8 @@ public sealed class GoogleDriveProviderTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -551,22 +553,32 @@ public sealed class GoogleDriveProviderTests
             // expires. Wait on that real token inside OAuth; do not synthesize an exception.
             bool CheckCondition()
             {
-                bool conditionResult;
-                if (request.RequestUri!.Host == "oauth2.googleapis.com")
+                bool CalculateConditionResult()
                 {
-                    if (scenario.EndsWith("real-deadline", StringComparison.Ordinal))
+                    if (request.RequestUri!.Host == "oauth2.googleapis.com")
                     {
-                        conditionResult = true;
+                        if (scenario.EndsWith("real-deadline", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            if (scenario.EndsWith("real-cancel", StringComparison.Ordinal))
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     }
                     else
                     {
-                        conditionResult = scenario.EndsWith("real-cancel", StringComparison.Ordinal);
+                        return false;
                     }
                 }
-                else
-                {
-                    conditionResult = false;
-                }
+
+                bool conditionResult = CalculateConditionResult();
+
 
                 if (conditionResult)
                 {
@@ -586,8 +598,27 @@ public sealed class GoogleDriveProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
-            if (request.RequestUri!.Host == "oauth2.googleapis.com"
-                && scenario.Contains("expired-refresh", StringComparison.Ordinal))
+            bool CalculateConditionResult6()
+            {
+                if (request.RequestUri!.Host == "oauth2.googleapis.com")
+                {
+                    if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult6 = CalculateConditionResult6();
+
+
+            if (conditionResult6)
             {
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
@@ -619,22 +650,32 @@ public sealed class GoogleDriveProviderTests
 
             bool CheckCondition2()
             {
-                bool conditionResult2;
-                if (scenario == "read-sent-real-deadline")
+                bool CalculateConditionResult2()
                 {
-                    conditionResult2 = true;
-                }
-                else
-                {
-                    if (scenario == "write-sent-real-deadline")
+                    if (scenario == "read-sent-real-deadline")
                     {
-                        conditionResult2 = request.Method == HttpMethod.Post;
+                        return true;
                     }
                     else
                     {
-                        conditionResult2 = false;
+                        if (scenario == "write-sent-real-deadline")
+                        {
+                            if (request.Method == HttpMethod.Post)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
 
                 if (conditionResult2)
                 {
@@ -651,22 +692,32 @@ public sealed class GoogleDriveProviderTests
             }
             bool CheckCondition3()
             {
-                bool conditionResult3;
-                if (scenario == "read-cancel")
+                bool CalculateConditionResult3()
                 {
-                    conditionResult3 = true;
-                }
-                else
-                {
-                    if (scenario == "write-cancel")
+                    if (scenario == "read-cancel")
                     {
-                        conditionResult3 = request.Method == HttpMethod.Post;
+                        return true;
                     }
                     else
                     {
-                        conditionResult3 = false;
+                        if (scenario == "write-cancel")
+                        {
+                            if (request.Method == HttpMethod.Post)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult3 = CalculateConditionResult3();
+
 
                 if (conditionResult3)
                 {
@@ -683,22 +734,32 @@ public sealed class GoogleDriveProviderTests
             }
             bool CheckCondition4()
             {
-                bool conditionResult4;
-                if (scenario == "read-timeout")
+                bool CalculateConditionResult4()
                 {
-                    conditionResult4 = true;
-                }
-                else
-                {
-                    if (scenario == "write-timeout")
+                    if (scenario == "read-timeout")
                     {
-                        conditionResult4 = request.Method == HttpMethod.Post;
+                        return true;
                     }
                     else
                     {
-                        conditionResult4 = false;
+                        if (scenario == "write-timeout")
+                        {
+                            if (request.Method == HttpMethod.Post)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult4 = CalculateConditionResult4();
+
 
                 if (conditionResult4)
                 {
@@ -720,22 +781,32 @@ public sealed class GoogleDriveProviderTests
 
             bool CheckCondition5()
             {
-                bool conditionResult5;
-                if (scenario == "preview-401")
+                bool CalculateConditionResult5()
                 {
-                    conditionResult5 = true;
-                }
-                else
-                {
-                    if (scenario == "apply-401")
+                    if (scenario == "preview-401")
                     {
-                        conditionResult5 = request.Method == HttpMethod.Post;
+                        return true;
                     }
                     else
                     {
-                        conditionResult5 = false;
+                        if (scenario == "apply-401")
+                        {
+                            if (request.Method == HttpMethod.Post)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
+
+                bool conditionResult5 = CalculateConditionResult5();
+
 
                 if (conditionResult5)
                 {
@@ -772,7 +843,27 @@ public sealed class GoogleDriveProviderTests
             }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
-            if (!folderQuery && scenario.StartsWith("apply-expired", StringComparison.Ordinal))
+            bool CalculateConditionResult7()
+            {
+                if (!folderQuery)
+                {
+                    if (scenario.StartsWith("apply-expired", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult7 = CalculateConditionResult7();
+
+
+            if (conditionResult7)
             {
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             }
@@ -864,15 +955,20 @@ public sealed class GoogleDriveProviderTests
                 cancellation.Token);
             Assert.Equal(expected: exit, actual: actual);
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: status, actual: json.RootElement.GetProperty("status").GetString());
+            Assert.Equal(expected: status, actual: json.RootElement.GetProperty("status")
+                .GetString());
             if (scenario.StartsWith("apply", StringComparison.Ordinal)
                 || scenario.StartsWith("write-", StringComparison.Ordinal))
             {
-                var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+                var outcomes = json.RootElement.GetProperty("data")
+                    .GetProperty("outcomes")
+                    .EnumerateArray()
+                    .ToArray();
                 var completed = scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal) ? 1 : 0;
                 Assert.All(
                     outcomes.Take(completed),
-                    x => Assert.Equal(expected: "completed", actual: x.GetProperty("state").GetString()));
+                    x => Assert.Equal(expected: "completed", actual: x.GetProperty("state")
+                        .GetString()));
                 bool CheckCondition6()
                 {
                     if (scenario.StartsWith("write-", StringComparison.Ordinal))
@@ -893,14 +989,24 @@ public sealed class GoogleDriveProviderTests
                     return false;
                 }
 
+                string CalculateExpected()
+                {
+                    if (CheckCondition6())
+                    {
+                        return "uncertain";
+                    }
+
+                    return "failed";
+                }
+
                 Assert.Equal(
-                                    expected: CheckCondition6()
-                                        ? "uncertain"
-                                        : "failed",
-                                    actual: outcomes[completed].GetProperty("state").GetString());
+                                                    expected: CalculateExpected(),
+                                                    actual: outcomes[completed].GetProperty("state")
+                                                        .GetString());
                 Assert.All(
                     outcomes.Skip(completed + 1),
-                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state").GetString()));
+                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state")
+                        .GetString()));
             }
             if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
             {
@@ -916,15 +1022,25 @@ public sealed class GoogleDriveProviderTests
             Assert.Equal(expected: driveRequests, actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
             if (scenario.Contains("real-", StringComparison.Ordinal))
             {
-                bool condition;
-                if (scenario.StartsWith("apply-after-create", StringComparison.Ordinal))
+                bool CalculateCondition()
                 {
-                    condition = true;
+                    if (scenario.StartsWith("apply-after-create", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        if (scenario == "write-sent-real-deadline")
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
                 }
-                else
-                {
-                    condition = scenario == "write-sent-real-deadline";
-                }
+
+                bool condition = CalculateCondition();
+
 
                 int expected2;
                 if (condition)
@@ -995,7 +1111,8 @@ public sealed class GoogleDriveProviderTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -1144,7 +1261,8 @@ public sealed class GoogleDriveProviderTests
     {
         string CalculatePath2()
         {
-            string path2 = Guid.NewGuid().ToString("N");
+            string path2 = Guid.NewGuid()
+                .ToString("N");
             return path2;
         }
 
@@ -1182,7 +1300,27 @@ public sealed class GoogleDriveProviderTests
             }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
-            if (!folderQuery && stage == "first-mutation")
+            bool CalculateConditionResult()
+            {
+                if (!folderQuery)
+                {
+                    if (stage == "first-mutation")
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
             }
@@ -1249,20 +1387,27 @@ public sealed class GoogleDriveProviderTests
                     new() { Json = true },
                     new() { Apply = stage != "planning" }));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode")
+                .GetInt32());
             if (stage != "planning")
             {
-                var outcomes = json.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray().ToArray();
+                var outcomes = json.RootElement.GetProperty("data")
+                    .GetProperty("outcomes")
+                    .EnumerateArray()
+                    .ToArray();
                 var failedIndex = stage == "after-completed" ? 1 : 0;
                 if (failedIndex == 1)
                 {
-                    Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("state").GetString());
+                    Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("state")
+                        .GetString());
                 }
 
-                Assert.Equal(expected: "failed", actual: outcomes[failedIndex].GetProperty("state").GetString());
+                Assert.Equal(expected: "failed", actual: outcomes[failedIndex].GetProperty("state")
+                    .GetString());
                 Assert.All(
                     outcomes.Skip(failedIndex + 1),
-                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state").GetString()));
+                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state")
+                        .GetString()));
             }
             if (exit == 4)
             {
@@ -1392,8 +1537,10 @@ public sealed class GoogleDriveProviderTests
                     new() { Json = true },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: 2, actual: json.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
+            Assert.Equal(expected: 2, actual: json.RootElement.GetProperty("exitCode")
+                .GetInt32());
+            Assert.Empty(json.RootElement.GetProperty("outputs")
+                .EnumerateArray());
         }
         finally
         {

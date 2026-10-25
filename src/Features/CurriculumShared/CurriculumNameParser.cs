@@ -347,15 +347,25 @@ public static class CurriculumNameParser
                 }
             }
 
-            bool conditionResult;
-            if (hasUnparsedItem)
+            bool CalculateConditionResult()
             {
-                conditionResult = itemCount > 1;
+                if (hasUnparsedItem)
+                {
+                    if (itemCount > 1)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {
@@ -804,7 +814,8 @@ public sealed class CurriculumCache
                     }
                 }
                 return false;
-            }).ToList();
+            })
+                .ToList();
 
             if (withTeacherOverlap.Count == 1)
             {
@@ -852,7 +863,8 @@ internal static class ThesisName
         }
 
         // ReSharper disable once GenericEnumeratorNotDisposed
-        using var source = body.ChildElements.GetEnumerator().Wrap(default(OpenXmlElement));
+        using var source = body.ChildElements.GetEnumerator()
+            .Wrap(default(OpenXmlElement));
 
         CurriculumGeneralInfo general;
         {
@@ -1181,7 +1193,8 @@ internal static class ThesisName
             }
 
             var p = paragraphs.Current;
-            if (p.ChildElements.OfType<Run>().MaybeJustTwoItems() is not { } runs)
+            if (p.ChildElements.OfType<Run>()
+                .MaybeJustTwoItems() is not { } runs)
             {
                 if (authorNames.Count == 0)
                 {
@@ -1922,7 +1935,8 @@ internal static class DisciplineProvisionsProcessing
         var ret = new List<DisciplineProvision>();
 
 
-        using var rowsEnumerator = table.Elements<TableRow>().GetEnumerator();
+        using var rowsEnumerator = table.Elements<TableRow>()
+            .GetEnumerator();
         if (!rowsEnumerator.MoveNext())
         {
             throw new NotSupportedException("Expected rows in the table.");
@@ -1961,7 +1975,8 @@ internal static class DisciplineProvisionsProcessing
         while (true)
         {
             var row = rowsEnumerator.Current;
-            foreach (var x in row.Elements<TableCell>().WithPosition())
+            foreach (var x in row.Elements<TableCell>()
+                .WithPosition())
             {
                 var mapping = headerState.ColumnMappings.Find(x.Position);
                 if (mapping == Column.Unknown)
@@ -1981,7 +1996,8 @@ internal static class DisciplineProvisionsProcessing
                 {
                     case Column.AttendanceMode:
                         {
-                            var para = x.Cell.Descendants<Paragraph>().Single();
+                            var para = x.Cell.Descendants<Paragraph>()
+                                .Single();
                             var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), AttendanceModeStrings);
                             StringSearchHelper.DefaultHandleError(attendanceResult);
                             if (attendanceResult.IsNotEmpty)
@@ -2049,7 +2065,8 @@ internal static class DisciplineProvisionsProcessing
 
         static void ProcessHeaderRow(ref HeaderState state, TableRow row)
         {
-            foreach (var (col, colPosition) in row.Elements<TableCell>().WithPosition())
+            foreach (var (col, colPosition) in row.Elements<TableCell>()
+                .WithPosition())
             {
                 if (Skip())
                 {
@@ -2057,7 +2074,8 @@ internal static class DisciplineProvisionsProcessing
                 }
 
                 var strings = CreateStrings();
-                if (col.Descendants<Paragraph>().SingleOrDefault() is not { } para)
+                if (col.Descendants<Paragraph>()
+                    .SingleOrDefault() is not { } para)
                 {
                     continue;
                 }

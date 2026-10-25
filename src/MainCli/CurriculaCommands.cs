@@ -322,19 +322,23 @@ public class CurriculaCommands
         {
             // Once artifacts are published, subsequent capability/authentication failures are partial output failures.
             exit = CliExit.AfterEffects(exit, effects: output?.PublishedPaths.Count > 0);
-            if (exit != CliExit.Success
-                && output?.PublishedPaths.Count > 0
-                && !output.PublishedPaths.Contains(output.ManifestPath))
+            if (exit != CliExit.Success)
             {
-                try
+                if (output?.PublishedPaths.Count > 0)
                 {
-                    await output.Complete("partial", CancellationToken.None);
+                    if (!output.PublishedPaths.Contains(output.ManifestPath))
+                    {
+                        try
+                        {
+                            await output.Complete("partial", CancellationToken.None);
+                        }
+                        catch (Exception)
+                        {
+                            warnings.Add("Could not publish the partial output manifest.");
+                        }
+                        StreamNewLocal();
+                    }
                 }
-                catch (Exception)
-                {
-                    warnings.Add("Could not publish the partial output manifest.");
-                }
-                StreamNewLocal();
             }
         }
         StreamNewLocal();

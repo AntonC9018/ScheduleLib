@@ -82,7 +82,8 @@ public static class ExcelScheduleParser
         using var xl = new XLWorkbook(p.InputFile);
         var ws = xl.FindRelevantWorksheet();
 
-        using var rowE = ws.Worksheet.Rows().GetEnumerator();
+        using var rowE = ws.Worksheet.Rows()
+            .GetEnumerator();
         if (!rowE.MoveNext())
         {
             throw new NotSupportedException("Expected header row!");
@@ -173,15 +174,20 @@ public static class ExcelScheduleParser
             offset,
             config);
 
-        bool conditionResult;
-        if (isFirstTime)
+        bool CalculateConditionResult()
         {
-            conditionResult = config.ExpectBullshitRow;
+            if (isFirstTime)
+            {
+                return config.ExpectBullshitRow;
+            }
+            else
+            {
+                return false;
+            }
         }
-        else
-        {
-            conditionResult = false;
-        }
+
+        bool conditionResult = CalculateConditionResult();
+
 
         if (conditionResult)
         {
@@ -207,7 +213,8 @@ public static class ExcelScheduleParser
                 break;
             }
             var row = rowE.Current;
-            var cellE = row.CellsWithMergedAppearingOnce().GetEnumerator();
+            var cellE = row.CellsWithMergedAppearingOnce()
+                .GetEnumerator();
             var action = rowIterationContext.Update(row, cellE);
             if (action == RowIterationContext.UpdateAction.Done)
             {
@@ -256,7 +263,8 @@ public static class ExcelScheduleParser
                 var text = value.GetText();
                 using var textAsEnumerable = SingleItemEnumerator.Create(text.AsMemory());
                 lessonParser.Lexer.Reset(textAsEnumerable);
-                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder).GetEnumerator();
+                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder)
+                    .GetEnumerator();
                 while (true)
                 {
                     try
@@ -552,12 +560,14 @@ public static class ExcelScheduleParser
             }
             var cell = _cellE.Current;
             var range = cell.ActualRange();
-            if (range.LastRow().RowNumber() >= lessonsEndRowNumber)
+            if (range.LastRow()
+                .RowNumber() >= lessonsEndRowNumber)
             {
                 throw cell.Exception("Lesson's span exits the current time slot span");
             }
 
-            var newColNumber = range.FirstColumn().ColumnNumber();
+            var newColNumber = range.FirstColumn()
+                .ColumnNumber();
             if (_colNumber != -1)
             {
                 int expectedNextCol = _colNumber + _colSpan;
@@ -675,7 +685,8 @@ public static class ExcelScheduleParser
             }
             if (startOffset == null)
             {
-                startOffset = range.FirstColumn().ColumnNumber();
+                startOffset = range.FirstColumn()
+                    .ColumnNumber();
             }
 
             if (!parser.SkipWhitespace().SkippedAny)
@@ -689,7 +700,8 @@ public static class ExcelScheduleParser
             }
 
             var grade = romanResult.Number;
-            var columnNumber = range.FirstColumn().ColumnNumber();
+            var columnNumber = range.FirstColumn()
+                .ColumnNumber();
             var columnCount = cell.ColumnCount();
             int index = columnNumber - startOffset.Value;
 
@@ -747,7 +759,8 @@ public static class ExcelScheduleParser
         {
             return default;
         }
-        using var cellE = rowE.Current.CellsWithMergedAppearingOnce().GetEnumerator();
+        using var cellE = rowE.Current.CellsWithMergedAppearingOnce()
+            .GetEnumerator();
         while (true)
         {
             if (!cellE.MoveNext())
@@ -755,7 +768,9 @@ public static class ExcelScheduleParser
                 return default;
             }
             var cell = cellE.Current;
-            var col = cell.AsRange().FirstColumn().ColumnNumber();
+            var col = cell.AsRange()
+                .FirstColumn()
+                .ColumnNumber();
             var colIndex = offset.GetUnOffsetIndex(col);
             if (colIndex.Value == 0)
             {
@@ -778,7 +793,9 @@ public static class ExcelScheduleParser
             while (true)
             {
                 var cell = cellE.Current;
-                var col = cell.AsRange().FirstColumn().ColumnNumber();
+                var col = cell.AsRange()
+                    .FirstColumn()
+                    .ColumnNumber();
                 var colIndex = offset.GetUnOffsetIndex(col);
                 if (colIndex.Value != groupIndex)
                 {

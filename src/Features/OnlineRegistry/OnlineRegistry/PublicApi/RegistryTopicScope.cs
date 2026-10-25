@@ -65,7 +65,8 @@ internal static class RegistryTopicScope
                 return target;
             }
 
-            comparison = schedule.Get(a).Language.CompareTo(CalculateTarget());
+            comparison = schedule.Get(a).Language
+                .CompareTo(CalculateTarget());
             if (comparison != 0)
             {
                 return comparison;
@@ -247,7 +248,8 @@ internal static class RegistryTopicScope
             }
             if (string.Equals(inner, known, StringComparison.OrdinalIgnoreCase))
             {
-                baseTopic = trimmed.Substring(startIndex: 0, length: open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open)
+                    .TrimEnd();
                 scope = known;
                 return true;
             }
@@ -264,7 +266,8 @@ internal static class RegistryTopicScope
             global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
             if (string.Equals(a, b, comparisonType))
             {
-                baseTopic = trimmed.Substring(startIndex: 0, length: open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open)
+                    .TrimEnd();
                 scope = known;
                 return true;
             }
@@ -311,7 +314,8 @@ internal static class RegistryTopicScope
             bool conditionResult;
             if (i + oldToken.Length <= value.Length)
             {
-                if (value.AsSpan(start: i, length: oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase))
+                if (value.AsSpan(start: i, length: oldToken.Length)
+                    .Equals(oldToken, StringComparison.OrdinalIgnoreCase))
                 {
                     if (i + oldToken.Length == value.Length)
                     {

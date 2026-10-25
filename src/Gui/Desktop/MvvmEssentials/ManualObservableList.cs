@@ -37,10 +37,12 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
             return arg;
         }
 
-        _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
+        var iDispatcher = _dispatcher;
+        PostArgs<NotifyCollectionChangedEventArgs> args = new(
                     callerId,
                     x => CollectionChanged?.Invoke(this, x),
-                    CalculateArg()));
+                    CalculateArg());
+        iDispatcher.Post<NotifyCollectionChangedEventArgs>(args);
     }
 
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();

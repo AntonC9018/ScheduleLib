@@ -23,29 +23,34 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            bool conditionResult;
-            if (credential is UserCredential user)
+            bool CalculateConditionResult()
             {
-                if (string.IsNullOrEmpty(user.Token?.RefreshToken))
+                if (credential is UserCredential user)
                 {
-                    if (user.Token is null)
+                    if (string.IsNullOrEmpty(user.Token?.RefreshToken))
                     {
-                        conditionResult = true;
+                        if (user.Token is null)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return user.Token.IsStale;
+                        }
                     }
                     else
                     {
-                        conditionResult = user.Token.IsStale;
+                        return false;
                     }
                 }
                 else
                 {
-                    conditionResult = false;
+                    return false;
                 }
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            bool conditionResult = CalculateConditionResult();
+
 
             if (conditionResult)
             {

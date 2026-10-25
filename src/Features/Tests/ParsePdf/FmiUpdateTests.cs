@@ -26,7 +26,10 @@ public sealed class FmiUpdateTests : IDisposable
         var checkpoint = await File.ReadAllTextAsync(State);
         Assert.False((await updater.RunAsync(State, Consume)).Updated);
         Assert.Equal(expected: checkpoint, actual: await File.ReadAllTextAsync(State));
-        downloads[1] = downloads[1] with { Content = Encoding.UTF8.GetBytes("changed bytes") };
+        downloads[1] = downloads[1] with
+        {
+            Content = Encoding.UTF8.GetBytes("changed bytes"),
+        };
         Assert.True((await updater.RunAsync(State, Consume)).Updated);
         Assert.Equal(expected: 2, actual: calls);
     }
@@ -38,7 +41,10 @@ public sealed class FmiUpdateTests : IDisposable
         var updater = Create(() => downloads);
         await updater.RunAsync(State, (_, _) => Task.CompletedTask);
         var checkpoint = await File.ReadAllTextAsync(State);
-        downloads[0] = downloads[0] with { Content = [42] };
+        downloads[0] = downloads[0] with
+        {
+            Content = [42],
+        };
         await Assert.ThrowsAsync<IOException>(() => updater.RunAsync(State, (_, _) => throw new IOException("generation failed")));
         Assert.Equal(expected: checkpoint, actual: await File.ReadAllTextAsync(State));
         Assert.True((await updater.RunAsync(State, (_, _) => Task.CompletedTask)).Updated);
@@ -47,10 +53,12 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public async Task FirstFailureAndIncompleteDownloadDoNotCreateCheckpoint()
     {
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads()).RunAsync(State, (_, _) => throw new FormatException("bad PDF")));
+        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads())
+            .RunAsync(State, (_, _) => throw new FormatException("bad PDF")));
         bool condition = File.Exists(State);
         Assert.False(condition);
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads()[..2]).RunAsync(State, (_, _) => Task.CompletedTask));
+        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads()[..2])
+            .RunAsync(State, (_, _) => Task.CompletedTask));
         bool condition2 = File.Exists(State);
         Assert.False(condition2);
     }
@@ -67,7 +75,14 @@ public sealed class FmiUpdateTests : IDisposable
         }
 
         Assert.Equal(expected: CalculateExpected(), actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
-        downloads[0] = downloads[0] with { Content = [42], Link = downloads[0].Link with { UploadDate = new(year: 2026, month: 9, day: 23) } };
+        downloads[0] = downloads[0] with
+        {
+            Content = [42],
+            Link = downloads[0].Link with
+            {
+                UploadDate = new(year: 2026, month: 9, day: 23),
+            },
+        };
         global::System.DateOnly CalculateExpected2()
         {
             global::System.DateOnly expected3 = new DateOnly(year: 2026, month: 9, day: 23);
@@ -75,7 +90,14 @@ public sealed class FmiUpdateTests : IDisposable
         }
 
         Assert.Equal(expected: CalculateExpected2(), actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
-        downloads[1] = downloads[1] with { Content = [43], Link = downloads[1].Link with { UploadDate = null } };
+        downloads[1] = downloads[1] with
+        {
+            Content = [43],
+            Link = downloads[1].Link with
+            {
+                UploadDate = null,
+            },
+        };
         global::System.DateOnly CalculateExpected3()
         {
             global::System.DateOnly expected4 = new DateOnly(year: 2026, month: 9, day: 25);
@@ -89,7 +111,8 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task CancellationDoesNotCommitHashes()
     {
         using var cancellation = new CancellationTokenSource();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Create(() => Downloads()).RunAsync(State,
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Create(() => Downloads())
+            .RunAsync(State,
             (_, _) => { cancellation.Cancel(); return Task.CompletedTask; }, cancellation.Token));
         bool condition = File.Exists(State);
         Assert.False(condition);
@@ -101,7 +124,8 @@ public sealed class FmiUpdateTests : IDisposable
         Directory.CreateDirectory(_directory);
         const string invalid = "{\"Version\":1,\"PeriodStart\":\"2026-09-17\",\"Sources\":[]}";
         await File.WriteAllTextAsync(path: State, contents: invalid);
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads()).RunAsync(State,
+        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads())
+            .RunAsync(State,
             (_, _) => throw new Exception("Consumer must not be called")));
         Assert.Equal(expected: invalid, actual: await File.ReadAllTextAsync(State));
     }
@@ -109,7 +133,8 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public async Task FutureUploadDateDoesNotCreateCheckpoint()
     {
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads(new(year: 2026, month: 9, day: 26))).RunAsync(State,
+        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads(new(year: 2026, month: 9, day: 26)))
+            .RunAsync(State,
             (_, _) => throw new Exception("Consumer must not be called")));
         bool condition = File.Exists(State);
         Assert.False(condition);
@@ -160,7 +185,8 @@ public sealed class FmiUpdateTests : IDisposable
                 byte[] content = [(byte) year];
                 global::FmiWebsiteInterop.FmiScheduleDownload fmiScheduleDownload = new FmiScheduleDownload(link, content);
                 return fmiScheduleDownload;
-            }).ToArray();
+            })
+            .ToArray();
     }
 
     private sealed class FixedClock : TimeProvider
@@ -179,7 +205,8 @@ public sealed class FmiUpdateTests : IDisposable
 
     private static string CalculatePath2()
     {
-        string toString = Guid.NewGuid().ToString("N");
+        string toString = Guid.NewGuid()
+            .ToString("N");
         string text = $"schedule-update-tests-{toString}";
         string path2 = (string) text;
         return path2;

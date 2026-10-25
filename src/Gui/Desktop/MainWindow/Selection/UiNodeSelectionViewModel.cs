@@ -70,7 +70,8 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
         {
             ResetModel(_uiNode.Value);
         });
-        _uiNodeChangedSub = uiNode.NodeSelected().Sub(n =>
+        _uiNodeChangedSub = uiNode.NodeSelected()
+            .Sub(n =>
         {
             ResetModel(n);
         });

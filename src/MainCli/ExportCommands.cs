@@ -73,10 +73,12 @@ public partial class ExportCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.LatestPeriodSchedule();
-            lessonCount = schedule.EnumerateWeeklyLessons().Count();
+            lessonCount = schedule.EnumerateWeeklyLessons()
+                .Count();
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var omitted = all.EnumerateWeeklyLessons().Count() - lessonCount;
+            var omitted = all.EnumerateWeeklyLessons()
+                .Count() - lessonCount;
             if (omitted > 0)
             {
                 global::System.Collections.Generic.List<string> list = warnings;
@@ -89,7 +91,8 @@ public partial class ExportCommands
                 warnings.Add("The latest period contains no teachers.");
             }
 
-            var teacherless = schedule.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
+            var teacherless = schedule.EnumerateWeeklyLessons()
+                .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
                 global::System.Collections.Generic.List<string> list2 = warnings;
@@ -97,7 +100,8 @@ public partial class ExportCommands
                 list2.Add(item2);
             }
 
-            var sundays = schedule.EnumerateWeeklyLessons().Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
+            var sundays = schedule.EnumerateWeeklyLessons()
+                .Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
             if (sundays > 0)
             {
                 global::System.Collections.Generic.List<string> list3 = warnings;
@@ -105,8 +109,10 @@ public partial class ExportCommands
                 list3.Add(item3);
             }
 
-            var seminar = scope.ServiceProvider.GetRequiredService<RegularSeminarDateProvider>().Get();
-            var seminarLessons = schedule.EnumerateWeeklyLessons().Count(x =>
+            var seminar = scope.ServiceProvider.GetRequiredService<RegularSeminarDateProvider>()
+                .Get();
+            var seminarLessons = schedule.EnumerateWeeklyLessons()
+                .Count(x =>
                 x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
             if (seminarLessons > 0)
             {

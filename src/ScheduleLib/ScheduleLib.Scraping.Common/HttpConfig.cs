@@ -116,7 +116,8 @@ public sealed class ScrapingContext : IDisposable
     /// <summary>Suppresses authentication replay and redirect navigation for this explicit mutation.</summary>
     public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null)
     {
-        return _requester.WithoutAuthenticationReplay(() => form.SubmitAsync().WaitAsync(token), () =>
+        return _requester.WithoutAuthenticationReplay(() => form.SubmitAsync()
+            .WaitAsync(token), () =>
         {
             token.ThrowIfCancellationRequested();
             onSubmissionStarted?.Invoke();

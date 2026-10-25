@@ -53,7 +53,11 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     {
         Debug.Assert(typeof(T).GetEnumUnderlyingType() == typeof(int));
 
-        var values = Enum.GetValues(typeof(T)).OfType<T>().OrderBy(EnumAsInt).Distinct().ToArray();
+        var values = Enum.GetValues(typeof(T))
+            .OfType<T>()
+            .OrderBy(EnumAsInt)
+            .Distinct()
+            .ToArray();
         Debug.Assert(values.Length > 0, "Empty enum?");
 
         bool adjustForCount = Enum.GetName(typeof(T), values[^1]) == "Count";

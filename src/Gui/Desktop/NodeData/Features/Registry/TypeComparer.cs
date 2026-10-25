@@ -25,6 +25,7 @@ public sealed class TypeComparer<T> : IEqualityComparer<T>
 
     public int GetHashCode([DisallowNull] T obj)
     {
-        return obj.GetType().GetHashCode();
+        return obj.GetType()
+            .GetHashCode();
     }
 }

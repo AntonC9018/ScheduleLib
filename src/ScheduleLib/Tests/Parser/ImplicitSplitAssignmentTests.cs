@@ -96,7 +96,8 @@ public sealed class ImplicitSplitAssignmentTests
         var names = new List<string>();
         foreach (var groupId in lesson.Lesson.Groups)
         {
-            names.Add(schedule.EnumerateGroups().Single(x => x.Id == groupId).Item.Name);
+            names.Add(schedule.EnumerateGroups()
+                .Single(x => x.Id == groupId).Item.Name);
         }
         return names;
     }
