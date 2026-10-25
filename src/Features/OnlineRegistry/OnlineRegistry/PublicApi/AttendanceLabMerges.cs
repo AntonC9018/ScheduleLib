@@ -42,9 +42,26 @@ public static class AttendanceLabMerges
 
         var group = source.Groups[0];
         var partition = source.GroupPartition;
-        var automatic = schedule.AutomaticLabSubGroupMerges.Any(merge => merge.Course == source.CourseId
-            && merge.Group == group && merge.Specialization == partition.Specialization
-            && merge.Alternative == partition.Alternative);
+        var automatic = schedule.AutomaticLabSubGroupMerges.Any(merge =>
+        {
+            if (merge.Course != source.CourseId)
+            {
+                return false;
+            }
+            if (merge.Group != group)
+            {
+                return false;
+            }
+            if (merge.Specialization != partition.Specialization)
+            {
+                return false;
+            }
+            if (merge.Alternative != partition.Alternative)
+            {
+                return false;
+            }
+            return true;
+        });
         if (!automatic && RegistryLabMerges.Find(rules, schedule, source.CourseId, source.Groups, destination) is null)
         {
             return false;

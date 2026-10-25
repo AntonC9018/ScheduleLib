@@ -82,12 +82,17 @@ public readonly struct Accessor<T, TId> : IAccessor<Accessor<T, TId>, T>
         }
     }
 
-    public static Accessor<T, TId> Create(int index, ImmutableArray<T> arr)
+    static Accessor<T, TId> IAccessor<Accessor<T, TId>, T>.Create(int index, ImmutableArray<T> arr)
+    {
+        return FromIndex(index, arr);
+    }
+
+    public static Accessor<T, TId> FromIndex(int index, ImmutableArray<T> arr)
     {
         var id = Unsafe.As<int, TId>(ref index);
-        return Create(id, arr);
+        return FromId(id, arr);
     }
-    public static Accessor<T, TId> Create(TId id, ImmutableArray<T> arr)
+    public static Accessor<T, TId> FromId(TId id, ImmutableArray<T> arr)
     {
         return new(id, arr);
     }
@@ -103,17 +108,20 @@ public readonly partial struct RefAccessor<T, TRef, TId>
     public TRef Item => TRef.Create(in _impl.Item);
     public TId Id => _impl.Id;
 
-    public static RefAccessor<T, TRef, TId> Create(int index, ImmutableArray<T> arr)
+    static RefAccessor<T, TRef, TId> IAccessor<RefAccessor<T, TRef, TId>, T>.Create(int index, ImmutableArray<T> arr)
     {
-        global::ScheduleLib.Accessor<T, TId> impl = Accessor<T, TId>.Create(index, arr);
-        global::ScheduleLib.RefAccessor<T, TRef, TId> refAccessor = new(impl);
-        return refAccessor;
+        return FromIndex(index, arr);
     }
-    public static RefAccessor<T, TRef, TId> Create(TId id, ImmutableArray<T> arr)
+
+    public static RefAccessor<T, TRef, TId> FromIndex(int index, ImmutableArray<T> arr)
     {
-        global::ScheduleLib.Accessor<T, TId> impl = Accessor<T, TId>.Create(id, arr);
-        global::ScheduleLib.RefAccessor<T, TRef, TId> refAccessor = new(impl);
-        return refAccessor;
+        var impl = Accessor<T, TId>.FromIndex(index, arr);
+        return new(impl);
+    }
+    public static RefAccessor<T, TRef, TId> FromId(TId id, ImmutableArray<T> arr)
+    {
+        var impl = Accessor<T, TId>.FromId(id, arr);
+        return new(impl);
     }
 }
 
@@ -230,7 +238,7 @@ public readonly struct AnyLessonAccessor
             {
                 return null;
             }
-            return WeeklyLessonAccessor.Create(_id.Id, _arrays.WeeklyLessons);
+            return WeeklyLessonAccessor.FromIndex(_id.Id, _arrays.WeeklyLessons);
         }
     }
     public OneTimeLessonAccessor? OneTime
@@ -241,7 +249,7 @@ public readonly struct AnyLessonAccessor
             {
                 return null;
             }
-            return OneTimeLessonAccessor.Create(_id.Id, _arrays.OneTimeLessons);
+            return OneTimeLessonAccessor.FromIndex(_id.Id, _arrays.OneTimeLessons);
         }
     }
 
@@ -1201,11 +1209,11 @@ public static class ScheduleAccessorHelper
     }
     public static WeeklyLessonAccessor Get(this Schedule schedule, WeeklyLessonId id)
     {
-        return WeeklyLessonAccessor.Create(id, schedule.WeeklyLessons);
+        return WeeklyLessonAccessor.FromId(id, schedule.WeeklyLessons);
     }
     public static OneTimeLessonAccessor Get(this Schedule schedule, OneTimeLessonId id)
     {
-        return OneTimeLessonAccessor.Create(id, schedule.OneTimeLessons);
+        return OneTimeLessonAccessor.FromId(id, schedule.OneTimeLessons);
     }
     public static AnyLessonAccessor Get(this Schedule schedule, AnyLessonId id)
     {
@@ -1239,11 +1247,10 @@ public static class ScheduleAccessorHelper
     {
         for (var index = 0; index < schedule.WeeklyLessons.Length; index++)
         {
-            global::ScheduleLib.Schedule schedule2 = schedule;
-            global::ScheduleLib.AnyLessonId id = new(LessonRegularity.Weekly, index);
-            if (schedule2.IsLessonActive(id))
+            var id = new AnyLessonId(LessonRegularity.Weekly, index);
+            if (schedule.IsLessonActive(id))
             {
-                yield return WeeklyLessonAccessor.Create(index, schedule.WeeklyLessons);
+                yield return WeeklyLessonAccessor.FromIndex(index, schedule.WeeklyLessons);
             }
         }
     }
@@ -1311,14 +1318,19 @@ public readonly partial struct WeeklyLessonAccessor : IAccessor<WeeklyLessonAcce
     public readonly ref readonly LessonData Lesson => ref Ref.Lesson;
     public readonly ref readonly WeeklyLessonDate Date => ref Ref.Date;
 
-    public static WeeklyLessonAccessor Create(WeeklyLessonId id, ImmutableArray<WeeklyLesson> arr)
+    public static WeeklyLessonAccessor FromId(WeeklyLessonId id, ImmutableArray<WeeklyLesson> arr)
     {
-        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.Create(id, arr);
+        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.FromId(id, arr);
         return new(r);
     }
-    public static WeeklyLessonAccessor Create(int index, ImmutableArray<WeeklyLesson> arr)
+    static WeeklyLessonAccessor IAccessor<WeeklyLessonAccessor, WeeklyLesson>.Create(int index, ImmutableArray<WeeklyLesson> arr)
     {
-        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.Create(index, arr);
+        return FromIndex(index, arr);
+    }
+
+    public static WeeklyLessonAccessor FromIndex(int index, ImmutableArray<WeeklyLesson> arr)
+    {
+        var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.FromIndex(index, arr);
         return new(r);
     }
 }
@@ -1333,14 +1345,19 @@ public readonly partial struct OneTimeLessonAccessor : IAccessor<OneTimeLessonAc
     public readonly ref readonly LessonData Lesson => ref Ref.Lesson;
     public readonly ref readonly OneTimeLessonDate Date => ref Ref.Date;
 
-    public static OneTimeLessonAccessor Create(OneTimeLessonId id, ImmutableArray<OneTimeLesson> arr)
+    public static OneTimeLessonAccessor FromId(OneTimeLessonId id, ImmutableArray<OneTimeLesson> arr)
     {
-        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.Create(id, arr);
+        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.FromId(id, arr);
         return new(r);
     }
-    public static OneTimeLessonAccessor Create(int index, ImmutableArray<OneTimeLesson> arr)
+    static OneTimeLessonAccessor IAccessor<OneTimeLessonAccessor, OneTimeLesson>.Create(int index, ImmutableArray<OneTimeLesson> arr)
     {
-        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.Create(index, arr);
+        return FromIndex(index, arr);
+    }
+
+    public static OneTimeLessonAccessor FromIndex(int index, ImmutableArray<OneTimeLesson> arr)
+    {
+        var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.FromIndex(index, arr);
         return new(r);
     }
 }

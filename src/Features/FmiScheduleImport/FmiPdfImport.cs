@@ -46,9 +46,18 @@ public static class FmiPdfImport
             ParserFactory = new(new() { ProcessSpacesCourseName = Config.WhiteSpaceActionCourseName }),
             SpecializationRegistry = Config.SpecializationRegistry,
         });
+        int AdjustedYear()
+        {
+            if (start.Month >= 8)
+            {
+                return start.Year;
+            }
+            return start.Year - 1;
+        }
+
         context.Schedule.GroupParseContext = GroupParseContext.Create(new()
         {
-            CurrentStudyYear = new(start.Month >= 8 ? start.Year : start.Year - 1),
+            CurrentStudyYear = new(AdjustedYear()),
             GroupLabelsThatAreMaster = Config.GroupLabelsThatAreMaster,
         });
         context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);

@@ -30,7 +30,7 @@
     <!-- Keep existing CR findings visible while each rule is reviewed against legacy code.
          Other compiler/analyzer warnings remain errors. PrivateAssets avoids exporting the analyzer. -->
     <PropertyGroup>
-        <AntonCodingRulesDiagnosticIds>CR0001;CR0003;CR0004;CR0005;CR0006;CR0200;CR0201;CR0202;CR0203;CR0204;CR0300;CR0301;CR0302;CR0400;CR0401;CR0402;CR0500;CR0600;CR0601;CR0700;CR0800;CR0801;CR0802;CR0803;CR0804;CR0900;CR1000;CR1001;CR1100;CR1200;CR1300;CR1400;CR1500;CR1600;RCS0042;RCS1016</AntonCodingRulesDiagnosticIds>
+        <AntonCodingRulesDiagnosticIds>CR0001;CR0003;CR0004;CR0005;CR0006;CR0200;CR0201;CR0202;CR0203;CR0204;CR0300;CR0301;CR0302;CR0303;CR0400;CR0401;CR0402;CR0500;CR0600;CR0601;CR0700;CR0800;CR0801;CR0802;CR0803;CR0804;CR0900;CR1000;CR1001;CR1100;CR1200;CR1300;CR1400;CR1500;CR1600;RCS0042;RCS1016</AntonCodingRulesDiagnosticIds>
         <!-- dotnet format filters warnaserror- entries out of its analyzer pass.
              The isolated formatting host opts out; ordinary builds retain this policy. -->
         <WarningsNotAsErrors Condition="'$(ScheduleLibFormatting)' != 'true'">$(WarningsNotAsErrors);$(AntonCodingRulesDiagnosticIds)</WarningsNotAsErrors>
