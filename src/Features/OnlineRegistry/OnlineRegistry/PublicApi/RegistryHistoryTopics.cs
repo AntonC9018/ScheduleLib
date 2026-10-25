@@ -156,25 +156,7 @@ public static class RegistryHistoryTopicSelection
 
     public static bool Matches(RegistryHistoryCourse current, RegistryHistoryCourse historical)
     {
-        bool condition;
-        if (current.Semester == historical.Semester)
-        {
-            global::System.StringComparer stringComparer = StringComparer.OrdinalIgnoreCase;
-            string x2 = NormalizeCourseName(current.Name);
-            string y2 = NormalizeCourseName(historical.Name);
-            condition = stringComparer.Equals(x: x2, y: y2);
-        }
-        else
-        {
-            condition = false;
-        }
-
-        if (condition)
-        {
-            return true;
-        }
-
-        return false;
+        return RegistryHistoryCourseIdentityComparer.Instance.Equals(current, historical);
     }
 
     public static RegistryHistoryTopicSelectionResult Select(string currentYear, IReadOnlyList<string> offeredYears,
@@ -269,7 +251,8 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
         var historical = new List<RegistryHistoryCourseTopics>();
         var pending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other)) == 1).ToList();
         var ambiguousPending = currentCourses.Where(course => currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other)) > 1)
-            .DistinctBy(course => $"{course.Semester}\0{RegistryHistoryTopicSelection.NormalizeCourseName(course.Name)}", StringComparer.OrdinalIgnoreCase).ToList();
+            .Distinct(RegistryHistoryCourseIdentityComparer.Instance)
+            .ToList();
         foreach (var year in previous)
         {
             bool conditionResult;

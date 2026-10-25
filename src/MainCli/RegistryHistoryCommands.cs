@@ -157,7 +157,7 @@ public partial class RegistryCommands
 
             try
             {
-                RegistryHistoryTopicFiles.ValidateDirectory(history.LocalDirectory);
+                _ = new RegistryHistoryTopicDirectory(history.LocalDirectory);
             }
             catch (Exception)
             {

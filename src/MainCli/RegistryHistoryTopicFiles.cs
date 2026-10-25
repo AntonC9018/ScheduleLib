@@ -19,244 +19,167 @@ public sealed record RegistryHistoryTopicFileSource(
     IReadOnlyList<DateTime> Dates,
     string CourseMapping = "requires-group-mapping");
 
-/// <summary>Private download candidates in existing topic CSV syntax. Group/faculty/language mappings remain unresolved, so no import manifest is emitted.</summary>
-public static class RegistryHistoryTopicFiles
+/// <summary>Private topic CSV candidates and their inventory; no import manifest is emitted.</summary>
+internal static class RegistryHistoryTopicFiles
 {
-    public static Task<RegistryHistoryTopicFilesResult> Save(
-        string directory,
-        RegistryHistoryTopicSelectionResult selection,
-        CancellationToken token)
-    {
-        return Save(
-            directory,
-            selection,
-            null,
-            current: null,
-            historical: null,
-            token);
-    }
+    private readonly record struct TopicExport(
+        RegistryHistoryCourse CurrentCourse,
+        RegistryHistoryCourseTopics Historical,
+        string CourseMapping);
 
-    public static Task<RegistryHistoryTopicFilesResult> Save(
-        string directory,
+    public static async Task<RegistryHistoryTopicFilesResult> Save(
+        RegistryHistoryTopicDirectory directory,
         RegistryHistoryTopicsAnalysis analysis,
         CancellationToken token)
     {
-        return Save(
-            directory,
-            analysis.Selection,
-            analysis.OfferedYears,
-            current: analysis.Current,
-            historical: analysis.Historical,
-            token);
-    }
-
-    private static async Task<RegistryHistoryTopicFilesResult> Save(
-        string directory,
-        RegistryHistoryTopicSelectionResult selection,
-        IReadOnlyList<string>? offeredYears,
-        IReadOnlyList<RegistryHistoryCourseTopics>? current,
-        IReadOnlyList<RegistryHistoryCourseTopics>? historical,
-        CancellationToken token)
-    {
-        directory = Path.GetFullPath(directory);
-        string path = Path.TrimEndingDirectorySeparator(directory);
-        string fileName = Path.GetFileName(path);
-        if (fileName != ".registry-history")
-        {
-            throw new IOException("Private history output requires a directory named .registry-history.");
-        }
-
-        RejectSymbolicDirectories(directory);
-        if (OperatingSystem.IsWindows())
-        {
-            Directory.CreateDirectory(directory);
-        }
-        else
-        {
-            Directory.CreateDirectory(
-                directory,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
+        directory.EnsureCreated();
         var runId = Guid.NewGuid().ToString("N");
         var files = new List<string>();
         var sources = new List<RegistryHistoryTopicFileSource>();
-        var exports =
-            new List<(RegistryHistoryCourse CurrentCourse, RegistryHistoryCourseTopics Historical, string CourseMapping
-                )>();
-        exports.AddRange(
-            selection.Candidates.Select(candidate =>
-                (candidate.CurrentCourse, candidate.Historical, "requires-group-mapping")));
-        if (historical is not null)
-        {
-            var ambiguous = selection.Unresolved
-                .Where(item => item.Reason == RegistryHistoryTopicMappingFailure.AmbiguousCourse)
-                .DistinctBy(
-                    item =>
-                        $"{item.CurrentCourse.Semester}\0{RegistryHistoryTopicSelection.NormalizeCourseName(item.CurrentCourse.Name)}",
-                    StringComparer.OrdinalIgnoreCase);
-            foreach (var item in ambiguous)
-            {
-                var matches = historical.Where(snapshot =>
-                    RegistryHistoryTopicSelection.Matches(current: item.CurrentCourse, historical: snapshot.Course)).ToArray();
-                var latest = matches.Where(HasTopics).OrderByDescending(snapshot =>
-                        RegistryHistoryTopicSelection.AcademicYearStart(snapshot.Year))
-                    .FirstOrDefault()?.Year;
-                if (latest is null)
-                {
-                    continue;
-                }
-
-                exports.AddRange(
-                    matches.Where(snapshot => snapshot.Year == latest)
-                        .Select(snapshot => (item.CurrentCourse, snapshot, "ambiguous-course")));
-            }
-        }
+        var exports = SelectExports(analysis);
         foreach (var candidate in exports)
         {
             foreach (var group in candidate.Historical.Groups)
             {
-                foreach (var lessons in group.Lessons.GroupBy(x => x.LessonType))
+                foreach (var lessons in group.Lessons.GroupBy(lesson => lesson.LessonType))
                 {
                     var ordered = lessons
-                        .Where(x => !string.IsNullOrWhiteSpace(x.Topic)
-                            && !RegistryAssessmentTopics.IsAssessment(x.Topic)).OrderBy(x => x.Date).ToArray();
+                        .Where(IsExportableTopic)
+                        .OrderBy(lesson => lesson.Date)
+                        .ToArray();
                     if (ordered.Length == 0)
                     {
                         continue;
                     }
 
                     var name = $"topics-{runId}-{files.Count + 1}.csv";
-                    await using (var stream = NewPrivateFile(Path.Combine(directory, name)))
-                    {
-                        global::System.Text.UTF8Encoding CalculateEncoding()
-                        {
-                            global::System.Text.UTF8Encoding encoding = new UTF8Encoding(false);
-                            return encoding;
-                        }
-
-                        await using (var writer = new StreamWriter(stream, CalculateEncoding()))
-                        {
-                            await writer.WriteLineAsync("name,lessonType".AsMemory(), token);
-                            foreach (var lesson in ordered)
-                            {
-                                string replace = lesson.Topic.Replace("\"", "\"\"");
-                                string text = $"\"{replace}\",";
-                                var line = (string) text + lesson.LessonType;
-                                await writer.WriteLineAsync(line.AsMemory(), token);
-                            }
-                        }
-                    }
-
+                    await WriteTopics(directory, name, ordered, token);
                     files.Add(name);
-                    global::System.Collections.Generic.List<global::ScheduleLib.Cli.RegistryHistoryTopicFileSource> list = sources;
-                    global::ScheduleLib.Cli.RegistryHistoryTopicFileSource item2 = new(
+                    var dates = ordered.Select(lesson => lesson.Date).ToArray();
+                    var source = new RegistryHistoryTopicFileSource(
                         File: name,
                         CurrentCourse: candidate.CurrentCourse.Name,
-                        candidate.CurrentCourse.Semester,
+                        Semester: candidate.CurrentCourse.Semester,
                         HistoricalCourse: candidate.Historical.Course.Name,
                         Year: candidate.Historical.Year,
                         RawGroup: group.Name,
-                        group.Uri,
-                        lessons.Key,
-                        ordered.Select(x => x.Date).ToArray(),
+                        SourceUri: group.Uri,
+                        LessonType: lessons.Key,
+                        Dates: dates,
                         CourseMapping: candidate.CourseMapping);
-                    list.Add(item2);
+                    sources.Add(source);
                 }
             }
         }
 
         var inventory = $"topics-candidates-{runId}.json";
-        var options =
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true,
-            };
-        options.Converters.Add(new JsonStringEnumConverter());
-        await using (var stream = NewPrivateFile(Path.Combine(directory, inventory)))
+        await WriteInventory(directory, inventory, analysis, sources, token);
+        return new(inventory, files);
+    }
+
+    private static List<TopicExport> SelectExports(RegistryHistoryTopicsAnalysis analysis)
+    {
+        var exports = analysis.Selection.Candidates
+            .Select(candidate => new TopicExport(candidate.CurrentCourse, candidate.Historical, "requires-group-mapping"))
+            .ToList();
+        if (analysis.Historical is not { } historical)
         {
-            await JsonSerializer.SerializeAsync(
-                stream,
-                new
-                {
-                    schemaVersion = 1,
-                    currentYear = selection.CurrentYear,
-                    requiresGroupMapping = true,
-                    offeredYears,
-                    current,
-                    historical,
-                    sources,
-                    unresolved = selection.Unresolved,
-                },
-                options,
-                token);
+            return exports;
         }
 
-        return new(inventory, files);
+        var ambiguous = analysis.Selection.Unresolved
+            .Where(item => item.Reason == RegistryHistoryTopicMappingFailure.AmbiguousCourse)
+            .DistinctBy(item => item.CurrentCourse, RegistryHistoryCourseIdentityComparer.Instance);
+        foreach (var item in ambiguous)
+        {
+            var matches = historical
+                .Where(snapshot => RegistryHistoryTopicSelection.Matches(current: item.CurrentCourse, historical: snapshot.Course))
+                .ToArray();
+            var latest = matches
+                .Where(HasTopics)
+                .OrderByDescending(snapshot => RegistryHistoryTopicSelection.AcademicYearStart(snapshot.Year))
+                .FirstOrDefault()?.Year;
+            if (latest is null)
+            {
+                continue;
+            }
+
+            var latestExports = matches
+                .Where(snapshot => snapshot.Year == latest)
+                .Select(snapshot => new TopicExport(item.CurrentCourse, snapshot, "ambiguous-course"));
+            exports.AddRange(latestExports);
+        }
+        return exports;
+    }
+
+    private static bool IsExportableTopic(RegistryHistoryTopic lesson)
+    {
+        if (string.IsNullOrWhiteSpace(lesson.Topic))
+        {
+            return false;
+        }
+        if (RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+        {
+            return false;
+        }
+        return true;
     }
 
     private static bool HasTopics(RegistryHistoryCourseTopics snapshot)
     {
-        return snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
-            !string.IsNullOrWhiteSpace(lesson.Topic) && !RegistryAssessmentTopics.IsAssessment(lesson.Topic)));
+        return snapshot.Groups.Any(group => group.Lessons.Any(IsExportableTopic));
     }
 
-    private static FileStream NewPrivateFile(string path)
+    private static async Task WriteTopics(
+        RegistryHistoryTopicDirectory directory,
+        string name,
+        IReadOnlyList<RegistryHistoryTopic> lessons,
+        CancellationToken token)
     {
-        var options =
-            new FileStreamOptions
-            {
-                Mode = FileMode.CreateNew,
-                Access = FileAccess.Write,
-                Share = FileShare.None,
-            };
-        if (!OperatingSystem.IsWindows())
+        await using var stream = directory.NewFile(name);
+        var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        await using var writer = new StreamWriter(stream, encoding);
+        await writer.WriteLineAsync("name,lessonType".AsMemory(), token);
+        foreach (var lesson in lessons)
         {
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        }
-
-        return new(path, options);
-    }
-
-    public static void ValidateDirectory(string directory)
-    {
-        directory = Path.GetFullPath(directory);
-        string path = Path.TrimEndingDirectorySeparator(directory);
-        string fileName = Path.GetFileName(path);
-        if (fileName != ".registry-history")
-        {
-            throw new IOException("Private history output requires a directory named .registry-history.");
-        }
-
-        RejectSymbolicDirectories(directory);
-    }
-
-    private static void RejectSymbolicDirectories(string directory)
-    {
-        for (var current = new DirectoryInfo(directory); current is not null; current = current.Parent)
-        {
-            bool conditionResult;
-            if (current.LinkTarget is not null)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                if (current.Exists)
-                {
-                    conditionResult = (current.Attributes & FileAttributes.ReparsePoint) != 0;
-                }
-                else
-                {
-                    conditionResult = false;
-                }
-            }
-
-            if (conditionResult)
-            {
-                throw new IOException("Private history output requires regular directories.");
-            }
+            var topic = QuoteCsvField(lesson.Topic);
+            var line = $"{topic},{lesson.LessonType}";
+            await writer.WriteLineAsync(line.AsMemory(), token);
         }
     }
+
+    private static string QuoteCsvField(string value)
+    {
+        var escaped = value.Replace("\"", "\"\"");
+        return $"\"{escaped}\"";
+    }
+
+    private static async Task WriteInventory(
+        RegistryHistoryTopicDirectory directory,
+        string name,
+        RegistryHistoryTopicsAnalysis analysis,
+        IReadOnlyList<RegistryHistoryTopicFileSource> sources,
+        CancellationToken token)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        await using var stream = directory.NewFile(name);
+        var inventory = new
+        {
+            schemaVersion = 1,
+            currentYear = analysis.Selection.CurrentYear,
+            requiresGroupMapping = true,
+            offeredYears = analysis.OfferedYears,
+            current = analysis.Current,
+            historical = analysis.Historical,
+            sources,
+            unresolved = analysis.Selection.Unresolved,
+        };
+        await JsonSerializer.SerializeAsync(stream, inventory, options, token);
+    }
+
 }

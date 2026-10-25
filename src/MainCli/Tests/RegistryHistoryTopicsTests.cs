@@ -7,6 +7,22 @@ using ScheduleLib.OnlineRegistry;
 
 public sealed class RegistryHistoryTopicsTests
 {
+    [Fact]
+    public void CourseIdentityUsesNormalizedNamesAndSemester()
+    {
+        var comparer = RegistryHistoryCourseIdentityComparer.Instance;
+        var first = new RegistryHistoryCourse(" Systems, ", 1, new Uri("https://registry.test/first"));
+        var same = new RegistryHistoryCourse("systems", 1, new Uri("https://registry.test/other"));
+        var otherSemester = same with
+        {
+            Semester = 2,
+        };
+        Assert.True(comparer.Equals(first, same));
+        Assert.Equal(comparer.GetHashCode(first), comparer.GetHashCode(same));
+        Assert.False(comparer.Equals(first, otherSemester));
+        Assert.Equal(2, new[] { first, same, otherSemester }.Distinct(comparer).Count());
+    }
+
     private static readonly Uri Index = new("https://registry.test/studregistry/LessonAttendance");
 
     private const string Lessons = """
@@ -280,14 +296,12 @@ public sealed class RegistryHistoryTopicsTests
                         1,
                         @group: "raw ambiguous group"),
                 ]);
-            var first = await RegistryHistoryTopicFiles.Save(
-                directory,
-                selection,
+            var first = await new RegistryHistoryTopicDirectory(directory).Save(
+                new RegistryHistoryTopicsAnalysis([], [], selection),
                 default);
             var original = await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile));
-            var second = await RegistryHistoryTopicFiles.Save(
-                directory,
-                selection,
+            var second = await new RegistryHistoryTopicDirectory(directory).Save(
+                new RegistryHistoryTopicsAnalysis([], [], selection),
                 default);
             Assert.NotEqual(expected: first.InventoryFile, actual: second.InventoryFile);
             Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile)));
@@ -535,8 +549,7 @@ public sealed class RegistryHistoryTopicsTests
                     ".registry-history");
         try
         {
-            var result = await RegistryHistoryTopicFiles.Save(
-                directory,
+            var result = await new RegistryHistoryTopicDirectory(directory).Save(
                 analysis,
                 default);
             Assert.Equal(expected: 2, actual: result.CsvFiles.Count);
@@ -582,8 +595,7 @@ public sealed class RegistryHistoryTopicsTests
                     ".registry-history");
         try
         {
-            var result = await RegistryHistoryTopicFiles.Save(
-                directory,
+            var result = await new RegistryHistoryTopicDirectory(directory).Save(
                 analysis,
                 default);
             Assert.Equal(expected: 4, actual: result.CsvFiles.Count);
@@ -841,9 +853,8 @@ public sealed class RegistryHistoryTopicsTests
                 "2025/26",
                 [new(course, historical)],
                 []);
-            var result = await RegistryHistoryTopicFiles.Save(
-                directory,
-                selection,
+            var result = await new RegistryHistoryTopicDirectory(directory).Save(
+                new RegistryHistoryTopicsAnalysis([], [], selection),
                 default);
             var csv = await File.ReadAllTextAsync(Path.Combine(directory, Assert.Single(result.CsvFiles)));
             Assert.DoesNotContain(expectedSubstring: "Atestare", actualString: csv);

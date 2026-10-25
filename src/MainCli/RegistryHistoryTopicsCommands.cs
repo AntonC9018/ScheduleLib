@@ -71,9 +71,10 @@ public partial class RegistryCommands
                     "Select --profile and an explicit --local-directory named .registry-history.");
             }
 
+            RegistryHistoryTopicDirectory outputDirectory;
             try
             {
-                RegistryHistoryTopicFiles.ValidateDirectory(history.LocalDirectory);
+                outputDirectory = new(history.LocalDirectory);
             }
             catch (Exception)
             {
@@ -82,8 +83,7 @@ public partial class RegistryCommands
                     "Private history output requires a regular directory named .registry-history.");
             }
             var analysis = await CreateHistoryTopicsProvider().DiscoverTopics(settings, cancellation.Token);
-            var output = await RegistryHistoryTopicFiles.Save(
-                history.LocalDirectory,
+            var output = await outputDirectory.Save(
                 analysis,
                 cancellation.Token);
             // Stream anonymized per-collection counts. Offered year values are
