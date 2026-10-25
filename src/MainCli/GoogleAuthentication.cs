@@ -194,10 +194,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         return combine;
     }
 
-    public GoogleLoginBuilder Login(string teacher, IServiceProvider services)
-    {
-        return new(this, teacher, services);
-    }
+    public GoogleLoginBuilder Login(string teacher, IServiceProvider services) => new(this, teacher, services);
 
     public sealed class GoogleLoginBuilder
     {

@@ -125,10 +125,7 @@ internal static class RegistryHistoryTopicFiles
         return true;
     }
 
-    private static bool HasTopics(RegistryHistoryCourseTopics snapshot)
-    {
-        return snapshot.Groups.Any(group => group.Lessons.Any(IsExportableTopic));
-    }
+    private static bool HasTopics(RegistryHistoryCourseTopics snapshot) => snapshot.Groups.Any(group => group.Lessons.Any(IsExportableTopic));
 
     private static async Task WriteTopics(
         RegistryHistoryTopicDirectory directory,
