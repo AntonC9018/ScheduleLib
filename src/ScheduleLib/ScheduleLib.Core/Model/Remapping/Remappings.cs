@@ -11,8 +11,52 @@ public sealed class Remappings()
 
 public sealed class SubGroupNameRemappings : Dictionary<string, string>
 {
-    public void Add(string from, Specialization to) => Add(key: from, value: to.Value ?? throw new ArgumentException(message: "The specialization must not be All.", paramName: nameof(to)));
-    public void Add(string from, Alternative to) => Add(key: from, value: to.Value ?? throw new ArgumentException(message: "The alternative must not be All.", paramName: nameof(to)));
+    public AliasMapping ForAlias(string alias)
+    {
+        ArgumentNullException.ThrowIfNull(alias);
+        return new(this, alias);
+    }
+
+    public readonly struct AliasMapping
+    {
+        private readonly SubGroupNameRemappings? _owner;
+        private readonly string? _alias;
+
+        internal AliasMapping(SubGroupNameRemappings owner, string alias)
+        {
+            _owner = owner;
+            _alias = alias;
+        }
+
+        public void To(Specialization value)
+        {
+            var destination = value.Value;
+            if (destination is null)
+            {
+                throw new ArgumentException("The specialization must not be All.", nameof(value));
+            }
+            AddDestination(destination);
+        }
+
+        public void To(Alternative value)
+        {
+            var destination = value.Value;
+            if (destination is null)
+            {
+                throw new ArgumentException("The alternative must not be All.", nameof(value));
+            }
+            AddDestination(destination);
+        }
+
+        private void AddDestination(string destination)
+        {
+            if (_owner is null)
+            {
+                throw new UnselectedSubGroupAliasException();
+            }
+            _owner.Add(key: _alias!, value: destination);
+        }
+    }
 
     public SubGroup Remap(SubGroup subGroup)
     {
@@ -46,6 +90,14 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
             return new(remapped);
         }
         return null;
+    }
+}
+
+public sealed class UnselectedSubGroupAliasException : ScheduleBuildException
+{
+    public UnselectedSubGroupAliasException()
+        : base("Select an alias with ForAlias before setting its destination.")
+    {
     }
 }
 

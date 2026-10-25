@@ -391,43 +391,26 @@ public static class Config
         });
 
         var subgroup = remap.SubGroupNameRemappings;
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings = subgroup;
-        string from2 = new("AG");
-        global::ScheduleLib.Specialization to2 = Specialization.AlgoritmicaGrafurilor;
-        subGroupNameRemappings.Add(from2, to2);
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings2 = subgroup;
-        string from3 = new("GR");
-        global::ScheduleLib.Specialization to3 = Specialization.GA2D;
-        subGroupNameRemappings2.Add(from3, to3);
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings3 = subgroup;
-        string from4 = new("SAWM");
-        global::ScheduleLib.Specialization to4 = Specialization.DezvoltareaAplicatiilor;
-        subGroupNameRemappings3.Add(from4, to4);
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings4 = subgroup;
-        string from5 = new("DAS-S");
-        global::ScheduleLib.Specialization to5 = Specialization.DezvoltareaAplicatiilor;
-        subGroupNameRemappings4.Add(from5, to5);
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings5 = subgroup;
-        string from6 = new("UI/UX");
-        global::ScheduleLib.Specialization to6 = Specialization.UI;
-        subGroupNameRemappings5.Add(from6, to6);
-        global::ScheduleLib.Builders.SubGroupNameRemappings subGroupNameRemappings6 = subgroup;
-        string from7 = new("RVA");
-        global::ScheduleLib.Specialization to7 = Specialization.DJ;
-        subGroupNameRemappings6.Add(from7, to7);
+        subgroup.ForAlias("AG")
+            .To(Specialization.AlgoritmicaGrafurilor);
+        subgroup.ForAlias("GR")
+            .To(Specialization.GA2D);
+        subgroup.ForAlias("SAWM")
+            .To(Specialization.DezvoltareaAplicatiilor);
+        subgroup.ForAlias("DAS-S")
+            .To(Specialization.DezvoltareaAplicatiilor);
+        subgroup.ForAlias("UI/UX")
+            .To(Specialization.UI);
+        subgroup.ForAlias("RVA")
+            .To(Specialization.DJ);
         // "Node" is a grade-2 subgroup label aliasing the UI specialization
         // (see docs/subgroup-model-update-spec.md and docs/domain-model.md).
         // It is unrelated to the grade-3 "Node.js" course ("Dezv. apl.
         // server-side cu Node.js"), whose server-side track maps to
         // Specialization.DezvoltareaAplicatiilor via the ImplicitSplitConfig
         // "Server-side" entry above.
-        string CalculateFrom()
-        {
-            string from8 = new("Node");
-            return from8;
-        }
-
-        subgroup.Add(CalculateFrom(), Specialization.UI);
+        subgroup.ForAlias("Node")
+            .To(Specialization.UI);
 
         for (int i = 1; i <= 10; i++)
         {
