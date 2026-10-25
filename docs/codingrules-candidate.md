@@ -1,5 +1,11 @@
 # Local CodingRules candidate
 
+The latest tested candidate is CodingRules `9d24f23`, SHA-256
+`c3291f06d0dd381455e1328f552c10d01a88c2a31191d48de09453376702eeb5`.
+It passed 1,444 tests and 11 package gates on AWS. See the
+[latest rollout review](analyzer-review-2026-10-25.md) for adoption, build results
+and remaining findings. The ticket 18 archive described below is historical.
+
 The ticket 18 candidate is `Anton.CodingRules.0.1.0.nupkg`, freshly packed from
 CodingRules `070dbf9568783497286c953deef89cc8b5dda5d3`. Its SHA-256 is
 `cd255dca5aaa7cdec9eb28dd99bb70dc6e3d30a039c97f35b3d39f3f3a55e300`.

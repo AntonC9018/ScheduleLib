@@ -1,5 +1,7 @@
 # Ticket 18 validation
 
+Latest follow-up: [2026-10-25 rollout and grouped remaining cases](analyzer-review-2026-10-25.md). The dated results below describe earlier candidates.
+
 Status: **consumer adoption complete**. Manual/unresolved policy in the ledger,
 known test baselines and package publication remain separate.
 

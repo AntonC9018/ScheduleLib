@@ -1,5 +1,7 @@
 # Analyzer cleanup and warning review
 
+Latest follow-up: [2026-10-25 rollout and grouped remaining cases](analyzer-review-2026-10-25.md). The dated results below describe earlier candidates.
+
 Work item: [#246](https://github.com/AntonC9018/ScheduleLib/issues/246).
 This review covers `All.sln` **and** the separately built
 `src/MainCli/Tests/MainCli.Tests.csproj`. The latter is not part of the solution;
