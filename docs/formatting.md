@@ -116,3 +116,12 @@ every subsequent chained invocation starts on a new line, even for a short
 chain. Computation, naming, tuple and builder refactorings remain outside this
 formatting wrapper. The bounded semantic layout fixes can decline cases where
 implicit caller information or comments would change meaning.
+
+Run formatting as the final cleanup step after the source edits and focused
+checks stabilize. Select the changed files and the smallest project that covers
+them, then check the saved result. The measured clean single-file style check
+still takes 19.5 seconds on the review worker; whole-target passes take minutes.
+The wrapper currently creates fresh semantic workspaces and has no persistent
+result cache. Tool caches do not make its semantic check incremental. Avoid
+running it after every edit or compilation; caching would need a separate
+invalidation design covering source, references, configuration and tool versions.
