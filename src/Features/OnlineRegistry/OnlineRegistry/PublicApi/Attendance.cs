@@ -24,6 +24,7 @@ public enum AttendanceDateMode
 {
     /// <summary>Dates only bound the attendance columns; lessons map by column order.</summary>
     Ignore,
+
     /// <summary>Every attendance column must carry a date; lessons bind by date, never by order.</summary>
     ValidateAndBind,
 }
@@ -112,10 +113,10 @@ public static class AttendanceHelper
 
 public readonly record struct StudentIndex(int Index);
 
-
 public readonly struct StudentAttendanceBuilder(Name name)
 {
     internal Name Name { get; } = name;
+
     internal readonly ImmutableArray<Attendance>.Builder Attendances =
         ImmutableArray.CreateBuilder<Attendance>();
 
@@ -145,6 +146,7 @@ public readonly struct AttendanceLists
 
     public DayAttendanceList Day(int index) => _values[index];
     public int DayCount => _values.Length;
+
     public int StudentCount
     {
         get
@@ -263,7 +265,8 @@ public sealed class StudentAttendanceListBuilder()
         {
             if (maxDayCount > _lessonTypesPerDay.Count)
             {
-                throw new InvalidOperationException("If LessonTypes are specified, there must not be more attendances than that.");
+                throw new InvalidOperationException(
+                    "If LessonTypes are specified, there must not be more attendances than that.");
             }
         }
 
@@ -271,7 +274,8 @@ public sealed class StudentAttendanceListBuilder()
         {
             if (maxDayCount > _datesPerDay.Count)
             {
-                throw new InvalidOperationException("If attendance dates are specified, there must not be more attendances than that.");
+                throw new InvalidOperationException(
+                    "If attendance dates are specified, there must not be more attendances than that.");
             }
         }
 
@@ -283,8 +287,11 @@ public sealed class StudentAttendanceListBuilder()
             }
             if (student.Attendances.Count != maxDayCount)
             {
-                throw new InvalidOperationException(
-                    $"Student {student.Name} has {student.Attendances.Count} days, expected {maxDayCount}");
+                var studentName = student.Name.ToString();
+                throw new StudentAttendanceDayCountMismatchException(
+                    studentName,
+                    actualDayCount: student.Attendances.Count,
+                    expectedDayCount: maxDayCount);
             }
         }
 
@@ -330,10 +337,12 @@ public sealed class StudentAttendanceListBuilder()
             ? [.. d]
             : null;
         {
-
             var n = names.MoveToImmutable();
             var a = new AttendanceLists(attendance.MoveToImmutable());
-            var ret = new Result(n, a, lessonTypes, dates);
+            var ret = new Result(n,
+                a,
+                lessonTypes,
+                dates);
             return ret;
         }
     }
@@ -345,7 +354,9 @@ public readonly struct AllStudentAttendanceListBuilder()
 
     public (StudentAttendanceListBuilder Builder, bool Existed) TryList(StudentsLookupKey key)
     {
-        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(_values, key, out bool exists);
+        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(_values,
+            key,
+            out bool exists);
         if (!exists)
         {
             x = new();
@@ -377,7 +388,8 @@ public readonly struct AllStudentAttendanceListBuilder()
                 var lessonTypesSpecified = x.LessonTypes != null;
                 if (lessonTypeNotInKey != lessonTypesSpecified)
                 {
-                    throw new InvalidOperationException("LessonType in the builder key must be null only if specifying the lesson types per lesson");
+                    throw new InvalidOperationException(
+                        "LessonType in the builder key must be null only if specifying the lesson types per lesson");
                 }
             }
 
@@ -415,14 +427,16 @@ public readonly struct AllStudentAttendanceListBuilder()
                         LessonType = lessonType,
                     };
 
-                    global::ScheduleLib.OnlineRegistry.AttendanceLists attendance = new(perLessonBuilder.DrainToImmutable());
+                    global::ScheduleLib.OnlineRegistry.AttendanceLists attendance =
+                        new(perLessonBuilder.DrainToImmutable());
                     global::ScheduleLib.OnlineRegistry.NamesInDb studentNames = namesDb;
-                    global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.OnlineRegistry.AttendanceDate>? dates2;
+                    global::System.Collections.Immutable.ImmutableArray<
+                        global::ScheduleLib.OnlineRegistry.AttendanceDate>? dates2;
                     if (x.Dates is { } dates)
                     {
                         dates2 = lessonTypes.Select((type, index) => (Type: type, Index: index))
-                                .Where(column => column.Type == lessonType)
-                                .Select(column => dates[column.Index])
+                            .Where(column => column.Type == lessonType)
+                            .Select(column => dates[column.Index])
                             .ToImmutableArray();
                     }
                     else
@@ -431,7 +445,9 @@ public readonly struct AllStudentAttendanceListBuilder()
                     }
 
                     var value = new StudentAttendanceList.BetterAttendances(
-                        Attendance: attendance, StudentNames: studentNames, Dates: dates2);
+                        Attendance: attendance,
+                        StudentNames: studentNames,
+                        Dates: dates2);
                     map.Add(key1, value);
                 }
             }
@@ -471,6 +487,7 @@ public readonly struct StudentAttendanceList
         {
             return list.StudentNames;
         }
+
         bool CalculateConditionResult()
         {
             if (key.Groups.IsSingleGroup)
@@ -491,9 +508,11 @@ public readonly struct StudentAttendanceList
             return NamesInDb.Empty;
         }
 
-        return NamesInDb.Create([.. ParentLists(key)
-            .SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
-            .Select(student => student.Key))]);
+        return NamesInDb.Create([
+            .. ParentLists(key)
+                .SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
+                    .Select(student => student.Key)),
+        ]);
     }
 
     internal IEnumerable<(StudentsLookupKey Key, NamesInDb Names)> StudentNameSources(StudentsLookupKey key)
@@ -504,6 +523,7 @@ public readonly struct StudentAttendanceList
             yield return (key, list.StudentNames);
             yield break;
         }
+
         bool CalculateConditionResult()
         {
             if (key.Groups.IsSingleGroup)
@@ -578,6 +598,7 @@ public readonly struct StudentAttendanceList
         {
             // Separate sheets require dates: a shared audience's ordinal does not identify a parent's day.
             var active = key.ActiveGroups is not { } activeGroups || activeGroups.Contains(parent.Parent);
+
             bool CalculateConditionResult2()
             {
                 if (active)
@@ -598,8 +619,10 @@ public readonly struct StudentAttendanceList
             bool conditionResult2 = CalculateConditionResult2();
 
 
-            var day = conditionResult2 ? GetDay(key, parent.Attendance)
-                .AsArray() : [];
+            var day = conditionResult2
+                ? GetDay(key, parent.Attendance)
+                    .AsArray()
+                : [];
             if (day.Length == parent.Attendance.StudentNames.Count)
             {
                 attendance.AddRange(day);
@@ -670,7 +693,8 @@ public readonly struct NamesInDb : IEnumerable<KeyValuePair<Name, int>>
             var name = arr[i];
             if (!ret.TryAdd(name, i))
             {
-                throw new InvalidOperationException($"Duplicate name in DB: {name}");
+                var nameText = name.ToString();
+                throw new DuplicateAttendanceNameException(nameText);
             }
         }
         return new(ret);
@@ -723,7 +747,8 @@ internal readonly struct StudentNameRemapHelper
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
         {
-            global::System.Collections.Generic.Dictionary<global::ScheduleLib.Parsing.Name, global::ScheduleLib.Parsing.Name> dictionary = aliases;
+            global::System.Collections.Generic.Dictionary<global::ScheduleLib.Parsing.Name,
+                global::ScheduleLib.Parsing.Name> dictionary = aliases;
             global::ScheduleLib.Parsing.Name key2 = NameHelper.Parse(alias.Key);
             global::ScheduleLib.Parsing.Name value2 = NameHelper.Parse(alias.Value);
             dictionary.Add(key: key2, value: value2);

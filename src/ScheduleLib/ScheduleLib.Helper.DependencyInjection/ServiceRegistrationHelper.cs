@@ -11,12 +11,11 @@ public static class ServiceRegistrationHelper
     /// </summary>
     /// <returns>True if at least one implementation has been registered</returns>
     public static bool RegisterImplementationsOfGenericService<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
-
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    TImplementation>(
         this IServiceCollection services,
         Type unboundServiceType,
         ServiceLifetime lifetime)
-
         where TImplementation : notnull
     {
         Type implementationType = typeof(TImplementation);
@@ -70,13 +69,12 @@ public static class ServiceRegistrationHelper
     }
 
     public static IServiceCollection RegisterRequiredImplementationsOfGenericService<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
-
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    T>(
         this IServiceCollection services,
         Type markerServiceType,
         Type unboundServiceType,
         ServiceLifetime lifetime)
-
         where T : notnull
     {
         bool registered = services.RegisterImplementationsOfGenericService<T>(
@@ -84,29 +82,32 @@ public static class ServiceRegistrationHelper
             lifetime: lifetime);
         if (!registered)
         {
-            throw new InvalidOperationException(
-                $"{markerServiceType.Name} should only be inherited via {unboundServiceType.Name}");
+            throw new InvalidMarkerServiceInheritanceException(markerServiceType: markerServiceType,
+                unboundServiceType: unboundServiceType);
         }
         return services;
     }
 
     public static ImplContext<TImpl> Register<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImpl>(
-
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    TImpl>(
         this IServiceCollection services,
         ServiceLifetime lifetime,
         Func<IServiceProvider, TImpl>? factory = null)
-
         where TImpl : class
     {
         ServiceDescriptor d;
         if (factory is null)
         {
-            d = new(serviceType: typeof(TImpl), implementationType: typeof(TImpl), lifetime);
+            d = new(serviceType: typeof(TImpl),
+                implementationType: typeof(TImpl),
+                lifetime);
         }
         else
         {
-            d = new(typeof(TImpl), factory, lifetime);
+            d = new(typeof(TImpl),
+                factory,
+                lifetime);
         }
         services.Add(d);
         var builder = new ImplContext<TImpl>(services, lifetime);
@@ -116,7 +117,6 @@ public static class ServiceRegistrationHelper
     public static ImplContext<TImpl> AsService<TImpl, TService>(
         this ImplContext<TImpl> builder,
         ServiceType<TService> service = default)
-
         where TImpl : class, TService
     {
         _ = service;
@@ -131,6 +131,7 @@ public static class ServiceRegistrationHelper
 }
 
 public readonly record struct ServiceType<T>();
+
 public static class ServiceType
 {
     public static ServiceType<T> Create<T>() => new();

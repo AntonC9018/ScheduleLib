@@ -42,12 +42,14 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 else if (other[index] != Attendance.None && other[index] != combined[index])
                 {
-                    throw new InvalidOperationException("Shared lecture attendance sources disagree for the same occurrence.");
+                    throw new InvalidOperationException(
+                        "Shared lecture attendance sources disagree for the same occurrence.");
                 }
             }
         }
         return combined;
     }
+
     // TODO:
     // Figure out what to do with this abstraction,
     // because it depends on config from the registry config.
@@ -74,41 +76,88 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
     public async Task Run(RunParams p)
     {
+        static bool IsRefusedDeletion(string actionKind, RegistryActionExecutionException error)
+        {
+            if (actionKind != "delete")
+            {
+                return false;
+            }
+
+            if (error.InnerException is not RegistryDeletionRefusedException)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        static bool IsFormPreparationFailureBeforeSubmission(RegistryActionExecutionException error)
+        {
+            if (error.SubmissionStarted)
+            {
+                return false;
+            }
+
+            if (error.InnerException is not RegistryFormPreparationException)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         var plan = await Plan(p);
         foreach (var action in plan)
         {
             try
-            { await action.Execute(CancellationToken.None); }
-            catch (RegistryActionExecutionException error) when (action.Kind == "delete"
-                && error.InnerException is RegistryDeletionRefusedException)
             {
-                _logger.LogWarning("Registry refused deletion of {Course} ({Groups}) on {Date}; skipped without retrying.",
-                    action.Course, action.Groups, action.Date);
-                p.Diagnostics?.Add(kind: "registry-deletion-refused", course: action.Course, @group: action.Groups,
-                    detail: $"Skipped deletion on {action.Date:yyyy-MM-dd HH:mm}: the lesson remains unchanged. No retry was performed.");
+                await action.Execute(CancellationToken.None);
             }
-            catch (RegistryActionExecutionException error) when (!error.SubmissionStarted
-                && error.InnerException is RegistryFormPreparationException)
+            catch (RegistryActionExecutionException error) when (IsRefusedDeletion(action.Kind, error))
             {
-                _logger.LogError("Registry {Kind} form preparation failed for {Date}", action.Kind, action.Date);
+                _logger.LogWarning(
+                    "Registry refused deletion of {Course} ({Groups}) on {Date}; skipped without retrying.",
+                    action.Course,
+                    action.Groups,
+                    action.Date);
+                p.Diagnostics?.Add(kind: "registry-deletion-refused",
+                    course: action.Course,
+                    @group: action.Groups,
+                    detail:
+                    $"Skipped deletion on {action.Date:yyyy-MM-dd HH:mm}: the lesson remains unchanged. No retry was performed.");
+            }
+            catch (RegistryActionExecutionException error) when (IsFormPreparationFailureBeforeSubmission(error))
+            {
+                _logger.LogError("Registry {Kind} form preparation failed for {Date}",
+                    action.Kind,
+                    action.Date);
             }
         }
     }
 
-    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(RunParams p, CancellationToken cancellationToken = default, bool explicitApply = false)
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(
+        RunParams p,
+        CancellationToken cancellationToken = default,
+        bool explicitApply = false)
     {
         var actions = new List<RegistrySyncAction>();
-        await PlanGroups(p, group =>
-        {
-            actions.AddRange(group);
-            return Task.FromResult(true);
-        }, cancellationToken, explicitApply);
+        await PlanGroups(p,
+            group =>
+            {
+                actions.AddRange(group);
+                return Task.FromResult(true);
+            },
+            cancellationToken,
+            explicitApply);
         return actions;
     }
 
     /// <summary>Reconciles one course/group at a time; false stops before scanning another group.</summary>
-    public async Task PlanGroups(RunParams p, Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
-        CancellationToken cancellationToken = default, bool explicitApply = false)
+    public async Task PlanGroups(
+        RunParams p,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken = default,
+        bool explicitApply = false)
     {
         var config = _configProvider.Get();
         if (config is null)
@@ -118,7 +167,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
         var courseLinks = (await p.Navigator.GetCourses(p.Semester))
             .ToArray();
-        var coverage = p.Diagnostics is null ? null : new RegistryTargetCoverage(_schedule, ExpectedTargets(), p.Diagnostics);
+        var coverage = p.Diagnostics is null
+            ? null
+            : new RegistryTargetCoverage(_schedule,
+                ExpectedTargets(),
+                p.Diagnostics);
         coverage?.ReportMissingCourses(courseLinks.Select(link => link.CourseId)
             .ToHashSet());
         foreach (var courseAssignments in courseLinks.GroupBy(link => link.CourseId))
@@ -137,19 +190,27 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         continue;
                     }
 
-                    var filter = new LessonSearchFilter(courseLink.CourseId, group.Groups, group.GroupPartition);
+                    var filter = new LessonSearchFilter(courseLink.CourseId,
+                        group.Groups,
+                        group.GroupPartition);
                     global::ScheduleLib.OnlineRegistry.BuiltRegistryConfig config2 = config;
-                    global::ScheduleLib.OnlineRegistry.LessonMatchParams parameters = new(filter, _lookup.LessonsByCourse, _schedule);
+                    global::ScheduleLib.OnlineRegistry.LessonMatchParams parameters = new(filter,
+                        _lookup.LessonsByCourse,
+                        _schedule);
                     var candidates = RegistryLessonRouting.Candidates(config2, parameters);
-                    var validity = p.LessonFilter.Filter(new(filter, _schedule, candidates.Lessons));
+                    var validity = p.LessonFilter.Filter(new(filter,
+                        _schedule,
+                        candidates.Lessons));
                     if (validity.Decision == LessonValidityDecision.Error)
                     {
                         global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler iRegistryErrorHandler = _errorHandler;
                         global::ScheduleLib.OnlineRegistry.ErroneousLesson lessons2 = new(validity.ErrorContext);
                         iRegistryErrorHandler.LessonsDecidedErroneous(lessons2);
-                        p.Diagnostics?.Add(kind: "registry-assignment-mismatch", course: _schedule.Get(courseLink.CourseId).FullName,
+                        p.Diagnostics?.Add(kind: "registry-assignment-mismatch",
+                            course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
-                            detail: "The registry destination has no matching lessons assigned to this teacher. Check its assignment.");
+                            detail:
+                            "The registry destination has no matching lessons assigned to this teacher. Check its assignment.");
                         continue;
                     }
                     if (validity.Decision == LessonValidityDecision.Skip)
@@ -161,7 +222,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
             }
 
-            var routed = RegistryLessonRouting.Prioritize(_schedule, destinations, p.Diagnostics, out var hasUnresolvedAudience);
+            var routed = RegistryLessonRouting.Prioritize(_schedule,
+                destinations,
+                p.Diagnostics,
+                out var hasUnresolvedAudience);
             var studentCoverage = new RegistryStudentCoverage(p.Attendance, config.StudentNames);
             var studentCoverageComplete = !hasUnresolvedAudience;
             foreach (var destination in destinations)
@@ -169,7 +233,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 cancellationToken.ThrowIfCancellationRequested();
                 var group = destination.Group;
                 var selection = destination.Selection;
-                var filter = new LessonSearchFilter(courseLink.CourseId, group.Groups, group.GroupPartition);
+                var filter = new LessonSearchFilter(courseLink.CourseId,
+                    group.Groups,
+                    group.GroupPartition);
                 var audiences = routed[group.Uri];
                 var lessons = selection.Lessons.Where(audiences.ContainsKey)
                     .ToList();
@@ -180,13 +246,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         string CalculateDetail()
                         {
                             string describePartition = RegistrySyncDiagnostics.DescribePartition(group.GroupPartition);
-                            string detail2 = $"No schedule lessons match {describePartition}. Check the registry assignment and schedule partition mapping.";
+                            string detail2 =
+                                $"No schedule lessons match {describePartition}. Check the registry assignment and schedule partition mapping.";
                             return detail2;
                         }
 
-                        p.Diagnostics?.Add(kind: "registry-partition-mismatch", course: _schedule.Get(courseLink.CourseId).FullName,
-                                                @group: group.Groups.Value.ToString(_schedule),
-                                                detail: CalculateDetail());
+                        p.Diagnostics?.Add(kind: "registry-partition-mismatch",
+                            course: _schedule.Get(courseLink.CourseId).FullName,
+                            @group: group.Groups.Value.ToString(_schedule),
+                            detail: CalculateDetail());
                     }
 
                     continue;
@@ -196,9 +264,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 if (scanResult.Students.Length == 0)
                 {
-                    p.Diagnostics?.Add(kind: "empty-registry-roster", course: _schedule.Get(courseLink.CourseId).FullName,
-                    @group: group.Groups.Value.ToString(_schedule),
-                    detail: "The registry destination has no student rows. Ask the registry administrator to check its enrollment; absences cannot be copied to an empty roster.");
+                    p.Diagnostics?.Add(kind: "empty-registry-roster",
+                        course: _schedule.Get(courseLink.CourseId).FullName,
+                        @group: group.Groups.Value.ToString(_schedule),
+                        detail:
+                        "The registry destination has no student rows. Ask the registry administrator to check its enrollment; absences cannot be copied to an empty roster.");
                 }
 
                 foreach (var lessonId in lessons)
@@ -212,7 +282,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             return partition;
                         }
 
-                        coverage?.CoverLesson(lessonId, parent, CalculatePartition(), config.GroupMatchRules);
+                        coverage?.CoverLesson(lessonId,
+                            parent,
+                            CalculatePartition(),
+                            config.GroupMatchRules);
                     }
                 }
 
@@ -230,21 +303,27 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 catch (MissingSemesterDateRangeException)
                 {
                     studentCoverageComplete = false;
-                    p.Diagnostics?.Add(kind: "missing-schedule-dates", course: _schedule.Get(courseLink.CourseId).FullName,
+                    p.Diagnostics?.Add(kind: "missing-schedule-dates",
+                        course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
-                        detail: "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
+                        detail:
+                        "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
                     continue;
                 }
                 using var lessonsWithTimes = datedLessons.ToRentedBuffer();
 
-                var remapHelpers = new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience), StudentNameRemapHelper>();
-                var attendanceIndexes = new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience), int>();
+                var remapHelpers =
+                    new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience),
+                        StudentNameRemapHelper>();
+                var attendanceIndexes =
+                    new Dictionary<(LessonType Type, GroupPartitionKey Partition, LessonGroups Audience), int>();
                 using var outputBuffer = new RentedBuffer<LessonInstance>(lessonsWithTimes.Len);
                 var outputBuilder = outputBuffer.Builder();
                 foreach (ref var x in lessonsWithTimes.Span)
                 {
                     var lesson = _schedule.Get(x.LessonId).Lesson;
-                    var key = (Type: lesson.Type, Partition: AttendancePartition(lesson), Audience: audiences[x.LessonId].Ordered());
+                    var key = (Type: lesson.Type, Partition: AttendancePartition(lesson),
+                        Audience: audiences[x.LessonId].Ordered());
                     if (remapHelpers.ContainsKey(key))
                     {
                         continue;
@@ -253,12 +332,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
                     {
                         global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new(
-                                                courseId: courseLink.CourseId, groups: key.Audience,
-                                                groupPartition: key.Partition, lessonType: key.Type);
+                            courseId: courseLink.CourseId,
+                            groups: key.Audience,
+                            groupPartition: key.Partition,
+                            lessonType: key.Type);
                         return key2;
                     }
 
                     var studentNames = p.Attendance.StudentNames(CalculateKey());
+
                     bool CalculateConditionResult3()
                     {
                         if (p.HasAttendanceSources)
@@ -281,12 +363,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     if (conditionResult)
                     {
-                        p.Diagnostics?.Add(kind: "missing-attendance-sheet", course: _schedule.Get(courseLink.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule),
-                        detail: $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
+                        p.Diagnostics?.Add(kind: "missing-attendance-sheet",
+                            course: _schedule.Get(courseLink.CourseId).FullName,
+                            @group: group.Groups.Value.ToString(_schedule),
+                            detail:
+                            $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
                     }
 
-                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students, studentNames, [], config.StudentNames);
+                    remapHelpers[key] = StudentNameRemapHelper.Create(scanResult.Students,
+                        studentNames,
+                        [],
+                        config.StudentNames);
                 }
 
                 if (p.HasAttendanceSources)
@@ -310,17 +397,30 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     return groupPartition;
                                 }
 
-                                return new StudentsLookupKey(audience.Ordered(), CalculateGroupPartition(), courseLink.CourseId, lesson.Type);
+                                return new StudentsLookupKey(audience.Ordered(),
+                                    CalculateGroupPartition(),
+                                    courseLink.CourseId,
+                                    lesson.Type);
                             }
 
                             return ProjectValue();
                         });
-                        studentCoverage.Observe(scanResult.Students, routedKeys: remapHelpers.Keys.Select(key =>
-                            new StudentsLookupKey(key.Audience, key.Partition, courseLink.CourseId, key.Type)), membershipKeys: membershipKeys);
+                        studentCoverage.Observe(scanResult.Students,
+                            routedKeys: remapHelpers.Keys.Select(key =>
+                                new StudentsLookupKey(key.Audience,
+                                    key.Partition,
+                                    courseLink.CourseId,
+                                    key.Type)),
+                            membershipKeys: membershipKeys);
                     }
                 }
 
-                GroupPartitionKey AttendancePartition(LessonData lesson) => RegistryLessonRouting.ProjectPartition(config, _schedule, lesson);
+                GroupPartitionKey AttendancePartition(LessonData lesson)
+                {
+                    return RegistryLessonRouting.ProjectPartition(config,
+                        _schedule,
+                        lesson);
+                }
 
                 ProcessAll(ref outputBuilder);
 
@@ -332,7 +432,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     {
                         var l = _schedule.Get(sp[i].LessonId);
                         var dbLessonType = l.Lesson.Type;
-                        var attendanceKey = (Type: dbLessonType, Partition: AttendancePartition(l.Lesson), Audience: audiences[sp[i].LessonId].Ordered());
+                        var attendanceKey = (Type: dbLessonType, Partition: AttendancePartition(l.Lesson),
+                            Audience: audiences[sp[i].LessonId].Ordered());
                         var attendanceIndex = attendanceIndexes.GetValueOrDefault(attendanceKey);
 
                         var registryLessonType = dbLessonType;
@@ -371,16 +472,16 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     var key = new AttendanceLookupKey(
-                                            groups: new FoundGroups
-                                            {
-                                                Value = audiences[x.LessonId].Ordered(),
-                                                IsWildcard = false
-                                            },
-                                            groupPartition: CalculateGroupPartition(),
-                                            courseId: courseId,
-                                            lessonType: dbLessonType,
-                                            dayIndex: attendanceIndex,
-                                            dateTime: x.DateTime);
+                        groups: new FoundGroups
+                        {
+                            Value = audiences[x.LessonId].Ordered(),
+                            IsWildcard = false,
+                        },
+                        groupPartition: CalculateGroupPartition(),
+                        courseId: courseId,
+                        lessonType: dbLessonType,
+                        dayIndex: attendanceIndex,
+                        dateTime: x.DateTime);
                     var attendance = p.Attendance.Get(key with
                     {
                         ActiveGroups = key.Groups.Value,
@@ -402,15 +503,24 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 LessonGroups TopicGroups(LessonInstance lesson) => audiences[lesson.LessonId].Ordered();
                 var knownScopes = destinations.SelectMany(candidate => candidate.Selection.Lessons.Select(id =>
-                        RegistryTopicScope.Format(_schedule, _schedule.Get(id).Lesson.Groups,
-                            RegistryLessonRouting.ProjectPartition(config, _schedule, _schedule.Get(id).Lesson))))
+                        RegistryTopicScope.Format(_schedule,
+                            _schedule.Get(id).Lesson.Groups,
+                            RegistryLessonRouting.ProjectPartition(config,
+                                _schedule,
+                                _schedule.Get(id).Lesson))))
                     .Concat(destinations.SelectMany(candidate => routed[candidate.Group.Uri].Select(entry =>
-                        RegistryTopicScope.Format(_schedule, entry.Value,
-                            RegistryLessonRouting.ProjectPartition(config, _schedule, _schedule.Get(entry.Key).Lesson)))))
+                        RegistryTopicScope.Format(_schedule,
+                            entry.Value,
+                            RegistryLessonRouting.ProjectPartition(config,
+                                _schedule,
+                                _schedule.Get(entry.Key).Lesson)))))
                     .Concat(destinations.SelectMany(candidate => candidate.Selection.Lessons.Select(id =>
-                        RegistryTopicScope.Format(_schedule, _schedule.Get(id).Lesson.Groups, _schedule.Get(id).Lesson.GroupPartitionKey))))
+                        RegistryTopicScope.Format(_schedule,
+                            _schedule.Get(id).Lesson.Groups,
+                            _schedule.Get(id).Lesson.GroupPartitionKey))))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray();
+
                 bool CheckCondition()
                 {
                     if (group.Groups.IsWildcard)
@@ -429,7 +539,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     if (lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab
-                                            && AttendancePartition(_schedule.Get(id).Lesson) != group.GroupPartition))
+                            && AttendancePartition(_schedule.Get(id).Lesson) != group.GroupPartition))
                     {
                         return true;
                     }
@@ -440,6 +550,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var labelScopes = CheckCondition();
                 var localInstances = outputBuilder.Complete()
                     .ToArray();
+
                 string Scope(LessonInstance local)
                 {
                     global::ScheduleLib.LessonGroups CalculateGroups()
@@ -449,34 +560,43 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     return local.RegistryLessonType == LessonType.Curs
-                                            ? RegistryLectureAudience.Format(_schedule, local.LessonId)
-                                            : RegistryTopicScope.Format(_schedule, CalculateGroups(), AttendancePartition(_schedule.Get(local.LessonId).Lesson));
+                        ? RegistryLectureAudience.Format(_schedule, local.LessonId)
+                        : RegistryTopicScope.Format(_schedule,
+                            CalculateGroups(),
+                            AttendancePartition(_schedule.Get(local.LessonId).Lesson));
                 }
 
                 knownScopes = knownScopes.Concat(localInstances.Select(Scope))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray();
                 // A lecture represented once per attending parent is still one physical session in a shared list.
-                localInstances = localInstances.GroupBy(local => (Date: local.DateTime, Type: local.RegistryLessonType, Scope: Scope(local)))
+                localInstances = localInstances.GroupBy(local =>
+                        (Date: local.DateTime, Type: local.RegistryLessonType, Scope: Scope(local)))
                     .SelectMany(session => session.Key.Type == LessonType.Curs
-                        ? new[] { session.First() with
+                        ? new[]
                         {
-                        Attendance = MergeLectureAttendance(session.ToArray()),
-                        } }
+                            session.First() with
+                            {
+                                Attendance = MergeLectureAttendance(session.ToArray()),
+                            },
+                        }
                         : session.ToArray())
                     .OrderBy(local => local.DateTime)
                     .ToArray();
+
                 string? ResolveScope(RemoteLessonInstance remote, string oldScope)
                 {
                     var matchingType = localInstances.Where(local => remote.LessonType == LessonType.Unspecified
-                        || local.RegistryLessonType == remote.LessonType)
+                            || local.RegistryLessonType == remote.LessonType)
                         .ToArray();
                     var direct = matchingType.Where(local =>
                     {
                         string a = Scope(local);
                         string b = oldScope;
                         global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
-                        bool equals = string.Equals(a, b, comparisonType);
+                        bool equals = string.Equals(a,
+                            b,
+                            comparisonType);
                         if (equals)
                         {
                             return true;
@@ -490,10 +610,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     var migrated = matchingType.Where(local => string.Equals(RegistryTopicScope.Format(_schedule,
-                            _schedule.Get(local.LessonId).Lesson.Groups, AttendancePartition(_schedule.Get(local.LessonId).Lesson)),
-                        oldScope, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(RegistryTopicScope.Format(_schedule, _schedule.Get(local.LessonId).Lesson.Groups,
-                            _schedule.Get(local.LessonId).Lesson.GroupPartitionKey), oldScope, StringComparison.OrdinalIgnoreCase))
+                                    _schedule.Get(local.LessonId).Lesson.Groups,
+                                    AttendancePartition(_schedule.Get(local.LessonId).Lesson)),
+                                oldScope,
+                                StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(RegistryTopicScope.Format(_schedule,
+                                    _schedule.Get(local.LessonId).Lesson.Groups,
+                                    _schedule.Get(local.LessonId).Lesson.GroupPartitionKey),
+                                oldScope,
+                                StringComparison.OrdinalIgnoreCase))
                         .ToArray();
                     var atTime = migrated.Where(local => local.DateTime == remote.DateTime)
                         .ToArray();
@@ -519,109 +644,48 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     return null;
                 }
+
                 var movedLabs = selection.Lessons.Except(lessons)
                     .Where(id => _schedule.Get(id).Lesson.Type == LessonType.Lab)
                     .ToList();
-                var movedTimes = movedLabs.Count == 0 ? new HashSet<DateTime>() : _dateTimeProvider.GetSorted(new()
-                {
-                    Lessons = movedLabs,
-                    Semester = p.Semester
-                })
-                    .Select(lesson => lesson.DateTime)
-                    .ToHashSet();
+                var movedTimes = movedLabs.Count == 0
+                    ? new HashSet<DateTime>()
+                    : _dateTimeProvider.GetSorted(new()
+                    {
+                        Lessons = movedLabs,
+                        Semester = p.Semester,
+                    })
+                        .Select(lesson => lesson.DateTime)
+                        .ToHashSet();
                 // Protect only labs demonstrably routed elsewhere, including their existing attendance.
                 var remoteInstances = scanResult.Lessons.Where(remote =>
-                {
-                    if (remote.LessonType != LessonType.Lab)
                     {
-                        return true;
-                    }
-
-                    bool conditionValue;
-                    if (RegistryTopicScope.TrySplit(topic: remote.Topic, knownScopes, baseTopic: out _, scope: out var scope))
-                    {
-                        conditionValue = ResolveScope(remote, scope!) is not null;
-                    }
-                    else
-                    {
-                        bool CalculateConditionResult()
+                        if (remote.LessonType != LessonType.Lab)
                         {
-                            if (!movedTimes.Contains(remote.DateTime))
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (localInstances.Any(local =>
-                               local.RegistryLessonType == LessonType.Lab && local.DateTime == remote.DateTime))
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
+                            return true;
                         }
 
-                        bool conditionResult = CalculateConditionResult();
-
-
-                        conditionValue = conditionResult;
-                    }
-
-                    if ((conditionValue))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                })
-                    .OrderBy(remote => remote.DateTime)
-                    .ToArray();
-                var unresolvedAssessments = new List<RemoteLessonInstance>();
-                var inferredTypes = new Dictionary<Uri, LessonType>();
-                var owners = RegistryScopeReconciliation.Assign(_schedule, localInstances, remoteInstances,
-                    knownScopes, Scope, config.EquationCommandsDerivation, unresolvedAssessments.Add, ResolveScope, inferredTypes);
-                foreach (var assessment in unresolvedAssessments)
-                {
-                    string CalculateDetail2()
-                    {
-                        string detail3 = $"Assessment on {assessment.DateTime:yyyy-MM-dd HH:mm} has no scope identifying its scheduled audience. Its entry and candidate sessions were preserved.";
-                        return detail3;
-                    }
-
-                    p.Diagnostics?.Add(kind: "ambiguous-registry-assessment", course: _schedule.Get(courseLink.CourseId).FullName,
-                                        @group: group.Groups.Value.ToString(_schedule),
-                                        detail: CalculateDetail2());
-                }
-
-                var arrangedLocal = new List<LessonInstance>();
-                var equationCommands = new List<LessonEquationCommand>();
-                var consumedRemote = new HashSet<Uri>();
-                foreach (var audience in localInstances.GroupBy(local => (
-                    Groups: TopicGroups(local), Partition: AttendancePartition(_schedule.Get(local.LessonId).Lesson))))
-                {
-                    var bucketScopes = audience.Select(Scope)
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    var remote = remoteInstances.Where(existing => { if (!(owners.TryGetValue(existing.ViewUri, out var owner))) { return false; } if (!(bucketScopes.Contains(owner))) { return false; } if (!(!consumedRemote.Contains(existing.ViewUri))) { return false; } return true; })
-                        .ToArray();
-                    foreach (var existing in remote)
-                    {
-                        consumedRemote.Add(existing.ViewUri);
-                    }
-
-                    if (unresolvedAssessments.Any(assessment => audience.Any(lesson =>
-                    {
-                        bool CalculateConditionResult()
+                        bool conditionValue;
+                        if (RegistryTopicScope.TrySplit(topic: remote.Topic,
+                                knownScopes,
+                                baseTopic: out _,
+                                scope: out var scope))
                         {
-                            if (assessment.DateTime.Date == lesson.DateTime.Date)
+                            conditionValue = ResolveScope(remote, scope!) is not null;
+                        }
+                        else
+                        {
+                            bool CalculateConditionResult()
                             {
-                                if (assessment.LessonType == LessonType.Unspecified)
+                                if (!movedTimes.Contains(remote.DateTime))
                                 {
                                     return true;
                                 }
                                 else
                                 {
-                                    if (assessment.LessonType == lesson.RegistryLessonType)
+                                    if (localInstances.Any(local =>
+                                            local.RegistryLessonType == LessonType.Lab
+                                            && local.DateTime == remote.DateTime))
                                     {
                                         return true;
                                     }
@@ -629,72 +693,186 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     return false;
                                 }
                             }
-                            else
-                            {
-                                return false;
-                            }
+
+                            bool conditionResult = CalculateConditionResult();
+
+
+                            conditionValue = conditionResult;
                         }
 
-                        bool conditionResult = CalculateConditionResult();
-
-
-                        if (conditionResult)
+                        if ((conditionValue))
                         {
                             return true;
                         }
 
                         return false;
-                    })))
+                    })
+                    .OrderBy(remote => remote.DateTime)
+                    .ToArray();
+                var unresolvedAssessments = new List<RemoteLessonInstance>();
+                var inferredTypes = new Dictionary<Uri, LessonType>();
+                var owners = RegistryScopeReconciliation.Assign(_schedule,
+                    localInstances,
+                    remoteInstances,
+                    knownScopes,
+                    Scope,
+                    config.EquationCommandsDerivation,
+                    unresolvedAssessments.Add,
+                    ResolveScope,
+                    inferredTypes);
+                foreach (var assessment in unresolvedAssessments)
+                {
+                    string CalculateDetail2()
+                    {
+                        string detail3 =
+                            $"Assessment on {assessment.DateTime:yyyy-MM-dd HH:mm} has no scope identifying its scheduled audience. Its entry and candidate sessions were preserved.";
+                        return detail3;
+                    }
+
+                    p.Diagnostics?.Add(kind: "ambiguous-registry-assessment",
+                        course: _schedule.Get(courseLink.CourseId).FullName,
+                        @group: group.Groups.Value.ToString(_schedule),
+                        detail: CalculateDetail2());
+                }
+
+                var arrangedLocal = new List<LessonInstance>();
+                var equationCommands = new List<LessonEquationCommand>();
+                var consumedRemote = new HashSet<Uri>();
+                foreach (var audience in localInstances.GroupBy(local => (
+                             Groups: TopicGroups(local),
+                             Partition: AttendancePartition(_schedule.Get(local.LessonId).Lesson))))
+                {
+                    var bucketScopes = audience.Select(Scope)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var remote = remoteInstances.Where(existing =>
+                        {
+                            if (!(owners.TryGetValue(existing.ViewUri, out var owner)))
+                            {
+                                return false;
+                            }
+                            if (!(bucketScopes.Contains(owner)))
+                            {
+                                return false;
+                            }
+                            if (!(!consumedRemote.Contains(existing.ViewUri)))
+                            {
+                                return false;
+                            }
+                            return true;
+                        })
+                        .ToArray();
+                    foreach (var existing in remote)
+                    {
+                        consumedRemote.Add(existing.ViewUri);
+                    }
+
+                    if (unresolvedAssessments.Any(assessment => audience.Any(lesson =>
+                        {
+                            bool CalculateConditionResult()
+                            {
+                                if (assessment.DateTime.Date == lesson.DateTime.Date)
+                                {
+                                    if (assessment.LessonType == LessonType.Unspecified)
+                                    {
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        if (assessment.LessonType == lesson.RegistryLessonType)
+                                        {
+                                            return true;
+                                        }
+
+                                        return false;
+                                    }
+                                }
+                                else
+                                {
+                                    return false;
+                                }
+                            }
+
+                            bool conditionResult = CalculateConditionResult();
+
+
+                            if (conditionResult)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        })))
                     {
                         continue;
                     }
 
                     var local = audience.ToArray();
-                    var assessmentRules = RegistryAssessments.Find(config.Assessments, _schedule,
-                        courseLink.CourseId, audience.Key.Groups, audience.Key.Partition)
+                    var assessmentRules = RegistryAssessments.Find(config.Assessments,
+                            _schedule,
+                            courseLink.CourseId,
+                            audience.Key.Groups,
+                            audience.Key.Partition)
                         .Where(rule => local.Any(lesson => lesson.RegistryLessonType == rule.LessonType))
                         .ToArray();
-                    var arrangedAudience = RegistryAssessments.Arrange(local, remote, assessmentRules,
+                    var arrangedAudience = RegistryAssessments.Arrange(local,
+                        remote,
+                        assessmentRules,
                         (lesson, topicIndex) => p.LessonTopics.Get(new AttendanceLookupKey(
                             groups: new FoundGroups
                             {
                                 Value = TopicGroups(lesson),
-                                IsWildcard = false
+                                IsWildcard = false,
                             },
-                            groupPartition: audience.Key.Partition, courseId: courseLink.CourseId,
+                            groupPartition: audience.Key.Partition,
+                            courseId: courseLink.CourseId,
                             lessonType: _schedule.Get(lesson.LessonId).Lesson.Type,
-                            dayIndex: topicIndex, dateTime: lesson.DateTime)), TopicGroups);
+                            dayIndex: topicIndex,
+                            dateTime: lesson.DateTime)),
+                        TopicGroups);
                     var labelledLocal = arrangedAudience.Local.Select(lesson =>
-                    {
-                        string CalculateScope()
                         {
-                            string scope2 = Scope(lesson);
-                            return scope2;
-                        }
+                            string CalculateScope()
+                            {
+                                string scope2 = Scope(lesson);
+                                return scope2;
+                            }
 
-                        return labelScopes
-                                                ? lesson with
-                                                {
-                                                    Topic = RegistryTopicScope.Append(topic: lesson.Topic, scope: CalculateScope(), knownScopes),
-                                                } : lesson;
-                    })
+                            return labelScopes
+                                ? lesson with
+                                {
+                                    Topic = RegistryTopicScope.Append(topic: lesson.Topic,
+                                        scope: CalculateScope(),
+                                        knownScopes),
+                                }
+                                : lesson;
+                        })
                         .ToArray();
                     arrangedLocal.AddRange(labelledLocal);
-                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> list = equationCommands;
-                    global::System.Collections.Generic.IEnumerable<global::ScheduleLib.OnlineRegistry.LessonEquationCommand> collection = RegistryScopeReconciliation.Derive(_schedule, labelledLocal,
-                        arrangedAudience.Remote, owners, Scope, config.EquationCommandsDerivation, inferredTypes);
+                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.LessonEquationCommand>
+                        list = equationCommands;
+                    global::System.Collections.Generic.IEnumerable<
+                        global::ScheduleLib.OnlineRegistry.LessonEquationCommand> collection =
+                        RegistryScopeReconciliation.Derive(_schedule,
+                            labelledLocal,
+                            arrangedAudience.Remote,
+                            owners,
+                            Scope,
+                            config.EquationCommandsDerivation,
+                            inferredTypes);
                     list.AddRange(collection);
                 }
                 // Unowned ordinary extras retain the configured policy; assessments are protected.
                 equationCommands.AddRange(remoteInstances.Where(remote => !consumedRemote.Contains(remote.ViewUri)
-                    && !RegistryAssessmentTopics.IsAssessment(remote.Topic))
+                        && !RegistryAssessmentTopics.IsAssessment(remote.Topic))
                     .Select(LessonEquationCommand.Delete));
                 var missingTopics = arrangedLocal.Count(lesson => string.IsNullOrWhiteSpace(lesson.Topic));
                 if (missingTopics != 0)
                 {
-                    p.Diagnostics?.Add(kind: "missing-lesson-topics", course: _schedule.Get(courseLink.CourseId).FullName,
-                    @group: group.Groups.Value.ToString(_schedule),
-                    detail: $"{missingTopics} lessons have no configured topic for {RegistrySyncDiagnostics.DescribePartition(matchedGroupPartition)}. Add or correct the topic source for this course/group partition; text is copied without translation.");
+                    p.Diagnostics?.Add(kind: "missing-lesson-topics",
+                        course: _schedule.Get(courseLink.CourseId).FullName,
+                        @group: group.Groups.Value.ToString(_schedule),
+                        detail:
+                        $"{missingTopics} lessons have no configured topic for {RegistrySyncDiagnostics.DescribePartition(matchedGroupPartition)}. Add or correct the topic source for this course/group partition; text is copied without translation.");
                 }
 
                 var actions = new List<RegistrySyncAction>();
@@ -720,10 +898,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         }
 
                         LogCommandBeforeExecution(CommandName: command.Type.ToString(),
-                                                    DateString: (CalculateDateTime())
-                                                        .ToString("dd.MM.yy"),
-                                                    LessonName: _schedule.Get(courseLink.CourseId).FullName, GroupName: group.Groups.Value.ToString(_schedule),
-                                                    command.HasAll ? _schedule.Get(command.Local.LessonId).Lesson.Type : command.Remote.LessonType);
+                            DateString: (CalculateDateTime())
+                            .ToString("dd.MM.yy"),
+                            LessonName: _schedule.Get(courseLink.CourseId).FullName,
+                            GroupName: group.Groups.Value.ToString(_schedule),
+                            command.HasAll
+                                ? _schedule.Get(command.Local.LessonId).Lesson.Type
+                                : command.Remote.LessonType);
                     }
                     var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
                     bool conditionResult3;
@@ -758,6 +939,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         }
                     }
                     var captured = command;
+
                     string? CalculateTopic()
                     {
                         string? topic2;
@@ -789,30 +971,45 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     actions.Add(new(kind: command.Type.ToString()
-                        .ToLowerInvariant(), destination: group.Uri.ToString(),
-                                                                course: _schedule.Get(courseLink.CourseId).FullName, groups: group.Groups.Value.ToString(_schedule), date,
-                                                                topic: CalculateTopic(),
-                                                                CalculateAttendanceCount(),
-                                                                enabled, omission: omission, async token =>
-                                                                {
-                                                                    token.ThrowIfCancellationRequested();
-                                                                    var submissionStarted = false;
-                                                                    try
-                                                                    {
-                                                                        await HandleCommand(captured, addLessonUri, scanResult.Students, () =>
-                                                                    {
-                                                                        submissionStarted = true;
-                                                                    });
-                                                                    }
-                                                                    catch (OperationCanceledException error) { throw new RegistryActionCancelledException(submissionStarted, error); }
-                                                                    catch (Exception error) { throw new RegistryActionExecutionException(submissionStarted, error); }
-                                                                }));
+                            .ToLowerInvariant(),
+                        destination: group.Uri.ToString(),
+                        course: _schedule.Get(courseLink.CourseId).FullName,
+                        groups: group.Groups.Value.ToString(_schedule),
+                        date,
+                        topic: CalculateTopic(),
+                        CalculateAttendanceCount(),
+                        enabled,
+                        omission: omission,
+                        async token =>
+                        {
+                            token.ThrowIfCancellationRequested();
+                            var submissionStarted = false;
+                            try
+                            {
+                                await HandleCommand(captured,
+                                    addLessonUri,
+                                    scanResult.Students,
+                                    () =>
+                                    {
+                                        submissionStarted = true;
+                                    });
+                            }
+                            catch (OperationCanceledException error)
+                            {
+                                throw new RegistryActionCancelledException(submissionStarted, error);
+                            }
+                            catch (Exception error)
+                            {
+                                throw new RegistryActionExecutionException(submissionStarted, error);
+                            }
+                        }));
                 }
                 if (!await onGroupPlanned(actions))
                 {
                     return;
                 }
             }
+
             bool CalculateConditionResult2()
             {
                 if (p.HasAttendanceSources)
@@ -830,7 +1027,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
             if (conditionResult2)
             {
-                studentCoverage.Report(_schedule, courseLink.CourseId, p.Diagnostics);
+                studentCoverage.Report(_schedule,
+                    courseLink.CourseId,
+                    p.Diagnostics);
             }
 
             coverage?.ReportMissingGroups(courseLink.CourseId);
@@ -846,10 +1045,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     new FoundGroups
                     {
                         Value = lesson.Lesson.Groups,
-                        IsWildcard = lesson.Lesson.Groups.Count > 1
+                        IsWildcard = lesson.Lesson.Groups.Count > 1,
                     },
                     lesson.Lesson.GroupPartitionKey);
-                var validity = p.LessonFilter.Filter(new(filter, _schedule, ids));
+                var validity = p.LessonFilter.Filter(new(filter,
+                    _schedule,
+                    ids));
+
                 bool CalculateConditionResult()
                 {
                     if (validity.Decision is LessonValidityDecision.Skip or LessonValidityDecision.Error)
@@ -881,15 +1083,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     hasDates = _dateTimeProvider.GetSorted(new()
                     {
                         Lessons = ids,
-                        Semester = p.Semester
+                        Semester = p.Semester,
                     })
                         .Any();
                 }
                 catch (MissingSemesterDateRangeException)
                 {
-                    p.Diagnostics?.Add(kind: "missing-schedule-dates", course: _schedule.Get(lesson.Lesson.Course).FullName,
+                    p.Diagnostics?.Add(kind: "missing-schedule-dates",
+                        course: _schedule.Get(lesson.Lesson.Course).FullName,
                         @group: lesson.Lesson.Groups.ToString(_schedule),
-                        detail: "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
+                        detail:
+                        "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
                     continue;
                 }
                 if (!hasDates)
@@ -905,7 +1109,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return partition;
                     }
 
-                    yield return new(lesson.Lesson.Course, parent, CalculatePartition());
+                    yield return new(lesson.Lesson.Course,
+                        parent,
+                        CalculatePartition());
                 }
             }
         }
@@ -928,7 +1134,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 return lesson.GroupPartitionKey;
             }
 
-            var merge = RegistryLabMerges.Find(config.LabMerges, _schedule, lesson.Course, new LessonGroups { parent }, GroupPartitionKey.All);
+            var merge = RegistryLabMerges.Find(config.LabMerges,
+                _schedule,
+                lesson.Course,
+                new LessonGroups { parent },
+                GroupPartitionKey.All);
             if (merge is not null)
             {
                 return GroupPartitionKey.All;
@@ -975,7 +1185,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 await CreateOrUpdate1(
                     editUri,
                     lessonInstance,
-                    expectedStudents, markSubmission);
+                    expectedStudents,
+                    markSubmission);
             }
 
             async Task Create(LessonInstance lessonInstance)
@@ -983,7 +1194,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 await CreateOrUpdate1(
                     addLessonUri,
                     lessonInstance,
-                    expectedStudents, markSubmission);
+                    expectedStudents,
+                    markSubmission);
             }
         }
 
@@ -1012,10 +1224,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             await p.Navigator.SubmitLesson(doc, markSubmission);
         }
 
-        Task CreateOrUpdate1(Uri uri, LessonInstance lesson, HtmlStudent[] expectedStudents, Action markSubmission)
+        Task CreateOrUpdate1(
+            Uri uri,
+            LessonInstance lesson,
+            HtmlStudent[] expectedStudents,
+            Action markSubmission)
         {
             // ReSharper disable once AccessToDisposedClosure
-            return CreateOrUpdate(uri, lesson, _schedule, expectedStudents, markSubmission);
+            return CreateOrUpdate(uri,
+                lesson,
+                _schedule,
+                expectedStudents,
+                markSubmission);
         }
 
         async Task Delete(Uri detailsUri, Action markSubmission)

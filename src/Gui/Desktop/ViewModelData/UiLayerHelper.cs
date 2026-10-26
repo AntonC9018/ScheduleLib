@@ -76,7 +76,9 @@ public static class UiLayerHelper
         {
             var uiLayers = configRoot.GetUiLayers()
                 .Select(x => x.Node);
-            await helper.SerializeValues(uiLayers, output, serializeLayerName: false)
+            await helper.SerializeValues(uiLayers,
+                    output,
+                    serializeLayerName: false)
                 .ConfigureAwait(false);
             output.SetLength(output.Position);
         }
@@ -86,31 +88,31 @@ public static class UiLayerHelper
             TreeBuilder configRoot)
         {
             await helper.DeserializeValues(
-                output,
-                (layerName, configs) =>
-                {
+                    output,
+                    (layerName, configs) =>
                     {
-                        if (layerName is { } x && x != UiTeacherLayer)
                         {
-                            throw new InvalidOperationException($"Expected a layer with name {UiTeacherLayer}");
+                            if (layerName is { } x && x != UiTeacherLayer)
+                            {
+                                throw new ExpectedUiTeacherLayerException(UiTeacherLayer);
+                            }
                         }
-                    }
-                    {
-                        var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
-                        var markerLayer = configRoot
-                            .GetMarkerNodes()
-                            .FirstOrDefault(x => x.Config.Equals(marker))
-                            .Builder;
-
-                        if (markerLayer.IsNull)
                         {
-                            markerLayer = configRoot.Defaults;
-                        }
+                            var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
+                            var markerLayer = configRoot
+                                .GetMarkerNodes()
+                                .FirstOrDefault(x => x.Config.Equals(marker))
+                                .Builder;
 
-                        var ret = markerLayer.MaybeCreateUiLayer();
-                        return ret;
-                    }
-                })
+                            if (markerLayer.IsNull)
+                            {
+                                markerLayer = configRoot.Defaults;
+                            }
+
+                            var ret = markerLayer.MaybeCreateUiLayer();
+                            return ret;
+                        }
+                    })
                 .ConfigureAwait(false);
         }
     }

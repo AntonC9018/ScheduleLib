@@ -43,13 +43,14 @@ public sealed partial class ListsForPredzashitaTaskHandler
     public static bool HasConfiguredCommissions(PreDefenseOptions options)
     {
         return (options.Commissions ?? Commissions) is { Length: > 0 } configured
-        && configured.All(x => x.Members.Length > 0);
+            && configured.All(x => x.Members.Length > 0);
     }
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
         ILogger<ListsForPredzashitaTaskHandler> logger,
-        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper,
+        [FromKeyedServices(NameMappingKeys.Teacher)]
+        INameRemapper nameRemapper,
         IOptions<PreDefenseOptions> options)
     {
         _thesesListProvider = thesesListProvider;
@@ -62,7 +63,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         if (!HasConfiguredCommissions(_options))
         {
-            return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
+            return
+                "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
         }
 
         try
@@ -93,7 +95,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             {
                 if (!members.Add(member))
                 {
-                    return $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+                    return
+                        $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
                 }
             }
         }
@@ -103,17 +106,23 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private Commission<Name>[] ParseCommissionNames()
     {
         return (_options.Commissions ?? Commissions).Select(x =>
-            new Commission<Name>
-            {
-                Members = x.Members.Select((y, index) => ParseCommissionMember(commissionNumber: x.Number, memberNumber: index + 1, y.Name))
-                    .ToArray(),
-                Number = x.Number,
-                Room = x.Room,
-            })
+                new Commission<Name>
+                {
+                    Members = x.Members.Select((y, index) =>
+                            ParseCommissionMember(commissionNumber: x.Number,
+                                memberNumber: index + 1,
+                                y.Name))
+                        .ToArray(),
+                    Number = x.Number,
+                    Room = x.Room,
+                })
             .ToArray();
     }
 
-    private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
+    private Name ParseCommissionMember(
+        int commissionNumber,
+        int memberNumber,
+        string name)
     {
         try
         {
@@ -124,8 +133,11 @@ public sealed partial class ListsForPredzashitaTaskHandler
         }
         catch (NameParsingException e)
         {
-            throw new InvalidDataException(
-                $"Pre-defense commission {commissionNumber} member {memberNumber} has an invalid name '{name}': {e.Message}", e);
+            throw PreDefenseInvalidDataExceptionFactory.ForInvalidMemberName(
+                commissionNumber: commissionNumber,
+                memberNumber: memberNumber,
+                name,
+                e);
         }
     }
 
@@ -135,11 +147,14 @@ public sealed partial class ListsForPredzashitaTaskHandler
         CancellationToken cancellationToken)
     {
         var data = await BuildWorkbooks(thesisType, cancellationToken);
-        await WriteAllAsync(data, outputDirectory, cancellationToken);
+        await WriteAllAsync(data,
+            outputDirectory,
+            cancellationToken);
     }
 
     public async Task<Dictionary<int, List<StudentThesisRecord>>> BuildWorkbooks(
-        ThesisType thesisType, CancellationToken cancellationToken)
+        ThesisType thesisType,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!HasConfiguredCommissions(_options))
@@ -159,7 +174,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
-            global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet = avrLookup;
+            global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet =
+                avrLookup;
             global::ScheduleLib.Application.Core.NameAndGroup item = new(name, x.Group);
             hashSet.Add(item);
         }
@@ -175,7 +191,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.ThesisRecord> list2 = list;
-            global::ScheduleLib.Application.Core.ThesisRecord item2 = new(studentName, Group: group, ThesisName: thesisName);
+            global::ScheduleLib.Application.Core.ThesisRecord item2 = new(studentName,
+                Group: group,
+                ThesisName: thesisName);
             list2.Add(item2);
         }
 
@@ -210,14 +228,16 @@ public sealed partial class ListsForPredzashitaTaskHandler
             foreach (var t in theses1)
             {
                 string? practicaPlace = null;
-                global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet2 = avrLookup;
+                global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet2 =
+                    avrLookup;
                 global::ScheduleLib.Application.Core.NameAndGroup item3 = new(t.StudentName, t.Group);
                 if (hashSet2.Contains(item3))
                 {
                     practicaPlace = "Laborator AVR";
                 }
 
-                global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.StudentThesisRecord> list3 = list;
+                global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.StudentThesisRecord>
+                    list3 = list;
                 global::ScheduleLib.Application.Core.StudentThesisRecord item4 = new(
                     StudentName: t.StudentName,
                     TeacherName: teacher,
@@ -238,7 +258,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
         Stream output,
         CancellationToken cancellationToken)
     {
-        await using var spreadsheet = await Spreadsheet.CreateNewAsync(output, options: null, cancellationToken);
+        await using var spreadsheet = await Spreadsheet.CreateNewAsync(output,
+            options: null,
+            cancellationToken);
         const string font = "Times New Roman";
 
         var headerStyle = spreadsheet.AddStyle(new()
@@ -269,21 +291,24 @@ public sealed partial class ListsForPredzashitaTaskHandler
             return name;
         }
 
-        await spreadsheet.StartWorksheetAsync(CalculateName(), options: null, cancellationToken);
+        await spreadsheet.StartWorksheetAsync(CalculateName(),
+            options: null,
+            cancellationToken);
 
         // Header
         Cell HeaderCell(string s) => new(s, headerStyle);
         await spreadsheet.AddRowAsync(
-        [
-            HeaderCell("Nr."),
-            HeaderCell("Nume, prenume student"),
-            HeaderCell("Grupa"),
-            HeaderCell("Conducător științific"),
-            HeaderCell("Compania / locul de practică"),
-            HeaderCell("Documente prezentate (agenda / raport)"),
-            HeaderCell("Observații privind prezentarea și activitatea"),
-            HeaderCell("Nota finală"),
-        ], cancellationToken);
+            [
+                HeaderCell("Nr."),
+                HeaderCell("Nume, prenume student"),
+                HeaderCell("Grupa"),
+                HeaderCell("Conducător științific"),
+                HeaderCell("Compania / locul de practică"),
+                HeaderCell("Documente prezentate (agenda / raport)"),
+                HeaderCell("Observații privind prezentarea și activitatea"),
+                HeaderCell("Nota finală"),
+            ],
+            cancellationToken);
 
         for (int i = 0; i < data.Count; i++)
         {
@@ -303,16 +328,17 @@ public sealed partial class ListsForPredzashitaTaskHandler
             }
 
             await spreadsheet.AddRowAsync(
-            [
-                BodyCell(i + 1),
-                BodyCell(student.StudentName.ToString()),
-                BodyCell(student.Group),
-                BodyCell(student.TeacherName.ToString()),
-                BodyCell(student.PracticaPlace ?? ""),
-                BodyCell("da/da"),
-                BodyCell(student.ThesisName),
-                BodyCell(10),
-            ], cancellationToken);
+                [
+                    BodyCell(i + 1),
+                    BodyCell(student.StudentName.ToString()),
+                    BodyCell(student.Group),
+                    BodyCell(student.TeacherName.ToString()),
+                    BodyCell(student.PracticaPlace ?? ""),
+                    BodyCell("da/da"),
+                    BodyCell(student.ThesisName),
+                    BodyCell(10),
+                ],
+                cancellationToken);
         }
         await spreadsheet.FinishAsync(cancellationToken);
     }
@@ -330,7 +356,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 return path;
             }
 
-            await using var outputFile = output.OpenFile(CalculatePath(), FileMode.Create, FileAccess.Write);
+            await using var outputFile = output.OpenFile(CalculatePath(),
+                FileMode.Create,
+                FileAccess.Write);
             await WriteAsync(
                 commissionNumber,
                 students,
@@ -341,10 +369,12 @@ public sealed partial class ListsForPredzashitaTaskHandler
 }
 
 public readonly record struct NameAndGroup(Name Name, string Group);
+
 public readonly record struct ThesisRecord(
     Name StudentName,
     string Group,
     string ThesisName);
+
 public sealed record class StudentThesisRecord(
     Name StudentName,
     Name TeacherName,

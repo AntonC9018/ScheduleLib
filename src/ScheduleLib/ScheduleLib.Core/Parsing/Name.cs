@@ -29,7 +29,9 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
 
     public bool Equals(Name? x, Name? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+                y: y,
+                out bool b))
         {
             return b;
         }
@@ -168,6 +170,7 @@ public sealed record Name
         {
             Debug.Assert(p.All(x => x != ""));
         }
+
         F(FirstName);
         F(LastName);
         F(Patronymic);
@@ -254,11 +257,15 @@ public static class NameHelper
     {
         var ret = new NameFields();
 
-        ret.LastName = ParseRequiredNamePart(ref lexer, requiredError: "Last name required", incompleteError: "Last name incomplete");
+        ret.LastName = ParseRequiredNamePart(ref lexer,
+            requiredError: "Last name required",
+            incompleteError: "Last name incomplete");
         IgnoreParenthesizedTextAndWhitespace(ref lexer);
         ErrorOnInvalidToken(ref lexer);
 
-        ret.FirstName = ParseRequiredNamePart(ref lexer, requiredError: "First name required", incompleteError: "First name incomplete");
+        ret.FirstName = ParseRequiredNamePart(ref lexer,
+            requiredError: "First name required",
+            incompleteError: "First name incomplete");
         if (lexer.IsEmpty)
         {
             return new(ret);
@@ -421,7 +428,8 @@ public static class NameHelper
     private static NameParsingException NameParsingException(this LexerScope lexer, string err)
     {
         // TODO: Do token errors properly
-        return new NameParsingException($"{err} at token {lexer}");
+        var tokenText = lexer.ToString();
+        return new NameParsingException(error: err, tokenText: tokenText);
     }
 }
 
@@ -456,12 +464,21 @@ public readonly struct NameParser : IDisposable
 
 public sealed class NameParsingException : Exception
 {
+    public string? Error { get; }
+    public string? TokenText { get; }
+
     public NameParsingException(string message) : base(message)
     {
     }
 
     public NameParsingException(string message, Exception innerException) : base(message, innerException)
     {
+    }
+
+    public NameParsingException(string error, string tokenText) : base($"{error} at token {tokenText}")
+    {
+        Error = error;
+        TokenText = tokenText;
     }
 }
 
@@ -472,7 +489,9 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
     public int Compare(Name? x, Name? y)
     {
         {
-            if (ComparisonHelper.NullGuardCompare(x: x, y: y, out int score))
+            if (ComparisonHelper.NullGuardCompare(x: x,
+                    y: y,
+                    out int score))
             {
                 return score;
             }
@@ -486,7 +505,9 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
             {
                 var ap = a[i];
                 var bp = b[i];
-                if (ComparisonHelper.NullGuardCompare(x: ap, y: bp, out int score))
+                if (ComparisonHelper.NullGuardCompare(x: ap,
+                        y: bp,
+                        out int score))
                 {
                     if (score == 0)
                     {

@@ -50,37 +50,57 @@ public struct WhiteSpaceContext
         global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Default;
         global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
         global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+            start: start2,
+            end: end2);
         return create;
     }
 
     public readonly WhiteSpaceResult DefaultAll()
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Default, start: Lexer.Position, end: Lexer.Position);
+    {
+        return WhiteSpaceResult.Create(WhiteSpaceAction.Default,
+            start: Lexer.Position,
+            end: Lexer.Position);
+    }
 
     public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
     {
         global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Insert;
         global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
         global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+            start: start2,
+            end: end2);
         return create;
     }
 
     public readonly WhiteSpaceResult InsertAll()
-        => WhiteSpaceResult.Create(WhiteSpaceAction.Insert, start: Lexer.Position, end: Lexer.Position);
+    {
+        return WhiteSpaceResult.Create(WhiteSpaceAction.Insert,
+            start: Lexer.Position,
+            end: Lexer.Position);
+    }
 
     public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
     {
         global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.DontInsert;
         global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
         global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action, start: start2, end: end2);
+        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+            start: start2,
+            end: end2);
         return create;
     }
 
     public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
-        => WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert, start: Lexer.Position, end: Lexer.Position, inclusive);
+    {
+        return WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert,
+            start: Lexer.Position,
+            end: Lexer.Position,
+            inclusive);
+    }
 }
+
 public readonly record struct WhiteSpaceResult(
     WhiteSpaceAction Action,
     LexerPosition LastAppliedPosition,
@@ -248,8 +268,9 @@ public static class LessonParsingHelper
         {
             return false;
         }
-        if (!lexer.CanPeek(2) || !lexer.Peek(2)
-            .Is('-'))
+        if (!lexer.CanPeek(2)
+            || !lexer.Peek(2)
+                .Is('-'))
         {
             return false;
         }
@@ -262,7 +283,9 @@ public static class LessonParsingHelper
         {
             return false;
         }
-        if (!TryGetExactDashedLegacySubGroup(word: word.Value.Span, number: number.Value.Span, out subGroup))
+        if (!TryGetExactDashedLegacySubGroup(word: word.Value.Span,
+                number: number.Value.Span,
+                out subGroup))
         {
             return false;
         }
@@ -365,6 +388,7 @@ public static class LessonParsingHelper
                     foreach (var mod in lesson.Modifiers)
                     {
                         bool isDefaultKey = mod.Key == SubLessonModifiersKey.Default;
+
                         bool CalculateConditionResult()
                         {
                             if (isDefaultKey)
@@ -411,7 +435,9 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        yield return Output(subGroup: mod.Key.SubGroup, v, lessonName: lessonsE.Current.LessonName);
+                        yield return Output(subGroup: mod.Key.SubGroup,
+                            v,
+                            lessonName: lessonsE.Current.LessonName);
                     }
                 }
 
@@ -457,7 +483,9 @@ public static class LessonParsingHelper
                     v.General.UpdateIfNotDefault(defaultMod.General);
                     v.Specific.UpdateIfNotDefault(defaultMod.Specific);
 
-                    yield return Output(subGroup: defaultMod.SubGroup, v, lessonName: lesson1.LessonName);
+                    yield return Output(subGroup: defaultMod.SubGroup,
+                        v,
+                        lessonName: lesson1.LessonName);
                 }
 
                 {
@@ -532,6 +560,7 @@ public static class LessonParsingHelper
             {
                 c1.Lexer.MoveTo(lexerCopy.Position);
             }
+
             if (c.State.Step == ParsingStep.Output)
             {
                 Apply(ref c);
@@ -565,7 +594,8 @@ public static class LessonParsingHelper
     {
         while (c.Lexer.TryConsumeAny([
                    TokenType.EndOfLine,
-                   TokenType.Whitespace]))
+                   TokenType.Whitespace,
+               ]))
         {
         }
         if (c.Lexer.IsEmpty)
@@ -700,11 +730,13 @@ public static class LessonParsingHelper
                             // }
                             if (IsParsingInsideSubgroupAlready(c))
                             {
-                                throw new GeneralWrongFormatException("Cannot use 'sbX' subgroup form when already inside a subgroup");
+                                throw new GeneralWrongFormatException(
+                                    "Cannot use 'sbX' subgroup form when already inside a subgroup");
                             }
                             if (!defaultSubGroup.IsEmpty)
                             {
-                                throw new GeneralWrongFormatException("Cannot specify the subgrou inside the modifier list twice");
+                                throw new GeneralWrongFormatException(
+                                    "Cannot specify the subgrou inside the modifier list twice");
                             }
                             defaultSubGroup = subGroup;
 
@@ -738,7 +770,9 @@ public static class LessonParsingHelper
                         ref var modifiers = ref GetCurrentModifiers(c, key);
                         lexer.TryConsume(TokenType.Whitespace);
                         // The sb1 form without a modifier has been handled already.
-                        var modifierValue = ParseOutModifier(c, ref lexer, c.Params.StringBuilder);
+                        var modifierValue = ParseOutModifier(c,
+                            ref lexer,
+                            c.Params.StringBuilder);
                         bool somethingSet = modifiers.Set(modifierValue);
                         if (!somethingSet)
                         {
@@ -836,7 +870,7 @@ public static class LessonParsingHelper
                         SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                         {
                             if (!lexer.Peek(2)
-                                .Is('-'))
+                                    .Is('-'))
                             {
                                 return null;
                             }
@@ -1277,7 +1311,18 @@ public static class LessonParsingHelper
 
                     static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
                     {
-                        if (name.Any(x => { if (!(!x.IsEmpty)) { return false; } if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter)) { return false; } return true; }))
+                        if (name.Any(x =>
+                            {
+                                if (!(!x.IsEmpty))
+                                {
+                                    return false;
+                                }
+                                if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter))
+                                {
+                                    return false;
+                                }
+                                return true;
+                            }))
                         {
                             WrongFormatException.InvalidLastName();
                         }
@@ -1557,6 +1602,7 @@ public static class LessonParsingHelper
             {
                 return lexer.Position.Value > whiteSpaceResult.LastSkippedPosition.Value;
             }
+
             bool IsPositionApplied()
             {
                 return lexer.Position.Value <= whiteSpaceResult.LastAppliedPosition.Value;
@@ -1580,6 +1626,7 @@ public static class LessonParsingHelper
                 {
                     break;
                 }
+
                 bool CheckCondition()
                 {
                     if (!(t.Type == LessonTokenType.Number))
@@ -1693,6 +1740,7 @@ public static class LessonParsingHelper
         {
             c.State.Step = ParsingStep.MaybeSubGroupAgain;
         }
+
         static bool TryParseAndSetRoomName(ParsingContext c)
         {
             var lexer = c.Lexer;
@@ -1770,7 +1818,10 @@ public static class LessonParsingHelper
             {
                 return null;
             }
-            if (uint.TryParse(span, NumberStyles.None, provider: null, out uint result))
+            if (uint.TryParse(span,
+                    NumberStyles.None,
+                    provider: null,
+                    out uint result))
             {
                 lexer.Move();
                 return result;
@@ -1796,6 +1847,7 @@ public static class LessonParsingHelper
 public sealed class LessonTypeParser
 {
     public static readonly LessonTypeParser Instance = new();
+
     public LessonType? Parse(ReadOnlySpan<char> type)
     {
         var names = LessonTypeConstants.Names;
@@ -1818,12 +1870,14 @@ public sealed class LessonTypeParser
 public sealed class ParityParser
 {
     public static readonly ParityParser Instance = new();
+
     public Parity? Parse(ReadOnlySpan<char> parity)
     {
         static bool Equals1(ReadOnlySpan<char> a, string b)
         {
             return a.Equals(b.AsSpan(), StringComparison.OrdinalIgnoreCase);
         }
+
         if (Equals1(parity, "par"))
         {
             return Parity.EvenWeek;
@@ -1839,7 +1893,6 @@ public sealed class ParityParser
         return null;
     }
 }
-
 
 public sealed class RoomParser
 {
@@ -1941,6 +1994,7 @@ public sealed class RoomParser
                     return true;
                 }
                 var t = lexer.Current;
+
                 // Move this out of here?
                 bool CalculateConditionResult2()
                 {
@@ -1979,6 +2033,7 @@ public sealed class RoomParser
             bool TryAllUnderscore(ref LexerScope lexer)
             {
                 var t = lexer.Current;
+
                 bool AllUnderscore()
                 {
                     foreach (var x in t.Value.Span)
@@ -1990,6 +2045,7 @@ public sealed class RoomParser
                     }
                     return true;
                 }
+
                 if (AllUnderscore())
                 {
                     lexer.Move();
@@ -2030,6 +2086,7 @@ public sealed class RoomParser
                     return false;
                 }
                 var t = lexer.Current;
+
                 bool CalculateConditionResult()
                 {
                     if (t.Type == LessonTokenType.Word)
@@ -2517,6 +2574,7 @@ internal enum ParsingStep
 
     // Subgroup may be specified before the teacher-room pair.
     OptionalSubGroupBeforeTeacher,
+
     // May be repeated with more teacher-room pairs.
     MaybeSubGroupAgain,
 
@@ -2533,6 +2591,7 @@ internal enum ParsingStep
 
     // Room modifiers.
     OptionalParensBeforeRoom,
+
     // Only room allowed after room modifiers.
     OptionalRoomName,
 
@@ -2700,9 +2759,24 @@ public sealed class RoomAlreadySpecifiedException : WrongFormatException
 
 public sealed class GeneralWrongFormatException : WrongFormatException
 {
+    private sealed class InvalidTokenMessage;
+
     internal GeneralWrongFormatException(string? message = null) : base(message)
     {
     }
+
+    internal GeneralWrongFormatException(Token token)
+        : this(token.Value.ToString(), new InvalidTokenMessage())
+    {
+    }
+
+    private GeneralWrongFormatException(string invalidToken, InvalidTokenMessage _) : base(
+        $"Invalid Token `{invalidToken}`")
+    {
+        InvalidTokenText = invalidToken;
+    }
+
+    public string? InvalidTokenText { get; }
 }
 
 public abstract class WrongFormatException : Exception
@@ -2712,19 +2786,21 @@ public abstract class WrongFormatException : Exception
     }
 
     [DoesNotReturn]
-    internal static void InvalidToken(Token token) => throw new GeneralWrongFormatException($"Invalid Token `{token}`");
+    internal static void InvalidToken(Token token) => throw new GeneralWrongFormatException(token);
 
     [DoesNotReturn]
     internal static void LexerEmpty() => throw new GeneralWrongFormatException("Lexer is empty");
 
     [DoesNotReturn]
-    internal static void ExtraWordsInModifier() => throw new GeneralWrongFormatException("Extra words in a modifier item");
+    internal static void ExtraWordsInModifier() =>
+        throw new GeneralWrongFormatException("Extra words in a modifier item");
 
     [DoesNotReturn]
     internal static void ExpectedWordToken() => throw new GeneralWrongFormatException("Expected name token");
 
     [DoesNotReturn]
-    internal static void InvalidCharactersInTeacherName() => throw new GeneralWrongFormatException("Invalid characters in teacher name");
+    internal static void InvalidCharactersInTeacherName() =>
+        throw new GeneralWrongFormatException("Invalid characters in teacher name");
 
     [DoesNotReturn]
     internal static void ThrowEmptyCourseName() => throw new GeneralWrongFormatException("Empty course name");
@@ -2733,10 +2809,12 @@ public abstract class WrongFormatException : Exception
     internal static void ThrowRoomAlreadySpecified() => throw new RoomAlreadySpecifiedException();
 
     [DoesNotReturn]
-    internal static void ThrowUnclosedParenInLessonName() => throw new GeneralWrongFormatException("Unclosed paren in lesson name");
+    internal static void ThrowUnclosedParenInLessonName() =>
+        throw new GeneralWrongFormatException("Unclosed paren in lesson name");
 
     [DoesNotReturn]
-    internal static void NestedParenInLessonName() => throw new GeneralWrongFormatException("Nested paren in lesson name");
+    internal static void NestedParenInLessonName() =>
+        throw new GeneralWrongFormatException("Nested paren in lesson name");
 
     [DoesNotReturn]
     internal static void EmptyListItem() => throw new GeneralWrongFormatException("Empty list item");
@@ -2745,13 +2823,19 @@ public abstract class WrongFormatException : Exception
     internal static void UnclosedParens() => throw new GeneralWrongFormatException("Unclosed parens");
 
     [DoesNotReturn]
-    internal static void InvalidLastName() => throw new GeneralWrongFormatException($"Last name must not be short");
+    internal static void InvalidLastName()
+    {
+        const string message = "Last name must not be short";
+        throw new GeneralWrongFormatException(message);
+    }
 
     [DoesNotReturn]
-    internal static void ExpectedArabSubGroup() => throw new GeneralWrongFormatException("Expected subgroup number as a arab numeral");
+    internal static void ExpectedArabSubGroup() =>
+        throw new GeneralWrongFormatException("Expected subgroup number as a arab numeral");
 
     [DoesNotReturn]
-    internal static void ExpectedSubGroupNumberToBeOneDigit() => throw new GeneralWrongFormatException("Expected a one-digit number for the group");
+    internal static void ExpectedSubGroupNumberToBeOneDigit() =>
+        throw new GeneralWrongFormatException("Expected a one-digit number for the group");
 }
 
 internal ref struct ParsingContext

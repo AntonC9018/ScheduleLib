@@ -43,6 +43,7 @@ public record struct LessonModelDiffMask()
         get => Impl.IsSet(BitIndex.Course);
         set => Impl.Set(BitIndex.Course, value);
     }
+
     public bool OneTeacher
     {
         get => Impl.IsSet(BitIndex.OneTeacher);
@@ -171,6 +172,7 @@ public struct LessonBuilderGroupData()
     public Specialization Specialization = Specialization.All;
     public Alternative Alternative = Alternative.All;
 }
+
 public struct LessonBuilderGeneralData()
 {
     public CourseId? Course;
@@ -236,6 +238,7 @@ public sealed class LessonBuilder<T> : ILessonBuilder<T>
         Model = model;
         Id = id;
     }
+
     public ScheduleBuilder Schedule { get; }
     public T Model { get; }
     public int Id { get; internal set; }
@@ -245,6 +248,7 @@ public sealed class LessonBuilder<T> : ILessonBuilder<T>
 public static class LessonBuilderHelper
 {
     internal const int UninitializedId = -1;
+
     extension(ILessonBuilder<WeeklyLessonBuilderModel> b)
     {
         public void DayOfWeek(DayOfWeek dayOfWeek)
@@ -302,14 +306,17 @@ public static class LessonBuilderHelper
         {
             b.Model.Base.Group.SubGroup = subGroup;
         }
+
         public void Specialization(Specialization specialization)
         {
             b.Model.Base.Group.Specialization = specialization;
         }
+
         public void Alternative(Alternative alternative)
         {
             b.Model.Base.Group.Alternative = alternative;
         }
+
         public void Group(GroupId group, SubGroup? subGroup = null)
         {
             b.Model.Base.Group.Groups = [group];
@@ -329,7 +336,7 @@ public static class LessonBuilderHelper
             var g = new LessonGroups();
             if (groups.Length > g.Capacity)
             {
-                throw new ArgumentException($"The maximum number of groups is {g.Capacity}.");
+                throw new MaximumLessonGroupCountException(g.Capacity);
             }
 
             for (int i = 0; i < groups.Length; i++)
@@ -342,6 +349,7 @@ public static class LessonBuilderHelper
         public void Teacher(TeacherId teacher) => b.Model.Base.General.Teachers.Add(teacher);
         public void Room(RoomId room) => b.Model.Base.General.Room = room;
         public void Type(LessonType type) => b.Model.Base.General.Type = type;
+
         public void Course(CourseId course)
         {
             var prev = b.Model.Base.General.Course;
@@ -384,6 +392,7 @@ public static class LessonBuilderHelper
                 lookupModule.LessonsByCourse[p1.Id].Add(id);
             }
         }
+
         public void InitLookup() => b.UpdateLookup(prevCourseId: null);
     }
 
@@ -478,7 +487,10 @@ public static class LessonBuilderHelper
                     if (g0.AttendanceMode.IsZi() != ami.IsZi()
                         || g0.AttendanceMode.IsFr() != ami.IsFr())
                     {
-                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(firstMode: g0.AttendanceMode, secondMode: gi.AttendanceMode, firstGroup: g0.Name, secondGroup: gi.Name);
+                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(firstMode: g0.AttendanceMode,
+                            secondMode: gi.AttendanceMode,
+                            firstGroup: g0.Name,
+                            secondGroup: gi.Name);
                     }
                 }
             }
@@ -487,6 +499,7 @@ public static class LessonBuilderHelper
             {
                 throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
             }
+
             bool CheckCondition()
             {
                 if (courseId.IsInvalid)
@@ -524,12 +537,16 @@ public static class LessonBuilderHelper
     {
         var r = s.WeeklyLessons.New();
         r.Value = new();
-        return new(s, s.WeeklyLessons.Ref(r.Id), r.Id);
+        return new(s,
+            s.WeeklyLessons.Ref(r.Id),
+            r.Id);
     }
 
     public static LessonBuilder<WeeklyLessonBuilderModel> DetachedRegularLesson(this ScheduleBuilder s)
     {
-        var builder = new LessonBuilder<WeeklyLessonBuilderModel>(s, new(), UninitializedId);
+        var builder = new LessonBuilder<WeeklyLessonBuilderModel>(s,
+            new(),
+            UninitializedId);
         return builder;
     }
 
@@ -574,7 +591,9 @@ public static class LessonBuilderHelper
     {
         var r = s.OneTimeLessons.New();
         r.Value = new();
-        return new(s, r.Value, r.Id);
+        return new(s,
+            r.Value,
+            r.Id);
     }
 
     public static LessonModelDiffMask Diff(
@@ -605,6 +624,7 @@ public static class LessonBuilderHelper
                 ret.AllTeachers = true;
             }
         }
+
         static bool AllTeachersNotEqual(
             in LessonBuilderModelDataBase a,
             in LessonBuilderModelDataBase b)
@@ -615,6 +635,7 @@ public static class LessonBuilderHelper
                 {
                     return false;
                 }
+
                 bool HasTeacher(List<TeacherId> other)
                 {
                     foreach (var teach2 in other)
@@ -729,7 +750,9 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(a: in a.Base, b: in b.Base, whatToDiff);
+            var other = Diff(a: in a.Base,
+                b: in b.Base,
+                whatToDiff);
             ret = ret.Union(other);
         }
 
@@ -786,6 +809,7 @@ public static class LessonBuilderHelper
                 ret.AllTeachers = true;
             }
         }
+
         bool AllTeachersNotEqual(
             in LessonData a,
             in LessonData b)
@@ -852,7 +876,9 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(a: a.Lesson, b: b.Lesson, whatToDiff);
+            var other = Diff(a: a.Lesson,
+                b: b.Lesson,
+                whatToDiff);
             ret = ret.Union(other);
         }
 
@@ -901,6 +927,7 @@ public static class LessonBuilderHelper
                 {
                     to.General.Teachers.Add(teach);
                 }
+
                 static bool ContainsTeacher(
                     in LessonBuilderModelDataBase to,
                     TeacherId teach1)
@@ -924,6 +951,7 @@ public static class LessonBuilderHelper
                 {
                     to.Group.Groups.Add(g);
                 }
+
                 static bool ContainsGroup(
                     in LessonBuilderModelDataBase to,
                     GroupId g1)
@@ -946,6 +974,8 @@ public static class LessonBuilderHelper
         in WeeklyLessonBuilderModelData from,
         LessonModelMergeMask merge)
     {
-        Merge(to: ref to.Base, @from: from.Base, merge);
+        Merge(to: ref to.Base,
+            @from: from.Base,
+            merge);
     }
 }

@@ -25,7 +25,8 @@ public static class MoodleQuizScraper
     public static async Task<QuizAttemptsPage> ScrapeQuizAttempts(
         this MoodleScrapingContext context,
         string quizId,
-        int pageSize = 2000, CancellationToken cancellationToken = default)
+        int pageSize = 2000,
+        CancellationToken cancellationToken = default)
     {
         // Navigate to the quiz overview page
         string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
@@ -34,6 +35,7 @@ public static class MoodleQuizScraper
         // await page.SaveForDebug();
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
+
         (string, string?) ProjectValue(global::AngleSharp.Html.Dom.IHtmlListItemElement x)
         {
             var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
@@ -48,6 +50,7 @@ public static class MoodleQuizScraper
             }
             throw new InvalidOperationException("Expected span or anchor in path");
         }
+
         var path = pathItems.Select(ProjectValue)
             .ToList();
 
@@ -123,6 +126,7 @@ public static class MoodleQuizScraper
                 var ret = node.TextContent.Trim();
                 return ret;
             }
+
             var userName = ExtractUserName();
             if (userName is null)
             {
@@ -322,7 +326,8 @@ public static class MoodleQuizScraper
                 QuestionNumber = questionNum,
                 Grade = ParseFloatOrNull(gradeSpan.MaybeExtractText()),
                 Status = ParseQuestionStatus(gradeSpan?.GetAttribute("class")),
-                ReviewLink = link?.GetAttribute("href") ?? throw new InvalidOperationException("Expecting a review link"),
+                ReviewLink = link?.GetAttribute("href")
+                    ?? throw new InvalidOperationException("Expecting a review link"),
             });
             questionNum++;
         }
@@ -519,17 +524,24 @@ public static class MoodleQuizScraper
 
         var culture = new CultureInfo("ro-RO");
 
-        if (DateTime.TryParseExact(dateTime.Trim(), formats, culture, DateTimeStyles.None, out var result))
+        if (DateTime.TryParseExact(dateTime.Trim(),
+                formats,
+                culture,
+                DateTimeStyles.None,
+                out var result))
         {
             return result;
         }
 
-        if (DateTime.TryParse(dateTime, culture, DateTimeStyles.None, out result))
+        if (DateTime.TryParse(dateTime,
+                culture,
+                DateTimeStyles.None,
+                out result))
         {
             return result;
         }
 
-        throw new InvalidOperationException($"Cannot parse datetime: {dateTime}");
+        throw new MoodleDateTimeParseException(dateTime);
     }
 
     private static TimeSpan? ParseDuration(string? duration)
@@ -562,7 +574,9 @@ public static class MoodleQuizScraper
             }
         }
 
-        return new TimeSpan(hours: 0, minutes: minutes, seconds: seconds);
+        return new TimeSpan(hours: 0,
+            minutes: minutes,
+            seconds: seconds);
     }
 
     private static float? ParseFloatOrNull(string? value)
@@ -575,7 +589,10 @@ public static class MoodleQuizScraper
         // Replace comma with period for decimal separator
         value = value.Replace(',', '.');
 
-        if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+        if (float.TryParse(value,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var result))
         {
             return result;
         }
@@ -608,7 +625,12 @@ public static class MoodleQuizScraper
                 var value = row.QuerySelector("td")
                     .MaybeExtractText();
 
-                if (header is null || value is null)
+                if (header is null)
+                {
+                    continue;
+                }
+
+                if (value is null)
                 {
                     continue;
                 }
@@ -634,7 +656,7 @@ public static class MoodleQuizScraper
                         details.FinalGrade = ParseFinalGrade(value);
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown summary table header: {header}");
+                        throw new UnknownMoodleSummaryTableHeaderException(header);
                 }
             }
         }
@@ -729,7 +751,8 @@ public static class MoodleQuizScraper
                 var checkbox = answerDiv.QuerySelector("input[type=checkbox]");
                 var label = answerDiv.QuerySelector("div[data-region=answer-label]");
                 var isCorrect = answerDiv.GetAttribute("class")
-                    ?.Contains("correct") ?? false;
+                        ?.Contains("correct")
+                    ?? false;
                 var isChecked = checkbox?.HasAttribute("checked") ?? false;
                 if (label != null)
                 {
@@ -746,16 +769,20 @@ public static class MoodleQuizScraper
         // Comment
         var commentDiv = questionDiv.QuerySelector(".comment");
         var comment = commentDiv?.QuerySelector("p")
-            ?.TextContent.Trim() ?? "";
+                ?.TextContent.Trim()
+            ?? "";
         var commentLink = commentDiv?.QuerySelector("a")
-            ?.GetAttribute("href") ?? "";
+                ?.GetAttribute("href")
+            ?? "";
 
         // Feedback
         var feedbackDiv = questionDiv.QuerySelector(".feedback");
         var feedback = feedbackDiv?.QuerySelector(".specificfeedback")
-            ?.TextContent.Trim() ?? "";
+                ?.TextContent.Trim()
+            ?? "";
         var correctAnswer = feedbackDiv?.QuerySelector(".rightanswer")
-            ?.TextContent.Trim() ?? "";
+                ?.TextContent.Trim()
+            ?? "";
 
         // Response history
         var historyTable = questionDiv.QuerySelector(".history table");
@@ -1097,7 +1124,12 @@ file static class Accessors
         return ret;
     }
 
-    private readonly record struct Info(MethodInfo? CreateMethod, ConstructorInfo Constructor, MemberInfo Member, Type ValueType);
+    private readonly record struct Info(
+        MethodInfo? CreateMethod,
+        ConstructorInfo Constructor,
+        MemberInfo Member,
+        Type ValueType);
+
     private static Info FindInfo(Type type)
     {
         var constructors = type
@@ -1166,7 +1198,10 @@ file static class Accessors
 
             var createMethod = createMethods
                 .FirstOrDefault(x => x.Params[0].ParameterType == ctor.Params[0].ParameterType);
-            wholeMatch = new(createMethod.Method, ctor.Constructor, match, paramType);
+            wholeMatch = new(createMethod.Method,
+                ctor.Constructor,
+                match,
+                paramType);
         }
         return wholeMatch;
     }
@@ -1181,7 +1216,6 @@ file static class Accessors
         if (info.CreateMethod is { } createMethod)
         {
             creator = createMethod.CreateDelegate<Func<TValue?, T>>();
-
         }
         else
         {
@@ -1220,24 +1254,31 @@ file sealed class Accessors<T, TValue> : AccessorsBase
     public required Func<T, TValue?> Extractor { get; init; }
 }
 
-
 // ChatGPT
 file sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
 {
     private readonly Accessors<T, TValue> _accessor = Accessors.Get<T, TValue>();
 
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override T Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         var value = JsonSerializer.Deserialize<TValue>(ref reader, options);
         return _accessor.Creator(value);
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        T value,
+        JsonSerializerOptions options)
     {
         global::System.Text.Json.Utf8JsonWriter writer2 = writer;
         TValue? value2 = _accessor.Extractor(value);
         global::System.Text.Json.JsonSerializerOptions options2 = options;
-        JsonSerializer.Serialize(writer2, value2, options2);
+        JsonSerializer.Serialize(writer2,
+            value2,
+            options2);
     }
 }
 

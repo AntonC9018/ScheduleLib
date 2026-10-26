@@ -46,22 +46,24 @@ public partial class Extensions
 
         public void FallbackProvider<T>(
             LessonType lessonType)
-
             where T : ILessonNameProviderBase
         {
             if (typeof(T).IsAssignableTo(typeof(ILessonNameProvider)))
             {
-                var ret = (ILessonNameProvider) ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
+                var ret = (ILessonNameProvider) ActivatorUtilities.GetServiceOrCreateInstance<T>(
+                    builder.SingletonServiceProvider);
                 builder.FallbackProvider(lessonType, ret);
             }
             else if (typeof(T).IsAssignableTo(typeof(ILessonNameProviderFactory)))
             {
-                var ret = (ILessonNameProviderFactory) ActivatorUtilities.GetServiceOrCreateInstance<T>(builder.SingletonServiceProvider);
+                var ret =
+                    (ILessonNameProviderFactory) ActivatorUtilities.GetServiceOrCreateInstance<T>(
+                        builder.SingletonServiceProvider);
                 builder.FallbackProvider(lessonType, ret);
             }
             else
             {
-                throw new NotImplementedException($"Don't inherit {nameof(ILessonNameProviderBase)} directly!");
+                throw new DirectLessonNameProviderBaseInheritanceException(typeof(ILessonNameProviderBase));
             }
         }
     }

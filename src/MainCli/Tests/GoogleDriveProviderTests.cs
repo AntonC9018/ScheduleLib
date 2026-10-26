@@ -37,7 +37,8 @@ public sealed class GoogleDriveProviderTests
             {
                 global::System.Net.Http.HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Json("{\"user\":{\"permissionId\":\"account\"}}");
+                    global::System.Net.Http.HttpResponseMessage result =
+                        Json("{\"user\":{\"permissionId\":\"account\"}}");
                     return result;
                 }
 
@@ -51,7 +52,8 @@ public sealed class GoogleDriveProviderTests
             string json;
             if (!splitPages)
             {
-                json = "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}";
+                json =
+                    "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}";
             }
             else
             {
@@ -69,16 +71,17 @@ public sealed class GoogleDriveProviderTests
             }
 
             global::System.Net.Http.HttpResponseMessage result2 = Json(
-            json);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
-            result2);
+                json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+                Task.FromResult(
+                    result2);
             return fromResult;
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
         try
         {
-            await Assert.ThrowsAsync<IOException>(() => DriveSync.Run(
+            await Assert.ThrowsAsync<GoogleDriveSyncProvider.DuplicateDriveFolderNameException>(() => DriveSync.Run(
                 provider,
                 folderName: "Configured",
                 [],
@@ -104,9 +107,9 @@ public sealed class GoogleDriveProviderTests
 
             Assert.All(handler.Requests, x => Assert.Equal(expected: "GET", actual: x.Method));
             string[] collection = Directory.GetFiles(
-                    path: directory,
-                    searchPattern: "*.json",
-                    SearchOption.AllDirectories);
+                path: directory,
+                searchPattern: "*.json",
+                SearchOption.AllDirectories);
             global::System.Collections.IEnumerable collection2 = collection;
             Assert.Empty(
                 collection2);
@@ -147,9 +150,10 @@ public sealed class GoogleDriveProviderTests
             }
 
             global::System.Net.Http.HttpResponseMessage result = Json(
-            json);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
-            result);
+                json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+                Task.FromResult(
+                    result);
             return fromResult;
         });
         using var service = Service(handler);
@@ -160,7 +164,9 @@ public sealed class GoogleDriveProviderTests
         }
         else
         {
-            await Assert.ThrowsAsync<DirectoryNotFoundException>(() => provider.FindFolder("Configured", default));
+            var error = await Assert.ThrowsAsync<GoogleDriveSyncProvider.DriveFolderNotFoundException>(() =>
+                provider.FindFolder("Configured", default));
+            Assert.Equal(expected: "Configured", actual: error.FolderName);
         }
 
         Assert.Equal(expected: 2, actual: call);
@@ -186,13 +192,14 @@ public sealed class GoogleDriveProviderTests
             return Task.FromResult(new HttpResponseMessage(status)
             {
                 Content = new StringContent(
-                                CalculateContent(),
-                                Encoding.UTF8,
-                                "application/json"),
+                    CalculateContent(),
+                    Encoding.UTF8,
+                    "application/json"),
             });
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
+
         byte[] CalculateBuffer()
         {
             byte[] buffer = Encoding.UTF8.GetBytes("artifact bytes");
@@ -292,6 +299,7 @@ public sealed class GoogleDriveProviderTests
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
+
         byte[] CalculateBuffer()
         {
             byte[] buffer = Encoding.UTF8.GetBytes("fixture artifact bytes");
@@ -351,6 +359,7 @@ public sealed class GoogleDriveProviderTests
         Assert.Equal(expected: "actual@example.test", actual: account.Email);
         Assert.Equal(expected: "folder-id", actual: (await provider.FindFolder("O'Brien", default)).Id);
         Assert.Equal(expected: 2, actual: (await provider.ListFiles("folder-id", default)).Count);
+
         string CalculateActualString()
         {
             string actualString2 = Uri.UnescapeDataString(handler.Requests[1].Uri);
@@ -598,6 +607,7 @@ public sealed class GoogleDriveProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
+
             bool CalculateConditionResult6()
             {
                 if (request.RequestUri!.Host == "oauth2.googleapis.com")
@@ -642,9 +652,9 @@ public sealed class GoogleDriveProviderTests
                 return new HttpResponseMessage(HttpStatusCode.BadRequest)
                 {
                     Content = new StringContent(
-                           "{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}",
-                           Encoding.UTF8,
-                           "application/json"),
+                        "{\"error\":\"invalid_grant\",\"error_description\":\"private-provider-diagnostic\"}",
+                        Encoding.UTF8,
+                        "application/json"),
                 };
             }
 
@@ -690,6 +700,7 @@ public sealed class GoogleDriveProviderTests
                 await Task.Delay(Timeout.Infinite, requestToken);
                 throw new Xunit.Sdk.XunitException("The sent API request must time out.");
             }
+
             bool CheckCondition3()
             {
                 bool CalculateConditionResult3()
@@ -732,6 +743,7 @@ public sealed class GoogleDriveProviderTests
                 cancellation.Cancel();
                 throw new OperationCanceledException(cancellation.Token);
             }
+
             bool CheckCondition4()
             {
                 bool CalculateConditionResult4()
@@ -843,6 +855,7 @@ public sealed class GoogleDriveProviderTests
             }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
+
             bool CalculateConditionResult7()
             {
                 if (!folderQuery)
@@ -929,8 +942,10 @@ public sealed class GoogleDriveProviderTests
                     name: "a.pdf",
                     input,
                     default));
-            Assert.Equal(expected: driveRequests, actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
-            Assert.Equal(expected: tokenRequests, actual: handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
+            Assert.Equal(expected: driveRequests,
+                actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+            Assert.Equal(expected: tokenRequests,
+                actual: handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
             Directory.Delete(directory, true);
             return;
         }
@@ -955,8 +970,9 @@ public sealed class GoogleDriveProviderTests
                 cancellation.Token);
             Assert.Equal(expected: exit, actual: actual);
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: status, actual: json.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: status,
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
             if (scenario.StartsWith("apply", StringComparison.Ordinal)
                 || scenario.StartsWith("write-", StringComparison.Ordinal))
             {
@@ -967,8 +983,10 @@ public sealed class GoogleDriveProviderTests
                 var completed = scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal) ? 1 : 0;
                 Assert.All(
                     outcomes.Take(completed),
-                    x => Assert.Equal(expected: "completed", actual: x.GetProperty("state")
-                        .GetString()));
+                    x => Assert.Equal(expected: "completed",
+                        actual: x.GetProperty("state")
+                            .GetString()));
+
                 bool CheckCondition6()
                 {
                     if (scenario.StartsWith("write-", StringComparison.Ordinal))
@@ -1000,13 +1018,14 @@ public sealed class GoogleDriveProviderTests
                 }
 
                 Assert.Equal(
-                                                    expected: CalculateExpected(),
-                                                    actual: outcomes[completed].GetProperty("state")
-                                                        .GetString());
+                    expected: CalculateExpected(),
+                    actual: outcomes[completed].GetProperty("state")
+                        .GetString());
                 Assert.All(
                     outcomes.Skip(completed + 1),
-                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state")
-                        .GetString()));
+                    x => Assert.Equal(expected: "not-attempted",
+                        actual: x.GetProperty("state")
+                            .GetString()));
             }
             if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
             {
@@ -1018,8 +1037,10 @@ public sealed class GoogleDriveProviderTests
                 Assert.Contains(expectedSubstring: "auth login google", actualString: stderr.ToString());
             }
 
-            Assert.DoesNotContain(expectedSubstring: "private-provider-diagnostic", actualString: stdout.ToString() + stderr);
-            Assert.Equal(expected: driveRequests, actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
+            Assert.DoesNotContain(expectedSubstring: "private-provider-diagnostic",
+                actualString: stdout.ToString() + stderr);
+            Assert.Equal(expected: driveRequests,
+                actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
             if (scenario.Contains("real-", StringComparison.Ordinal))
             {
                 bool CalculateCondition()
@@ -1052,9 +1073,11 @@ public sealed class GoogleDriveProviderTests
                     expected2 = 0;
                 }
 
-                int actual2 = handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com" && x.Method != "GET");
+                int actual2 = handler.Requests.Count(x =>
+                    new Uri(x.Uri).Host != "oauth2.googleapis.com" && x.Method != "GET");
                 Assert.Equal(
-                    expected: expected2, actual: actual2);
+                    expected: expected2,
+                    actual: actual2);
             }
 
             var refreshes = handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com");
@@ -1143,9 +1166,10 @@ public sealed class GoogleDriveProviderTests
             }
 
             global::System.Net.Http.HttpResponseMessage result = Json(
-            json);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
-            result);
+                json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+                Task.FromResult(
+                    result);
             return fromResult;
         });
         using var tokens = new SdkTokens(handler);
@@ -1176,9 +1200,9 @@ public sealed class GoogleDriveProviderTests
             var expected = responseScope ?? string.Join(' ', GoogleAuthentication.LoginScopes);
             Assert.Equal(expected: expected, actual: credential.Token.Scope);
             string[] collection = Directory.GetFiles(
-                    path: directory,
-                    searchPattern: "*.json",
-                    SearchOption.AllDirectories);
+                path: directory,
+                searchPattern: "*.json",
+                SearchOption.AllDirectories);
             global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
             var file = Assert.Single(
                 collection2);
@@ -1228,7 +1252,8 @@ public sealed class GoogleDriveProviderTests
 
             int actual2 = handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com");
             Assert.Equal(
-                expected: expected2, actual: actual2);
+                expected: expected2,
+                actual: actual2);
             Assert.Single(handler.Requests.Where(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
         }
         finally
@@ -1280,7 +1305,8 @@ public sealed class GoogleDriveProviderTests
             {
                 global::System.Net.Http.HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Json("{\"user\":{\"permissionId\":\"account\"}}");
+                    global::System.Net.Http.HttpResponseMessage result =
+                        Json("{\"user\":{\"permissionId\":\"account\"}}");
                     return result;
                 }
 
@@ -1290,9 +1316,11 @@ public sealed class GoogleDriveProviderTests
             if (request.Method == HttpMethod.Delete)
             {
                 credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+
                 global::System.Net.Http.HttpResponseMessage CalculateResult2()
                 {
-                    global::System.Net.Http.HttpResponseMessage result2 = new HttpResponseMessage(HttpStatusCode.NoContent);
+                    global::System.Net.Http.HttpResponseMessage result2 =
+                        new HttpResponseMessage(HttpStatusCode.NoContent);
                     return result2;
                 }
 
@@ -1300,6 +1328,7 @@ public sealed class GoogleDriveProviderTests
             }
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
+
             bool CalculateConditionResult()
             {
                 if (!folderQuery)
@@ -1346,9 +1375,10 @@ public sealed class GoogleDriveProviderTests
             }
 
             global::System.Net.Http.HttpResponseMessage result3 = Json(
-            json);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(
-            result3);
+                json);
+            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+                Task.FromResult(
+                    result3);
             return fromResult;
         });
         using var tokens = new SdkTokens(handler, refreshToken: null);
@@ -1387,8 +1417,9 @@ public sealed class GoogleDriveProviderTests
                     new() { Json = true },
                     new() { Apply = stage != "planning" }));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: exit, actual: json.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: exit,
+                actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
             if (stage != "planning")
             {
                 var outcomes = json.RootElement.GetProperty("data")
@@ -1398,16 +1429,19 @@ public sealed class GoogleDriveProviderTests
                 var failedIndex = stage == "after-completed" ? 1 : 0;
                 if (failedIndex == 1)
                 {
-                    Assert.Equal(expected: "completed", actual: outcomes[0].GetProperty("state")
-                        .GetString());
+                    Assert.Equal(expected: "completed",
+                        actual: outcomes[0].GetProperty("state")
+                            .GetString());
                 }
 
-                Assert.Equal(expected: "failed", actual: outcomes[failedIndex].GetProperty("state")
-                    .GetString());
+                Assert.Equal(expected: "failed",
+                    actual: outcomes[failedIndex].GetProperty("state")
+                        .GetString());
                 Assert.All(
                     outcomes.Skip(failedIndex + 1),
-                    x => Assert.Equal(expected: "not-attempted", actual: x.GetProperty("state")
-                        .GetString()));
+                    x => Assert.Equal(expected: "not-attempted",
+                        actual: x.GetProperty("state")
+                            .GetString()));
             }
             if (exit == 4)
             {
@@ -1537,8 +1571,9 @@ public sealed class GoogleDriveProviderTests
                     new() { Json = true },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: 2, actual: json.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: 2,
+                actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
             Assert.Empty(json.RootElement.GetProperty("outputs")
                 .EnumerateArray());
         }

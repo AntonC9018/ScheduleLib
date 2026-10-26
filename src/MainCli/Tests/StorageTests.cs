@@ -22,8 +22,9 @@ public sealed class StorageTests
             Console.SetOut(text);
             Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", option, path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: 2,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
         finally
         {
@@ -41,10 +42,12 @@ public sealed class StorageTests
         try
         {
             Console.SetOut(text);
-            Assert.Equal(expected: 2, actual: await CliHost.Run(["export", "teachers-excel", "--output", path, "--json"]));
+            Assert.Equal(expected: 2,
+                actual: await CliHost.Run(["export", "teachers-excel", "--output", path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: 2,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
         finally
         {
@@ -56,28 +59,32 @@ public sealed class StorageTests
     public async Task InvalidAttendanceSourceReturnsInputError()
     {
         using var temp = new TempDirectory();
+
         string CalculatePath()
         {
             string path = System.IO.Path.Combine(
-                            temp.Path,
-                            "2026_sem1",
-                            "bad");
+                temp.Path,
+                "2026_sem1",
+                "bad");
             return path;
         }
 
         System.IO.Directory.CreateDirectory(
-                    CalculatePath());
+            CalculatePath());
         var original = Console.Out;
         using var text = new StringWriter();
         try
         {
             Console.SetOut(text);
-            Assert.Equal(expected: 3, actual: await CliHost.Run(["query", "lessons", "--data-dir", temp.Path, "--json"]));
+            Assert.Equal(expected: 3,
+                actual: await CliHost.Run(["query", "lessons", "--data-dir", temp.Path, "--json"]));
             using var json = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 3, actual: json.RootElement.GetProperty("exitCode")
-                .GetInt32());
-            Assert.Contains(expectedSubstring: "Invalid attendance mode", actualString: json.RootElement.GetProperty("errors")[0]
-                .GetString());
+            Assert.Equal(expected: 3,
+                actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+            Assert.Contains(expectedSubstring: "Invalid attendance mode",
+                actualString: json.RootElement.GetProperty("errors")[0]
+                    .GetString());
         }
         finally
         {
@@ -100,17 +107,18 @@ public sealed class StorageTests
             await output.Publish(
                 "book.xlsx",
                 (s, t) => s.WriteAsync(
-                    new byte[]
-                    {
-                        1,
-                        2,
-                        3,
-                    },
-                    t)
+                        new byte[]
+                        {
+                            1,
+                            2,
+                            3,
+                        },
+                        t)
                     .AsTask(),
                 CancellationToken.None);
             await output.Complete("succeeded", CancellationToken.None);
         }
+
         string CalculatePath()
         {
             string path2 = Path.Combine(temp.Path, "book.xlsx");
@@ -123,7 +131,7 @@ public sealed class StorageTests
             command: "test",
             runId: "two",
             CancellationToken.None);
-        await Assert.ThrowsAsync<IOException>(() => next.Publish(
+        await Assert.ThrowsAsync<RunOutput.OutputArtifactOwnershipConflictException>(() => next.Publish(
             "book.xlsx",
             (s, t) => Task.CompletedTask,
             CancellationToken.None));
@@ -153,11 +161,13 @@ public sealed class StorageTests
         {
             Assert.Equal(expected: 0, actual: result.Exit);
             using var json = JsonDocument.Parse(result.Output);
-            Assert.Equal(expected: "succeeded", actual: json.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: "succeeded",
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
             Assert.True(json.RootElement.GetProperty("data")
-                .GetProperty("teacherCount")
-                .GetInt32() > 0);
+                    .GetProperty("teacherCount")
+                    .GetInt32()
+                > 0);
         }
         foreach (var output in new[]
                  {
@@ -166,6 +176,7 @@ public sealed class StorageTests
                  })
         {
             using var workbook = new XLWorkbook(Path.Combine(output, "all-teachers.xlsx"));
+
             string CalculateActual()
             {
                 global::ClosedXML.Excel.IXLWorksheet worksheet = workbook.Worksheet(1);
@@ -182,6 +193,7 @@ public sealed class StorageTests
             var content = string.Join(separator, values);
             Assert.Contains(expectedSubstring: "423/4", actualString: content);
             Assert.Contains(expectedSubstring: "IA", actualString: content);
+
             bool CalculateCondition()
             {
                 global::ClosedXML.Excel.IXLWorksheet worksheet2 = workbook.Worksheet(1);
@@ -200,7 +212,8 @@ public sealed class StorageTests
             bool condition2 = File.Exists(path2);
             Assert.True(condition2);
         }
-        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        global::System.Collections.Generic.IEnumerable<string> collection =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
         var cached = Assert.Single(collection);
         var publishedAt = File.GetLastWriteTimeUtc(cached);
         using (var query = Start(
@@ -229,7 +242,8 @@ public sealed class StorageTests
         await using var input = File.OpenRead(cached);
         var model = await ScheduleSerializer.Deserialize(input, CancellationToken.None);
         Assert.NotNull(model);
-        global::System.Collections.Generic.IEnumerable<string> collection2 = Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp");
+        global::System.Collections.Generic.IEnumerable<string> collection2 =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp");
         global::System.Collections.IEnumerable collection3 = collection2;
         Assert.Empty(collection3);
     }
@@ -254,12 +268,12 @@ public sealed class StorageTests
             temp.Path);
         var results = await Task.WhenAll(Finish(first), Finish(second));
         var directories = results.Select(x =>
-        {
-            using var json = JsonDocument.Parse(x.Output);
-            return json.RootElement.GetProperty("data")
-                .GetProperty("outputDirectory")
-                .GetString()!;
-        })
+            {
+                using var json = JsonDocument.Parse(x.Output);
+                return json.RootElement.GetProperty("data")
+                    .GetProperty("outputDirectory")
+                    .GetString()!;
+            })
             .ToArray();
         Assert.NotEqual(expected: directories[0], actual: directories[1]);
         foreach (var directory in directories)
@@ -308,7 +322,8 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        global::System.Collections.Generic.IEnumerable<string> collection =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
         var cacheFile = Assert.Single(collection);
         var previous = await File.ReadAllBytesAsync(cacheFile);
         await File.WriteAllTextAsync(
@@ -325,6 +340,7 @@ public sealed class StorageTests
         {
             var stdout = query.StandardOutput.ReadToEndAsync();
             var stderr = query.StandardError.ReadToEndAsync();
+
             global::System.TimeSpan CalculateTimeout()
             {
                 global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);
@@ -335,8 +351,9 @@ public sealed class StorageTests
                 .WaitAsync(CalculateTimeout());
             Assert.NotEqual(expected: 0, actual: query.ExitCode);
             using var json = JsonDocument.Parse(await stdout);
-            Assert.Equal(expected: "failed", actual: json.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: "failed",
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
             await stderr;
         }
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(cacheFile));
@@ -358,8 +375,9 @@ public sealed class StorageTests
                 return timeout;
             }
 
-            Assert.Equal(expected: "staged", actual: await writer.StandardOutput.ReadLineAsync()
-                .WaitAsync(CalculateTimeout()));
+            Assert.Equal(expected: "staged",
+                actual: await writer.StandardOutput.ReadLineAsync()
+                    .WaitAsync(CalculateTimeout()));
             Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
             writer.Kill(entireProcessTree: true);
             await writer.WaitForExitAsync();
@@ -370,14 +388,16 @@ public sealed class StorageTests
         }
         var lockPath = Path.Combine(temp.Path, ".schedulelib-output.lock");
         using var owner = Start("lock", lockPath);
+
         global::System.TimeSpan CalculateTimeout2()
         {
             global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(30);
             return timeout2;
         }
 
-        Assert.Equal(expected: "locked", actual: await owner.StandardOutput.ReadLineAsync()
-            .WaitAsync(CalculateTimeout2()));
+        Assert.Equal(expected: "locked",
+            actual: await owner.StandardOutput.ReadLineAsync()
+                .WaitAsync(CalculateTimeout2()));
         try
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => RunOutput.Create(
@@ -425,9 +445,11 @@ public sealed class StorageTests
             },
             cancellation.Token));
         Assert.Equal(expected: "previous", actual: await File.ReadAllTextAsync(path));
+
         global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
         {
-            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+            global::System.Collections.Generic.IEnumerable<string> collection =
+                Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
             return collection;
         }
 
@@ -460,6 +482,7 @@ public sealed class StorageTests
     {
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
+
         global::System.TimeSpan CalculateTimeout()
         {
             global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);

@@ -27,6 +27,7 @@ public sealed class ScheduleImportContext
             yield return lesson;
         }
     }
+
     public ScheduleBuilder Schedule { get; }
     public LessonTimeConfig TimeConfig { get; }
     public DayNameParser DayNameParser { get; }
@@ -89,13 +90,21 @@ public sealed class ScheduleImportContext
 
         global::ScheduleLib.Builders.ScheduleBuilder schedule2 = s;
         global::LessonTimeConfig timeConfig2 = timeConfig;
-        global::ScheduleLib.Parsing.CourseName.CourseNameUnifierModule courseNameUnifierModule2 = new(p.CourseNameUnifierConfig);
+        global::ScheduleLib.Parsing.CourseName.CourseNameUnifierModule courseNameUnifierModule2 =
+            new(p.CourseNameUnifierConfig);
         global::ScheduleLib.Parsing.DayNameParser dayNameParser2 = new DayNameParser(p.DayNameProvider);
         global::ScheduleLib.Parsing.Lesson.LessonParserFactory parserFactory2 = p.ParserFactory;
-        global::ScheduleLib.SpecializationRegistry specializationRegistry2 = p.SpecializationRegistry ?? SpecializationRegistry.Empty;
+        global::ScheduleLib.SpecializationRegistry specializationRegistry2 =
+            p.SpecializationRegistry ?? SpecializationRegistry.Empty;
         global::ScheduleLib.SubGroupPrefixMatcher subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
         global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = new(
-                    schedule: schedule2, timeConfig: timeConfig2, courseNameUnifierModule: courseNameUnifierModule2, dayNameParser: dayNameParser2, parserFactory: parserFactory2, specializationRegistry: specializationRegistry2, subGroupMatcher: subGroupMatcher2);
+            schedule: schedule2,
+            timeConfig: timeConfig2,
+            courseNameUnifierModule: courseNameUnifierModule2,
+            dayNameParser: dayNameParser2,
+            parserFactory: parserFactory2,
+            specializationRegistry: specializationRegistry2,
+            subGroupMatcher: subGroupMatcher2);
         return scheduleImportContext;
     }
 
@@ -168,7 +177,8 @@ public sealed class ScheduleImportContext
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw ConflictingSpecializationException.ForConflictingValues(first: prevSpec.Value, second: spec.Value);
+                    throw ConflictingSpecializationException.ForConflictingValues(first: prevSpec.Value,
+                        second: spec.Value);
                 }
                 specialization = spec;
             }
@@ -255,18 +265,19 @@ public sealed class ScheduleImportContext
         _ = before;
 
         teacher.Name.LastName.Parts.Update(
-            nameModel.LastName.Parts, (a, b) =>
+            nameModel.LastName.Parts,
+            (a, b) =>
             {
-                if (a == null || b == null)
+                if (a is null)
                 {
-                    var result = a;
-                    if (result is not null)
-                    {
-                        return result;
-                    }
-
                     return b;
                 }
+
+                if (b is null)
+                {
+                    return a;
+                }
+
                 var ret = DiacriticsHelper.SelectWithDiacritics(a: a, b: b);
                 return ret;
             });
@@ -327,6 +338,7 @@ public sealed class ScheduleImportContext
         builder.Alternative(input.Alternative);
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
+
         bool CalculateConditionResult()
         {
             if (lesson.GroupName.IsEmpty)
@@ -348,7 +360,8 @@ public sealed class ScheduleImportContext
         }
         else
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = builder;
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+                lessonBuilder = builder;
             global::ScheduleLib.Builders.GroupBuilder group = Schedule.Group(lesson.GroupName.ToString());
             global::ScheduleLib.GroupId group2 = group;
             lessonBuilder.Group(group2);
@@ -463,15 +476,19 @@ public static class RomanianLanguageHelper
             return null;
         }
 
-        return string.Create(name.Length, middle, (output, middle) =>
-        {
-            Debug.Assert(name.Length <= 256);
+        return string.Create(name.Length,
+            middle,
+            (output, middle) =>
             {
-                middle.Replace(output[1..^1], oldValue: 'â', newValue: 'î');
-            }
-            output[0] = name[0];
-            output[^1] = name[^1];
-        });
+                Debug.Assert(name.Length <= 256);
+                {
+                    middle.Replace(output[1..^1],
+                        oldValue: 'â',
+                        newValue: 'î');
+                }
+                output[0] = name[0];
+                output[^1] = name[^1];
+            });
     }
 }
 

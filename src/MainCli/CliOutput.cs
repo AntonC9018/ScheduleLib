@@ -63,8 +63,18 @@ public sealed class CliOutput
 
     public static bool GetJsonl(ResultArguments result) => result.Jsonl;
 
-    public static string? ExclusiveError(ResultArguments result) =>
-        result.Json && result.Jsonl ? ConflictingResultFormatsMessage : null;
+    public static string? ExclusiveError(ResultArguments result)
+    {
+        if (!result.Json)
+        {
+            return null;
+        }
+        if (!result.Jsonl)
+        {
+            return null;
+        }
+        return ConflictingResultFormatsMessage;
+    }
 
     public void EmitStart()
     {
@@ -405,25 +415,27 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
 
             var message = formatter(state, exception);
             var properties = ExtractProperties(state)
-                ?.ToDictionary(
-keySelector: pair => pair.Key, elementSelector: pair => pair.Value, StringComparer.Ordinal)
+                    ?.ToDictionary(
+                        keySelector: pair => pair.Key,
+                        elementSelector: pair => pair.Value,
+                        StringComparer.Ordinal)
                 ?? new Dictionary<string, object?>(StringComparer.Ordinal);
             var scopes = new List<string>();
             scopeProvider()
                 .ForEachScope(
-                (scope, collected) =>
-                {
-                    if (scope is IEnumerable<KeyValuePair<string, object?>> named)
+                    (scope, collected) =>
                     {
-                        foreach (var pair in named)
+                        if (scope is IEnumerable<KeyValuePair<string, object?>> named)
                         {
-                            properties.TryAdd(pair.Key, pair.Value);
+                            foreach (var pair in named)
+                            {
+                                properties.TryAdd(pair.Key, pair.Value);
+                            }
                         }
-                    }
 
-                    collected.Add(scope?.ToString() ?? string.Empty);
-                },
-                scopes);
+                        collected.Add(scope?.ToString() ?? string.Empty);
+                    },
+                    scopes);
             global::ScheduleLib.Cli.CliOutput cliOutput = output;
             global::Microsoft.Extensions.Logging.LogLevel level = logLevel;
             string message2 = message;
@@ -453,7 +465,13 @@ keySelector: pair => pair.Key, elementSelector: pair => pair.Value, StringCompar
             string category2 = category;
             global::System.DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             cliOutput.WriteStructuredLog(
-                level, message: message2, exception: exception2, properties3, scopes3, category: category2, timestamp);
+                level,
+                message: message2,
+                exception: exception2,
+                properties3,
+                scopes3,
+                category: category2,
+                timestamp);
         }
 
         private static IReadOnlyDictionary<string, object?>? ExtractProperties<TState>(TState state)

@@ -43,6 +43,7 @@ public static partial class CliSettings
             cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
+
         bool CalculateConditionResult()
         {
             if (!unset)
@@ -90,7 +91,7 @@ public static partial class CliSettings
             SettingsScope.Project when initial.ProjectDirectory is { } project => Path.Combine(project, FileName),
             SettingsScope.Project => throw new JsonException(
                 "Project scope requires a discovered settings file or --project DIRECTORY."),
-            _ => throw new ArgumentException("Scope must be user or project."),
+            _ => throw new InvalidSettingsScopeException(scope),
         };
         if (action is not null)
         {
@@ -198,9 +199,17 @@ public static partial class CliSettings
         global::Anton.LayeredData.NodeDataKeyRegistry nodeDataKeyRegistry = NodeDataKey.Registry;
         global::Anton.LayeredData.NodeDataKey key2 = new(parts[0]);
         var type = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
-        if (type is null || !SupportedBlocks.Contains(parts[0]) || parts.Any(string.IsNullOrEmpty))
+        if (type is null)
         {
-            throw new JsonException($"Unsupported setting key: {key}");
+            throw new UnsupportedSettingKeyException(key);
+        }
+        if (!SupportedBlocks.Contains(parts[0]))
+        {
+            throw new UnsupportedSettingKeyException(key);
+        }
+        if (parts.Any(string.IsNullOrEmpty))
+        {
+            throw new UnsupportedSettingKeyException(key);
         }
 
         foreach (var part in parts.Skip(1))
@@ -215,7 +224,7 @@ public static partial class CliSettings
             var property = info.Properties.FirstOrDefault(x => x.Name == part);
             if (property is null)
             {
-                throw new JsonException($"Unsupported setting key: {key}");
+                throw new UnsupportedSettingKeyException(key);
             }
 
             type = property.PropertyType;
@@ -234,18 +243,18 @@ public static partial class CliSettings
         if (profile is null)
         {
             value2 = new[]
-            {
-                "defaults",
-            }.Concat(parts)
+                {
+                    "defaults",
+                }.Concat(parts)
                 .ToArray();
         }
         else
         {
             value2 = new[]
-            {
-                "profiles",
-                profile,
-            }.Concat(parts)
+                {
+                    "profiles",
+                    profile,
+                }.Concat(parts)
                 .ToArray();
         }
 
@@ -263,7 +272,7 @@ public static partial class CliSettings
 
                 if (current[part] is not null)
                 {
-                    throw new JsonException($"Cannot edit member beneath a non-object setting: {key}");
+                    throw new SettingsMemberIsNotObjectException(key);
                 }
 
                 current[part] = next = new JsonObject();
@@ -278,7 +287,7 @@ public static partial class CliSettings
         }
         current.Remove(path[^1]);
         foreach (var parent in parents.AsEnumerable()
-            .Reverse())
+                     .Reverse())
         {
             if (parent.Parent[parent.Key] is JsonObject { Count: 0 })
             {

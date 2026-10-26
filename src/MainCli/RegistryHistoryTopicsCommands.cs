@@ -28,9 +28,11 @@ public sealed partial class ConfiguredRegistryHistoryProvider
             {
                 global::System.Net.Http.HttpClient client2 = client;
                 global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsReader registryHistoryTopicsReader = new RegistryHistoryTopicsReader(client2, index);
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsReader registryHistoryTopicsReader =
+                    new RegistryHistoryTopicsReader(client2, index);
                 global::System.Threading.CancellationToken token2 = token;
-                global::System.Threading.Tasks.Task<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsAnalysis> discover = registryHistoryTopicsReader.Discover(token2);
+                global::System.Threading.Tasks.Task<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsAnalysis>
+                    discover = registryHistoryTopicsReader.Discover(token2);
                 return discover;
             },
             token);
@@ -64,11 +66,20 @@ public partial class RegistryCommands
         var cancellation = context.Cancellation;
         try
         {
-            if (string.IsNullOrWhiteSpace(settings.Profile) || string.IsNullOrWhiteSpace(history.LocalDirectory))
+            int MissingInput()
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Select --profile and an explicit --local-directory named .registry-history.");
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.Profile))
+            {
+                return MissingInput();
+            }
+            if (string.IsNullOrWhiteSpace(history.LocalDirectory))
+            {
+                return MissingInput();
             }
 
             RegistryHistoryTopicDirectory outputDirectory;
@@ -103,7 +114,9 @@ public partial class RegistryCommands
                 string status2 = "completed";
                 object item = new { year = offeredYear };
                 cliOutput2.EmitItem(
-                    id: id2, status: status2, item);
+                    id: id2,
+                    status: status2,
+                    item);
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
             {
@@ -111,7 +124,8 @@ public partial class RegistryCommands
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
                 global::ScheduleLib.Cli.CliOutput cliOutput3 = cli;
-                string line2 = $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
+                string line2 =
+                    $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
                 cliOutput3.WriteHuman(
                     line2);
                 global::ScheduleLib.Cli.CliOutput cliOutput4 = cli;
@@ -126,7 +140,9 @@ public partial class RegistryCommands
                     lessons = lessonCount,
                 };
                 cliOutput4.EmitItem(
-                id: id3, status: status3, item2);
+                    id: id3,
+                    status: status3,
+                    item2);
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
@@ -141,7 +157,9 @@ public partial class RegistryCommands
                 string status4 = "completed";
                 object item3 = new { reason = unresolved.Reason.ToString() };
                 cliOutput6.EmitItem(
-                    id: id4, status: status4, item3);
+                    id: id4,
+                    status: status4,
+                    item3);
             }
             return Finish(
                 exit: CliExit.Success,
@@ -165,9 +183,11 @@ public partial class RegistryCommands
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
             int exit2 = CliExit.IoFailure;
-            string error2 = $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            string error2 =
+                $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
             int finish = Finish(
-            exit2, error2);
+                exit2,
+                error2);
             return finish;
         }
         catch (LocalOperationBusyException)
@@ -217,7 +237,8 @@ public partial class RegistryCommands
                     if (exit == CliExit.Success)
                     {
                         global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                        string line = $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
+                        string line =
+                            $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
                         cliOutput.WriteHuman(
                             line);
                     }

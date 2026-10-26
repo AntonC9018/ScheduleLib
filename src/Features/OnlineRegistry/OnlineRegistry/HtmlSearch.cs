@@ -70,8 +70,8 @@ internal delegate LessonGroups SearchGroupId(ref GroupForSearch group);
 public readonly record struct GroupParseErrorContext(
     GroupParsingException Exception,
     string String);
-internal delegate void ParseErrorHandler(GroupParseErrorContext context);
 
+internal delegate void ParseErrorHandler(GroupParseErrorContext context);
 
 internal readonly struct ScanLessonsParams
 {
@@ -189,6 +189,7 @@ internal static class HtmlSearch
                 {
                     continue;
                 }
+
                 bool CalculateConditionResult()
                 {
                     if (groupForSearch.IsWildcard)
@@ -222,7 +223,6 @@ internal static class HtmlSearch
                     IsWildcard = groupForSearch.IsWildcard,
                     IsCombined = RegistryFacultyLabels.IsCombined(groupForSearch.FacultyName),
                 };
-
             }
 
             Uri evaluationUri;
@@ -313,7 +313,7 @@ internal static class HtmlSearch
                     var info = _e._attendanceTable.GetLesson(_indexNonEditable);
                     if (info.DateTime > _editableLesson.DateTime)
                     {
-                        throw new InvalidOperationException($"Attendance table is missing the datetime {_editableLesson.DateTime}");
+                        throw new AttendanceTableMissingLessonDateTimeException(_editableLesson.DateTime);
                     }
                     if (info.DateTime == _editableLesson.DateTime)
                     {
@@ -354,9 +354,11 @@ internal static class HtmlSearch
             }
 
             object? IEnumerator.Current => Current;
+
             public void Dispose()
             {
             }
+
             public void Reset()
             {
                 throw new NotSupportedException();
@@ -459,7 +461,6 @@ internal static class HtmlSearch
                 {
                     throw new NotSupportedException("The date time didn't parse properly");
                 }
-
             }
 
             Uri viewUri = new(anchor.Href);
@@ -656,7 +657,8 @@ internal static class HtmlSearch
 
     internal static IHtmlTableElement FindAttendanceTable(IDocument doc)
     {
-        global::AngleSharp.Dom.IHtmlCollection<global::AngleSharp.Dom.IElement> querySelectorAll = doc.QuerySelectorAll("table");
+        global::AngleSharp.Dom.IHtmlCollection<global::AngleSharp.Dom.IElement> querySelectorAll =
+            doc.QuerySelectorAll("table");
         var table = (IHtmlTableElement) querySelectorAll.Last();
         return table;
     }
@@ -676,6 +678,7 @@ internal static class HtmlSearch
         }
 
         SelectLessonType();
+
         void SelectLessonType()
         {
             var lessonTypeBox = (IHtmlSelectElement) p.Document.GetElementById("LessonMode")!;
@@ -706,6 +709,7 @@ internal static class HtmlSearch
                 option.IsSelected = false;
             }
         }
+
         if (p.Lesson.Topic is { } topic)
         {
             var topicInput = (IHtmlTextAreaElement) p.Document.GetElementById("LessonTopic")!;
@@ -717,7 +721,8 @@ internal static class HtmlSearch
             int firstIndex = 1;
             if (attendance.Length != table.Rows.Length - firstIndex)
             {
-                throw new InvalidOperationException("Attendance length does not match the number of students in the HTML");
+                throw new InvalidOperationException(
+                    "Attendance length does not match the number of students in the HTML");
             }
             var actualStudents = FindStudents(table);
 
@@ -746,6 +751,7 @@ internal static class HtmlSearch
                             var parsedStudent = NameHelper.TryParseName(ref studentParser);
                             return parsedStudent;
                         }
+
                         var expected1 = ParseStudent(expected);
                         var actual1 = ParseStudent(actual);
                         if (expected1 != actual1
@@ -755,6 +761,7 @@ internal static class HtmlSearch
                         }
                         return null;
                     }
+
                     if (CheckStudentsEqual() is { } err)
                     {
                         throw new InvalidOperationException(err);
@@ -790,7 +797,8 @@ internal static class HtmlSearch
         var form = GetLessonForm(doc);
         cancellationToken.ThrowIfCancellationRequested();
         var ret = await form.SubmitAsync()
-            .WaitAsync(cancellationToken) ?? throw new IOException("Registry returned no submission response.");
+                .WaitAsync(cancellationToken)
+            ?? throw new IOException("Registry returned no submission response.");
         var validationErrors = ret.QuerySelectorAll<IHtmlDivElement>(".validation-summary-errors")
             .SelectMany(x => x.Children)
             .SelectMany(x => x.Children)
@@ -806,8 +814,10 @@ internal static class HtmlSearch
     private static HtmlStudent ParseCellAsStudent(IHtmlTableCellElement x)
     {
         var t = x.ChildNodes
-            .FirstOrDefault(a => a.NodeType == NodeType.Text && a.TextContent.AsSpan()
-                .Trim().Length > 0)
+                .FirstOrDefault(a => a.NodeType == NodeType.Text
+                    && a.TextContent.AsSpan()
+                        .Trim().Length
+                    > 0)
             ?? x.Children[0];
         var text = t.TextContent.AsSpan()
             .Trim();
@@ -901,6 +911,7 @@ internal static class HtmlSearch
 
 
     private static readonly ImmutableArray<string> LessonTypeNames = CreateLessonTypeNames();
+
     private static ImmutableArray<string> CreateLessonTypeNames()
     {
         // ReSharper disable once CollectionNeverUpdated.Local
@@ -926,7 +937,9 @@ internal static class HtmlSearch
 internal readonly struct SendUpdatedFormParams
 {
     public required IDocument Document { get; init; }
+
     public required LessonInstance Lesson { get; init; }
+
     // public required HttpClient HttpClient { get; init; }
     // public required Uri Target { get; init; }
     public required Schedule Schedule { get; init; }

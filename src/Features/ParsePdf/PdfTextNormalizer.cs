@@ -8,21 +8,33 @@ public static class PdfTextNormalizer
     {
         char separator = '\n';
         string[] split = text.Split('\n');
-        global::System.Func<string, string> selector = l => Regex.Replace(l, @"[ \t]+", " ")
+        global::System.Func<string, string> selector = l => Regex.Replace(l,
+                @"[ \t]+",
+                " ")
             .Trim();
         global::System.Collections.Generic.IEnumerable<string> values = split.Select(selector);
         text = string.Join(separator, values);
-        text = Regex.Replace(text, @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă", "Securitatea cibernetică");
+        text = Regex.Replace(text,
+            @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă",
+            "Securitatea cibernetică");
         text = text.Replace("UI/U X", "UI/UX")
             .Replace("145a/4/4", "145a/4")
             .Replace("Disciplină umanistică opțională: ", "")
             .Replace("cal cul.", "calcul.")
             .Replace("Tehnol.progr.v", "Tehnol.progr.")
             .Replace(" (IȘE)", "");
-        text = Regex.Replace(text, @",\s*\)", ")");
-        text = Regex.Replace(text, @"(?m)(\([^()]*\))\)+(?=$|\s)", "$1");
-        text = Regex.Replace(text, @",\s*", ", ");
-        return Regex.Replace(text, @"(?<=[^\s.)])\n(?=[a-zăâîșț]+(?: |\())", " ");
+        text = Regex.Replace(text,
+            @",\s*\)",
+            ")");
+        text = Regex.Replace(text,
+            @"(?m)(\([^()]*\))\)+(?=$|\s)",
+            "$1");
+        text = Regex.Replace(text,
+            @",\s*",
+            ", ");
+        return Regex.Replace(text,
+            @"(?<=[^\s.)])\n(?=[a-zăâîșț]+(?: |\())",
+            " ");
     }
 
     public static IEnumerable<PdfScheduleCell> ExpandCohorts(PdfScheduleCell cell)
@@ -30,11 +42,14 @@ public static class PdfTextNormalizer
         var lines = cell.Text.Split('\n');
         var pattern = new Regex(@"^Gr\.(\d+)\s*\((.*?)\)\s*:\s*(.+)$");
         if (!lines.Any(pattern.IsMatch))
-        { yield return cell; yield break; }
+        {
+            yield return cell;
+            yield break;
+        }
         var course = lines[0];
         if (!course.Contains("Antreprenoriat inovativ"))
         {
-            throw new FormatException($"Unknown cohort course: {cell.Text}");
+            throw new UnknownPdfCohortCourseException(cell.Text);
         }
 
         var remaining = new List<string>();
@@ -42,26 +57,29 @@ public static class PdfTextNormalizer
         {
             var match = pattern.Match(line);
             if (!match.Success)
-            { remaining.Add(line); continue; }
+            {
+                remaining.Add(line);
+                continue;
+            }
             var names = Regex.Matches(input: match.Groups[2].Value, pattern: @"\[(.*?)\]")
                 .Select(m => m.Groups[1].Value)
                 .ToArray();
             var groups = cell.Groups.Where(g =>
-            {
-                string CalculateValue()
                 {
-                    string[] split = g.Split('(');
-                    int int32 = 0;
-                    string value = split[int32];
-                    return value;
-                }
+                    string CalculateValue()
+                    {
+                        string[] split = g.Split('(');
+                        int int32 = 0;
+                        string value = split[int32];
+                        return value;
+                    }
 
-                return names.Contains(CalculateValue());
-            })
+                    return names.Contains(CalculateValue());
+                })
                 .ToArray();
             if (groups.Length == 0 || groups.Length != names.Length)
             {
-                throw new FormatException($"Unknown cohort membership: {line}");
+                throw new UnknownPdfCohortMembershipException(line);
             }
 
             yield return cell with
@@ -144,7 +162,9 @@ public static class PdfTextNormalizer
                 return newValue;
             }
 
-            lines[0] = lines[0].Contains(')') ? lines[0].Replace(")", CalculateNewValue()) : (string) $"{lines[0]}{($" ({rule.Parity})")}";
+            lines[0] = lines[0].Contains(')')
+                ? lines[0].Replace(")", CalculateNewValue())
+                : (string) $"{lines[0]}{($" ({rule.Parity})")}";
             return cell with
             {
                 Text = string.Join('\n', lines),

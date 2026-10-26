@@ -91,7 +91,7 @@ public static class ItUsmWebsiteApi
                     var ret1 = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
                     if (isIncompleteDoubleName)
                     {
-                        throw new InvalidOperationException($"Invalid double name on the website '{s}'");
+                        throw new InvalidDoubleNameOnWebsiteException(s);
                     }
                     return ret1;
                 }

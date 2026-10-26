@@ -53,11 +53,13 @@ public static class TasksHelper
             return;
         }
 
-        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
-        {
-            AutoSave = false,
-            CompatibilityLevel = CompatibilityLevel.Version_2_20,
-        });
+        using var excel = SpreadsheetDocument.Open(filePath,
+            isEditable: false,
+            new()
+            {
+                AutoSave = false,
+                CompatibilityLevel = CompatibilityLevel.Version_2_20,
+            });
 
         ExcelTeacherListParser.AddTeachersFromExcel(new()
         {
@@ -80,7 +82,9 @@ public static class TasksHelper
             wordSplitConfig,
             cancellationToken: cancellationToken);
 
-        var subdirs = Directory.EnumerateDirectories(path: dirName, searchPattern: "*", SearchOption.TopDirectoryOnly)
+        var subdirs = Directory.EnumerateDirectories(path: dirName,
+                searchPattern: "*",
+                SearchOption.TopDirectoryOnly)
             .Select(x =>
             {
                 var lastSegmentStart = x.LastIndexOf(Path.DirectorySeparatorChar);
@@ -96,7 +100,7 @@ public static class TasksHelper
                         style: DateTimeStyles.None,
                         result: out var startDate))
                 {
-                    throw new InvalidOperationException($"The folders must be named in the format 'DD.MM.YYYY'. Found this: {x}");
+                    throw new InvalidScheduleFolderNameException(x);
                 }
                 return (SubDirPath: x, StartDate: startDate);
             })
@@ -125,7 +129,9 @@ public static class TasksHelper
         {
             var firstWeeklyLesson = context.Schedule.WeeklyLessons.Count;
             var firstOneTimeLesson = context.Schedule.OneTimeLessons.Count;
-            foreach (var filePath in Directory.EnumerateFiles(path: dirName, searchPattern: "*.doc", SearchOption.TopDirectoryOnly))
+            foreach (var filePath in Directory.EnumerateFiles(path: dirName,
+                         searchPattern: "*.doc",
+                         SearchOption.TopDirectoryOnly))
             {
                 // CA2000 misses using-declaration disposal inside this async local function.
 #pragma warning disable CA2000
@@ -138,9 +144,12 @@ public static class TasksHelper
                     var stagedInput = Path.Combine(path1, path2);
                     File.Copy(sourceFileName: filePath, destFileName: stagedInput);
                     var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
-                    if (!await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput, outputPath: outputPath, cancellationToken))
+                    if (!await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput,
+                            outputPath: outputPath,
+                            cancellationToken))
                     {
-                        throw new IOException("Could not convert doc to docx. Windows with Microsoft Word is required.");
+                        throw new IOException(
+                            "Could not convert doc to docx. Windows with Microsoft Word is required.");
                     }
 
                     using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
@@ -148,12 +157,14 @@ public static class TasksHelper
                     WordScheduleParser.ParseToSchedule(new()
                     {
                         Context = context,
-                        Document = document
+                        Document = document,
                     });
                 }
             }
 
-            foreach (var filePath in Directory.EnumerateFiles(path: dirName, searchPattern: "*.docx", SearchOption.TopDirectoryOnly))
+            foreach (var filePath in Directory.EnumerateFiles(path: dirName,
+                         searchPattern: "*.docx",
+                         SearchOption.TopDirectoryOnly))
             {
                 // A paired legacy source was already parsed from its staged conversion.
                 string path3 = Path.ChangeExtension(path: filePath, @extension: ".doc");
@@ -173,9 +184,13 @@ public static class TasksHelper
                 });
             }
 
-            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig, firstWeeklyLesson: firstWeeklyLesson, firstOneTimeLesson: firstOneTimeLesson);
+            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig,
+                firstWeeklyLesson: firstWeeklyLesson,
+                firstOneTimeLesson: firstOneTimeLesson);
 
-            var pdfs = Directory.EnumerateFiles(path: dirName, searchPattern: "*.pdf", SearchOption.TopDirectoryOnly)
+            var pdfs = Directory.EnumerateFiles(path: dirName,
+                    searchPattern: "*.pdf",
+                    SearchOption.TopDirectoryOnly)
                 .Order()
                 .ToArray();
             if (pdfs.Length == 0)
@@ -191,19 +206,23 @@ public static class TasksHelper
                 global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfScheduleCell> list = cells;
                 global::System.IO.Stream pdf = stream;
                 string source = Path.GetFileName(filePath);
-                global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> collection = PdfScheduleImporter.Read(pdf, source);
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> collection2 = collection;
+                global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                    collection = PdfScheduleImporter.Read(pdf, source);
+                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                    collection2 = collection;
                 list.AddRange(collection2);
             }
             if (cells.Count == 0)
             {
-                throw new FormatException($"No schedule cells in PDF sources under {dirName}.");
+                throw new NoScheduleCellsFoundException(dirName);
             }
 
             var cohorts = new ElectiveCohorts(context, cells);
             context.Schedule.ImplicitSplitConfig = cohorts.SplitConfig;
             context.SetPeriod(period);
-            PdfScheduleImporter.Import(context, cells, cohorts.Add);
+            PdfScheduleImporter.Import(context,
+                cells,
+                cohorts.Add);
         }
     }
 

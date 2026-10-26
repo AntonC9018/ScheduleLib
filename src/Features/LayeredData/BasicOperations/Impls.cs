@@ -67,6 +67,7 @@ public sealed class ListBasicOperations<T> : IBasicOperations<List<T>>
 {
     public List<T>? Empty() => new();
     public List<T> Copy(List<T> from) => [.. from];
+
     public List<T> Reset(List<T>? item)
     {
         item!.Clear();
@@ -85,14 +86,25 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         // Get all writable properties
         _writableProperties = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => { if (!(p.CanWrite)) { return false; } if (!(p.CanRead)) { return false; } return true; })
+            .Where(p =>
+            {
+                if (!(p.CanWrite))
+                {
+                    return false;
+                }
+                if (!(p.CanRead))
+                {
+                    return false;
+                }
+                return true;
+            })
             .ToArray();
 
         // error if there are public fields
         if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)
             .Any())
         {
-            throw new InvalidOperationException($"Type `{typeof(T).Name}` should only have properties");
+            throw new TypeHasPublicInstanceFieldsException(typeof(T));
         }
     }
 
@@ -153,7 +165,9 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             var merger = iServiceProvider.GetService(serviceType);
             if (merger != null)
             {
-                targetValue = CallMergerHelper.Merge(merger: merger, @from: sourceValue, @into: targetValue);
+                targetValue = CallMergerHelper.Merge(merger: merger,
+                    @from: sourceValue,
+                    @into: targetValue);
                 property.SetValue(obj: to, value: targetValue);
                 continue;
             }
@@ -203,8 +217,7 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         {
             return default(T)!;
         }
-        throw new InvalidOperationException(
-            $"Type {typeof(T).Name} does not have a parameterless constructor and is not a value type.");
+        throw new TypeMissingParameterlessConstructorException(typeof(T));
     }
 
     public T Copy(T from)
@@ -226,4 +239,3 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         return Empty();
     }
 }
-

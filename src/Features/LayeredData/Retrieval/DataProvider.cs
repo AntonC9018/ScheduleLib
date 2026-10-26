@@ -19,6 +19,7 @@ public sealed partial class DataProvider
         var type = NodeDataKey.Registry.GetTypeFromKey(key);
         return GetUntypedInternal(type, key);
     }
+
     private object? GetUntypedInternal(Type outputType, NodeDataKey key)
     {
         // TODO: Cache globally maybe
@@ -28,6 +29,7 @@ public sealed partial class DataProvider
         var ret = func(key);
         return ret;
     }
+
     private delegate object? GetUntypedDelegate(NodeDataKey key);
 
     private static readonly MethodInfo GetConfigMethod =
@@ -74,7 +76,7 @@ public sealed partial class DataProvider
             var type = NodeDataKey.Registry.GetTypeFromKey(key.Value);
             if (type != typeof(T))
             {
-                throw new InvalidOperationException($"Config mapper not registered for type `{typeof(T).Name}`");
+                throw new ConfigMapperNotRegisteredException(typeof(T));
             }
         }
 

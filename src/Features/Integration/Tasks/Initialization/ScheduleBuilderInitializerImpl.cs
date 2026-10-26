@@ -51,25 +51,35 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             var rootIdentity = Convert.ToHexStringLower(inArray);
             global::ScheduleLib.Application.Core.ScheduleLoader scheduleLoader = loader;
             string path1 = opts.CacheDirectory ?? opts.DataDirectory;
-            string path2 = $"{rootIdentity}_schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
+            string path2 =
+                $"{rootIdentity}_schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
             string combine = Path.Combine(path1, path2);
             scheduleLoader.CachedPath = combine;
         }
 
         {
             global::TruePath.LocalPath path3 = new(opts.DataDirectory);
-            global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor> discoverDirectories = ScheduleDirectoryDiscovery.DiscoverDirectories(path: path3);
-            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor, global::ScheduleLib.StudyYear> keySelector = x => x.StudyYear;
-            global::System.Linq.IOrderedEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor> orderBy = discoverDirectories.OrderBy(keySelector);
-            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor, global::ScheduleLib.Dates.Semester> keySelector2 = x => x.Semester;
-            global::System.Linq.IOrderedEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor> thenBy = orderBy.ThenBy(keySelector2);
-            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor, global::ScheduleLib.AttendanceMode> keySelector3 = x => x.AttendanceMode;
+            global::System.Collections.Generic.IEnumerable<
+                global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor> discoverDirectories =
+                ScheduleDirectoryDiscovery.DiscoverDirectories(path: path3);
+            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor,
+                global::ScheduleLib.StudyYear> keySelector = x => x.StudyYear;
+            global::System.Linq.IOrderedEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor>
+                orderBy = discoverDirectories.OrderBy(keySelector);
+            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor,
+                global::ScheduleLib.Dates.Semester> keySelector2 = x => x.Semester;
+            global::System.Linq.IOrderedEnumerable<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor>
+                thenBy = orderBy.ThenBy(keySelector2);
+            global::System.Func<global::ScheduleLib.Application.Core.ScheduleDirectoryDescriptor,
+                global::ScheduleLib.AttendanceMode> keySelector3 = x => x.AttendanceMode;
             var scheduleDirs = thenBy.ThenBy(keySelector3);
             var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear)
                 .ToArray();
             if (matchingDirs.Length == 0)
             {
-                throw new DirectoryNotFoundException($"No schedule sources for coded study year {studyYear.StudyYear} and semester {studyYear.Semester} under {opts.DataDirectory}.");
+                throw new ScheduleSourcesNotFoundException(studyYear.StudyYear,
+                    studyYear.Semester,
+                    opts.DataDirectory);
             }
 
             var loaders = matchingDirs.SelectMany(x => x.GetLoaders());
@@ -94,6 +104,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         }
 
         var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
+
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
         string CalculateSerialize()
@@ -108,16 +119,22 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             return serialize2;
         }
 
-        loader.ConfigurationIdentity = string.Join("|", "cache-v2",
-                            typeof(ScheduleBuilderInitializer).Module.ModuleVersionId,
-                            typeof(ScheduleBuilder).Module.ModuleVersionId,
-                            _configureRemappings.Method.Module.ModuleVersionId,
-                            studyYear.StudyYear, studyYear.Semester, opts.EnrichWithFullNames, opts.LoadConsultations,
-                            System.Text.Json.JsonSerializer.Serialize(context.TimeConfig, new System.Text.Json.JsonSerializerOptions { IncludeFields = true }),
-                            CalculateSerialize(),
-                            CalculateSerialize2(),
-                            string.Join(";", builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
-                                .Select(x => $"{x.Key}={x.Value}")));
+        loader.ConfigurationIdentity = string.Join("|",
+            "cache-v2",
+            typeof(ScheduleBuilderInitializer).Module.ModuleVersionId,
+            typeof(ScheduleBuilder).Module.ModuleVersionId,
+            _configureRemappings.Method.Module.ModuleVersionId,
+            studyYear.StudyYear,
+            studyYear.Semester,
+            opts.EnrichWithFullNames,
+            opts.LoadConsultations,
+            System.Text.Json.JsonSerializer.Serialize(context.TimeConfig,
+                new System.Text.Json.JsonSerializerOptions { IncludeFields = true }),
+            CalculateSerialize(),
+            CalculateSerialize2(),
+            string.Join(";",
+                builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
+                    .Select(x => $"{x.Key}={x.Value}")));
         await loader.Load(
             context,
             cancellationToken,

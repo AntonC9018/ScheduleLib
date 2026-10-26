@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 // Claude
 /// <summary>
 /// Converts JSON that can be either a single item or an array into T[], ImmutableArray&lt;T&gt;, List&lt;T&gt;, or IEnumerable&lt;T&gt;.
@@ -20,6 +21,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         if (typeToConvert.IsGenericType)
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
+
             bool CheckCondition()
             {
                 if (genericTypeDef == typeof(ImmutableArray<>))
@@ -91,7 +93,10 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
 
 public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonConverter<TCollection>
 {
-    public override TCollection? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override TCollection? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -114,9 +119,14 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         return ConvertToCollectionType(items, typeToConvert);
     }
 
-    public override void Write(Utf8JsonWriter writer, TCollection value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        TCollection value,
+        JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, value, options);
+        JsonSerializer.Serialize(writer,
+            value,
+            options);
     }
 
     private static TCollection ConvertToCollectionType(TElement[] items, Type targetType)
@@ -142,6 +152,7 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 TCollection tCollection = (TCollection) (object) list;
                 return tCollection;
             }
+
             bool CalculateConditionResult()
             {
                 if (genericTypeDef == typeof(IEnumerable<>))
@@ -189,6 +200,6 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             }
         }
 
-        throw new NotSupportedException($"Collection type {targetType} is not supported.");
+        throw new ScheduleLib.Helper.JsonConverters.UnsupportedCollectionTypeException(targetType);
     }
 }

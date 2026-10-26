@@ -59,7 +59,8 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
         var account = await app.GetAccountAsync(accountId);
         if (account is null)
         {
-            throw new MsalUiRequiredException(errorCode: "missing_account", errorMessage: "Explicit login is required.");
+            throw new MsalUiRequiredException(errorCode: "missing_account",
+                errorMessage: "Explicit login is required.");
         }
 
         var result = await app.AcquireTokenSilent(CurriculaDownloadTasks.ApiRequiredScopes, account)
@@ -161,7 +162,9 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         string text2 = $"{key}.json";
         string path3 = (string) text2;
         string combine = Path.Combine(
-        path1, path2, path3);
+            path1,
+            path2,
+            path3);
         return combine;
     }
 
@@ -171,8 +174,10 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         string path2 = ".operation.lock";
         string path = Path.Combine(path1, path2);
         global::System.Threading.CancellationToken token2 = token;
-        global::System.Threading.Tasks.Task<global::ScheduleLib.Application.Core.LocalFileLock> acquire = LocalFileLock.Acquire(
-        path, token2);
+        global::System.Threading.Tasks.Task<global::ScheduleLib.Application.Core.LocalFileLock> acquire =
+            LocalFileLock.Acquire(
+                path,
+                token2);
         return acquire;
     }
 
@@ -202,20 +207,21 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             TenantId: config.TenantId,
             ClientId: config.ClientId,
             AccountId: authorization.AccountId);
+
         global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
         {
             global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
-                            1,
-                            authorization.Cache,
-                            authorization.ExpiresOn,
-                            authorization.Scopes);
+                1,
+                authorization.Cache,
+                authorization.ExpiresOn,
+                authorization.Scopes);
             return value;
         }
 
         await Write(
-                    TokenFile(profile, binding),
-                    CalculateValue(),
-                    token);
+            TokenFile(profile, binding),
+            CalculateValue(),
+            token);
         // Publish the binding last: cancelled login leaves the previous authorization selected.
         await Write(
             BindingFile(profile),
@@ -231,17 +237,37 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         Validate(config, profile);
         await using var lease = await Lease(profile, token);
         var binding = await Read<Binding>(BindingFile(profile), token);
-        if (binding is null
-            || binding.SchemaVersion != 1
-            || binding.TenantId != config.TenantId
-            || binding.ClientId != config.ClientId
-            || string.IsNullOrWhiteSpace(binding.AccountId))
+        if (binding is null)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.SchemaVersion != 1)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.TenantId != config.TenantId)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.ClientId != config.ClientId)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (string.IsNullOrWhiteSpace(binding.AccountId))
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
-        if (cached is null || cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 })
+        if (cached is null)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (cached.SchemaVersion != 1)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (cached.Cache is not { Length: > 0 })
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
@@ -272,17 +298,17 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
         {
             global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
-                            1,
-                            authorization.Cache,
-                            authorization.ExpiresOn,
-                            authorization.Scopes);
+                1,
+                authorization.Cache,
+                authorization.ExpiresOn,
+                authorization.Scopes);
             return value;
         }
 
         await Write(
-                    TokenFile(profile, binding),
-                    CalculateValue(),
-                    token);
+            TokenFile(profile, binding),
+            CalculateValue(),
+            token);
         return authorization.AccessToken;
     }
 
@@ -329,10 +355,27 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
 
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
-        if (cached is not null
-            && (cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 } || cached.Scopes is null))
+
+        static IOException InvalidCache()
         {
-            throw new IOException("Microsoft authorization cache is invalid; log in explicitly to reprovision it.");
+            return new(
+                "Microsoft authorization cache is invalid; log in explicitly to reprovision it.");
+        }
+
+        if (cached is not null)
+        {
+            if (cached.SchemaVersion != 1)
+            {
+                throw InvalidCache();
+            }
+            if (cached.Cache is not { Length: > 0 })
+            {
+                throw InvalidCache();
+            }
+            if (cached.Scopes is null)
+            {
+                throw InvalidCache();
+            }
         }
 
         return new(
@@ -419,8 +462,9 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                         }
                         else
                         {
-                            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase)
-                   .Any())
+                            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes,
+                                    StringComparer.OrdinalIgnoreCase)
+                                .Any())
                             {
                                 return true;
                             }

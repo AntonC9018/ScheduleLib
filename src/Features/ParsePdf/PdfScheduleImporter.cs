@@ -16,20 +16,28 @@ public static class PdfScheduleImporter
 
     public static IReadOnlyList<PdfScheduleCell> Read(Stream pdf, string source)
     {
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleTable> tables = PdfTableReader.Read(pdf);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleTable> tables =
+            PdfTableReader.Read(pdf);
         string source2 = source;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> resolve = Resolve(tables, source2);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> resolve =
+            Resolve(tables, source2);
         return resolve;
     }
 
-    public static void Import(ScheduleImportContext context, Stream pdf, string source,
+    public static void Import(
+        ScheduleImportContext context,
+        Stream pdf,
+        string source,
         ImportedLessonHandler? addLesson = null)
     {
         global::ScheduleLib.Parsing.ScheduleImportContext context2 = context;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells = Read(pdf, source);
+        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells =
+            Read(pdf, source);
         global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells2 = cells;
         global::ScheduleLib.Import.Pdf.ImportedLessonHandler? addLesson2 = addLesson;
-        Import(context2, cells2, addLesson2);
+        Import(context2,
+            cells2,
+            addLesson2);
     }
 
     public static IReadOnlyList<PdfScheduleCell> Resolve(IReadOnlyList<PdfScheduleTable> tables, string source)
@@ -39,13 +47,17 @@ public static class PdfScheduleImporter
         var dayParser = new DayNameParser(new());
         foreach (var table in tables)
         {
-            var xs = table.Cells.SelectMany(c => new[] { c.Bounds.Left, c.Bounds.Right })
+            var xs = table.Cells.SelectMany(c => new[]
+                {
+                    c.Bounds.Left,
+                    c.Bounds.Right,
+                })
                 .Distinct()
                 .Order()
                 .ToArray();
             if (xs.Length < 4)
             {
-                throw new FormatException($"{source}, page {table.Page}: expected day, time and group columns.");
+                throw new PdfScheduleColumnsMissingException(source, table.Page);
             }
 
             var left = xs[2];
@@ -70,7 +82,7 @@ public static class PdfScheduleImporter
             }
             if (columns.Length == 0)
             {
-                throw new FormatException($"{source}, page {table.Page}: missing group header.");
+                throw new PdfScheduleGroupHeaderMissingException(source, table.Page);
             }
 
             var days = table.Cells.Where(c => c.Bounds.Left == xs[0] && c.Text.Length > 0)
@@ -81,7 +93,9 @@ public static class PdfScheduleImporter
             {
                 if (dayParser.Map(day.Text) is null)
                 {
-                    throw new FormatException($"{source}, page {table.Page}: unknown day {day.Text}.");
+                    throw new UnknownPdfScheduleDayException(source: source,
+                        table.Page,
+                        dayText: day.Text);
                 }
             }
 
@@ -89,13 +103,16 @@ public static class PdfScheduleImporter
             {
                 if (!Time.IsMatch(time.Text))
                 {
-                    throw new FormatException($"{source}, page {table.Page}: unknown time {time.Text}.");
+                    throw new UnknownPdfScheduleTimeException(source: source,
+                        table.Page,
+                        timeText: time.Text);
                 }
             }
 
             foreach (var cell in table.Cells)
             {
                 var box = cell.Bounds;
+
                 bool CheckCondition()
                 {
                     if (box.Left < left)
@@ -125,9 +142,11 @@ public static class PdfScheduleImporter
                     .ToArray();
                 var time = times.Where(c => c.Bounds.Top <= box.CenterY && box.CenterY < c.Bounds.Bottom)
                     .ToArray();
-                var groups = columns.Where(c => box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right)
+                var groups = columns.Where(c =>
+                        box.Left <= left + c.Center * (right - left) && left + c.Center * (right - left) < box.Right)
                     .Select(c => c.Name)
                     .ToArray();
+
                 bool CheckCondition2()
                 {
                     if (day.Length != 1)
@@ -150,7 +169,10 @@ public static class PdfScheduleImporter
 
                 if (CheckCondition2())
                 {
-                    throw new FormatException($"{source}, page {table.Page}: unmapped cell {box}: {cell.Text}");
+                    throw new UnmappedPdfScheduleCellException(source: source,
+                        table.Page,
+                        box,
+                        text: cell.Text);
                 }
 
                 string source2 = source;
@@ -164,35 +186,53 @@ public static class PdfScheduleImporter
                 string text = PdfTextNormalizer.Normalize(cell.Text);
                 string rawText = cell.Text;
                 global::ScheduleLib.Import.Pdf.PdfBox bounds = box;
-                var resolved = new PdfScheduleCell(Source: source2, page, groups2, Day: day2, Start: start, Text: text, RawText: rawText, Bounds: bounds);
+                var resolved = new PdfScheduleCell(Source: source2,
+                    page,
+                    groups2,
+                    Day: day2,
+                    Start: start,
+                    Text: text,
+                    RawText: rawText,
+                    Bounds: bounds);
                 global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfScheduleCell> list = result;
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> expandCohorts = PdfTextNormalizer.ExpandCohorts(resolved);
-                global::System.Func<global::ScheduleLib.Import.Pdf.PdfScheduleCell, global::ScheduleLib.Import.Pdf.PdfScheduleCell> selector = PdfTextNormalizer.RepairMissingParity;
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> collection = expandCohorts.Select(selector);
+                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                    expandCohorts = PdfTextNormalizer.ExpandCohorts(resolved);
+                global::System.Func<global::ScheduleLib.Import.Pdf.PdfScheduleCell,
+                    global::ScheduleLib.Import.Pdf.PdfScheduleCell> selector = PdfTextNormalizer.RepairMissingParity;
+                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                    collection = expandCohorts.Select(selector);
                 list.AddRange(collection);
             }
         }
         return result;
     }
 
-    public static void Import(ScheduleImportContext context, IEnumerable<PdfScheduleCell> cells, ImportedLessonHandler? addLesson = null)
+    public static void Import(
+        ScheduleImportContext context,
+        IEnumerable<PdfScheduleCell> cells,
+        ImportedLessonHandler? addLesson = null)
     {
         var failures = new List<Exception>();
         foreach (var cell in cells)
         {
             try
             {
-                var day = context.DayNameParser.Map(cell.Day) ?? throw new FormatException($"Unknown day: {cell.Day}");
-                var time = context.TimeConfig.FindTimeSlotByStartTime(TimeOnly.Parse(cell.Start, CultureInfo.InvariantCulture))
-                    ?? throw new FormatException($"Unknown start time: {cell.Start}");
+                var day = context.DayNameParser.Map(cell.Day)
+                    ?? throw new UnknownImportedPdfScheduleDayException(cell.Day);
+                var time = context.TimeConfig.FindTimeSlotByStartTime(TimeOnly.Parse(cell.Start,
+                        CultureInfo.InvariantCulture))
+                    ?? throw new UnknownImportedPdfScheduleStartTimeException(cell.Start);
                 foreach (var parsed in context.ParseLessons(cell.Text.Split('\n')
-                    .Select(l => l.AsMemory())))
+                             .Select(l => l.AsMemory())))
                 {
                     var lesson = parsed;
                     var names = cell.Groups;
                     var namedGroup = names.FirstOrDefault(g => g.Split('(')[0] == lesson.PartitionHint.ToString());
                     if (namedGroup is not null)
-                    { names = [namedGroup]; lesson.PartitionHint = default; }
+                    {
+                        names = [namedGroup];
+                        lesson.PartitionHint = default;
+                    }
                     var groups = names.Select(g => context.Schedule.Group(g).Id)
                         .ToArray();
                     global::ScheduleLib.Parsing.Lesson.ParsedLesson lesson2 = lesson;
@@ -200,7 +240,11 @@ public static class PdfScheduleImporter
                     global::TimeSlot timeSlot = time;
                     global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.GroupId> groups2 = groups;
                     global::ScheduleLib.Alternative alternative = new(cell.Alternative);
-                    var input = new ImportedLessonInput(lesson2, day2, timeSlot, groups2, alternative);
+                    var input = new ImportedLessonInput(lesson2,
+                        day2,
+                        timeSlot,
+                        groups2,
+                        alternative);
                     if (addLesson is null)
                     {
                         context.AddOrMergeLesson(input);
@@ -211,9 +255,13 @@ public static class PdfScheduleImporter
                     }
                 }
             }
-            catch (Exception e) when (e is FormatException or ScheduleBuildException or NotSupportedException or WrongFormatException)
+            catch (Exception e) when (e is FormatException
+                                          or ScheduleBuildException
+                                          or NotSupportedException
+                                          or WrongFormatException)
             {
-                failures.Add(new FormatException($"{cell.Source}, page {cell.Page}, {cell.Day} {cell.Start}, {string.Join(", ", cell.Groups)} at {cell.Bounds}:\n{cell.Text}", e));
+                var failure = new PdfScheduleCellImportException(cell, e);
+                failures.Add(failure);
             }
         }
         if (failures.Count > 0)

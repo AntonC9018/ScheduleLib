@@ -12,7 +12,6 @@ public static class StringSearchHelper
         Paragraph para,
         TPreprocess preprocess,
         ImmutableArray<string> strings)
-
         where TPreprocess : IPreprocess
     {
         var potentialSectionTypes = BitArray32.AllSet(strings.Length);
@@ -125,8 +124,10 @@ public static class StringSearchHelper
             {
                 int sectionType = sectionIndex;
                 global::System.ReadOnlyMemory<char> missingText2 = str.AsMemory(start);
-                global::ScheduleLib.Curriculum.SectionParseResult createPartialMatch = SectionParseResult.CreatePartialMatch(
-                sectionType, missingText: missingText2);
+                global::ScheduleLib.Curriculum.SectionParseResult createPartialMatch =
+                    SectionParseResult.CreatePartialMatch(
+                        sectionType,
+                        missingText: missingText2);
                 return createPartialMatch;
             }
 
@@ -152,11 +153,11 @@ public static class StringSearchHelper
         }
         if (x.IsUnknown)
         {
-            throw new NotSupportedException($"Unrecognized heading '{x.UnmatchedText}'.");
+            throw new HeadingSearchException(HeadingSearchFailure.Unrecognized, x.UnmatchedText.ToString());
         }
         if (!x.MissingText.IsEmpty)
         {
-            throw new NotSupportedException($"Partially matched heading '{x.MissingText}'.");
+            throw new HeadingSearchException(HeadingSearchFailure.PartiallyMatched, x.MissingText.ToString());
         }
     }
 
@@ -177,12 +178,14 @@ public static class StringSearchHelper
             _builder[index] = str;
         }
     }
+
     public delegate void BuilderDelegate<T, U>(SearchArrayBuilder<T, U> builder) where T : struct, Enum;
 
     public static ImmutableArray<string> SetupSearchArray<T>(BuilderDelegate<T, string> f) where T : struct, Enum
     {
         return SetupSearchArray<T, string>(f);
     }
+
     public static ImmutableArray<U> SetupSearchArray<T, U>(BuilderDelegate<T, U> f) where T : struct, Enum
     {
         var builder = new SearchArrayBuilder<T, U>();

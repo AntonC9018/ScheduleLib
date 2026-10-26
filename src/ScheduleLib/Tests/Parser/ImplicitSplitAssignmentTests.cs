@@ -58,20 +58,24 @@ public sealed class ImplicitSplitAssignmentTests
         string? specialization = null)
     {
         var lesson = s.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder = lesson;
         global::ScheduleLib.CourseId course = s.Course(courseName);
         lessonBuilder.Course(course);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder2 = lesson;
         global::ScheduleLib.Builders.GroupBuilder group = s.Group(groupName);
         global::ScheduleLib.GroupId group2 = group;
         lessonBuilder2.Group(group2);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder3 = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder3 = lesson;
         global::TimeSlot timeSlot = new(0);
         lessonBuilder3.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (specialization is { } spec)
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder4 = lesson;
+            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+                lessonBuilder4 = lesson;
             global::ScheduleLib.Specialization specialization2 = new(spec);
             lessonBuilder4.Specialization(specialization2);
         }
@@ -114,18 +118,24 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, groupName: "IA2403", courseName: "RVA");
-            AddLesson(s, groupName: "IA2403", courseName: "Cloud");
+            AddLesson(s,
+                groupName: "IA2403",
+                courseName: "RVA");
+            AddLesson(s,
+                groupName: "IA2403",
+                courseName: "Cloud");
         });
 
         global::ScheduleLib.Specialization expected2 = Specialization.DJ;
         global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
         global::ScheduleLib.Specialization expected3 = Specialization.All;
         global::ScheduleLib.Specialization actual3 = SpecializationOf(schedule, "Cloud");
         Assert.Equal(
-            expected: expected3, actual: actual3);
+            expected: expected3,
+            actual: actual3);
     }
 
     [Fact]
@@ -133,26 +143,33 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, groupName: "IA2403", courseName: "Antreprenoriat inovativ");
+            AddLesson(s,
+                groupName: "IA2403",
+                courseName: "Antreprenoriat inovativ");
         });
 
         global::ScheduleLib.Alternative expected2 = new Alternative("Antreprenoriat");
         global::ScheduleLib.Alternative actual2 = AlternativeOf(schedule, "Antreprenoriat inovativ");
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
     }
 
     [Fact]
     public void SplitsSharedLessonsWhenOnlySomeGroupsAreCovered()
     {
         var builder = CreateBuilder();
-        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
+        AddLesson(builder,
+            groupName: "IA2403",
+            courseName: "RVA");
         var shared = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = shared;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder = shared;
         global::ScheduleLib.CourseId course = builder.Course("SAWM");
         lessonBuilder.Course(course);
         shared.Groups([builder.Group("IA2403"), builder.Group("M2403")]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = shared;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder2 = shared;
         global::TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         shared.DayOfWeek(DayOfWeek.Monday);
@@ -211,11 +228,13 @@ public sealed class ImplicitSplitAssignmentTests
         };
         builder.EnableLookupModule();
         var lesson = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder = lesson;
         global::ScheduleLib.CourseId course = builder.Course("Realitate virtuală și augmentată");
         lessonBuilder.Course(course);
         lesson.Groups([builder.Group("IA2403"), builder.Group("M2403")]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder2 = lesson;
         global::TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
@@ -225,7 +244,8 @@ public sealed class ImplicitSplitAssignmentTests
         global::ScheduleLib.Specialization expected2 = Specialization.DJ;
         global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "Realitate virtuală și augmentată");
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
     }
 
     [Fact]
@@ -242,14 +262,17 @@ public sealed class ImplicitSplitAssignmentTests
             x.Specialization("RVA", Specialization.DJ);
         });
         builder.ImplicitSplitConfig = scopeBuilder.Build();
-        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
+        AddLesson(builder,
+            groupName: "IA2403",
+            courseName: "RVA");
 
         var schedule = builder.Build();
 
         global::ScheduleLib.Specialization expected2 = Specialization.All;
         global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
     }
 
     [Fact]
@@ -271,9 +294,11 @@ public sealed class ImplicitSplitAssignmentTests
             ImplicitSplitConfig = scopeBuilder.Build(),
         };
         builder.EnableLookupModule();
-        AddLesson(builder, groupName: "IA2403", courseName: "RVA");
+        AddLesson(builder,
+            groupName: "IA2403",
+            courseName: "RVA");
 
-        Assert.Throws<MissingImplicitSplitStudyYearException>(() => builder.Build());
+        Assert.Throws<MissingImplicitSplitStudyYearException.NoMatchingWallClockYearException>(() => builder.Build());
     }
 
     [Fact]
@@ -286,7 +311,11 @@ public sealed class ImplicitSplitAssignmentTests
             courseName: "RVA",
             specialization: "CV");
 
-        Assert.Throws<ConflictingImplicitAssignmentException>(() => builder.Build());
+        var error =
+            Assert.Throws<ConflictingImplicitAssignmentException.ExplicitSpecializationConflictException>(() =>
+                builder.Build());
+        Assert.Equal(expected: "RVA", actual: error.CourseName);
+        Assert.NotEqual(expected: error.ExplicitValue, actual: error.AssignedValue);
     }
 
     [Fact]
@@ -304,7 +333,8 @@ public sealed class ImplicitSplitAssignmentTests
         global::ScheduleLib.Specialization expected2 = Specialization.DJ;
         global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
     }
 
     [Fact]
@@ -323,7 +353,11 @@ public sealed class ImplicitSplitAssignmentTests
 
         var permitted = ScheduleDefaults.Config.SpecializationRegistry.PermittedFor(in group);
 
-        Assert.True(new[] { Specialization.DJ, Specialization.DezvoltareaAplicatiilor }
+        Assert.True(new[]
+            {
+                Specialization.DJ,
+                Specialization.DezvoltareaAplicatiilor,
+            }
             .SequenceEqual(permitted));
     }
 }

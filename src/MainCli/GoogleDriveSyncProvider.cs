@@ -77,8 +77,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             {
                 if (folder is not null)
                 {
-                    throw new IOException(
-                        $"More than one Drive folder is named '{name}'. Use a unique folder name before synchronizing.");
+                    throw new DuplicateDriveFolderNameException(name);
                 }
 
                 folder = match;
@@ -87,7 +86,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         } while (!string.IsNullOrEmpty(page));
         if (folder is null)
         {
-            throw new DirectoryNotFoundException($"Drive folder does not exist: {name}");
+            throw new DriveFolderNotFoundException(name);
         }
 
         return new(Id: folder.Id, Name: folder.Name);
@@ -127,15 +126,15 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         CancellationToken token)
     {
         return Upload(
-                HttpMethod.Post,
-                null,
-                new DriveFile
-                {
-                    Name = name,
-                    Parents = [folderId],
-                },
-                input,
-                token);
+            HttpMethod.Post,
+            null,
+            new DriveFile
+            {
+                Name = name,
+                Parents = [folderId],
+            },
+            input,
+            token);
     }
 
     public Task<string> Update(
@@ -144,11 +143,11 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         CancellationToken token)
     {
         return Upload(
-                HttpMethod.Patch,
-                fileId,
-                new DriveFile(),
-                input,
-                token);
+            HttpMethod.Patch,
+            fileId,
+            new DriveFile(),
+            input,
+            token);
     }
 
     private async Task<string> Upload(
@@ -209,14 +208,34 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
     private static string Escape(string value)
     {
         return value.Replace(
-            "\\",
-            "\\\\",
-            StringComparison.Ordinal)
+                "\\",
+                "\\\\",
+                StringComparison.Ordinal)
             .Replace(
-            "'",
-            "\\'",
-            StringComparison.Ordinal);
+                "'",
+                "\\'",
+                StringComparison.Ordinal);
     }
 
     public void Dispose() => _service.Dispose();
+
+
+    internal sealed class DuplicateDriveFolderNameException : IOException
+    {
+        internal DuplicateDriveFolderNameException(string folderName)
+            : base(
+                $"More than one Drive folder is named '{folderName}'. Use a unique folder name before synchronizing.")
+            => FolderName = folderName;
+
+        public string FolderName { get; }
+    }
+
+    internal sealed class DriveFolderNotFoundException : DirectoryNotFoundException
+    {
+        internal DriveFolderNotFoundException(string folderName)
+            : base($"Drive folder does not exist: {folderName}")
+            => FolderName = folderName;
+
+        public string FolderName { get; }
+    }
 }

@@ -39,7 +39,9 @@ public sealed class PdfLessonImportTests
             addLesson = null;
         }
 
-        PdfScheduleImporter.Import(context2, cells, addLesson);
+        PdfScheduleImporter.Import(context2,
+            cells,
+            addLesson);
 
         int expected5;
         if (useCallback)
@@ -106,7 +108,11 @@ public sealed class PdfLessonImportTests
     public void CallbackFormatErrorKeepsCellContextAndContinuesWithFollowingCells()
     {
         var context = CreateContext();
-        var first = Cell();
+        string[] originalGroups = ["IA2601(ro)"];
+        var first = Cell() with
+        {
+            Groups = originalGroups,
+        };
         var next = first with
         {
             Page = 2,
@@ -121,7 +127,11 @@ public sealed class PdfLessonImportTests
         Assert.Equal(expected: 2, actual: calls);
         global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
         object objectValue2 = objectValue;
-        var cellError = Assert.IsType<FormatException>(objectValue2);
+        var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
+        originalGroups[0] = "changed after failure";
+        Assert.Equal(expected: "test.pdf", actual: cellError.SourceName);
+        Assert.Equal(expected: 1, actual: cellError.Page);
+        Assert.Equal(expected: ["IA2601(ro)"], actual: cellError.Groups);
         Assert.Same(expected: failure, actual: cellError.InnerException);
         Assert.Contains(expectedSubstring: "test.pdf, page 1, Luni 8:00", actualString: cellError.Message);
         Assert.Single(context.Schedule.WeeklyLessons.List);
@@ -164,8 +174,8 @@ public sealed class PdfLessonImportTests
 
         global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
         object objectValue2 = objectValue;
-        var cellError = Assert.IsType<FormatException>(objectValue2);
-        Assert.IsType<InvalidScheduleDocumentException>(cellError.InnerException);
+        var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
+        Assert.IsType<InvalidScheduleDocumentException.UnknownTimeSlotException>(cellError.InnerException);
         Assert.Empty(context.Schedule.WeeklyLessons.List);
     }
 

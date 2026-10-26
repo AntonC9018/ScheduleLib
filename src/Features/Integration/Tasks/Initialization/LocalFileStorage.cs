@@ -7,7 +7,10 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
     private readonly FileStream _stream;
     private LocalFileLock(FileStream stream) => _stream = stream;
 
-    public static async Task<LocalFileLock> Acquire(string path, CancellationToken token, bool wait = false)
+    public static async Task<LocalFileLock> Acquire(
+        string path,
+        CancellationToken token,
+        bool wait = false)
     {
         string CalculatePath()
         {
@@ -22,7 +25,10 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
             token.ThrowIfCancellationRequested();
             try
             {
-                global::System.IO.FileStream stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                global::System.IO.FileStream stream = new FileStream(path,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
                 global::ScheduleLib.Application.Core.LocalFileLock localFileLock = new(stream);
                 return localFileLock;
             }
@@ -30,7 +36,7 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
             {
                 if (!wait)
                 {
-                    throw new LocalOperationBusyException($"Another operation owns {path}", e);
+                    throw LocalOperationBusyException.ForOwnedPath(path, e);
                 }
 
                 await Task.Delay(100, token);
@@ -42,14 +48,43 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
     public void Dispose() => _stream.Dispose();
 }
 
-public sealed class LocalOperationBusyException(string message, Exception? inner = null) : IOException(message, inner);
+public sealed class LocalOperationBusyException : IOException
+{
+    private sealed class OwnedPathFailure;
+
+    public string? OwnedPath { get; }
+
+    public LocalOperationBusyException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
+
+    private LocalOperationBusyException(
+        string path,
+        Exception? inner,
+        OwnedPathFailure _) : base($"Another operation owns {path}", inner)
+    {
+        OwnedPath = path;
+    }
+
+    public static LocalOperationBusyException ForOwnedPath(string path, Exception? inner = null)
+    {
+        return new LocalOperationBusyException(path,
+            inner,
+            new OwnedPathFailure());
+    }
+}
 
 /// <summary>Publishes files atomically using the shared filesystem helper.
 /// Callers coordinate writers with <see cref="LocalFileLock"/>.</summary>
 public static class AtomicFile
 {
-    public static Task Publish(string destination, Func<Stream, CancellationToken, Task> write, CancellationToken token)
+    public static Task Publish(
+        string destination,
+        Func<Stream, CancellationToken, Task> write,
+        CancellationToken token)
     {
-        return ScheduleLib.Helper.AtomicFilePublisher.Publish(destination, write, token);
+        return ScheduleLib.Helper.AtomicFilePublisher.Publish(destination,
+            write,
+            token);
     }
 }

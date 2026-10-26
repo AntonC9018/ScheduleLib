@@ -64,7 +64,6 @@ internal sealed class PolymorphicResolver : DefaultJsonTypeInfoResolver
         typeInfo.PolymorphismOptions = polymorphicOptions;
         return typeInfo;
     }
-
 }
 
 public sealed class TreeSerializer
@@ -108,7 +107,9 @@ public sealed class TreeSerializer
                 }
 
                 writer.WritePropertyName(config.Key.Value);
-                JsonSerializer.Serialize(writer, value, _jsonSerializerOptions);
+                JsonSerializer.Serialize(writer,
+                    value,
+                    _jsonSerializerOptions);
             }
             writer.WriteEndObject();
         }
@@ -117,6 +118,7 @@ public sealed class TreeSerializer
     }
 
     public readonly record struct PendingConfig(NodeDataKey Key, object Value);
+
     public sealed class PendingConfigs : List<PendingConfig>
     {
     }
@@ -172,10 +174,12 @@ public sealed class TreeSerializer
                 var type = NodeDataKey.Registry.TryGetTypeFromKey(key);
                 if (type == null)
                 {
-                    throw new JsonException($"Invalid config key: {key.Value}");
+                    throw new InvalidConfigKeyException(key.Value);
                 }
 
-                var value = JsonSerializer.Deserialize(ref reader, type, _jsonSerializerOptions);
+                var value = JsonSerializer.Deserialize(ref reader,
+                    type,
+                    _jsonSerializerOptions);
                 if (value == null)
                 {
                     continue;
@@ -193,16 +197,20 @@ public sealed class TreeSerializer
                 var method = _setValueGenericMethod.MakeGenericMethod(type);
                 var deleg = method.CreateDelegate<Action<SetValueArgs>>();
                 global::System.Action<global::Anton.LayeredData.TreeSerializer.SetValueArgs> action = deleg;
-                global::Anton.LayeredData.TreeSerializer.SetValueArgs obj = new(layer, key, value);
+                global::Anton.LayeredData.TreeSerializer.SetValueArgs obj = new(layer,
+                    key,
+                    value);
                 action(obj);
             }
         }
     }
 
     private readonly record struct SetValueArgs(NodeBuilder Layer, NodeDataKey Key, object Value);
+
     private static readonly MethodInfo _setValueGenericMethod = typeof(TreeSerializer)
         .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
         .Single(x => x.Name == nameof(SetValue));
+
     private static void SetValue<T>(SetValueArgs args)
         where T : class
     {

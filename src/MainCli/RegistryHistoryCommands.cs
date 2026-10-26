@@ -47,11 +47,15 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
             {
                 global::System.Net.Http.HttpClient client2 = client;
                 global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                global::ScheduleLib.OnlineRegistry.RegistryHistoryReader registryHistoryReader = new RegistryHistoryReader(client2, index);
+                global::ScheduleLib.OnlineRegistry.RegistryHistoryReader registryHistoryReader =
+                    new RegistryHistoryReader(client2, index);
                 string? year2 = year;
                 global::System.Threading.CancellationToken token2 = token;
-                global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.OnlineRegistry.RegistryHistoryYearSummary>> discover = registryHistoryReader.Discover(
-                year2, token2);
+                global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<
+                    global::ScheduleLib.OnlineRegistry.RegistryHistoryYearSummary>> discover =
+                    registryHistoryReader.Discover(
+                        year2,
+                        token2);
                 return discover;
             },
             token);
@@ -68,7 +72,10 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         string path3 = "locks";
         string path4 = "registry-history-global.lock";
         var lockPath = Path.Combine(
-            path1, path2, path3, path4);
+            path1,
+            path2,
+            path3,
+            path4);
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
         using var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
@@ -82,6 +89,7 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         {
             credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>()
                 .Get();
+
             bool CheckCondition()
             {
                 if (credentials is null)
@@ -114,7 +122,7 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
         var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()
-            ?.HttpCallDelay
+                ?.HttpCallDelay
             ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         using var context = await RegistryScraping.CreateHistoryContext(
             credentials,
@@ -150,11 +158,20 @@ public partial class RegistryCommands
         var cancellation = context.Cancellation;
         try
         {
-            if (string.IsNullOrWhiteSpace(settings.Profile) || string.IsNullOrWhiteSpace(history.LocalDirectory))
+            int MissingInput()
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Select --profile and an explicit --local-directory named .registry-history.");
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.Profile))
+            {
+                return MissingInput();
+            }
+            if (string.IsNullOrWhiteSpace(history.LocalDirectory))
+            {
+                return MissingInput();
             }
 
             try
@@ -170,9 +187,9 @@ public partial class RegistryCommands
             var directory = Path.GetFullPath(history.LocalDirectory);
             var summary = await CreateHistoryProvider()
                 .Discover(
-                settings,
-                history.Year,
-                cancellation.Token);
+                    settings,
+                    history.Year,
+                    cancellation.Token);
             if (OperatingSystem.IsWindows())
             {
                 Directory.CreateDirectory(directory);
@@ -234,7 +251,9 @@ public partial class RegistryCommands
                     groups = groupCount,
                 };
                 cliOutput2.EmitItem(
-                id: id2, status: status2, item);
+                    id: id2,
+                    status: status2,
+                    item);
             }
             return Finish(
                 exit: CliExit.Success,
@@ -257,9 +276,11 @@ public partial class RegistryCommands
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
             int exit2 = CliExit.IoFailure;
-            string error2 = $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            string error2 =
+                $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
             int finish = Finish(
-            exit2, error2);
+                exit2,
+                error2);
             return finish;
         }
         catch (LocalOperationBusyException)

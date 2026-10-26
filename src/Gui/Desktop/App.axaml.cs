@@ -29,9 +29,9 @@ public sealed partial class App : Application
         services.AddSingleton<IUiTreeOutputProvider, UiTreeOutputProvider>();
         services.AddOptions<UiTreeSerializerSettings>()
             .Configure(x =>
-        {
-            x.OpenAfterSave = true;
-        });
+            {
+                x.OpenAfterSave = true;
+            });
         services.AddSingleton<ConfigTypesProvider>();
 
         services.AddTransient<MainWindowViewModel>();
@@ -131,7 +131,7 @@ public static class ServiceProviderExtensions
                     }
 
                     if (d.ImplementationType != null
-                       && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType))
+                        && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType))
                     {
                         return true;
                     }
@@ -144,8 +144,7 @@ public static class ServiceProviderExtensions
             if (offending.Count > 0)
             {
                 var names = string.Join("\n  ", offending);
-                throw new InvalidOperationException(
-                    $"The following ViewModels implement a Dispose pattern, which is not allowed:\n  {names}");
+                throw new ViewModelsWithDisposePatternException(names);
             }
         }
 
@@ -165,6 +164,7 @@ public static class ServiceProviderExtensions
             // });
         }
     }
+
     extension(IServiceProvider sp)
     {
         public T GetRequiredView<T>(bool setViewModel = false) where T : Control
@@ -178,6 +178,7 @@ public static class ServiceProviderExtensions
         }
 
         public T GetRequiredViewModel<T>() where T : class => sp.GetRequiredNonDisposable<T>();
+
         public T GetRequiredNonDisposable<T>() where T : class
         {
             if (typeof(T).IsAssignableTo(typeof(IDisposable))

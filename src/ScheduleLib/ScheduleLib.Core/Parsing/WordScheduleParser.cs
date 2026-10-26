@@ -88,9 +88,7 @@ public static class WordScheduleParser
         // May be combined
         var tables = bodyElement.ChildElements
             .OfType<Table>();
-        var state = new TableParsingState
-        {
-        };
+        var state = new TableParsingState { };
 
         foreach (var table in tables)
         {
@@ -103,7 +101,9 @@ public static class WordScheduleParser
                 break;
             }
 
-            var headerParseResult = MaybeParseHeaderRow(c, ref state, rowEnumerator);
+            var headerParseResult = MaybeParseHeaderRow(c,
+                ref state,
+                rowEnumerator);
             switch (headerParseResult.Status)
             {
                 case HeaderRowParseStatus.HeaderParsed:
@@ -145,17 +145,20 @@ public static class WordScheduleParser
                                             {
                                                 var size = cell.ColSpan;
                                                 int pos = cell.ColumnSizeCounter - skippedSize;
+
                                                 // Add an invalid id, just to set up the breakpoints
-                                                global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> CalculateItem()
+                                                global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId>
+                                                    CalculateItem()
                                                 {
-                                                    global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> item = new(GroupId.Invalid, size);
+                                                    global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> item =
+                                                        new(GroupId.Invalid, size);
                                                     return item;
                                                 }
 
                                                 var result = newGroupsArr.ReplaceAt(
-                                                                                            pos,
-                                                                                            CalculateItem(),
-                                                                                            allowAddToEnd: true);
+                                                    pos,
+                                                    CalculateItem(),
+                                                    allowAddToEnd: true);
                                                 Debug.Assert(result is ReplaceItemStatus.Spliced
                                                     or ReplaceItemStatus.FullyReplaced
                                                     or ReplaceItemStatus.PartlyReplaced
@@ -203,13 +206,14 @@ public static class WordScheduleParser
 
                                 global::ScheduleLib.Parsing.WordDoc.SkippedHeaderColumnsInfo CalculateSkipped()
                                 {
-                                    global::ScheduleLib.Parsing.WordDoc.SkippedHeaderColumnsInfo skipped = new(Count: 2, Size: skippedSize);
+                                    global::ScheduleLib.Parsing.WordDoc.SkippedHeaderColumnsInfo skipped = new(Count: 2,
+                                        Size: skippedSize);
                                     return skipped;
                                 }
 
                                 state.ColumnCounts = new(
-                                                                Skipped: CalculateSkipped(),
-                                                                Good: newGroupsArr.TotalSize);
+                                    Skipped: CalculateSkipped(),
+                                    Good: newGroupsArr.TotalSize);
                                 state.CurrentGroups = newGroupsArr;
                                 return true;
                             }
@@ -350,7 +354,7 @@ public static class WordScheduleParser
 
                         if (mergeStart.Val != MergedCellValues.Restart)
                         {
-                            throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                            throw new UnsupportedMergeCellCommandException(mergeStart.Val);
                         }
 
                         if (cell.Cell.InnerText is not { } dayNameText)
@@ -360,7 +364,7 @@ public static class WordScheduleParser
 
                         if (c.DayNameParser.Map(dayNameText) is not { } day)
                         {
-                            throw new NotSupportedException($"The day {dayNameText} is invalid");
+                            throw new InvalidScheduleDayNameException(dayNameText);
                         }
 
                         return day;
@@ -383,7 +387,7 @@ public static class WordScheduleParser
 
                                 if (mergeStart.Val != MergedCellValues.Restart)
                                 {
-                                    throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                                    throw new UnsupportedMergeCellCommandException(mergeStart.Val);
                                 }
                             }
                         }
@@ -439,7 +443,7 @@ public static class WordScheduleParser
                             var expectedEndTime = parsedTime.Start.Add(c.TimeConfig.LessonDuration);
                             if (expectedEndTime != parsedTime.End)
                             {
-                                throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({c.TimeConfig.LessonDuration} minutes)");
+                                throw new UnequalScheduleLessonDurationException(c.TimeConfig.LessonDuration);
                             }
 
                             return new()
@@ -485,7 +489,8 @@ public static class WordScheduleParser
                         catch (WrongFormatException e)
                         {
                             // ReSharper disable once PossibleMultipleEnumeration
-                            throw new NotSupportedException($"Unsupported syntax when parsing {string.Join('\n', l)}", e);
+                            var syntax = string.Join('\n', l);
+                            throw new UnsupportedLessonSyntaxException(syntax, e);
                         }
 
                         return;
@@ -527,7 +532,6 @@ public static class WordScheduleParser
                     }
                 }
             }
-
         }
     }
 
@@ -553,7 +557,10 @@ public static class WordScheduleParser
             groups.Add(groupBucket.Item);
         }
         global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = c;
-        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson, state.CurrentDay!.Value, state.Time!.Value.TimeSlot, groups);
+        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson,
+            state.CurrentDay!.Value,
+            state.Time!.Value.TimeSlot,
+            groups);
         scheduleImportContext.AddOrMergeLesson(input);
     }
 
@@ -621,7 +628,7 @@ public static class WordScheduleParser
             }
             if (skippedInfo.Count != expectedEmptySkippedCount)
             {
-                throw new NotSupportedException($"Expected {expectedEmptySkippedCount} empty header columns");
+                throw new UnexpectedEmptyHeaderColumnCountException(expectedEmptySkippedCount);
             }
             return skippedInfo;
         }
@@ -744,7 +751,6 @@ public static class WordScheduleParser
 
                 return res.Number;
             }
-
         }
 
         int AddGroups(SizedItemArray<GroupId> outputGroups)
@@ -755,6 +761,7 @@ public static class WordScheduleParser
                 var groupName = cell.InnerText;
                 var group = c.Schedule.Group(groupName);
                 var colSpan = cell.GetWidth();
+
                 global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> CalculateIt()
                 {
                     global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> it = new(group, colSpan);
@@ -777,6 +784,7 @@ public static class WordScheduleParser
         NoHeaderParsed,
         SkipTable,
     }
+
     private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status, int Format);
 }
 
@@ -804,13 +812,13 @@ internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
     public bool IsNotMatch => Count == 0;
 }
 
-
 internal enum ColumnType
 {
     DayOfWeek,
     TimeSlot,
     Regular,
 }
+
 internal readonly record struct ColumnCell(
     ColumnType ColumnType,
     int ColumnSizeCounter,

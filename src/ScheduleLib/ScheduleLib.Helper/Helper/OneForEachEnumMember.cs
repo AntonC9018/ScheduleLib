@@ -82,6 +82,7 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
     public void Clear() => Storage.Clear();
 
     public EnumMembers<TEnum> Keys => new();
+
     public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
     {
         Storage.CopyTo(other.Storage);
@@ -189,11 +190,13 @@ public readonly struct OneForEachEnumMemberArrayBuilder<TEnum, TValue>()
     where TEnum : struct, Enum
 {
     private readonly OneForEachEnumMemberArray<TEnum, TValue> _arr = new();
+
     public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Set(TEnum e, TValue value)
     {
         _arr[e] = value;
         return this;
     }
+
     public OneForEachEnumMemberArray<TEnum, TValue> Build()
     {
         var notSet = new EnumBitArray<TEnum>();
@@ -206,7 +209,7 @@ public readonly struct OneForEachEnumMemberArrayBuilder<TEnum, TValue>()
         }
         if (!notSet.IsEmpty)
         {
-            throw new InvalidOperationException($"Some members not set: {notSet}");
+            throw new EnumMembersNotSetException<TEnum>(notSet);
         }
         return _arr;
     }
@@ -226,13 +229,17 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
+
     public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
     {
         Storage.CopyTo(other.Storage);
     }
 
     [Pure]
-    public TEnum FindKeyOrDefault(TValue value, TEnum defaultKey, IEqualityComparer<TValue>? comparer = null)
+    public TEnum FindKeyOrDefault(
+        TValue value,
+        TEnum defaultKey,
+        IEqualityComparer<TValue>? comparer = null)
     {
         comparer ??= EqualityComparer<TValue>.Default;
         foreach (var x in this)
@@ -257,6 +264,7 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
     public SparseArray() : this(0)
     {
     }
+
     public SparseArray(int count)
     {
         _items = new(count);
@@ -281,7 +289,9 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
 
     public ref TValue? GetOrAdd(TKey key, out bool existed)
     {
-        return ref CollectionsMarshal.GetValueRefOrAddDefault(_items, key, out existed);
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(_items,
+            key,
+            out existed);
     }
 
     public bool TryGet(TKey key, [NotNullWhen(true)] out TValue? value)
@@ -329,6 +339,7 @@ public static class OneForEach
 
         public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Builder<TValue>() => new();
     }
+
     public static Helper<TEnum> Enum<TEnum>() where TEnum : struct, Enum
     {
         return new();
@@ -376,6 +387,7 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             // May still leak if it's a property inside another object,
             // but it's undetectable from here and literally cannot be prevented.
             ret.Dispose();
+
             bool CheckCondition()
             {
                 if (!(typeof(TValue).IsClass))
@@ -433,7 +445,9 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             }
 
             writer.WritePropertyName(CalculatePropertyName());
-            JsonSerializer.Serialize(writer, val, options);
+            JsonSerializer.Serialize(writer,
+                val,
+                options);
         }
         writer.WriteEndObject();
     }

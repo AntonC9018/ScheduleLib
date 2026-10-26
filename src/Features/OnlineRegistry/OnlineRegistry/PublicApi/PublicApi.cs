@@ -25,6 +25,7 @@ public sealed class NoLessonTopics : ILessonTopics
     }
 
     public static readonly NoLessonTopics Instance = new();
+
     public string? Get(in AttendanceLookupKey key)
     {
         return null;
@@ -55,7 +56,9 @@ public sealed partial class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = RegistryCourseNameLookup.Find(_lookup, courseName, courseNames,
+                var maybeCourseId = RegistryCourseNameLookup.Find(_lookup,
+                    courseName,
+                    courseNames,
                     _registryConfig.Get()?.CourseNameMaxDistance ?? 2);
                 if (maybeCourseId is not { } courseId)
                 {
@@ -134,9 +137,16 @@ public sealed class GroupsNavigator
 
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 var target = group;
-                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups, target, rule, partitionResolver))
+                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups,
+                        target,
+                        rule,
+                        partitionResolver))
                     .ToArray();
-                var ids = FindGroupMatch(_schedule, courseLink.CourseId, partitionResolver.Resolve(group), group, applicableRules);
+                var ids = FindGroupMatch(_schedule,
+                    courseLink.CourseId,
+                    partitionResolver.Resolve(group),
+                    group,
+                    applicableRules);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
@@ -144,72 +154,84 @@ public sealed class GroupsNavigator
                     _navigator.ErrorHandler.GroupNotFound(_schedule.Get(courseLink.CourseId).FullName,
                         group.UnparsedName.Trim());
                 }
-                if (!group.SubGroupName.IsEmpty && NormalizePartition(_schedule, ids, partitionResolver.Resolve(group), applicableRules) == GroupPartitionKey.All)
+                if (!group.SubGroupName.IsEmpty
+                    && NormalizePartition(_schedule,
+                        ids,
+                        partitionResolver.Resolve(group),
+                        applicableRules)
+                    == GroupPartitionKey.All)
                 {
                     // The selected parent already represents this language audience as a whole group.
                     group.SubGroupName = ReadOnlyMemory<char>.Empty;
                 }
                 return ids;
             },
-            ParseErrorHandler = c => _navigator.ErrorHandler.GroupParsingError(_schedule.Get(courseLink.CourseId).FullName, c),
+            ParseErrorHandler = c =>
+                _navigator.ErrorHandler.GroupParsingError(_schedule.Get(courseLink.CourseId).FullName, c),
         });
         return ret;
     }
 
     internal static bool HasUniqueRegistryAudience(
-        IReadOnlyList<GroupForSearch> groups, GroupForSearch target,
-        RegistryGroupMatchRule rule, GroupPartitionResolver resolver)
+        IReadOnlyList<GroupForSearch> groups,
+        GroupForSearch target,
+        RegistryGroupMatchRule rule,
+        GroupPartitionResolver resolver)
     {
         global::ScheduleLib.SubGroup subGroup = new SubGroup(rule.SubGroup);
         global::ScheduleLib.Specialization specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
         return groups.Count(group =>
-        {
-            bool CheckCondition()
             {
-                if (!(group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)))
+                bool CheckCondition()
                 {
-                    return false;
+                    if (!(group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.Grade == target.Grade))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.AttendanceMode == target.AttendanceMode))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.QualificationType == target.QualificationType))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.IsDual == target.IsDual))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.IsAdditionalCourses == target.IsAdditionalCourses))
+                    {
+                        return false;
+                    }
+
+                    if (!(resolver.Resolve(group) == partition))
+                    {
+                        return false;
+                    }
+
+                    return true;
                 }
 
-                if (!(group.Grade == target.Grade))
-                {
-                    return false;
-                }
-
-                if (!(group.AttendanceMode == target.AttendanceMode))
-                {
-                    return false;
-                }
-
-                if (!(group.QualificationType == target.QualificationType))
-                {
-                    return false;
-                }
-
-                if (!(group.IsDual == target.IsDual))
-                {
-                    return false;
-                }
-
-                if (!(group.IsAdditionalCourses == target.IsAdditionalCourses))
-                {
-                    return false;
-                }
-
-                if (!(resolver.Resolve(group) == partition))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            return CheckCondition();
-        }) == 1;
+                return CheckCondition();
+            })
+            == 1;
     }
 
-    internal static GroupPartitionKey NormalizePartition(Schedule schedule, in LessonGroups parents, GroupPartitionKey partition,
+    internal static GroupPartitionKey NormalizePartition(
+        Schedule schedule,
+        in LessonGroups parents,
+        GroupPartitionKey partition,
         IReadOnlyList<RegistryGroupMatchRule>? rules = null)
     {
         bool conditionResult;
@@ -248,8 +270,8 @@ public sealed class GroupsNavigator
                             if (partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All))
                             {
                                 conditionResult2 = parents.All(id => schedule.Get(id).Language == rule.Language
-                            && schedule.Get(id).Faculty.Name
-                                .Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase));
+                                    && schedule.Get(id).Faculty.Name
+                                        .Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase));
                             }
                             else
                             {
@@ -288,7 +310,11 @@ public sealed class GroupsNavigator
         {
             if (rules is not null)
             {
-                var relaxed = FindLanguageMatch(schedule, course, partition, group, rules);
+                var relaxed = FindLanguageMatch(schedule,
+                    course,
+                    partition,
+                    group,
+                    rules);
                 if (relaxed.Count != 0)
                 {
                     return relaxed;
@@ -369,8 +395,11 @@ public sealed class GroupsNavigator
     }
 
     private static LessonGroups FindLanguageMatch(
-        Schedule schedule, CourseId course, GroupPartitionKey partition,
-        in GroupForSearch group, IReadOnlyList<RegistryGroupMatchRule> rules)
+        Schedule schedule,
+        CourseId course,
+        GroupPartitionKey partition,
+        in GroupForSearch group,
+        IReadOnlyList<RegistryGroupMatchRule> rules)
     {
         foreach (var rule in rules)
         {
@@ -387,7 +416,8 @@ public sealed class GroupsNavigator
                 }
                 else
                 {
-                    conditionResult2 = partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
+                    conditionResult2 =
+                        partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
                 }
             }
 
@@ -517,7 +547,6 @@ public sealed class GroupsNavigator
 
         return true;
     }
-
 }
 
 [AutoConstructor]
@@ -541,30 +570,45 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     }
 
     public Task SubmitLesson(IDocument document) => SubmitLesson(document, null);
+
     public async Task SubmitLesson(IDocument document, Action? onSubmissionStarted)
     {
         var form = HtmlSearch.GetLessonForm(document);
         try
         {
-            await SubmitMutation(form, "lesson submission", onSubmissionStarted);
+            await SubmitMutation(form,
+                "lesson submission",
+                onSubmissionStarted);
         }
-        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                or HttpStatusCode.SeeOther)
         {
             // POST/redirect/GET is normal registry behavior. Confirm persisted values
             // through reads, without allowing AngleSharp to replay the mutation.
-            await ConfirmSavedLesson(document, form, error);
+            await ConfirmSavedLesson(document,
+                form,
+                error);
         }
     }
 
-    private async Task ConfirmSavedLesson(IDocument document, IHtmlFormElement form, FormSubmissionRedirectException redirect)
+    private async Task ConfirmSavedLesson(
+        IDocument document,
+        IHtmlFormElement form,
+        FormSubmissionRedirectException redirect)
     {
         var origin = new Uri(document.Url);
         var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
             .Select(anchor => new Uri(anchor.Href))
-            .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+            .Where(uri =>
+                SameOrigin(first: origin, second: uri)
+                && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
             .Distinct()
             .ToArray();
-        if (redirect.Location is null || listLinks.Length != 1)
+        if (redirect.Location is null)
+        {
+            throw new IOException("Registry lesson confirmation destination is unavailable.");
+        }
+        if (listLinks.Length != 1)
         {
             throw new IOException("Registry lesson confirmation destination is unavailable.");
         }
@@ -578,8 +622,10 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
         var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
         var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
-        bool conditionValue = DateTime.TryParse(expectedDate, System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None, out var date);
+        bool conditionValue = DateTime.TryParse(expectedDate,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out var date);
         if (!conditionValue)
         {
             throw new IOException("Registry lesson confirmation fields are unavailable.");
@@ -604,10 +650,23 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var table = list.QuerySelector<IHtmlTableElement>("table")
             ?? throw new IOException("Registry lesson confirmation table is missing.");
         var dateText = date.ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        var editLinks = table.Rows.Where(row => { if (!(row.Cells.Length >= 3)) { return false; } if (!(row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))) { return false; } return true; })
+        var editLinks = table.Rows.Where(row =>
+            {
+                if (!(row.Cells.Length >= 3))
+                {
+                    return false;
+                }
+                if (!(row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal)))
+                {
+                    return false;
+                }
+                return true;
+            })
             .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
             .Select(anchor => new Uri(anchor.Href))
-            .Where(uri => SameOrigin(first: origin, second: uri) && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
+            .Where(uri =>
+                SameOrigin(first: origin, second: uri)
+                && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
             .Distinct()
             .ToArray();
         var matches = 0;
@@ -617,19 +676,26 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             RequireConfirmationPage(saved);
             var savedForm = HtmlSearch.GetLessonForm(saved);
             var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
+
             bool CalculateConditionResult()
             {
                 if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
-                    System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var savedDate))
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None,
+                        out var savedDate))
                 {
                     if (savedDate == date)
                     {
                         if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode)
                         {
-                            if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value.ReplaceLineEndings("\n") == expectedTopic.ReplaceLineEndings("\n"))
+                            if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value
+                                    .ReplaceLineEndings("\n")
+                                == expectedTopic.ReplaceLineEndings("\n"))
                             {
-                                if (expectedAttendance.All(input => savedInputs.Count(actual => actual.Name == input.Name) == 1
-                       && savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                                if (expectedAttendance.All(input =>
+                                        savedInputs.Count(actual => actual.Name == input.Name) == 1
+                                        && savedInputs.Any(actual =>
+                                            actual.Name == input.Name && actual.Value == input.Value)))
                                 {
                                     return true;
                                 }
@@ -728,6 +794,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     }
 
     public Task SubmitDelete(IDocument document) => SubmitDelete(document, null);
+
     public Task SubmitDelete(IDocument document, Action? onSubmissionStarted)
     {
         var form = document.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")
@@ -737,21 +804,64 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         async Task SubmitDeletion()
         {
             try
-            { await SubmitMutation(form, "deletion", onSubmissionStarted); }
-            catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+            {
+                await SubmitMutation(form,
+                    "deletion",
+                    onSubmissionStarted);
+            }
+            catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                    or HttpStatusCode.SeeOther)
             {
                 var origin = new Uri(document.Url);
                 var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
                     .Select(anchor => new Uri(anchor.Href))
-                    .Where(uri => { if (!(uri.Scheme == origin.Scheme)) { return false; } if (!(uri.Host == origin.Host)) { return false; } if (!(uri.Port == origin.Port)) { return false; } if (!(uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))) { return false; } return true; })
+                    .Where(uri =>
+                    {
+                        if (!(uri.Scheme == origin.Scheme))
+                        {
+                            return false;
+                        }
+                        if (!(uri.Host == origin.Host))
+                        {
+                            return false;
+                        }
+                        if (!(uri.Port == origin.Port))
+                        {
+                            return false;
+                        }
+                        if (!(uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal)))
+                        {
+                            return false;
+                        }
+                        return true;
+                    })
                     .Distinct()
                     .ToArray();
                 var lessonId = form.QuerySelector<IHtmlInputElement>("input[name=lessonId]")?.Value;
-                if (error.Location is null || listLinks.Length != 1
-                    || string.IsNullOrWhiteSpace(lessonId) || !lessonId.All(char.IsAsciiDigit)
-                    || !origin.AbsolutePath.EndsWith((string) $"/LessonAttendance/LessonDetail/{lessonId}", StringComparison.Ordinal))
+
+                static IOException InvalidConfirmation() =>
+                    new("Registry deletion confirmation identity is unavailable.");
+
+                if (error.Location is null)
                 {
-                    throw new IOException("Registry deletion confirmation identity is unavailable.");
+                    throw InvalidConfirmation();
+                }
+                if (listLinks.Length != 1)
+                {
+                    throw InvalidConfirmation();
+                }
+                if (string.IsNullOrWhiteSpace(lessonId))
+                {
+                    throw InvalidConfirmation();
+                }
+                if (!lessonId.All(char.IsAsciiDigit))
+                {
+                    throw InvalidConfirmation();
+                }
+                var expectedPath = $"/LessonAttendance/LessonDetail/{lessonId}";
+                if (!origin.AbsolutePath.EndsWith(expectedPath, StringComparison.Ordinal))
+                {
+                    throw InvalidConfirmation();
                 }
 
                 var destination = new Uri(baseUri: origin, relativeUri: error.Location);
@@ -761,6 +871,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 }
 
                 var list = await GetHtml(destination);
+
                 bool CalculateConditionResult2()
                 {
                     if (list.StatusCode != HttpStatusCode.OK)
@@ -796,8 +907,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 var table = list.QuerySelector<IHtmlTableElement>("table")
                     ?? throw new IOException("Registry deletion confirmation table is missing.");
                 if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
-                    .All(anchor =>
-                        !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
+                        .All(anchor =>
+                            !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
                     || table.Rows.Length == 0)
                 {
                     throw new IOException("Registry deletion confirmation page is unrecognized.");
@@ -805,40 +916,40 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
                 if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
                     .Any(anchor =>
-                {
-                    bool conditionResult;
-                    if (new Uri(anchor.Href).AbsolutePath is var path)
                     {
-                        string text = path;
-                        string text2 = $"/LessonDetail/{lessonId}";
-                        string value = (string) text2;
-                        global::System.StringComparison comparisonType = StringComparison.Ordinal;
-                        if (text.EndsWith(value, comparisonType))
+                        bool conditionResult;
+                        if (new Uri(anchor.Href).AbsolutePath is var path)
                         {
-                            conditionResult = true;
+                            string text = path;
+                            string text2 = $"/LessonDetail/{lessonId}";
+                            string value = (string) text2;
+                            global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                            if (text.EndsWith(value, comparisonType))
+                            {
+                                conditionResult = true;
+                            }
+                            else
+                            {
+                                string text3 = path;
+                                string text4 = $"/Edit/{lessonId}";
+                                string value2 = (string) text4;
+                                global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                                bool endsWith = text3.EndsWith(value2, comparisonType2);
+                                conditionResult = endsWith;
+                            }
                         }
                         else
                         {
-                            string text3 = path;
-                            string text4 = $"/Edit/{lessonId}";
-                            string value2 = (string) text4;
-                            global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
-                            bool endsWith = text3.EndsWith(value2, comparisonType2);
-                            conditionResult = endsWith;
+                            conditionResult = false;
                         }
-                    }
-                    else
-                    {
-                        conditionResult = false;
-                    }
 
-                    if (conditionResult)
-                    {
-                        return true;
-                    }
+                        if (conditionResult)
+                        {
+                            return true;
+                        }
 
-                    return false;
-                }))
+                        return false;
+                    }))
                 {
                     throw new RegistryDeletionRefusedException();
                 }
@@ -846,15 +957,43 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         }
     }
 
-    private async Task SubmitMutation(IHtmlFormElement form, string operation, Action? onSubmissionStarted)
+    private async Task SubmitMutation(
+        IHtmlFormElement form,
+        string operation,
+        Action? onSubmissionStarted)
     {
         CancellationToken.ThrowIfCancellationRequested();
-        var response = await SubmitOnce(form, CancellationToken, onSubmissionStarted);
+        var response = await SubmitOnce(form,
+            CancellationToken,
+            onSubmissionStarted);
         RejectResponse(response, operation);
     }
 
-    private async Task<IDocument> SubmitOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted)
+    private async Task<IDocument> SubmitOnce(
+        IHtmlFormElement form,
+        CancellationToken token,
+        Action? onSubmissionStarted)
     {
+        static bool IsLoginRedirect(FormSubmissionRedirectException error)
+        {
+            if (error.StatusCode is not (HttpStatusCode.Redirect or HttpStatusCode.SeeOther))
+            {
+                return false;
+            }
+
+            if (error.Location is not { } location)
+            {
+                return false;
+            }
+
+            if (!IsLoginAddress(location.ToString()))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         if (!form.Method.Equals("post", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Registry mutation form must use POST.");
@@ -862,7 +1001,9 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
         try
         {
-            var result = await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted);
+            var result = await Context.ScrapingContext.SubmitFormOnce(form,
+                token,
+                onSubmissionStarted);
             if (result is null)
             {
                 throw new IOException("Registry returned no submission response.");
@@ -870,8 +1011,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
             return result;
         }
-        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther
-            && error.Location is { } location && IsLoginAddress(location.ToString()))
+        catch (FormSubmissionRedirectException error) when (IsLoginRedirect(error))
         {
             throw new RegistrySubmissionRejectedException("Registry submission redirected to login.");
         }
@@ -892,16 +1032,19 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             || response.QuerySelectorAll(".validation-summary-errors")
                 .Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
         {
-            throw new RegistrySubmissionRejectedException($"Registry rejected {operation}.");
+            throw new RegistryOperationRejectedException(operation);
         }
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            throw new IOException($"Registry {operation} response could not be confirmed.");
+            throw new RegistryOperationResponseUnconfirmedException(operation);
         }
     }
 
-    public async Task SubmitGrades(IDocument document, CancellationToken token, Action? onSubmissionStarted = null)
+    public async Task SubmitGrades(
+        IDocument document,
+        CancellationToken token,
+        Action? onSubmissionStarted = null)
     {
         var form = RegistryGradeForm.Validate(document);
         token.ThrowIfCancellationRequested();
@@ -910,7 +1053,9 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             .ToArray();
         try
         {
-            var response = await SubmitOnce(form, token, onSubmissionStarted);
+            var response = await SubmitOnce(form,
+                token,
+                onSubmissionStarted);
             RejectResponse(response, "grade submission");
             // An ordinary form response or navigation away from the edit page must still be
             // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
@@ -919,13 +1064,15 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 throw new IOException("Registry grade submission response could not be confirmed.");
             }
         }
-        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                or HttpStatusCode.SeeOther)
         {
             // Confirm at the known edit URL below. A failed confirmation read cannot
             // establish rejection of the already-attempted POST.
         }
         var saved = await Context.Browser.OpenAsync(document.Url, token);
         var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
+
         bool CalculateConditionResult()
         {
             if (saved.StatusCode != HttpStatusCode.OK)
@@ -941,7 +1088,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 else
                 {
                     if (expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
-                   || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+                            || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
                     {
                         return true;
                     }
@@ -1035,8 +1182,14 @@ public static partial class RegistryScraping
     internal static readonly TimeSpan RegistryRequestSpacing = BuiltRegistryConfig.DefaultHttpCallDelay;
 
     /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(category: "Reliability", checkId: "CA2000:Dispose objects before losing scope", Justification = "The returned context owns the transport; construction failures dispose all allocated objects.")]
-    public static async Task<ScrapingContext> CreateHistoryContext(Credentials credentials, CancellationToken token, TimeSpan? delay = null)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(category: "Reliability",
+        checkId: "CA2000:Dispose objects before losing scope",
+        Justification =
+            "The returned context owns the transport; construction failures dispose all allocated objects.")]
+    public static async Task<ScrapingContext> CreateHistoryContext(
+        Credentials credentials,
+        CancellationToken token,
+        TimeSpan? delay = null)
     {
         var spacing = delay ?? RegistryRequestSpacing;
         if (spacing < TimeSpan.Zero)
@@ -1053,16 +1206,21 @@ public static partial class RegistryScraping
             handler = new HttpClientHandler
             {
                 CookieContainer = cookieProvider.Container,
-                AllowAutoRedirect = false
+                AllowAutoRedirect = false,
             };
             global::System.Net.Http.HttpMessageHandler inner = handler;
             global::System.Uri index2 = new(BaseUrl + "LessonAttendance");
             global::System.Uri login2 = DefaultTokenNames.LoginUrl;
             global::System.TimeSpan spacing2 = spacing;
-            var guard = new RegistryHistoryRequestHandler(inner, index: index2, login: login2, spacing2);
+            var guard = new RegistryHistoryRequestHandler(inner,
+                index: index2,
+                login: login2,
+                spacing2);
             handler = guard;
             client = new HttpClient(guard);
-            transport = new HttpClientContext(cookieProvider, client, guard);
+            transport = new HttpClientContext(cookieProvider,
+                client,
+                guard);
             var builder = new ScrapingContextBuilder();
             // The history transport applies spacing to every request, including login.
             AddDefaultConfigWithoutHandlers(builder, TimeSpan.Zero);
@@ -1114,23 +1272,25 @@ public static partial class RegistryScraping
     }
 
     public const string BaseUrl = "http://crd.usm.md/studregistry/";
+
     private static readonly TokenNamesConfig DefaultTokenNames = new()
     {
         BaseUrl = new Uri(BaseUrl),
         LoginUrl = new Uri("http://crd.usm.md/studregistry/Account/Login"),
         TokenCookieName = "ForDecanat",
     };
+
     private static readonly TokensStorageConfig DefaultTokensStorageConfig = new()
     {
         TokensFile = "tokens.json",
     };
+
     private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
     {
         Login = "UserLogin",
         Password = "UserPassword",
     };
 }
-
 
 public record struct StudentsLookupKey
 {
@@ -1193,6 +1353,7 @@ public record struct FoundGroups
 {
     /// <summary>Confirmed registry-only combination of existing faculty cohorts.</summary>
     public bool IsCombined;
+
     public required bool IsWildcard;
     public required LessonGroups Value;
 }

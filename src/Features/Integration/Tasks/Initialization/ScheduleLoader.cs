@@ -33,7 +33,9 @@ public sealed class ScheduleLoader
         // One local writer owns a cache key through the entire rebuild. Readers wait
         // and reopen after publication; the live file is never truncated in place.
         await using var cacheLock = CachedPath is { } cachePath
-            ? await LocalFileLock.Acquire((string) $"{cachePath}.lock", cancellationToken, wait: true)
+            ? await LocalFileLock.Acquire((string) $"{cachePath}.lock",
+                cancellationToken,
+                wait: true)
             : null;
         string? hashHex = null;
         {
@@ -64,23 +66,30 @@ public sealed class ScheduleLoader
                     SerializationModels.ScheduleModel? model = null;
                     try
                     {
-                        await using var input = new FileStream(existingPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                        await using var input = new FileStream(existingPath,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read | FileShare.Delete);
                         model = await ScheduleSerializer.Deserialize(input, cancellationToken);
                     }
                     catch (System.Text.Json.JsonException) { }
                     catch (InvalidDataException) { }
                     if (model is not null && model.Hash == hashHex)
                     {
-                        ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
+                        ScheduleSerializer.AddToBuilder(context.Schedule,
+                            model,
+                            context.CourseNameUnifierModule);
                         // Cache models already contain the explicit PDF cohort assignments;
                         // reuse the same import policy before the builder validates them.
                         if (Components.OfType<DirectoryScheduleLoaderComponent>()
                             .Any(component =>
-                            Directory.EnumerateFiles(path: component.DirectoryPath.Value, searchPattern: "*.pdf", SearchOption.AllDirectories)
-                                .Any()))
+                                Directory.EnumerateFiles(path: component.DirectoryPath.Value,
+                                        searchPattern: "*.pdf",
+                                        SearchOption.AllDirectories)
+                                    .Any()))
                         {
                             context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
-                            context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
+                                context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
                         }
 
                         return;
@@ -210,7 +219,9 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
 
     public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(path: DirectoryPath.Value, searchPattern: "*.xlsx", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(path: DirectoryPath.Value,
+                     searchPattern: "*.xlsx",
+                     SearchOption.AllDirectories))
         {
             await using var inputFile = new FileStream(
                 filePath,
@@ -219,16 +230,17 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
                 FileShare.ReadWrite);
             try
             {
-                await ExcelScheduleParser.ParseIntoSchedule(Config, new()
-                {
-                    Context = context,
-                    InputFile = inputFile,
-                    StringBuilder = new(),
-                });
+                await ExcelScheduleParser.ParseIntoSchedule(Config,
+                    new()
+                    {
+                        Context = context,
+                        InputFile = inputFile,
+                        StringBuilder = new(),
+                    });
             }
             catch (Exception e)
             {
-                throw new InvalidOperationException($"Error while reading {filePath}", e);
+                throw new ScheduleFileReadException(filePath, e);
             }
         }
     }
@@ -241,6 +253,7 @@ public sealed class ConsultationsLoaderComponent(
     const string fileId = "1SKqhQjIesic_23haSKSwjDZc8-lLYcIA";
 
     private MemoryStream? _docStream;
+
     private async ValueTask<MemoryStream> LazyFile(CancellationToken cancellationToken)
     {
         if (_docStream is null)
@@ -339,6 +352,7 @@ public sealed class ConsultationsLoaderComponent(
                     {
                         var parser = new SequenceReader(t);
                         var name = NameHelper.TryParseName(ref parser);
+
                         bool CalculateConditionResult()
                         {
                             if (!parser.IsEmpty)
@@ -604,7 +618,9 @@ public static class HashHelper
                     return c;
                 }
                 bool conditionResult3;
-                int conditionValue3 = c = string.Compare(strA: x.Faculty?.Name, strB: y.Faculty?.Name, StringComparison.Ordinal);
+                int conditionValue3 = c = string.Compare(strA: x.Faculty?.Name,
+                    strB: y.Faculty?.Name,
+                    StringComparison.Ordinal);
                 conditionResult3 = (conditionValue3) != 0;
                 if (conditionResult3)
                 {
@@ -626,14 +642,18 @@ public static class HashHelper
                 }
                 bool conditionResult6;
                 int conditionValue6 = c = CompareCourses(
-                        xs: x.SpecializationCourses, ys: y.SpecializationCourses, static s => s.Value);
+                    xs: x.SpecializationCourses,
+                    ys: y.SpecializationCourses,
+                    static s => s.Value);
                 conditionResult6 = (conditionValue6) != 0;
                 if (conditionResult6)
                 {
                     return c;
                 }
                 return CompareCourses(
-                    xs: x.AlternativeCourses, ys: y.AlternativeCourses, static a => a.Value);
+                    xs: x.AlternativeCourses,
+                    ys: y.AlternativeCourses,
+                    static a => a.Value);
             }
 
             static int CompareCourses<T>(
@@ -652,7 +672,9 @@ public static class HashHelper
                     .GetEnumerator();
                 while (xe.MoveNext() && ye.MoveNext())
                 {
-                    int c = string.Compare(strA: xe.Current.Key, strB: ye.Current.Key, StringComparison.Ordinal);
+                    int c = string.Compare(strA: xe.Current.Key,
+                        strB: ye.Current.Key,
+                        StringComparison.Ordinal);
                     if (c != 0)
                     {
                         return c;
@@ -661,7 +683,9 @@ public static class HashHelper
                     string? strB2 = value(ye.Current.Value);
                     global::System.StringComparison comparisonType = StringComparison.Ordinal;
                     int compare = string.Compare(
-                        strA: strA2, strB: strB2, comparisonType);
+                        strA: strA2,
+                        strB: strB2,
+                        comparisonType);
                     c = compare;
                     if (c != 0)
                     {

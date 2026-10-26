@@ -69,7 +69,10 @@ public static class LessonTopicCsvSerializer
         var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
         var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
         global::CsvHelper.CsvContext csvContext = csvReader.Context;
-        global::ScheduleLib.Application.Core.Topics.LessonTopicMap map = new LessonTopicMap(defaults, hasLessonType: hasLessonType, hasLanguage: hasLanguage);
+        global::ScheduleLib.Application.Core.Topics.LessonTopicMap map =
+            new LessonTopicMap(defaults,
+                hasLessonType: hasLessonType,
+                hasLanguage: hasLanguage);
         global::CsvHelper.Configuration.ClassMap map2 = map;
         csvContext.RegisterClassMap(map2);
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
@@ -93,7 +96,10 @@ public static class LessonTopicCsvSerializer
 
 public sealed class LessonTopicMap : ClassMap<LessonTopic>
 {
-    public LessonTopicMap(LessonTopicDefaults defaults, bool hasLessonType = true, bool hasLanguage = true)
+    public LessonTopicMap(
+        LessonTopicDefaults defaults,
+        bool hasLessonType = true,
+        bool hasLanguage = true)
     {
         Map(m => m.Name)
             .Name("name");
@@ -151,7 +157,6 @@ public interface ILessonNameProviderFactory : ILessonNameProviderBase
 
 public sealed class NonLocalizedLessonNameProvider(
     ILessonNameProvider provider)
-
     : ILessonNameProviderFactory
 {
     public ILessonNameProvider Get(Language language)
@@ -204,6 +209,7 @@ public sealed class LabAutoNumberingNameProviderFactory : ILessonNameProviderFac
 public sealed class LabAutoNumberingNameProvider : ILessonNameProvider
 {
     private readonly Language _language;
+
     private static readonly LocalizedString _labs = new LocalizedStringBuilder()
         .Set(Language.Ru, "Лабораторная работа")
         .Set(Language.Ro, "Lucrarea de laborator")
@@ -352,10 +358,12 @@ public readonly record struct TopicsGroupsKey
 public struct CourseKeyBuilder
 {
     private ImmutableArray<CourseId>.Builder _builder;
+
     public CourseKeyBuilder(int capacity)
     {
         _builder = ImmutableArray.CreateBuilder<CourseId>();
     }
+
     public bool Add(CourseId courseId)
     {
         foreach (var x in _builder)
@@ -372,7 +380,8 @@ public struct CourseKeyBuilder
 
     public CourseKey Build()
     {
-        global::ScheduleLib.Helper.SequenceComparableImmutableArray<global::ScheduleLib.CourseId> ids = new(_builder.ToImmutable());
+        global::ScheduleLib.Helper.SequenceComparableImmutableArray<global::ScheduleLib.CourseId> ids =
+            new(_builder.ToImmutable());
         global::ScheduleLib.Application.Core.Topics.CourseKey courseKey = new(ids);
         return courseKey;
     }
@@ -463,11 +472,12 @@ public sealed class LessonTopicsBuilder
 
     public void Add(LessonType type, string value)
     {
-        var list = _lists.GetOrAdd(type, key =>
-        {
-            _ = key;
-            return new();
-        });
+        var list = _lists.GetOrAdd(type,
+            key =>
+            {
+                _ = key;
+                return new();
+            });
         list.Add(value);
     }
 }
@@ -476,7 +486,9 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 {
     public int? Semester { get; set; }
     private readonly List<LessonTopicsBuilder> _items = new();
+
     private readonly SparseArray<LessonType, ILessonNameProviderFactory> _defaultProviders;
+
     // Only includes the relevant lessons.
     // NOTE: Currently, recreated per teacher.
     private readonly FilteredSchedule _schedule;
@@ -510,7 +522,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             var fallbackProviders = GetProvidersNoFallback(it);
             global::ScheduleLib.Application.Core.Topics.FallbackProvidersDS fallbackProvidersDS = fallbacks;
-            global::ScheduleLib.Application.Core.Topics.BuiltFallbackProvider item = new(it, fallbackProviders.Providers);
+            global::ScheduleLib.Application.Core.Topics.BuiltFallbackProvider item = new(it,
+                fallbackProviders.Providers);
             fallbackProvidersDS.Add(item);
         }
 
@@ -533,7 +546,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 it.AllowMissingLessonTypes);
 
             var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
-            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Application.Core.Topics.ClassifiedTopicsProviders>.Builder builder = b;
+            global::System.Collections.Immutable.ImmutableArray<
+                global::ScheduleLib.Application.Core.Topics.ClassifiedTopicsProviders>.Builder builder = b;
             global::ScheduleLib.Application.Core.Topics.ClassifiedTopicsProviders item2 = new(builtKey, p.Providers);
             builder.Add(item2);
         }
@@ -639,10 +653,15 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     return false;
                 }
 
-                bylang.SetupBuilder(this, lang, groups,
-                                    CheckCondition()
-                                        ? new GroupPartitionKey(new SubGroup(document.SubGroup), new Specialization(document.Specialization), new Alternative(document.Alternative)) : null,
-                                    document.AllowMissingLessonTypes);
+                bylang.SetupBuilder(this,
+                    lang,
+                    groups,
+                    CheckCondition()
+                        ? new GroupPartitionKey(new SubGroup(document.SubGroup),
+                            new Specialization(document.Specialization),
+                            new Alternative(document.Alternative))
+                        : null,
+                    document.AllowMissingLessonTypes);
             }
 
             await foreach (var lessonTopic in e)
@@ -676,7 +695,6 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
                 builder.Add(lessonTopic.LessonType, lessonTopic.Name);
             }
-
         }
     }
 
@@ -877,8 +895,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 {
                     list.Append(_schedule.Source.Get(courseId).FullName);
                 }
-                throw new InvalidOperationException(
-                    $"No provider for lesson type {lessonType} for courses {sb}.");
+                var courses = sb.ToString();
+                throw new NoLessonNameProviderForLessonTypeException(lessonType, courses);
             }
         }
     }
@@ -886,13 +904,15 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
     [LoggerMessage(LogLevel.Warning, "Course '{Course}' not found in lookup")]
     partial void LogCourseCourseNotFoundInLookup(string Course);
 
-    [LoggerMessage(LogLevel.Warning, "No matching lesson groups found for document '{DocumentPath}' with specified faculty/grade filters")]
+    [LoggerMessage(LogLevel.Warning,
+        "No matching lesson groups found for document '{DocumentPath}' with specified faculty/grade filters")]
     partial void LogNoMatchingGroups(string DocumentPath);
 }
 
 internal record struct LessonTypesToProcess(
     EnumBitArray<LessonType> Required,
     EnumBitArray<LessonType> ToProcess);
+
 // Abstraction to guide some decisions.
 file readonly struct ProcessingHooks
 {
@@ -979,12 +999,15 @@ file struct TopicsByLanguage()
         bool allowMissingLessonTypes)
     {
         _partition = partition;
-        global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder allLessonTopicsDatabaseBuilder = self;
+        global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder
+            allLessonTopicsDatabaseBuilder = self;
         global::ScheduleLib.Application.Core.Topics.CourseKey courseKey2 = _courseKey;
         global::ScheduleLib.Application.Core.Topics.TopicsGroupsKey groupsKey2 = new(groups, partition);
         global::ScheduleLib.Language language2 = language;
         global::ScheduleLib.Application.Core.Topics.TopicsBuilderKey key = new(
-            courseKey: courseKey2, groupsKey: groupsKey2, language: language2);
+            courseKey: courseKey2,
+            groupsKey: groupsKey2,
+            language: language2);
         var topics = allLessonTopicsDatabaseBuilder.Topics(key);
         topics.AllowMissingLessonTypes |= allowMissingLessonTypes;
         _arr[language] = topics;
@@ -1015,13 +1038,17 @@ file struct TopicsByLanguage()
                 allGroups.Add(group);
             }
 
-            global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder allLessonTopicsDatabaseBuilder = self;
+            global::ScheduleLib.Application.Core.Topics.AllLessonTopicsDatabaseBuilder allLessonTopicsDatabaseBuilder =
+                self;
             global::ScheduleLib.Application.Core.Topics.CourseKey courseKey2 = _courseKey;
             global::ScheduleLib.Application.Core.Topics.TopicsGroupsKey groupsKey2 = new(allGroups, _partition);
             global::ScheduleLib.Language language2 = Language.None;
             global::ScheduleLib.Application.Core.Topics.TopicsBuilderKey key = new(
-                courseKey: courseKey2, groupsKey: groupsKey2, language: language2);
-            global::ScheduleLib.Application.Core.Topics.LessonTopicsBuilder topics = allLessonTopicsDatabaseBuilder.Topics(key);
+                courseKey: courseKey2,
+                groupsKey: groupsKey2,
+                language: language2);
+            global::ScheduleLib.Application.Core.Topics.LessonTopicsBuilder topics =
+                allLessonTopicsDatabaseBuilder.Topics(key);
             _fallback = topics;
         }
         return _fallback;

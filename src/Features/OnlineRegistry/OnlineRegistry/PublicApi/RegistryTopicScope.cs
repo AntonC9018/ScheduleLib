@@ -37,7 +37,10 @@ namespace ScheduleLib.OnlineRegistry;
 /// </remarks>
 internal static class RegistryTopicScope
 {
-    internal static string Format(Schedule schedule, LessonGroups groups, GroupPartitionKey partition)
+    internal static string Format(
+        Schedule schedule,
+        LessonGroups groups,
+        GroupPartitionKey partition)
     {
         ArgumentNullException.ThrowIfNull(schedule);
 
@@ -53,11 +56,14 @@ internal static class RegistryTopicScope
             global::ScheduleLib.Group get2 = schedule.Get(b);
             string strB2 = get2.Name;
             global::System.StringComparison comparisonType = StringComparison.Ordinal;
-            int comparison = string.Compare(strA: strA2, strB: strB2, comparisonType);
+            int comparison = string.Compare(strA: strA2,
+                strB: strB2,
+                comparisonType);
             if (comparison != 0)
             {
                 return comparison;
             }
+
             global::ScheduleLib.Language CalculateTarget()
             {
                 global::ScheduleLib.Group get3 = schedule.Get(b);
@@ -126,7 +132,9 @@ internal static class RegistryTopicScope
 
     private static string FormatSubGroupToken(string value)
     {
-        if (string.Equals(value, SpecialSubGroups.Eng.Value, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(value,
+                SpecialSubGroups.Eng.Value,
+                StringComparison.OrdinalIgnoreCase))
         {
             return "/en";
         }
@@ -161,7 +169,10 @@ internal static class RegistryTopicScope
     /// trailing scope suffix (canonical or alias) so re-emitting the same scope is idempotent.
     /// Null/empty/whitespace topics are returned unchanged to avoid concealing missing topics.
     /// </summary>
-    internal static string? Append(string? topic, string scope, IReadOnlyCollection<string> knownScopes)
+    internal static string? Append(
+        string? topic,
+        string scope,
+        IReadOnlyCollection<string> knownScopes)
     {
         ArgumentNullException.ThrowIfNull(knownScopes);
         if (string.IsNullOrWhiteSpace(scope))
@@ -172,7 +183,10 @@ internal static class RegistryTopicScope
         {
             return topic;
         }
-        if (TrySplit(topic: topic, knownScopes, baseTopic: out var baseTopic, scope: out _))
+        if (TrySplit(topic: topic,
+                knownScopes,
+                baseTopic: out var baseTopic,
+                scope: out _))
         {
             if (baseTopic!.Length == 0)
             {
@@ -189,12 +203,21 @@ internal static class RegistryTopicScope
     /// Topic-internal parentheses and unknown trailing parentheses leave the topic intact
     /// (<c>false</c> with null outputs). Alias matches return the canonical known scope.
     /// </summary>
-    internal static bool TrySplit(string? topic, IReadOnlyCollection<string> knownScopes, out string? baseTopic, out string? scope)
+    internal static bool TrySplit(
+        string? topic,
+        IReadOnlyCollection<string> knownScopes,
+        out string? baseTopic,
+        out string? scope)
     {
         baseTopic = null;
         scope = null;
         ArgumentNullException.ThrowIfNull(knownScopes);
-        if (string.IsNullOrWhiteSpace(topic) || knownScopes.Count == 0)
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            return false;
+        }
+
+        if (knownScopes.Count == 0)
         {
             return false;
         }
@@ -246,7 +269,9 @@ internal static class RegistryTopicScope
             {
                 continue;
             }
-            if (string.Equals(inner, known, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(inner,
+                    known,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 baseTopic = trimmed.Substring(startIndex: 0, length: open)
                     .TrimEnd();
@@ -264,7 +289,9 @@ internal static class RegistryTopicScope
             string a = normalizedInner;
             string b = NormalizeAlias(known);
             global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
-            if (string.Equals(a, b, comparisonType))
+            if (string.Equals(a,
+                    b,
+                    comparisonType))
             {
                 baseTopic = trimmed.Substring(startIndex: 0, length: open)
                     .TrimEnd();
@@ -285,13 +312,21 @@ internal static class RegistryTopicScope
     private static string NormalizeAlias(string value)
     {
         var result = value.Trim();
-        result = result.Replace(" (", "(", StringComparison.Ordinal);
+        result = result.Replace(" (",
+            "(",
+            StringComparison.Ordinal);
         while (result.Contains(" /", StringComparison.Ordinal))
         {
-            result = result.Replace(" /", "/", StringComparison.Ordinal);
+            result = result.Replace(" /",
+                "/",
+                StringComparison.Ordinal);
         }
-        result = result.Replace("(eng)", "(en)", StringComparison.OrdinalIgnoreCase);
-        result = ReplaceToken(value: result, oldToken: "/eng", newToken: "/en");
+        result = result.Replace("(eng)",
+            "(en)",
+            StringComparison.OrdinalIgnoreCase);
+        result = ReplaceToken(value: result,
+            oldToken: "/eng",
+            newToken: "/en");
         for (int number = 10; number >= 1; number--)
         {
             string value2 = result;
@@ -299,13 +334,18 @@ internal static class RegistryTopicScope
             string toRoman = NumberHelper.ToRoman(number);
             string text = $"/{toRoman}";
             string newToken2 = (string) text;
-            string replaceToken = ReplaceToken(value: value2, oldToken: oldToken2, newToken: newToken2);
+            string replaceToken = ReplaceToken(value: value2,
+                oldToken: oldToken2,
+                newToken: newToken2);
             result = replaceToken;
         }
         return result;
     }
 
-    private static string ReplaceToken(string value, string oldToken, string newToken)
+    private static string ReplaceToken(
+        string value,
+        string oldToken,
+        string newToken)
     {
         var result = new StringBuilder(value.Length);
         int i = 0;

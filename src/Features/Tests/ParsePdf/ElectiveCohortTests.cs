@@ -100,10 +100,12 @@ public sealed class ElectiveCohortTests
             Text: "Antreprenoriat inovativ (curs)",
             Alternative: "Antreprenoriat Gr.1");
         var cohorts = new ElectiveCohorts(context,
-            [cell, cell with
+        [
+            cell, cell with
             {
-            Alternative = "Antreprenoriat Gr.2",
-            }]);
+                Alternative = "Antreprenoriat Gr.2",
+            },
+        ]);
 
         PdfScheduleImporter.Import(context,
             [cell],
@@ -141,8 +143,9 @@ public sealed class ElectiveCohortTests
                 cohorts.Add));
             global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
             object objectValue2 = objectValue;
-            var cellError = Assert.IsType<FormatException>(objectValue2);
-            Assert.Equal(expected: "Cohort annotation on an unexpected course.", actual: cellError.InnerException!.Message);
+            var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
+            Assert.Equal(expected: "Cohort annotation on an unexpected course.",
+                actual: cellError.InnerException!.Message);
             Assert.Empty(context.Schedule.WeeklyLessons.List);
             return;
         }

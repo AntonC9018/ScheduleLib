@@ -17,7 +17,9 @@ public sealed class ScheduleProvider
     private readonly ILogger<ScheduleProvider> _logger;
     private readonly Lazy<Schedule> _schedule;
 
-    public ScheduleProvider(ScheduleBuilder builder, IOptions<ScheduleDerivationOptions> options,
+    public ScheduleProvider(
+        ScheduleBuilder builder,
+        IOptions<ScheduleDerivationOptions> options,
         ILogger<ScheduleProvider> logger)
     {
         _builder = builder;
@@ -40,14 +42,19 @@ public sealed class ScheduleProvider
         var schedule = LabSubGroupMerges.Project(raw, _options.Value.AutoMergeLabSubGroups);
         foreach (var diagnostic in schedule.LabSubGroupMergeDiagnostics)
         {
-            _logger.LogWarning("Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
-            schedule.Get(diagnostic.Course).FullName, schedule.Get(diagnostic.Group).Name,
-            diagnostic.Specialization.Value, diagnostic.Alternative.Value, diagnostic.Reason);
+            _logger.LogWarning(
+                "Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
+                schedule.Get(diagnostic.Course).FullName,
+                schedule.Get(diagnostic.Group).Name,
+                diagnostic.Specialization.Value,
+                diagnostic.Alternative.Value,
+                diagnostic.Reason);
         }
 
         if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
         {
-            _logger.LogInformation("Derived {Count} automatic lab subgroup merges for the semester", schedule.AutomaticLabSubGroupMerges.Length);
+            _logger.LogInformation("Derived {Count} automatic lab subgroup merges for the semester",
+                schedule.AutomaticLabSubGroupMerges.Length);
         }
 
         return schedule;
@@ -84,7 +91,7 @@ public sealed partial class CurrentTeacherIdProvider
         Debug.Assert(teacherConfig != null);
         var teacherName = teacherConfig.TeacherName;
         return TeacherProfileScheduleLookup.Find(_lookup, teacherName)
-            ?? throw new InvalidOperationException($"Selected teacher '{teacherName}' is absent from this schedule.");
+            ?? throw new SelectedTeacherAbsentFromScheduleException(teacherName);
     }
 }
 

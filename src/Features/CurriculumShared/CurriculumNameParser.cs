@@ -25,6 +25,7 @@ public sealed class CurriculumGroupKey
 }
 
 public readonly record struct ProgramCode(string Value);
+
 public readonly record struct SpecializationName(string Value);
 
 public sealed class ParsedCurriculumKey1
@@ -85,6 +86,7 @@ internal struct PreliminaryState()
     public UnsizedBitArray32 Processed = default;
     public Preliminary Preliminary = new();
 }
+
 public enum PreliminaryField
 {
     None = -1,
@@ -119,7 +121,7 @@ public sealed class Preliminary
                 Beneficiaries = str;
                 break;
             default:
-                throw new NotSupportedException($"Unknown preliminary field {field}");
+                throw new UnknownPreliminaryFieldException(field);
         }
     }
 }
@@ -151,10 +153,12 @@ public sealed class DisciplineTimeDistribution
 }
 
 public readonly record struct DisciplineCode(string Value);
-public readonly record struct Semester(int Number);
-public readonly record struct EvaluationMode(bool HasExam);
-public readonly record struct Credits(int Value);
 
+public readonly record struct Semester(int Number);
+
+public readonly record struct EvaluationMode(bool HasExam);
+
+public readonly record struct Credits(int Value);
 
 public sealed class AllLessonPlan
 {
@@ -195,7 +199,6 @@ public sealed class Competence
 
 public readonly record struct CompetenceId(string Value);
 
-
 public sealed class AllStudiedUnits
 {
     public required List<StudiedUnit> Units;
@@ -212,10 +215,12 @@ public sealed class StudiedUnit
 }
 
 public readonly record struct ContentUnit(string Value);
-public readonly record struct KeyTerm(string Value);
-public readonly record struct LearnedAbility(string Value);
-public readonly record struct StudentResponsibility(string Value);
 
+public readonly record struct KeyTerm(string Value);
+
+public readonly record struct LearnedAbility(string Value);
+
+public readonly record struct StudentResponsibility(string Value);
 
 public sealed class AllLabsPlan
 {
@@ -558,7 +563,6 @@ public static class CurriculumNameParser
             return ret;
         }
     }
-
 }
 
 public sealed class FindCurriculumForLessonParams
@@ -571,8 +575,11 @@ public sealed class FindCurriculumForLessonParams
 
 // For type safety.
 public readonly record struct RootCurriculumDirectory(string FullPath);
+
 public readonly record struct CurriculumGroupDirectory(string FullPath);
+
 public readonly record struct CurriculumGroup(CurriculumGroupKey Key, CurriculumGroupDirectory Directory);
+
 public readonly record struct CurriculumFile(ParsedCurriculumKey1 Key, string FilePath)
 {
     public static CurriculumFile? FromFilePath(string filePath)
@@ -696,15 +703,19 @@ public sealed class CurriculumCache
                 var facultyInitialsParsed = new ParsedCourseName();
                 foreach (var letter in g.Faculty.Name)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.Parsing.CourseName.CourseNameSegment> list = facultyInitialsParsed.Segments;
-                    global::ScheduleLib.Parsing.CourseName.CourseNameSegment item = CourseNameSegment.AsInitials(letter);
+                    global::System.Collections.Generic.List<global::ScheduleLib.Parsing.CourseName.CourseNameSegment>
+                        list = facultyInitialsParsed.Segments;
+                    global::ScheduleLib.Parsing.CourseName.CourseNameSegment
+                        item = CourseNameSegment.AsInitials(letter);
                     list.Add(
                         item);
                 }
-                var facultyParsed = CourseNameParsing.Parse(new(new()), group.Key.Name.Value.AsMemory(), new()
-                {
-                    IgnorePunctuation = false,
-                });
+                var facultyParsed = CourseNameParsing.Parse(new(new()),
+                    group.Key.Name.Value.AsMemory(),
+                    new()
+                    {
+                        IgnorePunctuation = false,
+                    });
 
                 if (!facultyParsed.Equals(facultyInitialsParsed))
                 {
@@ -795,26 +806,26 @@ public sealed class CurriculumCache
         {
             // Keep teacher overlap, see if that nail it down.
             var withTeacherOverlap = candidateFiles.Where(x =>
-            {
-                foreach (var teacher in x.Key.Teachers)
                 {
-                    var l = new LastName();
-                    l.Parts[0] = teacher.Span.ToString();
-
-                    if (p.Lookup.Teacher(l) is not { } teacherId)
+                    foreach (var teacher in x.Key.Teachers)
                     {
-                        // throw new InvalidOperationException("Teacher not found!");
-                        continue;
-                    }
+                        var l = new LastName();
+                        l.Parts[0] = teacher.Span.ToString();
 
-                    var lesson = p.Schedule.Get(p.LessonId);
-                    if (lesson.Lesson.Teachers.Contains(teacherId))
-                    {
-                        return true;
+                        if (p.Lookup.Teacher(l) is not { } teacherId)
+                        {
+                            // throw new InvalidOperationException("Teacher not found!");
+                            continue;
+                        }
+
+                        var lesson = p.Schedule.Get(p.LessonId);
+                        if (lesson.Lesson.Teachers.Contains(teacherId))
+                        {
+                            return true;
+                        }
                     }
-                }
-                return false;
-            })
+                    return false;
+                })
                 .ToList();
 
             if (withTeacherOverlap.Count == 1)
@@ -844,9 +855,9 @@ internal static class ThesisName
     internal static async Task<Curriculum> ReadFile(CurriculumFile file)
     {
         await using var fileStream = File.OpenRead(file.FilePath);
-        using var word = WordprocessingDocument.Open(fileStream, isEditable: false, new()
-        {
-        });
+        using var word = WordprocessingDocument.Open(fileStream,
+            isEditable: false,
+            new() { });
 
         // CURRICULUM
         // la unitatea de curs / modulul
@@ -975,19 +986,20 @@ internal static class ThesisName
     }
 
     private static ImmutableArray<string> SectionStrings => CreateSectionStrings();
+
     private static ImmutableArray<string> CreateSectionStrings()
     {
         return StringSearchHelper.SetupSearchArray<SectionType>(b =>
-            {
-                b.Set(SectionType.Bibliography, "bibliografie recomandata");
-                b.Set(SectionType.Competences, "competente generale, profesionale si rezultatele invatarii");
-                b.Set(SectionType.Labs, "lucrul individual al studentului");
-                b.Set(SectionType.Suggestions, "sugestii metodologice de predare-invatare-evaluare");
-                b.Set(SectionType.DisciplineProvisions, "administrarea disciplinei");
-                b.Set(SectionType.LessonPlans, "tematica si repartizarea orientativa a orelor");
-                b.Set(SectionType.PreliminaryPassage, "preliminarii");
-                b.Set(SectionType.StudyUnits, "unitati de invatare");
-            });
+        {
+            b.Set(SectionType.Bibliography, "bibliografie recomandata");
+            b.Set(SectionType.Competences, "competente generale, profesionale si rezultatele invatarii");
+            b.Set(SectionType.Labs, "lucrul individual al studentului");
+            b.Set(SectionType.Suggestions, "sugestii metodologice de predare-invatare-evaluare");
+            b.Set(SectionType.DisciplineProvisions, "administrarea disciplinei");
+            b.Set(SectionType.LessonPlans, "tematica si repartizarea orientativa a orelor");
+            b.Set(SectionType.PreliminaryPassage, "preliminarii");
+            b.Set(SectionType.StudyUnits, "unitati de invatare");
+        });
     }
 
     private struct PreprocessIgnoreRomanOnce() : IPreprocess
@@ -1023,7 +1035,9 @@ internal static class ThesisName
             return SectionParseResult.CreateNotHeading();
         }
 
-        var ret = StringSearchHelper.Search(para, new PreprocessIgnoreRomanOnce(), SectionStrings);
+        var ret = StringSearchHelper.Search(para,
+            new PreprocessIgnoreRomanOnce(),
+            SectionStrings);
         StringSearchHelper.DefaultHandleError(ret);
         return ret;
 
@@ -1128,7 +1142,7 @@ internal static class ThesisName
             const string expected = "la unitatea de curs / modulul";
             if (t != expected)
             {
-                throw new InvalidOperationException($"Expected string {expected}");
+                throw new InvalidOperationException("Expected string la unitatea de curs / modulul");
             }
         }
 
@@ -1194,7 +1208,7 @@ internal static class ThesisName
 
             var p = paragraphs.Current;
             if (p.ChildElements.OfType<Run>()
-                .MaybeJustTwoItems() is not { } runs)
+                    .MaybeJustTwoItems() is not { } runs)
             {
                 if (authorNames.Count == 0)
                 {
@@ -1268,7 +1282,7 @@ internal static class ThesisName
                 const string programPrefix = "Program / Specialitatea:";
                 if (!parser.ConsumeExactString(programPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException($"Expected string {programPrefix}");
+                    throw new InvalidOperationException("Expected string Program / Specialitatea:");
                 }
             }
 
@@ -1290,7 +1304,7 @@ internal static class ThesisName
                 }
                 catch (NotSupportedException e)
                 {
-                    throw new InvalidOperationException($"Error while parsing program code: {e}", e);
+                    throw new ProgramCodeParsingException(e);
                 }
 
                 parser.SkipWhitespace();
@@ -1343,19 +1357,19 @@ internal static class ThesisName
             {
                 if (!reader.ConsumeExactString(ciclul, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException($"Expected the year string to start with '{ciclul}'");
+                    throw new InvalidOperationException("Expected the year string to start with 'Ciclul'");
                 }
             }
             if (!reader.SkipWhitespace().SkippedAny)
             {
-                throw new InvalidOperationException($"Did not expect the string to end after '{ciclul}'");
+                throw new InvalidOperationException("Did not expect the string to end after 'Ciclul'");
             }
 
             {
                 var romanReadStatus = reader.ReadRoman();
                 if (romanReadStatus.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidOperationException($"Roman number must follow after '{ciclul}'");
+                    throw new InvalidOperationException("Roman number must follow after 'Ciclul'");
                 }
 
                 return romanReadStatus.Number;
@@ -1403,15 +1417,18 @@ internal static class ThesisName
 
         static void ValidateQualText(string t)
         {
-            ShortenedWord[] exactShortTokens = [
+            ShortenedWord[] exactShortTokens =
+            [
                 new("dr"),
             ];
-            Word[] allowedTokens = [
+            Word[] allowedTokens =
+            [
                 new("doctor"),
                 new("conferențiar"),
                 new("asistent"),
             ];
-            Word[] ignoredTokens = [
+            Word[] ignoredTokens =
+            [
                 new("universitar"),
             ];
             var span = t.AsSpan();
@@ -1425,7 +1442,7 @@ internal static class ThesisName
 
                 if (!ValidateWord(part))
                 {
-                    throw new InvalidOperationException($"Disallowed teacher qualification token: {part}");
+                    throw new DisallowedTeacherQualificationTokenException(part.ToString());
                 }
             }
             return;
@@ -1581,7 +1598,9 @@ internal static class SectionTypeHelper
             case SectionType.Bibliography:
                 return ref item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown section type");
+                throw new ArgumentOutOfRangeException(nameof(p),
+                    p,
+                    "Unknown section type");
         }
     }
 
@@ -1606,7 +1625,9 @@ internal static class SectionTypeHelper
             case SectionType.Bibliography:
                 return item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p), p, "Unknown section type");
+                throw new ArgumentOutOfRangeException(nameof(p),
+                    p,
+                    "Unknown section type");
         }
     }
 
@@ -1655,7 +1676,6 @@ internal enum IsHeadingStyleResult
     NoStyle,
 }
 
-
 internal readonly struct SectionItemsEnumerable : IEnumerable<OpenXmlElement>
 {
     private readonly OpenXmlElementList.Enumerator _e;
@@ -1700,6 +1720,7 @@ internal readonly struct SectionItemsEnumerable : IEnumerable<OpenXmlElement>
         public OpenXmlElement Current => _e.Current;
         void IEnumerator.Reset() => throw new NotSupportedException();
         object IEnumerator.Current => Current;
+
         void IDisposable.Dispose()
         {
         }
@@ -1727,7 +1748,7 @@ internal static class PreliminarySectionProcessing
                 var newType = (PreliminaryField) parseResult.MatchIndex;
                 if (state.Processed.IsSet((int) newType))
                 {
-                    throw new InvalidOperationException($"'{newType}' field appears twice in the preliminary");
+                    throw new RepeatedPreliminaryFieldException(newType);
                 }
 
                 state.Field = newType;
@@ -1770,7 +1791,9 @@ internal static class PreliminarySectionProcessing
                 return SectionParseResult.CreateNotHeading();
             }
 
-            var ret = StringSearchHelper.Search(para, new PreprocessDoNothing(), PreliminaryFieldStrings);
+            var ret = StringSearchHelper.Search(para,
+                new PreprocessDoNothing(),
+                PreliminaryFieldStrings);
             StringSearchHelper.DefaultHandleError(ret);
             return ret;
         }
@@ -1811,12 +1834,14 @@ internal static class PreliminarySectionProcessing
 
 
     private static readonly ImmutableArray<string> PreliminaryFieldStrings = CreatePreliminaryFieldStrings();
+
     private static ImmutableArray<string> CreatePreliminaryFieldStrings()
     {
         return StringSearchHelper.SetupSearchArray<PreliminaryField>(b =>
         {
             b.Set(PreliminaryField.Overview, "Prezentarea generală a cursului");
-            b.Set(PreliminaryField.Importance, "Locul și rolul cursului în formarea rezultatelor învățării ale specialității și misiunea curriculumului în formarea profesională");
+            b.Set(PreliminaryField.Importance,
+                "Locul și rolul cursului în formarea rezultatelor învățării ale specialității și misiunea curriculumului în formarea profesională");
             b.Set(PreliminaryField.Languages, "Limba de predare a cursului");
             b.Set(PreliminaryField.Beneficiaries, "Beneficiarii");
         });
@@ -1917,7 +1942,6 @@ internal static class DisciplineProvisionsProcessing
                     Credits = null;
                     break;
             }
-
         }
     }
 
@@ -1976,7 +2000,7 @@ internal static class DisciplineProvisionsProcessing
         {
             var row = rowsEnumerator.Current;
             foreach (var x in row.Elements<TableCell>()
-                .WithPosition())
+                         .WithPosition())
             {
                 var mapping = headerState.ColumnMappings.Find(x.Position);
                 if (mapping == Column.Unknown)
@@ -1998,7 +2022,9 @@ internal static class DisciplineProvisionsProcessing
                         {
                             var para = x.Cell.Descendants<Paragraph>()
                                 .Single();
-                            var attendanceResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), AttendanceModeStrings);
+                            var attendanceResult = StringSearchHelper.Search(para,
+                                new PreprocessDoNothing(),
+                                AttendanceModeStrings);
                             StringSearchHelper.DefaultHandleError(attendanceResult);
                             if (attendanceResult.IsNotEmpty)
                             {
@@ -2066,7 +2092,7 @@ internal static class DisciplineProvisionsProcessing
         static void ProcessHeaderRow(ref HeaderState state, TableRow row)
         {
             foreach (var (col, colPosition) in row.Elements<TableCell>()
-                .WithPosition())
+                         .WithPosition())
             {
                 if (Skip())
                 {
@@ -2075,11 +2101,13 @@ internal static class DisciplineProvisionsProcessing
 
                 var strings = CreateStrings();
                 if (col.Descendants<Paragraph>()
-                    .SingleOrDefault() is not { } para)
+                        .SingleOrDefault() is not { } para)
                 {
                     continue;
                 }
-                var sectionResult = StringSearchHelper.Search(para, new PreprocessDoNothing(), strings);
+                var sectionResult = StringSearchHelper.Search(para,
+                    new PreprocessDoNothing(),
+                    strings);
                 if (sectionResult.IsEmpty)
                 {
                     continue;
@@ -2097,7 +2125,7 @@ internal static class DisciplineProvisionsProcessing
 
                 if (state.FoundColumns.IsSet((int) columnType))
                 {
-                    throw new NotSupportedException($"The same column {columnType} appears twice, not allowed.");
+                    throw new RepeatedDisciplineColumnException(columnType.ToString());
                 }
                 state.FoundColumns.Set((int) columnType);
 
@@ -2105,6 +2133,7 @@ internal static class DisciplineProvisionsProcessing
                 {
                     state2.ColumnMappings.ReplaceAt(colPosition, new(columnType, col.GetWidth()));
                 }
+
                 switch (columnType)
                 {
                     case >= Column.Distribution_First
@@ -2114,7 +2143,8 @@ internal static class DisciplineProvisionsProcessing
                             if (itemThereCurrently is not Column.Unknown
                                 and not Column.DistributionHeader)
                             {
-                                throw new NotSupportedException("The distribution columns must be either standalone, or inside an hours column.");
+                                throw new NotSupportedException(
+                                    "The distribution columns must be either standalone, or inside an hours column.");
                             }
                             ReplaceItem(ref state);
                             break;
@@ -2235,6 +2265,7 @@ public readonly struct SectionParseResult
     public readonly ReadOnlyMemory<char> MissingText;
 
     public readonly bool IsEmpty => !IsNotEmpty;
+
     public readonly bool IsUnknown
     {
         get
@@ -2271,12 +2302,14 @@ public readonly struct SectionParseResult
             matchIndex: sectionType,
             isNotEmpty: true);
     }
+
     public static SectionParseResult CreateNotHeading()
     {
         return new(
             matchIndex: -1,
             isNotEmpty: false);
     }
+
     public static SectionParseResult CreateUnknown(
         ReadOnlyMemory<char> unmatchedText = default,
         ReadOnlyMemory<char> missingText = default)
@@ -2287,6 +2320,7 @@ public readonly struct SectionParseResult
             unmatchedText: unmatchedText,
             missingText: missingText);
     }
+
     public static SectionParseResult CreatePartialMatch(
         int sectionType,
         ReadOnlyMemory<char> missingText = default,

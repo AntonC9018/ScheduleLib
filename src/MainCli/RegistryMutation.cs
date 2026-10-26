@@ -47,6 +47,23 @@ internal static class RegistryMutation
 {
     public static async Task<RegistryMutationOutcome> Execute(RegistryMutationRequest request)
     {
+        static bool IsAllowedRefusedDeletion(
+            RegistryMutationRequest request,
+            RegistryActionExecutionException error)
+        {
+            if (!request.AllowRefusedDeletion)
+            {
+                return false;
+            }
+
+            if (error.InnerException is not RegistryDeletionRefusedException)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         try
         {
             await request.Submit(request.Token);
@@ -85,9 +102,7 @@ internal static class RegistryMutation
                 Cancelled = true,
             };
         }
-        catch (RegistryActionExecutionException error) when (request.AllowRefusedDeletion
-                                                             && error.InnerException is
-                                                                 RegistryDeletionRefusedException)
+        catch (RegistryActionExecutionException error) when (IsAllowedRefusedDeletion(request, error))
         {
             return new()
             {

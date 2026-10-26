@@ -6,13 +6,35 @@ namespace ScheduleLib.ParserTests;
 public sealed class AttendanceModeTests
 {
     [Theory]
-    [InlineData(AttendanceMode.Zi, true, false, false)]
-    [InlineData(AttendanceMode.FrecventaRedusa, false, true, false)]
-    [InlineData(AttendanceMode.DualZi, true, false, true)]
-    [InlineData(AttendanceMode.DualFr, false, true, true)]
-    [InlineData(AttendanceMode.Invalid, false, false, false)]
-    [InlineData(AttendanceMode.Count, false, false, false)]
-    public void AttendanceFormAndDualModalityAreIndependent(AttendanceMode mode, bool zi, bool fr, bool dual)
+    [InlineData(AttendanceMode.Zi,
+        true,
+        false,
+        false)]
+    [InlineData(AttendanceMode.FrecventaRedusa,
+        false,
+        true,
+        false)]
+    [InlineData(AttendanceMode.DualZi,
+        true,
+        false,
+        true)]
+    [InlineData(AttendanceMode.DualFr,
+        false,
+        true,
+        true)]
+    [InlineData(AttendanceMode.Invalid,
+        false,
+        false,
+        false)]
+    [InlineData(AttendanceMode.Count,
+        false,
+        false,
+        false)]
+    public void AttendanceFormAndDualModalityAreIndependent(
+        AttendanceMode mode,
+        bool zi,
+        bool fr,
+        bool dual)
     {
         Assert.Equal(expected: zi, actual: mode.IsZi());
         Assert.Equal(expected: fr, actual: mode.IsFr());
@@ -53,7 +75,7 @@ public sealed class AttendanceModeTests
         var values = new OneForEachAttendanceMode<int>
         {
             Zi = 10,
-            FrecventaRedusa = 20
+            FrecventaRedusa = 20,
         };
         Assert.Equal(expected: 0, actual: values[AttendanceMode.DualZi]);
         Assert.Equal(expected: 0, actual: values[AttendanceMode.DualFr]);
@@ -66,13 +88,28 @@ public sealed class AttendanceModeTests
     }
 
     [Theory]
-    [InlineData("IA2601", "DU-IA2601", true)]
-    [InlineData("DU-IA2601", "IA2601", true)]
-    [InlineData("IAFR2601", "DU-IAFR2601", true)]
-    [InlineData("DU-IAFR2601", "IAFR2601", true)]
-    [InlineData("DU-IA2601", "DU-IAFR2601", false)]
-    [InlineData("IA2601", "DU-IAFR2601", false)]
-    public void SharedLessonsRequireTheSameAttendanceForm(string first, string second, bool valid)
+    [InlineData("IA2601",
+        "DU-IA2601",
+        true)]
+    [InlineData("DU-IA2601",
+        "IA2601",
+        true)]
+    [InlineData("IAFR2601",
+        "DU-IAFR2601",
+        true)]
+    [InlineData("DU-IAFR2601",
+        "IAFR2601",
+        true)]
+    [InlineData("DU-IA2601",
+        "DU-IAFR2601",
+        false)]
+    [InlineData("IA2601",
+        "DU-IAFR2601",
+        false)]
+    public void SharedLessonsRequireTheSameAttendanceForm(
+        string first,
+        string second,
+        bool valid)
     {
         var builder = new ScheduleBuilder
         {
@@ -80,11 +117,13 @@ public sealed class AttendanceModeTests
         };
         builder.EnableLookupModule();
         var lesson = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder = lesson;
         global::ScheduleLib.CourseId course = builder.Course("Course");
         lessonBuilder.Course(course);
         lesson.Groups([builder.Group(first), builder.Group(second)]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
+        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            lessonBuilder2 = lesson;
         global::TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
@@ -94,7 +133,7 @@ public sealed class AttendanceModeTests
         }
         else
         {
-            Assert.Throws<InvalidLessonGroupsException>(() => builder.Build());
+            Assert.Throws<InvalidLessonGroupsException.MixedAttendanceModesException>(() => builder.Build());
         }
     }
 }

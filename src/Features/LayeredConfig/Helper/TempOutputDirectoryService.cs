@@ -8,6 +8,7 @@ public readonly record struct RelativeFilePath(string Path);
 public readonly record struct FileInDirectory
 {
     public OutputDirectory Directory { get; }
+
     // NOTE: not necessarily normalized
     public string Path { get; }
 
@@ -17,10 +18,17 @@ public readonly record struct FileInDirectory
         Directory = directory;
     }
 
-    public Stream Open(FileMode mode, FileAccess access, FileShare? share = null)
+    public Stream Open(
+        FileMode mode,
+        FileAccess access,
+        FileShare? share = null)
     {
-        return Directory.OpenFile(Path, mode, access, share);
+        return Directory.OpenFile(Path,
+            mode,
+            access,
+            share);
     }
+
     public bool TryOpenInExplorer()
     {
         return Directory.TryOpenFileInExplorer(Path);
@@ -29,7 +37,6 @@ public readonly record struct FileInDirectory
     // NOTE: not necessarily normalized
     public string RelativePath => Path;
 }
-
 
 public sealed class OutputDirectory
 {
@@ -99,12 +106,20 @@ public sealed class OutputDirectory
         Directory.CreateDirectory(_directory);
     }
 
-    public Stream OpenFile(string path, FileMode mode, FileAccess access, FileShare? share = null)
+    public Stream OpenFile(
+        string path,
+        FileMode mode,
+        FileAccess access,
+        FileShare? share = null)
     {
         var fullPath = NormalizePath(path);
-        var ret = new FileStream(fullPath, mode, access, share ?? FileShare.Read);
+        var ret = new FileStream(fullPath,
+            mode,
+            access,
+            share ?? FileShare.Read);
         return ret;
     }
+
     public FileInDirectory File(string path)
     {
         return new FileInDirectory(this, path);
@@ -122,8 +137,7 @@ public sealed class OutputDirectory
             var normalized = Path.GetFullPath(path);
             if (!normalized.StartsWith(_directory))
             {
-                throw new InvalidOperationException(
-                    $"Full path '{path}' not in the expected directory '{_directory}'!");
+                throw new FullPathOutsideTempOutputDirectoryException(path: path, expectedDirectory: _directory);
             }
             return path;
         }
@@ -148,12 +162,15 @@ public sealed class OutputDirectory
     public async Task<string> Zip()
     {
         var path = Path.ChangeExtension(path: _directory, @extension: ".zip");
-        var outputFile = new FileStream(path, FileMode.Create, FileAccess.Write);
+        var outputFile = new FileStream(path,
+            FileMode.Create,
+            FileAccess.Write);
         await using var zip = new ZipArchive(outputFile, ZipArchiveMode.Create);
-        foreach (var file in Files("*", new()
-        {
-            RecurseSubdirectories = false,
-        }))
+        foreach (var file in Files("*",
+                     new()
+                     {
+                         RecurseSubdirectories = false,
+                     }))
         {
             var relPath = file.RelativePath;
             relPath = relPath.Replace('\\', '/');

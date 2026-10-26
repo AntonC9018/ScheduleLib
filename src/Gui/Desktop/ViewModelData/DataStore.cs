@@ -83,6 +83,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         Queueing,
         EmptyingQueue,
     }
+
     private QueueingState _isQueueing;
 
     private readonly record struct Key(CallerIdentity CallerId, Type Type, string? PropertyName = null);
@@ -134,9 +135,9 @@ public sealed class TreeEventDispatcher : IDispatcher
     public void EndQueueing()
     {
         var prevQueueing = Interlocked.CompareExchange(
-                location1: ref _isQueueing,
-                value: QueueingState.EmptyingQueue,
-                comparand: QueueingState.Queueing);
+            location1: ref _isQueueing,
+            value: QueueingState.EmptyingQueue,
+            comparand: QueueingState.Queueing);
         if (prevQueueing != QueueingState.Queueing)
         {
             throw new InvalidOperationException("Cannot end queueing while not queueing");
@@ -240,7 +241,8 @@ public sealed class TreeEventDispatcher : IDispatcher
             });
 
         bool conditionResult2;
-        global::Desktop.ViewModelData.TreeEventDispatcher.QueueingState conditionValue2 = Volatile.Read(ref _isQueueing);
+        global::Desktop.ViewModelData.TreeEventDispatcher.QueueingState
+            conditionValue2 = Volatile.Read(ref _isQueueing);
         conditionResult2 = conditionValue2 == QueueingState.NotQueueing;
         if (conditionResult2)
         {
@@ -289,8 +291,8 @@ public static class VolatileExtensions
                     }
                 default:
                     {
-                        throw new NotSupportedException(
-                            $"Enum underlying type size {Unsafe.SizeOf<T>()} is not supported.");
+                        int size = Unsafe.SizeOf<T>();
+                        throw new UnsupportedEnumUnderlyingTypeSizeException(size);
                     }
             }
         }

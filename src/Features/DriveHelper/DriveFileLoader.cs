@@ -78,7 +78,9 @@ public sealed class DriveFileLoader : IDisposable
         }
         else
         {
-            throw new InvalidOperationException($"The file is not in the expected format '{uploadedFileTypeString}' ({fileType}). The actual mime type is '{meta.MimeType}'");
+            throw new UnexpectedDriveFileFormatException(uploadedFileTypeString: uploadedFileTypeString,
+                fileType,
+                actualMimeType: meta.MimeType);
         }
     }
 
@@ -90,8 +92,7 @@ public sealed class DriveFileLoader : IDisposable
 
 public sealed class DriveFileLoaderOptions
 {
-    [MinLength(10)]
-    public required string GoogleApiKey { get; set; }
+    [MinLength(10)] public required string GoogleApiKey { get; set; }
 }
 
 [AutoConstructor]
@@ -102,8 +103,7 @@ public sealed partial class DefaultDriveFileLoaderConfigureOptions : IConfigureO
     public void Configure(DriveFileLoaderOptions options)
     {
         options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey")
-            .Get<string>()
+                .Get<string>()
             ?? throw new InvalidOperationException("Expected to find Google:ApiKey in the configuration");
     }
 }
-

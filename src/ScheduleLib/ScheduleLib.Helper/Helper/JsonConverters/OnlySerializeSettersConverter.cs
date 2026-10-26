@@ -16,33 +16,43 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             .ToArray();
 
     private record struct Key(JsonNamingPolicy? Policy);
+
     // Cache property name -> PropertyInfo mapping per naming policy
     private static readonly ConcurrentDictionary<Key, Dictionary<string, PropertyInfo>> _propertyCache = new();
 
     private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
-        global::System.Collections.Concurrent.ConcurrentDictionary<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key, global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>> concurrentDictionary = _propertyCache;
+        global::System.Collections.Concurrent.ConcurrentDictionary<
+                global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key,
+                global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>>
+            concurrentDictionary = _propertyCache;
         global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key key = new(namingPolicy);
-        global::System.Func<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key, global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>> valueFactory = np =>
+        global::System.Func<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key,
+                global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>>
+            valueFactory = np =>
+            {
+                var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+                foreach (var prop in _writableProperties)
                 {
-                    var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-                    foreach (var prop in _writableProperties)
-                    {
-                        string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
-                        dict[name] = prop;
-                    }
+                    string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
+                    dict[name] = prop;
+                }
 
-                    return dict;
-                };
-        global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo> orAdd = concurrentDictionary.GetOrAdd(key, valueFactory);
+                return dict;
+            };
+        global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo> orAdd =
+            concurrentDictionary.GetOrAdd(key, valueFactory);
         return orAdd;
     }
 
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override T Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
-            throw new JsonException($"Expected StartObject token, got {reader.TokenType}");
+            throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.StartObject);
         }
 
         object obj = new T();
@@ -57,7 +67,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
-                throw new JsonException($"Unexpected token {reader.TokenType}");
+                throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.PropertyName);
             }
 
             string propertyName = reader.GetString()!;
@@ -66,7 +76,9 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             // TODO: remove reflection
             if (props.TryGetValue(propertyName, out var propInfo))
             {
-                object? value = JsonSerializer.Deserialize(ref reader, propInfo.PropertyType, options);
+                object? value = JsonSerializer.Deserialize(ref reader,
+                    propInfo.PropertyType,
+                    options);
                 propInfo.SetValue(obj: obj, value: value);
             }
             else
@@ -78,18 +90,35 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         throw new JsonException("Incomplete JSON object");
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        T value,
+        JsonSerializerOptions options)
     {
         writer.WriteStartObject();
 
         var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => { if (!(p.CanRead)) { return false; } if (!(p.CanWrite)) { return false; } return true; });
+            .Where(p =>
+            {
+                if (!(p.CanRead))
+                {
+                    return false;
+                }
+                if (!(p.CanWrite))
+                {
+                    return false;
+                }
+                return true;
+            });
 
         foreach (var prop in props)
         {
             var propValue = prop.GetValue(value);
             writer.WritePropertyName(options.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name);
-            JsonSerializer.Serialize(writer, propValue, prop.PropertyType, options);
+            JsonSerializer.Serialize(writer,
+                propValue,
+                prop.PropertyType,
+                options);
         }
 
         writer.WriteEndObject();

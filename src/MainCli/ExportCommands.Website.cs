@@ -133,7 +133,7 @@ public partial class ExportCommands
                 bool tryAdd = dictionary.TryAdd(key, value);
                 if (!tryAdd)
                 {
-                    throw new IOException($"Duplicate website artifact name: {slug}.json");
+                    throw new DuplicateWebsiteArtifactNameException(artifactName: slug, suffix: ".json");
                 }
             }
             foreach (var (name, bytes) in files.OrderBy(x => x.Key, StringComparer.Ordinal))
@@ -222,9 +222,10 @@ public partial class ExportCommands
                 RenderHuman = status =>
                 {
                     global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    string line =
+                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }
@@ -302,6 +303,7 @@ public partial class ExportCommands
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
                     var stagedName = Path.GetFileName(file.Path);
+
                     string CalculatePath()
                     {
                         string path = staging.BuildPath(file.Path);
@@ -309,10 +311,10 @@ public partial class ExportCommands
                     }
 
                     if (!files.TryAdd(
-                                                stagedName,
-                                                await File.ReadAllBytesAsync(CalculatePath(), cancellation.Token)))
+                            stagedName,
+                            await File.ReadAllBytesAsync(CalculatePath(), cancellation.Token)))
                     {
-                        throw new IOException($"Duplicate website artifact name: {stagedName}");
+                        throw new DuplicateWebsiteArtifactNameException(stagedName);
                     }
                 }
             }
@@ -411,9 +413,10 @@ public partial class ExportCommands
                 RenderHuman = status =>
                 {
                     global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    string line =
+                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }
@@ -426,32 +429,32 @@ public partial class ExportCommands
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (name != Path.GetFileName(name))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (name is "." or "..")
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (name.Contains('\\'))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (name.Contains('/'))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (name.Contains(':'))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (string.Equals(
@@ -459,19 +462,19 @@ public partial class ExportCommands
                     "schedulelib-manifest.json",
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
             if (string.Equals(
                     name,
                     ".schedulelib-output.lock",
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (!seen.Add(name))
             {
-                throw new IOException($"Duplicate website artifact name: {name}");
+                throw new DuplicateWebsiteArtifactNameException(name);
             }
         }
     }
@@ -540,8 +543,9 @@ public partial class ExportCommands
             var extra = actual.Except(expected, StringComparer.Ordinal)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            throw new InvalidDataException(
-                $"ZIP content mismatch in {zipPath}: missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+            throw WebsiteZipContentMismatch.CreateException(zipPath,
+                missing: missing,
+                extra: extra);
         }
     }
 
@@ -620,6 +624,47 @@ public partial class ExportCommands
 
         public void Dispose()
         {
+        }
+    }
+
+    internal sealed class DuplicateWebsiteArtifactNameException : IOException
+    {
+        internal DuplicateWebsiteArtifactNameException(string artifactName, string suffix = "")
+            : base($"Duplicate website artifact name: {artifactName}{suffix}")
+            => ArtifactName = string.Concat(str0: artifactName, str1: suffix);
+
+        public string ArtifactName { get; }
+    }
+
+    internal sealed class InvalidWebsiteArtifactNameException : IOException
+    {
+        internal InvalidWebsiteArtifactNameException(string? artifactName)
+            : base($"Invalid website artifact name: {artifactName}")
+            => ArtifactName = artifactName;
+
+        public string? ArtifactName { get; }
+    }
+
+    internal sealed record WebsiteZipContentMismatch(
+        string ZipPath,
+        IReadOnlyList<string> Missing,
+        IReadOnlyList<string> Extra)
+    {
+        internal static InvalidDataException CreateException(
+            string zipPath,
+            string[] missing,
+            string[] extra)
+        {
+            // InvalidDataException is sealed; preserve callers' existing catch contract.
+#pragma warning disable CR1600 // Typed failure context is attached below instead of subclassing a sealed framework type.
+            var error = new InvalidDataException(
+                $"ZIP content mismatch in {zipPath}: missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+#pragma warning restore CR1600
+            error.Data[typeof(WebsiteZipContentMismatch)] = new WebsiteZipContentMismatch(
+                zipPath,
+                Missing: Array.AsReadOnly((string[]) missing.Clone()),
+                Extra: Array.AsReadOnly((string[]) extra.Clone()));
+            return error;
         }
     }
 }

@@ -11,11 +11,13 @@ public interface IRegistrySyncNavigator
     Task<IDocument> GetHtml(Uri uri);
     Task SubmitLesson(IDocument document);
     Task SubmitDelete(IDocument document);
+
     Task SubmitLesson(IDocument document, Action onSubmissionStarted)
     {
         onSubmissionStarted();
         return SubmitLesson(document);
     }
+
     Task SubmitDelete(IDocument document, Action onSubmissionStarted)
     {
         onSubmissionStarted();
@@ -23,8 +25,16 @@ public interface IRegistrySyncNavigator
     }
 }
 
-public sealed class RegistrySyncAction(string kind, string destination, string course, string groups,
-    DateTime date, string? topic, int? attendanceCount, bool enabled, string? omission,
+public sealed class RegistrySyncAction(
+    string kind,
+    string destination,
+    string course,
+    string groups,
+    DateTime date,
+    string? topic,
+    int? attendanceCount,
+    bool enabled,
+    string? omission,
     Func<CancellationToken, Task> execute)
 {
     public string Kind { get; } = kind;
@@ -46,14 +56,16 @@ public sealed class RegistryActionExecutionException(bool submissionStarted, Exc
     public bool SubmissionStarted { get; } = submissionStarted;
 }
 
-public sealed class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
+public class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
 
 /// <summary>A fresh registry read confirms that the requested deletion was not applied.</summary>
 public sealed class RegistryDeletionRefusedException()
     : InvalidOperationException("Registry refused deletion; the lesson remains unchanged.");
 
 public sealed class RegistryActionCancelledException(bool submissionStarted, OperationCanceledException inner)
-    : OperationCanceledException("Registry action cancelled.", inner, inner.CancellationToken)
+    : OperationCanceledException("Registry action cancelled.",
+        inner,
+        inner.CancellationToken)
 {
     public bool SubmissionStarted { get; } = submissionStarted;
 }
