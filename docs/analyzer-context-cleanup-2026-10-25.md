@@ -4,7 +4,8 @@ The follow-up to the [first review](analyzer-review-2026-10-25.md) implements
 its exception-context migration and the approved CR0200–CR0203 control-flow
 rewrites. [Remaining examples](analyzer-manual-examples-2026-10-25.md) group tuple
 shapes and present decision functions, fluent layout, owned contracts and the
-single repeated timestamp-formatting case. Those examples are review proposals.
+single repeated timestamp-formatting case. Those review decisions are implemented and validated in the
+[readability cleanup](analyzer-readability-cleanup-2026-10-27.md).
 Command inheritance (CR1400) is unchanged.
 
 ## Exception behavior

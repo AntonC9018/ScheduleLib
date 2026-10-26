@@ -1,0 +1,87 @@
+# Reviewed analyzer and ScheduleLib cleanup
+
+The approved source snapshot is ScheduleLib `b1c9aed853774e41048fd75df971ec0a6ffd7309`.
+It implements the [review decisions](analyzer-manual-examples-2026-10-25.md):
+94 tuple-data sites now use meaningful record structs, Google token operations
+share their client/account/scope context, and credential resolution has its own
+request. StringSearch uses explicit inputs and returns remaining memory;
+ShouldSkipMerge explicitly receives its `in LessonGroups` input. The parser's
+modifier record retains mutable fields because its lexer is advanced by ref.
+
+The old CR0200 mixed-condition lowering produced mutable Boolean trees;
+CR0303 then extracted those trees while retaining nested branches. The updated
+fixes produce early returns, preserving lazy evaluation and result values.
+A lone return ternary now qualifies for CR0001; CR0205 reports redundant else
+after return/throw. Built-in negation and equality simplify safely. Reviewed
+source also folds redundant negated patterns. All unnecessary `global::`
+qualifiers were removed through semantic simplification; zero remain in the
+538-file source selection.
+
+Single-member object initializers expand. Chains of at most two method calls
+may remain on one line when the complete line is at most 90 characters.
+Wrapped arguments begin below the enclosing opening parenthesis. Reviewed
+assertions have explicit meaningful messages. The separate safe-by-default
+public API check migration is tracked in [#249](https://github.com/AntonC9018/ScheduleLib/issues/249).
+
+## Candidate and validation
+
+The candidate is CodingRules `f2902d4f671b4a30b2c8bd84f6b6212b86f3d3bd`.
+Its package SHA-256 is
+`79972b6df1af48368f3e6e9cff36c01e5dbb858a82c8ba5d59b654a78be7edd6`.
+All **1,470 analyzer/code-fix/package tests** and **11 consumer gates** pass.
+Regressions cover flat conjunctions, all 16 mixed-condition input combinations
+with their lazy call traces, safe negation, singleton initializers and the
+90-character chain boundary. A runtime regression caught an overloaded-negation
+rewrite changing False to True; the corrected rewrite retains that operator.
+
+AWS adoption verified the candidate's 26 analyzer/fix/configuration/guidance
+assets throughout the 24-project restored graph. Both Release rebuilds pass
+with zero errors. Final formatting checks report zero changes across 502
+solution files and 36 CLI test files.
+
+The full solution run has 715 cases: 697 passed, seven skipped and the same
+11 baseline failures. The CLI run has 770 cases: 767 passed and the same three
+baseline failures. Failure names match the recorded baseline exactly. With the
+known failures tracked by [#248](https://github.com/AntonC9018/ScheduleLib/issues/248)
+excluded, the solution has 697 passed/seven skipped and the CLI has 767 passed;
+both filtered runs have zero failures.
+
+The tested archive was retrieved, checked against the original local input
+hashes to avoid overwriting concurrent edits, and all 538 source files were
+byte-compared after copying. The source archive SHA-256 is
+`c7ffddda66afcc85a78eaf6083a550e8ceb7ee47103834af2f5c36b490717be2`.
+Detailed logs, TRX results, timings and the inventory are retained in CodingRules
+under `artifacts/schedulelib-readability-f2902d4/`.
+
+The local candidate feed and exported guidance are configured for this archive.
+Local restore remains unverified because of the previously recorded Nix CoreCLR
+runtime mismatch; the successful restore/build/test evidence is from AWS.
+The package is unpublished and all new repository commits remain local.
+
+## Remaining findings
+
+There are **142 unique source findings**, down from 180 in the previous source
+snapshot. The 55 dependency-advisory rows are unchanged. No diagnostic family
+was broadly disabled. The approved tuple, owned Google contract and repeated
+calendar timestamp findings are clear, as are CR0200–CR0203, CR0205, CR0500 and
+CR1600. New record constructions expose computation-step findings, so removing
+94 tuple findings does not reduce the total by 94.
+
+| Rule | Findings | Remaining work |
+| --- | ---: | --- |
+| CR0001 | 5 | Five return decisions without an applied automatic fix. |
+| CR0006 | 2 | Two nested returns in TeacherBuilder. |
+| CR0300 | 90 | Argument computations, including new record construction. |
+| CR0301 | 5 | Conditional values needing named variables. |
+| CR0302 | 1 | Computation-step extraction. |
+| CR0303 | 19 | Decision functions requiring manual capture/binding review. |
+| CR0400 | 3 | Projection staging. |
+| CR0401 | 1 | Local stage implementation. |
+| CR0801 | 1 | Remaining CliHost JsonSerializerOptions initializer. |
+| CR0805 | 7 | Seven chain sites inside interpolated strings. |
+| CR1400 | 8 | Deferred inheritance design. |
+
+These remaining findings are visible in builds. Their correction is separate
+from the reviewed migration; no inheritance redesign or controlled-check
+implementation was included. The tuple signature changes intentionally require
+external tuple-literal callers to use the corresponding named records.
