@@ -40,8 +40,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             token);
         var initializer = helper.CreateServiceInitializer(credential);
         initializer.DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None;
-        global::Google.Apis.Calendar.v3.CalendarService service = new CalendarService(initializer);
-        global::ScheduleLib.Cli.GoogleCalendarSyncProvider googleCalendarSyncProvider = new GoogleCalendarSyncProvider(service);
+        var service = new CalendarService(initializer);
+        var googleCalendarSyncProvider = new GoogleCalendarSyncProvider(service);
         return googleCalendarSyncProvider;
     }
 
@@ -79,7 +79,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var request = _service.Events.List(calendarId);
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            result.AddRange((response.Items ?? []).Select(x => new CalendarEventIdentity(Id: x.Id, Summary: x.Summary)));
+            result.AddRange(
+                (response.Items ?? []).Select(x => new CalendarEventIdentity(Id: x.Id, Summary: x.Summary)));
             page = response.NextPageToken;
         } while (page is not null);
         return result;

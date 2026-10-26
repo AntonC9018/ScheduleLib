@@ -4,8 +4,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public ConfigCommands Config { get; set; } = new();
+    [Subcommand] public ConfigCommands Config { get; set; } = new();
 }
 
 public sealed class ConfigKeyArguments : IArgumentModel
@@ -107,7 +106,7 @@ public sealed partial class ConfigCommands
         Func<ResolvedSettings, object> inspect,
         CancellationToken cancellationToken)
     {
-        var command = (string) $"config {verb}";
+        var command = $"config {verb}";
         using var context = new CliCommandContext(
             command,
             outputArgs,
@@ -124,13 +123,17 @@ public sealed partial class ConfigCommands
                 settings,
                 cancellationToken: cancellation.Token,
                 overrides: overrides);
-            global::ScheduleLib.Cli.CliCommandContext context2 = context;
+            var context2 = context;
             int exit = CliExit.Success;
             string[] errors = [];
             object data = inspect(resolved);
             string verb2 = verb;
             int finish = CliConfigExecution.Finish(
-            context2, exit, errors, data, verb2);
+                context2,
+                exit,
+                errors,
+                data,
+                verb2);
             return finish;
         }
         catch (Exception error)

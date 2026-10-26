@@ -27,9 +27,9 @@ public sealed class PdfLessonImportTests
             .ToArray();
         var calls = 0;
 
-        global::ScheduleLib.Parsing.ScheduleImportContext context2 = context;
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells = [cell];
-        global::ScheduleLib.Import.Pdf.ImportedLessonHandler? addLesson;
+        var context2 = context;
+        IEnumerable<PdfScheduleCell> cells = [cell];
+        ImportedLessonHandler? addLesson;
         if (useCallback)
         {
             addLesson = Add;
@@ -60,28 +60,28 @@ public sealed class PdfLessonImportTests
         Assert.Equal(expected: DayOfWeek.Tuesday, actual: lesson.Date.DayOfWeek);
         Assert.Equal(expected: 4, actual: lesson.Date.TimeSlot!.Value.Index);
         Assert.Equal(expected: Parity.OddWeek, actual: lesson.Date.Parity);
-        global::ScheduleLib.Alternative expected2 = new(alternative);
-        global::ScheduleLib.Alternative actual2 = lesson.Base.Group.Alternative;
+        Alternative expected2 = new(alternative);
+        var actual2 = lesson.Base.Group.Alternative;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: context.CurrentPeriodId, actual: lesson.Base.General.Period);
-        global::ScheduleLib.CourseId expected3 = context.GetOrAddCourse("HTML".AsMemory());
-        global::ScheduleLib.CourseId? expected4 = expected3;
-        global::ScheduleLib.CourseId? actual3 = lesson.Base.General.Course;
+        var expected3 = context.GetOrAddCourse("HTML".AsMemory());
+        CourseId? expected4 = expected3;
+        var actual3 = lesson.Base.General.Course;
         Assert.Equal(expected: expected4, actual: actual3);
 
         void Add(ImportedLessonInput input)
         {
             calls++;
             Assert.Equal(expected: "HTML", actual: input.Lesson.LessonName.ToString());
-            global::System.TimeOnly expected2 = new TimeOnly(hour: 15, minute: 0);
-            global::System.TimeOnly? expected3 = expected2;
-            global::System.TimeOnly? actual2 = input.Lesson.StartTime;
+            var expected2 = new TimeOnly(hour: 15, minute: 0);
+            TimeOnly? expected3 = expected2;
+            var actual2 = input.Lesson.StartTime;
             Assert.Equal(expected: expected3, actual: actual2);
             Assert.Equal(expected: DayOfWeek.Tuesday, actual: input.Day);
             Assert.Equal(expected: TimeSlot.First, actual: input.TimeSlot);
             Assert.Equal(expected: groups, actual: input.Groups);
-            global::ScheduleLib.Alternative expected4 = new(alternative);
-            global::ScheduleLib.Alternative actual3 = input.Alternative;
+            Alternative expected4 = new(alternative);
+            var actual3 = input.Alternative;
             Assert.Equal(expected: expected4, actual: actual3);
             context.AddOrMergeLesson(input);
         }
@@ -125,7 +125,7 @@ public sealed class PdfLessonImportTests
             Add));
 
         Assert.Equal(expected: 2, actual: calls);
-        global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
+        var objectValue = Assert.Single(error.InnerExceptions);
         object objectValue2 = objectValue;
         var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
         originalGroups[0] = "changed after failure";
@@ -172,7 +172,7 @@ public sealed class PdfLessonImportTests
 
         var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(context, [cell]));
 
-        global::System.Exception objectValue = Assert.Single(error.InnerExceptions);
+        var objectValue = Assert.Single(error.InnerExceptions);
         object objectValue2 = objectValue;
         var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
         Assert.IsType<InvalidScheduleDocumentException.UnknownTimeSlotException>(cellError.InnerException);
@@ -198,7 +198,10 @@ public sealed class PdfLessonImportTests
             ParserFactory = new(new()),
             SpecializationRegistry = Config.SpecializationRegistry,
         });
-        context.Schedule.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        context.Schedule.GroupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         context.SetPeriod(new()
         {
             StartDate = new(year: 2026,

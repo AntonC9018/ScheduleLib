@@ -29,12 +29,14 @@ public readonly struct ParsedStringTable(List<string> strings)
     {
         if (cell.DataType is not { } dt)
         {
-            if (cell.CellValue is { } cv)
+            if (!(cell.CellValue is { } cv))
             {
-                return cv.InnerText;
+                return null;
             }
-            return null;
+
+            return cv.InnerText;
         }
+
         bool CheckCondition()
         {
             if (dt == CellValues.Boolean)

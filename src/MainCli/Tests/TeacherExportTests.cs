@@ -23,6 +23,7 @@ public sealed class TeacherExportTests
     public async Task DeadlinesSelectTeacherAndApplyProfileSettingsToWorkbook()
     {
         using var files = new Fixture();
+
         string CalculatePath()
         {
             string path2 = Path.Combine(files.Path, "schedulelib.json");
@@ -30,17 +31,20 @@ public sealed class TeacherExportTests
         }
 
         await File.WriteAllTextAsync(
-                    path: CalculatePath(),
-                    contents: """
-            {"schemaVersion":1,"defaults":{"DeadlinesExcelConfig":{"maxTaskRows":9,"columnWidth":8}},
-             "profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":3,"columnWidth":12,"lessonDelayLimit":5},
-             "LabTasksDatabaseConfig":{"sources":[]}}}}
-            """);
+            path: CalculatePath(),
+            contents: """
+                      {"schemaVersion":1,"defaults":{"DeadlinesExcelConfig":{"maxTaskRows":9,"columnWidth":8}},
+                       "profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":3,"columnWidth":12,"lessonDelayLimit":5},
+                       "LabTasksDatabaseConfig":{"sources":[]}}}}
+                      """);
         var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
         var result = await Capture(() => files.Export.LabDeadlines(
             files.Source,
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.True(result.Exit == 0, result.Stderr);
         Assert.Contains(expectedSubstring: "every period", actualString: result.Stderr);
@@ -50,21 +54,21 @@ public sealed class TeacherExportTests
         Assert.Contains(expectedSubstring: "MIA2601", actualString: sheet.Name);
         Assert.DoesNotContain(expectedSubstring: "IASD2601", actualString: sheet.Name);
         string expected2 = "01.09";
-        global::ClosedXML.Excel.IXLCell cell = sheet.Cell(row: 1, column: 2);
+        var cell = sheet.Cell(row: 1, column: 2);
         string actual2 = cell.GetString();
         Assert.Equal(expected: expected2, actual: actual2);
         double expected3 = 12;
-        global::ClosedXML.Excel.IXLColumn column2 = sheet.Column(2);
+        var column2 = sheet.Column(2);
         double actual3 = column2.Width;
         Assert.Equal(expected: expected3, actual: actual3);
-        global::ClosedXML.Excel.IXLCell cell2 = sheet.Cell(row: 4, column: 2);
+        var cell2 = sheet.Cell(row: 4, column: 2);
         bool condition = cell2.IsEmpty();
         Assert.False(condition);
-        global::ClosedXML.Excel.IXLCell cell3 = sheet.Cell(row: 5, column: 2);
+        var cell3 = sheet.Cell(row: 5, column: 2);
         bool condition2 = cell3.IsEmpty();
         Assert.True(condition2);
         string expectedSubstring2 = "-5";
-        global::ClosedXML.Excel.IXLCell cell4 = sheet.Cell(row: 2, column: 2);
+        var cell4 = sheet.Cell(row: 2, column: 2);
         string actualString2 = cell4.FormulaA1;
         Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
         Assert.Equal(expected: 6, actual: sheet.ConditionalFormats.Count());
@@ -83,7 +87,10 @@ public sealed class TeacherExportTests
         files.ConfigureCommission();
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.True(result.Exit == 0, result.Stderr);
         Assert.Equal(expected: 1, actual: files.Theses.Reads);
@@ -91,39 +98,40 @@ public sealed class TeacherExportTests
         var sheet = Assert.Single(book.Worksheets);
         Assert.Equal(expected: "Comisia 7", actual: sheet.Name);
         string expected2 = "Nume, prenume student";
-        global::ClosedXML.Excel.IXLCell cell = sheet.Cell(row: 1, column: 2);
+        var cell = sheet.Cell(row: 1, column: 2);
         string actual2 = cell.GetString();
         Assert.Equal(expected: expected2, actual: actual2);
         string expected3 = "Popescu Ion";
-        global::ClosedXML.Excel.IXLCell cell2 = sheet.Cell(row: 2, column: 2);
+        var cell2 = sheet.Cell(row: 2, column: 2);
         string actual3 = cell2.GetString();
         Assert.Equal(expected: expected3, actual: actual3);
         string expected4 = "I2301";
-        global::ClosedXML.Excel.IXLCell cell3 = sheet.Cell(row: 2, column: 3);
+        var cell3 = sheet.Cell(row: 2, column: 3);
         string actual4 = cell3.GetString();
         Assert.Equal(expected: expected4, actual: actual4);
         string expected5 = "Curmanschii Anton";
-        global::ClosedXML.Excel.IXLCell cell4 = sheet.Cell(row: 2, column: 4);
+        var cell4 = sheet.Cell(row: 2, column: 4);
         string actual5 = cell4.GetString();
         Assert.Equal(expected: expected5, actual: actual5);
         string expected6 = "Laborator AVR";
-        global::ClosedXML.Excel.IXLCell cell5 = sheet.Cell(row: 2, column: 5);
+        var cell5 = sheet.Cell(row: 2, column: 5);
         string actual6 = cell5.GetString();
         Assert.Equal(expected: expected6, actual: actual6);
         string expected7 = "da/da";
-        global::ClosedXML.Excel.IXLCell cell6 = sheet.Cell(row: 2, column: 6);
+        var cell6 = sheet.Cell(row: 2, column: 6);
         string actual7 = cell6.GetString();
         Assert.Equal(expected: expected7, actual: actual7);
         string expected8 = "Tema sintetica";
-        global::ClosedXML.Excel.IXLCell cell7 = sheet.Cell(row: 2, column: 7);
+        var cell7 = sheet.Cell(row: 2, column: 7);
         string actual8 = cell7.GetString();
         Assert.Equal(expected: expected8, actual: actual8);
         int expected9 = 10;
-        global::ClosedXML.Excel.IXLCell cell8 = sheet.Cell(row: 2, column: 8);
+        var cell8 = sheet.Cell(row: 2, column: 8);
         int actual9 = cell8.GetValue<int>();
         Assert.Equal(expected: expected9, actual: actual9);
-        Assert.Equal(expected: 2, actual: sheet.LastRowUsed()!
-            .RowNumber());
+        Assert.Equal(expected: 2,
+            actual: sheet.LastRowUsed()!
+                .RowNumber());
         Assert.Contains(expectedSubstring: "not part of any commission", actualString: result.Stderr);
         Assert.Single(result.Json.GetProperty("warnings")
             .EnumerateArray());
@@ -147,22 +155,21 @@ public sealed class TeacherExportTests
 
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Contains(expectedSubstring: "commission", actualString: result.Stderr);
         Assert.Empty(result.Json.GetProperty("outputs")
             .EnumerateArray());
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
+
         bool CalculateCondition()
         {
             bool condition = Directory.Exists(files.Output.Directory);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -183,19 +190,18 @@ public sealed class TeacherExportTests
         ];
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
+
         bool CalculateCondition()
         {
             bool condition = Directory.Exists(files.Output.Directory);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -232,7 +238,13 @@ public sealed class TeacherExportTests
                 {
                     Number = 7,
                     Room = "102",
-                    Members = [new() { Name = "Ionescu Maria" }],
+                    Members =
+                    [
+                        new()
+                        {
+                            Name = "Ionescu Maria",
+                        },
+                    ],
                 },
             ],
             "member-within" or "remapped-within" =>
@@ -241,7 +253,13 @@ public sealed class TeacherExportTests
                 {
                     Number = 7,
                     Room = "101",
-                    Members = [.. commission.Members, new() { Name = repeatedName }],
+                    Members =
+                    [
+                        .. commission.Members, new()
+                        {
+                            Name = repeatedName,
+                        },
+                    ],
                 },
             ],
             "empty-name" or "invalid-name" =>
@@ -250,7 +268,13 @@ public sealed class TeacherExportTests
                 {
                     Number = 7,
                     Room = "101",
-                    Members = [.. commission.Members, new() { Name = duplicate == "empty-name" ? "" : "Invalid" }],
+                    Members =
+                    [
+                        .. commission.Members, new()
+                        {
+                            Name = duplicate == "empty-name" ? "" : "Invalid",
+                        },
+                    ],
                 },
             ],
             _ =>
@@ -259,7 +283,13 @@ public sealed class TeacherExportTests
                 {
                     Number = 8,
                     Room = "102",
-                    Members = [new() { Name = repeatedName }],
+                    Members =
+                    [
+                        new()
+                        {
+                            Name = repeatedName,
+                        },
+                    ],
                 },
             ],
         };
@@ -278,18 +308,24 @@ public sealed class TeacherExportTests
 
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
 
         Assert.Equal(expected: 3, actual: result.Exit);
-        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: "export pre-defense", actual: result.Json.GetProperty("command")
-            .GetString());
+        Assert.Equal(expected: 3,
+            actual: result.Json.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Equal(expected: "failed",
+            actual: result.Json.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: "export pre-defense",
+            actual: result.Json.GetProperty("command")
+                .GetString());
         var error = Assert.Single(result.Json.GetProperty("errors")
-            .EnumerateArray())
+                .EnumerateArray())
             .GetString();
         Assert.Contains(
             expectedSubstring: duplicate switch
@@ -304,11 +340,13 @@ public sealed class TeacherExportTests
             .EnumerateArray());
         Assert.Empty(result.Json.GetProperty("warnings")
             .EnumerateArray());
-        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data")
-            .GetProperty("workbookCount")
-            .GetInt32());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data")
-            .GetProperty("outputDirectory").ValueKind);
+        Assert.Equal(expected: 0,
+            actual: result.Json.GetProperty("data")
+                .GetProperty("workbookCount")
+                .GetInt32());
+        Assert.Equal(expected: JsonValueKind.Null,
+            actual: result.Json.GetProperty("data")
+                .GetProperty("outputDirectory").ValueKind);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
         Assert.Equal(expected: originalSource, actual: await File.ReadAllBytesAsync(files.SourceFile));
         Assert.Equal(expected: settings, actual: await File.ReadAllTextAsync(settingsFile));
@@ -326,12 +364,7 @@ public sealed class TeacherExportTests
             bool CalculateCondition()
             {
                 bool condition = Directory.Exists(files.Output.Directory);
-                if (condition)
-                {
-                    return true;
-                }
-
-                return false;
+                return condition;
             }
 
             Assert.False(CalculateCondition());
@@ -350,6 +383,7 @@ public sealed class TeacherExportTests
         using var files = new Fixture();
         files.Export.RejectSourceReads = true;
         var settingsFile = Path.Combine(files.Path, "schedulelib.json");
+
         string CalculateNewValue()
         {
             string newValue = rows.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -374,22 +408,29 @@ public sealed class TeacherExportTests
         var result = await Capture(() => files.Export.LabDeadlines(
             files.Source,
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
 
         Assert.Equal(expected: 3, actual: result.Exit);
-        Assert.Equal(expected: 3, actual: result.Json.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Equal(expected: "failed", actual: result.Json.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: "export lab-deadlines", actual: result.Json.GetProperty("command")
-            .GetString());
+        Assert.Equal(expected: 3,
+            actual: result.Json.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Equal(expected: "failed",
+            actual: result.Json.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: "export lab-deadlines",
+            actual: result.Json.GetProperty("command")
+                .GetString());
         var error = Assert.Single(result.Json.GetProperty("errors")
-            .EnumerateArray())
+                .EnumerateArray())
             .GetString();
         Assert.Contains(expectedSubstring: "maxTaskRows", actualString: error);
         Assert.Contains(expectedSubstring: "Curmanschii Anton", actualString: error);
         Assert.Contains(expectedSubstring: "between 1 and 1048575", actualString: error);
+
         string CalculateExpectedSubstring()
         {
             string expectedSubstring2 = $"resolved value is {rows}";
@@ -402,11 +443,13 @@ public sealed class TeacherExportTests
             .EnumerateArray());
         Assert.Empty(result.Json.GetProperty("warnings")
             .EnumerateArray());
-        Assert.Equal(expected: 0, actual: result.Json.GetProperty("data")
-            .GetProperty("workbookCount")
-            .GetInt32());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.Json.GetProperty("data")
-            .GetProperty("outputDirectory").ValueKind);
+        Assert.Equal(expected: 0,
+            actual: result.Json.GetProperty("data")
+                .GetProperty("workbookCount")
+                .GetInt32());
+        Assert.Equal(expected: JsonValueKind.Null,
+            actual: result.Json.GetProperty("data")
+                .GetProperty("outputDirectory").ValueKind);
         Assert.Equal(expected: 0, actual: files.Export.SourceReads);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
         Assert.Equal(expected: originalSource, actual: await File.ReadAllBytesAsync(files.SourceFile));
@@ -425,12 +468,7 @@ public sealed class TeacherExportTests
             bool CalculateCondition()
             {
                 bool condition = Directory.Exists(files.Output.Directory);
-                if (condition)
-                {
-                    return true;
-                }
-
-                return false;
+                return condition;
             }
 
             Assert.False(CalculateCondition());
@@ -452,36 +490,39 @@ public sealed class TeacherExportTests
             }
 
             await File.WriteAllTextAsync(
-                            path: CalculatePath(),
-                            contents: """
-                {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":1},
-                 "LabTasksDatabaseConfig":{"sources":[]}}}}
-                """);
+                path: CalculatePath(),
+                contents: """
+                          {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":1},
+                           "LabTasksDatabaseConfig":{"sources":[]}}}}
+                          """);
         }
 
         var result = await Capture(() => files.Export.LabDeadlines(
             files.Source,
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
 
         Assert.True(result.Exit == 0, result.Stderr);
         using var book = new XLWorkbook(Path.Combine(files.Output.Directory!, "deadlines.xlsx"));
         var sheet = Assert.Single(book.Worksheets);
         string expected2 = "01.09";
-        global::ClosedXML.Excel.IXLCell cell = sheet.Cell(row: 1, column: 2);
+        var cell = sheet.Cell(row: 1, column: 2);
         string actual2 = cell.GetString();
         Assert.Equal(expected: expected2, actual: actual2);
-        global::ClosedXML.Excel.IXLWorksheet iXLWorksheet = sheet;
+        var iXLWorksheet = sheet;
         int row2 = rows + 1;
         int column2 = 2;
-        global::ClosedXML.Excel.IXLCell cell2 = iXLWorksheet.Cell(row: row2, column: column2);
+        var cell2 = iXLWorksheet.Cell(row: row2, column: column2);
         bool condition = cell2.IsEmpty();
         Assert.False(condition);
-        global::ClosedXML.Excel.IXLWorksheet iXLWorksheet2 = sheet;
+        var iXLWorksheet2 = sheet;
         int row3 = rows + 2;
         int column3 = 2;
-        global::ClosedXML.Excel.IXLCell cell3 = iXLWorksheet2.Cell(row: row3, column: column3);
+        var cell3 = iXLWorksheet2.Cell(row: row3, column: column3);
         bool condition2 = cell3.IsEmpty();
         Assert.True(condition2);
         AssertManifest(
@@ -498,17 +539,24 @@ public sealed class TeacherExportTests
         files.ConfigureCommission();
         var first = await Capture(() => files.Export.PreDefense(
             new(),
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         var second = await Capture(() => files.Export.PreDefense(
             new(),
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 0, actual: first.Exit);
         Assert.Equal(expected: 0, actual: second.Exit);
         var directory = first.Json.GetProperty("data")
             .GetProperty("outputDirectory")
             .GetString()!;
+
         string CalculateExpected()
         {
             string expected2 = Path.Combine(files.Path, "output");
@@ -518,14 +566,21 @@ public sealed class TeacherExportTests
         string expected3 = CalculateExpected();
         string? actual2 = Path.GetDirectoryName(directory);
         Assert.Equal(expected: expected3, actual: actual2);
-        Assert.NotEqual(expected: directory, actual: second.Json.GetProperty("data")
-            .GetProperty("outputDirectory")
-            .GetString());
+        Assert.NotEqual(expected: directory,
+            actual: second.Json.GetProperty("data")
+                .GetProperty("outputDirectory")
+                .GetString());
         var notes = Path.Combine(directory, "notes.txt");
         await File.WriteAllTextAsync(path: notes, contents: "keep me");
         var replaced = await Capture(() => files.Export.PreDefense(
-            new() { Directory = directory },
-            new() { Json = true },
+            new()
+            {
+                Directory = directory,
+            },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 0, actual: replaced.Exit);
         Assert.Equal(expected: "keep me", actual: await File.ReadAllTextAsync(notes));
@@ -543,14 +598,20 @@ public sealed class TeacherExportTests
         var missing = await Capture(() => files.Export.LabDeadlines(
             new(),
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             new()));
         Assert.Equal(expected: 3, actual: missing.Exit);
         Assert.Contains(expectedSubstring: "--profile", actualString: missing.Stderr);
         var absent = await Capture(() => files.Export.LabDeadlines(
             files.Source,
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             new()
             {
                 Project = files.Path,
@@ -567,19 +628,18 @@ public sealed class TeacherExportTests
         var result = await Capture(() => files.Export.LabDeadlines(
             files.Source,
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 8, actual: result.Exit);
         Assert.Contains(expectedSubstring: "does not support", actualString: result.Stderr);
+
         bool CalculateCondition()
         {
             bool condition = Directory.Exists(files.Output.Directory);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -597,7 +657,13 @@ public sealed class TeacherExportTests
             {
                 Number = 8,
                 Room = "102",
-                Members = [new() { Name = "Ionescu Maria" }],
+                Members =
+                [
+                    new()
+                    {
+                        Name = "Ionescu Maria",
+                    },
+                ],
             },
         ];
         Directory.CreateDirectory(files.Output.Directory!);
@@ -605,19 +671,24 @@ public sealed class TeacherExportTests
         await File.WriteAllTextAsync(path: collision, contents: "caller data");
         var result = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings));
         Assert.Equal(expected: 6, actual: result.Exit);
-        Assert.Equal(expected: "partial", actual: result.Json.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "partial",
+            actual: result.Json.GetProperty("status")
+                .GetString());
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(collision));
         string path2 = Path.Combine(files.Output.Directory!, "comisia_7.xlsx");
         bool condition = File.Exists(path2);
         Assert.True(condition);
         using var manifest = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(files.Output.Directory!, "schedulelib-manifest.json")));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
-            .GetString());
+        Assert.Equal(expected: "partial",
+            actual: manifest.RootElement.GetProperty("Status")
+                .GetString());
         Assert.Single(manifest.RootElement.GetProperty("Artifacts")
             .EnumerateArray());
     }
@@ -635,28 +706,35 @@ public sealed class TeacherExportTests
         {
             var busy = await Capture(() => files.Export.PreDefense(
                 files.Output,
-                new() { Json = true },
+                new()
+                {
+                    Json = true,
+                },
                 files.Settings));
             Assert.Equal(expected: 7, actual: busy.Exit);
         }
         var cancelled = await Capture(() =>
         {
-            global::System.Threading.CancellationToken CalculateCancellationToken()
+            CancellationToken CalculateCancellationToken()
             {
-                global::System.Threading.CancellationToken cancellationToken = new(canceled: true);
+                CancellationToken cancellationToken = new(canceled: true);
                 return cancellationToken;
             }
 
             return files.Export.LabDeadlines(
-                        files.Source,
-                        files.Output,
-                        new() { Json = true },
-                        files.Settings,
-                        CalculateCancellationToken());
+                files.Source,
+                files.Output,
+                new()
+                {
+                    Json = true,
+                },
+                files.Settings,
+                CalculateCancellationToken());
         });
         Assert.Equal(expected: 130, actual: cancelled.Exit);
-        Assert.Equal(expected: "cancelled", actual: cancelled.Json.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "cancelled",
+            actual: cancelled.Json.GetProperty("status")
+                .GetString());
         string path = Path.Combine(files.Output.Directory!, "deadlines.xlsx");
         bool condition = File.Exists(path);
         Assert.False(condition);
@@ -664,7 +742,10 @@ public sealed class TeacherExportTests
         files.Theses.OnRead = cancellation.Cancel;
         var interrupted = await Capture(() => files.Export.PreDefense(
             files.Output,
-            new() { Json = true },
+            new()
+            {
+                Json = true,
+            },
             files.Settings,
             cancellation.Token));
         Assert.Equal(expected: 130, actual: interrupted.Exit);
@@ -679,13 +760,16 @@ public sealed class TeacherExportTests
         string command,
         string artifact)
     {
-        Assert.Equal(expected: 1, actual: result.GetProperty("schemaVersion")
-            .GetInt32());
-        Assert.Equal(expected: command, actual: result.GetProperty("command")
-            .GetString());
-        Assert.Equal(expected: 1, actual: result.GetProperty("data")
-            .GetProperty("workbookCount")
-            .GetInt32());
+        Assert.Equal(expected: 1,
+            actual: result.GetProperty("schemaVersion")
+                .GetInt32());
+        Assert.Equal(expected: command,
+            actual: result.GetProperty("command")
+                .GetString());
+        Assert.Equal(expected: 1,
+            actual: result.GetProperty("data")
+                .GetProperty("workbookCount")
+                .GetInt32());
         Assert.Equal(
             expected: new[]
             {
@@ -695,6 +779,7 @@ public sealed class TeacherExportTests
             actual: result.GetProperty("outputs")
                 .EnumerateArray()
                 .Select(x => x.GetString()));
+
         string CalculateJson()
         {
             string path = Path.Combine(directory, "schedulelib-manifest.json");
@@ -703,11 +788,13 @@ public sealed class TeacherExportTests
         }
 
         using var manifest = JsonDocument.Parse(CalculateJson());
-        Assert.Equal(expected: command, actual: manifest.RootElement.GetProperty("Command")
-            .GetString());
-        Assert.Equal(expected: artifact, actual: manifest.RootElement.GetProperty("Artifacts")[0]
-            .GetProperty("Name")
-            .GetString());
+        Assert.Equal(expected: command,
+            actual: manifest.RootElement.GetProperty("Command")
+                .GetString());
+        Assert.Equal(expected: artifact,
+            actual: manifest.RootElement.GetProperty("Artifacts")[0]
+                .GetProperty("Name")
+                .GetString());
     }
 
     private static async Task<(int Exit, JsonElement Json, string Stderr)> Capture(Func<Task<int>> run)
@@ -747,7 +834,16 @@ public sealed class TeacherExportTests
             }
         }
 
-        public OutputArguments Output => new() { Directory = System.IO.Path.Combine(Path, "results") };
+        public OutputArguments Output
+        {
+            get
+            {
+                return new()
+                {
+                    Directory = System.IO.Path.Combine(Path, "results"),
+                };
+            }
+        }
 
         public SettingsArguments Settings
         {
@@ -781,19 +877,20 @@ public sealed class TeacherExportTests
         public Fixture(bool mixed = false)
         {
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SourceFile)!);
+
             string CalculateFile()
             {
                 string file = System.IO.Path.Combine(
-                                    AppContext.BaseDirectory,
-                                    "fixtures",
-                                    "2025_sem2",
-                                    "zi",
-                                    "master.xlsx");
+                    AppContext.BaseDirectory,
+                    "fixtures",
+                    "2025_sem2",
+                    "zi",
+                    "master.xlsx");
                 return file;
             }
 
             using var book = new XLWorkbook(
-                            CalculateFile());
+                CalculateFile());
             var sheet = book.Worksheet(1);
             sheet.Range("D4:E18")
                 .Clear(XLClearOptions.Contents);
@@ -853,7 +950,7 @@ public sealed class TeacherExportTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             // The coded academic calendar intentionally has no master ranges. Supply a synthetic
@@ -864,29 +961,32 @@ public sealed class TeacherExportTests
                 x.AttendanceMode(AttendanceMode.Zi);
                 x.QualificationType(QualificationType.Master);
                 x.Semester(Semester.Sem1);
-                global::System.DateOnly CalculateStart()
+
+                DateOnly CalculateStart()
                 {
-                    global::System.DateOnly start = new DateOnly(
-                                            year: 2026,
-                                            month: 9,
-                                            day: 1);
+                    var start = new DateOnly(
+                        year: 2026,
+                        month: 9,
+                        day: 1);
                     return start;
                 }
 
                 x.LessonsStart(CalculateStart());
-                global::System.DateOnly CalculateEnd()
+
+                DateOnly CalculateEnd()
                 {
-                    global::System.DateOnly end = new DateOnly(
-                                            year: 2026,
-                                            month: 12,
-                                            day: 13);
+                    var end = new DateOnly(
+                        year: 2026,
+                        month: 12,
+                        day: 13);
                     return end;
                 }
 
                 x.LessonsEndInclusive(CalculateEnd());
-                global::ScheduleLib.Grade CalculateGrade()
+
+                Grade CalculateGrade()
                 {
-                    global::ScheduleLib.Grade grade = new(1);
+                    Grade grade = new(1);
                     return grade;
                 }
 
@@ -897,15 +997,15 @@ public sealed class TeacherExportTests
             services.Configure<PreDefenseOptions>(x =>
             {
                 x.Commissions = Commissions;
-                x.AvrStudents = [("Popescu Ion", "I2301")];
+                x.AvrStudents = [new(Student: "Popescu Ion", Group: "I2301")];
             });
             services.AddSingleton<IThesesFileProvider>(theses);
             if (RejectSourceReads)
             {
-                global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = services;
-                global::TeacherExportTests.FixtureExport.RejectingInitializer implementationInstance = new RejectingInitializer(this);
-                global::ScheduleLib.Application.Core.IScheduleInitializer implementationInstance2 = implementationInstance;
-                iServiceCollection.AddSingleton<IScheduleInitializer>(implementationInstance2);
+                var iServiceCollection = services;
+                var implementationInstance = new RejectingInitializer(this);
+                IScheduleInitializer implementationInstance2 = implementationInstance;
+                iServiceCollection.AddSingleton(implementationInstance2);
             }
         }
 

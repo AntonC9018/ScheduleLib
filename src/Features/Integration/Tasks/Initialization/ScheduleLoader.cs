@@ -33,7 +33,7 @@ public sealed class ScheduleLoader
         // One local writer owns a cache key through the entire rebuild. Readers wait
         // and reopen after publication; the live file is never truncated in place.
         await using var cacheLock = CachedPath is { } cachePath
-            ? await LocalFileLock.Acquire((string) $"{cachePath}.lock",
+            ? await LocalFileLock.Acquire($"{cachePath}.lock",
                 cancellationToken,
                 wait: true)
             : null;
@@ -359,15 +359,13 @@ public sealed class ConsultationsLoaderComponent(
                             {
                                 return true;
                             }
-                            else
-                            {
-                                if (name is null)
-                                {
-                                    return true;
-                                }
 
-                                return false;
+                            if (name is null)
+                            {
+                                return true;
                             }
+
+                            return false;
                         }
 
                         bool conditionResult = CalculateConditionResult();
@@ -375,7 +373,7 @@ public sealed class ConsultationsLoaderComponent(
 
                         if (conditionResult)
                         {
-                            global::ClosedXML.Excel.IXLCell iXLCell = cell;
+                            var iXLCell = cell;
                             string message = $"'{t}' did not parser as a name";
                             throw iXLCell.Exception(message);
                         }
@@ -389,9 +387,9 @@ public sealed class ConsultationsLoaderComponent(
                         {
                             var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
                             var consultationDuration = _timeConfig.LessonDuration;
-                            global::System.TimeOnly start = startTime;
-                            global::System.TimeOnly end = startTime.Add(consultationDuration);
-                            global::ScheduleLib.Parsing.TimeInterval timeInterval = new(Start: start, End: end);
+                            var start = startTime;
+                            var end = startTime.Add(consultationDuration);
+                            TimeInterval timeInterval = new(Start: start, End: end);
                             interval = timeInterval;
                         }
                         else
@@ -415,7 +413,7 @@ public sealed class ConsultationsLoaderComponent(
                     {
                         if (_dayParser.Map(t) is not { } day)
                         {
-                            global::ClosedXML.Excel.IXLCell iXLCell2 = cell;
+                            var iXLCell2 = cell;
                             string message2 = $"Unknown day of week '{t}'";
                             throw iXLCell2.Exception(message2);
                         }
@@ -465,7 +463,7 @@ public sealed class ConsultationsLoaderComponent(
             var notSetRows = setRows.Flipped;
             if (!notSetRows.IsEmpty)
             {
-                global::ClosedXML.Excel.IXLRow iXLRow = dataRow;
+                var iXLRow = dataRow;
                 string message = $"The following rows were not set: '{notSetRows}'";
                 throw iXLRow.Exception(message);
             }
@@ -605,14 +603,14 @@ public static class HashHelper
                 int c;
                 bool conditionResult;
                 int conditionValue = c = Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value);
-                conditionResult = (conditionValue) != 0;
+                conditionResult = conditionValue != 0;
                 if (conditionResult)
                 {
                     return c;
                 }
                 bool conditionResult2;
                 int conditionValue2 = c = Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value);
-                conditionResult2 = (conditionValue2) != 0;
+                conditionResult2 = conditionValue2 != 0;
                 if (conditionResult2)
                 {
                     return c;
@@ -621,21 +619,21 @@ public static class HashHelper
                 int conditionValue3 = c = string.Compare(strA: x.Faculty?.Name,
                     strB: y.Faculty?.Name,
                     StringComparison.Ordinal);
-                conditionResult3 = (conditionValue3) != 0;
+                conditionResult3 = conditionValue3 != 0;
                 if (conditionResult3)
                 {
                     return c;
                 }
                 bool conditionResult4;
                 int conditionValue4 = c = Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode);
-                conditionResult4 = (conditionValue4) != 0;
+                conditionResult4 = conditionValue4 != 0;
                 if (conditionResult4)
                 {
                     return c;
                 }
                 bool conditionResult5;
                 int conditionValue5 = c = Nullable.Compare(n1: x.Qualification, n2: y.Qualification);
-                conditionResult5 = (conditionValue5) != 0;
+                conditionResult5 = conditionValue5 != 0;
                 if (conditionResult5)
                 {
                     return c;
@@ -645,7 +643,7 @@ public static class HashHelper
                     xs: x.SpecializationCourses,
                     ys: y.SpecializationCourses,
                     static s => s.Value);
-                conditionResult6 = (conditionValue6) != 0;
+                conditionResult6 = conditionValue6 != 0;
                 if (conditionResult6)
                 {
                     return c;
@@ -681,7 +679,7 @@ public static class HashHelper
                     }
                     string? strA2 = value(xe.Current.Value);
                     string? strB2 = value(ye.Current.Value);
-                    global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                    var comparisonType = StringComparison.Ordinal;
                     int compare = string.Compare(
                         strA: strA2,
                         strB: strB2,

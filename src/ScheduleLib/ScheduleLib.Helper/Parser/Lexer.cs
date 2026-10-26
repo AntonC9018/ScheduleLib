@@ -26,15 +26,16 @@ public record struct Token
 
     public readonly bool Is(char ch)
     {
-        if (Value.Length == 1)
+        if (Value.Length != 1)
         {
-            if (Value.Span[0] == ch)
-            {
-                return true;
-            }
-
             return false;
         }
+
+        if (Value.Span[0] == ch)
+        {
+            return true;
+        }
+
         return false;
     }
 
@@ -105,7 +106,6 @@ public static class ClassLexerExtensions
             var t = lexer.Wrap();
             return t.ConcatWithSpaceReplacement(p);
         }
-
     }
 }
 
@@ -224,7 +224,6 @@ public static class StructLexerExtensions
                 return false;
             }
         }
-
     }
 
     extension(LimitedLexerScope lexer)
@@ -272,10 +271,7 @@ public static class StructLexerExtensions
                         return maybeUsedStringBuilder!.ToStringAndClear()
                             .AsMemory();
                     }
-                    else
-                    {
-                        return MemUntilNow();
-                    }
+                    return MemUntilNow();
                 }
 
                 var currentTok = lexer.Current;
@@ -290,10 +286,12 @@ public static class StructLexerExtensions
                     {
                         return true;
                     }
+
                     if (currentTok.Span.ColStart != prevTok.Span.ColEnd)
                     {
                         return true;
                     }
+
                     return false;
                 }
 
@@ -366,6 +364,7 @@ public struct LexerScope : ILexer
     internal readonly Lexer _lexer;
 
     public readonly LexerPosition Position => _position;
+
     internal int PositionIndex
     {
         readonly get => _position.Value;
@@ -408,12 +407,12 @@ public struct LexerScope : ILexer
         }
 
         var current = _lexer.Peek(i);
-        if (current.Type == TokenType.EndOfStream)
+        if (current.Type != TokenType.EndOfStream)
         {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -453,7 +452,9 @@ public sealed class Lexer : ILexer
     public TokenTypeLabels TokenTypeLabels => _readImpl.Labels;
 
     private IEnumerator<ReadOnlyMemory<char>>? _lines;
+
     private readonly ITokenReader _readImpl;
+
     // Just removing from start, since not much is queued usually
     // It's better to use a ring queue
     internal readonly List<Token> _queue;
@@ -691,11 +692,7 @@ public static class LexerHelper
             }
             break;
         }
-        if (consumed)
-        {
-            return true;
-        }
-        return false;
+        return consumed;
 
         static bool C(ref LexerScope lexer, ReadOnlySpan<TokenType> types)
         {
@@ -777,7 +774,8 @@ public static class LexerHelper
                 var source = t.Value;
                 if (FindOffset(a: source.Span, b: reader.PeekSpanUntilEnd()) is not { } offset)
                 {
-                    throw new InvalidOperationException("Cannot apply displacement to this parser, because the lexer is on a different line now");
+                    throw new InvalidOperationException(
+                        "Cannot apply displacement to this parser, because the lexer is on a different line now");
                 }
 
                 reader.Move(offset);
@@ -799,7 +797,6 @@ public static class LexerHelper
         int offset = (int) ((byte*) aStart - (byte*) bStart) / Unsafe.SizeOf<T>();
         return offset;
     }
-
 }
 
 public readonly record struct TokenTypeLabels(
@@ -862,4 +859,3 @@ public struct LimitedLexerScope : ILexer
             end: _endPosition);
     }
 }
-

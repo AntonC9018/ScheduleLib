@@ -26,13 +26,16 @@ public sealed class CommissionMember
 public sealed class PreDefenseOptions
 {
     public Commission<CommissionMember>[]? Commissions { get; set; }
-    public (string Student, string Group)[]? AvrStudents { get; set; }
+    public AvrStudent[]? AvrStudents { get; set; }
 }
+
+/// <summary>A student that is listed for pre-defense by their own group.</summary>
+public readonly record struct AvrStudent(string Student, string Group);
 
 public sealed partial class ListsForPredzashitaTaskHandler
 {
     // Initialize these in a static constructor.
-    private static (string Student, string Group)[] AvrStudents { get; set; } = [];
+    private static AvrStudent[] AvrStudents { get; set; } = [];
     private static Commission<CommissionMember>[] Commissions { get; set; } = [];
 
     private readonly ThesesListProvider _thesesListProvider;
@@ -70,12 +73,12 @@ public sealed partial class ListsForPredzashitaTaskHandler
         try
         {
             var result = GetConfigurationError(ParseCommissionNames());
-            if (result is not null)
+            if (result is null)
             {
-                return result;
+                return null;
             }
 
-            return null;
+            return result;
         }
         catch (InvalidDataException e) { return e.Message; }
     }
@@ -126,9 +129,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         try
         {
-            global::ScheduleLib.Theses.Parsing.INameRemapper iNameRemapper = _nameRemapper;
-            global::ScheduleLib.Parsing.Name name2 = NameHelper.Parse(name);
-            global::ScheduleLib.Parsing.Name remapName = iNameRemapper.RemapName(name2);
+            var iNameRemapper = _nameRemapper;
+            var name2 = NameHelper.Parse(name);
+            var remapName = iNameRemapper.RemapName(name2);
             return remapName;
         }
         catch (NameParsingException e)
@@ -174,9 +177,9 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
-            global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet =
+            var hashSet =
                 avrLookup;
-            global::ScheduleLib.Application.Core.NameAndGroup item = new(name, x.Group);
+            NameAndGroup item = new(name, x.Group);
             hashSet.Add(item);
         }
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
@@ -190,8 +193,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
-            global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.ThesisRecord> list2 = list;
-            global::ScheduleLib.Application.Core.ThesisRecord item2 = new(studentName,
+            var list2 = list;
+            ThesisRecord item2 = new(studentName,
                 Group: group,
                 ThesisName: thesisName);
             list2.Add(item2);
@@ -228,17 +231,17 @@ public sealed partial class ListsForPredzashitaTaskHandler
             foreach (var t in theses1)
             {
                 string? practicaPlace = null;
-                global::System.Collections.Generic.HashSet<global::ScheduleLib.Application.Core.NameAndGroup> hashSet2 =
+                var hashSet2 =
                     avrLookup;
-                global::ScheduleLib.Application.Core.NameAndGroup item3 = new(t.StudentName, t.Group);
+                NameAndGroup item3 = new(t.StudentName, t.Group);
                 if (hashSet2.Contains(item3))
                 {
                     practicaPlace = "Laborator AVR";
                 }
 
-                global::System.Collections.Generic.List<global::ScheduleLib.Application.Core.StudentThesisRecord>
+                var
                     list3 = list;
-                global::ScheduleLib.Application.Core.StudentThesisRecord item4 = new(
+                StudentThesisRecord item4 = new(
                     StudentName: t.StudentName,
                     TeacherName: teacher,
                     Group: t.Group,
@@ -320,7 +323,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 {
                     return new(i1, bodyStyle);
                 }
-                else if (val is string s1)
+                if (val is string s1)
                 {
                     return new(s1, bodyStyle);
                 }
@@ -393,12 +396,12 @@ public sealed class Hasher : IEqualityComparer<NameAndGroup>
             return false;
         }
 
-        if (x.Group != y.Group)
+        if (x.Group == y.Group)
         {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     public int GetHashCode(NameAndGroup obj)

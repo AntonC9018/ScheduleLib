@@ -23,20 +23,25 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
     {
         public required CancellationToken CancellationToken { get; init; }
         public OutputDirectory? OutputDirectory { get; init; }
+
         public Func<string, Func<Stream, CancellationToken, Task>, CancellationToken, Task>? PublishArtifact { get; init; }
     }
+
+    /// <summary>A PDF file to produce: its name, its lesson text display, and the schedule it shows.</summary>
+    private readonly record struct PdfArtifact(
+        string Name,
+        LessonTextDisplayHandler Display,
+        ScheduleFilter Filter);
 
     public async ValueTask Run(RunParams p)
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
-        var artifacts = new List<(string Name, LessonTextDisplayHandler Display, ScheduleFilter Filter)>();
+        var artifacts = new List<PdfArtifact>();
         {
             var textDisplayHandler = new LessonTextDisplayHandler(
                 _lessonTextDisplayServices,
-                new()
-                {
-                });
+                new() { });
 
             var partitionInfoByGroup = _schedule.GetGroupPartitionInfo(_specializationRegistry);
 
@@ -46,19 +51,22 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 {
                     OneOfGroupIds = [g.Id],
                 };
-                global::ScheduleLib.Accessor<global::ScheduleLib.Group, global::ScheduleLib.GroupId> g2 = g;
+                var g2 = g;
                 string fileName2 = $"{g.Item.Name}.pdf";
-                global::ScheduleLib.GroupFilter groupFilter2 = groupFilter;
-                GenerateGroupPdf(g2, fileName2, groupFilter2);
+                var groupFilter2 = groupFilter;
+                GenerateGroupPdf(g2,
+                    fileName2,
+                    groupFilter2);
 
                 foreach (var combination in partitionInfoByGroup[g.Id].Combinations)
                 {
                     var sb = new StringBuilder();
                     sb.Append(g.Item.Name);
                     sb.Append('_');
-                    global::ScheduleLib.ListStringBuilder CalculateLb()
+
+                    ListStringBuilder CalculateLb()
                     {
-                        global::ScheduleLib.ListStringBuilder lb = new ListStringBuilder(sb, "-");
+                        var lb = new ListStringBuilder(sb, "-");
                         return lb;
                     }
 
@@ -67,7 +75,9 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                     var fileName = sb.ToStringAndClear();
 
                     var combinationFilter = combination.ToGroupFilter(g.Id);
-                    GenerateGroupPdf(g, fileName, combinationFilter);
+                    GenerateGroupPdf(g,
+                        fileName,
+                        combinationFilter);
                 }
             }
 
@@ -76,16 +86,22 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 string fileName,
                 GroupFilter groupFilter)
             {
-                artifacts.Add((fileName, textDisplayHandler, new() { GroupFilter = groupFilter }));
+                artifacts.Add(new(fileName,
+                    textDisplayHandler,
+                    new()
+                    {
+                        GroupFilter = groupFilter,
+                    }));
             }
         }
 
         {
-            var textDisplayHandler = new LessonTextDisplayHandler(_lessonTextDisplayServices, new()
-            {
-                PrintsTeacherName = false,
-                PrintsGroupNames = true,
-            });
+            var textDisplayHandler = new LessonTextDisplayHandler(_lessonTextDisplayServices,
+                new()
+                {
+                    PrintsTeacherName = false,
+                    PrintsGroupNames = true,
+                });
             var sb = new StringBuilder();
             for (int teacherId = 0; teacherId < _schedule.Teachers.Length; teacherId++)
             {
@@ -97,16 +113,23 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 
                 var fileName = sb.ToStringAndClear();
 
-                artifacts.Add((fileName, textDisplayHandler, new()
-                {
-                    TeacherFilter = new() { IncludeIds = [new(teacherId1)] },
-                }));
+                artifacts.Add(new(fileName,
+                    textDisplayHandler,
+                    new()
+                    {
+                        TeacherFilter = new()
+                        {
+                            IncludeIds = [new(teacherId1)],
+                        },
+                    }));
             }
         }
         foreach (var artifact in artifacts)
         {
             p.CancellationToken.ThrowIfCancellationRequested();
-            await GenerateWithFilter(artifact.Name, artifact.Display, artifact.Filter);
+            await GenerateWithFilter(artifact.Name,
+                artifact.Display,
+                artifact.Filter);
         }
 
         async Task GenerateWithFilter(
@@ -130,15 +153,20 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 LessonTextDisplayHandler = textDisplayHandler,
                 LessonTimeConfig = _lessonTimeConfig,
                 TimeSlotDisplay = _timeSlotDisplay,
-            }, filteredSchedule);
+            },
+                filteredSchedule);
 
             if (p.PublishArtifact is { } publish)
             {
-                await publish(name, Generate, p.CancellationToken);
+                await publish(name,
+                    Generate,
+                    p.CancellationToken);
             }
             else
             {
-                using var outputFile = p.OutputDirectory!.OpenFile(name, FileMode.Create, FileAccess.Write);
+                using var outputFile = p.OutputDirectory!.OpenFile(name,
+                    FileMode.Create,
+                    FileAccess.Write);
                 await Generate(outputFile, p.CancellationToken);
             }
 

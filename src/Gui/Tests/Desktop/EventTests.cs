@@ -218,7 +218,6 @@ public sealed class Context : IAsyncDisposable
     }
 }
 
-
 public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {
     public ObservableValueSource<ImmutableArray<Name>> NamesSource;

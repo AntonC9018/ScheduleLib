@@ -22,7 +22,7 @@ public sealed class LessonTokenReader : ITokenReader
     public TokenType Read(ref SequenceReader reader)
     {
         bool conditionResult;
-        global::ScheduleLib.Helper.Parsing.ParserHelper.SkipResult conditionValue = SkipWhitespace(ref reader);
+        var conditionValue = SkipWhitespace(ref reader);
         conditionResult = conditionValue.SkippedAny;
         if (conditionResult)
         {
@@ -30,7 +30,7 @@ public sealed class LessonTokenReader : ITokenReader
         }
 
         bool conditionResult2;
-        global::ScheduleLib.Helper.Parsing.ParserHelper.SkipResult conditionValue2 = SkipRegular(ref reader);
+        var conditionValue2 = SkipRegular(ref reader);
         conditionResult2 = conditionValue2.SkippedAny;
         if (conditionResult2)
         {
@@ -70,6 +70,7 @@ public sealed class LessonTokenReader : ITokenReader
     {
         return reader.Skip(new SkipWhitespaceButNotUnderscore());
     }
+
     private struct SkipWhitespaceButNotUnderscore : IShouldSkip
     {
         public bool ShouldSkip(char ch)
@@ -78,10 +79,12 @@ public sealed class LessonTokenReader : ITokenReader
             {
                 return false;
             }
+
             if (char.IsWhiteSpace(ch))
             {
                 return true;
             }
+
             return false;
         }
     }
@@ -100,20 +103,22 @@ public sealed class LessonTokenReader : ITokenReader
     }
 
     private static readonly SearchValues<char> _regularChars = SearchValues.Create(@"\_+#@&");
+
     public static bool IsRegular(char ch)
     {
         if (char.IsLetter(ch))
         {
             return true;
         }
+
         if (_regularChars.Contains(ch))
         {
             return true;
         }
+
         return false;
     }
 }
-
 
 public static class LessonLexerHelper
 {
@@ -221,4 +226,3 @@ public ref struct ListEnumerator
 
     public readonly LimitedLexerScope Current => new(_lexer, _end);
 }
-

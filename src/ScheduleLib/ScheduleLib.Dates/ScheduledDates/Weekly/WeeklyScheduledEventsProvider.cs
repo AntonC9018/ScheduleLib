@@ -42,7 +42,7 @@ public readonly record struct Event
     {
         int int32 = interval;
         int int322 = count - 1;
-        var days = int32 * (int322);
+        var days = int32 * int322;
         return first.AddDays(days);
     }
 
@@ -51,12 +51,17 @@ public readonly record struct Event
         int count,
         int interval)
     {
-        global::System.DateOnly first2 = first;
-        global::System.DateOnly last2 = FirstToLast(first, count: count, interval: interval);
+        var first2 = first;
+        var last2 = FirstToLast(first,
+            count: count,
+            interval: interval);
         int count2 = count;
         int interval2 = interval;
-        global::ScheduleLib.Dates.Event eventValue = new(
-                    first: first2, last: last2, count: count2, interval: interval2);
+        Event eventValue = new(
+            first: first2,
+            last: last2,
+            count: count2,
+            interval: interval2);
         return eventValue;
     }
 
@@ -71,7 +76,9 @@ public readonly record struct Event
         {
             Debug.Assert(interval >= 1);
             Debug.Assert(last > first);
-            var expectedLast = FirstToLast(first, count: count, interval: interval);
+            var expectedLast = FirstToLast(first,
+                count: count,
+                interval: interval);
             Debug.Assert(expectedLast == last);
         }
         else
@@ -117,6 +124,7 @@ public readonly record struct Event
         public void Dispose()
         {
         }
+
         public void Reset()
         {
             throw new NotSupportedException();
@@ -154,6 +162,7 @@ public static class ScheduledDatesToEventsTransformerHelper
         {
             bool hasValue = dateE.MoveNext();
             var date = hasValue ? dateE.Current : default;
+
             bool ShouldOutput()
             {
                 if (count == 0)
@@ -164,12 +173,15 @@ public static class ScheduledDatesToEventsTransformerHelper
                 {
                     return true;
                 }
+
                 if (date.DayNumber - prev.DayNumber != interval)
                 {
                     return true;
                 }
+
                 return false;
             }
+
             if (ShouldOutput())
             {
                 int CalculateInterval()
@@ -188,10 +200,10 @@ public static class ScheduledDatesToEventsTransformerHelper
                 }
 
                 yield return new Event(
-                                    first: first,
-                                    last: prev,
-                                    count: count,
-                                    interval: CalculateInterval());
+                    first: first,
+                    last: prev,
+                    count: count,
+                    interval: CalculateInterval());
                 first = default;
                 count = 0;
             }
@@ -226,4 +238,3 @@ public sealed partial class ScheduledEventsProviderTransformer
         return ret;
     }
 }
-

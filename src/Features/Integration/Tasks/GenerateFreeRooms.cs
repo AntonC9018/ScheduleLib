@@ -32,9 +32,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         await using var spreadsheet = await Spreadsheet.CreateNewAsync(
             p.OutputStream,
             cancellationToken: p.CancellationToken);
-        var headerStyle = spreadsheet.AddStyle(new()
-        {
-        });
+        var headerStyle = spreadsheet.AddStyle(new() { });
 
         Parity[] parities = [Parity.EvenWeek, Parity.OddWeek];
         List<DataCell> dataCells = new();
@@ -42,9 +40,9 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         foreach (var parity in parities)
         {
             string parityLabel = _parityDisplay.Get(parity)!;
-            await spreadsheet.StartWorksheetAsync(parityLabel, new()
-            {
-            }, p.CancellationToken);
+            await spreadsheet.StartWorksheetAsync(parityLabel,
+                new() { },
+                p.CancellationToken);
 
             foreach (var day in new EnumMembers<DayOfWeek>())
             {
@@ -57,14 +55,16 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 }
 
                 var dayName = _dayNameProvider.GetDayName(day);
-                await spreadsheet.AddHeaderRowAsync([dayName], headerStyle, p.CancellationToken);
+                await spreadsheet.AddHeaderRowAsync([dayName],
+                    headerStyle,
+                    p.CancellationToken);
 
                 foreach (var timeSlot in _timeConfig.TimeSlots)
                 {
                     var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
                     var intervalText = _timeSlotDisplay.IntervalDisplay(interval);
-                    global::System.Collections.Generic.List<global::SpreadCheetah.DataCell> list = dataCells;
-                    global::SpreadCheetah.DataCell item = new(intervalText);
+                    var list = dataCells;
+                    DataCell item = new(intervalText);
                     list.Add(item);
 
                     var lessons = lessonsThisDay
@@ -83,8 +83,8 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                     });
                     foreach (var freeRoom in orderedFreeRooms)
                     {
-                        global::System.Collections.Generic.List<global::SpreadCheetah.DataCell> list2 = dataCells;
-                        global::SpreadCheetah.DataCell item2 = new(freeRoom.Id!);
+                        var list2 = dataCells;
+                        DataCell item2 = new(freeRoom.Id!);
                         list2.Add(item2);
                     }
 
@@ -257,6 +257,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 Style = Thick(),
             };
         });
+
         BorderId BorderIdByEdge(Edge edge)
         {
             return cellBorderIds.Get(edge);
@@ -287,8 +288,8 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         {
             x.CenterAndWrap();
             x.SetFont(cellFontId);
-            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
-            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
             cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
@@ -300,16 +301,16 @@ public sealed partial class GenerateFreeRoomsTaskHandler
             x.CenterAndWrap();
             x.SetFont(cellFontId);
             x.SetFill(greenFillId);
-            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
-            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge);
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge);
             cellFormat.SetBorder(borderId);
         });
         var timeSlotStyleIds = stylesheet.CellFormats<OddEdge>((x, edge) =>
         {
             x.CenterAndWrap();
             x.SetFont(timeSlotFontId);
-            global::DocumentFormat.OpenXml.Spreadsheet.CellFormat cellFormat = x;
-            global::ScheduleLib.Application.Core.ExcelBuilder.BorderId borderId = BorderIdByEdge(edge.GetEdge());
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
             cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {

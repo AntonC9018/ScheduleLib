@@ -3,7 +3,6 @@ using ScheduleLib.Excel.Helper;
 
 namespace ScheduleLib.Helper.Excel;
 
-
 public static class MappingsHelper
 {
     public static Mappings<TColumn> FindMappings<TColumn>(
@@ -27,6 +26,7 @@ public static class MappingsHelper
                 var columnNumber = cell.ActualRange()
                     .FirstColumn()
                     .ColumnNumber();
+
                 TColumn? FindColumn()
                 {
                     foreach (var x in searchRules.Array)
@@ -38,6 +38,7 @@ public static class MappingsHelper
                     }
                     return null;
                 }
+
                 if (FindColumn() is { } column)
                 {
                     columnsMap[column] = columnNumber;
@@ -56,7 +57,7 @@ public static class MappingsHelper
                 var notFoundColumns = foundColumns.Flipped;
                 if (!notFoundColumns.IsEmpty)
                 {
-                    global::ClosedXML.Excel.IXLRow iXLRow = headerRow;
+                    var iXLRow = headerRow;
                     string message = $"Columns '{notFoundColumns}' not found in the header";
                     throw iXLRow.Exception(message);
                 }
@@ -132,6 +133,7 @@ public readonly struct ColumnSearchRules<TColumn>
     where TColumn : struct, Enum
 {
     public readonly OneForEachEnumMemberArray<TColumn, SearchRules> Array;
+
     public ColumnSearchRules(OneForEachEnumMemberArray<TColumn, SearchRules> array)
     {
         Array = array;

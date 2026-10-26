@@ -60,7 +60,9 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public bool Equals(string? x, string? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+                y: y,
+                out bool b))
         {
             return b;
         }
@@ -105,19 +107,17 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
     {
         bool CalculateConditionResult()
         {
-            if (a is null)
+            if (!(a is null))
             {
-                if (b is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (b is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -138,7 +138,9 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
         var x1 = DiacriticsHelper.RemoveDiacritics(a);
         var y1 = DiacriticsHelper.RemoveDiacritics(b);
-        return string.Compare(strA: x1, strB: y1, StringComparison.OrdinalIgnoreCase);
+        return string.Compare(strA: x1,
+            strB: y1,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     public bool Equals(ReadOnlySpan<char> alternate, string other)

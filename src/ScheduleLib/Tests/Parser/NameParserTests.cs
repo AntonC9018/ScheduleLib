@@ -61,7 +61,7 @@ public sealed class NameParserTests
     [Fact]
     public void StuffAfterIgnored()
     {
-        var p = new Helper.Parsing.SequenceReader("Last First Patro (ABC) Extra Stuff");
+        var p = new SequenceReader("Last First Patro (ABC) Extra Stuff");
         var s = NameHelper.Parse(ref p);
         _ = s;
         bool condition = p.ConsumeExactString(" (ABC) Extra Stuff");

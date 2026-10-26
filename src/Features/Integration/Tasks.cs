@@ -144,9 +144,9 @@ public static class TasksHelper
                     var stagedInput = Path.Combine(path1, path2);
                     File.Copy(sourceFileName: filePath, destFileName: stagedInput);
                     var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
-                    if (!await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput,
+                    if (!(await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput,
                             outputPath: outputPath,
-                            cancellationToken))
+                            cancellationToken)))
                     {
                         throw new IOException(
                             "Could not convert doc to docx. Windows with Microsoft Word is required.");
@@ -203,12 +203,12 @@ public static class TasksHelper
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using var stream = File.OpenRead(filePath);
-                global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfScheduleCell> list = cells;
-                global::System.IO.Stream pdf = stream;
+                var list = cells;
+                Stream pdf = stream;
                 string source = Path.GetFileName(filePath);
-                global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                var
                     collection = PdfScheduleImporter.Read(pdf, source);
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                IEnumerable<PdfScheduleCell>
                     collection2 = collection;
                 list.AddRange(collection2);
             }

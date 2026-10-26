@@ -95,14 +95,12 @@ public sealed class TreeEventDispatcher : IDispatcher
     {
         bool CalculateConditionResult()
         {
-            if (_keyQueue.IsEmpty)
-            {
-                return _latestActions.IsEmpty;
-            }
-            else
+            if (!_keyQueue.IsEmpty)
             {
                 return false;
             }
+
+            return _latestActions.IsEmpty;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -121,7 +119,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         else
         {
             conditionResult2 = areQueuesEmpty;
-            conditionResult2 = !(conditionResult2);
+            conditionResult2 = !conditionResult2;
         }
 
         if (conditionResult2)
@@ -180,7 +178,7 @@ public sealed class TreeEventDispatcher : IDispatcher
     public void Post<T>(PostArgs<T> args)
     {
         bool conditionResult;
-        global::Desktop.ViewModelData.TreeEventDispatcher.QueueingState conditionValue = Volatile.Read(ref _isQueueing);
+        var conditionValue = Volatile.Read(ref _isQueueing);
         conditionResult = conditionValue == QueueingState.NotQueueing;
         if (conditionResult)
         {
@@ -241,7 +239,7 @@ public sealed class TreeEventDispatcher : IDispatcher
             });
 
         bool conditionResult2;
-        global::Desktop.ViewModelData.TreeEventDispatcher.QueueingState
+        var
             conditionValue2 = Volatile.Read(ref _isQueueing);
         conditionResult2 = conditionValue2 == QueueingState.NotQueueing;
         if (conditionResult2)

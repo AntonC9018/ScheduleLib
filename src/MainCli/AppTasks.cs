@@ -280,8 +280,8 @@ public static class AppTasks
                     var filteredSchedule = schedule.Filter(filter);
 
                     var timeConfig = c.Services.GetRequiredService<LessonTimeConfig>();
-                    global::LessonTimeConfig lessonTimeConfig = timeConfig;
-                    global::System.TimeOnly time2 = new(hour: 17, minute: 00);
+                    var lessonTimeConfig = timeConfig;
+                    TimeOnly time2 = new(hour: 17, minute: 00);
                     var startTimeSlot = lessonTimeConfig.FindTimeSlotByIncludedTime(time2);
                     var timeDisplay = c.Services.GetRequiredService<TimeSlotDisplayHandler>();
 
@@ -347,7 +347,10 @@ public static class AppTasks
         return Task.Run(() =>
         {
             var handler = c.Services.GetRequiredService<GenerateIcsCalendarsTaskHandler>();
-            handler.Run(new() { OutputDirectory = c.OutputDirectory });
+            handler.Run(new()
+            {
+                OutputDirectory = c.OutputDirectory,
+            });
         });
     }
 

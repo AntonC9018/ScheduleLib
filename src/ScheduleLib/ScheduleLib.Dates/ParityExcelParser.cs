@@ -28,6 +28,7 @@ public static class DayHelper
     {
         return GetDayOfWeekFromMonday(d.MondayDate, day);
     }
+
     public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
     {
         int CalculateValue()
@@ -42,10 +43,11 @@ public static class DayHelper
     }
 
     private const int weekdayCount = 7;
+
     private static DateOnly GetDayOfWeekFromMonday(DateOnly monday, DayOfWeek day)
     {
         int int32 = day - DayOfWeek.Monday + weekdayCount;
-        var offset = (int32) % weekdayCount;
+        var offset = int32 % weekdayCount;
         var ret = monday.AddDays(offset);
         return ret;
     }
@@ -228,6 +230,7 @@ public static class ParityExcelParser
             }
             return cells.Current;
         }
+
         static void NoNextCell(IEnumerator<TableCell> cells)
         {
             bool moved = cells.MoveNext();
@@ -293,10 +296,12 @@ public static class ParityExcelParser
             {
                 return true;
             }
+
             if (char.IsWhiteSpace(c))
             {
                 return true;
             }
+
             return false;
         }
     }

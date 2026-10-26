@@ -43,9 +43,9 @@ public sealed class ImplicitSplitCacheHashTests
         builder.Scope(x =>
         {
             x.Grade = new(2);
-            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder = x;
+            var implicitSplitScopeBuilder = x;
             string course = "C";
-            global::ScheduleLib.Alternative alternative = new("Alt");
+            Alternative alternative = new("Alt");
             implicitSplitScopeBuilder.Alternative(course, alternative);
         });
         return builder.Build();
@@ -57,9 +57,9 @@ public sealed class ImplicitSplitCacheHashTests
         builder.Scope(x =>
         {
             x.Grade = new(2);
-            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder = x;
+            var implicitSplitScopeBuilder = x;
             string course = "C";
-            global::ScheduleLib.Alternative alternative = new("Alt");
+            Alternative alternative = new("Alt");
             implicitSplitScopeBuilder.Alternative(course, alternative);
         });
         builder.Scope(x =>

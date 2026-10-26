@@ -50,11 +50,12 @@ public static class LayerQueries
             {
                 return null;
             }
-            if (t.Value.GetValue() is { } val)
+            if (!(t.Value.GetValue() is { } val))
             {
-                return val;
+                return null;
             }
-            return null;
+
+            return val;
         }
     }
 
@@ -63,7 +64,6 @@ public static class LayerQueries
         this NodePath path,
         NodeDataKey<T> key,
         IServiceProvider serviceProvider)
-
         where T : class
     {
         var basicOperations = serviceProvider.GetRequiredService<IBasicOperations<T>>();

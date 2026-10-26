@@ -25,7 +25,9 @@ public static partial class ScheduleBuilderHelper
             return;
         }
         var lessons = s.WeeklyLessons.List;
-        var errors = CollectOverlapErrors(s, lessons, config);
+        var errors = CollectOverlapErrors(s,
+            lessons,
+            config);
         if (errors.Count > 0)
         {
             throw OverlappingLessonsException.ForOverlaps(errors);
@@ -42,7 +44,10 @@ public static partial class ScheduleBuilderHelper
         {
             for (int j = i + 1; j < lessons.Count; j++)
             {
-                if (DescribeOverlapIfConflicting(s, config, a: lessons[i].Data, b: lessons[j].Data) is { } error)
+                if (DescribeOverlapIfConflicting(s,
+                        config,
+                        a: lessons[i].Data,
+                        b: lessons[j].Data) is { } error)
                 {
                     errors.Add(error);
                 }
@@ -82,11 +87,18 @@ public static partial class ScheduleBuilderHelper
         {
             return null;
         }
-        if (IsAllowlisted(config.Allowlist, s, a: a, b: b, shared.Value))
+        if (IsAllowlisted(config.Allowlist,
+                s,
+                a: a,
+                b: b,
+                shared.Value))
         {
             return null;
         }
-        return Describe(s, a: a, b: b, shared.Value);
+        return Describe(s,
+            a: a,
+            b: b,
+            shared.Value);
     }
 
     private static bool ParitiesIntersect(Parity? a, Parity? b)
@@ -127,13 +139,17 @@ public static partial class ScheduleBuilderHelper
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
     {
-        var aKey = new GroupPartitionKey(a.SubGroup, a.Specialization, a.Alternative);
-        var bKey = new GroupPartitionKey(b.SubGroup, b.Specialization, b.Alternative);
+        var aKey = new GroupPartitionKey(a.SubGroup,
+            a.Specialization,
+            a.Alternative);
+        var bKey = new GroupPartitionKey(b.SubGroup,
+            b.Specialization,
+            b.Alternative);
         foreach (var dimension in PartitionDimensions.All)
         {
             if (!ValuesIntersect(
-                a: aKey.GetPartitionDimension(dimension).Value,
-                b: bKey.GetPartitionDimension(dimension).Value))
+                    a: aKey.GetPartitionDimension(dimension).Value,
+                    b: bKey.GetPartitionDimension(dimension).Value))
             {
                 return false;
             }
@@ -163,8 +179,10 @@ public static partial class ScheduleBuilderHelper
 
     private static bool Intersects(SubGroup a, SubGroup b)
         => ValuesIntersect(a: a.Value, b: b.Value);
+
     private static bool Intersects(Specialization a, Specialization b)
         => ValuesIntersect(a: a.Value, b: b.Value);
+
     private static bool Intersects(Alternative a, Alternative b)
         => ValuesIntersect(a: a.Value, b: b.Value);
 
@@ -201,19 +219,17 @@ public static partial class ScheduleBuilderHelper
         {
             bool CalculateConditionResult()
             {
-                if (aName == entry.CourseA)
+                if (aName != entry.CourseA)
                 {
-                    if (bName == entry.CourseB)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (bName == entry.CourseB)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -267,29 +283,36 @@ public static partial class ScheduleBuilderHelper
         sb.Append("  shared group '")
             .Append(s.Groups.Ref(shared.Value).Name)
             .Append("':\n    ");
-        AppendLesson(sb, s, a);
+        AppendLesson(sb,
+            s,
+            a);
         sb.Append("\n    ");
-        AppendLesson(sb, s, b);
+        AppendLesson(sb,
+            s,
+            b);
         return sb.ToString();
 
-        static void AppendLesson(StringBuilder sb, ScheduleBuilder s, in WeeklyLessonBuilderModelData lesson)
+        static void AppendLesson(
+            StringBuilder sb,
+            ScheduleBuilder s,
+            in WeeklyLessonBuilderModelData lesson)
         {
             var course = s.Courses.Ref(lesson.Base.General.Course!.Value.Id);
-            global::System.Text.StringBuilder append = sb.Append('\'');
+            var append = sb.Append('\'');
             string value = course.FullName;
-            global::System.Text.StringBuilder append2 = append.Append(value);
+            var append2 = append.Append(value);
             char value2 = '\'';
-            global::System.Text.StringBuilder append3 = append2.Append(value2);
+            var append3 = append2.Append(value2);
             string value3 = " on ";
-            global::System.Text.StringBuilder append4 = append3.Append(value3);
+            var append4 = append3.Append(value3);
             object? value4 = lesson.Date.DayOfWeek;
-            global::System.Text.StringBuilder append5 = append4.Append(value4);
+            var append5 = append4.Append(value4);
             string value5 = " slot ";
-            global::System.Text.StringBuilder append6 = append5.Append(value5);
+            var append6 = append5.Append(value5);
             int value6 = lesson.Date.TimeSlot!.Value.Index;
-            global::System.Text.StringBuilder append7 = append6.Append(value6);
+            var append7 = append6.Append(value6);
             string value7 = ", ";
-            global::System.Text.StringBuilder append8 = append7.Append(value7);
+            var append8 = append7.Append(value7);
             string value8;
             if (lesson.Date.Parity is { } parity)
             {
@@ -300,17 +323,17 @@ public static partial class ScheduleBuilderHelper
                 value8 = "no parity";
             }
 
-            global::System.Text.StringBuilder append9 = append8.Append(value8);
+            var append9 = append8.Append(value8);
             string value9 = ", subgroup: ";
-            global::System.Text.StringBuilder append10 = append9.Append(value9);
+            var append10 = append9.Append(value9);
             string value10 = lesson.Base.Group.SubGroup.Value ?? "all";
-            global::System.Text.StringBuilder append11 = append10.Append(value10);
+            var append11 = append10.Append(value10);
             string value11 = ", specialization: ";
-            global::System.Text.StringBuilder append12 = append11.Append(value11);
+            var append12 = append11.Append(value11);
             string value12 = lesson.Base.Group.Specialization.Value ?? "all";
-            global::System.Text.StringBuilder append13 = append12.Append(value12);
+            var append13 = append12.Append(value12);
             string value13 = ", alternative: ";
-            global::System.Text.StringBuilder append14 = append13.Append(value13);
+            var append14 = append13.Append(value13);
             string value14 = lesson.Base.Group.Alternative.Value ?? "all";
             append14.Append(value14);
         }

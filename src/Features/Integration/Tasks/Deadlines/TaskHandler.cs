@@ -8,8 +8,7 @@ using ScheduleLib.Dates;
 
 namespace ScheduleLib.Application.Core;
 
-using Option = Config.Option;
-
+using Option = Option;
 
 [AutoConstructor]
 public sealed partial class GenerateDeadlinesExcelTaskHandler
@@ -50,12 +49,12 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             var lessonsBySubgroup = schedule
                 .EnumerateLessons()
                 .Where(x => x.Lesson.Group == group)
-                .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course))
+                .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, x.Lesson.Course))
                 .ToArray();
 
             if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
                 .Any(course => course.Count() > 1
-                && course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
+                    && course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
             {
                 throw new NotImplementedException("Shared labs not implemented");
             }
@@ -153,14 +152,17 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     int maxCols = scheduledLessons.Length;
 
-                    global::ClosedXML.Excel.IXLWorksheet iXLWorksheet = worksheet;
+                    var iXLWorksheet = worksheet;
                     int firstCellRow2 = secondRowPos;
                     int firstCellColumn2 = firstColPos;
                     int int32 = secondRowPos + maxRows;
                     int lastCellRow2 = int32 - 1;
                     int lastCellColumn2 = maxCols;
                     var dataRange = iXLWorksheet.Range(
-                        firstCellRow: firstCellRow2, firstCellColumn: firstCellColumn2, lastCellRow: lastCellRow2, lastCellColumn: lastCellColumn2);
+                        firstCellRow: firstCellRow2,
+                        firstCellColumn: firstCellColumn2,
+                        lastCellRow: lastCellRow2,
+                        lastCellColumn: lastCellColumn2);
 
                     worksheet.ConditionalFormats.RemoveAll();
                     for (int i = 0; i <= deadlinesExcelConfig.LessonDelayLimit; i++)
@@ -188,30 +190,34 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                             .ToStringRelative();
                         if (cell.Value.IsBlank)
                         {
-                            string formula = $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
+                            string formula =
+                                $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
                             cell.FormulaA1 = formula;
                         }
                     }
 
                     if (tasks != null)
                     {
-                        global::ClosedXML.Excel.IXLWorksheet iXLWorksheet2 = worksheet;
+                        var iXLWorksheet2 = worksheet;
                         int firstCellRow3 = secondRowPos;
                         int firstCellColumn3 = labCols;
                         int int322 = secondRowPos + maxRows;
                         int lastCellRow3 = int322 - 1;
                         int lastCellColumn3 = labCols;
                         var labsRange = iXLWorksheet2.Range(
-                            firstCellRow: firstCellRow3, firstCellColumn: firstCellColumn3, lastCellRow: lastCellRow3, lastCellColumn: lastCellColumn3);
+                            firstCellRow: firstCellRow3,
+                            firstCellColumn: firstCellColumn3,
+                            lastCellRow: lastCellRow3,
+                            lastCellColumn: lastCellColumn3);
                         foreach (var x in labsRange.Cells()
-                            .WithIndex())
+                                     .WithIndex())
                         {
                             var t = tasks[x.Index];
                             x.Item.SetValue(t.Name);
                             if (t.Url is { } url)
                             {
-                                global::ClosedXML.Excel.IXLCell iXLCell = x.Item;
-                                global::ClosedXML.Excel.XLHyperlink hyperlink = new XLHyperlink(url);
+                                var iXLCell = x.Item;
+                                var hyperlink = new XLHyperlink(url);
                                 iXLCell.SetHyperlink(hyperlink);
                             }
                         }

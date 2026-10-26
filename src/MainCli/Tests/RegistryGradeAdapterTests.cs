@@ -28,11 +28,11 @@ public sealed class RegistryGradeAdapterTests
     {
         using var handler = new Handler((_, _) =>
         {
-            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            HttpResponseMessage CalculateResult()
             {
-                global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+                var status = HttpStatusCode.OK;
                 string body = $"<form method='post' action='/grades'>{inputs}</form>";
-                global::System.Net.Http.HttpResponseMessage result = Response(
+                var result = Response(
                     status,
                     body);
                 return result;
@@ -48,19 +48,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -113,9 +113,9 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, GradeForm);
+                    var result = Response(HttpStatusCode.OK, GradeForm);
                     return result;
                 }
 
@@ -127,35 +127,35 @@ public sealed class RegistryGradeAdapterTests
             // A replay would succeed: the production requester must never send it.
             bool CheckCondition()
             {
-                if (!(status == 401))
+                if (status != 401)
                 {
                     return false;
                 }
 
-                if (!(posts > 1))
+                if (posts > 1)
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             bool CheckCondition2()
             {
-                if (!(status == 401))
+                if (status != 401)
                 {
                     return false;
                 }
 
-                if (!(posts > 1))
+                if (posts > 1)
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
-            global::System.Net.HttpStatusCode status2;
+            HttpStatusCode status2;
             if (CheckCondition())
             {
                 status2 = HttpStatusCode.OK;
@@ -175,10 +175,10 @@ public sealed class RegistryGradeAdapterTests
                 body2 = body;
             }
 
-            global::System.Net.Http.HttpResponseMessage result2 = Response(
+            var result2 = Response(
                 status2,
                 body2);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result2);
             return fromResult;
@@ -190,19 +190,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -221,7 +221,7 @@ public sealed class RegistryGradeAdapterTests
         var reads = 0;
         using var handler = new Handler((request, _) =>
         {
-            global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+            var status = HttpStatusCode.OK;
             string body;
             if (request.Method == HttpMethod.Post)
             {
@@ -237,10 +237,7 @@ public sealed class RegistryGradeAdapterTests
                     {
                         return true;
                     }
-                    else
-                    {
-                        return matches;
-                    }
+                    return matches;
                 }
 
                 bool condition = CalculateCondition();
@@ -260,10 +257,10 @@ public sealed class RegistryGradeAdapterTests
                 body = text;
             }
 
-            global::System.Net.Http.HttpResponseMessage result = Response(
+            var result = Response(
                 status,
                 body);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result);
             return fromResult;
@@ -275,19 +272,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -325,21 +322,21 @@ public sealed class RegistryGradeAdapterTests
                 condition = int32 == 1;
             }
 
-            global::System.Net.Http.HttpResponseMessage result;
+            HttpResponseMessage result;
             if (condition)
             {
-                global::System.Net.Http.HttpResponseMessage response = Response(HttpStatusCode.OK, GradeForm);
+                var response = Response(HttpStatusCode.OK, GradeForm);
                 result = response;
             }
             else
             {
-                global::System.Net.HttpStatusCode status2 = (HttpStatusCode) status;
+                var status2 = (HttpStatusCode) status;
                 string body2 = body;
-                global::System.Net.Http.HttpResponseMessage response2 = Response(status2, body2);
+                var response2 = Response(status2, body2);
                 result = response2;
             }
 
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result);
             return fromResult;
@@ -351,19 +348,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -436,9 +433,9 @@ public sealed class RegistryGradeAdapterTests
             conditionResult = conditionValue == 1;
             if (conditionResult)
             {
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, GradeForm);
+                    var result = Response(HttpStatusCode.OK, GradeForm);
                     return result;
                 }
 
@@ -448,39 +445,37 @@ public sealed class RegistryGradeAdapterTests
             // Legacy read authentication may retry the GET, but must never replay the POST.
             bool CalculateCondition()
             {
-                if (readStatus == 401)
+                if (readStatus != 401)
                 {
-                    if (reads > 2)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (reads > 2)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool condition = CalculateCondition();
 
 
-            global::System.Net.Http.HttpResponseMessage result2;
+            HttpResponseMessage result2;
             if (condition)
             {
-                global::System.Net.Http.HttpResponseMessage response = Response(HttpStatusCode.OK, LoginForm);
+                var response = Response(HttpStatusCode.OK, LoginForm);
                 result2 = response;
             }
             else
             {
-                global::System.Net.HttpStatusCode status = (HttpStatusCode) readStatus;
+                var status = (HttpStatusCode) readStatus;
                 string body2 = body;
-                global::System.Net.Http.HttpResponseMessage response2 = Response(status, body2);
+                var response2 = Response(status, body2);
                 result2 = response2;
             }
 
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result2);
             return fromResult;
@@ -492,19 +487,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -564,7 +559,7 @@ public sealed class RegistryGradeAdapterTests
                 condition = int32 == 2;
             }
 
-            global::System.Net.HttpStatusCode status;
+            HttpStatusCode status;
             if (condition)
             {
                 status = HttpStatusCode.Unauthorized;
@@ -575,10 +570,10 @@ public sealed class RegistryGradeAdapterTests
             }
 
             string body = GradeForm;
-            global::System.Net.Http.HttpResponseMessage result = Response(
+            var result = Response(
                 status,
                 body);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result);
             return fromResult;
@@ -590,19 +585,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -614,9 +609,9 @@ public sealed class RegistryGradeAdapterTests
         Assert.Equal(expected: "Registry rejected grade submission.", actual: rejection.Message);
         Assert.Equal(expected: 0, actual: auth.Calls);
 
-        global::System.Uri CalculateUri2()
+        Uri CalculateUri2()
         {
-            global::System.Uri uri2 = new("https://registry.test/grades");
+            Uri uri2 = new("https://registry.test/grades");
             return uri2;
         }
 
@@ -640,7 +635,7 @@ public sealed class RegistryGradeAdapterTests
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) status, "");
-                global::System.Net.Http.Headers.HttpResponseHeaders httpResponseHeaders = redirect.Headers;
+                var httpResponseHeaders = redirect.Headers;
                 string uriString;
                 if (login)
                 {
@@ -651,16 +646,16 @@ public sealed class RegistryGradeAdapterTests
                     uriString = "/evaluation";
                 }
 
-                global::System.UriKind uriKind = UriKind.Relative;
-                global::System.Uri uri = new(uriString, uriKind);
+                var uriKind = UriKind.Relative;
+                Uri uri = new(uriString, uriKind);
                 httpResponseHeaders.Location = uri;
                 return Task.FromResult(redirect);
             }
             reads++;
 
-            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            HttpResponseMessage CalculateResult()
             {
-                global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, GradeForm);
+                var result = Response(HttpStatusCode.OK, GradeForm);
                 return result;
             }
 
@@ -673,19 +668,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -729,9 +724,9 @@ public sealed class RegistryGradeAdapterTests
             {
                 reads++;
 
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, GradeForm);
+                    var result = Response(HttpStatusCode.OK, GradeForm);
                     return result;
                 }
 
@@ -748,19 +743,19 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
             errorHandler,
             context2,
             serviceProvider,
             cancellationToken);
 
-        global::System.Uri CalculateUri()
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/grades");
+            Uri uri = new("https://registry.test/grades");
             return uri;
         }
 
@@ -780,7 +775,7 @@ public sealed class RegistryGradeAdapterTests
         using var handler = new Handler((_, _) =>
         {
             int int32 = ++reads;
-            global::System.Net.HttpStatusCode status;
+            HttpStatusCode status;
             if (int32 == 1)
             {
                 status = HttpStatusCode.Unauthorized;
@@ -791,8 +786,8 @@ public sealed class RegistryGradeAdapterTests
             }
 
             string body = GradeForm;
-            global::System.Net.Http.HttpResponseMessage result = Response(status, body);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var result = Response(status, body);
+            var fromResult =
                 Task.FromResult(result);
             return fromResult;
         });
@@ -825,7 +820,7 @@ public sealed class RegistryGradeAdapterTests
                 condition = false;
             }
 
-            global::System.Net.HttpStatusCode status;
+            HttpStatusCode status;
             if (condition)
             {
                 status = HttpStatusCode.Unauthorized;
@@ -836,10 +831,10 @@ public sealed class RegistryGradeAdapterTests
             }
 
             string body = GradeForm;
-            global::System.Net.Http.HttpResponseMessage result = Response(
+            var result = Response(
                 status,
                 body);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result);
             return fromResult;
@@ -864,7 +859,7 @@ public sealed class RegistryGradeAdapterTests
     {
         using var handler = new Handler((request, _) =>
         {
-            global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+            var status = HttpStatusCode.OK;
             string body2;
             if (request.Method == HttpMethod.Post)
             {
@@ -875,8 +870,8 @@ public sealed class RegistryGradeAdapterTests
                 body2 = LoginForm;
             }
 
-            global::System.Net.Http.HttpResponseMessage result = Response(status, body2);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var result = Response(status, body2);
+            var fromResult =
                 Task.FromResult(result);
             return fromResult;
         });
@@ -910,9 +905,9 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, LoginForm);
+                    var result = Response(HttpStatusCode.OK, LoginForm);
                     return result;
                 }
 
@@ -941,9 +936,9 @@ public sealed class RegistryGradeAdapterTests
             cancellation.Token,
             transport);
 
-        global::System.TimeSpan CalculateTimeout()
+        TimeSpan CalculateTimeout()
         {
-            global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+            var timeout = TimeSpan.FromSeconds(5);
             return timeout;
         }
 
@@ -953,9 +948,9 @@ public sealed class RegistryGradeAdapterTests
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             {
-                global::System.TimeSpan CalculateTimeout()
+                TimeSpan CalculateTimeout()
                 {
-                    global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+                    var timeout = TimeSpan.FromSeconds(5);
                     return timeout;
                 }
 
@@ -982,9 +977,9 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    global::System.Net.Http.HttpResponseMessage result = Response(HttpStatusCode.OK, LoginForm);
+                    var result = Response(HttpStatusCode.OK, LoginForm);
                     return result;
                 }
 
@@ -997,9 +992,9 @@ public sealed class RegistryGradeAdapterTests
                 return pending.Task;
             }
 
-            global::System.Net.Http.HttpResponseMessage CalculateResult2()
+            HttpResponseMessage CalculateResult2()
             {
-                global::System.Net.Http.HttpResponseMessage result2 = Response(HttpStatusCode.OK, LoginForm);
+                var result2 = Response(HttpStatusCode.OK, LoginForm);
                 return result2;
             }
 
@@ -1045,16 +1040,28 @@ public sealed class RegistryGradeAdapterTests
         try
         {
             var task = commands.ImportGrades(
-                new() { QuizId = "123" },
+                new()
+                {
+                    QuizId = "123",
+                },
                 new(),
-                new() { Profile = "test" },
-                new() { Json = true },
-                new() { Apply = true },
+                new()
+                {
+                    Profile = "test",
+                },
+                new()
+                {
+                    Json = true,
+                },
+                new()
+                {
+                    Apply = true,
+                },
                 cancellation.Token);
 
-            global::System.TimeSpan CalculateTimeout()
+            TimeSpan CalculateTimeout()
             {
-                global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+                var timeout = TimeSpan.FromSeconds(5);
                 return timeout;
             }
 
@@ -1067,7 +1074,7 @@ public sealed class RegistryGradeAdapterTests
             else
             {
                 conditionResult = cancel;
-                conditionResult = !(conditionResult);
+                conditionResult = !conditionResult;
             }
 
             Assert.True(conditionResult);
@@ -1076,9 +1083,9 @@ public sealed class RegistryGradeAdapterTests
                 cancellation.Cancel();
             }
 
-            global::System.TimeSpan CalculateTimeout2()
+            TimeSpan CalculateTimeout2()
             {
-                global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(5);
+                var timeout2 = TimeSpan.FromSeconds(5);
                 return timeout2;
             }
 
@@ -1112,7 +1119,7 @@ public sealed class RegistryGradeAdapterTests
     {
         using var handler = new Handler((request, _) =>
         {
-            global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+            var status = HttpStatusCode.OK;
             string body;
             if (request.Method == HttpMethod.Post)
             {
@@ -1123,10 +1130,10 @@ public sealed class RegistryGradeAdapterTests
                 body = LoginForm;
             }
 
-            global::System.Net.Http.HttpResponseMessage result = Response(
+            var result = Response(
                 status,
                 body);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult =
+            var fromResult =
                 Task.FromResult(
                     result);
             return fromResult;
@@ -1193,10 +1200,10 @@ public sealed class RegistryGradeAdapterTests
         {
             Assert.False(Held);
             Held = true;
-            global::RegistryGradeAdapterTests.AccountLock.Lease result = new Lease(this);
-            global::System.IAsyncDisposable result2 = result;
-            global::System.Threading.Tasks.Task<global::System.IAsyncDisposable> fromResult =
-                Task.FromResult<IAsyncDisposable>(result2);
+            var result = new Lease(this);
+            IAsyncDisposable result2 = result;
+            var fromResult =
+                Task.FromResult(result2);
             return fromResult;
         }
 

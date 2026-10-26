@@ -58,10 +58,12 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameParser;
 
-        var course1 = Parse(parserConfig, "Modelare, texturare si animatie 3D p/u jocuri", new()
-        {
-            IgnorePunctuation = true,
-        });
+        var course1 = Parse(parserConfig,
+            "Modelare, texturare si animatie 3D p/u jocuri",
+            new()
+            {
+                IgnorePunctuation = true,
+            });
         var course2 = Parse(parserConfig, "MTA3D");
         Assert.Equal(expected: course1, actual: course2);
     }
@@ -71,10 +73,12 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameUnifier;
 
-        var course1 = Parse(parserConfig.ParserConfig, "PYTHON pentru aplicatii", new()
-        {
-            IgnorePunctuation = true,
-        });
+        var course1 = Parse(parserConfig.ParserConfig,
+            "PYTHON pentru aplicatii",
+            new()
+            {
+                IgnorePunctuation = true,
+            });
         var course2 = Parse(parserConfig.ParserConfig, "Python");
         var remapped1 = parserConfig.TryRemap(course1);
         Assert.Equal(expected: remapped1, actual: course2);
@@ -85,10 +89,12 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameUnifier;
 
-        var course1 = Parse(parserConfig.ParserConfig, "Dezv. web PHP", new()
-        {
-            IgnorePunctuation = true,
-        });
+        var course1 = Parse(parserConfig.ParserConfig,
+            "Dezv. web PHP",
+            new()
+            {
+                IgnorePunctuation = true,
+            });
         var course2 = Parse(parserConfig.ParserConfig, "Dezvoltare WEB avansată cu PHP");
         var remapped1 = parserConfig.TryRemap(course1);
         var remapped2 = parserConfig.TryRemap(course2);

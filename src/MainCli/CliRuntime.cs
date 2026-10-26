@@ -41,7 +41,7 @@ public static class CliRuntime
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;
-            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions
+            var
                 scheduleBuilderInitializerOptions = x;
             string text;
             if (source.CacheDirectory is { } cache)

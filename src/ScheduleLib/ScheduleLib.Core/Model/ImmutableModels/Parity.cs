@@ -21,13 +21,14 @@ public static class ParityHelper
                     {
                         return true;
                     }
+
                     if (parity == check)
                     {
                         return true;
                     }
+
                     return false;
                 }
         }
     }
 }
-

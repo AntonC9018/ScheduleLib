@@ -15,8 +15,7 @@ namespace Desktop.MainWindow;
 
 public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
 {
-    [ObservableProperty]
-    public partial string UserNameToAdd { get; set; } = "";
+    [ObservableProperty] public partial string UserNameToAdd { get; set; } = "";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddUserWithTypedNameCommand))]
@@ -79,12 +78,14 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             {
                 return false;
             }
-            if (_tree.GetAllMarkers()
-                .Any(x => x.TeacherName == it.Name))
+
+            if (!_tree.GetAllMarkers()
+                    .Any(x => x.TeacherName == it.Name))
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         }
     }
 
@@ -131,12 +132,13 @@ public sealed partial class AddUserViewModel : ViewModelBase, IDisposable
             FilteredUserNames.Clear();
             if (tempArr.Count != 0)
             {
-                (global::ScheduleLib.Parsing.Name Name, global::Desktop.MainWindow.MatchScore Score, int ScoreInt) ProjectValue(global::ScheduleLib.Parsing.Name x)
+                (Name Name, MatchScore Score, int ScoreInt) ProjectValue(Name x)
                 {
                     var scoreData = MatchScore.Create(x, tempArr);
                     var scoreInt = scoreData.AsInt();
                     return (Name: x, Score: scoreData, ScoreInt: scoreInt);
                 }
+
                 var matchesWithScores = matches
                     .Select(ProjectValue)
                     .Where(x => x.ScoreInt > 0)

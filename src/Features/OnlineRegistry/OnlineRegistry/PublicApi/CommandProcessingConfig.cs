@@ -77,20 +77,29 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         var other = types.AsBitArray();
         return p.Intersect(other).AreAnySet;
     }
+
     private readonly bool CheckOne(CommandProcessingConfigPortion offset, LessonEquationCommandType type)
     {
         var p = CreatePortion(offset);
         return p.IsSet(type);
     }
 
-    public readonly bool HasProcess(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.Process, type);
-    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.Process, types);
+    public readonly bool HasProcess(LessonEquationCommandType type) =>
+        CheckOne(CommandProcessingConfigPortion.Process, type);
 
-    public readonly bool HasDryRun(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.DryRun, type);
-    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.DryRun, types);
+    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.Process, types);
+
+    public readonly bool HasDryRun(LessonEquationCommandType type) =>
+        CheckOne(CommandProcessingConfigPortion.DryRun, type);
+
+    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.DryRun, types);
 
     public readonly bool HasLog(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.Log, type);
-    public readonly bool HasAnyLog(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.Log, types);
+
+    public readonly bool HasAnyLog(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.Log, types);
 
     public override string ToString()
     {
@@ -100,7 +109,7 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         {
             var portion = value.CreatePortion(t);
 
-            global::System.Text.StringBuilder stringBuilder = sb;
+            var stringBuilder = sb;
             string? value2 = Enum.GetName(t);
             stringBuilder.Append(value2);
             sb.Append('{');
@@ -161,9 +170,14 @@ public static class CommandProcessingConfigBuilderExtensions
             return b._impl.EnumPortionRef<LessonEquationCommandType>(offset: offset);
         }
 
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Process() => b.Portion(CommandProcessingConfigPortion.Process);
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> DryRun() => b.Portion(CommandProcessingConfigPortion.DryRun);
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Log() => b.Portion(CommandProcessingConfigPortion.Log);
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Process() =>
+            b.Portion(CommandProcessingConfigPortion.Process);
+
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> DryRun() =>
+            b.Portion(CommandProcessingConfigPortion.DryRun);
+
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Log() =>
+            b.Portion(CommandProcessingConfigPortion.Log);
     }
 
     extension(OffsetBitArrayForEnumRef<LessonEquationCommandType> b)
@@ -223,6 +237,8 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         {
             x.Value = b.Portion(x.Key).RestoredSlice;
         }
-        JsonSerializer.Serialize(writer, model, options);
+        JsonSerializer.Serialize(writer,
+            model,
+            options);
     }
 }

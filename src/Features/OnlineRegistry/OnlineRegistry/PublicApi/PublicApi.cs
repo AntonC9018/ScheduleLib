@@ -108,7 +108,7 @@ public sealed class GroupsNavigator
             Document = doc,
             GroupParseContext = _groupParseContext,
             GroupPartitionResolver = partitionResolver,
-            SearchGroupId = (ref GroupForSearch group) =>
+            SearchGroupId = (ref group) =>
             {
                 if (config?.SkipAttendance == group.AttendanceMode)
                 {
@@ -128,7 +128,7 @@ public sealed class GroupsNavigator
             Document = doc,
             GroupParseContext = _groupParseContext,
             GroupPartitionResolver = partitionResolver,
-            SearchGroupId = (ref GroupForSearch group) =>
+            SearchGroupId = (ref group) =>
             {
                 if (config?.SkipAttendance == group.AttendanceMode)
                 {
@@ -178,14 +178,14 @@ public sealed class GroupsNavigator
         RegistryGroupMatchRule rule,
         GroupPartitionResolver resolver)
     {
-        global::ScheduleLib.SubGroup subGroup = new SubGroup(rule.SubGroup);
-        global::ScheduleLib.Specialization specialization = Specialization.All;
+        var subGroup = new SubGroup(rule.SubGroup);
+        var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
         return groups.Count(group =>
             {
                 bool CheckCondition()
                 {
-                    if (!(group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase)))
+                    if (!group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase))
                     {
                         return false;
                     }
@@ -195,32 +195,32 @@ public sealed class GroupsNavigator
                         return false;
                     }
 
-                    if (!(group.AttendanceMode == target.AttendanceMode))
+                    if (group.AttendanceMode != target.AttendanceMode)
                     {
                         return false;
                     }
 
-                    if (!(group.QualificationType == target.QualificationType))
+                    if (group.QualificationType != target.QualificationType)
                     {
                         return false;
                     }
 
-                    if (!(group.IsDual == target.IsDual))
+                    if (group.IsDual != target.IsDual)
                     {
                         return false;
                     }
 
-                    if (!(group.IsAdditionalCourses == target.IsAdditionalCourses))
+                    if (group.IsAdditionalCourses != target.IsAdditionalCourses)
                     {
                         return false;
                     }
 
-                    if (!(resolver.Resolve(group) == partition))
+                    if (resolver.Resolve(group) == partition)
                     {
-                        return false;
+                        return true;
                     }
 
-                    return true;
+                    return false;
                 }
 
                 return CheckCondition();
@@ -461,29 +461,22 @@ public sealed class GroupsNavigator
                         {
                             return true;
                         }
-                        else
+                        if (!rule.AllowParentGroup)
                         {
-                            if (rule.AllowParentGroup)
-                            {
-                                if (parent.Item.Language == rule.Language)
-                                {
-                                    if (lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
-                                    {
-                                        return true;
-                                    }
-
-                                    return false;
-                                }
-                                else
-                                {
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                return false;
-                            }
+                            return false;
                         }
+
+                        if (parent.Item.Language != rule.Language)
+                        {
+                            return false;
+                        }
+
+                        if (lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult = CalculateConditionResult();
@@ -552,6 +545,9 @@ public sealed class GroupsNavigator
 [AutoConstructor]
 public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IRegistryGradeNavigator
 {
+    /// <summary>A form field name and the value the registry is expected to keep for it.</summary>
+    private readonly record struct ExpectedFormValue(string? Name, string? Value);
+
     public readonly IRegistryErrorHandler ErrorHandler;
     public readonly RegistryScrapingContext Context;
     public readonly IServiceProvider ServiceProvider;
@@ -642,7 +638,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
         var expectedAttendance = form.QuerySelectorAll<IHtmlInputElement>("input[name]")
             .Where(input => input.Name?.EndsWith(".NotaStr", StringComparison.Ordinal) == true)
-            .Select(input => (Name: input.Name, Value: input.Value))
+            .Select(input => new ExpectedFormValue(Name: input.Name, Value: input.Value))
             .ToArray();
 
         var list = await GetHtml(destination);
@@ -656,11 +652,13 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 {
                     return false;
                 }
-                if (!(row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal)))
+
+                if (row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))
                 {
-                    return false;
+                    return true;
                 }
-                return true;
+
+                return false;
             })
             .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
             .Select(anchor => new Uri(anchor.Href))
@@ -679,48 +677,40 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
             bool CalculateConditionResult()
             {
-                if (DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
+                if (!DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
                         System.Globalization.CultureInfo.InvariantCulture,
                         System.Globalization.DateTimeStyles.None,
                         out var savedDate))
                 {
-                    if (savedDate == date)
-                    {
-                        if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value == expectedMode)
-                        {
-                            if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value
-                                    .ReplaceLineEndings("\n")
-                                == expectedTopic.ReplaceLineEndings("\n"))
-                            {
-                                if (expectedAttendance.All(input =>
-                                        savedInputs.Count(actual => actual.Name == input.Name) == 1
-                                        && savedInputs.Any(actual =>
-                                            actual.Name == input.Name && actual.Value == input.Value)))
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-                else
+
+                if (!(savedDate == date))
                 {
                     return false;
                 }
+
+                if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value != expectedMode)
+                {
+                    return false;
+                }
+
+                if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value
+                        .ReplaceLineEndings("\n")
+                    != expectedTopic.ReplaceLineEndings("\n"))
+                {
+                    return false;
+                }
+
+                if (expectedAttendance.All(input =>
+                        savedInputs.Count(actual => actual.Name == input.Name) == 1
+                        && savedInputs.Any(actual =>
+                            actual.Name == input.Name && actual.Value == input.Value)))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -738,22 +728,22 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
         static bool SameOrigin(Uri first, Uri second)
         {
-            if (!(first.Scheme == second.Scheme))
+            if (first.Scheme != second.Scheme)
             {
                 return false;
             }
 
-            if (!(first.Host == second.Host))
+            if (first.Host != second.Host)
             {
                 return false;
             }
 
-            if (!(first.Port == second.Port))
+            if (first.Port == second.Port)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         static void RequireConfirmationPage(IDocument page)
@@ -765,22 +755,17 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 {
                     return true;
                 }
-                else
+                if (IsLoginAddress(page.Url))
                 {
-                    if (IsLoginAddress(page.Url))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
+                    return true;
                 }
+
+                if (page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -817,23 +802,25 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     .Select(anchor => new Uri(anchor.Href))
                     .Where(uri =>
                     {
-                        if (!(uri.Scheme == origin.Scheme))
+                        if (uri.Scheme != origin.Scheme)
                         {
                             return false;
                         }
-                        if (!(uri.Host == origin.Host))
+                        if (uri.Host != origin.Host)
                         {
                             return false;
                         }
-                        if (!(uri.Port == origin.Port))
+                        if (uri.Port != origin.Port)
                         {
                             return false;
                         }
-                        if (!(uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal)))
+
+                        if (uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
                         {
-                            return false;
+                            return true;
                         }
-                        return true;
+
+                        return false;
                     })
                     .Distinct()
                     .ToArray();
@@ -878,22 +865,17 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     {
                         return true;
                     }
-                    else
+                    if (IsLoginAddress(list.Url))
                     {
-                        if (IsLoginAddress(list.Url))
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            if (list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
+                        return true;
                     }
+
+                    if (list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult2 = CalculateConditionResult2();
@@ -922,8 +904,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                         {
                             string text = path;
                             string text2 = $"/LessonDetail/{lessonId}";
-                            string value = (string) text2;
-                            global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                            string value = text2;
+                            var comparisonType = StringComparison.Ordinal;
                             if (text.EndsWith(value, comparisonType))
                             {
                                 conditionResult = true;
@@ -932,8 +914,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                             {
                                 string text3 = path;
                                 string text4 = $"/Edit/{lessonId}";
-                                string value2 = (string) text4;
-                                global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                                string value2 = text4;
+                                var comparisonType2 = StringComparison.Ordinal;
                                 bool endsWith = text3.EndsWith(value2, comparisonType2);
                                 conditionResult = endsWith;
                             }
@@ -943,12 +925,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                             conditionResult = false;
                         }
 
-                        if (conditionResult)
-                        {
-                            return true;
-                        }
-
-                        return false;
+                        return conditionResult;
                     }))
                 {
                     throw new RegistryDeletionRefusedException();
@@ -986,12 +963,12 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 return false;
             }
 
-            if (!IsLoginAddress(location.ToString()))
+            if (IsLoginAddress(location.ToString()))
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         if (!form.Method.Equals("post", StringComparison.OrdinalIgnoreCase))
@@ -1049,7 +1026,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var form = RegistryGradeForm.Validate(document);
         token.ThrowIfCancellationRequested();
         var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
-            .Select(input => (Name: input.Name, Value: input.Value))
+            .Select(input => new ExpectedFormValue(Name: input.Name, Value: input.Value))
             .ToArray();
         try
         {
@@ -1079,23 +1056,18 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             {
                 return true;
             }
-            else
+            if (saved.QuerySelector("input[type=password], .validation-summary-errors") is not null)
             {
-                if (saved.QuerySelector("input[type=password], .validation-summary-errors") is not null)
-                {
-                    return true;
-                }
-                else
-                {
-                    if (expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
-                            || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
+                return true;
             }
+
+            if (expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
+                    || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -1146,8 +1118,8 @@ public readonly record struct RegistryScrapingContext(
         CancellationToken cancellationToken)
     {
         var builder = new ScrapingContextBuilder();
-        global::ScheduleLib.Scraping.Common.ScrapingContextBuilder b = builder;
-        global::System.TimeSpan delay = ResolveHttpCallDelay(sp);
+        var b = builder;
+        var delay = ResolveHttpCallDelay(sp);
         RegistryScraping.AddDefaultConfigWithoutHandlers(b, delay);
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         builder.TokenAuth(x =>
@@ -1208,10 +1180,10 @@ public static partial class RegistryScraping
                 CookieContainer = cookieProvider.Container,
                 AllowAutoRedirect = false,
             };
-            global::System.Net.Http.HttpMessageHandler inner = handler;
-            global::System.Uri index2 = new(BaseUrl + "LessonAttendance");
-            global::System.Uri login2 = DefaultTokenNames.LoginUrl;
-            global::System.TimeSpan spacing2 = spacing;
+            var inner = handler;
+            Uri index2 = new(BaseUrl + "LessonAttendance");
+            var login2 = DefaultTokenNames.LoginUrl;
+            var spacing2 = spacing;
             var guard = new RegistryHistoryRequestHandler(inner,
                 index: index2,
                 login: login2,

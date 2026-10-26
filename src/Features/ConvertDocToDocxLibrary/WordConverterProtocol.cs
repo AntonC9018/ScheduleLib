@@ -6,10 +6,16 @@ namespace ConvertDocToDocx;
 internal static class WordConverterProtocol
 {
     internal const int MissingWordExitCode = 8;
-    internal const string MissingWordMessage = "Legacy .doc conversion requires a registered Microsoft Word installation on Windows. Install or repair Word, or supply DOCX sources instead.";
+
+    internal const string MissingWordMessage =
+        "Legacy .doc conversion requires a registered Microsoft Word installation on Windows. Install or repair Word, or supply DOCX sources instead.";
+
     internal static bool IsMissingWordActivation(int hResult) => hResult == unchecked((int) 0x80040154);
 
-    internal static string OwnershipMessage(string nonce, int pid, long startTicks)
+    internal static string OwnershipMessage(
+        string nonce,
+        int pid,
+        long startTicks)
     {
         string CalculateToString()
         {
@@ -23,10 +29,18 @@ internal static class WordConverterProtocol
             return toString2;
         }
 
-        return string.Join("|", "WORD1", nonce, CalculateToString(), CalculateToString2());
+        return string.Join("|",
+            "WORD1",
+            nonce,
+            CalculateToString(),
+            CalculateToString2());
     }
 
-    internal static bool TryReadOwnership(string? message, string nonce, out int pid, out long startTicks)
+    internal static bool TryReadOwnership(
+        string? message,
+        string nonce,
+        out int pid,
+        out long startTicks)
     {
         pid = 0;
         startTicks = 0;
@@ -36,17 +50,20 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!(fields[0] == "WORD1"))
+        if (fields[0] != "WORD1")
         {
             return false;
         }
 
-        if (!(fields[1] == nonce))
+        if (fields[1] != nonce)
         {
             return false;
         }
 
-        if (!(int.TryParse(fields[2], NumberStyles.None, CultureInfo.InvariantCulture, out pid)))
+        if (!int.TryParse(fields[2],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out pid))
         {
             return false;
         }
@@ -56,21 +73,31 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!(long.TryParse(fields[3], NumberStyles.None, CultureInfo.InvariantCulture, out startTicks)))
+        if (!long.TryParse(fields[3],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out startTicks))
         {
             return false;
         }
 
-        if (!(startTicks > 0))
+        if (startTicks > 0)
         {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
-    internal static bool IsOwnedProcess(int pid, long reportedTicks, long actualTicks, long converterTicks,
-        int session, int converterSession, string processName, bool existedBeforeConversion)
+    internal static bool IsOwnedProcess(
+        int pid,
+        long reportedTicks,
+        long actualTicks,
+        long converterTicks,
+        int session,
+        int converterSession,
+        string processName,
+        bool existedBeforeConversion)
     {
         bool CheckCondition()
         {
@@ -79,12 +106,12 @@ internal static class WordConverterProtocol
                 return false;
             }
 
-            if (!(!existedBeforeConversion))
+            if (existedBeforeConversion)
             {
                 return false;
             }
 
-            if (!(reportedTicks == actualTicks))
+            if (reportedTicks != actualTicks)
             {
                 return false;
             }
@@ -94,17 +121,19 @@ internal static class WordConverterProtocol
                 return false;
             }
 
-            if (!(session == converterSession))
+            if (session != converterSession)
             {
                 return false;
             }
 
-            if (!(string.Equals(processName, "WINWORD", System.StringComparison.OrdinalIgnoreCase)))
+            if (string.Equals(processName,
+                    "WINWORD",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         return CheckCondition();

@@ -24,7 +24,8 @@ public sealed class IntegrationTestHelper : IDisposable
     {
         get
         {
-            return [
+            return
+            [
                 [TestOption.Default],
                 [TestOption.New],
             ];
@@ -167,7 +168,9 @@ public sealed class IntegrationTestHelper : IDisposable
     {
         var scheduleBuilder = new ScheduleBuilder();
         scheduleBuilder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
-        await AddScheduleToBuilder(scheduleBuilder, jsonPath, cancellationToken);
+        await AddScheduleToBuilder(scheduleBuilder,
+            jsonPath,
+            cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
         return jsonSchedule;
     }
@@ -215,7 +218,7 @@ public sealed class IntegrationTestHelper : IDisposable
                         RepeatableDate = repeatableDateModel,
                         Room = lesson.Room.IsValid ? schedule.Get(lesson.Room) : null,
                         Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName
-                            .ToString())
+                                .ToString())
                             .ToArray(),
                         Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
                         LessonType = lesson.Type,
@@ -270,7 +273,9 @@ public sealed class IntegrationTestHelper : IDisposable
 
         using var stream = new MemoryStream();
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        JsonSerializer.Serialize(stream, readableSchedule, options);
+        JsonSerializer.Serialize(stream,
+            readableSchedule,
+            options);
         stream.Position = 0;
         using var reader = new StreamReader(stream);
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation

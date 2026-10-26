@@ -31,8 +31,8 @@ public sealed class ElectiveCohorts
                     alternatives = [];
                     _byGroup.Add(id, alternatives);
                 }
-                global::System.Collections.Generic.HashSet<global::ScheduleLib.Alternative> hashSet = alternatives;
-                global::ScheduleLib.Alternative item = new(cell.Alternative!);
+                var hashSet = alternatives;
+                Alternative item = new(cell.Alternative!);
                 hashSet.Add(item);
             }
         }

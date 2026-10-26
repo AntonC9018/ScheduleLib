@@ -20,17 +20,21 @@ public sealed class CombinedGroupMatchingTests
         var groups = new FoundGroups
         {
             IsWildcard = true,
-            Value = [new GroupId(0), new GroupId(1)]
+            Value = [new GroupId(0), new GroupId(1)],
         };
-        global::ScheduleLib.CourseId courseId = fixture.Course;
-        global::ScheduleLib.OnlineRegistry.FoundGroups groups2 = groups;
-        global::ScheduleLib.GroupPartitionKey groupPartition = Resolver.Resolve(parsed);
-        global::ScheduleLib.OnlineRegistry.LessonSearchFilter filter = new LessonSearchFilter(courseId, groups2, groupPartition);
-        global::ScheduleLib.Builders.LessonsByCourseMap lookup = fixture.Builder.LookupModule!.LessonsByCourse;
-        global::ScheduleLib.Schedule schedule2 = schedule;
-        global::ScheduleLib.OnlineRegistry.LessonMatchParams p = new(
-            filter, lookup, schedule2);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
+        var courseId = fixture.Course;
+        var groups2 = groups;
+        var groupPartition = Resolver.Resolve(parsed);
+        var filter = new LessonSearchFilter(courseId,
+            groups2,
+            groupPartition);
+        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
+        LessonMatchParams p = new(
+            filter,
+            lookup,
+            schedule2);
+        var matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
         var lessons = matchLessonsInSchedule.ToArray();
         Assert.Empty(lessons);
     }
@@ -47,9 +51,9 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("IA2404(ru)");
         if (sharedLab)
         {
-            global::ScheduleLib.GroupId CalculateId()
+            GroupId CalculateId()
             {
-                global::ScheduleLib.GroupId id = new GroupId(1);
+                var id = new GroupId(1);
                 return id;
             }
 
@@ -62,29 +66,32 @@ public sealed class CombinedGroupMatchingTests
         {
             IsWildcard = true,
             IsCombined = combined,
-            Value = [new GroupId(0)]
+            Value = [new GroupId(0)],
         };
-        global::ScheduleLib.CourseId courseId = fixture.Course;
-        global::ScheduleLib.OnlineRegistry.FoundGroups groups2 = groups;
-        global::ScheduleLib.GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        global::ScheduleLib.OnlineRegistry.LessonSearchFilter filter = new LessonSearchFilter(courseId, groups2, groupPartition);
-        global::ScheduleLib.Builders.LessonsByCourseMap lookup = fixture.Builder.LookupModule!.LessonsByCourse;
-        global::ScheduleLib.Schedule schedule2 = schedule;
+        var courseId = fixture.Course;
+        var groups2 = groups;
+        GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        var filter = new LessonSearchFilter(courseId,
+            groups2,
+            groupPartition);
+        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
         var parameters = new LessonMatchParams(
-            filter, lookup, schedule2);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
-        global::System.Collections.IEnumerable collection2 = collection;
+            filter,
+            lookup,
+            schedule2);
+        var collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
+        System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
+
         bool CalculateCondition()
         {
-            if (combined)
-            {
-                return sharedLab;
-            }
-            else
+            if (!combined)
             {
                 return false;
             }
+
+            return sharedLab;
         }
 
         bool condition = CalculateCondition();
@@ -100,7 +107,7 @@ public sealed class CombinedGroupMatchingTests
             expected2 = 1;
         }
 
-        global::System.Collections.Generic.List<global::ScheduleLib.AnyLessonId> findUnsafeIntakeLabs = MatchLessonHelper.FindUnsafeIntakeLabs(parameters);
+        var findUnsafeIntakeLabs = MatchLessonHelper.FindUnsafeIntakeLabs(parameters);
         int actual2 = findUnsafeIntakeLabs.Count;
         Assert.Equal(expected: expected2, actual: actual2);
     }
@@ -114,25 +121,28 @@ public sealed class CombinedGroupMatchingTests
         fixture.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.Optional;
         fixture.Builder.WeeklyLessons.Ref(1).Data.Base.General.Type = LessonType.Curs;
         var schedule = fixture.Build();
-        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+
+        GroupPartitionKey CalculateGroupPartition()
         {
-            global::ScheduleLib.GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+            GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
             return groupPartition;
         }
 
         var parameters = new LessonMatchParams(
-                    new LessonSearchFilter(fixture.Course, new FoundGroups
-                    {
-                        IsWildcard = true,
-                        Value = [new GroupId(0)]
-                    },
-                        CalculateGroupPartition()),
-                    fixture.Builder.LookupModule!.LessonsByCourse, schedule);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
-        global::System.Collections.IEnumerable collection2 = collection;
+            new LessonSearchFilter(fixture.Course,
+                new FoundGroups
+                {
+                    IsWildcard = true,
+                    Value = [new GroupId(0)],
+                },
+                CalculateGroupPartition()),
+            fixture.Builder.LookupModule!.LessonsByCourse,
+            schedule);
+        var collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
+        System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
-        global::System.Collections.Generic.List<global::ScheduleLib.AnyLessonId> collection3 = MatchLessonHelper.FindUnsafeIntakeLabs(parameters);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> collection4 = collection3;
+        var collection3 = MatchLessonHelper.FindUnsafeIntakeLabs(parameters);
+        IEnumerable<AnyLessonId> collection4 = collection3;
         Assert.Single(collection4);
     }
 
@@ -145,8 +155,8 @@ public sealed class CombinedGroupMatchingTests
         Assert.Null(group.GroupNumber);
         Assert.Null(group.Language);
         Assert.True(group.IsWildcard);
-        global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        global::ScheduleLib.GroupPartitionKey actual2 = Resolver.Resolve(group);
+        var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        var actual2 = Resolver.Resolve(group);
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -164,7 +174,12 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("I2406");
         fixture.Builder.Groups.Ref(7).QualificationType = QualificationType.Master;
         var result = Match(fixture, "I_IA24(SAWM)");
-        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1) }, actual: result.ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+                new GroupId(1),
+            },
+            actual: result.ToArray());
     }
 
     [Fact]
@@ -173,15 +188,16 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402(ru)");
-        global::ScheduleLib.OnlineRegistry.GroupForSearch CalculateG()
+
+        GroupForSearch CalculateG()
         {
-            global::ScheduleLib.OnlineRegistry.GroupForSearch g = Parse("I_IA24(SAWM)");
+            var g = Parse("I_IA24(SAWM)");
             return g;
         }
 
-        global::ScheduleLib.LessonGroups CalculateCollection()
+        LessonGroups CalculateCollection()
         {
-            global::ScheduleLib.LessonGroups collection = GroupsNavigator.FindGroupMatch(fixture.Build(), CalculateG());
+            var collection = GroupsNavigator.FindGroupMatch(fixture.Build(), CalculateG());
             return collection;
         }
 
@@ -194,8 +210,13 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1) }, actual: Match(fixture, "I_IA24(SAWM)")
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+                new GroupId(1),
+            },
+            actual: Match(fixture, "I_IA24(SAWM)")
+                .ToArray());
     }
 
     [Fact]
@@ -204,8 +225,12 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)", specialization: Specialization.All);
         fixture.Add("IA2402(ru)", specialization: Specialization.All);
-        Assert.Equal(expected: new[] { new GroupId(1) }, actual: Match(fixture, "I_IA2402ru")
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(1),
+            },
+            actual: Match(fixture, "I_IA2402ru")
+                .ToArray());
     }
 
     [Fact]
@@ -214,8 +239,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402");
-        global::ScheduleLib.LessonGroups collection = Match(fixture, "I_IA24(SAWM)");
-        global::System.Collections.IEnumerable collection2 = collection;
+        var collection = Match(fixture, "I_IA24(SAWM)");
+        System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
     }
 
@@ -225,8 +250,12 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[] { new GroupId(0) }, actual: Match(fixture, "I_IA24(SAWM)ru")
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+            },
+            actual: Match(fixture, "I_IA24(SAWM)ru")
+                .ToArray());
     }
 
     [Fact]
@@ -235,8 +264,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)", otherCourse: true);
         fixture.Add("IA2402", specialization: Specialization.GA2D);
-        global::ScheduleLib.LessonGroups collection = Match(fixture, "I_IA24(SAWM)");
-        global::System.Collections.IEnumerable collection2 = collection;
+        var collection = Match(fixture, "I_IA24(SAWM)");
+        System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
     }
 
@@ -245,10 +274,18 @@ public sealed class CombinedGroupMatchingTests
     {
         var fixture = new Fixture();
         fixture.Add("IA2401(ru)", specialization: Specialization.GA2D);
-        fixture.Add("IA2402(ru)", specialization: Specialization.GA2D, otherCourse: true);
+        fixture.Add("IA2402(ru)",
+            specialization: Specialization.GA2D,
+            otherCourse: true);
         fixture.Add("IA2403(ru)");
-        Assert.Equal(expected: new[] { new GroupId(0), new GroupId(1), new GroupId(2) }, actual: Match(fixture, "IA24(GA2D)ru")
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+                new GroupId(1),
+                new GroupId(2),
+            },
+            actual: Match(fixture, "IA24(GA2D)ru")
+                .ToArray());
     }
 
     [Fact]
@@ -260,57 +297,77 @@ public sealed class CombinedGroupMatchingTests
         fixture.Builder.WeeklyLessons.Ref(0).Data.Base.General.Type = LessonType.Curs;
         var schedule = fixture.Build();
         var group = Parse("IA24(GA2D)ru");
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, CalculatePartition(), group);
-        Assert.Equal(expected: new[] { new GroupId(0) }, actual: parents.ToArray());
+        var parents = GroupsNavigator.FindGroupMatch(schedule,
+            fixture.Course,
+            CalculatePartition(),
+            group);
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+            },
+            actual: parents.ToArray());
         var groups = new FoundGroups
         {
             IsWildcard = true,
-            Value = parents
+            Value = parents,
         };
-        global::ScheduleLib.CourseId courseId = fixture.Course;
-        global::ScheduleLib.OnlineRegistry.FoundGroups groups2 = groups;
-        global::ScheduleLib.GroupPartitionKey groupPartition = Resolver.Resolve(group);
-        global::ScheduleLib.OnlineRegistry.LessonSearchFilter filter = new LessonSearchFilter(courseId, groups2, groupPartition);
-        global::ScheduleLib.Builders.LessonsByCourseMap lookup = fixture.Builder.LookupModule!.LessonsByCourse;
-        global::ScheduleLib.Schedule schedule2 = schedule;
-        global::ScheduleLib.OnlineRegistry.LessonMatchParams p = new(
-            filter, lookup, schedule2);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
+        var courseId = fixture.Course;
+        var groups2 = groups;
+        var groupPartition = Resolver.Resolve(group);
+        var filter = new LessonSearchFilter(courseId,
+            groups2,
+            groupPartition);
+        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
+        LessonMatchParams p = new(
+            filter,
+            lookup,
+            schedule2);
+        var matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
         var result = matchLessonsInSchedule.ToArray();
         var lesson = Assert.Single(result);
-        global::ScheduleLib.GroupPartitionKey CalculateExpected()
+
+        GroupPartitionKey CalculateExpected()
         {
-            global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All);
+            var expected2 = new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All);
             return expected2;
         }
 
         Assert.Equal(expected: CalculateExpected(),
-                    actual: schedule.Get(lesson).Lesson.GroupPartitionKey);
+            actual: schedule.Get(lesson).Lesson.GroupPartitionKey);
     }
 
     [Fact]
     public void UnknownTrailingSuffixIsSkippedWithoutAbortingOtherGroups()
     {
         var document = new HtmlParser().ParseDocument("""
-            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
-            <div class="row"><a href="https://registry.test/unknown">IA2401unknown</a><a href="https://registry.test/evaluation">Grades</a></div>
-            <div class="row"><a href="https://registry.test/group">IA2401ru</a><a href="https://registry.test/evaluation">Grades</a></div>
-            </div></div></form>
-            """);
+                                                      <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+                                                      <div class="row"><a href="https://registry.test/unknown">IA2401unknown</a><a href="https://registry.test/evaluation">Grades</a></div>
+                                                      <div class="row"><a href="https://registry.test/group">IA2401ru</a><a href="https://registry.test/evaluation">Grades</a></div>
+                                                      </div></div></form>
+                                                      """);
         int failures = 0;
         int searches = 0;
         var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = document,
-            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
             GroupPartitionResolver = Resolver,
-            SearchGroupId = (ref GroupForSearch group) => { searches++; return [new GroupId(0)]; },
+            SearchGroupId = (ref group) =>
+            {
+                searches++;
+                return [new GroupId(0)];
+            },
             ParseErrorHandler = _ =>
             {
                 failures++;
@@ -335,12 +392,37 @@ public sealed class CombinedGroupMatchingTests
     }
 
     [Theory]
-    [InlineData("DJ2204r(II)", "DJ", 4, "II", Language.Ru, false)]
-    [InlineData("I2202rse", "I", 2, "", Language.Ru, true)]
-    [InlineData("I2302se(II)", "I", 2, "II", null, true)]
-    [InlineData("I2302SEr", "I", 2, "", Language.Ru, true)]
-    public void HistoricalMarkersPreserveLanguageAndNumericSubgroup(string value, string faculty,
-        int number, string subgroup, Language? language, bool isAdditionalCourses)
+    [InlineData("DJ2204r(II)",
+        "DJ",
+        4,
+        "II",
+        Language.Ru,
+        false)]
+    [InlineData("I2202rse",
+        "I",
+        2,
+        "",
+        Language.Ru,
+        true)]
+    [InlineData("I2302se(II)",
+        "I",
+        2,
+        "II",
+        null,
+        true)]
+    [InlineData("I2302SEr",
+        "I",
+        2,
+        "",
+        Language.Ru,
+        true)]
+    public void HistoricalMarkersPreserveLanguageAndNumericSubgroup(
+        string value,
+        string faculty,
+        int number,
+        string subgroup,
+        Language? language,
+        bool isAdditionalCourses)
     {
         var group = Parse(value);
         Assert.Equal(expected: faculty, actual: group.FacultyName.ToString());
@@ -364,20 +446,27 @@ public sealed class CombinedGroupMatchingTests
     [InlineData("IA2201(D)")]
     public void UnknownHistoricalPartitionIsSkippedBeforeSearchingParents(string label)
     {
-        global::AngleSharp.Html.Parser.HtmlParser htmlParser = new HtmlParser();
+        var htmlParser = new HtmlParser();
         string source = $"""
-            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
-            <div class="row"><a href="https://registry.test/group">{label}</a><a href="https://registry.test/evaluation">Grades</a></div>
-            </div></div></form>
-            """;
+                         <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+                         <div class="row"><a href="https://registry.test/group">{label}</a><a href="https://registry.test/evaluation">Grades</a></div>
+                         </div></div></form>
+                         """;
         var document = htmlParser.ParseDocument(source);
         int searches = 0;
         var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = document,
-            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
             GroupPartitionResolver = Resolver,
-            SearchGroupId = (ref GroupForSearch group) => { searches++; return [new GroupId(0)]; },
+            SearchGroupId = (ref group) =>
+            {
+                searches++;
+                return [new GroupId(0)];
+            },
             ParseErrorHandler = _ => Assert.Fail("Known legacy markers should parse."),
         })
             .ToArray();
@@ -394,28 +483,36 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("DJ2401(ru)");
         var schedule = fixture.Build();
         var group = Parse("I_IA24(SAWM)");
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, CalculatePartition(), group);
+        var parents = GroupsNavigator.FindGroupMatch(schedule,
+            fixture.Course,
+            CalculatePartition(),
+            group);
         var groups = new FoundGroups
         {
             IsWildcard = true,
             IsCombined = true,
-            Value = parents
+            Value = parents,
         };
-        global::ScheduleLib.CourseId courseId = fixture.Course;
-        global::ScheduleLib.OnlineRegistry.FoundGroups groups2 = groups;
-        global::ScheduleLib.GroupPartitionKey groupPartition = Resolver.Resolve(group);
-        global::ScheduleLib.OnlineRegistry.LessonSearchFilter filter = new LessonSearchFilter(courseId, groups2, groupPartition);
-        global::ScheduleLib.Builders.LessonsByCourseMap lookup = fixture.Builder.LookupModule!.LessonsByCourse;
-        global::ScheduleLib.Schedule schedule2 = schedule;
-        global::ScheduleLib.OnlineRegistry.LessonMatchParams p = new(
-            filter, lookup, schedule2);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
+        var courseId = fixture.Course;
+        var groups2 = groups;
+        var groupPartition = Resolver.Resolve(group);
+        var filter = new LessonSearchFilter(courseId,
+            groups2,
+            groupPartition);
+        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
+        LessonMatchParams p = new(
+            filter,
+            lookup,
+            schedule2);
+        var matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
         var result = matchLessonsInSchedule.ToArray();
         Assert.Empty(result);
     }
@@ -426,9 +523,10 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("DJ2401(ru)");
-        global::ScheduleLib.GroupId CalculateId()
+
+        GroupId CalculateId()
         {
-            global::ScheduleLib.GroupId id = new GroupId(1);
+            var id = new GroupId(1);
             return id;
         }
 
@@ -439,17 +537,21 @@ public sealed class CombinedGroupMatchingTests
         {
             IsWildcard = true,
             IsCombined = true,
-            Value = [new GroupId(0)]
+            Value = [new GroupId(0)],
         };
-        global::ScheduleLib.CourseId courseId = fixture.Course;
-        global::ScheduleLib.OnlineRegistry.FoundGroups groups2 = groups;
-        global::ScheduleLib.GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        global::ScheduleLib.OnlineRegistry.LessonSearchFilter filter = new LessonSearchFilter(courseId, groups2, groupPartition);
-        global::ScheduleLib.Builders.LessonsByCourseMap lookup = fixture.Builder.LookupModule!.LessonsByCourse;
-        global::ScheduleLib.Schedule schedule2 = schedule;
-        global::ScheduleLib.OnlineRegistry.LessonMatchParams p = new(
-            filter, lookup, schedule2);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.AnyLessonId> matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
+        var courseId = fixture.Course;
+        var groups2 = groups;
+        GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        var filter = new LessonSearchFilter(courseId,
+            groups2,
+            groupPartition);
+        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
+        LessonMatchParams p = new(
+            filter,
+            lookup,
+            schedule2);
+        var matchLessonsInSchedule = MatchLessonHelper.MatchLessonsInSchedule(p);
         var result = matchLessonsInSchedule.ToArray();
         Assert.Empty(result);
     }
@@ -458,16 +560,19 @@ public sealed class CombinedGroupMatchingTests
     public void CombinedLinkCarriesItsMatchingKindAndRemappedPartition()
     {
         var document = new HtmlParser().ParseDocument("""
-            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
-            <div class="row"><a href="https://registry.test/group">I_IA24(SAWM)</a><a href="https://registry.test/evaluation">Grades</a></div>
-            </div></div></form>
-            """);
+                                                      <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+                                                      <div class="row"><a href="https://registry.test/group">I_IA24(SAWM)</a><a href="https://registry.test/evaluation">Grades</a></div>
+                                                      </div></div></form>
+                                                      """);
         var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = document,
-            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
             GroupPartitionResolver = Resolver,
-            SearchGroupId = (ref GroupForSearch group) =>
+            SearchGroupId = (ref group) =>
             {
                 group = Parse(group.UnparsedName);
                 return [new GroupId(0), new GroupId(1)];
@@ -478,8 +583,8 @@ public sealed class CombinedGroupMatchingTests
         var link = Assert.Single(result);
         Assert.True(link.Groups.IsCombined);
         Assert.True(link.Groups.IsWildcard);
-        global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        global::ScheduleLib.GroupPartitionKey actual2 = link.GroupPartition;
+        var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        var actual2 = link.GroupPartition;
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -489,7 +594,7 @@ public sealed class CombinedGroupMatchingTests
     public void WholeGroupRegistryIncludesParentLanguageLabsButExcludesEnglishSubgroup(string label, Language language)
     {
         var fixture = new Fixture();
-        global::ScheduleLib.Tests.OnlineRegistry.CombinedGroupMatchingTests.Fixture fixture2 = fixture;
+        var fixture2 = fixture;
         string name;
         if (language == Language.Ru)
         {
@@ -500,13 +605,13 @@ public sealed class CombinedGroupMatchingTests
             name = "IA2401";
         }
 
-        global::ScheduleLib.Specialization? specialization2 = Specialization.All;
+        Specialization? specialization2 = Specialization.All;
         fixture2.Add(name, specialization: specialization2);
         fixture.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(language);
         fixture.Builder.RegularLesson(lesson =>
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
-            global::ScheduleLib.GroupId group = new GroupId(0);
+            var lessonBuilder = lesson;
+            var group = new GroupId(0);
             lessonBuilder.Group(group);
             lesson.Course(fixture.Course);
             lesson.DayOfWeek(DayOfWeek.Tuesday);
@@ -517,24 +622,29 @@ public sealed class CombinedGroupMatchingTests
         var schedule = fixture.Build();
         var parsed = Parse(label);
         var parents = GroupsNavigator.FindGroupMatch(schedule, parsed);
-        global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+
+        GroupPartitionKey CalculateGroupPartition()
         {
-            global::ScheduleLib.GroupPartitionKey groupPartition = Resolver.Resolve(parsed);
+            var groupPartition = Resolver.Resolve(parsed);
             return groupPartition;
         }
 
         var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
-                    new LessonSearchFilter(fixture.Course, new FoundGroups
+                new LessonSearchFilter(fixture.Course,
+                    new FoundGroups
                     {
                         Value = parents,
-                        IsWildcard = false
-                    }, CalculateGroupPartition()),
-                    fixture.Builder.LookupModule!.LessonsByCourse, schedule))
+                        IsWildcard = false,
+                    },
+                    CalculateGroupPartition()),
+                fixture.Builder.LookupModule!.LessonsByCourse,
+                schedule))
             .ToArray();
         var lesson = Assert.Single(lessons);
-        global::ScheduleLib.SubGroup CalculateExpected()
+
+        SubGroup CalculateExpected()
         {
-            global::ScheduleLib.SubGroup expected2 = SpecialSubGroups.FromLanguage(language);
+            var expected2 = SpecialSubGroups.FromLanguage(language);
             return expected2;
         }
 
@@ -550,8 +660,10 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add(name, specialization: Specialization.All);
         var english = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
-        var partition = GroupsNavigator.NormalizePartition(fixture.Build(), new LessonGroups { new GroupId(0) }, english);
-        global::ScheduleLib.GroupPartitionKey expected2;
+        var partition = GroupsNavigator.NormalizePartition(fixture.Build(),
+            new LessonGroups { new GroupId(0) },
+            english);
+        GroupPartitionKey expected2;
         if (wholeGroup)
         {
             expected2 = GroupPartitionKey.All;
@@ -561,7 +673,7 @@ public sealed class CombinedGroupMatchingTests
             expected2 = english;
         }
 
-        global::ScheduleLib.GroupPartitionKey actual2 = partition;
+        var actual2 = partition;
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -587,38 +699,57 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("IA2504(en)", specialization: Specialization.All);
         var group = Parse(registryName);
         var schedule = fixture.Build();
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        var strict = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, CalculatePartition(), group);
+        var strict = GroupsNavigator.FindGroupMatch(schedule,
+            fixture.Course,
+            CalculatePartition(),
+            group);
         if (registryName.EndsWith("ru", StringComparison.Ordinal))
         {
             Assert.Empty(strict);
         }
         else
         {
-            Assert.Equal(expected: new[] { new GroupId(0) }, actual: strict.ToArray());
+            Assert.Equal(expected: new[]
+                {
+                    new GroupId(0),
+                },
+                actual: strict.ToArray());
         }
 
-        global::ScheduleLib.GroupPartitionKey CalculatePartition2()
+        GroupPartitionKey CalculatePartition2()
         {
-            global::ScheduleLib.GroupPartitionKey partition2 = Resolver.Resolve(group);
+            var partition2 = Resolver.Resolve(group);
             return partition2;
         }
 
-        var matched = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, CalculatePartition2(), group, [EnglishRule]);
-        Assert.Equal(expected: new[] { new GroupId(2) }, actual: matched.ToArray());
-        global::ScheduleLib.GroupPartitionKey CalculatePartition3()
+        var matched = GroupsNavigator.FindGroupMatch(schedule,
+            fixture.Course,
+            CalculatePartition2(),
+            group,
+            [EnglishRule]);
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(2),
+            },
+            actual: matched.ToArray());
+
+        GroupPartitionKey CalculatePartition3()
         {
-            global::ScheduleLib.GroupPartitionKey partition3 = Resolver.Resolve(group);
+            var partition3 = Resolver.Resolve(group);
             return partition3;
         }
 
         var expected2 = GroupPartitionKey.All;
-        var actual2 = GroupsNavigator.NormalizePartition(schedule, matched, CalculatePartition3());
+        var actual2 = GroupsNavigator.NormalizePartition(schedule,
+            matched,
+            CalculatePartition3());
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -634,15 +765,23 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("DJ2503(en)", specialization: Specialization.All);
         fixture.Add(extraParent, specialization: Specialization.All);
         var group = Parse("DJ2501(en)");
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        Assert.Equal(expected: new[] { new GroupId(0) }, actual: GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course,
-                    CalculatePartition(), group, [EnglishRule])
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+            },
+            actual: GroupsNavigator.FindGroupMatch(fixture.Build(),
+                    fixture.Course,
+                    CalculatePartition(),
+                    group,
+                    [EnglishRule])
+                .ToArray());
     }
 
     [Fact]
@@ -650,17 +789,24 @@ public sealed class CombinedGroupMatchingTests
     {
         var fixture = new Fixture();
         fixture.Add("DJ2501", specialization: Specialization.All);
-        fixture.Add("DJ2503(en)", specialization: Specialization.All, otherCourse: true);
+        fixture.Add("DJ2503(en)",
+            specialization: Specialization.All,
+            otherCourse: true);
         var group = Parse("DJ2502(en)");
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        global::ScheduleLib.LessonGroups CalculateCollection()
+        LessonGroups CalculateCollection()
         {
-            global::ScheduleLib.LessonGroups collection = GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course, CalculatePartition(), group, [EnglishRule]);
+            var collection = GroupsNavigator.FindGroupMatch(fixture.Build(),
+                fixture.Course,
+                CalculatePartition(),
+                group,
+                [EnglishRule]);
             return collection;
         }
 
@@ -675,15 +821,20 @@ public sealed class CombinedGroupMatchingTests
             Language = Language.En,
             MatchByLanguage = true,
         };
-        global::ScheduleLib.GroupPartitionKey CalculatePartition2()
+
+        GroupPartitionKey CalculatePartition2()
         {
-            global::ScheduleLib.GroupPartitionKey partition2 = Resolver.Resolve(group);
+            var partition2 = Resolver.Resolve(group);
             return partition2;
         }
 
-        global::ScheduleLib.LessonGroups CalculateCollection2()
+        LessonGroups CalculateCollection2()
         {
-            global::ScheduleLib.LessonGroups collection2 = GroupsNavigator.FindGroupMatch(other.Build(), other.Course, CalculatePartition2(), group, [rule]);
+            var collection2 = GroupsNavigator.FindGroupMatch(other.Build(),
+                other.Course,
+                CalculatePartition2(),
+                group,
+                [rule]);
             return collection2;
         }
 
@@ -692,16 +843,25 @@ public sealed class CombinedGroupMatchingTests
         explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
         explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
         explicitSubgroup.Builder.WeeklyLessons.Ref(0).Data.Base.Group.SubGroup = SpecialSubGroups.Eng;
-        explicitSubgroup.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(Language.Ru);
-        global::ScheduleLib.GroupPartitionKey CalculatePartition3()
+        explicitSubgroup.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup =
+            SpecialSubGroups.FromLanguage(Language.Ru);
+
+        GroupPartitionKey CalculatePartition3()
         {
-            global::ScheduleLib.GroupPartitionKey partition3 = Resolver.Resolve(group);
+            var partition3 = Resolver.Resolve(group);
             return partition3;
         }
 
-        Assert.Equal(expected: new[] { new GroupId(0) }, actual: GroupsNavigator.FindGroupMatch(explicitSubgroup.Build(), explicitSubgroup.Course,
-                    CalculatePartition3(), group, [rule])
-            .ToArray());
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(0),
+            },
+            actual: GroupsNavigator.FindGroupMatch(explicitSubgroup.Build(),
+                    explicitSubgroup.Course,
+                    CalculatePartition3(),
+                    group,
+                    [rule])
+                .ToArray());
     }
 
     [Fact]
@@ -714,15 +874,20 @@ public sealed class CombinedGroupMatchingTests
         fixture.Builder.WeeklyLessons.Ref(1).Data.Base.Group.SubGroup = SpecialSubGroups.FromLanguage(Language.Ro);
         fixture.Add("DJ2503(en)", specialization: Specialization.All);
         var group = Parse("DJ2502(en)");
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        global::ScheduleLib.LessonGroups CalculateCollection()
+        LessonGroups CalculateCollection()
         {
-            global::ScheduleLib.LessonGroups collection = GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course, CalculatePartition(), group, [EnglishRule]);
+            var collection = GroupsNavigator.FindGroupMatch(fixture.Build(),
+                fixture.Course,
+                CalculatePartition(),
+                group,
+                [EnglishRule]);
             return collection;
         }
 
@@ -733,9 +898,18 @@ public sealed class CombinedGroupMatchingTests
     public void MultipleRegistryEnglishLinksDisableLanguageFallback()
     {
         var target = Parse("DJ2501(en)");
-        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2502ru")], target, EnglishRule, Resolver));
-        Assert.False(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2503(en)")], target, EnglishRule, Resolver));
-        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2403(en)")], target, EnglishRule, Resolver));
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2502ru")],
+            target,
+            EnglishRule,
+            Resolver));
+        Assert.False(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2503(en)")],
+            target,
+            EnglishRule,
+            Resolver));
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2403(en)")],
+            target,
+            EnglishRule,
+            Resolver));
     }
 
     [Fact]
@@ -745,24 +919,29 @@ public sealed class CombinedGroupMatchingTests
         var additionalSamePartition = Parse("DJ2503SE(en)");
         Assert.True(ordinary.IsAdditionalCourses == false);
         Assert.True(additionalSamePartition.IsAdditionalCourses);
+
         // Same Eng partition but different variant still counts as unique within each variant.
         bool CalculateCondition()
         {
-            bool condition3 = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition], ordinary, EnglishRule, Resolver);
-            if (condition3)
-            {
-                return true;
-            }
-
-            return false;
+            bool condition3 = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition],
+                ordinary,
+                EnglishRule,
+                Resolver);
+            return condition3;
         }
 
         Assert.True(CalculateCondition());
-        bool condition = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition], additionalSamePartition, EnglishRule, Resolver);
+        bool condition = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition],
+            additionalSamePartition,
+            EnglishRule,
+            Resolver);
         Assert.True(condition);
         // Same-variant duplicates still disable the language fallback.
         var additionalDuplicate = Parse("DJ2504SE(en)");
-        bool condition2 = GroupsNavigator.HasUniqueRegistryAudience([additionalSamePartition, additionalDuplicate], additionalSamePartition, EnglishRule, Resolver);
+        bool condition2 = GroupsNavigator.HasUniqueRegistryAudience([additionalSamePartition, additionalDuplicate],
+            additionalSamePartition,
+            EnglishRule,
+            Resolver);
         Assert.False(condition2);
     }
 
@@ -770,17 +949,20 @@ public sealed class CombinedGroupMatchingTests
     public void GroupLinkCarriesAdditionalCoursesMarkerThroughHtmlNavigation()
     {
         var document = new HtmlParser().ParseDocument("""
-            <form name="lesson"><div class="row"></div><div class="row"><div class="col">
-            <div class="row"><a href="https://registry.test/ordinary">DJ2501(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
-            <div class="row"><a href="https://registry.test/additional">DJ2501SE(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
-            </div></div></form>
-            """);
+                                                      <form name="lesson"><div class="row"></div><div class="row"><div class="col">
+                                                      <div class="row"><a href="https://registry.test/ordinary">DJ2501(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
+                                                      <div class="row"><a href="https://registry.test/additional">DJ2501SE(en)</a><a href="https://registry.test/evaluation">Grades</a></div>
+                                                      </div></div></form>
+                                                      """);
         var result = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = document,
-            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
             GroupPartitionResolver = Resolver,
-            SearchGroupId = (ref GroupForSearch group) => [new GroupId(0)],
+            SearchGroupId = (ref group) => [new GroupId(0)],
             ParseErrorHandler = _ => Assert.Fail("SE markers should parse."),
         })
             .ToArray();
@@ -808,22 +990,38 @@ public sealed class CombinedGroupMatchingTests
             AllowParentGroup = true,
         };
         var group = Parse("IA2501");
-        global::ScheduleLib.SubGroup subGroup = SpecialSubGroups.FromLanguage(Language.Ro);
-        global::ScheduleLib.Specialization specialization2 = Specialization.All;
+        var subGroup = SpecialSubGroups.FromLanguage(Language.Ro);
+        var specialization2 = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization2);
         var schedule = fixture.Build();
-        var parents = GroupsNavigator.FindGroupMatch(schedule, fixture.Course, partition, group, [rule]);
-        Assert.Equal(expected: new[] { new GroupId(1) }, actual: parents.ToArray());
-        global::ScheduleLib.GroupPartitionKey expected2 = GroupPartitionKey.All;
-        global::ScheduleLib.GroupPartitionKey actual2 = GroupsNavigator.NormalizePartition(schedule, parents, partition, [rule]);
+        var parents = GroupsNavigator.FindGroupMatch(schedule,
+            fixture.Course,
+            partition,
+            group,
+            [rule]);
+        Assert.Equal(expected: new[]
+            {
+                new GroupId(1),
+            },
+            actual: parents.ToArray());
+        var expected2 = GroupPartitionKey.All;
+        var actual2 = GroupsNavigator.NormalizePartition(schedule,
+            parents,
+            partition,
+            [rule]);
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
     private static readonly GroupPartitionResolver Resolver = new(null);
+
     private static GroupForSearch Parse(string value)
     {
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(
-            GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }), value);
+            GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
+            value);
         var remappings = new Remappings();
         Config.ConfigureRemappings(remappings);
         if (!parsed.SubGroupName.IsEmpty)
@@ -837,13 +1035,17 @@ public sealed class CombinedGroupMatchingTests
     private static LessonGroups Match(Fixture fixture, string value)
     {
         var group = Parse(value);
-        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+
+        GroupPartitionKey CalculatePartition()
         {
-            global::ScheduleLib.GroupPartitionKey partition = Resolver.Resolve(group);
+            var partition = Resolver.Resolve(group);
             return partition;
         }
 
-        return GroupsNavigator.FindGroupMatch(fixture.Build(), fixture.Course, CalculatePartition(), group);
+        return GroupsNavigator.FindGroupMatch(fixture.Build(),
+            fixture.Course,
+            CalculatePartition(),
+            group);
     }
 
     private sealed class Fixture
@@ -855,7 +1057,10 @@ public sealed class CombinedGroupMatchingTests
 
         public Fixture()
         {
-            Builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+            Builder.GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            });
             Builder.EnableLookupModule();
             Course = Builder.Course("Synthetic elective");
             _otherCourse = Builder.Course("Unrelated synthetic course");
@@ -867,14 +1072,17 @@ public sealed class CombinedGroupMatchingTests
             return Builder.Build();
         }
 
-        public void Add(string name, Specialization? specialization = null, bool otherCourse = false)
+        public void Add(
+            string name,
+            Specialization? specialization = null,
+            bool otherCourse = false)
         {
             var group = Builder.Group(name);
             Builder.RegularLesson(lesson =>
             {
                 lesson.Group(group);
-                global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
-                global::ScheduleLib.CourseId course;
+                var lessonBuilder2 = lesson;
+                CourseId course;
                 if (otherCourse)
                 {
                     course = _otherCourse;
@@ -886,9 +1094,9 @@ public sealed class CombinedGroupMatchingTests
 
                 lessonBuilder2.Course(course);
                 lesson.DayOfWeek(DayOfWeek.Monday);
-                global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+                var lessonBuilder = lesson;
                 int index = _slot++;
-                global::TimeSlot timeSlot = new TimeSlot(index);
+                var timeSlot = new TimeSlot(index);
                 lessonBuilder.TimeSlot(timeSlot);
                 lesson.Type(LessonType.Lab);
                 lesson.Specialization(specialization ?? Specialization.DezvoltareaAplicatiilor);

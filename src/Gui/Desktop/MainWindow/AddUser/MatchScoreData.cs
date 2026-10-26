@@ -50,21 +50,20 @@ public readonly record struct MatchScore(
                     {
                         var p = parsedPart[i];
                         var e = existingFieldValue[i];
+
                         bool CalculateConditionResult()
                         {
-                            if (p == null)
+                            if (p != null)
                             {
-                                if (e == null)
-                                {
-                                    return true;
-                                }
+                                return false;
+                            }
 
-                                return false;
-                            }
-                            else
+                            if (e == null)
                             {
-                                return false;
+                                return true;
                             }
+
+                            return false;
                         }
 
                         bool conditionResult = CalculateConditionResult();

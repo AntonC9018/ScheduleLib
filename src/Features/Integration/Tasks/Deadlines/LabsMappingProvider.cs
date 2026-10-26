@@ -7,7 +7,7 @@ using ScheduleLib.Builders;
 
 namespace ScheduleLib.Application.Core;
 
-using LabTasksDatabaseConfig = Config.LabTasksDatabaseConfig;
+using LabTasksDatabaseConfig = LabTasksDatabaseConfig;
 using T = Dictionary<CourseId, List<LabsMappingProvider.LabMapping>>;
 
 [AutoConstructor]
@@ -25,7 +25,7 @@ public sealed partial class LabsMappingProvider
         {
             return LabsValue.Empty;
         }
-        var builder = new Dictionary<(CourseId CourseId, Config.Option Option), LabTasksSource>();
+        var builder = new Dictionary<(CourseId CourseId, Option Option), LabTasksSource>();
         foreach (var s in config.Sources)
         {
             if (_lookup.Course(s.Key.CourseName.AsMemory()) is not { } courseId)
@@ -57,7 +57,9 @@ public sealed partial class LabsMappingProvider
         {
             var list = await s.GetTasks(_sp);
 
-            ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, k.CourseId, out bool exists);
+            ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(ret,
+                k.CourseId,
+                out bool exists);
             if (!exists)
             {
                 val = new();
@@ -89,6 +91,7 @@ public sealed partial class LabsMappingProvider
     [LoggerMessage(LogLevel.Information, "Duplicate keys `{KeyA}` and `{KeyB}`. Selecting last")]
     partial void LogDuplicateKeys(SetKey KeyA, SetKey KeyB);
 
-    [LoggerMessage(LogLevel.Warning, "Courses `{CourseNameA}` and `{CourseNameB}` mapped to the same course. Selecting last")]
+    [LoggerMessage(LogLevel.Warning,
+        "Courses `{CourseNameA}` and `{CourseNameB}` mapped to the same course. Selecting last")]
     partial void LogCourseNamesMatch(string CourseNameA, string CourseNameB);
 }

@@ -4,15 +4,24 @@ namespace ScheduleLib.Import.Pdf;
 
 public static class PdfTextNormalizer
 {
+    /// <summary>A known cell whose study parity has to be restored after import.</summary>
+    private readonly record struct ParityRepairRule(
+        string Group,
+        string Day,
+        string Start,
+        string Course,
+        string Teacher,
+        string Parity);
+
     public static string Normalize(string text)
     {
         char separator = '\n';
         string[] split = text.Split('\n');
-        global::System.Func<string, string> selector = l => Regex.Replace(l,
+        Func<string, string> selector = l => Regex.Replace(l,
                 @"[ \t]+",
                 " ")
             .Trim();
-        global::System.Collections.Generic.IEnumerable<string> values = split.Select(selector);
+        var values = split.Select(selector);
         text = string.Join(separator, values);
         text = Regex.Replace(text,
             @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă",
@@ -85,8 +94,8 @@ public static class PdfTextNormalizer
             yield return cell with
             {
                 Groups = groups,
-                Text = (string) $"{course}\n{match.Groups[3].Value}",
-                Alternative = (string) $"Antreprenoriat Gr.{match.Groups[1].Value}",
+                Text = $"{course}\n{match.Groups[3].Value}",
+                Alternative = $"Antreprenoriat Gr.{match.Groups[1].Value}",
                 Cohort = match.Groups[2].Value,
             };
         }
@@ -102,11 +111,26 @@ public static class PdfTextNormalizer
     public static PdfScheduleCell RepairMissingParity(PdfScheduleCell cell)
     {
         // Source decisions in docs/wayfinder/2026-sem1-clash-fixes.md on the domain-model branch.
-        (string Group, string Day, string Start, string Course, string Teacher, string Parity)[] rules =
+        ParityRepairRule[] rules =
         [
-            ("IA2603(ru)", "Joi", "13:15", "Limba straina", "G.Ciudin", "par"),
-            ("IA2604(ru)", "Joi", "13:15", "Limba straina", "O.Basirov", "imp"),
-            ("I2502(ru)", "Vineri", "11:30", "Baze de date", "Cr.Ulmanu", "imp"),
+            new(Group: "IA2603(ru)",
+                Day: "Joi",
+                Start: "13:15",
+                Course: "Limba straina",
+                Teacher: "G.Ciudin",
+                Parity: "par"),
+            new(Group: "IA2604(ru)",
+                Day: "Joi",
+                Start: "13:15",
+                Course: "Limba straina",
+                Teacher: "O.Basirov",
+                Parity: "imp"),
+            new(Group: "I2502(ru)",
+                Day: "Vineri",
+                Start: "11:30",
+                Course: "Baze de date",
+                Teacher: "Cr.Ulmanu",
+                Parity: "imp"),
         ];
         foreach (var rule in rules)
         {
@@ -164,7 +188,7 @@ public static class PdfTextNormalizer
 
             lines[0] = lines[0].Contains(')')
                 ? lines[0].Replace(")", CalculateNewValue())
-                : (string) $"{lines[0]}{($" ({rule.Parity})")}";
+                : $"{lines[0]}{$" ({rule.Parity})"}";
             return cell with
             {
                 Text = string.Join('\n', lines),

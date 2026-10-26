@@ -78,10 +78,11 @@ public partial class ExportCommands
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
             var omitted = all.EnumerateWeeklyLessons()
-                .Count() - lessonCount;
+                    .Count()
+                - lessonCount;
             if (omitted > 0)
             {
-                global::System.Collections.Generic.List<string> list = warnings;
+                var list = warnings;
                 string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
                 list.Add(item);
             }
@@ -95,7 +96,7 @@ public partial class ExportCommands
                 .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                global::System.Collections.Generic.List<string> list2 = warnings;
+                var list2 = warnings;
                 string item2 = $"The teacher workbook omits {teacherless} weekly lessons with no teacher.";
                 list2.Add(item2);
             }
@@ -104,7 +105,7 @@ public partial class ExportCommands
                 .Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
             if (sundays > 0)
             {
-                global::System.Collections.Generic.List<string> list3 = warnings;
+                var list3 = warnings;
                 string item3 = $"The existing Monday-Saturday layout omits {sundays} Sunday lessons.";
                 list3.Add(item3);
             }
@@ -113,11 +114,12 @@ public partial class ExportCommands
                 .Get();
             var seminarLessons = schedule.EnumerateWeeklyLessons()
                 .Count(x =>
-                x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
+                    x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
             if (seminarLessons > 0)
             {
-                global::System.Collections.Generic.List<string> list4 = warnings;
-                string item4 = $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.";
+                var list4 = warnings;
+                string item4 =
+                    $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.";
                 list4.Add(
                     item4);
             }
@@ -167,19 +169,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            global::ScheduleLib.Cli.TeachersExcelResult CalculateData()
+
+            TeachersExcelResult CalculateData()
             {
-                global::ScheduleLib.Cli.TeachersExcelResult data = new(
-                                    output?.DirectoryPath,
-                                    LessonCount: lessonCount,
-                                    TeacherCount: teacherCount);
+                TeachersExcelResult data = new(
+                    output?.DirectoryPath,
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount);
                 return data;
             }
 
             return context.Finish(new CliCompletion<TeachersExcelResult>(
-                            exit,
-                            errors,
-                            CalculateData())
+                exit,
+                errors,
+                CalculateData())
             {
                 Summary = new
                 {
@@ -193,10 +196,11 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }

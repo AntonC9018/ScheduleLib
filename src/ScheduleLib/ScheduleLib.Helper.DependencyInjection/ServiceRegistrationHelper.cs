@@ -18,7 +18,7 @@ public static class ServiceRegistrationHelper
         ServiceLifetime lifetime)
         where TImplementation : notnull
     {
-        Type implementationType = typeof(TImplementation);
+        var implementationType = typeof(TImplementation);
         using var implementedServices = implementationType
             .GetImplementationsOfGenericType(unboundServiceType)
             .GetEnumerator();
@@ -120,8 +120,8 @@ public static class ServiceRegistrationHelper
         where TImpl : class, TService
     {
         _ = service;
-        global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = builder._services;
-        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor item = new(
+        var iServiceCollection = builder._services;
+        ServiceDescriptor item = new(
             typeof(TService),
             static sp => sp.GetRequiredService<TImpl>(),
             builder._lifetime);

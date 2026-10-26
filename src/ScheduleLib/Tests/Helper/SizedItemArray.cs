@@ -8,16 +8,18 @@ public sealed class SizedItemArrayTests
     public void AddAndFind_Basic()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 3);
+            SizedItem<string> it = new("A", 3);
             return it;
         }
 
         array.Add(CalculateIt());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt2()
+
+        SizedItem<string> CalculateIt2()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it2 = new("B", 2);
+            SizedItem<string> it2 = new("B", 2);
             return it2;
         }
 
@@ -38,9 +40,10 @@ public sealed class SizedItemArrayTests
     public void Find_Throws_OnInvalidIndex()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 2);
+            SizedItem<string> it = new("A", 2);
             return it;
         }
 
@@ -53,16 +56,18 @@ public sealed class SizedItemArrayTests
     public void FindPosition_Basic()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("X", 3);
+            SizedItem<string> it = new("X", 3);
             return it;
         }
 
         array.Add(CalculateIt());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt2()
+
+        SizedItem<string> CalculateIt2()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it2 = new("Y", 2);
+            SizedItem<string> it2 = new("Y", 2);
             return it2;
         }
 
@@ -82,9 +87,10 @@ public sealed class SizedItemArrayTests
     public void Replace_Basic()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("Old", 2);
+            SizedItem<string> it = new("Old", 2);
             return it;
         }
 
@@ -102,9 +108,10 @@ public sealed class SizedItemArrayTests
     public void ReplaceItem_Fails_WhenIndexInvalid()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 2);
+            SizedItem<string> it = new("A", 2);
             return it;
         }
 
@@ -120,17 +127,18 @@ public sealed class SizedItemArrayTests
     public void ReplaceAt_Fully()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 3);
+            SizedItem<string> it = new("A", 3);
             return it;
         }
 
         array.Add(CalculateIt());
 
-        global::ScheduleLib.Helper.SizedItem<string> CalculateItem()
+        SizedItem<string> CalculateItem()
         {
-            global::ScheduleLib.Helper.SizedItem<string> item = new("B", 3);
+            SizedItem<string> item = new("B", 3);
             return item;
         }
 
@@ -149,17 +157,18 @@ public sealed class SizedItemArrayTests
     public void ReplaceAt_Partly()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 5);
+            SizedItem<string> it = new("A", 5);
             return it;
         }
 
         array.Add(CalculateIt());
 
-        global::ScheduleLib.Helper.SizedItem<string> CalculateItem()
+        SizedItem<string> CalculateItem()
         {
-            global::ScheduleLib.Helper.SizedItem<string> item = new("B", 2);
+            SizedItem<string> item = new("B", 2);
             return item;
         }
 
@@ -179,17 +188,18 @@ public sealed class SizedItemArrayTests
     public void ReplaceAt_Spliced()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 6);
+            SizedItem<string> it = new("A", 6);
             return it;
         }
 
         array.Add(CalculateIt());
 
-        global::ScheduleLib.Helper.SizedItem<string> CalculateItem()
+        SizedItem<string> CalculateItem()
         {
-            global::ScheduleLib.Helper.SizedItem<string> item = new("B", 2);
+            SizedItem<string> item = new("B", 2);
             return item;
         }
 
@@ -212,31 +222,34 @@ public sealed class SizedItemArrayTests
     public void ReplaceAt_MoreItems()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 3);
+            SizedItem<string> it = new("A", 3);
             return it;
         }
 
         array.Add(CalculateIt());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt2()
+
+        SizedItem<string> CalculateIt2()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it2 = new("B", 6);
+            SizedItem<string> it2 = new("B", 6);
             return it2;
         }
 
         array.Add(CalculateIt2());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt3()
+
+        SizedItem<string> CalculateIt3()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it3 = new("C", 6);
+            SizedItem<string> it3 = new("C", 6);
             return it3;
         }
 
         array.Add(CalculateIt3());
 
-        global::ScheduleLib.Helper.SizedItem<string> CalculateItem()
+        SizedItem<string> CalculateItem()
         {
-            global::ScheduleLib.Helper.SizedItem<string> item = new("D", 1);
+            SizedItem<string> item = new("D", 1);
             return item;
         }
 
@@ -265,29 +278,33 @@ public sealed class SizedItemArrayTests
     public void ReplaceAtRange_Basic()
     {
         var array = new SizedItemArray<string>();
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt()
+
+        SizedItem<string> CalculateIt()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it = new("A", 3);
+            SizedItem<string> it = new("A", 3);
             return it;
         }
 
         array.Add(CalculateIt());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt2()
+
+        SizedItem<string> CalculateIt2()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it2 = new("B", 6);
+            SizedItem<string> it2 = new("B", 6);
             return it2;
         }
 
         array.Add(CalculateIt2());
-        global::ScheduleLib.Helper.SizedItem<string> CalculateIt3()
+
+        SizedItem<string> CalculateIt3()
         {
-            global::ScheduleLib.Helper.SizedItem<string> it3 = new("C", 6);
+            SizedItem<string> it3 = new("C", 6);
             return it3;
         }
 
         array.Add(CalculateIt3());
 
-        var result = array.ReplaceAtRange(3, [
+        var result = array.ReplaceAtRange(3,
+        [
             new("D", 1),
             new("E", 2),
         ]);

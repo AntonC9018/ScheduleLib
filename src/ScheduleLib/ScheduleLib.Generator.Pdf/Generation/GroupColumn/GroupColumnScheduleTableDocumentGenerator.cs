@@ -335,7 +335,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            global::QuestPDF.Elements.Table.ITableCellContainer iTableCellContainer = timeCell;
+            var iTableCellContainer = timeCell;
             uint uInt32 = s.RowGroupIter.Row;
             uint uInt322 = s.TimeSlotIndex * s.CellsPerTimeSlot;
             uint value = uInt32 + uInt322;

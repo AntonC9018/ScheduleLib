@@ -78,7 +78,7 @@ public sealed class OutputDirectory
             enumerationOptions: options);
         var ret = files.Select(x =>
         {
-            global::ScheduleLib.Application.Core.Helper.RelativeFilePath ProjectValue()
+            RelativeFilePath ProjectValue()
             {
                 var separatorLen = 1;
                 var ret = x[(_directory.Length + separatorLen)..];
@@ -141,7 +141,6 @@ public sealed class OutputDirectory
             }
             return path;
         }
-        else
         {
             var ret = Path.Combine(_directory, path);
             return ret;

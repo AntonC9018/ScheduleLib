@@ -2,6 +2,9 @@ using System.Diagnostics;
 
 namespace ScheduleLib;
 
+/// <summary>The whole span a schedule covers, with an exclusive end.</summary>
+public readonly record struct ScheduleDateRange(DateOnly Start, DateOnly EndExclusive);
+
 public readonly record struct Period
 {
     /// <summary>
@@ -62,11 +65,13 @@ public static class PeriodHelper
         {
             year++;
         }
-        var ret = new DateOnly(year: year, month: 8, day: 31);
+        var ret = new DateOnly(year: year,
+            month: 8,
+            day: 31);
         return ret;
     }
 
-    public static (DateOnly Start, DateOnly EndExclusive) WholePeriod(this Schedule schedule)
+    public static ScheduleDateRange WholePeriod(this Schedule schedule)
     {
         var min = DateOnly.MaxValue;
         foreach (var period in schedule.Periods)
@@ -88,7 +93,7 @@ public static class PeriodHelper
             }
         }
 
-        return new(item1: min, item2: max);
+        return new(Start: min, EndExclusive: max);
     }
 
     public static PeriodId LatestPeriodId(this Schedule schedule)
@@ -96,4 +101,3 @@ public static class PeriodHelper
         return new(schedule.Periods.Length - 1);
     }
 }
-

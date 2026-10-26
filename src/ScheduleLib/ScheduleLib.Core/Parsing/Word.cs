@@ -70,13 +70,13 @@ public static class WordHelper
 
     public static bool IsEqual(this WordSpan a, WordSpan b)
     {
-        var ret = Compare(a: a.Shortened, b: b.Shortened);
+        var ret = a.Shortened.Compare(b: b.Shortened);
         return ret.IsEqual();
     }
 
     public static bool IsEitherShortForOther(this WordSpan a, ShortenedWordSpan b)
     {
-        var r = Compare(a: a.Shortened, b: b);
+        var r = a.Shortened.Compare(b: b);
         return r.IsEqual();
     }
 

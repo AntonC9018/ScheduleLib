@@ -22,11 +22,13 @@ public readonly record struct SemesterDateRange
         {
             return false;
         }
-        if (date > EndInclusive)
+
+        if (!(date > EndInclusive))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 }
 
@@ -42,11 +44,13 @@ public sealed class YearDateRangeBuilderModel
     public const int MinYearInExistingDate = 1;
     public Semester Semester = Semester.Invalid;
     public AttendanceMode AttendanceMode = AttendanceMode.Invalid;
+
     public SemesterDateRange LessonDateRange = new()
     {
         Start = DateOnly.MinValue,
         EndInclusive = DateOnly.MaxValue,
     };
+
     public QualificationType QualificationType = QualificationType.Invalid;
     public Grade Grade = Grade.Invalid;
     public int Year = -1;
@@ -116,13 +120,17 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        global::System.DateOnly start = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day);
+        var start = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate,
+            month: month,
+            day: day);
         LessonsStart(start);
     }
 
     public void LessonsEndInclusive(int month, int day)
     {
-        global::System.DateOnly end = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate, month: month, day: day);
+        var end = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate,
+            month: month,
+            day: day);
         LessonsEndInclusive(end);
     }
 }
@@ -336,7 +344,13 @@ public sealed class CurrentYearSemesterIntervalProvider
 
 file static class Helper
 {
-    public static DateOnly WithYear(this DateOnly d, int year) => new(year: year, month: d.Month, day: d.Day);
+    public static DateOnly WithYear(this DateOnly d, int year)
+    {
+        return new(year: year,
+            month: d.Month,
+            day: d.Day);
+    }
+
     public static DateOnly WithYearIfNoYear(this DateOnly d, int year)
     {
         if (d.Year == YearDateRangeBuilderModel.MinYearInExistingDate)

@@ -19,7 +19,9 @@ public sealed partial class ScheduledTimeEventsProvider
         {
             foreach (var ev in _eventsProvider.GetProgrammedEvents(x.Params))
             {
-                yield return new(x.LessonId, ev, x.TimeInterval);
+                yield return new(x.LessonId,
+                    ev,
+                    x.TimeInterval);
             }
         }
     }
@@ -31,11 +33,11 @@ public partial class AnyLessonSchedulingDateHelper
         this IWeeklyScheduledEventsProvider eventsProvider,
         GetProgrammedParams p)
     {
-        if (TryGetWeeklyParams(p) is { } datesParams)
+        if (p.TryGetWeeklyParams() is { } datesParams)
         {
             return eventsProvider.Events(datesParams);
         }
-        else if (TryGetSingleDate(p) is { } singleDate)
+        if (p.TryGetSingleDate() is { } singleDate)
         {
             if (singleDate.Date is { } d)
             {
@@ -43,9 +45,6 @@ public partial class AnyLessonSchedulingDateHelper
             }
             return [];
         }
-        else
-        {
-            throw Unreachable();
-        }
+        throw Unreachable();
     }
 }

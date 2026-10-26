@@ -14,7 +14,7 @@ public sealed class MoodleConfig : INodeData<MoodleConfig>, ICredentialsHolder
 
     public static void Register(IServiceCollection services)
     {
-        services.AddConfigProvider(MoodleConfig.Key);
+        services.AddConfigProvider(Key);
         services.RegisterBasicOperationsAndMergers<MoodleConfig>();
     }
 }

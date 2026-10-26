@@ -12,31 +12,58 @@ namespace ScheduleLib.Topics.Tests;
 public sealed class ScopedManifestTests
 {
     [Theory]
-    [InlineData(1, true, false, false)]
-    [InlineData(2, false, false, false)]
-    [InlineData(null, false, false, false)]
-    [InlineData(1, true, true, false)]
-    [InlineData(1, true, false, true)]
-    public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(int? semester, bool enabled, bool unspecifiedLanguage, bool allowMissingLessonTypes)
+    [InlineData(1,
+        true,
+        false,
+        false)]
+    [InlineData(2,
+        false,
+        false,
+        false)]
+    [InlineData(null,
+        false,
+        false,
+        false)]
+    [InlineData(1,
+        true,
+        true,
+        false)]
+    [InlineData(1,
+        true,
+        false,
+        true)]
+    public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(
+        int? semester,
+        bool enabled,
+        bool unspecifiedLanguage,
+        bool allowMissingLessonTypes)
     {
         string path1 = Path.GetTempPath();
         string toString = Guid.NewGuid()
             .ToString("N");
         string text = $"scoped-topics-{toString}";
-        string path2 = (string) text;
+        string path2 = text;
         var directory = Path.Combine(path1, path2);
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(path: Path.Combine(directory, "topics.csv"), contents: "name\nSynthetic topic\n");
+            await File.WriteAllTextAsync(path: Path.Combine(directory, "topics.csv"),
+                contents: "name\nSynthetic topic\n");
             var scheduleBuilder = new ScheduleBuilder();
-            scheduleBuilder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+            scheduleBuilder.GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            });
             scheduleBuilder.EnableLookupModule();
             var course = scheduleBuilder.Course("Synthetic course");
             var otherCourse = scheduleBuilder.Course("Other course");
             var group = scheduleBuilder.Group("IA2601");
             var otherGroup = scheduleBuilder.Group("IA2602");
-            foreach (var currentGroup in new[] { group, otherGroup })
+            foreach (var currentGroup in new[]
+                     {
+                         group,
+                         otherGroup,
+                     })
             {
                 scheduleBuilder.RegularLesson(lesson =>
                 {
@@ -63,12 +90,13 @@ public sealed class ScopedManifestTests
             scheduleBuilder.RefreshLookup();
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
+
             byte[] CalculateBuffer()
             {
                 byte[] buffer = Encoding.UTF8.GetBytes("""
-                {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
-                "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                """);
+                                                       {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
+                                                       "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
+                                                       """);
                 return buffer;
             }
 
@@ -80,23 +108,39 @@ public sealed class ScopedManifestTests
                 manifest.Documents[0].Language = null;
             }
 
-            var builder = new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()), NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
-            {
-                Semester = semester,
-            };
-            await builder.AddFromManifest(new(manifest, directory), lookup, default);
+            var builder =
+                new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()),
+                    NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
+                {
+                    Semester = semester,
+                };
+            await builder.AddFromManifest(new(manifest, directory),
+                lookup,
+                default);
             var topics = builder.Build();
-            AttendanceLookupKey Key(CourseId courseId, GroupId groupId, GroupPartitionKey partition)
+
+            AttendanceLookupKey Key(
+                CourseId courseId,
+                GroupId groupId,
+                GroupPartitionKey partition)
             {
                 return new(new FoundGroups
                 {
                     Value = [groupId],
-                    IsWildcard = false
-                }, partition, courseId, LessonType.Lab, 0, default);
+                    IsWildcard = false,
+                },
+                    partition,
+                    courseId,
+                    LessonType.Lab,
+                    0,
+                    default);
             }
-            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
+
+            AttendanceLookupKey CalculateKey()
             {
-                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key = Key(course, group, GroupPartitionKey.All);
+                var key = Key(course,
+                    group,
+                    GroupPartitionKey.All);
                 return key;
             }
 
@@ -118,36 +162,47 @@ public sealed class ScopedManifestTests
             string? expected3 = CalculateExpected();
             string? actual2 = topics.Get(CalculateKey());
             Assert.Equal(expected: expected3, actual: actual2);
-            Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with
+            Assert.Null(topics.Get(Key(course,
+                    group,
+                    GroupPartitionKey.All) with
             {
                 LessonType = LessonType.Curs,
             }));
-            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey2()
+
+            AttendanceLookupKey CalculateKey2()
             {
-                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key2 = Key(course, otherGroup, GroupPartitionKey.All);
+                var key2 = Key(course,
+                    otherGroup,
+                    GroupPartitionKey.All);
                 return key2;
             }
 
             string? objectValue = topics.Get(CalculateKey2());
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
-            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey3()
+
+            AttendanceLookupKey CalculateKey3()
             {
-                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key3 = Key(otherCourse, group, GroupPartitionKey.All);
+                var key3 = Key(otherCourse,
+                    group,
+                    GroupPartitionKey.All);
                 return key3;
             }
 
             string? objectValue3 = topics.Get(CalculateKey3());
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
-            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey4()
+
+            AttendanceLookupKey CalculateKey4()
             {
-                global::ScheduleLib.CourseId courseId2 = course;
-                global::ScheduleLib.GroupId groupId2 = group;
-                global::ScheduleLib.SubGroup subGroup = new SubGroup("I");
-                global::ScheduleLib.Specialization specialization = Specialization.All;
-                global::ScheduleLib.GroupPartitionKey partition2 = new(subGroup, specialization);
-                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key4 = Key(courseId2, groupId2, partition2);
+                var courseId2 = course;
+                GroupId groupId2 = group;
+                var subGroup = new SubGroup("I");
+                var specialization = Specialization.All;
+                GroupPartitionKey partition2 = new(subGroup, specialization);
+                var key4 = Key(courseId2,
+                    groupId2,
+                    partition2);
                 return key4;
             }
 

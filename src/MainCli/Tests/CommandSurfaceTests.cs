@@ -66,6 +66,7 @@ public sealed class CommandSurfaceTests
                 .Concat(["--project", directory, "--help"])
                 .ToArray();
             Assert.Equal(expected: 0, actual: await CliHost.Run(arguments));
+
             string CalculateExpectedSubstring()
             {
                 string expectedSubstring2 = $"schedulelib {operation}";
@@ -74,8 +75,9 @@ public sealed class CommandSurfaceTests
 
             Assert.Contains(expectedSubstring: CalculateExpectedSubstring(), actualString: output.ToString());
             Assert.Contains(expectedSubstring: "--json", actualString: output.ToString());
-            Assert.Equal(expected: "invalid settings must not be loaded by help", actual: await File.ReadAllTextAsync(config));
-            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFileSystemEntries(directory);
+            Assert.Equal(expected: "invalid settings must not be loaded by help",
+                actual: await File.ReadAllTextAsync(config));
+            var collection = Directory.EnumerateFileSystemEntries(directory);
             Assert.Single(collection);
             Assert.Empty(error.ToString());
         }
@@ -145,12 +147,15 @@ public sealed class CommandSurfaceTests
             Console.SetError(error);
             Assert.Equal(expected: 2, actual: await CliHost.Run([.. arguments, "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: result.RootElement.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: 2, actual: result.RootElement.GetProperty("exitCode")
-                .GetInt32());
-            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: 1,
+                actual: result.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: 2,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+            Assert.Equal(expected: "failed",
+                actual: result.RootElement.GetProperty("status")
+                    .GetString());
             Assert.Empty(result.RootElement.GetProperty("outputs")
                 .EnumerateArray());
             Assert.Empty(result.RootElement.GetProperty("actions")

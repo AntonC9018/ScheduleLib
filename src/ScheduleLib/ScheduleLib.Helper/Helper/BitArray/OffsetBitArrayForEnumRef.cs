@@ -117,14 +117,10 @@ public ref struct OffsetBitArrayForEnumRef<T>
         return _impl.IsSet(i);
     }
 
-    [Pure]
-    public readonly bool AreAllSet => RestoredSlice.AreAllSet;
-    [Pure]
-    public readonly bool AreNoneSet => RestoredSlice.AreNoneSet;
-    [Pure]
-    public readonly bool AreAnySet => !AreNoneSet;
-    [Pure]
-    public readonly int SetCount => RestoredSlice.SetCount;
+    [Pure] public readonly bool AreAllSet => RestoredSlice.AreAllSet;
+    [Pure] public readonly bool AreNoneSet => RestoredSlice.AreNoneSet;
+    [Pure] public readonly bool AreAnySet => !AreNoneSet;
+    [Pure] public readonly int SetCount => RestoredSlice.SetCount;
 
     public void ClearAll()
     {
@@ -132,8 +128,7 @@ public ref struct OffsetBitArrayForEnumRef<T>
         _impl.ClearArray(shiftedMask);
     }
 
-    [Pure]
-    public readonly bool IsEmpty => RestoredSlice.IsEmpty;
+    [Pure] public readonly bool IsEmpty => RestoredSlice.IsEmpty;
 
     public readonly EnumBitArray<T>.SetEnumValuesEnumerable SetValues() => RestoredSlice.SetValues();
 
@@ -145,7 +140,6 @@ public static partial class BitArrayExtensions
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
         this ref UnsizedBitArray64 array,
         int offset)
-
         where T : struct, Enum
     {
         return new(ref array, offset);
@@ -154,7 +148,6 @@ public static partial class BitArrayExtensions
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
         this ref BitArray64 array,
         int offset)
-
         where T : struct, Enum
     {
         return OffsetBitArrayForEnumRef<T>.Create(ref array, offset);

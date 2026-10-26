@@ -30,7 +30,6 @@ public sealed class Thesis
     public required OneForEachEnumMemberArray<ThesisNameLanguage, string?> ThesisNames;
 }
 
-
 internal struct ThesisInParsing()
 {
     public List<Name>? TeacherName;
@@ -182,7 +181,9 @@ public sealed class ThesisListParser(
                         {
                             try
                             {
-                                if (!ParseColumn(cell, ref state, ref thesis))
+                                if (!ParseColumn(cell,
+                                        ref state,
+                                        ref thesis))
                                 {
                                     break;
                                 }
@@ -205,7 +206,8 @@ public sealed class ThesisListParser(
                                 var mappedTeacherName = _teacherNameRemapper.RemapName(teacherName);
                                 state.Result.Add(new()
                                 {
-                                    GroupName = thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                                    GroupName =
+                                        thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
                                     StudentName = studentName,
                                     TeacherName = mappedTeacherName,
                                     ThesisNames = thesis.ThesisNames,
@@ -257,15 +259,15 @@ public sealed class ThesisListParser(
             }
         }
 
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Theses.Parsing.ThesisListParser.Column> CalculateOther()
+        EnumBitArray<Column> CalculateOther()
         {
-            global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Theses.Parsing.ThesisListParser.Column> other = GetRequiredHeaderColumns(targetThesisType);
+            var other = GetRequiredHeaderColumns(targetThesisType);
             return other;
         }
 
         var missingRequiredColumns = presentColumns
-                    .Flipped
-                    .Intersect(CalculateOther());
+            .Flipped
+            .Intersect(CalculateOther());
         if (missingRequiredColumns.AreAnySet)
         {
             return false;
@@ -295,7 +297,8 @@ public sealed class ThesisListParser(
     {
         var range = cell.ActualRange();
         if (!state.ColumnMappings.TryFind(range.FirstColumn()
-            .ColumnNumber(), out var column))
+                    .ColumnNumber(),
+                out var column))
         {
             return false;
         }
@@ -540,34 +543,41 @@ public sealed class ThesisListParser(
     private static readonly ImmutableArray<SearchFilter> _headerKeys =
         StringSearchHelper.SetupSearchArray<Column, SearchFilter>(b =>
         {
-            b.Set(Column.Number, new()
-            {
-                OrderedKeywords = ["nr."],
-            });
-            b.Set(Column.Group, new()
-            {
-                OrderedKeywords = ["grupa"],
-            });
-            b.Set(Column.StudentName, new()
-            {
-                OrderedKeywords = ["student"],
-            });
-            b.Set(Column.Mentor, new()
-            {
-                OrderedKeywords = ["conducatorului", "stiintific"],
-            });
-            b.Set(Column.ThesisNameRu, new()
-            {
-                OrderedKeywords = ["rusa"],
-            });
-            b.Set(Column.ThesisNameRo, new()
-            {
-                OrderedKeywords = ["romana"],
-            });
-            b.Set(Column.ThesisNameEn, new()
-            {
-                OrderedKeywords = ["engleza"],
-            });
+            b.Set(Column.Number,
+                new()
+                {
+                    OrderedKeywords = ["nr."],
+                });
+            b.Set(Column.Group,
+                new()
+                {
+                    OrderedKeywords = ["grupa"],
+                });
+            b.Set(Column.StudentName,
+                new()
+                {
+                    OrderedKeywords = ["student"],
+                });
+            b.Set(Column.Mentor,
+                new()
+                {
+                    OrderedKeywords = ["conducatorului", "stiintific"],
+                });
+            b.Set(Column.ThesisNameRu,
+                new()
+                {
+                    OrderedKeywords = ["rusa"],
+                });
+            b.Set(Column.ThesisNameRo,
+                new()
+                {
+                    OrderedKeywords = ["romana"],
+                });
+            b.Set(Column.ThesisNameEn,
+                new()
+                {
+                    OrderedKeywords = ["engleza"],
+                });
         });
 
     private enum Action

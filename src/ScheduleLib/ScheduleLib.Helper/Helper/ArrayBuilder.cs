@@ -36,4 +36,3 @@ public static class ArrayBuilder
         return new(new T[count]);
     }
 }
-

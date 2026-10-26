@@ -88,16 +88,16 @@ public sealed class ScheduleImportContext
         s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
-        global::ScheduleLib.Builders.ScheduleBuilder schedule2 = s;
-        global::LessonTimeConfig timeConfig2 = timeConfig;
-        global::ScheduleLib.Parsing.CourseName.CourseNameUnifierModule courseNameUnifierModule2 =
+        var schedule2 = s;
+        LessonTimeConfig timeConfig2 = timeConfig;
+        CourseNameUnifierModule courseNameUnifierModule2 =
             new(p.CourseNameUnifierConfig);
-        global::ScheduleLib.Parsing.DayNameParser dayNameParser2 = new DayNameParser(p.DayNameProvider);
-        global::ScheduleLib.Parsing.Lesson.LessonParserFactory parserFactory2 = p.ParserFactory;
-        global::ScheduleLib.SpecializationRegistry specializationRegistry2 =
+        var dayNameParser2 = new DayNameParser(p.DayNameProvider);
+        var parserFactory2 = p.ParserFactory;
+        var specializationRegistry2 =
             p.SpecializationRegistry ?? SpecializationRegistry.Empty;
-        global::ScheduleLib.SubGroupPrefixMatcher subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = new(
+        var subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
+        ScheduleImportContext scheduleImportContext = new(
             schedule: schedule2,
             timeConfig: timeConfig2,
             courseNameUnifierModule: courseNameUnifierModule2,
@@ -156,8 +156,8 @@ public sealed class ScheduleImportContext
             {
                 // Future specialization labels are registered by their complete
                 // name, not by the built-in abbreviation table.
-                global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder = Schedule;
-                global::ScheduleLib.SubGroup subGroup2 = new(parsedLesson.GroupName.ToString());
+                var scheduleBuilder = Schedule;
+                SubGroup subGroup2 = new(parsedLesson.GroupName.ToString());
                 var remapped = scheduleBuilder.RemapSubGroup(subGroup2);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
@@ -170,8 +170,8 @@ public sealed class ScheduleImportContext
         if (!parsedLesson.PartitionHint.IsEmpty)
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
-            global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder2 = Schedule;
-            global::ScheduleLib.SubGroup subGroup3 = new(parsedLesson.PartitionHint.ToString());
+            var scheduleBuilder2 = Schedule;
+            SubGroup subGroup3 = new(parsedLesson.PartitionHint.ToString());
             var remapped = scheduleBuilder2.RemapSubGroup(subGroup3);
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
@@ -202,9 +202,12 @@ public sealed class ScheduleImportContext
             builder.Specialization(sp);
         }
 
-        return groupNameIsLabel
-            ? SubGroupStatus.GroupNameIsSubGroup
-            : SubGroupStatus.SetFromSubGroup;
+        if (groupNameIsLabel)
+        {
+            return SubGroupStatus.GroupNameIsSubGroup;
+        }
+
+        return SubGroupStatus.SetFromSubGroup;
     }
 
     public CourseId GetOrAddCourse(ReadOnlyMemory<char> name)
@@ -239,11 +242,8 @@ public sealed class ScheduleImportContext
                     ret.Full = x.ToString();
                     return ret;
                 }
-                else
-                {
-                    ret.Short = x.ToString();
-                    return ret;
-                }
+                ret.Short = x.ToString();
+                return ret;
             }),
             LastName = new(name.LastName.Map(x =>
             {
@@ -345,10 +345,7 @@ public sealed class ScheduleImportContext
             {
                 return true;
             }
-            else
-            {
-                return groupNameHandledAsSubgroup;
-            }
+            return groupNameHandledAsSubgroup;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -360,10 +357,10 @@ public sealed class ScheduleImportContext
         }
         else
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            var
                 lessonBuilder = builder;
-            global::ScheduleLib.Builders.GroupBuilder group = Schedule.Group(lesson.GroupName.ToString());
-            global::ScheduleLib.GroupId group2 = group;
+            var group = Schedule.Group(lesson.GroupName.ToString());
+            GroupId group2 = group;
             lessonBuilder.Group(group2);
         }
 
@@ -439,12 +436,13 @@ public sealed class DayNameParser(DayNameProvider p)
 
     public DayOfWeek? Map(ReadOnlySpan<char> s)
     {
-        if (_days.GetAlternateLookup<ReadOnlySpan<char>>()
-            .TryGetValue(s, out var day))
+        if (!_days.GetAlternateLookup<ReadOnlySpan<char>>()
+                .TryGetValue(s, out var day))
         {
-            return day;
+            return null;
         }
-        return null;
+
+        return day;
     }
 
     private static Dictionary<string, DayOfWeek> CreateMappings(DayNameProvider p)

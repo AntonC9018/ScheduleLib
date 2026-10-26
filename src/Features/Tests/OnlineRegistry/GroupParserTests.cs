@@ -113,7 +113,10 @@ public sealed class RegistryScrapingTests
     [InlineData("DJ2502(II)ru", "II")]
     public void LanguageAfterNumericSubgroupUsesRequestedAcademicYear(string name, string subgroup)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         Assert.Equal(expected: "DJ", actual: result.FacultyName.Span);
         Assert.Equal(expected: 2, actual: result.GroupNumber);
@@ -131,7 +134,10 @@ public sealed class RegistryScrapingTests
     [Fact]
     public void EducationSciencesMarkerIsRetainedAsAdditionalCourses()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "I2402SEru");
         Assert.Equal(expected: "I", actual: result.FacultyName.Span);
         Assert.Equal(expected: 2, actual: result.GroupNumber);
@@ -166,7 +172,10 @@ public sealed class RegistryScrapingTests
     [InlineData("DJ2502SE(I)", true)]
     public void AdditionalCoursesMarkerIsRetainedAcrossPositions(string name, bool expected)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         Assert.Equal(expected: expected, actual: result.IsAdditionalCourses);
     }
@@ -174,19 +183,22 @@ public sealed class RegistryScrapingTests
     [Fact]
     public void AdditionalCoursesMarkerDoesNotChangeScheduledPartition()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var ordinary = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601(I)");
         var additional = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601SE(I)");
         Assert.False(ordinary.IsAdditionalCourses);
         Assert.True(additional.IsAdditionalCourses);
         var resolver = new GroupPartitionResolver(null);
-        global::ScheduleLib.GroupPartitionKey expected2 = resolver.Resolve(ordinary);
-        global::ScheduleLib.GroupPartitionKey actual2 = resolver.Resolve(additional);
+        var expected2 = resolver.Resolve(ordinary);
+        var actual2 = resolver.Resolve(additional);
         Assert.Equal(expected: expected2, actual: actual2);
-        global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(1);
-        global::ScheduleLib.Specialization specialization = Specialization.All;
-        global::ScheduleLib.GroupPartitionKey expected3 = new GroupPartitionKey(subGroup, specialization);
-        global::ScheduleLib.GroupPartitionKey actual3 = resolver.Resolve(additional);
+        var subGroup = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var expected3 = new GroupPartitionKey(subGroup, specialization);
+        var actual3 = resolver.Resolve(additional);
         Assert.Equal(expected: expected3, actual: actual3);
     }
 
@@ -217,11 +229,31 @@ public sealed class RegistryScrapingTests
     }
 
     [Theory]
-    [InlineData("IAFR2603(ru)", "IA", 3, Language.Ru, 1, false)]
-    [InlineData("IAFR2403ru", "IA", 3, Language.Ru, 3, false)]
-    [InlineData("MFR2501", "M", 1, null, 2, true)]
+    [InlineData("IAFR2603(ru)",
+        "IA",
+        3,
+        Language.Ru,
+        1,
+        false)]
+    [InlineData("IAFR2403ru",
+        "IA",
+        3,
+        Language.Ru,
+        3,
+        false)]
+    [InlineData("MFR2501",
+        "M",
+        1,
+        null,
+        2,
+        true)]
     public void FacultyAttendanceSuffixIsSeparatedBeforeResolvingQualification(
-        string name, string faculty, int number, Language? language, int grade, bool master)
+        string name,
+        string faculty,
+        int number,
+        Language? language,
+        int grade,
+        bool master)
     {
         var context = GroupParseContext.Create(new()
         {
@@ -234,7 +266,7 @@ public sealed class RegistryScrapingTests
         Assert.Equal(expected: language, actual: result.Language);
         Assert.Equal(expected: grade, actual: result.Grade.Value);
         Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
-        global::ScheduleLib.QualificationType expected2;
+        QualificationType expected2;
         if (master)
         {
             expected2 = QualificationType.Master;
@@ -244,7 +276,7 @@ public sealed class RegistryScrapingTests
             expected2 = QualificationType.Licenta;
         }
 
-        global::ScheduleLib.QualificationType actual2 = result.QualificationType;
+        var actual2 = result.QualificationType;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.False(result.IsDual);
         Assert.False(result.IsWildcard);
@@ -256,7 +288,10 @@ public sealed class RegistryScrapingTests
     [InlineData("IA2603(ro)", Language.Ro)]
     public void ParenthesizedWholeGroupLanguageDoesNotCreatePartition(string name, Language language)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         Assert.Equal(expected: language, actual: result.Language);
         Assert.True(result.SubGroupName.IsEmpty);
@@ -266,7 +301,10 @@ public sealed class RegistryScrapingTests
     [Fact]
     public void DualSuffixSetsBothAttendanceAndDualMatchingFlag()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601DU");
         Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
         Assert.Equal(expected: 1, actual: result.GroupNumber);
@@ -278,9 +316,16 @@ public sealed class RegistryScrapingTests
     }
 
     [Theory]
-    [InlineData("IA_2001fr", 1, null)]
-    [InlineData("IA_2002Rfr", 2, Language.Ru)]
-    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(string name, int number, Language? language)
+    [InlineData("IA_2001fr",
+        1,
+        null)]
+    [InlineData("IA_2002Rfr",
+        2,
+        Language.Ru)]
+    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(
+        string name,
+        int number,
+        Language? language)
     {
         var result = Parse(name);
         Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
@@ -314,7 +359,10 @@ public sealed class RegistryScrapingTests
     [InlineData("IA2501DU(Dual)")]
     public void DuplicateMarkersAreRejected(string name)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         Assert.Throws<GroupParsingException>(() => RegistryScraping.ParseGroupFromOnlineRegistry(context, name));
     }
 
@@ -333,8 +381,11 @@ public sealed class RegistryScrapingTests
             "RVA" => Specialization.DJ,
             _ => Specialization.DezvoltareaAplicatiilor,
         };
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
-        global::ScheduleLib.Parsing.GroupParser.GroupParseContext context2 = context;
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
+        var context2 = context;
         string s = $"IA25({alias})ru";
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context2, s);
         result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!
@@ -343,9 +394,10 @@ public sealed class RegistryScrapingTests
         Assert.Null(result.GroupNumber);
         Assert.Equal(expected: 2, actual: result.Grade.Value);
         Assert.Equal(expected: Language.Ru, actual: result.Language);
-        global::ScheduleLib.GroupPartitionKey CalculateExpected()
+
+        GroupPartitionKey CalculateExpected()
         {
-            global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, specialization);
+            var expected2 = new GroupPartitionKey(SubGroup.All, specialization);
             return expected2;
         }
 
@@ -356,16 +408,20 @@ public sealed class RegistryScrapingTests
     [Fact]
     public void HistoricalWildcardPreservesSpecializationAndAcademicYear()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA25(GA2D)ru");
         Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
         Assert.Null(result.GroupNumber);
         Assert.True(result.IsWildcard);
         Assert.Equal(expected: Language.Ru, actual: result.Language);
         Assert.Equal(expected: 2, actual: result.Grade.Value);
-        global::ScheduleLib.GroupPartitionKey CalculateExpected()
+
+        GroupPartitionKey CalculateExpected()
         {
-            global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.GA2D);
+            var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.GA2D);
             return expected2;
         }
 
@@ -400,5 +456,4 @@ public sealed class RegistryScrapingTests
         Assert.Equal(expected: 2, actual: result.Grade.Value);
         Assert.Equal(expected: AttendanceMode.Zi, actual: result.AttendanceMode);
     }
-
 }

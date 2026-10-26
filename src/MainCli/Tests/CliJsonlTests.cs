@@ -14,7 +14,19 @@ using Event = Google.Apis.Calendar.v3.Data.Event;
 
 public sealed class CliJsonlTests
 {
-    private static JsonSerializerOptions JsonOptions => new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    /// <summary>A command invocation that must reject combined JSON and JSONL output.</summary>
+    private readonly record struct Case(string Name, Func<Task<int>> Run);
+
+    private static JsonSerializerOptions JsonOptions
+    {
+        get
+        {
+            return new()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            };
+        }
+    }
 
     [Fact]
     public async Task JsonAndJsonlTogetherRejectWithArgumentError()
@@ -33,7 +45,10 @@ public sealed class CliJsonlTests
                 expected: 2,
                 actual: await commands.Sync(
                     new(),
-                    new() { Profile = "synthetic-teacher" },
+                    new()
+                    {
+                        Profile = "synthetic-teacher",
+                    },
                     new()
                     {
                         Json = true,
@@ -57,7 +72,10 @@ public sealed class CliJsonlTests
     public async Task BlockedApplyStreamsEarlyItemsBeforeFinal()
     {
         var block = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var fake = new FakeProvider { BlockSecond = block.Task };
+        await using var fake = new FakeProvider
+        {
+            BlockSecond = block.Task,
+        };
         var commands = new TestCommands(fake);
         using var stdoutCapture = new SyncCapture();
         using var stderrCapture = new SyncCapture();
@@ -69,20 +87,51 @@ public sealed class CliJsonlTests
             Console.SetError(stderrCapture);
             var run = commands.Sync(
                 new(),
-                new() { Profile = "synthetic-teacher" },
-                new() { Jsonl = true },
-                new() { Apply = true });
+                new()
+                {
+                    Profile = "synthetic-teacher",
+                },
+                new()
+                {
+                    Jsonl = true,
+                },
+                new()
+                {
+                    Apply = true,
+                });
+
             // Wait for early output: start + 3 planned/not-attempted + first completed.
-            global::System.TimeSpan CalculateTimeout()
+            TimeSpan CalculateTimeout()
             {
-                global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+                var timeout = TimeSpan.FromSeconds(5);
                 return timeout;
             }
 
             var early = await WaitFor(
-                            () => stdoutCapture.Snapshot(),
-                            s => { if (!(s.Contains("\"event\":\"start\""))) { return false; } if (!(s.Contains("\"id\":\"0\""))) { return false; } if (!(s.Contains("completed"))) { return false; } if (!(!s.Contains("\"event\":\"final\""))) { return false; } return true; },
-                            CalculateTimeout());
+                () => stdoutCapture.Snapshot(),
+                s =>
+                {
+                    if (!s.Contains("\"event\":\"start\""))
+                    {
+                        return false;
+                    }
+                    if (!s.Contains("\"id\":\"0\""))
+                    {
+                        return false;
+                    }
+                    if (!s.Contains("completed"))
+                    {
+                        return false;
+                    }
+
+                    if (!s.Contains("\"event\":\"final\""))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                },
+                CalculateTimeout());
             Assert.Contains(expectedSubstring: "\"event\":\"start\"", actualString: early);
             Assert.Contains(expectedSubstring: "\"id\":\"0\"", actualString: early);
             Assert.DoesNotContain(expectedSubstring: "\"event\":\"final\"", actualString: early);
@@ -97,22 +146,21 @@ public sealed class CliJsonlTests
             bool condition2 = int32 >= int324;
             string userMessage = $"Expected start + initial + updates + final, got {lines.Length}";
             Assert.True(
-                condition2, userMessage);
+                condition2,
+                userMessage);
             var final = JsonDocument.Parse(lines[^1]).RootElement;
-            Assert.Equal(expected: "final", actual: final.GetProperty("event")
-                .GetString());
-            Assert.Equal(expected: "applied", actual: final.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: "final",
+                actual: final.GetProperty("event")
+                    .GetString());
+            Assert.Equal(expected: "applied",
+                actual: final.GetProperty("status")
+                    .GetString());
+
             // Final must not repeat the full outcomes array.
             bool CalculateCondition()
             {
                 bool condition = final.TryGetProperty("outcomes", out _);
-                if (condition)
-                {
-                    return true;
-                }
-
-                return false;
+                return condition;
             }
 
             Assert.False(CalculateCondition(), "Final JSONL must not repeat emitted items.");
@@ -130,8 +178,14 @@ public sealed class CliJsonlTests
         await using var fake = new FakeProvider();
         var (exit, stdout, stderr) = await CaptureJsonl(() => new TestCommands(fake).Sync(
             new(),
-            new() { Profile = "synthetic-teacher" },
-            new() { Jsonl = true },
+            new()
+            {
+                Profile = "synthetic-teacher",
+            },
+            new()
+            {
+                Jsonl = true,
+            },
             new()));
         Assert.Equal(expected: 0, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -141,26 +195,32 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(lines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: "registry sync", actual: root.GetProperty("command")
-                .GetString());
-            Assert.Equal(expected: i, actual: root.GetProperty("seq")
-                .GetInt32());
+            Assert.Equal(expected: 1,
+                actual: root.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: "registry sync",
+                actual: root.GetProperty("command")
+                    .GetString());
+            Assert.Equal(expected: i,
+                actual: root.GetProperty("seq")
+                    .GetInt32());
             if (runId is null)
             {
                 runId = root.GetProperty("runId")
                     .GetString();
             }
-            Assert.Equal(expected: runId, actual: root.GetProperty("runId")
-                .GetString());
+            Assert.Equal(expected: runId,
+                actual: root.GetProperty("runId")
+                    .GetString());
         }
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement
-            .GetProperty("event")
-            .GetString());
-        Assert.Equal(expected: "final", actual: JsonDocument.Parse(lines[^1]).RootElement
-            .GetProperty("event")
-            .GetString());
+        Assert.Equal(expected: "start",
+            actual: JsonDocument.Parse(lines[0]).RootElement
+                .GetProperty("event")
+                .GetString());
+        Assert.Equal(expected: "final",
+            actual: JsonDocument.Parse(lines[^1]).RootElement
+                .GetProperty("event")
+                .GetString());
         // Stable identity: each action id appears, preview emits planned once.
         var ids = lines.Skip(1)
             .Take(lines.Length - 2)
@@ -183,12 +243,15 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(errLines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: "log", actual: root.GetProperty("event")
-                .GetString());
-            Assert.Equal(expected: i, actual: root.GetProperty("seq")
-                .GetInt32());
-            Assert.Equal(expected: runId, actual: root.GetProperty("runId")
-                .GetString());
+            Assert.Equal(expected: "log",
+                actual: root.GetProperty("event")
+                    .GetString());
+            Assert.Equal(expected: i,
+                actual: root.GetProperty("seq")
+                    .GetInt32());
+            Assert.Equal(expected: runId,
+                actual: root.GetProperty("runId")
+                    .GetString());
         }
         // Stdout contains no human text.
         foreach (var line in lines)
@@ -217,9 +280,10 @@ public sealed class CliJsonlTests
             var logger = provider.CreateLogger("synthetic");
             logger.LogInformation("Synthetic information {Value}", 42);
             logger.LogWarning("Synthetic warning");
-            global::System.InvalidOperationException CalculateException()
+
+            InvalidOperationException CalculateException()
             {
-                global::System.InvalidOperationException exception = new InvalidOperationException("synthetic failure");
+                var exception = new InvalidOperationException("synthetic failure");
                 return exception;
             }
 
@@ -240,12 +304,15 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(line);
             var root = doc.RootElement;
-            Assert.Equal(expected: 1, actual: root.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId")
-                .GetString());
-            Assert.Equal(expected: "log", actual: root.GetProperty("event")
-                .GetString());
+            Assert.Equal(expected: 1,
+                actual: root.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: "synthetic-run",
+                actual: root.GetProperty("runId")
+                    .GetString());
+            Assert.Equal(expected: "log",
+                actual: root.GetProperty("event")
+                    .GetString());
         }
         Assert.Contains(expectedSubstring: "Information", actualString: lines[0]);
         Assert.Contains(expectedSubstring: "Warning", actualString: lines[1]);
@@ -262,7 +329,10 @@ public sealed class CliJsonlTests
 
         static async Task<string[]> PlanLogs(bool explicitApply)
         {
-            using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
+            using var settings = await CliSettings.Load(new()
+            {
+                Profile = "Curmanschii Anton",
+            });
             var services = CliRuntime.CreateServices(
                 new()
                 {
@@ -273,7 +343,7 @@ public sealed class CliJsonlTests
             settings.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -293,29 +363,30 @@ public sealed class CliJsonlTests
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
             var lesson = schedule.EnumerateWeeklyLessons()
                 .First();
-            global::System.Uri CalculateUri()
+
+            Uri CalculateUri()
             {
-                global::System.Uri uri2 = new("https://registry.test/group");
+                Uri uri2 = new("https://registry.test/group");
                 return uri2;
             }
 
-            global::System.Uri CalculateEvaluationUri()
+            Uri CalculateEvaluationUri()
             {
-                global::System.Uri evaluationUri2 = new("https://registry.test/evaluation");
+                Uri evaluationUri2 = new("https://registry.test/evaluation");
                 return evaluationUri2;
             }
 
             var navigator = new FixtureNavigator(
-                                        lesson.Lesson.Course,
-                                        new GroupLink(
-                                            new FoundGroups
-                                            {
-                                                IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
-                                                Value = lesson.Lesson.Groups,
-                                            },
-                                            lesson.Lesson.GroupPartitionKey,
-                                            uri: CalculateUri(),
-                                            evaluationUri: CalculateEvaluationUri()));
+                lesson.Lesson.Course,
+                new GroupLink(
+                    new FoundGroups
+                    {
+                        IsWildcard = !lesson.Lesson.Groups.IsSingleGroup,
+                        Value = lesson.Lesson.Groups,
+                    },
+                    lesson.Lesson.GroupPartitionKey,
+                    uri: CalculateUri(),
+                    evaluationUri: CalculateEvaluationUri()));
             var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
             await handler.Plan(
                 new()
@@ -337,34 +408,51 @@ public sealed class CliJsonlTests
         var (exit, stdout, stderr) = await CaptureJsonl(() => new TestCommands(new FakeProvider()).Sync(
             new(),
             new(),
-            new() { Jsonl = true },
+            new()
+            {
+                Jsonl = true,
+            },
             new()));
         Assert.Equal(expected: 3, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 2, actual: lines.Length);
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(lines[0]).RootElement
-            .GetProperty("event")
-            .GetString());
+        Assert.Equal(expected: "start",
+            actual: JsonDocument.Parse(lines[0]).RootElement
+                .GetProperty("event")
+                .GetString());
         var final = JsonDocument.Parse(lines[1]).RootElement;
-        Assert.Equal(expected: "final", actual: final.GetProperty("event")
-            .GetString());
-        Assert.Equal(expected: "failed", actual: final.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 3, actual: final.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: "final",
+            actual: final.GetProperty("event")
+                .GetString());
+        Assert.Equal(expected: "failed",
+            actual: final.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 3,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
         Assert.NotEmpty(final.GetProperty("errors")
             .EnumerateArray());
         using var err = JsonDocument.Parse(stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]);
-        Assert.Equal(expected: "log", actual: err.RootElement.GetProperty("event")
-            .GetString());
+        Assert.Equal(expected: "log",
+            actual: err.RootElement.GetProperty("event")
+                .GetString());
 
         // Invalid quiz id is an argument error before planning.
         var (gradeExit, gradeStdout, _) = await CaptureJsonl(() =>
             new TestGradeCommands(new FakeGradeProvider()).ImportGrades(
-                new() { QuizId = "0" },
+                new()
+                {
+                    QuizId = "0",
+                },
                 new(),
-                new() { Profile = "synthetic-teacher" },
-                new() { Jsonl = true },
+                new()
+                {
+                    Profile = "synthetic-teacher",
+                },
+                new()
+                {
+                    Jsonl = true,
+                },
                 new()));
         Assert.Equal(expected: 2, actual: gradeExit);
         Assert.Equal(
@@ -389,12 +477,14 @@ public sealed class CliJsonlTests
             var outLines = stdout.ToString()
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(expected: 2, actual: outLines.Length);
-            Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement
-                .GetProperty("event")
-                .GetString());
-            Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[1]).RootElement
-                .GetProperty("event")
-                .GetString());
+            Assert.Equal(expected: "start",
+                actual: JsonDocument.Parse(outLines[0]).RootElement
+                    .GetProperty("event")
+                    .GetString());
+            Assert.Equal(expected: "final",
+                actual: JsonDocument.Parse(outLines[1]).RootElement
+                    .GetProperty("event")
+                    .GetString());
             var errLines = stderr.ToString()
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.NotEmpty(errLines);
@@ -413,12 +503,24 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task CancellationAndUncertainActionsStreamWithCancelledFinal()
     {
-        await using var fake = new FakeProvider { CancelSecond = true };
+        await using var fake = new FakeProvider
+        {
+            CancelSecond = true,
+        };
         var (exit, stdout, _) = await CaptureJsonl(() => new TestCommands(fake).Sync(
             new(),
-            new() { Profile = "synthetic-teacher" },
-            new() { Jsonl = true },
-            new() { Apply = true }));
+            new()
+            {
+                Profile = "synthetic-teacher",
+            },
+            new()
+            {
+                Jsonl = true,
+            },
+            new()
+            {
+                Apply = true,
+            }));
         Assert.Equal(expected: 130, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var items = lines.Skip(1)
@@ -429,34 +531,38 @@ public sealed class CliJsonlTests
         Assert.Contains(
             items,
             x => x.GetProperty("id")
-                .GetString() == "0" && x.GetProperty("status")
-                .GetString() == "completed");
+                    .GetString()
+                == "0"
+                && x.GetProperty("status")
+                    .GetString()
+                == "completed");
         Assert.Contains(
             items,
             x => x.GetProperty("id")
-                .GetString() == "1" && x.GetProperty("status")
-                .GetString() == "uncertain");
+                    .GetString()
+                == "1"
+                && x.GetProperty("status")
+                    .GetString()
+                == "uncertain");
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: "cancelled",
+            actual: final.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 130,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+
         bool CalculateCondition()
         {
             bool condition = final.TryGetProperty("outcomes", out _);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
 
-        global::System.IO.IOException CalculateInner()
+        IOException CalculateInner()
         {
-            global::System.IO.IOException inner = new IOException("synthetic lost response");
+            var inner = new IOException("synthetic lost response");
             return inner;
         }
 
@@ -466,17 +572,27 @@ public sealed class CliJsonlTests
         };
         var (failExit, failStdout, _) = await CaptureJsonl(() => new TestCommands(failing).Sync(
             new(),
-            new() { Profile = "synthetic-teacher" },
-            new() { Jsonl = true },
-            new() { Apply = true }));
+            new()
+            {
+                Profile = "synthetic-teacher",
+            },
+            new()
+            {
+                Jsonl = true,
+            },
+            new()
+            {
+                Apply = true,
+            }));
         Assert.Equal(expected: 6, actual: failExit);
         string[] split = failStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        global::System.Index index = ^1;
+        var index = ^1;
         string json = split[index];
-        global::System.Text.Json.JsonDocument parse = JsonDocument.Parse(json);
+        var parse = JsonDocument.Parse(json);
         var failFinal = parse.RootElement;
-        Assert.Equal(expected: "partial", actual: failFinal.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "partial",
+            actual: failFinal.GetProperty("status")
+                .GetString());
     }
 
     [Fact]
@@ -495,22 +611,32 @@ public sealed class CliJsonlTests
                 expected: 0,
                 actual: await new TestCommands(fake).Sync(
                     new(),
-                    new() { Profile = "synthetic-teacher" },
-                    new() { Json = true },
+                    new()
+                    {
+                        Profile = "synthetic-teacher",
+                    },
+                    new()
+                    {
+                        Json = true,
+                    },
                     new()));
             var text = stdout.ToString()
                 .Trim();
             Assert.StartsWith(expectedStartString: "{", actualString: text);
             using var doc = JsonDocument.Parse(text);
-            Assert.Equal(expected: 1, actual: doc.RootElement.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: "registry sync", actual: doc.RootElement.GetProperty("command")
-                .GetString());
-            Assert.Equal(expected: "preview", actual: doc.RootElement.GetProperty("status")
-                .GetString());
-            Assert.Equal(expected: 3, actual: doc.RootElement.GetProperty("data")
-                .GetProperty("outcomes")
-                .GetArrayLength());
+            Assert.Equal(expected: 1,
+                actual: doc.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: "registry sync",
+                actual: doc.RootElement.GetProperty("command")
+                    .GetString());
+            Assert.Equal(expected: "preview",
+                actual: doc.RootElement.GetProperty("status")
+                    .GetString());
+            Assert.Equal(expected: 3,
+                actual: doc.RootElement.GetProperty("data")
+                    .GetProperty("outcomes")
+                    .GetArrayLength());
             // Plain --json keeps existing stderr format (human warning text, not JSONL).
             Assert.Contains(expectedSubstring: "positional", actualString: stderr.ToString());
             Assert.DoesNotContain(expectedSubstring: "\"event\":\"log\"", actualString: stderr.ToString());
@@ -541,32 +667,33 @@ public sealed class CliJsonlTests
             output.EmitStart();
             var writers = Enumerable.Range(start: 0, count: 8)
                 .Select((worker) => Task.Run(() =>
-            {
-                for (var i = 0; i < 50; i++)
                 {
-                    string CalculateId()
+                    for (var i = 0; i < 50; i++)
                     {
-                        string id2 = $"w{worker}-i{i}";
-                        return id2;
-                    }
+                        string CalculateId()
+                        {
+                            string id2 = $"w{worker}-i{i}";
+                            return id2;
+                        }
 
-                    output.EmitItem(
-                                            id: CalculateId(),
-                                            status: "completed",
-                                            new
-                                            {
-                                                worker,
-                                                i,
-                                            });
-                    string CalculateMessage()
-                    {
-                        string message = $"synthetic warning w{worker} i{i}";
-                        return message;
-                    }
+                        output.EmitItem(
+                            id: CalculateId(),
+                            status: "completed",
+                            new
+                            {
+                                worker,
+                                i,
+                            });
 
-                    output.WriteWarning(CalculateMessage());
-                }
-            }))
+                        string CalculateMessage()
+                        {
+                            string message = $"synthetic warning w{worker} i{i}";
+                            return message;
+                        }
+
+                        output.WriteWarning(CalculateMessage());
+                    }
+                }))
                 .ToArray();
             await Task.WhenAll(writers);
             output.EmitFinal(
@@ -585,6 +712,7 @@ public sealed class CliJsonlTests
         // so file order matches sequence order on each independent stream.
         var outLines = stdout.Snapshot()
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
         int CalculateExpected()
         {
             int int32 = 1 + 400;
@@ -597,25 +725,30 @@ public sealed class CliJsonlTests
         {
             using var doc = JsonDocument.Parse(outLines[i]);
             var root = doc.RootElement;
-            Assert.Equal(expected: i, actual: root.GetProperty("seq")
-                .GetInt32());
-            Assert.Equal(expected: "synthetic-run", actual: root.GetProperty("runId")
-                .GetString());
+            Assert.Equal(expected: i,
+                actual: root.GetProperty("seq")
+                    .GetInt32());
+            Assert.Equal(expected: "synthetic-run",
+                actual: root.GetProperty("runId")
+                    .GetString());
         }
-        Assert.Equal(expected: "start", actual: JsonDocument.Parse(outLines[0]).RootElement
-            .GetProperty("event")
-            .GetString());
-        Assert.Equal(expected: "final", actual: JsonDocument.Parse(outLines[^1]).RootElement
-            .GetProperty("event")
-            .GetString());
+        Assert.Equal(expected: "start",
+            actual: JsonDocument.Parse(outLines[0]).RootElement
+                .GetProperty("event")
+                .GetString());
+        Assert.Equal(expected: "final",
+            actual: JsonDocument.Parse(outLines[^1]).RootElement
+                .GetProperty("event")
+                .GetString());
         var errLines = stderr.Snapshot()
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 400, actual: errLines.Length);
         for (var i = 0; i < errLines.Length; i++)
         {
             using var doc = JsonDocument.Parse(errLines[i]);
-            Assert.Equal(expected: i, actual: doc.RootElement.GetProperty("seq")
-                .GetInt32());
+            Assert.Equal(expected: i,
+                actual: doc.RootElement.GetProperty("seq")
+                    .GetInt32());
         }
     }
 
@@ -643,9 +776,9 @@ public sealed class CliJsonlTests
                 logger.LogInformation("Synthetic information {Value}", 42);
             }
 
-            global::System.InvalidOperationException CalculateException()
+            InvalidOperationException CalculateException()
             {
-                global::System.InvalidOperationException exception = new InvalidOperationException("synthetic failure");
+                var exception = new InvalidOperationException("synthetic failure");
                 return exception;
             }
 
@@ -663,35 +796,38 @@ public sealed class CliJsonlTests
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal(expected: 2, actual: lines.Length);
         using var info = JsonDocument.Parse(lines[0]);
-        Assert.Equal(expected: "Information", actual: info.RootElement.GetProperty("level")
-            .GetString());
-        Assert.Equal(expected: "Synthetic information 42", actual: info.RootElement.GetProperty("message")
-            .GetString());
-        Assert.Equal(expected: 42, actual: info.RootElement.GetProperty("properties")
-            .GetProperty("Value")
-            .GetInt32());
+        Assert.Equal(expected: "Information",
+            actual: info.RootElement.GetProperty("level")
+                .GetString());
+        Assert.Equal(expected: "Synthetic information 42",
+            actual: info.RootElement.GetProperty("message")
+                .GetString());
+        Assert.Equal(expected: 42,
+            actual: info.RootElement.GetProperty("properties")
+                .GetProperty("Value")
+                .GetInt32());
         Assert.Contains(
             "synthetic-scope",
             info.RootElement.GetProperty("scopes")
                 .EnumerateArray()
                 .Select(x => x.GetString()));
-        Assert.Equal(expected: "synthetic", actual: info.RootElement.GetProperty("category")
-            .GetString());
+        Assert.Equal(expected: "synthetic",
+            actual: info.RootElement.GetProperty("category")
+                .GetString());
+
         bool CalculateCondition()
         {
-            if (info.RootElement.TryGetProperty("timestamp", out var timestamp))
+            if (!info.RootElement.TryGetProperty("timestamp", out var timestamp))
             {
-                if (DateTimeOffset.TryParse(timestamp.GetString(), out _))
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (DateTimeOffset.TryParse(timestamp.GetString(), out _))
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool condition = CalculateCondition();
@@ -700,8 +836,9 @@ public sealed class CliJsonlTests
         Assert.True(
             condition);
         using var error = JsonDocument.Parse(lines[1]);
-        Assert.Equal(expected: "Error", actual: error.RootElement.GetProperty("level")
-            .GetString());
+        Assert.Equal(expected: "Error",
+            actual: error.RootElement.GetProperty("level")
+                .GetString());
         Assert.Contains(
             expectedSubstring: "System.InvalidOperationException: synthetic failure",
             actualString: error.RootElement.GetProperty("exception")
@@ -716,38 +853,41 @@ public sealed class CliJsonlTests
         Console.SetError(stderr);
         try
         {
-            global::ScheduleLib.Cli.CliOutput CalculateOutput()
+            CliOutput CalculateOutput()
             {
-                global::ScheduleLib.Cli.CliOutput output = new CliOutput(
-                                    command: "synthetic",
-                                    runId: "scope-run",
-                                    json: false,
-                                    jsonl: true);
+                var output = new CliOutput(
+                    command: "synthetic",
+                    runId: "scope-run",
+                    json: false,
+                    jsonl: true);
                 return output;
             }
 
             using var provider = new CliJsonlLoggerProvider(
-                            CalculateOutput());
+                CalculateOutput());
             var logger = provider.CreateLogger("synthetic");
-            using var parent = logger.BeginScope(new Dictionary<string, object?> { ["Parent"] = "shared" });
+            using var parent = logger.BeginScope(new Dictionary<string, object?>
+            {
+                ["Parent"] = "shared",
+            });
             var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var count = 0;
             await Task.WhenAll(
                 Enumerable.Range(start: 0, count: 2)
                     .Select(index => Task.Run(async () =>
-                {
-                    using var child = logger.BeginScope("child-" + index);
-                    bool conditionResult;
-                    int conditionValue = Interlocked.Increment(ref count);
-                    conditionResult = conditionValue == 2;
-                    if (conditionResult)
                     {
-                        bothStarted.SetResult();
-                    }
+                        using var child = logger.BeginScope("child-" + index);
+                        bool conditionResult;
+                        int conditionValue = Interlocked.Increment(ref count);
+                        conditionResult = conditionValue == 2;
+                        if (conditionResult)
+                        {
+                            bothStarted.SetResult();
+                        }
 
-                    await bothStarted.Task;
-                    logger.LogInformation("Child {Index}", index);
-                })));
+                        await bothStarted.Task;
+                        logger.LogInformation("Child {Index}", index);
+                    })));
             logger.LogInformation("Parent");
         }
         finally
@@ -761,15 +901,18 @@ public sealed class CliJsonlTests
         {
             using var record = JsonDocument.Parse(line);
             var properties = record.RootElement.GetProperty("properties");
-            Assert.Equal(expected: "shared", actual: properties.GetProperty("Parent")
-                .GetString());
+            Assert.Equal(expected: "shared",
+                actual: properties.GetProperty("Parent")
+                    .GetString());
             var scopes = record.RootElement.GetProperty("scopes")
                 .EnumerateArray()
                 .Select(scope => scope.GetString())
                 .ToArray();
             Assert.Equal(expected: 2, actual: scopes.Length);
-            Assert.Contains("child-" + properties.GetProperty("Index")
-                .GetInt32(), scopes);
+            Assert.Contains("child-"
+                + properties.GetProperty("Index")
+                    .GetInt32(),
+                scopes);
         }
         using var last = JsonDocument.Parse(lines[^1]);
         Assert.Single(last.RootElement.GetProperty("scopes")
@@ -821,7 +964,10 @@ public sealed class CliJsonlTests
                     NoCache = true,
                     DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 },
-                new() { Jsonl = true },
+                new()
+                {
+                    Jsonl = true,
+                },
                 cancelled.Token);
         }
         finally
@@ -836,18 +982,22 @@ public sealed class CliJsonlTests
             .Take(lines.Length - 2)
             .ToArray();
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "cancelled", actual: final.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 130, actual: final.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: "cancelled",
+            actual: final.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 130,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
         // Counts persist accurately: the summary count matches emitted rows,
         // never zero when rows already streamed and never the full set.
-        Assert.Equal(expected: items.Length, actual: final.GetProperty("data")
-            .GetProperty("count")
-            .GetInt32());
-        Assert.DoesNotContain("lessons", final.GetProperty("data")
-            .EnumerateObject()
-            .Select(x => x.Name));
+        Assert.Equal(expected: items.Length,
+            actual: final.GetProperty("data")
+                .GetProperty("count")
+                .GetInt32());
+        Assert.DoesNotContain("lessons",
+            final.GetProperty("data")
+                .EnumerateObject()
+                .Select(x => x.Name));
     }
 
     [Fact]
@@ -860,28 +1010,32 @@ public sealed class CliJsonlTests
         var result = await CalendarSync.Run(
             provider,
             name: "Lessons",
-            [new Event { Summary = "Desired" }],
+            [
+                new Event
+                {
+                    Summary = "Desired",
+                },
+            ],
             true,
             cancellation.Token,
             lockRoot: root.Path,
             onOutcome: update =>
             {
                 updates.Add(update);
+
                 bool CalculateConditionResult()
                 {
-                    if (update.Id == "0")
+                    if (update.Id != "0")
                     {
-                        if (update.Status == "completed")
-                        {
-                            return true;
-                        }
+                        return false;
+                    }
 
-                        return false;
-                    }
-                    else
+                    if (update.Status == "completed")
                     {
-                        return false;
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -896,8 +1050,9 @@ public sealed class CliJsonlTests
         Assert.Single(result.Outcomes);
         Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
-        Assert.Equal(expected: ["1", "2"], actual: updates.Where(update => update.Status == "not-attempted")
-            .Select(update => update.Id));
+        Assert.Equal(expected: ["1", "2"],
+            actual: updates.Where(update => update.Status == "not-attempted")
+                .Select(update => update.Id));
     }
 
     [Fact]
@@ -905,8 +1060,14 @@ public sealed class CliJsonlTests
     {
         var desired = new[]
         {
-            new Event { Summary = "Desired A" },
-            new Event { Summary = "Desired B" },
+            new Event
+            {
+                Summary = "Desired A",
+            },
+            new Event
+            {
+                Summary = "Desired B",
+            },
         };
         var previewUpdates = new List<CalendarReport>();
         using var previewProvider = new CalendarFake();
@@ -929,6 +1090,7 @@ public sealed class CliJsonlTests
                 .Select((update) => update.Id));
         Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status);
         var deleted = previewUpdates.Single((update) => update.Id == "deleted-0");
+
         string CalculateJson()
         {
             string json = JsonSerializer.Serialize(deleted.Item, JsonOptions);
@@ -936,10 +1098,10 @@ public sealed class CliJsonlTests
         }
 
         Assert.Equal(
-                    expected: "Old",
-                    actual: JsonDocument.Parse(CalculateJson()).RootElement
-                        .GetProperty("summary")
-                        .GetString());
+            expected: "Old",
+            actual: JsonDocument.Parse(CalculateJson()).RootElement
+                .GetProperty("summary")
+                .GetString());
         Assert.Equal(
             expected: ["Desired A", "Desired B"],
             actual: previewUpdates
@@ -954,7 +1116,7 @@ public sealed class CliJsonlTests
                     }
 
                     return JsonDocument.Parse(CalculateJson()).RootElement
-                                        .GetProperty("summary")
+                        .GetProperty("summary")
                         .GetString();
                 }));
 
@@ -999,24 +1161,29 @@ public sealed class CliJsonlTests
         using var calendarLock = new TempRoot();
         var calls = 0;
         var failure = Assert.Throws<CalendarStreamingException>(() => CalendarSync.Run(
-            provider,
-            name: "Lessons",
-            [new Event { Summary = "Desired" }],
-            true,
-            default,
-            lockRoot: calendarLock.Path,
-            onOutcome: (_) =>
-            {
-                // Fail on the first terminal transition (after 3 planned plus
-                // 2 selection reports): the delete already completed remotely.
-                bool conditionResult;
-                int conditionValue = ++calls;
-                conditionResult = conditionValue == 6;
-                if (conditionResult)
+                provider,
+                name: "Lessons",
+                [
+                    new Event
+                    {
+                        Summary = "Desired",
+                    },
+                ],
+                true,
+                default,
+                lockRoot: calendarLock.Path,
+                onOutcome: (_) =>
                 {
-                    throw new InvalidOperationException("synthetic render failure");
-                }
-            })
+                    // Fail on the first terminal transition (after 3 planned plus
+                    // 2 selection reports): the delete already completed remotely.
+                    bool conditionResult;
+                    int conditionValue = ++calls;
+                    conditionResult = conditionValue == 6;
+                    if (conditionResult)
+                    {
+                        throw new InvalidOperationException("synthetic render failure");
+                    }
+                })
             .GetAwaiter()
             .GetResult());
         Assert.IsAssignableFrom<CliOutputStreamingException>(failure);
@@ -1032,6 +1199,7 @@ public sealed class CliJsonlTests
     public async Task DrivePlanIdsAreStableAcrossPreviewApplyAndTransitions()
     {
         using var root = new TempRoot();
+
         string CalculatePath()
         {
             string path = Path.Combine(root.Path, "a.pdf");
@@ -1039,10 +1207,10 @@ public sealed class CliJsonlTests
         }
 
         var artifacts = new[]
-                {
+        {
             new DriveArtifact(Name: "a.pdf", Path: CalculatePath()),
         };
-        var previewUpdates = new List<(string Id, string Status, object? Item, string Human)>();
+        var previewUpdates = new List<StreamedUpdate>();
         using var previewProvider = new DriveFake();
         var preview = await DriveSync.Run(
             previewProvider,
@@ -1059,8 +1227,9 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: "delete", actual: ((DriveOutcome) previewUpdates[0].Item!).Action.Action);
         Assert.Equal(expected: "create", actual: ((DriveOutcome) previewUpdates[1].Item!).Action.Action);
 
-        var applyUpdates = new List<(string Id, string Status, object? Item, string Human)>();
+        var applyUpdates = new List<StreamedUpdate>();
         using var applyProvider = new DriveFake();
+
         string CalculatePath2()
         {
             string path2 = Path.Combine(root.Path, "a.pdf");
@@ -1099,6 +1268,7 @@ public sealed class CliJsonlTests
     {
         using var root = new TempRoot();
         using var provider = new DriveFake();
+
         string CalculatePath()
         {
             string path = Path.Combine(root.Path, "a.pdf");
@@ -1106,7 +1276,7 @@ public sealed class CliJsonlTests
         }
 
         var artifacts = new[]
-                {
+        {
             new DriveArtifact(Name: "a.pdf", Path: CalculatePath()),
         };
         var calls = 0;
@@ -1155,9 +1325,18 @@ public sealed class CliJsonlTests
             Console.SetError(stderr);
             exit = await commands.Sync(
                 new(),
-                new() { Profile = "synthetic-teacher" },
-                new() { Jsonl = true },
-                new() { Apply = true });
+                new()
+                {
+                    Profile = "synthetic-teacher",
+                },
+                new()
+                {
+                    Jsonl = true,
+                },
+                new()
+                {
+                    Apply = true,
+                });
         }
         finally
         {
@@ -1169,31 +1348,32 @@ public sealed class CliJsonlTests
         var lines = stdout.Snapshot()
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var final = JsonDocument.Parse(lines[^1]).RootElement;
-        Assert.Equal(expected: "partial", actual: final.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 6, actual: final.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Contains(expectedSubstring: "Output streaming failed", actualString: final.GetProperty("errors")
-            .EnumerateArray()
-            .First()
-            .GetString());
+        Assert.Equal(expected: "partial",
+            actual: final.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 6,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Contains(expectedSubstring: "Output streaming failed",
+            actualString: final.GetProperty("errors")
+                .EnumerateArray()
+                .First()
+                .GetString());
         var data = final.GetProperty("data");
-        Assert.Equal(expected: 3, actual: data.GetProperty("total")
-            .GetInt32());
+        Assert.Equal(expected: 3,
+            actual: data.GetProperty("total")
+                .GetInt32());
         // Both executed actions keep their completed remote outcomes even
         // though the second one's rendering failed; nothing was retried.
-        Assert.Equal(expected: 2, actual: data.GetProperty("counts")
-            .GetProperty("completed")
-            .GetInt32());
+        Assert.Equal(expected: 2,
+            actual: data.GetProperty("counts")
+                .GetProperty("completed")
+                .GetInt32());
+
         bool CalculateCondition()
         {
             bool condition = final.TryGetProperty("outcomes", out _);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -1205,20 +1385,28 @@ public sealed class CliJsonlTests
         await using var fake = new FakeProvider();
         var (exit, stdout, _) = await CaptureJsonl(() => new TestCommands(fake).Sync(
             new(),
-            new() { Profile = "synthetic-teacher" },
-            new() { Jsonl = true },
+            new()
+            {
+                Profile = "synthetic-teacher",
+            },
+            new()
+            {
+                Jsonl = true,
+            },
             new()));
         Assert.Equal(expected: 0, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: 3, actual: final.GetProperty("data")
-            .GetProperty("total")
-            .GetInt32());
-        Assert.Equal(expected: 3, actual: final.GetProperty("data")
-            .GetProperty("counts")
-            .GetProperty("planned")
-            .GetInt32());
+        Assert.Equal(expected: 3,
+            actual: final.GetProperty("data")
+                .GetProperty("total")
+                .GetInt32());
+        Assert.Equal(expected: 3,
+            actual: final.GetProperty("data")
+                .GetProperty("counts")
+                .GetProperty("planned")
+                .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
 
         var (queryExit, queryStdout, _) = await CaptureJsonl(() => new FixtureQuery().Lessons(
@@ -1228,14 +1416,18 @@ public sealed class CliJsonlTests
                 NoCache = true,
                 DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
             },
-            new() { Jsonl = true },
+            new()
+            {
+                Jsonl = true,
+            },
             default));
         Assert.Equal(expected: 0, actual: queryExit);
         var queryLines = queryStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var queryFinal = JsonDocument.Parse(queryLines[^1]).RootElement;
-        Assert.Equal(expected: queryLines.Length - 2, actual: queryFinal.GetProperty("data")
-            .GetProperty("count")
-            .GetInt32());
+        Assert.Equal(expected: queryLines.Length - 2,
+            actual: queryFinal.GetProperty("data")
+                .GetProperty("count")
+                .GetInt32());
         Assert.Single(queryFinal.GetProperty("data")
             .EnumerateObject());
 
@@ -1244,11 +1436,21 @@ public sealed class CliJsonlTests
         {
             var (historyExit, historyStdout, _) = await CaptureJsonl(() =>
                 new HistoryCommands(new HistoryProvider()).History(
-                    new() { Profile = "synthetic" },
-                    new() { LocalDirectory = historyDirectory },
-                    new() { Jsonl = true }));
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = historyDirectory,
+                    },
+                    new()
+                    {
+                        Jsonl = true,
+                    }));
             Assert.Equal(expected: 0, actual: historyExit);
             var historyLines = historyStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
             int CalculateExpected()
             {
                 int int32 = 1 + 1;
@@ -1258,9 +1460,10 @@ public sealed class CliJsonlTests
 
             Assert.Equal(expected: CalculateExpected(), actual: historyLines.Length);
             var historyFinal = JsonDocument.Parse(historyLines[^1]).RootElement;
-            Assert.Equal(expected: 1, actual: historyFinal.GetProperty("data")
-                .GetProperty("years")
-                .GetInt32());
+            Assert.Equal(expected: 1,
+                actual: historyFinal.GetProperty("data")
+                    .GetProperty("years")
+                    .GetInt32());
             Assert.Equal(
                 expected: ["courses", "groups", "years"],
                 actual: historyFinal.GetProperty("data")
@@ -1285,8 +1488,14 @@ public sealed class CliJsonlTests
                 NoCache = true,
                 DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
             },
-            new() { Profile = "Nartea Nichita" },
-            new() { Jsonl = true },
+            new()
+            {
+                Profile = "Nartea Nichita",
+            },
+            new()
+            {
+                Jsonl = true,
+            },
             new()));
         Assert.Equal(expected: 0, actual: exit);
         Assert.Empty(fake.Writes);
@@ -1300,26 +1509,30 @@ public sealed class CliJsonlTests
         // existing calendar, so this preview has no delete step; the
         // sync-layer test above covers deleted-event selection items.)
         var planned = items.Where((item) => item.GetProperty("status")
-            .GetString() == "planned")
+                    .GetString()
+                == "planned")
             .ToArray();
         Assert.Equal(
             expected: Enumerable.Range(start: 0, count: planned.Length)
                 .Select((index) =>
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             actual: planned.Select((item) => item.GetProperty("id")
                 .GetString()));
         Assert.Contains(
             items,
             (item) => item.GetProperty("id")
-                .GetString()
-                ?.StartsWith("desired-", StringComparison.Ordinal) == true);
+                    .GetString()
+                    ?.StartsWith("desired-", StringComparison.Ordinal)
+                == true);
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: "preview", actual: final.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "preview",
+            actual: final.GetProperty("status")
+                .GetString());
         Assert.True(final.GetProperty("data")
-            .GetProperty("desiredCount")
-            .GetInt32() > 0);
+                .GetProperty("desiredCount")
+                .GetInt32()
+            > 0);
         Assert.DoesNotContain(expectedSubstring: "\"desiredEvents\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"deletedEvents\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
@@ -1336,9 +1549,18 @@ public sealed class CliJsonlTests
                 NoCache = true,
                 DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
             },
-            new() { Profile = "Curmanschii Anton" },
-            new() { Directory = output.Path },
-            new() { Jsonl = true },
+            new()
+            {
+                Profile = "Curmanschii Anton",
+            },
+            new()
+            {
+                Directory = output.Path,
+            },
+            new()
+            {
+                Jsonl = true,
+            },
             new()));
         Assert.Equal(expected: 0, actual: exit);
         Assert.Empty(fake.Writes);
@@ -1350,25 +1572,29 @@ public sealed class CliJsonlTests
         Assert.Contains(
             items,
             (item) => item.GetProperty("id")
-                .GetString()
-                ?.StartsWith("artifact:", StringComparison.Ordinal) == true);
+                    .GetString()
+                    ?.StartsWith("artifact:", StringComparison.Ordinal)
+                == true);
         var planned = items.Where((item) => item.GetProperty("status")
-            .GetString() == "planned")
+                    .GetString()
+                == "planned")
             .ToArray();
         Assert.NotEmpty(planned);
         Assert.Equal(
             expected: Enumerable.Range(start: 0, count: planned.Length)
                 .Select((index) =>
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    index.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             actual: planned.Select((item) => item.GetProperty("id")
                 .GetString()));
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: "preview", actual: final.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: planned.Length, actual: final.GetProperty("data")
-            .GetProperty("actionCount")
-            .GetInt32());
+        Assert.Equal(expected: "preview",
+            actual: final.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: planned.Length,
+            actual: final.GetProperty("data")
+                .GetProperty("actionCount")
+                .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"actions\"", actualString: finalLine);
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
     }
@@ -1377,7 +1603,11 @@ public sealed class CliJsonlTests
     public async Task ConfigProfilesAndAuthStatusStreamCollectionsWithScalarFinals()
     {
         using var isolation = new XdgIsolation();
-        var (exit, stdout, _) = await CaptureJsonl(() => new ConfigCommands().Profiles(new(), new() { Jsonl = true }));
+        var (exit, stdout, _) = await CaptureJsonl(() => new ConfigCommands().Profiles(new(),
+            new()
+            {
+                Jsonl = true,
+            }));
         Assert.Equal(expected: 0, actual: exit);
         var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var items = lines.Skip(1)
@@ -1387,31 +1617,44 @@ public sealed class CliJsonlTests
         foreach (var line in items)
         {
             using var doc = JsonDocument.Parse(line);
-            Assert.Equal(expected: "completed", actual: doc.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: "completed",
+                actual: doc.RootElement.GetProperty("status")
+                    .GetString());
             Assert.NotEmpty(doc.RootElement.GetProperty("item")
                 .GetProperty("profile")
                 .GetString()!);
         }
         var finalLine = lines[^1];
         var final = JsonDocument.Parse(finalLine).RootElement;
-        Assert.Equal(expected: items.Length, actual: final.GetProperty("data")
-            .GetProperty("profileCount")
-            .GetInt32());
+        Assert.Equal(expected: items.Length,
+            actual: final.GetProperty("data")
+                .GetProperty("profileCount")
+                .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"profiles\"", actualString: finalLine);
 
         var (authExit, authStdout, _) = await CaptureJsonl(() => new AuthCommands().Status(
-            new() { Provider = AuthProvider.google },
-            new() { Profile = "Curmanschii Anton" },
-            new() { Jsonl = true }));
+            new()
+            {
+                Provider = AuthProvider.google,
+            },
+            new()
+            {
+                Profile = "Curmanschii Anton",
+            },
+            new()
+            {
+                Jsonl = true,
+            }));
         Assert.Equal(expected: 0, actual: authExit);
         var authLines = authStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var authFinal = JsonDocument.Parse(authLines[^1]).RootElement;
-        Assert.Equal(expected: "succeeded", actual: authFinal.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 0, actual: authFinal.GetProperty("data")
-            .GetProperty("accountCount")
-            .GetInt32());
+        Assert.Equal(expected: "succeeded",
+            actual: authFinal.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 0,
+            actual: authFinal.GetProperty("data")
+                .GetProperty("accountCount")
+                .GetInt32());
         Assert.False(authFinal.GetProperty("data")
             .GetProperty("provisioned")
             .GetBoolean());
@@ -1426,9 +1669,18 @@ public sealed class CliJsonlTests
         {
             var (exit, stdout, _) = await CaptureJsonl(() =>
                 new HistoryTopicsCommands(new HistoryTopicsProvider()).HistoryTopics(
-                    new() { Profile = "synthetic" },
-                    new() { LocalDirectory = directory },
-                    new() { Jsonl = true }));
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = directory,
+                    },
+                    new()
+                    {
+                        Jsonl = true,
+                    }));
             Assert.Equal(expected: 0, actual: exit);
             var lines = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
             var items = lines.Skip(1)
@@ -1440,23 +1692,28 @@ public sealed class CliJsonlTests
                 actual: items.Count((item) =>
                     item.GetProperty("id")
                         .GetString()
-                        ?.StartsWith("year-", StringComparison.Ordinal) == true));
+                        ?.StartsWith("year-", StringComparison.Ordinal)
+                    == true));
             Assert.Equal(
                 expected: 1,
                 actual: items.Count((item) =>
                     item.GetProperty("id")
                         .GetString()
-                        ?.StartsWith("candidate-", StringComparison.Ordinal) == true));
+                        ?.StartsWith("candidate-", StringComparison.Ordinal)
+                    == true));
             var final = JsonDocument.Parse(lines[^1]).RootElement;
-            Assert.Equal(expected: 1, actual: final.GetProperty("data")
-                .GetProperty("courses")
-                .GetInt32());
-            Assert.Equal(expected: 1, actual: final.GetProperty("data")
-                .GetProperty("candidates")
-                .GetInt32());
-            Assert.Equal(expected: 0, actual: final.GetProperty("data")
-                .GetProperty("unresolved")
-                .GetInt32());
+            Assert.Equal(expected: 1,
+                actual: final.GetProperty("data")
+                    .GetProperty("courses")
+                    .GetInt32());
+            Assert.Equal(expected: 1,
+                actual: final.GetProperty("data")
+                    .GetProperty("candidates")
+                    .GetInt32());
+            Assert.Equal(expected: 0,
+                actual: final.GetProperty("data")
+                    .GetProperty("unresolved")
+                    .GetInt32());
             Assert.DoesNotContain(expectedSubstring: "canary-course", actualString: stdout);
             Assert.DoesNotContain(expectedSubstring: "canary-group", actualString: stdout);
             Assert.DoesNotContain(expectedSubstring: "canary-historical-topic", actualString: stdout);
@@ -1483,7 +1740,10 @@ public sealed class CliJsonlTests
                 expected: 0,
                 actual: await new TestCommands(fake).Sync(
                     new(),
-                    new() { Profile = "synthetic-teacher" },
+                    new()
+                    {
+                        Profile = "synthetic-teacher",
+                    },
                     new(),
                     new()));
             var lines = stdout.ToString()
@@ -1506,167 +1766,227 @@ public sealed class CliJsonlTests
             Json = true,
             Jsonl = true,
         };
-        var cases = new (string Name, Func<Task<int>> Run)[]
+        var cases = new Case[]
         {
-            ("query lessons", () => new QueryCommands().Lessons(
-                new(),
-                new(),
-                both,
-                default)),
-            ("query free-hours", () => new QueryCommands().FreeHours(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export teachers-excel", () => new ExportCommands().TeachersExcel(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export free-rooms", () => new ExportCommands().FreeRooms(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export pdf", () => new ExportCommands().Pdf(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export ics", () => new ExportCommands().Ics(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export lab-deadlines", () => new ExportCommands().LabDeadlines(
-                new(),
-                new(),
-                both,
-                new(),
-                default)),
-            ("export pre-defense", () => new ExportCommands().PreDefense(
-                new(),
-                both,
-                new(),
-                default)),
-            ("export website-schedules", () => new ExportCommands().WebsiteSchedules(
-                new(),
-                new(),
-                both,
-                default)),
-            ("export website-theses", () => new ExportCommands().WebsiteTheses(
-                new(),
-                new(),
-                both,
-                default)),
-            ("curricula download", () => new CurriculaCommands().Download(
-                new(),
-                new(),
-                both,
-                default)),
-            ("config show", () => new ConfigCommands().Show(
-                new(),
-                new(),
-                both,
-                default)),
-            ("config get", () => new ConfigCommands().Get(
-                new() { Key = "key" },
-                new(),
-                new(),
-                both,
-                default)),
-            ("config validate", () => new ConfigCommands().Validate(
-                new(),
-                both,
-                default)),
-            ("config profiles", () => new ConfigCommands().Profiles(
-                new(),
-                both,
-                default)),
-            ("config set", () => new ConfigCommands().Set(
-                new()
-                {
-                    Key = "key",
-                    Value = "1",
-                },
-                new() { Scope = "user" },
-                new(),
-                both,
-                default)),
-            ("config unset", () => new ConfigCommands().Unset(
-                new() { Key = "key" },
-                new() { Scope = "user" },
-                new(),
-                both,
-                default)),
-            ("auth login google", () => new AuthCommands().Login(
-                new() { Provider = AuthProvider.google },
-                new(),
-                both,
-                default)),
-            ("auth status google", () => new AuthCommands().Status(
-                new() { Provider = AuthProvider.google },
-                new(),
-                both,
-                default)),
-            ("auth logout google", () => new AuthCommands().Logout(
-                new() { Provider = AuthProvider.google },
-                new(),
-                both,
-                default)),
-            ("auth login microsoft", () => new AuthCommands().Login(
-                new() { Provider = AuthProvider.microsoft },
-                new(),
-                both,
-                default)),
-            ("auth status microsoft",
+            new("query lessons",
+                () => new QueryCommands().Lessons(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("query free-hours",
+                () => new QueryCommands().FreeHours(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export teachers-excel",
+                () => new ExportCommands().TeachersExcel(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export free-rooms",
+                () => new ExportCommands().FreeRooms(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export pdf",
+                () => new ExportCommands().Pdf(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export ics",
+                () => new ExportCommands().Ics(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export lab-deadlines",
+                () => new ExportCommands().LabDeadlines(
+                    new(),
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("export pre-defense",
+                () => new ExportCommands().PreDefense(
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("export website-schedules",
+                () => new ExportCommands().WebsiteSchedules(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("export website-theses",
+                () => new ExportCommands().WebsiteTheses(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("curricula download",
+                () => new CurriculaCommands().Download(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("config show",
+                () => new ConfigCommands().Show(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("config get",
+                () => new ConfigCommands().Get(
+                    new()
+                    {
+                        Key = "key",
+                    },
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("config validate",
+                () => new ConfigCommands().Validate(
+                    new(),
+                    both,
+                    default)),
+            new("config profiles",
+                () => new ConfigCommands().Profiles(
+                    new(),
+                    both,
+                    default)),
+            new("config set",
+                () => new ConfigCommands().Set(
+                    new()
+                    {
+                        Key = "key",
+                        Value = "1",
+                    },
+                    new()
+                    {
+                        Scope = "user",
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("config unset",
+                () => new ConfigCommands().Unset(
+                    new()
+                    {
+                        Key = "key",
+                    },
+                    new()
+                    {
+                        Scope = "user",
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("auth login google",
+                () => new AuthCommands().Login(
+                    new()
+                    {
+                        Provider = AuthProvider.google,
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("auth status google",
                 () => new AuthCommands().Status(
-                    new() { Provider = AuthProvider.microsoft },
+                    new()
+                    {
+                        Provider = AuthProvider.google,
+                    },
                     new(),
                     both,
                     default)),
-            ("auth logout microsoft",
+            new("auth logout google",
                 () => new AuthCommands().Logout(
-                    new() { Provider = AuthProvider.microsoft },
+                    new()
+                    {
+                        Provider = AuthProvider.google,
+                    },
                     new(),
                     both,
                     default)),
-            ("calendar sync", () => new CalendarCommands().Sync(
-                new(),
-                new(),
-                both,
-                new(),
-                default)),
-            ("drive publish", () => new DriveCommands().Publish(
-                new(),
-                new(),
-                new(),
-                both,
-                new(),
-                default)),
-            ("registry sync", () => new RegistryCommands().Sync(
-                new(),
-                new(),
-                both,
-                new(),
-                default)),
-            ("registry import-grades", () => new RegistryCommands().ImportGrades(
-                new() { QuizId = "1" },
-                new(),
-                new(),
-                both,
-                new(),
-                default)),
-            ("registry history", () => new RegistryCommands().History(
-                new(),
-                new(),
-                both,
-                default)),
-            ("registry history-topics", () => new RegistryCommands().HistoryTopics(
-                new(),
-                new(),
-                both,
-                default)),
+            new("auth login microsoft",
+                () => new AuthCommands().Login(
+                    new()
+                    {
+                        Provider = AuthProvider.microsoft,
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("auth status microsoft",
+                () => new AuthCommands().Status(
+                    new()
+                    {
+                        Provider = AuthProvider.microsoft,
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("auth logout microsoft",
+                () => new AuthCommands().Logout(
+                    new()
+                    {
+                        Provider = AuthProvider.microsoft,
+                    },
+                    new(),
+                    both,
+                    default)),
+            new("calendar sync",
+                () => new CalendarCommands().Sync(
+                    new(),
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("drive publish",
+                () => new DriveCommands().Publish(
+                    new(),
+                    new(),
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("registry sync",
+                () => new RegistryCommands().Sync(
+                    new(),
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("registry import-grades",
+                () => new RegistryCommands().ImportGrades(
+                    new()
+                    {
+                        QuizId = "1",
+                    },
+                    new(),
+                    new(),
+                    both,
+                    new(),
+                    default)),
+            new("registry history",
+                () => new RegistryCommands().History(
+                    new(),
+                    new(),
+                    both,
+                    default)),
+            new("registry history-topics",
+                () => new RegistryCommands().HistoryTopics(
+                    new(),
+                    new(),
+                    both,
+                    default)),
         };
         var originalOut = Console.Out;
         var originalError = Console.Error;
@@ -1683,15 +2003,11 @@ public sealed class CliJsonlTests
                 stderr.GetStringBuilder()
                     .Clear();
                 Assert.Equal(expected: 2, actual: await run());
+
                 bool CalculateCondition()
                 {
                     bool condition = string.IsNullOrWhiteSpace(stdout.ToString());
-                    if (condition)
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return condition;
                 }
 
                 bool condition2 = CalculateCondition();
@@ -1731,9 +2047,9 @@ public sealed class CliJsonlTests
         }
 
         var directory = Path.Combine(
-                    Path.GetTempPath(),
-                    CalculatePath2(),
-                    ".registry-history");
+            Path.GetTempPath(),
+            CalculatePath2(),
+            ".registry-history");
         Directory.CreateDirectory(directory);
         return directory;
     }
@@ -1752,7 +2068,7 @@ public sealed class CliJsonlTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -1770,7 +2086,7 @@ public sealed class CliJsonlTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -1794,7 +2110,7 @@ public sealed class CliJsonlTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -1824,8 +2140,8 @@ public sealed class CliJsonlTests
             CancellationToken token)
         {
             return Task.FromResult<IReadOnlyList<RegistryHistoryYearSummary>>(
-                    [
-                        new(
+            [
+                new(
                     "2024/25",
                     [
                         new(
@@ -1846,58 +2162,60 @@ public sealed class CliJsonlTests
     {
         public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
         {
-            global::System.Uri CalculateUri()
+            Uri CalculateUri()
             {
-                global::System.Uri uri = new("https://private.test/groups/1");
+                Uri uri = new("https://private.test/groups/1");
                 return uri;
             }
 
             var course = new RegistryHistoryCourse(
-                            "canary-course",
-                            1,
-                            CalculateUri());
-            global::System.Uri CalculateUri2()
+                "canary-course",
+                1,
+                CalculateUri());
+
+            Uri CalculateUri2()
             {
-                global::System.Uri uri2 = new("https://private.test/LessonsList/1");
+                Uri uri2 = new("https://private.test/LessonsList/1");
                 return uri2;
             }
 
-            global::System.DateTime CalculateDate()
+            DateTime CalculateDate()
             {
-                global::System.DateTime date = new DateTime(
-                                            year: 2024,
-                                            month: 10,
-                                            day: 1);
+                var date = new DateTime(
+                    year: 2024,
+                    month: 10,
+                    day: 1);
                 return date;
             }
 
             var group = new RegistryHistoryGroupTopics(
-                                        "canary-group",
-                                        CalculateUri2(),
-                                        [
-                                            new(
+                "canary-group",
+                CalculateUri2(),
+                [
+                    new(
                         CalculateDate(),
                         LessonType.Curs,
                         "canary-historical-topic"),
-                                        ]);
+                ]);
             var historical = new RegistryHistoryCourseTopics(
                 "2024/25",
                 course,
                 [group]);
-            global::System.DateTime CalculateDate2()
+
+            DateTime CalculateDate2()
             {
-                global::System.DateTime date2 = new DateTime(
-                                            year: 2025,
-                                            month: 10,
-                                            day: 1);
+                var date2 = new DateTime(
+                    year: 2025,
+                    month: 10,
+                    day: 1);
                 return date2;
             }
 
             var currentGroup = group with
             {
                 Lessons =
-                            [
-                                new(
+                [
+                    new(
                         CalculateDate2(),
                         LessonType.Curs,
                         "canary-current-topic"),
@@ -1927,8 +2245,8 @@ public sealed class CliJsonlTests
         public Task<IReadOnlyList<CalendarDestination>> ListCalendars(CancellationToken token)
         {
             return Task.FromResult<IReadOnlyList<CalendarDestination>>(
-                    [
-                        new(
+            [
+                new(
                     Id: "old",
                     Summary: "Lessons",
                     false),
@@ -1943,7 +2261,7 @@ public sealed class CliJsonlTests
             string CalculateItem()
             {
                 string text = $"delete {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -1965,12 +2283,12 @@ public sealed class CliJsonlTests
             string CalculateItem()
             {
                 string text = $"event {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
             Writes.Add(CalculateItem());
-            return Task.FromResult((string) $"event-{(++_events).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            return Task.FromResult($"event-{(++_events).ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         }
 
         public void Dispose()
@@ -1984,9 +2302,9 @@ public sealed class CliJsonlTests
 
         public Task<DriveAccount> GetAccount(CancellationToken token)
         {
-            global::ScheduleLib.Cli.DriveAccount CalculateResult()
+            DriveAccount CalculateResult()
             {
-                global::ScheduleLib.Cli.DriveAccount result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
+                var result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
                 return result;
             }
 
@@ -1995,9 +2313,9 @@ public sealed class CliJsonlTests
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
         {
-            global::ScheduleLib.Cli.DriveDestination CalculateResult()
+            DriveDestination CalculateResult()
             {
-                global::ScheduleLib.Cli.DriveDestination result = new DriveDestination(Id: "actual-folder", Name: "Actual folder");
+                var result = new DriveDestination(Id: "actual-folder", Name: "Actual folder");
                 return result;
             }
 
@@ -2012,7 +2330,7 @@ public sealed class CliJsonlTests
             string CalculateItem()
             {
                 string text = $"delete {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -2029,7 +2347,7 @@ public sealed class CliJsonlTests
             string CalculateItem()
             {
                 string text = $"create {name}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -2045,7 +2363,7 @@ public sealed class CliJsonlTests
             string CalculateItem()
             {
                 string text = $"update {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -2083,12 +2401,7 @@ public sealed class CliJsonlTests
                 bool conditionResult;
                 int conditionValue = Interlocked.Increment(ref _lines);
                 conditionResult = conditionValue == cancelAfter;
-                if (conditionResult)
-                {
-                    return true;
-                }
-
-                return false;
+                return conditionResult;
             }
 
             if (CheckCondition())
@@ -2102,6 +2415,7 @@ public sealed class CliJsonlTests
     {
         private readonly HashSet<int> _failOn = failOn.ToHashSet();
         private int _lines;
+
         public string Snapshot()
         {
             return GetStringBuilder()
@@ -2110,7 +2424,7 @@ public sealed class CliJsonlTests
 
         public override void WriteLine(string? value)
         {
-            global::System.Collections.Generic.HashSet<int> hashSet = _failOn;
+            var hashSet = _failOn;
             int item = Interlocked.Increment(ref _lines);
             if (hashSet.Contains(item))
             {
@@ -2132,6 +2446,7 @@ public sealed class CliJsonlTests
             _previousConfig = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
             _previousData = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
             _previousDirectory = Environment.CurrentDirectory;
+
             string CalculatePath2()
             {
                 string path2 = Guid.NewGuid()
@@ -2216,7 +2531,8 @@ public sealed class CliJsonlTests
     {
         private sealed class Session : IRegistrySession
         {
-            public RegistryDestination Target { get; } = new(Account: "synthetic-account", Destination: "https://registry.test/");
+            public RegistryDestination Target { get; } =
+                new(Account: "synthetic-account", Destination: "https://registry.test/");
 
             public Task<IReadOnlyList<RegistrySyncAction>> Plan(CancellationToken token) =>
                 Task.FromResult<IReadOnlyList<RegistrySyncAction>>([]);
@@ -2254,7 +2570,8 @@ public sealed class CliJsonlTests
 
         public List<int> Executed { get; } = [];
 
-        public RegistryDestination Target { get; } = new(Account: "synthetic-account", Destination: "https://registry.test/");
+        public RegistryDestination Target { get; } =
+            new(Account: "synthetic-account", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -2270,81 +2587,90 @@ public sealed class CliJsonlTests
                 "delete",
             };
             IReadOnlyList<RegistrySyncAction> actions = kinds.Select((kind, index) =>
-            {
-                global::ScheduleLib.OnlineRegistry.RegistrySyncAction ProjectValue()
                 {
-                    string operationValue = kind;
-                    string operationValue2 = Target.Destination;
-                    string operationValue3 = "synthetic-course";
-                    string operationValue4 = "synthetic-group";
-                    int operationValue5 = 2026;
-                    int operationValue6 = 1;
-                    int operationValue7 = index + 1;
-                    int operationValue8 = operationValue7;
-                    global::System.DateTime operationValue9 = new(
-                                        year: operationValue5, month: operationValue6, day: operationValue8);
-                    global::System.DateTime operationValue10 = operationValue9;
-                    string operationValue11 = "synthetic-topic";
-                    int? operationValue12 = 2;
-                    bool operationValue13 = true;
-                    string? operationValue14 = null;
-                    global::System.Func<global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> operationValue15 = async ct =>
-                                    {
-                                        lock (Executed)
-                                        {
-                                            Executed.Add(index);
-                                        }
+                    RegistrySyncAction ProjectValue()
+                    {
+                        string operationValue = kind;
+                        string operationValue2 = Target.Destination;
+                        string operationValue3 = "synthetic-course";
+                        string operationValue4 = "synthetic-group";
+                        int operationValue5 = 2026;
+                        int operationValue6 = 1;
+                        int operationValue7 = index + 1;
+                        int operationValue8 = operationValue7;
+                        DateTime operationValue9 = new(
+                            year: operationValue5,
+                            month: operationValue6,
+                            day: operationValue8);
+                        var operationValue10 = operationValue9;
+                        string operationValue11 = "synthetic-topic";
+                        int? operationValue12 = 2;
+                        bool operationValue13 = true;
+                        string? operationValue14 = null;
+                        Func<CancellationToken, Task> operationValue15 = async ct =>
+                        {
+                            lock (Executed)
+                            {
+                                Executed.Add(index);
+                            }
 
-                                        if (ActionFailure is not null)
-                                        {
-                                            if (index == 0)
-                                            {
-                                                throw ActionFailure;
-                                            }
-                                        }
+                            if (ActionFailure is not null)
+                            {
+                                if (index == 0)
+                                {
+                                    throw ActionFailure;
+                                }
+                            }
 
-                                        if (BlockSecond is not null)
-                                        {
-                                            if (index == 1)
-                                            {
-                                                await BlockSecond;
-                                            }
-                                        }
+                            if (BlockSecond is not null)
+                            {
+                                if (index == 1)
+                                {
+                                    await BlockSecond;
+                                }
+                            }
 
-                                        bool CalculateConditionResult()
-                                        {
-                                            if (CancelSecond)
-                                            {
-                                                if (index == 1)
-                                                {
-                                                    return true;
-                                                }
+                            bool CalculateConditionResult()
+                            {
+                                if (!CancelSecond)
+                                {
+                                    return false;
+                                }
 
-                                                return false;
-                                            }
-                                            else
-                                            {
-                                                return false;
-                                            }
-                                        }
+                                if (index == 1)
+                                {
+                                    return true;
+                                }
 
-                                        bool conditionResult = CalculateConditionResult();
+                                return false;
+                            }
+
+                            bool conditionResult = CalculateConditionResult();
 
 
-                                        if (conditionResult)
-                                        {
-                                            throw new OperationCanceledException();
-                                        }
+                            if (conditionResult)
+                            {
+                                throw new OperationCanceledException();
+                            }
 
-                                        await Task.CompletedTask;
-                                    };
-                    global::ScheduleLib.OnlineRegistry.RegistrySyncAction operationValue16 = new RegistrySyncAction(
-                                    kind: operationValue, destination: operationValue2, course: operationValue3, groups: operationValue4, operationValue10, topic: operationValue11, operationValue12, operationValue13, omission: operationValue14, operationValue15);
-                    return operationValue16;
-                }
+                            await Task.CompletedTask;
+                        };
+                        var operationValue16 = new RegistrySyncAction(
+                            kind: operationValue,
+                            destination: operationValue2,
+                            course: operationValue3,
+                            groups: operationValue4,
+                            operationValue10,
+                            topic: operationValue11,
+                            operationValue12,
+                            operationValue13,
+                            omission: operationValue14,
+                            operationValue15);
+                        return operationValue16;
+                    }
 
-                return ProjectValue();
-            })
+                    return ProjectValue();
+                })
                 .ToArray();
             return Task.FromResult(actions);
         }
@@ -2359,9 +2685,9 @@ public sealed class CliJsonlTests
             string quizId,
             CancellationToken token)
         {
-            global::ScheduleLib.OnlineRegistry.RegistryGradePlan CalculateResult()
+            RegistryGradePlan CalculateResult()
             {
-                global::ScheduleLib.OnlineRegistry.RegistryGradePlan result = new RegistryGradePlan([], []);
+                var result = new RegistryGradePlan([], []);
                 return result;
             }
 
@@ -2369,7 +2695,7 @@ public sealed class CliJsonlTests
         }
     }
 
-    private sealed class SyncCapture : System.IO.TextWriter
+    private sealed class SyncCapture : TextWriter
     {
         private readonly StringBuilder _builder = new();
         private readonly object _gate = new();
@@ -2404,13 +2730,13 @@ public sealed class CliJsonlTests
     {
         public List<string> Messages { get; } = [];
 
-        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(this);
+        public ILogger CreateLogger(string categoryName) => new Logger(this);
 
         public void Dispose()
         {
         }
 
-        private sealed class Logger(LogCapture parent) : Microsoft.Extensions.Logging.ILogger
+        private sealed class Logger(LogCapture parent) : ILogger
         {
             public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
             public bool IsEnabled(LogLevel logLevel) => true;
@@ -2434,9 +2760,9 @@ public sealed class CliJsonlTests
     {
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
         {
-            global::System.Uri CalculateUrl()
+            Uri CalculateUrl()
             {
-                global::System.Uri url = new("https://registry.test/course");
+                Uri url = new("https://registry.test/course");
                 return url;
             }
 
@@ -2452,14 +2778,15 @@ public sealed class CliJsonlTests
             {
                 if (uri.AbsolutePath == "/group")
                 {
-                    return "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>";
+                    return
+                        "<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>";
                 }
 
                 return "<html></html>";
             }
 
             return await new HtmlParser().ParseDocumentAsync(
-                            CalculateSource());
+                CalculateSource());
         }
 
         public Task SubmitLesson(IDocument document) =>

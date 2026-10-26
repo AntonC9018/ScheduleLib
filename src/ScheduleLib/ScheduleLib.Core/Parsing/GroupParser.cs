@@ -44,12 +44,15 @@ public sealed class GroupParseContext
 
 public static class GroupHelper
 {
+    /// <summary>The parsed label of a group name and the flags that were recognized next to it.</summary>
+    private readonly record struct GroupLabel(string Label, bool IsFR, bool IsMaster);
+
     // Just do the lazy thing here for now.
     public static Group? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         try
         {
-            return Parse(context, name);
+            return context.Parse(name);
         }
         catch (Exception)
         {
@@ -168,14 +171,12 @@ public static class GroupHelper
                 {
                     bool CalculateConditionResult()
                     {
-                        if (ch == ')')
-                        {
-                            return isParen;
-                        }
-                        else
+                        if (ch != ')')
                         {
                             return false;
                         }
+
+                        return isParen;
                     }
 
                     bool conditionResult = CalculateConditionResult();
@@ -196,7 +197,7 @@ public static class GroupHelper
         }
     }
 
-    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref SequenceReader reader)
+    private static GroupLabel ParseLabel(ref SequenceReader reader)
     {
         var bparser = reader.BufferedView();
         if (!ParserHelper.IsUpperAscii(bparser.Current))
@@ -223,7 +224,9 @@ public static class GroupHelper
         {
             // Skip until the label is ending.
             var skip = new SkipLabelUntilFR();
-            bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
+            bparser.SkipWindow(ref skip,
+                minWindowSize: 1,
+                maxWindowSize: 2);
             isFr = skip.IsFr;
 
             label = labelParser.PeekSpanUntilPosition(bparser.Position);
@@ -252,7 +255,7 @@ public static class GroupHelper
         if (isMaybeMaster)
         {
             conditionResult = label.IsEmpty;
-            conditionResult = !(conditionResult);
+            conditionResult = !conditionResult;
         }
         else
         {
@@ -266,10 +269,13 @@ public static class GroupHelper
         }
 
         reader.MoveTo(bparser.Position);
-        return (label.ToString(), isFr, isCertainlyMaster);
+        return new(label.ToString(),
+            IsFR: isFr,
+            IsMaster: isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
+
     private static int ParseGroup(ref SequenceReader reader)
     {
         var result = reader.ConsumePositiveIntWithMaxLength(GroupNumberLen);
@@ -281,6 +287,7 @@ public static class GroupHelper
     }
 
     public const int YearLen = 2;
+
     private static int ParseYear(ref SequenceReader reader)
     {
         var result = reader.ConsumePositiveInt(YearLen);

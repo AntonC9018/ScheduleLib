@@ -30,33 +30,37 @@ public sealed class CommandContextTests
             "test",
             new(),
             CancellationToken.None);
+
         int CalculateActual()
         {
-            global::ScheduleLib.Cli.CliFailure classifyInputFailure = context.ClassifyInputFailure(new FileNotFoundException());
+            var classifyInputFailure = context.ClassifyInputFailure(new FileNotFoundException());
             int actual2 = classifyInputFailure.ExitCode;
             return actual2;
         }
 
         Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual());
+
         int CalculateActual2()
         {
-            global::ScheduleLib.Cli.CliFailure classifyInputFailure2 = context.ClassifyInputFailure(new JsonException());
+            var classifyInputFailure2 = context.ClassifyInputFailure(new JsonException());
             int actual3 = classifyInputFailure2.ExitCode;
             return actual3;
         }
 
         Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual2());
+
         int CalculateActual3()
         {
-            global::ScheduleLib.Cli.CliFailure classifyInputFailure3 = context.ClassifyInputFailure(new IOException());
+            var classifyInputFailure3 = context.ClassifyInputFailure(new IOException());
             int actual4 = classifyInputFailure3.ExitCode;
             return actual4;
         }
 
         Assert.Equal(expected: CliExit.IoFailure, actual: CalculateActual3());
+
         int CalculateActual4()
         {
-            global::ScheduleLib.Cli.CliFailure classifyInputFailure4 = context.ClassifyInputFailure(new ArgumentException());
+            var classifyInputFailure4 = context.ClassifyInputFailure(new ArgumentException());
             int actual5 = classifyInputFailure4.ExitCode;
             return actual5;
         }
@@ -98,30 +102,34 @@ public sealed class CommandContextTests
                             token);
                     },
                     CancellationToken.None);
-                global::System.IO.IOException CalculateError()
+
+                IOException CalculateError()
                 {
-                    global::System.IO.IOException error = new IOException("Disk failure.");
+                    var error = new IOException("Disk failure.");
                     return error;
                 }
 
                 var failure = context.ClassifyInputFailure(CalculateError(), export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: failure.ExitCode);
-                global::ScheduleLib.Cli.GeneralCliOutputStreamingException CalculateError2()
+
+                GeneralCliOutputStreamingException CalculateError2()
                 {
-                    global::ScheduleLib.Cli.GeneralCliOutputStreamingException error2 = new GeneralCliOutputStreamingException("Output failed.");
+                    var error2 = new GeneralCliOutputStreamingException("Output failed.");
                     return error2;
                 }
 
                 var renderingFailure = context.ClassifyInputFailure(
-                                    CalculateError2(),
-                                    export: true);
+                    CalculateError2(),
+                    export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: renderingFailure.ExitCode);
                 var paths = await context.CompleteArtifacts(failure.ExitCode);
                 Assert.Contains(context.Artifacts.ManifestPath, paths);
                 using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(context.Artifacts.ManifestPath));
-                Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
-                    .GetString());
+                Assert.Equal(expected: "partial",
+                    actual: manifest.RootElement.GetProperty("Status")
+                        .GetString());
             }
+
             string CalculateRunId()
             {
                 string runId2 = Guid.NewGuid()
@@ -130,10 +138,10 @@ public sealed class CommandContextTests
             }
 
             using var next = await RunOutput.Create(
-                            output: directory,
-                            command: "test",
-                            runId: CalculateRunId(),
-                            CancellationToken.None);
+                output: directory,
+                command: "test",
+                runId: CalculateRunId(),
+                CancellationToken.None);
         }
         finally
         {

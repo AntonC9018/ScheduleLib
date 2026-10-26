@@ -31,10 +31,11 @@ public sealed class RegistryConfig :
         services.SetImmutable<List<DateOnly>>();
         services.SetImmutable<Dictionary<string, string>>();
         services.RegisterBasicOperationsAndMergers<RegistryConfig>();
-        services.AddKeyEqualityComparer((RegistryGroupMatchRule rule) => (Faculty: rule.Faculty, SubGroup: rule.SubGroup));
-        services.AddKeyEqualityComparer((RegistryLabMergeRule rule) => (Course: rule.Course, Group: rule.Group));
-        services.AddKeyEqualityComparer((RegistryAssessmentRule rule) => (Course: rule.Course, Group: rule.Group, Type: rule.LessonType, SubGroup: rule.SubGroup, Specialization: rule.Specialization, Alternative: rule.Alternative));
-        services.AddConfigProvider(RegistryConfig.Key);
+        services.AddKeyEqualityComparer((RegistryGroupMatchRule rule) => (rule.Faculty, rule.SubGroup));
+        services.AddKeyEqualityComparer((RegistryLabMergeRule rule) => (rule.Course, rule.Group));
+        services.AddKeyEqualityComparer((RegistryAssessmentRule rule) => (rule.Course, rule.Group,
+            Type: rule.LessonType, rule.SubGroup, rule.Specialization, rule.Alternative));
+        services.AddConfigProvider(Key);
         services.AddConfigProvider(BuiltRegistryConfig.Key);
         services.AddMapper<RegistryConfigMapper>();
         services.ConfigureNodeDataJsonSerialization(
@@ -86,7 +87,9 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
             ExtraLessonInstanceAction = input.ExtraLessonInstanceAction ?? ExtraLessonInstanceAction.LeaveAlone,
             CommandProcessingConfig = input.CommandProcessingConfig ?? CommandProcessingConfig.DryRun,
             Credentials = input.Credentials ?? throw new InvalidOperationException("No credentials configured"),
-            EquationCommandsDerivation = input.EquationCommandsDerivation ?? throw new InvalidOperationException("No command derivation configured"),
+            EquationCommandsDerivation =
+                input.EquationCommandsDerivation
+                ?? throw new InvalidOperationException("No command derivation configured"),
             HttpCallDelay = delay,
             CourseNames = input.CourseNames ?? new Dictionary<string, string>(),
             StudentNames = input.StudentNames ?? new Dictionary<string, string>(),
@@ -129,10 +132,12 @@ public static class ConfigExtensions
             AttendanceListsExcelParser.Register(services);
         }
     }
+
     extension(NodeBuilder builder)
     {
         public NodeDataBuilder<RegistryConfig> Registry() => builder.Builder<RegistryConfig>();
     }
+
     extension(NodeDataBuilder<RegistryConfig> builder)
     {
         public void ExtraLessonAction(ExtraLessonInstanceAction action)

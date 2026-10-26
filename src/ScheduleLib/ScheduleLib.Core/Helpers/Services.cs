@@ -15,6 +15,7 @@ public sealed class DayNameProvider
     {
         var arr = OneForEach.Enum<DayOfWeek>()
             .CreateArray<string>();
+
         void Set(DayOfWeek day, string name)
         {
             arr[day] = name;
@@ -30,6 +31,7 @@ public sealed class DayNameProvider
         Debug.Assert(arr.Storage.None(x => x is null));
         return arr.Storage;
     }
+
     private static readonly ImmutableArray<string> _Names = [.. CreateNames()];
     public readonly ImmutableArray<string> Names = _Names;
 }
@@ -73,6 +75,7 @@ public static class LessonTypeConstants
     private static string[] CreateNames()
     {
         var ret = new string[5];
+
         void Set(LessonType t, string name)
         {
             ret[(int) t] = name;
@@ -98,11 +101,11 @@ public sealed class LessonTypeDisplayHandler
         bool conditionResult;
         int conditionValue = (int) type;
         conditionResult = conditionValue < names.Length;
-        if (conditionResult)
+        if (!conditionResult)
         {
-            return names[(int) type];
+            return null;
         }
-        return null;
+
+        return names[(int) type];
     }
 }
-

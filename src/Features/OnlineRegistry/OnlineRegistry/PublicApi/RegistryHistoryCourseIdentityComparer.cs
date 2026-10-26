@@ -29,11 +29,12 @@ public sealed class RegistryHistoryCourseIdentityComparer : IEqualityComparer<Re
         }
         var xName = RegistryHistoryTopicSelection.NormalizeCourseName(x.Name);
         var yName = RegistryHistoryTopicSelection.NormalizeCourseName(y.Name);
-        if (!StringComparer.OrdinalIgnoreCase.Equals(xName, yName))
+        if (StringComparer.OrdinalIgnoreCase.Equals(xName, yName))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     public int GetHashCode(RegistryHistoryCourse course)

@@ -14,9 +14,9 @@ public sealed class GoogleDriveConfig : INodeData<GoogleDriveConfig>
     {
         services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
         services.AddMapper<GoogleDriveConfigMapper>();
-        services.AddConfigProvider(GoogleDriveConfig.Key);
-        global::Microsoft.Extensions.DependencyInjection.IServiceCollection iServiceCollection = services;
-        global::Anton.LayeredData.NodeDataKey<global::ScheduleLib.Application.Config.BuiltGoogleDriveConfig> key = new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value);
+        services.AddConfigProvider(Key);
+        var iServiceCollection = services;
+        var key = new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value);
         iServiceCollection.AddConfigProvider(key);
     }
 }
@@ -39,7 +39,8 @@ public sealed class GoogleDriveConfigMapper : IDataMapper<GoogleDriveConfig, Bui
         return new()
         {
             Credentials = input.Credentials.Build(),
-            DriveFolderName = input.DriveFolderName ?? throw new InvalidOperationException("No drive folder configured"),
+            DriveFolderName =
+                input.DriveFolderName ?? throw new InvalidOperationException("No drive folder configured"),
         };
     }
 }

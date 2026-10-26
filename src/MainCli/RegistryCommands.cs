@@ -45,12 +45,12 @@ public partial class RegistryCommands
         CancellationToken cancellationToken = default)
     {
         return RunLessonActions(
-                source,
-                settings,
-                result,
-                apply,
-                cleanupIntakeLabs: false,
-                cancellationToken);
+            source,
+            settings,
+            result,
+            apply,
+            cleanupIntakeLabs: false,
+            cancellationToken);
     }
 
     [Command(
@@ -65,12 +65,12 @@ public partial class RegistryCommands
         CancellationToken cancellationToken = default)
     {
         return RunLessonActions(
-                source,
-                settings,
-                result,
-                apply,
-                cleanupIntakeLabs: true,
-                cancellationToken);
+            source,
+            settings,
+            result,
+            apply,
+            cleanupIntakeLabs: true,
+            cancellationToken);
     }
 
     private async Task<int> RunLessonActions(
@@ -97,9 +97,9 @@ public partial class RegistryCommands
         }
 
         using var context = new CliCommandContext(
-                    CalculateCommand(),
-                    result,
-                    cancellationToken);
+            CalculateCommand(),
+            result,
+            cancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -113,11 +113,12 @@ public partial class RegistryCommands
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = context.Warnings;
-        global::System.Collections.Generic.List<string> list = warnings;
+        var list = warnings;
         string item2;
         if (cleanupIntakeLabs)
         {
-            item2 = "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected.";
+            item2 =
+                "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected.";
         }
         else
         {
@@ -142,9 +143,9 @@ public partial class RegistryCommands
 
             await using var session = await CreateProvider()
                 .Open(
-                source,
-                settings,
-                cancellation.Token);
+                    source,
+                    settings,
+                    cancellation.Token);
             target = session.Target;
             diagnostics = session.Diagnostics;
             liveDiagnostics = session.LiveDiagnostics;
@@ -153,8 +154,10 @@ public partial class RegistryCommands
                 liveDiagnostics.Reported += StreamDiagnostic;
             }
 
-            await using var lease = apply.Apply ? await CreateAccountLock()
-                .Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply
+                ? await CreateAccountLock()
+                    .Acquire(target, cancellation.Token)
+                : null;
             // The planner discovers a course's assignments before applying its groups in sequence.
             var stopped = false;
             if (cleanupIntakeLabs)
@@ -178,7 +181,7 @@ public partial class RegistryCommands
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
-                    global::ScheduleLib.OnlineRegistry.RegistrySyncAction action2 = action;
+                    var action2 = action;
                     string status2;
                     if (!action.Enabled)
                     {
@@ -201,7 +204,9 @@ public partial class RegistryCommands
 
                     string? detail2 = action.Omission;
                     var initial = ToOutcome(
-                        action2, status: status2, detail: detail2);
+                        action2,
+                        status: status2,
+                        detail: detail2);
                     outcomes.Add(initial);
                     StreamOutcome(outcomes.Count - 1, initial);
                 }
@@ -306,23 +311,27 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryActionOutcome outcome)
         {
-            global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+            var cliCommandContext = context;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string status2 = outcome.Status;
             object item = outcome;
-            global::System.Action renderHuman2 = () =>
+            Action renderHuman2 = () =>
+            {
+                string CalculateLine()
                 {
-                    string CalculateLine()
-                    {
-                        string line = $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}";
-                        return line;
-                    }
+                    string line =
+                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}";
+                    return line;
+                }
 
-                    output.WriteHuman(
-                                            CalculateLine());
-                };
+                output.WriteHuman(
+                    CalculateLine());
+            };
             cliCommandContext.StreamItem(
-                id: id2, status: status2, item, renderHuman: renderHuman2);
+                id: id2,
+                status: status2,
+                item,
+                renderHuman: renderHuman2);
         }
 
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
@@ -402,7 +411,7 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        var cliOutput = output;
                         string line = $"{status}: {target.Destination} (account {target.Account})";
                         cliOutput.WriteHuman(line);
                     }

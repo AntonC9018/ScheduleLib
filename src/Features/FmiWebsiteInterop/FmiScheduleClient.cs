@@ -28,8 +28,8 @@ public sealed class FmiScheduleClient(HttpClient http)
                 throw new FmiScheduleLinkDidNotReturnPdfException(link.Url);
             }
 
-            global::System.Collections.Generic.List<global::FmiWebsiteInterop.FmiScheduleDownload> list = downloads;
-            global::FmiWebsiteInterop.FmiScheduleDownload item = new(link, bytes);
+            var list = downloads;
+            FmiScheduleDownload item = new(link, bytes);
             list.Add(item);
         }
         return downloads;
@@ -89,13 +89,12 @@ public sealed class FmiScheduleClient(HttpClient http)
                                 if (match.Success)
                                 {
                                     var year = match.Groups[1].Value.Length;
-                                    global::System.Collections.Generic.Dictionary<int,
-                                        global::FmiWebsiteInterop.FmiScheduleLink> dictionary = links;
+                                    var dictionary = links;
                                     int key = year;
                                     int year2 = year;
-                                    global::System.Uri url = uri;
-                                    global::System.DateOnly? uploadDate = ReadUploadDate(element);
-                                    global::FmiWebsiteInterop.FmiScheduleLink value = new(year2,
+                                    var url = uri;
+                                    var uploadDate = ReadUploadDate(element);
+                                    FmiScheduleLink value = new(year2,
                                         url,
                                         uploadDate);
                                     bool tryAdd = dictionary.TryAdd(key, value);

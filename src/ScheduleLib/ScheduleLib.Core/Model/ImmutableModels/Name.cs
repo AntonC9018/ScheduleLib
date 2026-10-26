@@ -18,13 +18,15 @@ public record struct OptionalNamePart
             {
                 return full;
             }
-            if (Short is { } shortName)
+            if (!(Short is { } shortName))
             {
-                return shortName;
+                return null;
             }
-            return null;
+
+            return shortName;
         }
     }
+
     public readonly bool IsNull
     {
         get
@@ -34,12 +36,12 @@ public record struct OptionalNamePart
                 return false;
             }
 
-            if (!(Short is null))
+            if (Short is null)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
     }
 
@@ -134,19 +136,20 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
 
     public bool Equals(NameParts<string?> x, NameParts<string?> y)
     {
-        return x.EachEquals(y, (x1, y1) =>
-        {
-            if (x1 is null)
+        return x.EachEquals(y,
+            (x1, y1) =>
             {
-                if (y1 is null)
+                if (x1 is null)
                 {
-                    return true;
-                }
+                    if (y1 is null)
+                    {
+                        return true;
+                    }
 
-                return false;
-            }
-            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x1, y: y1);
-        });
+                    return false;
+                }
+                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: x1, y: y1);
+            });
     }
 
     public int GetHashCode(NameParts<string?> obj)
@@ -171,7 +174,6 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
             IgnoreDiacriticsAndCaseComparer.Instance!);
     }
 }
-
 
 public record struct LastName
 {
@@ -351,10 +353,17 @@ public static class NamePartHelper
         return false;
     }
 
-    public static bool EachEquals<T, U>(this NameParts<T> a, NameParts<U> b, Func<T, U, bool> pred)
+    public static bool EachEquals<T, U>(
+        this NameParts<T> a,
+        NameParts<U> b,
+        Func<T, U, bool> pred)
     {
         // Pass the predicate itself as state.
-        return EachEquals(a, b, pred, static (pred, a, b) => pred(a, b));
+        return a.EachEquals(b,
+            pred,
+            static (
+                pred, a,
+                b) => pred(a, b));
     }
 
     public static bool EachEquals<T, U, TState>(
@@ -362,7 +371,6 @@ public static class NamePartHelper
         NameParts<U> b,
         TState state,
         Func<TState, T, U, bool> pred)
-
         where TState : allows ref struct
     {
         var i = new EnumeratorState();
@@ -370,7 +378,9 @@ public static class NamePartHelper
         {
             var fa = i.GetRef(ref a);
             var fb = i.GetRef(ref b);
-            if (!pred(state, fa, fb))
+            if (!pred(state,
+                    fa,
+                    fb))
             {
                 return false;
             }
@@ -477,23 +487,19 @@ public static class NameDisplayHelper
         else
         {
             var res = AppendFirstName();
+
             bool CalculateConditionResult2()
             {
                 if (res == WhichFirstName.Full)
                 {
                     return true;
                 }
-                else
+                if (res != WhichFirstName.Short)
                 {
-                    if (res == WhichFirstName.Short)
-                    {
-                        return p.InsertSpaceAfterShortName;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    return false;
                 }
+
+                return p.InsertSpaceAfterShortName;
             }
 
             bool conditionResult2 = CalculateConditionResult2();
@@ -520,6 +526,7 @@ public static class NameDisplayHelper
             }
             return true;
         }
+
         WhichFirstName AppendFirstName()
         {
             var firstName = p.Name.FirstName;
@@ -556,19 +563,17 @@ public static class NameDisplayHelper
 
                 bool CalculateConditionResult()
                 {
-                    if (f[1].Full is null)
+                    if (!(f[1].Full is null))
                     {
-                        if (f[1].Short is not null)
-                        {
-                            return true;
-                        }
+                        return false;
+                    }
 
-                        return false;
-                    }
-                    else
+                    if (f[1].Short is not null)
                     {
-                        return false;
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -591,6 +596,7 @@ public static class NameDisplayHelper
 
                 return true;
             }
+
             bool AppendShorter(NameParts<OptionalNamePart> f)
             {
                 if (f[0].Short is not { } a)
@@ -632,6 +638,4 @@ public static class NameDisplayHelper
             }
         }
     }
-
 }
-

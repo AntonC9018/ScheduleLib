@@ -19,17 +19,17 @@ public sealed class QuizArguments : IArgumentModel
                     return false;
                 }
 
-                if (!(QuizId.All(x => x is >= '0' and <= '9')))
+                if (!QuizId.All(x => x is >= '0' and <= '9'))
                 {
                     return false;
                 }
 
-                if (!(QuizId.Any(x => x != '0')))
+                if (QuizId.Any(x => x != '0'))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             return CheckCondition();
@@ -106,22 +106,24 @@ public partial class RegistryCommands
 
             await using var session = await CreateProvider()
                 .Open(
-                source,
-                settings,
-                cancellation.Token);
+                    source,
+                    settings,
+                    cancellation.Token);
             target = session.Target;
-            await using var lease = apply.Apply ? await CreateAccountLock()
-                .Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply
+                ? await CreateAccountLock()
+                    .Acquire(target, cancellation.Token)
+                : null;
             // Every invocation derives current remote state; no preview transaction is replayed.
             var plan = await CreateGradePlanner()
                 .Plan(
-                session,
-                quiz.QuizId!,
-                cancellation.Token);
+                    session,
+                    quiz.QuizId!,
+                    cancellation.Token);
             notices.AddRange(plan.Notices);
             foreach (var notice in notices)
             {
-                global::System.Collections.Generic.List<string> list = warnings;
+                var list = warnings;
                 string item = $"{notice.Kind}: {notice.Detail}";
                 list.Add(item);
             }
@@ -129,7 +131,7 @@ public partial class RegistryCommands
             foreach (var action in plan.Actions)
             {
                 actionIndexes.Add(action, outcomes.Count);
-                global::ScheduleLib.OnlineRegistry.RegistryGradeAction action2 = action;
+                var action2 = action;
                 string status3;
                 if (apply.Apply)
                 {
@@ -142,7 +144,9 @@ public partial class RegistryCommands
 
                 string? detail2 = null;
                 var initial = ToOutcome(
-                    action2, status: status3, detail: detail2);
+                    action2,
+                    status: status3,
+                    detail: detail2);
                 outcomes.Add(initial);
                 StreamOutcome(outcomes.Count - 1, initial);
             }
@@ -225,30 +229,35 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryGradeOutcome outcome)
         {
-            global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+            var cliCommandContext = context;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string status2 = outcome.Status;
             object item = outcome;
-            global::System.Action renderHuman2 = () =>
+            Action renderHuman2 = () =>
+            {
+                string CalculateLine()
                 {
-                    string CalculateLine()
-                    {
-                        string line = $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}";
-                        return line;
-                    }
+                    string line =
+                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}";
+                    return line;
+                }
 
-                    output.WriteHuman(
-                                            CalculateLine());
-                    foreach (var grade in outcome.Grades)
-                    {
-                        var cliOutput = output;
-                        string line2 = $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
-                        cliOutput.WriteHuman(
-line2);
-                    }
-                };
+                output.WriteHuman(
+                    CalculateLine());
+                foreach (var grade in outcome.Grades)
+                {
+                    var cliOutput = output;
+                    string line2 =
+                        $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
+                    cliOutput.WriteHuman(
+                        line2);
+                }
+            };
             cliCommandContext.StreamItem(
-                id: id2, status: status2, item, renderHuman: renderHuman2);
+                id: id2,
+                status: status2,
+                item,
+                renderHuman: renderHuman2);
         }
 
         int Finish(int exit, string[] errors)
@@ -301,7 +310,7 @@ line2);
                 {
                     if (target is not null)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        var cliOutput = output;
                         string line = $"{status}: {target.Destination} (account {target.Account})";
                         cliOutput.WriteHuman(line);
                     }

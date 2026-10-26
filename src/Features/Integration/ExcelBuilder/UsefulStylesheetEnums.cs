@@ -43,7 +43,7 @@ public static class UsefulStylesheetEnumsHelper
         if (!top)
         {
             conditionResult = bottom;
-            conditionResult = !(conditionResult);
+            conditionResult = !conditionResult;
         }
         else
         {

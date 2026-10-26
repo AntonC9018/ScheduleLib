@@ -67,6 +67,9 @@ public struct CourseNameSegmentFlags()
     public bool CanBeIgnored = false;
 }
 
+/// <summary>A course name the unifier maps to its canonical name.</summary>
+public readonly record struct CourseNameMapping(string From, string To);
+
 public sealed class CourseNameParserConfig
 {
     public readonly int MinUsefulWordLength;
@@ -95,8 +98,8 @@ public sealed class CourseNameParserConfig
             var b = ImmutableArray.CreateBuilder<ShortenedWord>(p.IgnoredShortenedWords.Length);
             foreach (var x in p.IgnoredShortenedWords)
             {
-                global::System.Collections.Immutable.ImmutableArray<global::ShortenedWord>.Builder builder = b;
-                global::ShortenedWord item = new(x);
+                var builder = b;
+                ShortenedWord item = new(x);
                 builder.Add(item);
             }
             IgnoredShortenedWords = b.MoveToImmutable();
@@ -110,7 +113,7 @@ public sealed class CourseNameParserConfig
         public ReadOnlySpan<string> ProgrammingLanguages = [];
         public ReadOnlySpan<string> IgnoredShortenedWords = [];
         public ReadOnlySpan<string> IgnoredProgrammingRelatedWords = [];
-        public ReadOnlySpan<(string From, string To)> FullyMappedNames = [];
+        public ReadOnlySpan<CourseNameMapping> FullyMappedNames = [];
     }
 }
 
@@ -277,10 +280,12 @@ public static class CourseNameParsing
                     {
                         return true;
                     }
+
                     if (char.IsNumber(c))
                     {
                         return true;
                     }
+
                     return false;
                 }
             }
@@ -294,14 +299,12 @@ public static class CourseNameParsing
     {
         bool CalculateConditionResult2()
         {
-            if (a.IsDone)
-            {
-                return b.IsDone;
-            }
-            else
+            if (!a.IsDone)
             {
                 return false;
             }
+
+            return b.IsDone;
         }
 
         bool conditionResult = CalculateConditionResult2();
@@ -318,14 +321,12 @@ public static class CourseNameParsing
         {
             bool CalculateConditionResult()
             {
-                if (!a.IsDone)
-                {
-                    return a.CanIgnoreCurrent;
-                }
-                else
+                if (a.IsDone)
                 {
                     return false;
                 }
+
+                return a.CanIgnoreCurrent;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -499,11 +500,13 @@ public static class CourseNameParsing
         }
 
         public WordEnumerable GetPossibleWords() => new(this);
+
         public readonly struct WordEnumerable
         {
             private readonly CourseIter _i;
             public WordEnumerable(CourseIter i) => _i = i;
             public Enumerator GetEnumerator() => new(_i);
+
             public struct Enumerator
             {
                 private EnumMembers<WordType>.Enumerator _e;
@@ -613,10 +616,12 @@ internal readonly ref struct WordEnumerable
             {
                 return false;
             }
+
             if (ch is ',' or ';' or ':' or '!' or '?' or '&')
             {
                 return true;
             }
+
             return false;
         }
 
@@ -728,4 +733,3 @@ internal enum WordType
     Plain,
     Letter,
 }
-

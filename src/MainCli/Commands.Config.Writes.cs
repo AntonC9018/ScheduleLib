@@ -29,7 +29,7 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ConfigEditRequest request = new(
+        ConfigEditRequest request = new(
             Verb: "set",
             Key: edit.Key,
             Value: edit.Value,
@@ -37,7 +37,7 @@ public sealed partial class ConfigCommands
             settings,
             output,
             cancellationToken);
-        global::System.Threading.Tasks.Task<int> write = Write(request);
+        var write = Write(request);
         return write;
     }
 
@@ -49,7 +49,7 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ConfigEditRequest request = new(
+        ConfigEditRequest request = new(
             Verb: "unset",
             Key: key.Key,
             Value: null,
@@ -57,13 +57,13 @@ public sealed partial class ConfigCommands
             settings,
             output,
             cancellationToken);
-        global::System.Threading.Tasks.Task<int> write = Write(request);
+        var write = Write(request);
         return write;
     }
 
     internal static async Task<int> Write(ConfigEditRequest request)
     {
-        var command = (string) $"config {request.Verb}";
+        var command = $"config {request.Verb}";
         using var context = new CliCommandContext(
             command,
             request.Output,
@@ -107,14 +107,14 @@ public sealed partial class ConfigCommands
             }
 
             var result = await CliSettings.Edit(
-                            request.Settings,
-                            destination.Value,
-                            key: request.Key,
-                            value: request.Value,
-                            request.Verb == "unset",
-                            cancellation.Token,
-                            operation: CalculateOperation(),
-                            item: request.Item);
+                request.Settings,
+                destination.Value,
+                key: request.Key,
+                value: request.Value,
+                request.Verb == "unset",
+                cancellation.Token,
+                operation: CalculateOperation(),
+                item: request.Item);
             return CliConfigExecution.Finish(
                 context,
                 CliExit.Success,

@@ -11,7 +11,7 @@ public sealed class PermutationTests
         var s = new VerifySettings();
         s.AddExtraSettings(json =>
         {
-            global::Argon.JsonSerializerSettings jsonSerializerSettings = json;
+            var jsonSerializerSettings = json;
             jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
         });
         return s;

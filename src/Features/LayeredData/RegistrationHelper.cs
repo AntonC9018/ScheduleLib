@@ -19,10 +19,10 @@ public static class RegistrationHelper
         services.AddSingleton<TreeSerializer>();
         services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey)
             .Configure(opts =>
-        {
-            _ = opts;
-            // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
-        });
+            {
+                _ = opts;
+                // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
+            });
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }
 
@@ -138,11 +138,11 @@ public static class RegistrationHelper
 
         void ProcessChildren()
         {
-            global::System.Reflection.PropertyInfo[] properties = type
+            var properties = type
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            global::System.Collections.Generic.IEnumerable<global::System.Reflection.MemberInfo> asEnumerable = properties.AsEnumerable<MemberInfo>();
-            global::System.Reflection.FieldInfo[] second = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-            global::System.Collections.Generic.IEnumerable<global::System.Reflection.MemberInfo> second2 = second;
+            var asEnumerable = properties.AsEnumerable<MemberInfo>();
+            var second = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            IEnumerable<MemberInfo> second2 = second;
             var members = asEnumerable.Concat(second2);
             foreach (var m in members)
             {
@@ -169,35 +169,38 @@ public static class RegistrationHelper
     internal static bool TryAddSingleton(
         this IServiceCollection collection,
         Type service,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof(service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof(implementationType));
-        ServiceDescriptor descriptor = ServiceDescriptor.Singleton(service: service, implementationType: implementationType);
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(service, nameof(service));
+        ArgumentNullException.ThrowIfNull(implementationType, nameof(implementationType));
+        var descriptor = ServiceDescriptor.Singleton(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
+
     internal static bool TryAddScoped(
         this IServiceCollection collection,
         Type service,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof(service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof(implementationType));
-        ServiceDescriptor descriptor = ServiceDescriptor.Scoped(service: service, implementationType: implementationType);
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(service, nameof(service));
+        ArgumentNullException.ThrowIfNull(implementationType, nameof(implementationType));
+        var descriptor = ServiceDescriptor.Scoped(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
 
     private static bool TryAdd(this IServiceCollection collection, ServiceDescriptor descriptor)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof(collection));
-        ArgumentNullException.ThrowIfNull((object) descriptor, nameof(descriptor));
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(descriptor, nameof(descriptor));
         int count = collection.Count;
         for (int index = 0; index < count; ++index)
         {
             if (collection[index].ServiceType == descriptor.ServiceType
-                && object.Equals(objA: collection[index].ServiceKey, objB: descriptor.ServiceKey))
+                && Equals(objA: collection[index].ServiceKey, objB: descriptor.ServiceKey))
             {
                 return false;
             }
@@ -215,6 +218,7 @@ public static class RegistrationHelper
         //     ServiceLifetime.Singleton);
         collection.AddSingleton<IDataMapperBase, T>();
     }
+
     public static void AddMerger<T>(this IServiceCollection collection)
         where T : IMergerBase
     {
@@ -223,6 +227,7 @@ public static class RegistrationHelper
             unboundServiceType: typeof(IMerger<>),
             ServiceLifetime.Singleton);
     }
+
     public static void AddBasicOperations<T>(this IServiceCollection collection)
         where T : IBasicOperationsBase
     {

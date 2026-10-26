@@ -14,8 +14,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public CurriculaCommands Curricula { get; set; } = new();
+    [Subcommand] public CurriculaCommands Curricula { get; set; } = new();
 }
 
 public sealed record CurriculaDownloadResult(CurriculaSource Source, string? OutputDirectory, int DocumentCount);
@@ -43,17 +42,17 @@ public class CurriculaCommands
         var provider = new HttpProvider();
         try
         {
-            global::Microsoft.Graph.DelegateAuthenticationProvider authenticationProvider = new DelegateAuthenticationProvider(async request =>
-                {
-                    request.Headers.Authorization = new AuthenticationHeaderValue(
-                        scheme: "Bearer",
-                        parameter: await authentication.Resolve(
-                            config,
-                            profile,
-                            token));
-                });
-            global::Microsoft.Graph.IAuthenticationProvider authenticationProvider2 = authenticationProvider;
-            global::Microsoft.Graph.IHttpProvider httpProvider = provider;
+            var authenticationProvider = new DelegateAuthenticationProvider(async request =>
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue(
+                    scheme: "Bearer",
+                    parameter: await authentication.Resolve(
+                        config,
+                        profile,
+                        token));
+            });
+            IAuthenticationProvider authenticationProvider2 = authenticationProvider;
+            IHttpProvider httpProvider = provider;
             var client = new GraphServiceClient(authenticationProvider2, httpProvider);
             return new GraphCurriculaProvider(client, provider);
         }
@@ -151,7 +150,7 @@ public class CurriculaCommands
                 if (!extension.Equals(".doc", StringComparison.OrdinalIgnoreCase)
                     && !extension.Equals(".docx", StringComparison.OrdinalIgnoreCase))
                 {
-                    global::System.Collections.Generic.List<string> list = warnings;
+                    var list = warnings;
                     string item = $"Skipping unsupported curriculum document: {file.Group}/{file.Name}";
                     list.Add(item);
                     continue;
@@ -212,10 +211,10 @@ public class CurriculaCommands
                         string sourceFileName2 = Path.Combine(output.DirectoryPath, originalName);
                         string destFileName2 = input;
                         File.Copy(sourceFileName: sourceFileName2, destFileName: destFileName2);
-                        if (!await ConvertLegacy(
+                        if (!(await ConvertLegacy(
                                 input: input,
                                 output: converted,
-                                cancellation.Token))
+                                cancellation.Token)))
                         {
                             throw new IOException("Legacy Word conversion failed.");
                         }
@@ -300,7 +299,11 @@ public class CurriculaCommands
         catch (ServiceException e) when (e.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             exit = CliExit.AuthenticationRequired;
-            errors = [new AuthenticationRequiredException(provider: "microsoft", teacher: settings.Profile ?? "TEACHER").Message];
+            errors =
+            [
+                new AuthenticationRequiredException(provider: "microsoft", teacher: settings.Profile ?? "TEACHER")
+                    .Message,
+            ];
         }
         catch (Exception e) when (e is IOException
                                       or UnauthorizedAccessException
@@ -366,10 +369,10 @@ public class CurriculaCommands
             WarningsFirst = true,
             RenderHuman = status =>
             {
-                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                var cliOutput = cli;
                 string line = $"Curricula source: {source.Owner}/{source.Path}";
                 cliOutput.WriteHuman(line);
-                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                var cliOutput2 = cli;
                 string line2 = $"{status}: {count} documents, {paths.Length} artifacts in {output?.DirectoryPath}.";
                 cliOutput2.WriteHuman(
                     line2);
@@ -393,7 +396,7 @@ public class CurriculaCommands
     }
 
     private static string ArtifactName(CurriculaFile file, string extension = ".docx") =>
-        (string) $"{file.Group} - {Path.GetFileNameWithoutExtension(file.Name)}{extension}";
+        $"{file.Group} - {Path.GetFileNameWithoutExtension(file.Name)}{extension}";
 
     private static void ValidateComponent(string value)
     {

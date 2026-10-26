@@ -39,7 +39,8 @@ public sealed class MicrosoftTests
                 Config,
                 Teacher,
                 default));
-        Assert.Equal(expected: "schedulelib auth login microsoft --profile \"Curmanschii Anton\"", actual: error.LoginCommand);
+        Assert.Equal(expected: "schedulelib auth login microsoft --profile \"Curmanschii Anton\"",
+            actual: error.LoginCommand);
         Assert.Equal(expected: 0, actual: tokens.Consents);
         Assert.Equal(expected: 0, actual: tokens.SilentCalls);
         await authentication.Login(
@@ -101,8 +102,8 @@ public sealed class MicrosoftTests
         {
             foreach (var file in files)
             {
-                global::System.IO.UnixFileMode expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                global::System.IO.UnixFileMode actual2 = File.GetUnixFileMode(file);
+                var expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                var actual2 = File.GetUnixFileMode(file);
                 Assert.Equal(expected: expected2, actual: actual2);
             }
         }
@@ -122,6 +123,7 @@ public sealed class MicrosoftTests
             Config,
             Teacher,
             default);
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetDirectories(temp.Path);
@@ -130,7 +132,7 @@ public sealed class MicrosoftTests
 
         var directory = Assert.Single(CalculateCollection());
         await using var lease = await LocalFileLock.Acquire(
-            System.IO.Path.Combine(directory, ".operation.lock"),
+            Path.Combine(directory, ".operation.lock"),
             default);
         await Assert.ThrowsAsync<LocalOperationBusyException>(() => authentication.Resolve(
             Config,
@@ -144,9 +146,10 @@ public sealed class MicrosoftTests
     {
         using var temp = new TempDirectory();
         var tokens = new FakeTokens();
-        global::ScheduleLib.Cli.MicrosoftAuthentication CalculateAuthentication()
+
+        MicrosoftAuthentication CalculateAuthentication()
         {
-            global::ScheduleLib.Cli.MicrosoftAuthentication authentication = new MicrosoftAuthentication(temp.Path, tokens);
+            var authentication = new MicrosoftAuthentication(temp.Path, tokens);
             return authentication;
         }
 
@@ -155,12 +158,22 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 0,
             actual: await commands.Login(
-                new() { Provider = AuthProvider.microsoft },
-                new() { Profile = Teacher },
-                new() { Json = true }));
+                new()
+                {
+                    Provider = AuthProvider.microsoft,
+                },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Json = true,
+                }));
         var result = capture.Result();
-        Assert.Equal(expected: "auth login microsoft", actual: result.GetProperty("command")
-            .GetString());
+        Assert.Equal(expected: "auth login microsoft",
+            actual: result.GetProperty("command")
+                .GetString());
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: result.GetRawText());
         Assert.DoesNotContain(expectedSubstring: "cache-secret", actualString: result.GetRawText());
         Assert.Equal(expected: 1, actual: tokens.Consents);
@@ -227,16 +240,25 @@ public sealed class MicrosoftTests
     public async Task GraphDocxDownloadUsesOwnedOutputsAndDisclosesCodedSource()
     {
         using var temp = new TempDirectory();
-        var unrelated = System.IO.Path.Combine(temp.Path, "notes.txt");
+        var unrelated = Path.Combine(temp.Path, "notes.txt");
         await File.WriteAllTextAsync(path: unrelated, contents: "caller data");
         using var capture = new Capture();
         using var commands = new FakeGraphCommands();
         Assert.Equal(
             expected: 0,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true }));
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                }));
         var result = capture.Result();
         Assert.Equal(
             expected: CurriculaDownloadTasks.ConfiguredSource.Owner,
@@ -244,9 +266,11 @@ public sealed class MicrosoftTests
                 .GetProperty("source")
                 .GetProperty("owner")
                 .GetString());
-        Assert.Equal(expected: 1, actual: result.GetProperty("data")
-            .GetProperty("documentCount")
-            .GetInt32());
+        Assert.Equal(expected: 1,
+            actual: result.GetProperty("data")
+                .GetProperty("documentCount")
+                .GetInt32());
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -257,16 +281,12 @@ public sealed class MicrosoftTests
         using var document = WordprocessingDocument.Open(documentPath, false);
         Assert.Equal(expected: "fixture", actual: document.MainDocumentPart!.Document.Body!.InnerText);
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(unrelated));
+
         bool CalculateCondition()
         {
-            string path2 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+            string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
             bool condition = File.Exists(path2);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.True(CalculateCondition());
@@ -282,27 +302,29 @@ public sealed class MicrosoftTests
         }
 
         using var temp = new TempDirectory();
-        var original = System.IO.Path.Combine(temp.Path, "caller.doc");
+        var original = Path.Combine(temp.Path, "caller.doc");
         await File.WriteAllTextAsync(path: original, contents: "original");
         using var commands = new FakeGraphCommands("legacy.doc");
         Assert.Equal(
             expected: 8,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
         Assert.Equal(expected: 0, actual: commands.Handler.ContentRequests);
         Assert.Equal(expected: "original", actual: await File.ReadAllTextAsync(original));
+
         bool CalculateCondition()
         {
-            string path2 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+            string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
             bool condition = File.Exists(path2);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -316,20 +338,28 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 0,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
+
         string CalculatePath()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.doc");
-            global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+            IEnumerable<string> collection2 = collection;
             string path2 = Assert.Single(collection2);
             return path2;
         }
 
         Assert.Equal(
-                    expected: "original-doc",
-                    actual: await File.ReadAllTextAsync(CalculatePath()));
+            expected: "original-doc",
+            actual: await File.ReadAllTextAsync(CalculatePath()));
+
         string[] CalculateCollection()
         {
             string[] collection3 = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -337,6 +367,7 @@ public sealed class MicrosoftTests
         }
 
         Assert.Single(CalculateCollection());
+
         string[] CalculateCollection2()
         {
             string[] collection4 = Directory.GetDirectories(path: temp.Path, searchPattern: ".conversion-*");
@@ -355,29 +386,41 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 3,
             actual: await stale.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true }));
-        Assert.Contains(expectedSubstring: "2024-2025", actualString: capture.Result()
-            .GetProperty("errors")[0]
-            .GetString());
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                }));
+        Assert.Contains(expectedSubstring: "2024-2025",
+            actualString: capture.Result()
+                .GetProperty("errors")[0]
+                .GetString());
         var missing = new MissingAuthenticationCommands();
         Assert.Equal(
             expected: 4,
             actual: await missing.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
+
         bool CalculateCondition()
         {
-            string path = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+            string path = Path.Combine(temp.Path, "schedulelib-manifest.json");
             bool condition = File.Exists(path);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -393,10 +436,17 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 130,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new(),
                 cancellation.Token));
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -404,6 +454,7 @@ public sealed class MicrosoftTests
         }
 
         Assert.Empty(CalculateCollection());
+
         string[] CalculateCollection2()
         {
             string[] collection2 = Directory.GetFiles(path: temp.Path, searchPattern: "*.tmp");
@@ -421,8 +472,14 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 5,
             actual: await timeout.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
     }
 
@@ -431,9 +488,10 @@ public sealed class MicrosoftTests
     {
         using var temp = new TempDirectory();
         var tokens = new FakeTokens();
-        global::ScheduleLib.Cli.MicrosoftAuthentication CalculateAuthentication()
+
+        MicrosoftAuthentication CalculateAuthentication()
         {
-            global::ScheduleLib.Cli.MicrosoftAuthentication authentication = new MicrosoftAuthentication(temp.Path, tokens);
+            var authentication = new MicrosoftAuthentication(temp.Path, tokens);
             return authentication;
         }
 
@@ -441,14 +499,26 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 0,
             actual: await commands.Status(
-                new() { Provider = AuthProvider.microsoft },
-                new() { Profile = Teacher },
+                new()
+                {
+                    Provider = AuthProvider.microsoft,
+                },
+                new()
+                {
+                    Profile = Teacher,
+                },
                 new()));
         Assert.Equal(
             expected: 0,
             actual: await commands.Logout(
-                new() { Provider = AuthProvider.microsoft },
-                new() { Profile = Teacher },
+                new()
+                {
+                    Provider = AuthProvider.microsoft,
+                },
+                new()
+                {
+                    Profile = Teacher,
+                },
                 new()));
         Assert.Equal(expected: 0, actual: tokens.Consents);
         Assert.Equal(expected: 0, actual: tokens.SilentCalls);
@@ -483,10 +553,17 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 0,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
         Assert.Equal(expected: 3, actual: commands.Handler.ContentRequests);
+
         int CalculateActual()
         {
             string[] files = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -502,14 +579,20 @@ public sealed class MicrosoftTests
     public async Task UnrelatedCollisionPreservesCallerDocument()
     {
         using var temp = new TempDirectory();
-        var path = System.IO.Path.Combine(temp.Path, "group - course.docx");
+        var path = Path.Combine(temp.Path, "group - course.docx");
         await File.WriteAllTextAsync(path: path, contents: "caller document");
         using var commands = new FakeGraphCommands();
         Assert.Equal(
             expected: 5,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
         Assert.Equal(expected: "caller document", actual: await File.ReadAllTextAsync(path));
         Assert.Equal(expected: 0, actual: commands.Handler.ContentRequests);
@@ -523,9 +606,16 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 5,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -533,6 +623,7 @@ public sealed class MicrosoftTests
         }
 
         Assert.Empty(CalculateCollection());
+
         string[] CalculateCollection2()
         {
             string[] collection2 = Directory.GetFiles(path: temp.Path, searchPattern: "*.tmp");
@@ -553,23 +644,35 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 6,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true }));
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                }));
         var result = capture.Result();
-        Assert.Equal(expected: "partial", actual: result.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "partial",
+            actual: result.GetProperty("status")
+                .GetString());
+
         string CalculatePath()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.doc");
-            global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+            IEnumerable<string> collection2 = collection;
             string path2 = Assert.Single(collection2);
             return path2;
         }
 
         Assert.Equal(
-                    expected: "original-doc",
-                    actual: await File.ReadAllTextAsync(CalculatePath()));
+            expected: "original-doc",
+            actual: await File.ReadAllTextAsync(CalculatePath()));
+
         string[] CalculateCollection()
         {
             string[] collection3 = Directory.GetDirectories(path: temp.Path, searchPattern: ".conversion-*");
@@ -577,16 +680,18 @@ public sealed class MicrosoftTests
         }
 
         Assert.Empty(CalculateCollection());
+
         string CalculatePath2()
         {
-            string path3 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+            string path3 = Path.Combine(temp.Path, "schedulelib-manifest.json");
             return path3;
         }
 
         using var manifest = JsonDocument.Parse(
-                    await File.ReadAllTextAsync(CalculatePath2()));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
-            .GetString());
+            await File.ReadAllTextAsync(CalculatePath2()));
+        Assert.Equal(expected: "partial",
+            actual: manifest.RootElement.GetProperty("Status")
+                .GetString());
         Assert.Single(manifest.RootElement.GetProperty("Artifacts")
             .EnumerateArray());
     }
@@ -602,10 +707,20 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 130,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                },
                 cancellation.Token));
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -613,6 +728,7 @@ public sealed class MicrosoftTests
         }
 
         Assert.Single(CalculateCollection());
+
         string[] CalculateCollection2()
         {
             string[] collection2 = Directory.GetFiles(path: temp.Path, searchPattern: "*.tmp");
@@ -621,20 +737,24 @@ public sealed class MicrosoftTests
 
         Assert.Empty(CalculateCollection2());
         var result = capture.Result();
-        Assert.Equal(expected: "cancelled", actual: result.GetProperty("status")
-            .GetString());
-        Assert.Equal(expected: 2, actual: result.GetProperty("outputs")
-            .GetArrayLength());
+        Assert.Equal(expected: "cancelled",
+            actual: result.GetProperty("status")
+                .GetString());
+        Assert.Equal(expected: 2,
+            actual: result.GetProperty("outputs")
+                .GetArrayLength());
+
         string CalculatePath()
         {
-            string path2 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+            string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
             return path2;
         }
 
         using var manifest = JsonDocument.Parse(
-                    await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
-            .GetString());
+            await File.ReadAllTextAsync(CalculatePath()));
+        Assert.Equal(expected: "partial",
+            actual: manifest.RootElement.GetProperty("Status")
+                .GetString());
     }
 
     [Fact]
@@ -645,9 +765,16 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: 6,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
                 new()));
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -655,6 +782,7 @@ public sealed class MicrosoftTests
         }
 
         Assert.Single(CalculateCollection());
+
         string[] CalculateCollection2()
         {
             string[] collection2 = Directory.GetFiles(path: temp.Path, searchPattern: "*.tmp");
@@ -704,15 +832,16 @@ public sealed class MicrosoftTests
     {
         using var temp = new TempDirectory();
         using var capture = new Capture();
-        global::System.IO.IOException CalculateInner()
+
+        IOException CalculateInner()
         {
-            global::System.IO.IOException inner = new IOException("cache-secret");
+            var inner = new IOException("cache-secret");
             return inner;
         }
 
         Exception failure = busy
-                    ? new LocalOperationBusyException("Microsoft token state is busy.", CalculateInner())
-                    : new AuthenticationRequiredException(provider: "microsoft", teacher: Teacher);
+            ? new LocalOperationBusyException("Microsoft token state is busy.", CalculateInner())
+            : new AuthenticationRequiredException(provider: "microsoft", teacher: Teacher);
         if (nested)
         {
             failure = new IOException("access-secret", failure);
@@ -743,12 +872,23 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: expected,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true }));
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                }));
         var result = capture.Result();
-        Assert.Equal(expected: expected, actual: result.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: expected,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
+
         string CalculateExpected()
         {
             if (partial)
@@ -759,8 +899,9 @@ public sealed class MicrosoftTests
             return "failed";
         }
 
-        Assert.Equal(expected: CalculateExpected(), actual: result.GetProperty("status")
-                    .GetString());
+        Assert.Equal(expected: CalculateExpected(),
+            actual: result.GetProperty("status")
+                .GetString());
         var error = result.GetProperty("errors")[0]
             .GetString();
         string expected2;
@@ -770,26 +911,30 @@ public sealed class MicrosoftTests
         }
         else
         {
-            global::ScheduleLib.Application.Config.AuthenticationRequiredException authenticationRequiredException = new AuthenticationRequiredException(provider: "microsoft", teacher: Teacher);
+            var authenticationRequiredException =
+                new AuthenticationRequiredException(provider: "microsoft", teacher: Teacher);
             expected2 = authenticationRequiredException.Message;
         }
 
         string? actual3 = error;
         Assert.Equal(
-            expected: expected2, actual: actual3);
+            expected: expected2,
+            actual: actual3);
         Assert.Contains(error!, capture.Errors);
+
         string CalculateActualString()
         {
             string text = $"{result.GetRawText()}{capture.Errors}";
-            string actualString2 = (string) text;
+            string actualString2 = text;
             return actualString2;
         }
 
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: CalculateActualString());
+
         string CalculateActualString2()
         {
             string text2 = $"{result.GetRawText()}{capture.Errors}";
-            string actualString3 = (string) text2;
+            string actualString3 = text2;
             return actualString3;
         }
 
@@ -806,6 +951,7 @@ public sealed class MicrosoftTests
 
         int actual4 = commands.Handler.ContentRequests;
         Assert.Equal(expected: expected3, actual: actual4);
+
         int CalculateActual()
         {
             string[] files = Directory.GetFiles(path: temp.Path, searchPattern: "*.docx");
@@ -829,14 +975,15 @@ public sealed class MicrosoftTests
         {
             string CalculatePath()
             {
-                string path2 = System.IO.Path.Combine(temp.Path, "schedulelib-manifest.json");
+                string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
                 return path2;
             }
 
             using var manifest = JsonDocument.Parse(
-                            await File.ReadAllTextAsync(CalculatePath()));
-            Assert.Equal(expected: "partial", actual: manifest.RootElement.GetProperty("Status")
-                .GetString());
+                await File.ReadAllTextAsync(CalculatePath()));
+            Assert.Equal(expected: "partial",
+                actual: manifest.RootElement.GetProperty("Status")
+                    .GetString());
             Assert.Single(manifest.RootElement.GetProperty("Artifacts")
                 .EnumerateArray());
         }
@@ -859,9 +1006,10 @@ public sealed class MicrosoftTests
     {
         using var temp = new TempDirectory();
         using var capture = new Capture();
-        global::System.IO.IOException CalculateFailure()
+
+        IOException CalculateFailure()
         {
-            global::System.IO.IOException failure = new IOException("access-secret cache-secret");
+            var failure = new IOException("access-secret cache-secret");
             return failure;
         }
 
@@ -869,24 +1017,36 @@ public sealed class MicrosoftTests
         Assert.Equal(
             expected: expected,
             actual: await commands.Download(
-                new() { Profile = Teacher },
-                new() { Directory = temp.Path },
-                new() { Json = true }));
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new()
+                {
+                    Json = true,
+                }));
         var result = capture.Result();
-        Assert.Equal(expected: "Curricula download or local publication failed.", actual: result.GetProperty("errors")[0]
-            .GetString());
+        Assert.Equal(expected: "Curricula download or local publication failed.",
+            actual: result.GetProperty("errors")[0]
+                .GetString());
+
         string CalculateActualString()
         {
             string text = $"{result.GetRawText()}{capture.Errors}";
-            string actualString2 = (string) text;
+            string actualString2 = text;
             return actualString2;
         }
 
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: CalculateActualString());
+
         string CalculateActualString2()
         {
             string text2 = $"{result.GetRawText()}{capture.Errors}";
-            string actualString3 = (string) text2;
+            string actualString3 = text2;
             return actualString3;
         }
 
@@ -961,14 +1121,15 @@ public sealed class MicrosoftTests
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
             ((HttpClient) clientField.GetValue(http)!)
                 .Dispose();
-            global::System.Reflection.FieldInfo fieldInfo = clientField;
+            var fieldInfo = clientField;
             object obj2 = http;
-            global::System.Net.Http.HttpClient value2 = GraphClientFactory.Create(authenticationProvider: null, finalHandler: Handler);
+            var value2 = GraphClientFactory.Create(authenticationProvider: null, finalHandler: Handler);
             object value3 = value2;
             fieldInfo.SetValue(obj: obj2, value: value3);
-            global::Microsoft.Graph.GraphServiceClient CalculateGraph()
+
+            GraphServiceClient CalculateGraph()
             {
-                global::Microsoft.Graph.GraphServiceClient graph = new GraphServiceClient(authentication, http);
+                var graph = new GraphServiceClient(authentication, http);
                 return graph;
             }
 
@@ -986,9 +1147,9 @@ public sealed class MicrosoftTests
 
         private MicrosoftToken Value()
         {
-            global::System.DateTimeOffset CalculateExpiresOn()
+            DateTimeOffset CalculateExpiresOn()
             {
-                global::System.DateTimeOffset expiresOn = DateTimeOffset.UtcNow.AddHours(1);
+                var expiresOn = DateTimeOffset.UtcNow.AddHours(1);
                 return expiresOn;
             }
 
@@ -999,11 +1160,11 @@ public sealed class MicrosoftTests
             }
 
             return new(
-                                        AccountId: AccountId,
-                                        AccessToken: "access-secret",
-                                        CalculateExpiresOn(),
-                                        CurriculaDownloadTasks.ApiRequiredScopes,
-                                        CalculateCache());
+                AccountId: AccountId,
+                AccessToken: "access-secret",
+                CalculateExpiresOn(),
+                CurriculaDownloadTasks.ApiRequiredScopes,
+                CalculateCache());
         }
 
         public Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)
@@ -1077,15 +1238,16 @@ public sealed class MicrosoftTests
                 Handler,
                 disposeHandler: true,
                 serializer: null);
-            global::Microsoft.Graph.DelegateAuthenticationProvider authenticationProvider = new DelegateAuthenticationProvider(_ => Task.CompletedTask);
-            global::Microsoft.Graph.IAuthenticationProvider authenticationProvider2 = authenticationProvider;
-            global::Microsoft.Graph.IHttpProvider httpProvider = http;
-            global::Microsoft.Graph.GraphServiceClient graph = new GraphServiceClient(authenticationProvider2, httpProvider);
-            global::System.IDisposable owner = http;
-            global::ScheduleLib.Curriculum.Download.GraphCurriculaProvider result = new GraphCurriculaProvider(
-            graph, owner);
-            global::ScheduleLib.Curriculum.Download.ICurriculaProvider result2 = result;
-            global::System.Threading.Tasks.Task<global::ScheduleLib.Curriculum.Download.ICurriculaProvider> fromResult = Task.FromResult<ICurriculaProvider>(result2);
+            var authenticationProvider = new DelegateAuthenticationProvider(_ => Task.CompletedTask);
+            IAuthenticationProvider authenticationProvider2 = authenticationProvider;
+            IHttpProvider httpProvider = http;
+            var graph = new GraphServiceClient(authenticationProvider2, httpProvider);
+            IDisposable owner = http;
+            var result = new GraphCurriculaProvider(
+                graph,
+                owner);
+            ICurriculaProvider result2 = result;
+            var fromResult = Task.FromResult(result2);
             return fromResult;
         }
     }
@@ -1159,41 +1321,33 @@ public sealed class MicrosoftTests
             if (path.EndsWith("/content", StringComparison.Ordinal))
             {
                 ContentRequests++;
+
                 bool CheckCondition()
                 {
                     bool CalculateConditionResult()
                     {
-                        if (cancelDownload)
-                        {
-                            if (!paginate)
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (ContentRequests == 2)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                        }
-                        else
+                        if (!cancelDownload)
                         {
                             return false;
                         }
+
+                        if (!paginate)
+                        {
+                            return true;
+                        }
+
+                        if (ContentRequests == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult = CalculateConditionResult();
 
 
-                    if (conditionResult)
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return conditionResult;
                 }
 
                 if (CheckCondition())
@@ -1201,51 +1355,43 @@ public sealed class MicrosoftTests
                     Cancellation?.Cancel();
                     throw new OperationCanceledException(cancellationToken);
                 }
+
                 bool CheckCondition2()
                 {
                     bool CalculateConditionResult2()
                     {
-                        if (invalidDocx)
-                        {
-                            if (!paginate)
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (ContentRequests == 2)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                        }
-                        else
+                        if (!invalidDocx)
                         {
                             return false;
                         }
+
+                        if (!paginate)
+                        {
+                            return true;
+                        }
+
+                        if (ContentRequests == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult2 = CalculateConditionResult2();
 
 
-                    if (conditionResult2)
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return conditionResult2;
                 }
 
                 response = new(HttpStatusCode.OK)
                 {
                     Content = new ByteArrayContent(
-                                        fileName.EndsWith(".doc", StringComparison.Ordinal)
-                                            ? Encoding.UTF8.GetBytes("original-doc")
-                                            : CheckCondition2()
-                                                ? Encoding.UTF8.GetBytes("not-docx")
-                                                : Docx()),
+                        fileName.EndsWith(".doc", StringComparison.Ordinal)
+                            ? Encoding.UTF8.GetBytes("original-doc")
+                            : CheckCondition2()
+                                ? Encoding.UTF8.GetBytes("not-docx")
+                                : Docx()),
                 };
             }
             else
@@ -1273,8 +1419,8 @@ public sealed class MicrosoftTests
                         text = "}";
                     }
 
-                    string text2 = $"{{\"value\":[{{\"id\":\"program\",\"name\":\"group\",\"folder\":{{}}}}]{(text)}";
-                    json = (string) text2;
+                    string text2 = $"{{\"value\":[{{\"id\":\"program\",\"name\":\"group\",\"folder\":{{}}}}]{text}";
+                    json = text2;
                 }
                 else if (path.Contains("/items/program", StringComparison.Ordinal))
                 {
@@ -1291,24 +1437,26 @@ public sealed class MicrosoftTests
                                 },
                             },
                         });
+
                     bool CheckCondition3()
                     {
-                        if (!(paginate))
+                        if (!paginate)
                         {
                             return false;
                         }
 
-                        if (!(path.Contains("/items/program/", StringComparison.Ordinal)))
+                        if (path.Contains("/items/program/", StringComparison.Ordinal))
                         {
-                            return false;
+                            return true;
                         }
 
-                        return true;
+                        return false;
                     }
 
                     if (CheckCondition3())
                     {
-                        json = (string) $"{json[..^1]},\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/documents-page2\"}}";
+                        json =
+                            $"{json[..^1]},\"@odata.nextLink\":\"https://graph.microsoft.com/v1.0/documents-page2\"}}";
                     }
                 }
                 else
@@ -1329,9 +1477,9 @@ public sealed class MicrosoftTests
                 response = new(CalculateStatusCode())
                 {
                     Content = new StringContent(
-                                        json,
-                                        Encoding.UTF8,
-                                        "application/json"),
+                        json,
+                        Encoding.UTF8,
+                        "application/json"),
                 };
             }
             response.RequestMessage = request;
@@ -1344,32 +1492,32 @@ public sealed class MicrosoftTests
         using var stream = new MemoryStream();
         using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
         {
-            global::DocumentFormat.OpenXml.Wordprocessing.Text CalculateChildElements()
+            Text CalculateChildElements()
             {
-                global::DocumentFormat.OpenXml.Wordprocessing.Text childElements = new Text("fixture");
+                var childElements = new Text("fixture");
                 return childElements;
             }
 
-            global::DocumentFormat.OpenXml.Wordprocessing.Run CalculateChildElements2()
+            Run CalculateChildElements2()
             {
-                global::DocumentFormat.OpenXml.Wordprocessing.Run childElements2 = new Run(CalculateChildElements());
+                var childElements2 = new Run(CalculateChildElements());
                 return childElements2;
             }
 
-            global::DocumentFormat.OpenXml.Wordprocessing.Paragraph CalculateChildElements3()
+            Paragraph CalculateChildElements3()
             {
-                global::DocumentFormat.OpenXml.Wordprocessing.Paragraph childElements3 = new Paragraph(CalculateChildElements2());
+                var childElements3 = new Paragraph(CalculateChildElements2());
                 return childElements3;
             }
 
-            global::DocumentFormat.OpenXml.Wordprocessing.Body CalculateChildElements4()
+            Body CalculateChildElements4()
             {
-                global::DocumentFormat.OpenXml.Wordprocessing.Body childElements4 = new Body(CalculateChildElements3());
+                var childElements4 = new Body(CalculateChildElements3());
                 return childElements4;
             }
 
             document.AddMainDocumentPart().Document =
-                                                                new Document(CalculateChildElements4());
+                new Document(CalculateChildElements4());
         }
         return stream.ToArray();
     }
@@ -1417,7 +1565,7 @@ public sealed class MicrosoftTests
             string toString = Guid.NewGuid()
                 .ToString("N");
             string text = $"schedulelib-microsoft-{toString}";
-            string path2 = (string) text;
+            string path2 = text;
             return path2;
         }
     }

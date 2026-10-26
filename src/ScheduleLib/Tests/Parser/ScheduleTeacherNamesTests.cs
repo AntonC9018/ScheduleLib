@@ -116,8 +116,8 @@ public sealed class ScheduleTeacherNamesTests
         var lookup = s.Lookup(null!);
 
         var t = s.Teacher("First Last");
-        global::ScheduleLib.TeacherId? expected2 = t.Id;
-        global::ScheduleLib.TeacherId? actual2 = lookup.Teacher(lastName: "Last");
+        TeacherId? expected2 = t.Id;
+        var actual2 = lookup.Teacher(lastName: "Last");
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -130,10 +130,10 @@ public sealed class ScheduleTeacherNamesTests
         t.LastName("Otherlast");
         var lookup = s.Lookup(null!);
 
-        global::ScheduleLib.TeacherId? value = lookup.Teacher(lastName: "Last");
+        var value = lookup.Teacher(lastName: "Last");
         Assert.Null(value);
-        global::ScheduleLib.TeacherId? expected2 = t.Id;
-        global::ScheduleLib.TeacherId? actual2 = lookup.Teacher(lastName: "Otherlast");
+        TeacherId? expected2 = t.Id;
+        var actual2 = lookup.Teacher(lastName: "Otherlast");
         Assert.Equal(expected: expected2, actual: actual2);
     }
 }
@@ -150,32 +150,32 @@ public sealed class TeacherFindIndexOfBestMatchTests : IClassFixture<Db>
     [Fact]
     public void FindBestMatch()
     {
-        global::ScheduleLib.ParserTests.Db db = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName = CreateSinglePartNameWord("I.");
+        var db = _db;
+        var firstName = CreateSinglePartNameWord("I.");
         int expected = 1;
         db.Check(firstName, expected);
-        global::ScheduleLib.ParserTests.Db db2 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName2 = CreateSinglePartNameWord("F.");
+        var db2 = _db;
+        var firstName2 = CreateSinglePartNameWord("F.");
         int expected2 = 0;
         db2.Check(firstName2, expected2);
-        global::ScheduleLib.ParserTests.Db db3 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName3 = CreateSinglePartNameWord("Fi.");
+        var db3 = _db;
+        var firstName3 = CreateSinglePartNameWord("Fi.");
         int expected3 = 0;
         db3.Check(firstName3, expected3);
-        global::ScheduleLib.ParserTests.Db db4 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName4 = CreateSinglePartNameWord("Rs");
+        var db4 = _db;
+        var firstName4 = CreateSinglePartNameWord("Rs");
         int expected4 = -1;
         db4.Check(firstName4, expected4);
-        global::ScheduleLib.ParserTests.Db db5 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName5 = CreateSinglePartNameWord("Rst");
+        var db5 = _db;
+        var firstName5 = CreateSinglePartNameWord("Rst");
         int expected5 = 2;
         db5.Check(firstName5, expected5);
-        global::ScheduleLib.ParserTests.Db db6 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName6 = CreateSinglePartNameWord("R.");
+        var db6 = _db;
+        var firstName6 = CreateSinglePartNameWord("R.");
         int expected6 = 2;
         db6.Check(firstName6, expected6);
-        global::ScheduleLib.ParserTests.Db db7 = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName7 = CreateSinglePartNameWord("Unrelated");
+        var db7 = _db;
+        var firstName7 = CreateSinglePartNameWord("Unrelated");
         int expected7 = -1;
         db7.Check(firstName7, expected7);
     }
@@ -183,8 +183,8 @@ public sealed class TeacherFindIndexOfBestMatchTests : IClassFixture<Db>
     [Fact]
     public void SearchByFullFirstName_WithShortFirstNameInDb()
     {
-        global::ScheduleLib.ParserTests.Db db = _db;
-        global::ScheduleLib.NameParts<global::Word> firstName = CreateSinglePartNameWord("Other");
+        var db = _db;
+        var firstName = CreateSinglePartNameWord("Other");
         int expected = 3;
         db.Check(firstName, expected);
     }
@@ -208,7 +208,6 @@ file static class Helper
     }
 }
 
-
 public sealed class Db
 {
     private readonly int[] _ids;
@@ -216,32 +215,38 @@ public sealed class Db
 
     public Db()
     {
-        _teachers = [
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "First",
-                Short = "F.",
-            })),
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "Irst",
-                Short = "I.",
-            })),
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = "Rst",
-                Short = null,
-            })),
-            Create("Last", CreateSinglePartName(new()
-            {
-                Full = null,
-                Short = "O.",
-            })),
-            Create("Unrelated", CreateSinglePartName(new()
-            {
-                Full = "First",
-                Short = "F.",
-            })),
+        _teachers =
+        [
+            Create("Last",
+                CreateSinglePartName(new()
+                {
+                    Full = "First",
+                    Short = "F.",
+                })),
+            Create("Last",
+                CreateSinglePartName(new()
+                {
+                    Full = "Irst",
+                    Short = "I.",
+                })),
+            Create("Last",
+                CreateSinglePartName(new()
+                {
+                    Full = "Rst",
+                    Short = null,
+                })),
+            Create("Last",
+                CreateSinglePartName(new()
+                {
+                    Full = null,
+                    Short = "O.",
+                })),
+            Create("Unrelated",
+                CreateSinglePartName(new()
+                {
+                    Full = "First",
+                    Short = "F.",
+                })),
         ];
 
         _ids = _teachers.WhereSelectIndex(x => x.Name.LastName[0] == "Last")
@@ -272,4 +277,3 @@ public sealed class Db
         };
     }
 }
-

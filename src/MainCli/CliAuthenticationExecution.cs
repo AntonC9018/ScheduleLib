@@ -37,7 +37,8 @@ internal static class CliAuthenticationExecution
             JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
             DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
             IOException => new(CliExit.IoFailure, ["Could not read or update local Microsoft authorization state."]),
-            UnauthorizedAccessException => new(CliExit.IoFailure, ["Local Microsoft authorization state is inaccessible."]),
+            UnauthorizedAccessException => new(CliExit.IoFailure,
+                ["Local Microsoft authorization state is inaccessible."]),
             _ => new(CliExit.Unexpected, ["Microsoft authentication operation failed unexpectedly."]),
         };
     }
@@ -68,12 +69,14 @@ internal static class CliAuthenticationExecution
         for (var index = 0; index < data.Accounts.Count; index++)
         {
             var account = data.Accounts[index];
-            global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+            var cliOutput = cli;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string status2 = "completed";
             object item = account;
             cliOutput.EmitItem(
-                id: id2, status: status2, item);
+                id: id2,
+                status: status2,
+                item);
         }
 
         return context.Finish(new CliCompletion<AuthStatus?>(
@@ -94,7 +97,7 @@ internal static class CliAuthenticationExecution
             {
                 foreach (var account in data.Accounts)
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    var cliOutput = cli;
                     string line = $"{account.AccountId}: {account.State}";
                     cliOutput.WriteHuman(line);
                 }
@@ -104,7 +107,7 @@ internal static class CliAuthenticationExecution
                 {
                     provisioned = "not provisioned";
                 }
-                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                var cliOutput2 = cli;
                 string line2 = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
                 cliOutput2.WriteHuman(line2);
             },

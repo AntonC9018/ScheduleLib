@@ -11,27 +11,27 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root");
 
         // Act
-        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
         // Assert
         Assert.Collection(states,
             s1 =>
             {
-                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.BeforeProcess);
-                global::Anton.LayeredData.Tests.VisitRecord actual2 = s1;
+                var expected2 = S(DfsVisitationState.BeforeProcess);
+                var actual2 = s1;
                 Assert.Equal(expected: expected2, actual: actual2);
             },
             s2 =>
             {
-                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.Process);
-                global::Anton.LayeredData.Tests.VisitRecord actual2 = s2;
+                var expected2 = S(DfsVisitationState.Process);
+                var actual2 = s2;
                 Assert.Equal(expected: expected2, actual: actual2);
             },
             s3 =>
             {
-                global::Anton.LayeredData.Tests.VisitRecord expected2 = S(DfsVisitationState.AfterProcess);
-                global::Anton.LayeredData.Tests.VisitRecord actual2 = s3;
+                var expected2 = S(DfsVisitationState.AfterProcess);
+                var actual2 = s3;
                 Assert.Equal(expected: expected2, actual: actual2);
             });
         VisitRecord S(DfsVisitationState state) => new("Root", state);
@@ -43,10 +43,12 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer("Root",
+            child1,
+            child2);
 
         // Act
-        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
         // Assert
@@ -72,10 +74,12 @@ public sealed class TreeIterationTests
         var grandChild = CreateLayer("GrandChild");
         var child1 = CreateLayer("Child1", grandChild);
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer("Root",
+            child1,
+            child2);
 
         // Act
-        global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerable e = new(root);
+        DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
         // Assert
@@ -103,7 +107,9 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer("Root",
+            child1,
+            child2);
 
         var e = new DfsEnumerable(root)
             .AddRecorder(out var recorder);
@@ -114,19 +120,17 @@ public sealed class TreeIterationTests
             // Skip children when we process Root
             bool CalculateConditionResult()
             {
-                if (x.LayerName == "Root")
+                if (x.LayerName != "Root")
                 {
-                    if (x.State == DfsVisitationState.Process)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (x.State == DfsVisitationState.Process)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -165,19 +169,17 @@ public sealed class TreeIterationTests
         {
             bool CalculateConditionResult()
             {
-                if (x.LayerName == "Child1")
+                if (x.LayerName != "Child1")
                 {
-                    if (x.State == DfsVisitationState.BeforeProcess)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (x.State == DfsVisitationState.BeforeProcess)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -231,7 +233,7 @@ public sealed class TreeIterationTests
         for (int i = 1; i <= 5; i++)
         {
             string expected2 = $"Child{i}";
-            global::System.Collections.Generic.HashSet<string> set = visitedLayers;
+            var set = visitedLayers;
             Assert.Contains(expected2, set);
         }
     }
@@ -241,9 +243,10 @@ public sealed class TreeIterationTests
     {
         // Arrange
         var leaf = CreateLayer("Leaf");
-        global::Anton.LayeredData.TreeEnumeration.Infrastructure.EnumerationContextCollection CalculateEnumerationContextCollection()
+
+        EnumerationContextCollection CalculateEnumerationContextCollection()
         {
-            global::Anton.LayeredData.TreeEnumeration.Infrastructure.EnumerationContextCollection enumerationContextCollection = new([]);
+            EnumerationContextCollection enumerationContextCollection = new([]);
             return enumerationContextCollection;
         }
 
@@ -286,13 +289,15 @@ file static class Helper
     {
         public string LayerName => val.Node.Layer.Value;
     }
+
     extension(DfsEnumerable c)
     {
         public DfsEnumerable AddRecorder(out RecorderContext recorder)
         {
             recorder = new RecorderContext();
             SingleUseItemHelper<RecorderContext> it = new(recorder);
-            c.AddContext(RecorderContext.Key, () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
+            c.AddContext(RecorderContext.Key,
+                () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
             return c;
         }
     }
@@ -300,13 +305,15 @@ file static class Helper
 
 file sealed class RecorderContext : IDfsEnumerationContext
 {
-    public static readonly EnumerationContextKey<RecorderContext> Key = EnumerationContextKey.Registry.Register<RecorderContext>();
+    public static readonly EnumerationContextKey<RecorderContext> Key =
+        EnumerationContextKey.Registry.Register<RecorderContext>();
+
     public readonly List<VisitRecord> Records = new();
 
     public void Update(DfsEnumerationContext v)
     {
-        global::System.Collections.Generic.List<global::Anton.LayeredData.Tests.VisitRecord> list = Records;
-        global::Anton.LayeredData.Tests.VisitRecord item = new(v.LayerName, v.State);
+        var list = Records;
+        VisitRecord item = new(v.LayerName, v.State);
         list.Add(item);
     }
 }
@@ -350,7 +357,7 @@ file static class VisitSequence
             }
 
             Assert.Fail(
-                                        (string) $"{($"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count}).")}{(CalculateText())}{(CalculateText2())}");
+                $"{$"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."}{CalculateText()}{CalculateText2()}");
         }
         for (int i = 0; i < expected.Count; i++)
         {
@@ -371,7 +378,7 @@ file static class VisitSequence
                 }
 
                 Assert.Fail(
-                                                    (string) $"{($"The expected visits did not match exactly.")}{($" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}.")}{(CalculateText3())}{(CalculateText4())}");
+                    $"{$"The expected visits did not match exactly."}{$" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."}{CalculateText3()}{CalculateText4()}");
             }
         }
     }

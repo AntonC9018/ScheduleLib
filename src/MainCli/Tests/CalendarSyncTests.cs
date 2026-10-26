@@ -9,6 +9,9 @@ using Event = Google.Apis.Calendar.v3.Data.Event;
 
 public sealed class CalendarSyncTests
 {
+    private static string? ExpectedCalendarTimestamp(DateTimeOffset? value) =>
+        value?.ToString("o", CultureInfo.InvariantCulture);
+
     [Fact]
     public async Task HumanFormattingFailurePreservesCompletedMutationAndStopsApply()
     {
@@ -26,17 +29,17 @@ public sealed class CalendarSyncTests
             {
                 bool CheckCondition()
                 {
-                    if (!(report.Id == "0"))
+                    if (report.Id != "0")
                     {
                         return false;
                     }
 
-                    if (!(report.Status == "completed"))
+                    if (report.Status == "completed")
                     {
-                        return false;
+                        return true;
                     }
 
-                    return true;
+                    return false;
                 }
 
                 if (CheckCondition())
@@ -50,7 +53,7 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
         string expected2 = "completed";
-        global::ScheduleLib.Cli.CalendarActionOutcome single = Assert.Single(failure.PartialResult.Outcomes);
+        var single = Assert.Single(failure.PartialResult.Outcomes);
         string actual2 = single.State;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.IsType<InvalidOperationException>(failure.InnerException!.InnerException);
@@ -73,21 +76,22 @@ public sealed class CalendarSyncTests
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
             using var provider = new Fake();
-            global::System.TimeSpan CalculateOffset()
+
+            TimeSpan CalculateOffset()
             {
-                global::System.TimeSpan offset = TimeSpan.FromHours(3);
+                var offset = TimeSpan.FromHours(3);
                 return offset;
             }
 
             DateTimeOffset? start = missingDates
-                            ? null
-                            : new(year: 2026,
-                                month: 10,
-                                day: 18,
-                                hour: 9,
-                                minute: 0,
-                                second: 0,
-                                CalculateOffset());
+                ? null
+                : new(year: 2026,
+                    month: 10,
+                    day: 18,
+                    hour: 9,
+                    minute: 0,
+                    second: 0,
+                    CalculateOffset());
             var end = start?.AddMinutes(90);
             var recurrence = new List<string>
             {
@@ -97,8 +101,14 @@ public sealed class CalendarSyncTests
             var desired = new Event
             {
                 Summary = "Desired / Știință",
-                Start = new() { DateTimeDateTimeOffset = start },
-                End = new() { DateTimeDateTimeOffset = end },
+                Start = new()
+                {
+                    DateTimeDateTimeOffset = start,
+                },
+                End = new()
+                {
+                    DateTimeDateTimeOffset = end,
+                },
                 Recurrence = missingDates ? null : recurrence,
             };
             var expected =
@@ -140,15 +150,16 @@ public sealed class CalendarSyncTests
             else
             {
                 expected2 = new[]
-                    {
-                        "RRULE:FREQ=WEEKLY;COUNT=2",
-                        "EXDATE:20261025T060000Z",
-                    };
+                {
+                    "RRULE:FREQ=WEEKLY;COUNT=2",
+                    "EXDATE:20261025T060000Z",
+                };
             }
 
-            global::System.Collections.Generic.IEnumerable<string> expected3 = expected2;
-            global::System.Collections.Generic.IEnumerable<string> actual4 = message.Recurrence;
+            IEnumerable<string> expected3 = expected2;
+            IEnumerable<string> actual4 = message.Recurrence;
             Assert.Equal(expected: expected3, actual: actual4);
+
             string CalculateActual()
             {
                 string actual2 = message.Format(CultureInfo.CurrentCulture);
@@ -159,6 +170,7 @@ public sealed class CalendarSyncTests
             var deleted = Assert.IsType<CalendarDeletedEventMessage>(reports.Single(x => x.Id == "deleted-0").Human);
             Assert.Equal(expected: "old-event", actual: deleted.Id);
             Assert.Equal(expected: "Old", actual: deleted.Summary);
+
             string CalculateActual2()
             {
                 string actual3 = deleted.Format(CultureInfo.CurrentCulture);
@@ -166,20 +178,25 @@ public sealed class CalendarSyncTests
             }
 
             Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
-            Assert.Equal(expected: ["0", "1", "2"], actual: reports.Where(x => x.Status == "planned")
-                .Select(x => x.Id));
+            Assert.Equal(expected: ["0", "1", "2"],
+                actual: reports.Where(x => x.Status == "planned")
+                    .Select(x => x.Id));
             string expected4 = "create event: planned; calendar ; event ; desired index 0";
             string actual5 = reports.Single(x => x.Id == "2").Human
                 .Format(CultureInfo.CurrentCulture);
             Assert.Equal(
-                expected: expected4, actual: actual5);
+                expected: expected4,
+                actual: actual5);
             Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
                 actual: item.EnumerateObject()
                     .Select(x => x.Name));
-            Assert.Equal(expected: start?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("start")
-                .GetString());
-            Assert.Equal(expected: end?.ToString("o", CultureInfo.InvariantCulture), actual: item.GetProperty("end")
-                .GetString());
+            Assert.Equal(expected: ExpectedCalendarTimestamp(start),
+                actual: item.GetProperty("start")
+                    .GetString());
+            Assert.Equal(expected: ExpectedCalendarTimestamp(end),
+                actual: item.GetProperty("end")
+                    .GetString());
+
             JsonValueKind CalculateExpected()
             {
                 if (missingDates)
@@ -191,9 +208,9 @@ public sealed class CalendarSyncTests
             }
 
             Assert.Equal(expected: CalculateExpected(),
-                            actual: item.GetProperty("recurrence").ValueKind);
+                actual: item.GetProperty("recurrence").ValueKind);
             object expected5 = desired;
-            global::Google.Apis.Calendar.v3.Data.Event actual6 = Assert.Single(result.DesiredEvents);
+            var actual6 = Assert.Single(result.DesiredEvents);
             object actual7 = actual6;
             Assert.Same(expected: expected5, actual: actual7);
             Assert.Equal(expected: "Changed", actual: desired.Summary);
@@ -212,17 +229,22 @@ public sealed class CalendarSyncTests
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
-            [new() { Summary = "Desired" }],
+            [
+                new()
+                {
+                    Summary = "Desired",
+                },
+            ],
             false,
             default);
         Assert.Equal(expected: "actual@example.test", actual: result.Account);
         Assert.Equal(expected: "old", actual: result.ReplacedCalendar!.Id);
         string expected2 = "old-event";
-        global::ScheduleLib.Cli.CalendarEventIdentity single = Assert.Single(result.DeletedEvents);
+        var single = Assert.Single(result.DeletedEvents);
         string actual2 = single.Id;
         Assert.Equal(expected: expected2, actual: actual2);
         string expected3 = "Desired";
-        global::Google.Apis.Calendar.v3.Data.Event single2 = Assert.Single(result.DesiredEvents);
+        var single2 = Assert.Single(result.DesiredEvents);
         string actual3 = single2.Summary;
         Assert.Equal(expected: expected3, actual: actual3);
         Assert.Empty(provider.Writes);
@@ -264,7 +286,10 @@ public sealed class CalendarSyncTests
     [InlineData("event", 3)]
     public async Task UncertainCreatesAreNotRetriedAndPreserveCompletedOutcomes(string fail, int writes)
     {
-        using var provider = new Fake { Fail = fail };
+        using var provider = new Fake
+        {
+            Fail = fail,
+        };
         var result = await CalendarSync.Run(
             provider,
             "Lessons",
@@ -305,9 +330,10 @@ public sealed class CalendarSyncTests
             default);
         Assert.Equal(expected: 5, actual: result.ExitCode);
         string expected2 = "failed";
-        global::ScheduleLib.Cli.CalendarActionOutcome single = Assert.Single(result.Outcomes);
+        var single = Assert.Single(result.Outcomes);
         string actual3 = single.State;
         Assert.Equal(expected: expected2, actual: actual3);
+
         string CalculateActual()
         {
             string actual2 = Assert.Single(provider.Writes);
@@ -402,7 +428,10 @@ public sealed class CalendarSyncTests
     [InlineData("Lessons", true)]
     public async Task PrimaryNameAndActualPrimaryDestinationAreProhibited(string name, bool primary)
     {
-        using var provider = new Fake { Primary = primary };
+        using var provider = new Fake
+        {
+            Primary = primary,
+        };
         await Assert.ThrowsAsync<ArgumentException>(() => CalendarSync.Run(
             provider,
             name,
@@ -446,13 +475,18 @@ public sealed class CalendarSyncTests
                 actual: await new CalendarCommands().Sync(
                     new(),
                     new(),
-                    new() { Json = true },
+                    new()
+                    {
+                        Json = true,
+                    },
                     new()));
-            using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "calendar sync", actual: document.RootElement.GetProperty("command")
-                .GetString());
-            Assert.Equal(expected: 3, actual: document.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            using var document = JsonDocument.Parse(output.ToString());
+            Assert.Equal(expected: "calendar sync",
+                actual: document.RootElement.GetProperty("command")
+                    .GetString());
+            Assert.Equal(expected: 3,
+                actual: document.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
         finally
         {
@@ -478,13 +512,20 @@ public sealed class CalendarSyncTests
                         NoCache = true,
                         DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                     },
-                    new() { Profile = "Nartea Nichita" },
-                    new() { Json = true },
+                    new()
+                    {
+                        Profile = "Nartea Nichita",
+                    },
+                    new()
+                    {
+                        Json = true,
+                    },
                     new()));
-            using var document = System.Text.Json.JsonDocument.Parse(output.ToString());
+            using var document = JsonDocument.Parse(output.ToString());
             var data = document.RootElement.GetProperty("data");
-            Assert.Equal(expected: "preview", actual: document.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: "preview",
+                actual: document.RootElement.GetProperty("status")
+                    .GetString());
             Assert.NotEmpty(data.GetProperty("desiredEvents")
                 .EnumerateArray());
             var desiredCount = data.GetProperty("desiredEvents")
@@ -515,7 +556,7 @@ public sealed class CalendarSyncTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -575,7 +616,7 @@ public sealed class CalendarSyncTests
             string CalculateItem()
             {
                 string text = $"delete {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -610,27 +651,26 @@ public sealed class CalendarSyncTests
             string CalculateItem()
             {
                 string text = $"event {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
             Writes.Add(CalculateItem());
             _events++;
+
             bool CalculateConditionResult()
             {
-                if (Fail == "cancel-second")
+                if (Fail != "cancel-second")
                 {
-                    if (_events == 2)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (_events == 2)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();

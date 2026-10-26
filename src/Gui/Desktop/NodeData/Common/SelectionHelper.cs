@@ -82,10 +82,7 @@ public sealed class SelectionHelper<TParent, TProperty> : SelectionHelper<TPrope
             {
                 return [Named<TProperty>.Default, .. Registry.Values];
             }
-            else
-            {
-                return Registry.Values;
-            }
+            return Registry.Values;
         }
     }
 
@@ -165,7 +162,8 @@ internal static class PropertyAccess
         var nullableAccessor = access.MapReturn(x => new AnyNullable<TProperty>(x.HasValue, x ?? default));
         var getter = nullableAccessor.ToLambda();
 
-        var backward = AccessExpression.Create((AnyNullable<TProperty> x) => (TProperty?) (x.HasValue ? x.Value : null));
+        var backward =
+            AccessExpression.Create((AnyNullable<TProperty> x) => (TProperty?) (x.HasValue ? x.Value : null));
         // 'parent.X = backward(nullableX)'
         var setterBody = Expression.Assign(left: access.Access, right: backward.Access);
         // ('parent', 'nullableX') => 'parent.X = backward(nullableX)'
@@ -201,12 +199,13 @@ public static class SelectionHelper1
             Registry<TProperty> registry,
             Expression<Func<TParent, TProperty?>> selector,
             bool allowNull = false)
-
             where TProperty : struct
         {
             var access = AccessExpression.Create(selector);
             var propAccess = PropertyAccess.CreateNullable(access);
-            return accessor.SelectionHelper(registry, propAccess, allowNull);
+            return accessor.SelectionHelper(registry,
+                propAccess,
+                allowNull);
         }
 
         public SelectionHelper<TParent, TProperty> SelectionHelper<TProperty>(
@@ -217,8 +216,9 @@ public static class SelectionHelper1
         {
             var access = AccessExpression.Create(selector);
             var propAccess = PropertyAccess.Create(access, nullValue);
-            return accessor.SelectionHelper(registry, propAccess, allowNull);
+            return accessor.SelectionHelper(registry,
+                propAccess,
+                allowNull);
         }
     }
 }
-

@@ -23,6 +23,7 @@ namespace ScheduleLib.Application.Config;
 public sealed class GoogleCredentialsConfig
 {
     public string? CredentialsPath { get; set; }
+
     // user = teacher name
     public bool? SaveCredentials { get; set; }
     public IGoogleApiKeysSource? ApiKeysSource { get; set; }
@@ -118,6 +119,7 @@ public readonly struct BuiltGoogleCredentialsConfig
 public sealed class GoogleCredentialResolver : IDisposable
 {
     private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
+
     public void Dispose()
     {
         foreach (var flow in _flows)
@@ -125,8 +127,10 @@ public sealed class GoogleCredentialResolver : IDisposable
             flow.Dispose();
         }
     }
+
     private readonly CurrentUserNameProvider _userNameProvider;
     private readonly IServiceProvider _sp;
+
     public GoogleCredentialResolver(CurrentUserNameProvider userNameProvider, IServiceProvider sp)
     {
         _userNameProvider = userNameProvider;
@@ -140,7 +144,11 @@ public sealed class GoogleCredentialResolver : IDisposable
     {
         if (_sp.GetService<IGoogleCredentialAuthorization>() is { } authorization)
         {
-            return await authorization.Resolve(config, requiredScopes, _userNameProvider.Get(), _sp, cancellationToken);
+            return await authorization.Resolve(new GoogleCredentialRequest(config,
+                    requiredScopes,
+                    _userNameProvider.Get(),
+                    _sp),
+                cancellationToken);
         }
 
         // Legacy hosts may refresh provisioned credentials, but never initiate consent.
@@ -152,24 +160,25 @@ public sealed class GoogleCredentialResolver : IDisposable
 
         ClientSecrets secrets;
         try
-        { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
+        {
+            secrets = await config.ApiKeysSource.Get(_sp, cancellationToken);
+        }
         catch (OperationCanceledException) { throw; }
         catch (Exception) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
+
         bool CalculateConditionResult()
         {
             if (string.IsNullOrWhiteSpace(secrets.ClientId))
             {
                 return true;
             }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
-                {
-                    return true;
-                }
 
-                return false;
+            if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
+            {
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -188,16 +197,19 @@ public sealed class GoogleCredentialResolver : IDisposable
         });
         _flows.Add(flow);
         var token = await flow.LoadTokenAsync(user, cancellationToken);
-        if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? [])
-            .Any())
+        if (token is null
+            || requiredScopes.Except(token.Scope?.Split(' ') ?? [])
+                .Any())
         {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }
 
-        var credential = new UserCredential(flow, user, token);
+        var credential = new UserCredential(flow,
+            user,
+            token);
         try
         {
-            if (token.IsStale && !await credential.RefreshTokenAsync(cancellationToken))
+            if (token.IsStale && !(await credential.RefreshTokenAsync(cancellationToken)))
             {
                 throw new AuthenticationRequiredException(provider: "google", teacher: user);
             }
@@ -207,7 +219,7 @@ public sealed class GoogleCredentialResolver : IDisposable
     }
 }
 
-public sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
+public sealed class GoogleHttpClientProvider : HttpClientFactory
 {
     public static void Register(IServiceCollection services)
     {
@@ -240,12 +252,13 @@ public sealed class GoogleTaskRunnerProvider
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<GoogleTaskRunnerProvider>();
-        services.AddKeyedSingleton(Key, (sp, key) =>
-        {
-            _ = sp;
-            _ = key;
-            return new LimitedTaskRunnerProvider(maxConcurrentTasks: 20);
-        });
+        services.AddKeyedSingleton(Key,
+            (sp, key) =>
+            {
+                _ = sp;
+                _ = key;
+                return new LimitedTaskRunnerProvider(maxConcurrentTasks: 20);
+            });
     }
 }
 
@@ -275,23 +288,32 @@ public sealed partial class GoogleApiHelper
     }
 }
 
+/// <summary>Inputs needed to resolve an account without initiating interactive consent.</summary>
+public readonly record struct GoogleCredentialRequest(
+    BuiltGoogleCredentialsConfig Config,
+    string[] Scopes,
+    string Teacher,
+    IServiceProvider Services);
+
 /// <summary>Operational authorization contract: implementations must never initiate consent.</summary>
 public interface IGoogleCredentialAuthorization
 {
-    Task<UserCredential> Resolve(BuiltGoogleCredentialsConfig config, string[] scopes, string teacher,
-        IServiceProvider services, CancellationToken cancellationToken);
+    Task<UserCredential> Resolve(GoogleCredentialRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AuthenticationRequiredException : Exception
 {
     public string Provider { get; }
     public string LoginCommand { get; }
+
     public AuthenticationRequiredException(string provider, string teacher)
-        : base($"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}")
+        : base(
+            $"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}")
     {
         Provider = provider;
         LoginCommand = BuildLoginCommand(provider: provider, teacher: teacher);
     }
+
     private static string BuildLoginCommand(string provider, string teacher) =>
-        (string) $"schedulelib auth login {provider} --profile \"{teacher.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+        $"schedulelib auth login {provider} --profile \"{teacher.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
 }

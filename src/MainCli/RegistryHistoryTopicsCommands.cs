@@ -26,12 +26,12 @@ public sealed partial class ConfiguredRegistryHistoryProvider
             settings,
             client =>
             {
-                global::System.Net.Http.HttpClient client2 = client;
-                global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsReader registryHistoryTopicsReader =
+                var client2 = client;
+                Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                var registryHistoryTopicsReader =
                     new RegistryHistoryTopicsReader(client2, index);
-                global::System.Threading.CancellationToken token2 = token;
-                global::System.Threading.Tasks.Task<global::ScheduleLib.OnlineRegistry.RegistryHistoryTopicsAnalysis>
+                var token2 = token;
+                var
                     discover = registryHistoryTopicsReader.Discover(token2);
                 return discover;
             },
@@ -104,13 +104,13 @@ public partial class RegistryCommands
             for (var yearIndex = 0; yearIndex < analysis.OfferedYears.Count; yearIndex++)
             {
                 var offeredYear = analysis.OfferedYears[yearIndex];
-                global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                var cliOutput = cli;
                 string line = $"Offered year {offeredYear}.";
                 cliOutput.WriteHuman(line);
-                global::ScheduleLib.Cli.CliOutput cliOutput2 = cli;
+                var cliOutput2 = cli;
                 string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text = $"year-{toString}";
-                string id2 = (string) text;
+                string id2 = text;
                 string status2 = "completed";
                 object item = new { year = offeredYear };
                 cliOutput2.EmitItem(
@@ -123,15 +123,15 @@ public partial class RegistryCommands
                 var candidate = analysis.Selection.Candidates[candidateIndex];
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
-                global::ScheduleLib.Cli.CliOutput cliOutput3 = cli;
+                var cliOutput3 = cli;
                 string line2 =
                     $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
                 cliOutput3.WriteHuman(
                     line2);
-                global::ScheduleLib.Cli.CliOutput cliOutput4 = cli;
+                var cliOutput4 = cli;
                 string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text2 = $"candidate-{toString2}";
-                string id3 = (string) text2;
+                string id3 = text2;
                 string status3 = "completed";
                 object item2 = new
                 {
@@ -147,13 +147,13 @@ public partial class RegistryCommands
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
-                global::ScheduleLib.Cli.CliOutput cliOutput5 = cli;
+                var cliOutput5 = cli;
                 string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
                 cliOutput5.WriteHuman(line3);
-                global::ScheduleLib.Cli.CliOutput cliOutput6 = cli;
+                var cliOutput6 = cli;
                 string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text3 = $"unresolved-{toString3}";
-                string id4 = (string) text3;
+                string id4 = text3;
                 string status4 = "completed";
                 object item3 = new { reason = unresolved.Reason.ToString() };
                 cliOutput6.EmitItem(
@@ -236,7 +236,7 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                        var cliOutput = cli;
                         string line =
                             $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
                         cliOutput.WriteHuman(

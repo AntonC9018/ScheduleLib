@@ -53,9 +53,9 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task SuppliedGroupsReportBothParitiesAndBothOccupancyModes()
     {
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        FreeHoursArguments CalculateGroups()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups = For("M2301", "IA2301");
+            var groups = For("M2301", "IA2301");
             return groups;
         }
 
@@ -103,7 +103,7 @@ public sealed class FreeHoursTests
                 actual: section.GetProperty("days")
                     .EnumerateArray()
                     .Select(x => x.GetProperty("day")
-                    .GetString())
+                        .GetString())
                     .ToArray());
         }
 
@@ -114,7 +114,8 @@ public sealed class FreeHoursTests
         Assert.Equal(expected: expected2, actual: actual2);
         // Every IA2301 lesson is held every week, so its parities are identical.
         Assert.Equal(
-            expected: "Monday: 08:00-13:00 | Tuesday: 08:00-14:45,18:30-20:00 | Wednesday: 08:00-09:30,13:15-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-11:15,15:00-20:00 | ",
+            expected:
+            "Monday: 08:00-13:00 | Tuesday: 08:00-14:45,18:30-20:00 | Wednesday: 08:00-09:30,13:15-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-11:15,15:00-20:00 | ",
             actual: Days(sections[2]));
         string expected3 = Days(sections[2]);
         string actual3 = Days(sections[6]);
@@ -128,9 +129,9 @@ public sealed class FreeHoursTests
         // subgroup I at 15:00-16:30 and one for subgroup II at 18:30-20:00. Only the first
         // one occupies its slot when only whole-group lessons count, so the two modes must
         // report different free intervals for the very same lessons.
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        FreeHoursArguments CalculateGroups()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups = For("MIASD2501");
+            var groups = For("MIASD2501");
             return groups;
         }
 
@@ -138,7 +139,7 @@ public sealed class FreeHoursTests
             .GetProperty("data")
             .GetProperty("sections")
             .EnumerateArray()
-                    .ToArray();
+            .ToArray();
         Assert.Equal(
             expected: new[]
             {
@@ -163,9 +164,9 @@ public sealed class FreeHoursTests
         Assert.Equal(expected: expected5, actual: actual5);
 
         // DJ2301 is the same story with subgroup I lessons at 16:45-18:15 and 18:30-20:00.
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups2()
+        FreeHoursArguments CalculateGroups2()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups2 = For("DJ2301");
+            var groups2 = For("DJ2301");
             return groups2;
         }
 
@@ -203,9 +204,13 @@ public sealed class FreeHoursTests
             Assert.Equal(
                 expected: 0,
                 actual: await new FixtureQuery().FreeHours(
-                    new() { Groups = ["IA2301"] },
+                    new()
+                    {
+                        Groups = ["IA2301"],
+                    },
                     Source(),
                     new()));
+
             string[] CalculateActual()
             {
                 string[] actual2 = output.ToString()
@@ -214,8 +219,8 @@ public sealed class FreeHoursTests
             }
 
             Assert.Equal(
-                            expected: new[]
-                            {
+                expected: new[]
+                {
                     "IA2301, EvenWeek week, whole-group lessons and unspecialized optional lessons occupy their slot",
                     "  Monday: 08:00-13:00",
                     "  Tuesday: 08:00-14:45, 18:30-20:00",
@@ -240,8 +245,8 @@ public sealed class FreeHoursTests
                     "  Wednesday: 08:00-09:30, 13:15-20:00",
                     "  Thursday: 08:00-20:00",
                     "  Friday: 08:00-11:15, 15:00-20:00",
-                            },
-                            actual: CalculateActual());
+                },
+                actual: CalculateActual());
         }
         finally
         {
@@ -278,95 +283,97 @@ public sealed class FreeHoursTests
             "Luni:8:00-13:00,16:45-20:00", "Marţi:8:00-11:15,16:45-20:00", "Miercuri:8:00-11:15,16:45-20:00",
             "Joi:8:00-9:30,15:00-20:00", "Vineri:8:00-9:30,16:45-20:00",
         ];
+
         string CalculateValues()
         {
             string values = Block(
-                            parity: "par",
-                            @group: "IA2301",
-                            true,
-                            everyWeek);
+                parity: "par",
+                @group: "IA2301",
+                true,
+                everyWeek);
             return values;
         }
 
         string CalculateBlock()
         {
             string block = Block(
-                                    parity: "par",
-                                    @group: "IA2301",
-                                    false,
-                                    everyWeek);
+                parity: "par",
+                @group: "IA2301",
+                false,
+                everyWeek);
             return block;
         }
 
         string CalculateBlock2()
         {
             string block2 = Block(
-                                            parity: "par",
-                                            @group: "M2301",
-                                            true,
-                                            m2301Par);
+                parity: "par",
+                @group: "M2301",
+                true,
+                m2301Par);
             return block2;
         }
 
         string CalculateBlock3()
         {
             string block3 = Block(
-                                                    parity: "par",
-                                                    @group: "M2301",
-                                                    false,
-                                                    m2301Par);
+                parity: "par",
+                @group: "M2301",
+                false,
+                m2301Par);
             return block3;
         }
 
         string CalculateBlock4()
         {
             string block4 = Block(
-                                                            parity: "impar",
-                                                            @group: "IA2301",
-                                                            true,
-                                                            everyWeek);
+                parity: "impar",
+                @group: "IA2301",
+                true,
+                everyWeek);
             return block4;
         }
 
         string CalculateBlock5()
         {
             string block5 = Block(
-                                                                    parity: "impar",
-                                                                    @group: "IA2301",
-                                                                    false,
-                                                                    everyWeek);
+                parity: "impar",
+                @group: "IA2301",
+                false,
+                everyWeek);
             return block5;
         }
 
         string CalculateBlock6()
         {
             string block6 = Block(
-                                                                            parity: "impar",
-                                                                            @group: "M2301",
-                                                                            true,
-                                                                            m2301Impar);
+                parity: "impar",
+                @group: "M2301",
+                true,
+                m2301Impar);
             return block6;
         }
 
         string CalculateBlock7()
         {
             string block7 = Block(
-                                                                                    parity: "impar",
-                                                                                    @group: "M2301",
-                                                                                    false,
-                                                                                    m2301Impar);
+                parity: "impar",
+                @group: "M2301",
+                false,
+                m2301Impar);
             return block7;
         }
 
         var expected = string.Concat(
-                                                                            CalculateValues(),
-                                                                            CalculateBlock(),
-                                                                            CalculateBlock2(),
-                                                                            CalculateBlock3(),
-                                                                            CalculateBlock4(),
-                                                                            CalculateBlock5(),
-                                                                            CalculateBlock6(),
-                                                                            CalculateBlock7());
+            CalculateValues(),
+            CalculateBlock(),
+            CalculateBlock2(),
+            CalculateBlock3(),
+            CalculateBlock4(),
+            CalculateBlock5(),
+            CalculateBlock6(),
+            CalculateBlock7());
+
         string CalculateActual()
         {
             string actual2 = builder.ToString()
@@ -387,18 +394,20 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task UnknownGroupFailsClearlyWithoutWarnings()
     {
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        FreeHoursArguments CalculateGroups()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups = For("IA2301", "NOPE");
+            var groups = For("IA2301", "NOPE");
             return groups;
         }
 
         var result = await Execute(CalculateGroups(), expected: 2);
-        Assert.Equal(expected: "failed", actual: result.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "failed",
+            actual: result.GetProperty("status")
+                .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
-        Assert.Equal(expected: 2, actual: result.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: 2,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
         Assert.Equal(
             expected: new[]
             {
@@ -411,15 +420,17 @@ public sealed class FreeHoursTests
         Assert.Empty(result.GetProperty("warnings")
             .EnumerateArray()
             .Select(x => x.GetString()));
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups2()
+
+        FreeHoursArguments CalculateGroups2()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups2 = For("ia2301");
+            var groups2 = For("ia2301");
             return groups2;
         }
 
         var suggestion = await Execute(CalculateGroups2(), expected: 2);
-        Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?", actual: suggestion.GetProperty("errors")[0]
-            .GetString());
+        Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?",
+            actual: suggestion.GetProperty("errors")[0]
+                .GetString());
     }
 
     [Fact]
@@ -433,9 +444,15 @@ public sealed class FreeHoursTests
             Assert.Equal(
                 expected: 0,
                 actual: await new FixtureQuery().FreeHours(
-                    new() { Groups = ["IA2301", "IA2301"] },
+                    new()
+                    {
+                        Groups = ["IA2301", "IA2301"],
+                    },
                     Source(),
-                    new() { Json = true }));
+                    new()
+                    {
+                        Json = true,
+                    }));
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(
                 expected: new[]
@@ -447,9 +464,10 @@ public sealed class FreeHoursTests
                     .EnumerateArray()
                     .Select(x => x.GetString())
                     .ToArray());
-            Assert.Equal(expected: 4, actual: result.RootElement.GetProperty("data")
-                .GetProperty("sections")
-                .GetArrayLength());
+            Assert.Equal(expected: 4,
+                actual: result.RootElement.GetProperty("data")
+                    .GetProperty("sections")
+                    .GetArrayLength());
             Assert.Contains(
                 "Repeated group names were reported once.",
                 result.RootElement.GetProperty("warnings")
@@ -471,23 +489,24 @@ public sealed class FreeHoursTests
             "2025_sem2",
             "zi");
         Directory.CreateDirectory(zi);
+
         string CalculateFile()
         {
             string file = Path.Combine(
-                                   FixtureDirectory(),
-                                   "2025_sem2",
-                                   "zi",
-                                   "master.xlsx");
+                FixtureDirectory(),
+                "2025_sem2",
+                "zi",
+                "master.xlsx");
             return file;
         }
 
         using (var workbook = new XLWorkbook(
-                           CalculateFile()))
+                   CalculateFile()))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
                 .Delete();
-            global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
+            var xLWorkbook = workbook;
             string file2 = Path.Combine(zi, "master.xlsx");
             xLWorkbook.SaveAs(file2);
         }
@@ -499,13 +518,19 @@ public sealed class FreeHoursTests
             Assert.Equal(
                 expected: 0,
                 actual: await new FixtureQuery().FreeHours(
-                    new() { Groups = ["MIA2501"] },
+                    new()
+                    {
+                        Groups = ["MIA2501"],
+                    },
                     new()
                     {
                         NoCache = true,
                         DataDirectory = temp.Path,
                     },
-                    new() { Json = true }));
+                    new()
+                    {
+                        Json = true,
+                    }));
             using var result = JsonDocument.Parse(output.ToString());
             var sections = result.RootElement.GetProperty("data")
                 .GetProperty("sections")
@@ -521,8 +546,9 @@ public sealed class FreeHoursTests
                 }
 
                 Assert.Equal(
-                                    expected: "Monday: 08:00-20:00 | Tuesday: 08:00-20:00 | Wednesday: 08:00-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-20:00 | ",
-                                    actual: CalculateActual());
+                    expected:
+                    "Monday: 08:00-20:00 | Tuesday: 08:00-20:00 | Wednesday: 08:00-20:00 | Thursday: 08:00-20:00 | Friday: 08:00-20:00 | ",
+                    actual: CalculateActual());
             }
         }
         finally
@@ -534,19 +560,22 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
-        global::System.Threading.CancellationToken CalculateCancellationToken()
+        CancellationToken CalculateCancellationToken()
         {
-            global::System.Threading.CancellationToken cancellationToken = new CancellationToken(canceled: true);
+            var cancellationToken = new CancellationToken(canceled: true);
             return cancellationToken;
         }
 
         Assert.Equal(
-                    expected: 130,
-                    actual: await new FixtureQuery().FreeHours(
-                        new() { Groups = ["IA2301"] },
-                        new(),
-                        new(),
-                        CalculateCancellationToken()));
+            expected: 130,
+            actual: await new FixtureQuery().FreeHours(
+                new()
+                {
+                    Groups = ["IA2301"],
+                },
+                new(),
+                new(),
+                CalculateCancellationToken()));
     }
 
     [Fact]
@@ -588,7 +617,7 @@ public sealed class FreeHoursTests
         // guard alone would consume every lesson instead of stopping at the first one.
         Assert.Equal(expected: 1, actual: enumerated);
         int expected2 = 4;
-        global::ScheduleLib.Application.Core.FreeHoursSection[] sections = handler.Sections(["IA2301"], CancellationToken.None);
+        var sections = handler.Sections(["IA2301"], CancellationToken.None);
         int actual2 = sections.Length;
         Assert.Equal(expected: expected2, actual: actual2);
     }
@@ -597,29 +626,32 @@ public sealed class FreeHoursTests
     public async Task CancellationAfterTheCalculationIsNotSuccess()
     {
         using var cancellation = new CancellationTokenSource();
+
         // Every section is computed by then, so only a check right before the result is
         // reported can still turn this into a cancellation instead of a success.
-        global::ScheduleLib.Cli.FreeHoursArguments CalculateGroups()
+        FreeHoursArguments CalculateGroups()
         {
-            global::ScheduleLib.Cli.FreeHoursArguments groups = For("IA2301");
+            var groups = For("IA2301");
             return groups;
         }
 
-        global::FreeHoursTests.LateCancellingQuery CalculateQuery()
+        LateCancellingQuery CalculateQuery()
         {
-            global::FreeHoursTests.LateCancellingQuery query = new LateCancellingQuery(cancellation);
+            var query = new LateCancellingQuery(cancellation);
             return query;
         }
 
         var result = await Execute(
-                            CalculateGroups(),
-                            CalculateQuery(),
-                            cancellation.Token,
-                            expected: 130);
-        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Equal(expected: "failed", actual: result.GetProperty("status")
-            .GetString());
+            CalculateGroups(),
+            CalculateQuery(),
+            cancellation.Token,
+            expected: 130);
+        Assert.Equal(expected: 130,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Equal(expected: "failed",
+            actual: result.GetProperty("status")
+                .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
         Assert.Equal(
             expected: new[]
@@ -641,18 +673,26 @@ public sealed class FreeHoursTests
         {
             Console.SetOut(output);
             var exit = await new FixtureQuery().FreeHours(
-                new() { Groups = ["IA2301"] },
+                new()
+                {
+                    Groups = ["IA2301"],
+                },
                 new()
                 {
                     NoCache = true,
-                    DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid()
-                        .ToString()),
+                    DataDirectory = Path.Combine(Path.GetTempPath(),
+                        Guid.NewGuid()
+                            .ToString()),
                 },
-                new() { Json = true });
+                new()
+                {
+                    Json = true,
+                });
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 3, actual: exit);
-            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: 3,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
         finally
         {
@@ -662,10 +702,10 @@ public sealed class FreeHoursTests
 
     private static string Day(JsonElement day)
     {
-        return (string) $"{day.GetProperty("day").GetString()}: {string.Join(
-                ",",
-                day.GetProperty("intervals").EnumerateArray()
-                    .Select(x => (string) $"{x.GetProperty("start").GetString()}-{x.GetProperty("end").GetString()}"))} | ";
+        return $"{day.GetProperty("day").GetString()}: {string.Join(
+            ",",
+            day.GetProperty("intervals").EnumerateArray()
+                .Select(x => $"{x.GetProperty("start").GetString()}-{x.GetProperty("end").GetString()}"))} | ";
     }
 
     private static string Day(JsonElement section, string day)
@@ -674,7 +714,8 @@ public sealed class FreeHoursTests
             section.GetProperty("days")
                 .EnumerateArray()
                 .Where(x => x.GetProperty("day")
-                    .GetString() == day));
+                        .GetString()
+                    == day));
     }
 
     private static string Days(JsonElement section)
@@ -696,7 +737,13 @@ public sealed class FreeHoursTests
 
     private static string FixtureDirectory() => Path.Combine(AppContext.BaseDirectory, "fixtures");
 
-    private static FreeHoursArguments For(params string[] groups) => new() { Groups = groups };
+    private static FreeHoursArguments For(params string[] groups)
+    {
+        return new()
+        {
+            Groups = groups,
+        };
+    }
 
     private static Task<JsonElement> Execute(FreeHoursArguments groups, int expected = 0)
     {
@@ -722,26 +769,32 @@ public sealed class FreeHoursTests
             var exit = await query.FreeHours(
                 groups,
                 Source(),
-                new() { Json = true },
+                new()
+                {
+                    Json = true,
+                },
                 cancellationToken);
             Assert.Equal(expected: expected, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: "query free-hours", actual: document.RootElement.GetProperty("command")
-                .GetString());
+            Assert.Equal(expected: 1,
+                actual: document.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: "query free-hours",
+                actual: document.RootElement.GetProperty("command")
+                    .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
-            global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+
+            IEnumerable<string> CalculateCollection()
             {
-                global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(
-                                    path: FixtureDirectory(),
-                                    searchPattern: "*schedule_*.json",
-                                    SearchOption.AllDirectories);
+                var collection = Directory.EnumerateFiles(
+                    path: FixtureDirectory(),
+                    searchPattern: "*schedule_*.json",
+                    SearchOption.AllDirectories);
                 return collection;
             }
 
             Assert.Empty(
-                            CalculateCollection());
+                CalculateCollection());
             return document.RootElement.Clone();
         }
         finally
@@ -752,10 +805,11 @@ public sealed class FreeHoursTests
 
     private static string Name(JsonElement section)
     {
-        return (string) $"{($"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/")}{(section.GetProperty("mode").GetString()
-            == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
-                ? "whole"
-                : "every")}";
+        return
+            $"{$"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/"}{(section.GetProperty("mode").GetString()
+                == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
+                    ? "whole"
+                    : "every")}";
     }
 
     private sealed class TempDirectory : IDisposable
@@ -781,7 +835,7 @@ public sealed class FreeHoursTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -806,7 +860,7 @@ public sealed class FreeHoursTests
         {
             base.ConfigureServices(services);
             var declaredTime = services.Last(x => x.ServiceType == typeof(LessonTimeConfig));
-            services.AddScoped<PrintFreeHoursOfGroupTaskHandler>(sp =>
+            services.AddScoped(sp =>
             {
                 var handler = ActivatorUtilities.CreateInstance<PrintFreeHoursOfGroupTaskHandler>(sp);
                 _handlerBuilt = true;
@@ -814,7 +868,7 @@ public sealed class FreeHoursTests
             });
             // Registered as transient so that the resolution after the calculation asks the
             // factory again; as a singleton the times would be created only once.
-            services.AddTransient<LessonTimeConfig>(sp =>
+            services.AddTransient(sp =>
             {
                 var config = (LessonTimeConfig?) declaredTime.ImplementationInstance
                     ?? throw new InvalidOperationException("The lesson times are no longer registered as an instance.");

@@ -44,16 +44,17 @@ public sealed class Test
         var teacherId = teachers.First();
         var teacherName = schedule.Get(teacherId).PersonName
             .AsNameFields();
-        global::ScheduleLib.Parsing.Name CalculateName()
+
+        Name CalculateName()
         {
-            global::ScheduleLib.Parsing.Name name = new Name(teacherName);
+            var name = new Name(teacherName);
             return name;
         }
 
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
-                    helper.ServiceProvider,
-                    path,
-                    CalculateName());
+            helper.ServiceProvider,
+            path,
+            CalculateName());
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
         var filteredSchedule = schedule.Filter(
@@ -61,8 +62,11 @@ public sealed class Test
                 .WithCourse(courseId)
                 .WithTeacher(teacherId));
 
-        var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
-        await builder.AddFromManifest(manifest, lookup, helper.CancellationToken);
+        var builder =
+            ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
+        await builder.AddFromManifest(manifest,
+            lookup,
+            helper.CancellationToken);
         var result = builder.Build();
 
         var list = new List<string>();
@@ -74,15 +78,15 @@ public sealed class Test
         };
         while (true)
         {
-            global::ScheduleLib.OnlineRegistry.AttendanceLookupKey CalculateKey()
+            AttendanceLookupKey CalculateKey()
             {
-                global::ScheduleLib.OnlineRegistry.AttendanceLookupKey key = new(
-                                courseId: courseId,
-                                groups: groups,
-                                groupPartition: GroupPartitionKey.All,
-                                lessonType: LessonType.Lab,
-                                dayIndex: dayIndex,
-                                dateTime: default);
+                AttendanceLookupKey key = new(
+                    courseId: courseId,
+                    groups: groups,
+                    groupPartition: GroupPartitionKey.All,
+                    lessonType: LessonType.Lab,
+                    dayIndex: dayIndex,
+                    dateTime: default);
                 return key;
             }
 
@@ -97,5 +101,4 @@ public sealed class Test
 
         await Verify(list);
     }
-
 }

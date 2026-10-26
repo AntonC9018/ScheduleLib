@@ -18,16 +18,17 @@ public sealed class NewScheduleTests
             .Select(x => schedule.Get(x))
             .Where(x =>
             {
-                if (x.Weekly is { } w)
+                if (!(x.Weekly is { } w))
                 {
-                    if (w.Date.Period == schedule.LatestPeriodId())
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return true;
                 }
-                return true;
+
+                if (w.Date.Period == schedule.LatestPeriodId())
+                {
+                    return true;
+                }
+
+                return false;
             })
             .Select(x =>
             {

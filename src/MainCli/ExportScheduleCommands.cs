@@ -19,15 +19,17 @@ public partial class ExportCommands
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
     {
-        global::ScheduleLib.Cli.ExportRequest request = new(
-                    source,
-                    destination,
-                    result,
-                    settings ?? new());
-        global::ScheduleLib.Cli.ScheduleExportKind kind = ScheduleExportKind.Pdf;
-        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
-        global::System.Threading.Tasks.Task<int> exportSchedule = ExportSchedule(
-        request, kind, cancellationToken2);
+        ExportRequest request = new(
+            source,
+            destination,
+            result,
+            settings ?? new());
+        var kind = ScheduleExportKind.Pdf;
+        var cancellationToken2 = cancellationToken;
+        var exportSchedule = ExportSchedule(
+            request,
+            kind,
+            cancellationToken2);
         return exportSchedule;
     }
 
@@ -42,15 +44,17 @@ public partial class ExportCommands
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
     {
-        global::ScheduleLib.Cli.ExportRequest request = new(
-                    source,
-                    destination,
-                    result,
-                    settings ?? new());
-        global::ScheduleLib.Cli.ScheduleExportKind kind = ScheduleExportKind.Ics;
-        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
-        global::System.Threading.Tasks.Task<int> exportSchedule = ExportSchedule(
-        request, kind, cancellationToken2);
+        ExportRequest request = new(
+            source,
+            destination,
+            result,
+            settings ?? new());
+        var kind = ScheduleExportKind.Ics;
+        var cancellationToken2 = cancellationToken;
+        var exportSchedule = ExportSchedule(
+            request,
+            kind,
+            cancellationToken2);
         return exportSchedule;
     }
 
@@ -64,6 +68,7 @@ public partial class ExportCommands
         var resultArgs = request.Result;
         var settings = request.Settings;
         var calendar = kind == ScheduleExportKind.Ics;
+
         string CalculateCommand()
         {
             string command2;
@@ -80,9 +85,9 @@ public partial class ExportCommands
         }
 
         using var context = new CliCommandContext(
-                    CalculateCommand(),
-                    resultArgs,
-                    cancellationToken);
+            CalculateCommand(),
+            resultArgs,
+            cancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -123,10 +128,11 @@ public partial class ExportCommands
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
             var omitted = all.EnumerateWeeklyLessons()
-                .Count() - lessonCount;
+                    .Count()
+                - lessonCount;
             if (omitted > 0)
             {
-                global::System.Collections.Generic.List<string> list = warnings;
+                var list = warnings;
                 string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
                 list.Add(item);
             }
@@ -197,19 +203,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            global::ScheduleLib.Cli.ScheduleExportResult CalculateData()
+
+            ScheduleExportResult CalculateData()
             {
-                global::ScheduleLib.Cli.ScheduleExportResult data = new(
-                                    output?.DirectoryPath,
-                                    LessonCount: lessonCount,
-                                    TeacherCount: teacherCount);
+                ScheduleExportResult data = new(
+                    output?.DirectoryPath,
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount);
                 return data;
             }
 
             return context.Finish(new CliCompletion<ScheduleExportResult>(
-                            exit,
-                            errors,
-                            CalculateData())
+                exit,
+                errors,
+                CalculateData())
             {
                 Summary = new
                 {
@@ -223,10 +230,11 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }

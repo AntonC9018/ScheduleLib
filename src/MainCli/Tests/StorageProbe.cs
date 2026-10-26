@@ -15,8 +15,14 @@ public static class StorageProbe
                     DataDirectory = args[1],
                     CacheDirectory = args[2],
                 },
-                new() { Directory = args[3] == "-" ? null : args[3] },
-                new() { Json = true });
+                new()
+                {
+                    Directory = args[3] == "-" ? null : args[3],
+                },
+                new()
+                {
+                    Json = true,
+                });
         }
 
         if (args[0] == "query")
@@ -29,7 +35,10 @@ public static class StorageProbe
                     CacheDirectory = args[2],
                     NoCache = args.Length > 3,
                 },
-                new() { Json = true });
+                new()
+                {
+                    Json = true,
+                });
         }
 
         if (args[0] == "lock")
@@ -43,14 +52,14 @@ public static class StorageProbe
             string CalculatePath()
             {
                 string text = $"{args[1]}.lock";
-                string path = (string) text;
+                string path = text;
                 return path;
             }
 
             await using var lease = await LocalFileLock.Acquire(
-                            CalculatePath(),
-                            CancellationToken.None,
-                            wait: true);
+                CalculatePath(),
+                CancellationToken.None,
+                wait: true);
             await AtomicFile.Publish(
                 args[1],
                 async (stream, token) =>
@@ -72,7 +81,7 @@ public static class StorageProbe
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -90,7 +99,7 @@ public static class StorageProbe
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>

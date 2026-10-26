@@ -15,26 +15,23 @@ public sealed record AuthAccountStatus(string AccountId, string State, string[] 
 
 public sealed record AuthStatus(string Provider, string Profile, IReadOnlyList<AuthAccountStatus> Accounts);
 
+/// <summary>The client, account and granted scope set shared by all token operations.</summary>
+public readonly record struct GoogleTokenContext(ClientSecrets Secrets, string Teacher, string[] Scopes);
+
 /// <summary>Only Login can call Consent. Fake implementations exercise the boundary without browser/network activity.</summary>
 public interface IGoogleTokenProvider
 {
     Task<TokenResponse> Consent(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         CancellationToken token);
 
     Task<TokenResponse?> Refresh(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         TokenResponse authorization,
         CancellationToken token);
 
     UserCredential CreateCredential(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         TokenResponse authorization,
         IDataStore store);
 }
@@ -44,48 +41,48 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
     private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
 
     public async Task<TokenResponse> Consent(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         CancellationToken token)
     {
         using var flow = Flow(
-            secrets,
-            scopes,
+            context.Secrets,
+            context.Scopes,
             null);
         var credential =
-            await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver()).AuthorizeAsync(teacher, token);
+            await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver()).AuthorizeAsync(context.Teacher,
+                token);
         return credential.Token;
     }
 
     public async Task<TokenResponse?> Refresh(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         TokenResponse authorization,
         CancellationToken token)
     {
         using var flow = Flow(
-            secrets,
-            scopes,
+            context.Secrets,
+            context.Scopes,
             null);
         var credential = new UserCredential(
             flow,
-            teacher,
+            context.Teacher,
             authorization);
-        return await credential.RefreshTokenAsync(token) ? credential.Token : null;
+        if (!(await credential.RefreshTokenAsync(token)))
+        {
+            return null;
+        }
+
+        return credential.Token;
     }
 
     public UserCredential CreateCredential(
-        ClientSecrets secrets,
-        string teacher,
-        string[] scopes,
+        GoogleTokenContext context,
         TokenResponse authorization,
         IDataStore store)
     {
         var flow = Flow(
-            secrets,
-            scopes,
+            context.Secrets,
+            context.Scopes,
             store);
         lock (_flows)
         {
@@ -94,7 +91,7 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
 
         return new(
             flow,
-            teacher,
+            context.Teacher,
             authorization);
     }
 
@@ -148,11 +145,11 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
 
         _root = stateDirectory
-                    ?? Path.Combine(
-                        CalculatePath1(),
-                        "ScheduleLib",
-                        "auth",
-                        "google");
+            ?? Path.Combine(
+                CalculatePath1(),
+                "ScheduleLib",
+                "auth",
+                "google");
         _tokens = tokens ?? new GoogleTokenProvider();
     }
 
@@ -189,12 +186,17 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         string path1 = TeacherDirectory(teacher);
         string key = Key(clientId);
         string text = $"{key}.json";
-        string path2 = (string) text;
+        string path2 = text;
         string combine = Path.Combine(path1, path2);
         return combine;
     }
 
-    public GoogleLoginBuilder Login(string teacher, IServiceProvider services) => new(this, teacher, services);
+    public GoogleLoginBuilder Login(string teacher, IServiceProvider services)
+    {
+        return new(this,
+            teacher,
+            services);
+    }
 
     public sealed class GoogleLoginBuilder
     {
@@ -203,7 +205,10 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         private readonly IServiceProvider _services;
         private IReadOnlyList<BuiltGoogleCredentialsConfig>? _configurations;
 
-        internal GoogleLoginBuilder(GoogleAuthentication authentication, string teacher, IServiceProvider services)
+        internal GoogleLoginBuilder(
+            GoogleAuthentication authentication,
+            string teacher,
+            IServiceProvider services)
         {
             _authentication = authentication;
             _teacher = teacher;
@@ -228,7 +233,10 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
             {
                 throw new InvalidOperationException("Configure Google login credentials before execution.");
             }
-            return _authentication.LoginConfigured(_configurations, _teacher, _services, token);
+            return _authentication.LoginConfigured(_configurations,
+                _teacher,
+                _services,
+                token);
         }
     }
 
@@ -273,10 +281,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         TokenResponse result;
         try
         {
-            result = await _tokens.Consent(
-                secrets,
-                teacher,
-                scopes,
+            result = await _tokens.Consent(new GoogleTokenContext(secrets,
+                    teacher,
+                    scopes),
                 token);
         }
         catch (OperationCanceledException)
@@ -297,12 +304,13 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
     }
 
     public async Task<UserCredential> Resolve(
-        BuiltGoogleCredentialsConfig config,
-        string[] scopes,
-        string teacher,
-        IServiceProvider services,
+        GoogleCredentialRequest request,
         CancellationToken cancellationToken)
     {
+        var config = request.Config;
+        var scopes = request.Scopes;
+        var teacher = request.Teacher;
+        var services = request.Services;
         var secrets = await Secrets(
             config,
             teacher,
@@ -328,10 +336,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
             try
             {
-                var refreshed = await _tokens.Refresh(
-                    secrets,
-                    teacher,
-                    scopes,
+                var refreshed = await _tokens.Refresh(new GoogleTokenContext(secrets,
+                        teacher,
+                        scopes),
                     authorization,
                     cancellationToken);
                 if (refreshed is null)
@@ -366,24 +373,28 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
             }
         }
-        global::ScheduleLib.Cli.IGoogleTokenProvider iGoogleTokenProvider = _tokens;
-        global::Google.Apis.Auth.OAuth2.ClientSecrets secrets2 = secrets;
+        var iGoogleTokenProvider = _tokens;
+        var secrets2 = secrets;
         string teacher2 = teacher;
         string[] scopes2 = scopes;
-        global::Google.Apis.Auth.OAuth2.Responses.TokenResponse authorization2 = authorization;
+        var authorization2 = authorization;
         string path2 = AccountFile(teacher: teacher, clientId: secrets.ClientId);
         bool requireExisting2 = true;
-        global::ScheduleLib.Cli.AtomicTokenStore store2 = new AtomicTokenStore(path2, requireExisting: requireExisting2);
-        global::Google.Apis.Util.Store.IDataStore store3 = store2;
-        global::Google.Apis.Auth.OAuth2.UserCredential createCredential = iGoogleTokenProvider.CreateCredential(
-        secrets2, teacher2, scopes2, authorization2, store3);
+        var store2 = new AtomicTokenStore(path2, requireExisting: requireExisting2);
+        IDataStore store3 = store2;
+        var createCredential = iGoogleTokenProvider.CreateCredential(new GoogleTokenContext(secrets2,
+                teacher2,
+                scopes2),
+            authorization2,
+            store3);
         return createCredential;
     }
 
     private static bool Usable(TokenResponse authorization, string[] scopes)
     {
-        return !string.IsNullOrEmpty(authorization.AccessToken) && !scopes.Except(authorization.Scope?.Split(' ') ?? [])
-            .Any();
+        return !string.IsNullOrEmpty(authorization.AccessToken)
+            && !scopes.Except(authorization.Scope?.Split(' ') ?? [])
+                .Any();
     }
 
     private static async Task<ClientSecrets> Secrets(
@@ -395,21 +406,20 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         try
         {
             var result = await config.ApiKeysSource.Get(services, token);
+
             bool CalculateConditionResult()
             {
                 if (string.IsNullOrWhiteSpace(result.ClientId))
                 {
                     return true;
                 }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(result.ClientSecret))
-                    {
-                        return true;
-                    }
 
-                    return false;
+                if (string.IsNullOrWhiteSpace(result.ClientSecret))
+                {
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -446,7 +456,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
         var accounts = new List<AuthAccountStatus>();
         foreach (var path in Directory.EnumerateFiles(path: directory, searchPattern: "*.json")
-            .Order())
+                     .Order())
         {
             token.ThrowIfCancellationRequested();
             var authorization = await new AtomicTokenStore(path).GetAsync<TokenResponse>(teacher);
@@ -534,14 +544,14 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
         string CalculatePath()
         {
             string text = $"{path}.lock";
-            string path2 = (string) text;
+            string path2 = text;
             return path2;
         }
 
         await using var lease = await LocalFileLock.Acquire(
-                    CalculatePath(),
-                    token,
-                    wait: true);
+            CalculatePath(),
+            token,
+            wait: true);
         if (requireExisting && !File.Exists(path))
         {
             throw new IOException("Local authorization was logged out; login is required.");
@@ -576,14 +586,14 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
         string CalculatePath()
         {
             string text = $"{path}.lock";
-            string path2 = (string) text;
+            string path2 = text;
             return path2;
         }
 
         await using var lease = await LocalFileLock.Acquire(
-                    CalculatePath(),
-                    CancellationToken.None,
-                    wait: true);
+            CalculatePath(),
+            CancellationToken.None,
+            wait: true);
         File.Delete(path);
     }
 

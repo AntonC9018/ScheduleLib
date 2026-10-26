@@ -36,24 +36,25 @@ public static class CliHost
         var hasJsonl = args.Contains("--jsonl");
         var hasHelp = args.Contains("--help") || args.Contains("-h");
         CapturingConsole? capture = null;
+
         bool CheckCondition()
         {
-            if (!(hasJsonl))
+            if (!hasJsonl)
             {
                 return false;
             }
 
-            if (!(!hasJson))
+            if (hasJson)
             {
                 return false;
             }
 
-            if (!(!hasHelp))
+            if (!hasHelp)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         if (CheckCondition())
@@ -61,7 +62,7 @@ public static class CliHost
             capture = new();
             runner.Configure(builder =>
             {
-                global::CommandDotNet.AppConfigBuilder appConfigBuilder = builder;
+                var appConfigBuilder = builder;
                 appConfigBuilder.Console = capture;
             });
         }
@@ -76,28 +77,25 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
+
                 bool CalculateConditionResult()
                 {
-                    if (!invoked)
-                    {
-                        if (context.ParseResult?.ParseError is not null)
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            if (exit == ExitCodes.ValidationError)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-                    }
-                    else
+                    if (invoked)
                     {
                         return false;
                     }
+
+                    if (context.ParseResult?.ParseError is not null)
+                    {
+                        return true;
+                    }
+
+                    if (exit == ExitCodes.ValidationError)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -111,33 +109,27 @@ public static class CliHost
 
                 bool CalculateConditionResult2()
                 {
-                    if (exit != CliExit.Success)
-                    {
-                        if (!invoked)
-                        {
-                            if (args.Contains("--json"))
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (args.Contains("--jsonl"))
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
+                    if (exit == CliExit.Success)
                     {
                         return false;
                     }
+
+                    if (invoked)
+                    {
+                        return false;
+                    }
+
+                    if (args.Contains("--json"))
+                    {
+                        return true;
+                    }
+
+                    if (args.Contains("--jsonl"))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult2 = CalculateConditionResult2();
@@ -154,6 +146,7 @@ public static class CliHost
         try
         {
             configure?.Invoke(runner);
+
             string[] CalculateArgs()
             {
                 string[] args2;
@@ -170,16 +163,14 @@ public static class CliHost
             }
 
             var result = await runner.RunAsync(CalculateArgs());
+
             bool CalculateConditionResult4()
             {
                 if (result == 0)
                 {
                     return true;
                 }
-                else
-                {
-                    return invoked;
-                }
+                return invoked;
             }
 
             bool conditionResult = CalculateConditionResult4();
@@ -192,16 +183,15 @@ public static class CliHost
 
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
+
             bool CalculateConditionResult2()
             {
-                if (hasJson)
-                {
-                    return hasJsonl;
-                }
-                else
+                if (!hasJson)
                 {
                     return false;
                 }
+
+                return hasJsonl;
             }
 
             bool conditionResult2 = CalculateConditionResult2();
@@ -219,7 +209,7 @@ public static class CliHost
             if (capture is not null)
             {
                 foreach (var line in capture.GetError()
-                    .Split('\n'))
+                             .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -228,7 +218,7 @@ public static class CliHost
                     }
                 }
                 foreach (var line in capture.GetOut()
-                    .Split('\n'))
+                             .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -260,16 +250,15 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
+
             bool CalculateConditionResult3()
             {
-                if (hasJson)
-                {
-                    return hasJsonl;
-                }
-                else
+                if (!hasJson)
                 {
                     return false;
                 }
+
+                return hasJsonl;
             }
 
             bool conditionResult3 = CalculateConditionResult3();
@@ -284,7 +273,7 @@ public static class CliHost
             if (hasJsonl)
             {
                 conditionResult4 = hasJson;
-                conditionResult4 = !(conditionResult4);
+                conditionResult4 = !conditionResult4;
             }
             else
             {
@@ -299,7 +288,10 @@ public static class CliHost
                 bool json = false;
                 bool jsonl = true;
                 var output = new CliOutput(
-                    command, runId, json, jsonl);
+                    command,
+                    runId,
+                    json,
+                    jsonl);
                 output.EmitStart();
                 output.WriteError(e.Message);
                 output.EmitFinal(
@@ -325,16 +317,15 @@ public static class CliHost
         {
             hasJson = args.Contains("--json");
             hasJsonl = args.Contains("--jsonl");
+
             bool CalculateConditionResult()
             {
-                if (hasJson)
-                {
-                    return hasJsonl;
-                }
-                else
+                if (!hasJson)
                 {
                     return false;
                 }
+
+                return hasJsonl;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -353,7 +344,10 @@ public static class CliHost
                 bool json = false;
                 bool jsonl = true;
                 var output = new CliOutput(
-                    command, runId, json, jsonl);
+                    command,
+                    runId,
+                    json,
+                    jsonl);
                 output.EmitStart();
                 foreach (var detail in details)
                 {
@@ -369,7 +363,7 @@ public static class CliHost
             }
             else if (hasJson)
             {
-                global::ScheduleLib.Cli.CommandResult<object?> CalculateValue()
+                CommandResult<object?> CalculateValue()
                 {
                     int schemaVersion = 1;
                     string command2 = "cli";
@@ -382,15 +376,24 @@ public static class CliHost
                     string[] warnings = [];
                     string[] errors = [error];
                     object? data = null;
-                    global::ScheduleLib.Cli.CommandResult<object?> value = new CommandResult<object?>(
-                    schemaVersion, command2, runId2, status, exitCode, outputs, actions, warnings, errors, data);
+                    var value = new CommandResult<object?>(
+                        schemaVersion,
+                        command2,
+                        runId2,
+                        status,
+                        exitCode,
+                        outputs,
+                        actions,
+                        warnings,
+                        errors,
+                        data);
                     return value;
                 }
 
                 Console.WriteLine(
-                                    JsonSerializer.Serialize(
-                                        CalculateValue(),
-                                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                    JsonSerializer.Serialize(
+                        CalculateValue(),
+                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             }
         }
     }
@@ -403,7 +406,7 @@ public static class CliHost
 
         private sealed class CaptureWriter(StringBuilder builder, object gate) : TextWriter
         {
-            public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
+            public override Encoding Encoding => Encoding.UTF8;
 
             public override void WriteLine(string? value)
             {
@@ -460,11 +463,9 @@ public static class CliHost
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public ExportCommands Export { get; set; } = new();
+    [Subcommand] public ExportCommands Export { get; set; } = new();
 
-    [Subcommand]
-    public QueryCommands Query { get; set; } = new();
+    [Subcommand] public QueryCommands Query { get; set; } = new();
 }
 
 [Command("query")]
@@ -514,7 +515,7 @@ public partial class QueryCommands
                 if (query.Day is { } day)
                 {
                     conditionResult = Enum.IsDefined(day);
-                    conditionResult = !(conditionResult);
+                    conditionResult = !conditionResult;
                 }
                 else
                 {
@@ -530,7 +531,7 @@ public partial class QueryCommands
                     if (query.Parity is { } parity)
                     {
                         conditionResult = Enum.IsDefined(parity);
-                        conditionResult = !(conditionResult);
+                        conditionResult = !conditionResult;
                     }
                     else
                     {
@@ -558,8 +559,9 @@ public partial class QueryCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            if (query.Room is { } room && !schedule.EnumerateWeeklyLessons()
-                .Any(x => x.Lesson.Room.Id == room))
+            if (query.Room is { } room
+                && !schedule.EnumerateWeeklyLessons()
+                    .Any(x => x.Lesson.Room.Id == room))
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -569,25 +571,24 @@ public partial class QueryCommands
 
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
             foreach (var lesson in schedule.Filter(FilterHelper.Builder()
-                .WithLatestPeriod(schedule))
+                             .WithLatestPeriod(schedule))
                          .EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
+
                 bool CalculateConditionResult2()
                 {
-                    if (query.Room is { } r)
+                    if (!(query.Room is { } r))
                     {
-                        if (lesson.Lesson.Room.Id != r)
-                        {
-                            return true;
-                        }
+                        return false;
+                    }
 
-                        return false;
-                    }
-                    else
+                    if (lesson.Lesson.Room.Id != r)
                     {
-                        return false;
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult2 = CalculateConditionResult2();
@@ -617,7 +618,7 @@ public partial class QueryCommands
                         if (query.Parity is { } p)
                         {
                             conditionResult2 = lesson.Date.Parity.IsMatch(p);
-                            conditionResult2 = !(conditionResult2);
+                            conditionResult2 = !conditionResult2;
                         }
                         else
                         {
@@ -648,6 +649,7 @@ public partial class QueryCommands
                 }
 
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
+
                 string CalculateStart()
                 {
                     string start = interval.Start.ToString("HH:mm");
@@ -655,28 +657,31 @@ public partial class QueryCommands
                 }
 
                 var item = new LessonResult(
-                                    lesson.Date.DayOfWeek.ToString(),
-                                    lesson.Date.Parity.ToString(),
-                                    lesson.Date.TimeSlot.Index + 1,
-                                    CalculateStart(),
-                                    interval.End.ToString("HH:mm"),
-                                    lesson.Lesson.Room.Id,
-                                    schedule.Get(lesson.Lesson.Course).FullName,
-                                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
-                                        .ToString())
-                                        .ToArray());
+                    lesson.Date.DayOfWeek.ToString(),
+                    lesson.Date.Parity.ToString(),
+                    lesson.Date.TimeSlot.Index + 1,
+                    CalculateStart(),
+                    interval.End.ToString("HH:mm"),
+                    lesson.Lesson.Room.Id,
+                    schedule.Get(lesson.Lesson.Course).FullName,
+                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
+                            .ToString())
+                        .ToArray());
                 lessons.Add(item);
-                global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+                var cliCommandContext = context;
                 string id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string status2 = "completed";
                 object item2 = item;
-                global::System.Action renderHuman2 = () =>
-                    {
-                        output.WriteHuman(
-                            $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
-                    };
+                Action renderHuman2 = () =>
+                {
+                    output.WriteHuman(
+                        $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
+                };
                 cliCommandContext.StreamItem(
-                    id, status2, item2, renderHuman: renderHuman2);
+                    id,
+                    status2,
+                    item2,
+                    renderHuman: renderHuman2);
                 streamed++;
             }
             return Finish(
@@ -688,7 +693,7 @@ public partial class QueryCommands
         {
             var failure = context.ClassifyInputFailure(error);
             IReadOnlyList<LessonResult> reportedLessons = lessons;
-            if (error is ArgumentException or ScheduleLib.Application.Config.AuthenticationRequiredException)
+            if (error is ArgumentException or Application.Config.AuthenticationRequiredException)
             {
                 reportedLessons = [];
             }
@@ -715,7 +720,7 @@ public partial class QueryCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                    var cliOutput = output;
                     string line = $"{status}: {streamed} lessons.";
                     cliOutput.WriteHuman(line);
                 },

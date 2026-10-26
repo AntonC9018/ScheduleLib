@@ -22,7 +22,10 @@ public static class ScheduleSerializer
         Stream output,
         CancellationToken cancellationToken)
     {
-        return JsonSerializer.SerializeAsync(output, model, SerializerOptions, cancellationToken);
+        return JsonSerializer.SerializeAsync(output,
+            model,
+            SerializerOptions,
+            cancellationToken);
     }
 
     public static async Task<SerializationModels.ScheduleModel> Deserialize(
@@ -85,6 +88,7 @@ public static class ScheduleSerializer
         options.WriteIndented = true;
         return options;
     }
+
     private static readonly JsonSerializerOptions SerializerOptions = CreateOptions();
 }
 
@@ -92,20 +96,15 @@ public static class SerializationModels
 {
     public abstract class LessonBaseModel
     {
-        [JsonRequired]
-        public ImmutableArray<GroupId> Groups { get; set; }
-        [JsonRequired]
-        public CourseId Course { get; set; }
-        [JsonRequired]
-        public ImmutableArray<TeacherId> Teachers { get; set; }
-        [JsonRequired]
-        public RoomId Room { get; set; }
-        [JsonRequired]
-        public LessonType Type { get; set; }
-        [JsonRequired]
-        public SubGroup SubGroup { get; set; }
-        [JsonRequired]
-        public Specialization Specialization { get; set; }
+        [JsonRequired] public ImmutableArray<GroupId> Groups { get; set; }
+        [JsonRequired] public CourseId Course { get; set; }
+        [JsonRequired] public ImmutableArray<TeacherId> Teachers { get; set; }
+        [JsonRequired] public RoomId Room { get; set; }
+        [JsonRequired] public LessonType Type { get; set; }
+        [JsonRequired] public SubGroup SubGroup { get; set; }
+
+        [JsonRequired] public Specialization Specialization { get; set; }
+
         // Not required: caches written before alternatives existed deserialize with All.
         public Alternative Alternative { get; set; }
 
@@ -121,11 +120,13 @@ public static class SerializationModels
             Alternative = common.Alternative;
         }
     }
+
     public sealed class OneTimeLessonModel : LessonBaseModel
     {
         public required DateOnly Date { get; set; }
         public required TimeSlot TimeSlot { get; set; }
     }
+
     public sealed class WeeklyLessonModel : LessonBaseModel
     {
         public required DayOfWeek DayOfWeek { get; set; }
@@ -174,29 +175,29 @@ public static class SerializationModels
     {
         var regularLessons = schedule.EnumerateWeeklyLessons()
             .Select(wl =>
-        {
-            var ret = new WeeklyLessonModel
             {
-                Parity = wl.Date.Parity,
-                DayOfWeek = wl.Date.DayOfWeek,
-                TimeSlot = wl.Date.TimeSlot,
-                Period = wl.Date.Period,
-            };
-            ret.SetCommon(wl.Lesson);
-            return ret;
-        })
+                var ret = new WeeklyLessonModel
+                {
+                    Parity = wl.Date.Parity,
+                    DayOfWeek = wl.Date.DayOfWeek,
+                    TimeSlot = wl.Date.TimeSlot,
+                    Period = wl.Date.Period,
+                };
+                ret.SetCommon(wl.Lesson);
+                return ret;
+            })
             .ToImmutableArray();
         var oneTimeLessons = schedule.EnumerateOneTimeLessons()
             .Select(ol =>
-        {
-            var ret = new OneTimeLessonModel
             {
-                Date = ol.Date.Date,
-                TimeSlot = ol.Date.TimeSlot,
-            };
-            ret.SetCommon(ol.Lesson);
-            return ret;
-        })
+                var ret = new OneTimeLessonModel
+                {
+                    Date = ol.Date.Date,
+                    TimeSlot = ol.Date.TimeSlot,
+                };
+                ret.SetCommon(ol.Lesson);
+                return ret;
+            })
             .ToImmutableArray();
 
         var groups = schedule.Groups.Select(g => new GroupModel

@@ -24,8 +24,8 @@ public static class ExcelRangeHelper
         {
             const uint base_ = 'Z' - 'A' + 1;
             uint uInt32 = remaining - 1;
-            uint uInt322 = (uInt32) % base_;
-            byte remainder = (byte) (uInt322);
+            uint uInt322 = uInt32 % base_;
+            byte remainder = (byte) uInt322;
             byte letter = (byte) ('A' + remainder);
             char ch = (char) letter;
             stack[stackPos] = ch;
@@ -99,7 +99,7 @@ public static class ExcelRangeHelper
         }
         else
         {
-            uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
+            uint rowIndex = row.Item.RowIndex?.Value ?? (uint) row.Index + 1;
             pos = new(Col: (uint) (cell.Index + 1), Row: rowIndex);
         }
         return pos;

@@ -12,7 +12,9 @@ public static class DictionaryHelper
         AddFunc<T> add)
     {
         var l = dict.GetAlternateLookup<ReadOnlySpan<char>>();
-        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(l, key, out bool exists);
+        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(l,
+            key,
+            out bool exists);
         if (exists)
         {
             return val!;
@@ -28,7 +30,9 @@ public static class DictionaryHelper
         Func<TKey, T> add)
         where TKey : notnull
     {
-        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, key, out bool exists);
+        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dict,
+            key,
+            out bool exists);
         if (exists)
         {
             return val!;
@@ -44,7 +48,9 @@ public static class DictionaryHelper
         TState state,
         Func<TState, T> add)
     {
-        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, key, out bool exists);
+        ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(dict,
+            key,
+            out bool exists);
         if (exists)
         {
             return val!;

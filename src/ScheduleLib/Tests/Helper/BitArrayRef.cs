@@ -44,9 +44,10 @@ public sealed class BitArrayRef
     {
         var bitArray = BitArray32.Empty(10);
         var arrRef = bitArray.PortionRef(offset: 2, len: 5);
-        global::UnsizedBitArray32 CalculateArray()
+
+        UnsizedBitArray32 CalculateArray()
         {
-            global::UnsizedBitArray32 array = UnsizedBitArray32.GetMask(3);
+            var array = UnsizedBitArray32.GetMask(3);
             return array;
         }
 

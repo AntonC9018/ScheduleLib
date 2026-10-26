@@ -38,7 +38,8 @@ public static partial class ScheduleBuilderHelper
             if (group.Specialization != Specialization.All
                 && group.Specialization != specialization)
             {
-                throw ConflictingSpecializationException.ForConflictingValues(first: group.Specialization.Value, second: specialization.Value);
+                throw ConflictingSpecializationException.ForConflictingValues(first: group.Specialization.Value,
+                    second: specialization.Value);
             }
             group.Specialization = specialization;
             group.SubGroup = SubGroup.All;
@@ -56,7 +57,9 @@ public static partial class ScheduleBuilderHelper
         out Specialization specialization)
     {
         return Specializations.TryResolveSpecialization(
-            label.Value, s.SpecializationRegistry, out specialization);
+            label.Value,
+            s.SpecializationRegistry,
+            out specialization);
     }
 
     /// <summary>
@@ -79,11 +82,15 @@ public static partial class ScheduleBuilderHelper
             var subGroup = lesson.Base.Group.SubGroup;
             if (subGroup == SpecialSubGroups.Beginners)
             {
-                AddSplits(beginnerSplits, lesson, course);
+                AddSplits(beginnerSplits,
+                    lesson,
+                    course);
             }
             else if (subGroup == SpecialSubGroups.NonBeginners)
             {
-                AddSplits(normalizedSplits, lesson, course);
+                AddSplits(normalizedSplits,
+                    lesson,
+                    course);
             }
         }
         if (beginnerSplits.Count == 0)
@@ -253,7 +260,9 @@ public static partial class ScheduleBuilderHelper
                     string groupName = GroupName(s, groupId);
                     int missing2 = expected;
                     int occurring2 = numbers[^1];
-                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(groupName, missing: missing2, occurring: occurring2);
+                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(groupName,
+                        missing: missing2,
+                        occurring: occurring2);
                 }
             }
         }

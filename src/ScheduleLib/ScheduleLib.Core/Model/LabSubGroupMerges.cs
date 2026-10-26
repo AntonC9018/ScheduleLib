@@ -4,11 +4,19 @@ using ScheduleLib.Helper;
 namespace ScheduleLib;
 
 public readonly record struct DetectedLabSubGroupMerge(
-    CourseId Course, GroupId Group, Specialization Specialization, Alternative Alternative,
-    SubGroup SurvivingSubGroup, PeriodId EvidencePeriod);
+    CourseId Course,
+    GroupId Group,
+    Specialization Specialization,
+    Alternative Alternative,
+    SubGroup SurvivingSubGroup,
+    PeriodId EvidencePeriod);
 
 public readonly record struct LabSubGroupMergeDiagnostic(
-    CourseId Course, GroupId Group, Specialization Specialization, Alternative Alternative, string Reason);
+    CourseId Course,
+    GroupId Group,
+    Specialization Specialization,
+    Alternative Alternative,
+    string Reason);
 
 /// <summary>
 /// Derives a semester-wide whole-group audience from a newer timetable replacing
@@ -16,8 +24,11 @@ public readonly record struct LabSubGroupMergeDiagnostic(
 /// </summary>
 public static class LabSubGroupMerges
 {
-    private readonly record struct Key(CourseId Course, GroupId Group,
-        Specialization Specialization, Alternative Alternative);
+    private readonly record struct Key(
+        CourseId Course,
+        GroupId Group,
+        Specialization Specialization,
+        Alternative Alternative);
 
     public static Schedule Project(Schedule source, bool enabled)
     {
@@ -29,7 +40,7 @@ public static class LabSubGroupMerges
         else
         {
             conditionResult = source.AutomaticLabSubGroupMerges.IsEmpty;
-            conditionResult = !(conditionResult);
+            conditionResult = !conditionResult;
         }
 
         if (conditionResult)
@@ -44,8 +55,24 @@ public static class LabSubGroupMerges
         var labs = source.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Type == LessonType.Lab)
             .ToArray();
-        var candidates = labs.Where(x => { if (!(x.Lesson.Groups.IsSingleGroup)) { return false; } if (!(!x.Lesson.Groups.IsEmpty)) { return false; } return true; })
-            .GroupBy(x => new Key(x.Lesson.Course, x.Lesson.Group, x.Lesson.Specialization, x.Lesson.Alternative));
+        var candidates = labs.Where(x =>
+            {
+                if (!x.Lesson.Groups.IsSingleGroup)
+                {
+                    return false;
+                }
+
+                if (!x.Lesson.Groups.IsEmpty)
+                {
+                    return true;
+                }
+
+                return false;
+            })
+            .GroupBy(x => new Key(x.Lesson.Course,
+                x.Lesson.Group,
+                x.Lesson.Specialization,
+                x.Lesson.Alternative));
 
         foreach (var candidate in candidates)
         {
@@ -58,8 +85,8 @@ public static class LabSubGroupMerges
             }
 
             var applicable = source.EnumerateWeeklyLessons()
-                            .Where(x => x.Lesson.Groups.Contains(key.Group) && x.Date.Period.IsSpecified)
-                            .Select(x => x.Date.Period)
+                .Where(x => x.Lesson.Groups.Contains(key.Group) && x.Date.Period.IsSpecified)
+                .Select(x => x.Date.Period)
                 .Distinct()
                 .OrderBy(x => source.Get(x).Start)
                 .ToArray();
@@ -68,49 +95,73 @@ public static class LabSubGroupMerges
                 Diagnose("At least two dated schedule periods are required.");
                 continue;
             }
-            if (candidate.Any(x => { bool CalculateConditionResult() { if (x.Date.Period.IsUnspecified) { if (IsNumeric(x.Lesson.SubGroup)) { return true; } else { if (x.Lesson.SubGroup == SubGroup.All) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+            if (candidate.Any(x =>
+                {
+                    bool CalculateConditionResult()
+                    {
+                        if (!x.Date.Period.IsUnspecified)
+                        {
+                            return false;
+                        }
+
+                        if (IsNumeric(x.Lesson.SubGroup))
+                        {
+                            return true;
+                        }
+
+                        if (x.Lesson.SubGroup == SubGroup.All)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    bool conditionResult = CalculateConditionResult();
+                    return conditionResult;
+                })
                 || applicable.Zip(applicable.Skip(1))
                     .Any(pair =>
-                    source.Get(pair.First).End != source.Get(pair.Second).Start
-                    || source.Get(pair.First).Start >= source.Get(pair.Second).Start))
+                        source.Get(pair.First).End != source.Get(pair.Second).Start
+                        || source.Get(pair.First).Start >= source.Get(pair.Second).Start))
             {
                 Diagnose("Period evidence is undated, overlapping, or incomplete.");
                 continue;
             }
             if (labs.Any(x =>
-            {
-                bool CheckCondition()
                 {
-                    if (!(!x.Lesson.Groups.IsSingleGroup))
+                    bool CheckCondition()
                     {
+                        if (x.Lesson.Groups.IsSingleGroup)
+                        {
+                            return false;
+                        }
+
+                        if (!x.Lesson.Groups.Contains(key.Group))
+                        {
+                            return false;
+                        }
+
+                        if (!(x.Lesson.Course == key.Course))
+                        {
+                            return false;
+                        }
+
+                        if (!(x.Lesson.Specialization == key.Specialization))
+                        {
+                            return false;
+                        }
+
+                        if (x.Lesson.Alternative == key.Alternative)
+                        {
+                            return true;
+                        }
+
                         return false;
                     }
 
-                    if (!(x.Lesson.Groups.Contains(key.Group)))
-                    {
-                        return false;
-                    }
-
-                    if (!(x.Lesson.Course == key.Course))
-                    {
-                        return false;
-                    }
-
-                    if (!(x.Lesson.Specialization == key.Specialization))
-                    {
-                        return false;
-                    }
-
-                    if (!(x.Lesson.Alternative == key.Alternative))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }
-
-                return CheckCondition();
-            }))
+                    return CheckCondition();
+                }))
             {
                 Diagnose("Shared lab lessons require separate evidence for each parent group.");
                 continue;
@@ -139,21 +190,20 @@ public static class LabSubGroupMerges
 
                 continue;
             }
+
             bool CalculateConditionResult2()
             {
-                if (labels.Length == 0)
+                if (labels.Length != 0)
                 {
-                    if (whole.Length == 0)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (whole.Length == 0)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult2 = CalculateConditionResult2();
@@ -164,21 +214,20 @@ public static class LabSubGroupMerges
                 Diagnose("The latest group period has no replacement labs for this course partition.");
                 continue;
             }
+
             bool CalculateConditionResult3()
             {
-                if (labels.Length == 1)
+                if (labels.Length != 1)
                 {
-                    if (whole.Length != 0)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (whole.Length != 0)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult3 = CalculateConditionResult3();
@@ -196,45 +245,66 @@ public static class LabSubGroupMerges
             var before = Array.Empty<WeeklyLessonAccessor>();
             var valid = true;
             foreach (var previous in applicable.Reverse()
-                .Skip(1))
+                         .Skip(1))
             {
-                var previousLabs = candidate.Where(x => { bool CalculateConditionResult() { if (x.Date.Period == previous) { if (IsNumeric(x.Lesson.SubGroup)) { return true; } else { if (x.Lesson.SubGroup == SubGroup.All) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+                var previousLabs = candidate.Where(x =>
+                    {
+                        bool CalculateConditionResult()
+                        {
+                            if (!(x.Date.Period == previous))
+                            {
+                                return false;
+                            }
+
+                            if (IsNumeric(x.Lesson.SubGroup))
+                            {
+                                return true;
+                            }
+
+                            if (x.Lesson.SubGroup == SubGroup.All)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        bool conditionResult = CalculateConditionResult();
+                        return conditionResult;
+                    })
                     .ToArray();
                 var previousLabels = previousLabs.Where(x => IsNumeric(x.Lesson.SubGroup))
                     .Select(x => x.Lesson.SubGroup)
                     .Distinct()
                     .ToArray();
                 if (previousLabels.Length >= 2)
-                { before = previousLabs; break; }
+                {
+                    before = previousLabs;
+                    break;
+                }
+
                 bool CalculateConditionResult5()
                 {
                     if (previousLabs.Length == 0)
                     {
                         return true;
                     }
-                    else
+                    if (labels.Length != 1)
                     {
-                        if (labels.Length == 1)
-                        {
-                            if (previousLabels.Length == 1)
-                            {
-                                if (previousLabels[0] != labels[0])
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            return false;
-                        }
+                        return false;
                     }
+
+                    if (previousLabels.Length != 1)
+                    {
+                        return false;
+                    }
+
+                    if (previousLabels[0] != labels[0])
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult5 = CalculateConditionResult5();
@@ -246,21 +316,20 @@ public static class LabSubGroupMerges
                     break;
                 }
             }
+
             bool CalculateConditionResult4()
             {
                 if (!valid)
                 {
                     return true;
                 }
-                else
-                {
-                    if (before.Length == 0)
-                    {
-                        return true;
-                    }
 
-                    return false;
+                if (before.Length == 0)
+                {
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult4 = CalculateConditionResult4();
@@ -278,8 +347,13 @@ public static class LabSubGroupMerges
             }
             var retained = labels.Length == 1 ? currentNumeric : whole;
             var survivor = labels.Length == 1 ? labels[0] : SubGroup.All;
-            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.DetectedLabSubGroupMerge>.Builder builder = merges;
-            global::ScheduleLib.DetectedLabSubGroupMerge item2 = new(key.Course, key.Group, key.Specialization, key.Alternative, survivor, latest);
+            var builder = merges;
+            DetectedLabSubGroupMerge item2 = new(key.Course,
+                key.Group,
+                key.Specialization,
+                key.Alternative,
+                survivor,
+                latest);
             builder.Add(item2);
             foreach (var old in candidate.Where(x => IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All))
             {
@@ -306,9 +380,13 @@ public static class LabSubGroupMerges
 
             void Diagnose(string reason)
             {
-                global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.LabSubGroupMergeDiagnostic>.Builder builder = diagnostics;
-                global::ScheduleLib.LabSubGroupMergeDiagnostic item = new(
-                    key.Course, key.Group, key.Specialization, key.Alternative, reason);
+                var builder = diagnostics;
+                LabSubGroupMergeDiagnostic item = new(
+                    key.Course,
+                    key.Group,
+                    key.Specialization,
+                    key.Alternative,
+                    reason);
                 builder.Add(item);
             }
         }

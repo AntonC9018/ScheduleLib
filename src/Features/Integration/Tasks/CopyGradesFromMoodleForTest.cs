@@ -52,6 +52,9 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         public required CancellationToken CancellationToken { get; init; }
     }
 
+    /// <summary>A grade form input field and the grade that will be submitted through it.</summary>
+    private readonly record struct GradeFormInput(IHtmlInputElement Element, int Grade);
+
     public async Task<RegistryGradePlan> Plan(PlanParams p)
     {
         var quiz = p.Quiz;
@@ -67,11 +70,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             var name = NameHelper.TryParseName(ref parser);
             if (name is null)
             {
-                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list =
+                var list =
                     notices;
                 string kind = "omitted";
                 string detail = $"Moodle name could not be parsed: {q.UserName}";
-                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item = new(Kind: kind, Detail: detail);
+                RegistryGradeNotice item = new(Kind: kind, Detail: detail);
                 list.Add(item);
                 continue;
             }
@@ -86,11 +89,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (q.Grade is not { } grade1)
             {
-                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list2 =
+                var list2 =
                     notices;
                 string kind2 = "omitted";
                 string detail2 = $"Moodle student has no grade: {q.UserName}";
-                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item2 = new(Kind: kind2, Detail: detail2);
+                RegistryGradeNotice item2 = new(Kind: kind2, Detail: detail2);
                 list2.Add(item2);
                 continue;
             }
@@ -115,21 +118,21 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (conditionResult2)
             {
-                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list3 =
+                var list3 =
                     notices;
                 string kind3 = "unsupported";
                 string detail3 = $"Moodle grade is not a finite supported number: {q.UserName}";
-                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item3 = new(Kind: kind3, Detail: detail3);
+                RegistryGradeNotice item3 = new(Kind: kind3, Detail: detail3);
                 list3.Add(item3);
                 continue;
             }
             if (gradeByName.ContainsKey(name))
             {
-                global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list4 =
+                var list4 =
                     notices;
                 string kind4 = "omitted";
                 string detail4 = $"Earlier attempt replaced by the last graded attempt: {name}";
-                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item4 = new(Kind: kind4, Detail: detail4);
+                RegistryGradeNotice item4 = new(Kind: kind4, Detail: detail4);
                 list4.Add(item4);
             }
 
@@ -166,9 +169,9 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         });
         if (courseId is null)
         {
-            global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list6 =
+            var list6 =
                 notices;
-            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item6 = new(Kind: "unsupported",
+            RegistryGradeNotice item6 = new(Kind: "unsupported",
                 Detail: "Moodle course name does not resolve in the configured schedule.");
             list6.Add(item6);
             return new(actions, notices);
@@ -191,15 +194,13 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     {
                         return true;
                     }
-                    else
-                    {
-                        if (group.Groups.Value.Count == 0)
-                        {
-                            return true;
-                        }
 
-                        return false;
+                    if (group.Groups.Value.Count == 0)
+                    {
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -207,11 +208,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                 if (conditionResult)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice>
+                    var
                         list7 = notices;
                     string kind5 = "unsupported";
                     string detail5 = $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}";
-                    global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item7 = new(Kind: kind5, Detail: detail5);
+                    RegistryGradeNotice item7 = new(Kind: kind5, Detail: detail5);
                     list7.Add(item7);
                     continue;
                 }
@@ -252,12 +253,12 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                         var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
                         var number = int.Parse(numberSpan);
-                        if (parsedPath.TestNumber != number)
+                        if (parsedPath.TestNumber == number)
                         {
-                            return false;
+                            return true;
                         }
 
-                        return true;
+                        return false;
                     });
                     var header = matching.FirstOrDefault();
                     return header;
@@ -266,11 +267,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 var testUrl = TestAnchor();
                 if (testUrl is null)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice>
+                    var
                         list8 = notices;
                     string kind6 = "unsupported";
                     string detail6 = $"Testarea {parsedPath.TestNumber} is missing for {group.EvaluationUri}";
-                    global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item8 = new(Kind: kind6, Detail: detail6);
+                    RegistryGradeNotice item8 = new(Kind: kind6, Detail: detail6);
                     list8.Add(item8);
                     continue;
                 }
@@ -281,7 +282,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 int gradeColumnIndex = FindColumnIndex("Nota");
 
                 var changes = new List<RegistryGradeChange>();
-                var inputs = new List<(IHtmlInputElement Input, int Grade)>();
+                var inputs = new List<GradeFormInput>();
                 for (int i = 1; i < table.Rows.Length; i++)
                 {
                     p.CancellationToken.ThrowIfCancellationRequested();
@@ -294,11 +295,10 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         // A two-part name otherwise lets the name parser consume exmatr as a patronymic.
                         if (registryName.EndsWith(" exmatr", StringComparison.Ordinal))
                         {
-                            global::System.Collections.Generic.List<
-                                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list9 = notices;
+                            var list9 = notices;
                             string kind7 = "omitted";
                             string detail7 = $"Expelled registry student: {registryName}";
-                            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item9 = new(Kind: kind7,
+                            RegistryGradeNotice item9 = new(Kind: kind7,
                                 Detail: detail7);
                             list9.Add(item9);
                             continue;
@@ -308,11 +308,10 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var parsedName = NameHelper.TryParseName(ref nameParser);
                         if (parsedName is null)
                         {
-                            global::System.Collections.Generic.List<
-                                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list10 = notices;
+                            var list10 = notices;
                             string kind8 = "unsupported";
                             string detail8 = $"Registry name could not be parsed: {registryName}";
-                            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item10 = new(Kind: kind8,
+                            RegistryGradeNotice item10 = new(Kind: kind8,
                                 Detail: detail8);
                             list10.Add(item10);
                             continue;
@@ -321,22 +320,20 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {
-                            global::System.Collections.Generic.List<
-                                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list11 = notices;
+                            var list11 = notices;
                             string kind9 = "omitted";
                             string detail9 = $"Expelled registry student: {name}";
-                            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item11 = new(Kind: kind9,
+                            RegistryGradeNotice item11 = new(Kind: kind9,
                                 Detail: detail9);
                             list11.Add(item11);
                             continue;
                         }
                         if (!nameParser.IsEmpty)
                         {
-                            global::System.Collections.Generic.List<
-                                global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list12 = notices;
+                            var list12 = notices;
                             string kind10 = "unsupported";
                             string detail10 = $"Registry name contains unsupported trailing text: {registryName}";
-                            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item12 = new(Kind: kind10,
+                            RegistryGradeNotice item12 = new(Kind: kind10,
                                 Detail: detail10);
                             list12.Add(item12);
                             continue;
@@ -345,11 +342,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                     if (!gradeByName.Remove(name, out float gradeInDb))
                     {
-                        global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice>
+                        var
                             list13 = notices;
                         string kind11 = "unmatched";
                         string detail11 = $"Registry student has no matching graded Moodle attempt: {name}";
-                        global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item13 = new(Kind: kind11,
+                        RegistryGradeNotice item13 = new(Kind: kind11,
                             Detail: detail11);
                         list13.Add(item13);
                         continue;
@@ -362,24 +359,24 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var gradeCell = row.Cells[gradeColumnIndex];
                         var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
                             ?? throw new InvalidOperationException("No input found in grade cell");
-                        global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeChange>
+                        var
                             list14 = changes;
-                        global::ScheduleLib.OnlineRegistry.RegistryGradeChange item14 = new(Student: name.ToString(),
+                        RegistryGradeChange item14 = new(Student: name.ToString(),
                             gradeInDb,
                             gradeRounded,
                             PreviousGrade: input.Value);
                         list14.Add(item14);
-                        inputs.Add((input, gradeRounded));
+                        inputs.Add(new(input, gradeRounded));
                     }
                 }
 
                 if (changes.Count == 0)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice>
+                    var
                         list15 = notices;
                     string kind12 = "omitted";
                     string detail12 = $"No mapped grades to submit for {testUrl.Href}";
-                    global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item15 = new(Kind: kind12, Detail: detail12);
+                    RegistryGradeNotice item15 = new(Kind: kind12, Detail: detail12);
                     list15.Add(item15);
                     continue;
                 }
@@ -397,7 +394,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             token.ThrowIfCancellationRequested();
                             foreach (var input in inputs)
                             {
-                                input.Input.Value =
+                                input.Element.Value =
                                     input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
                             }
 
@@ -430,20 +427,20 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
         if (actions.Count == 0)
         {
-            global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list16 =
+            var list16 =
                 notices;
-            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item16 = new(Kind: "unmatched",
+            RegistryGradeNotice item16 = new(Kind: "unmatched",
                 Detail: "No registry test forms with supported mapped grades were planned.");
             list16.Add(item16);
         }
 
         foreach (var (name, value) in gradeByName)
         {
-            global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.RegistryGradeNotice> list17 =
+            var list17 =
                 notices;
             string kind13 = "unmatched";
             string detail13 = $"Moodle student was not matched in registry: {name} ({value})";
-            global::ScheduleLib.OnlineRegistry.RegistryGradeNotice item17 = new(Kind: kind13, Detail: detail13);
+            RegistryGradeNotice item17 = new(Kind: kind13, Detail: detail13);
             list17.Add(item17);
         }
         return new(actions, notices);

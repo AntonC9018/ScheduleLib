@@ -5,6 +5,7 @@ public sealed class Remappings()
     public readonly TeacherLastNameRemappings TeacherLastNameRemappings = new();
     public readonly TeacherFullNameRemappings TeacherFullNameRemappings = new();
     public readonly SubGroupNameRemappings SubGroupNameRemappings = new();
+
     /// <summary>Explicit aliases between canonical group codes, without language suffixes.</summary>
     public readonly Dictionary<string, string> GroupNameRemappings = new(StringComparer.Ordinal);
 }
@@ -84,12 +85,13 @@ public sealed class SubGroupNameRemappings : Dictionary<string, string>
         {
             return null;
         }
-        var alt = this.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (alt.TryGetValue(mem, out var remapped))
+        var alt = GetAlternateLookup<ReadOnlySpan<char>>();
+        if (!alt.TryGetValue(mem, out var remapped))
         {
-            return new(remapped);
+            return null;
         }
-        return null;
+
+        return new(remapped);
     }
 }
 

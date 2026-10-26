@@ -7,7 +7,9 @@ namespace ScheduleLib.Application.Config;
 
 public sealed class LabTasksDatabaseConfig : INodeData<LabTasksDatabaseConfig>
 {
-    public static NodeDataKey<LabTasksDatabaseConfig> Key { get; } = NodeDataKey.Registry.Register<LabTasksDatabaseConfig>();
+    public static NodeDataKey<LabTasksDatabaseConfig> Key { get; } =
+        NodeDataKey.Registry.Register<LabTasksDatabaseConfig>();
+
     public List<LabTasksSource> Sources { get; set; } = new();
 
     [RegisterMethod]
@@ -21,7 +23,7 @@ public sealed class LabTasksDatabaseConfig : INodeData<LabTasksDatabaseConfig>
         services.AddKeyEqualityComparer((LabTask t) => t.Name);
 
         services.RegisterBasicOperationsAndMergers<LabTasksDatabaseConfig>();
-        services.AddConfigProvider(LabTasksDatabaseConfig.Key);
+        services.AddConfigProvider(Key);
     }
 }
 
@@ -29,6 +31,7 @@ public readonly record struct Option(Language? Language, string? Type = null)
 {
     public static Option Default => default;
 }
+
 public readonly record struct SetKey(string CourseName, Option Option);
 
 public abstract class LabTasksSource
@@ -60,10 +63,10 @@ public readonly record struct CourseLabTasksBuilder(
     LabTasksDatabaseConfig Config,
     string CourseName);
 
-
 public readonly ref struct OptionBuilder(ref Option value)
 {
     private readonly ref Option _value = ref value;
+
     public void Language(Language lang)
     {
         _value = _value with
@@ -92,6 +95,7 @@ public static class LabTasksBuilderExtensions
             configure(optBuilder);
             return new(builder, opt);
         }
+
         public CourseOptionLabTasksBuilder Default()
         {
             return builder.Option(x =>
@@ -100,6 +104,7 @@ public static class LabTasksBuilderExtensions
             });
         }
     }
+
     extension(CourseOptionLabTasksBuilder c)
     {
         public void AddSource(LabTasksSource source)
@@ -119,12 +124,14 @@ public static class LabTasksBuilderExtensions
             return c;
         }
     }
+
     extension(LabTasksDatabaseConfig c)
     {
         public CourseLabTasksBuilder Course(string name)
         {
             return new(c, name);
         }
+
         public CourseOptionLabTasksBuilder CourseDefault(string name)
         {
             return c.Course(name)

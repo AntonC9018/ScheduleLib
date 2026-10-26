@@ -44,13 +44,16 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TempDirectory();
         var result = await Export(temp.Path);
-        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: 0,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Equal(expected: "succeeded",
+            actual: result.GetProperty("status")
+                .GetString());
         var data = result.GetProperty("data");
-        Assert.Equal(expected: 127, actual: data.GetProperty("lessonCount")
-            .GetInt32());
+        Assert.Equal(expected: 127,
+            actual: data.GetProperty("lessonCount")
+                .GetInt32());
         Assert.Equal(
             expected: new[]
             {
@@ -61,8 +64,9 @@ public sealed class FreeRoomsTests
                 .EnumerateArray()
                 .Select(x => x.GetString())
                 .ToArray());
-        Assert.Equal(expected: temp.Path, actual: data.GetProperty("outputDirectory")
-            .GetString());
+        Assert.Equal(expected: temp.Path,
+            actual: data.GetProperty("outputDirectory")
+                .GetString());
         Assert.Equal(
             expected: new[]
             {
@@ -109,62 +113,66 @@ public sealed class FreeRoomsTests
                 },
                 actual: sheet.RowsUsed()
                     .Where(x => x.CellsUsed()
-                    .Count() == 1)
+                            .Count()
+                        == 1)
                     .Select(x => (Row: x.RowNumber(), Day: x.Cell(1)
                         .GetFormattedString()))
                     .ToArray());
-            Assert.Equal(expected: 53, actual: sheet.LastRowUsed()!
-                .RowNumber());
+            Assert.Equal(expected: 53,
+                actual: sheet.LastRowUsed()!
+                    .RowNumber());
             string[] expected2 = new[]
-                {
-                    "8:00-9:30",
-                    "9:45-11:15",
-                    "11:30-13:00",
-                    "13:15-14:45",
-                    "15:00-16:30",
-                    "16:45-18:15",
-                    "18:30-20:00",
-                };
-            global::ClosedXML.Excel.IXLColumn column = sheet.Column(1);
+            {
+                "8:00-9:30",
+                "9:45-11:15",
+                "11:30-13:00",
+                "13:15-14:45",
+                "15:00-16:30",
+                "16:45-18:15",
+                "18:30-20:00",
+            };
+            var column = sheet.Column(1);
             int firstRow2 = 2;
             int lastRow2 = 8;
-            global::ClosedXML.Excel.IXLCells cells = column.Cells(firstRow: firstRow2, lastRow: lastRow2);
-            global::System.Func<global::ClosedXML.Excel.IXLCell, string> selector = x => x.GetFormattedString();
-            global::System.Collections.Generic.IEnumerable<string> select = cells.Select(selector);
+            var cells = column.Cells(firstRow: firstRow2, lastRow: lastRow2);
+            Func<IXLCell, string> selector = x => x.GetFormattedString();
+            var select = cells.Select(selector);
             string[] actual2 = select.ToArray();
             Assert.Equal(
-                expected: expected2, actual: actual2);
+                expected: expected2,
+                actual: actual2);
         }
 
         var even = workbook.Worksheet("par");
         var odd = workbook.Worksheet("impar");
         string[] expected3 = new[]
-            {
-                "8:00-9:30",
-                "113/4",
-                "143/4",
-                "145/4",
-                "145a/4",
-                "213a/4",
-                "214/4",
-                "218/4",
-                "222/4",
-                "237/4",
-                "239/4",
-                "251/4",
-                "326/4",
-                "350/4",
-                "401/4",
-                "404/4",
-                "415/4",
-                "419/4",
-                "423/4",
-                "218/4a",
-                "219/4a",
-            };
+        {
+            "8:00-9:30",
+            "113/4",
+            "143/4",
+            "145/4",
+            "145a/4",
+            "213a/4",
+            "214/4",
+            "218/4",
+            "222/4",
+            "237/4",
+            "239/4",
+            "251/4",
+            "326/4",
+            "350/4",
+            "401/4",
+            "404/4",
+            "415/4",
+            "419/4",
+            "423/4",
+            "218/4a",
+            "219/4a",
+        };
         string[] actual3 = Row(even, 2);
         Assert.Equal(
-            expected: expected3, actual: actual3);
+            expected: expected3,
+            actual: actual3);
         string[] expected4 = Row(even, 2);
         string[] actual4 = Row(odd, 2);
         Assert.Equal(expected: expected4, actual: actual4);
@@ -221,29 +229,30 @@ public sealed class FreeRoomsTests
             },
             actual: Row(even, 24));
         string[] expected6 = new[]
-            {
-                "15:00-16:30",
-                "143/4",
-                "145a/4",
-                "213a/4",
-                "214/4",
-                "218/4",
-                "222/4",
-                "237/4",
-                "239/4",
-                "326/4",
-                "350/4",
-                "401/4",
-                "404/4",
-                "415/4",
-                "419/4",
-                "423/4",
-                "216a/4a",
-                "218/4a",
-            };
+        {
+            "15:00-16:30",
+            "143/4",
+            "145a/4",
+            "213a/4",
+            "214/4",
+            "218/4",
+            "222/4",
+            "237/4",
+            "239/4",
+            "326/4",
+            "350/4",
+            "401/4",
+            "404/4",
+            "415/4",
+            "419/4",
+            "423/4",
+            "216a/4a",
+            "218/4a",
+        };
         string[] actual6 = Row(odd, 24);
         Assert.Equal(
-            expected: expected6, actual: actual6);
+            expected: expected6,
+            actual: actual6);
 
         string CalculatePath()
         {
@@ -252,29 +261,37 @@ public sealed class FreeRoomsTests
         }
 
         using var manifest = JsonDocument.Parse(
-                    await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "export free-rooms", actual: manifest.RootElement.GetProperty("Command")
-            .GetString());
-        Assert.Equal(expected: "succeeded", actual: manifest.RootElement.GetProperty("Status")
-            .GetString());
+            await File.ReadAllTextAsync(CalculatePath()));
+        Assert.Equal(expected: "export free-rooms",
+            actual: manifest.RootElement.GetProperty("Command")
+                .GetString());
+        Assert.Equal(expected: "succeeded",
+            actual: manifest.RootElement.GetProperty("Status")
+                .GetString());
         Assert.Equal(
             expected: "free-rooms.xlsx",
             actual: manifest.RootElement.GetProperty("Artifacts")[0]
                 .GetProperty("Name")
                 .GetString());
-        Assert.Equal(expected: 64, actual: manifest.RootElement.GetProperty("Artifacts")[0]
-            .GetProperty("Sha256")
-            .GetString()!.Length);
+        Assert.Equal(expected: 64,
+            actual: manifest.RootElement.GetProperty("Artifacts")[0]
+                .GetProperty("Sha256")
+                .GetString()!.Length);
     }
 
     [Fact]
     public async Task DefaultOutputLivesUnderTheProjectRoot()
     {
         using var temp = new TempDirectory();
-        var result = await Export(null, settings: new() { Project = temp.Path });
+        var result = await Export(null,
+            settings: new()
+            {
+                Project = temp.Path,
+            });
         var directory = result.GetProperty("data")
             .GetProperty("outputDirectory")
             .GetString()!;
+
         string CalculateExpected()
         {
             string expected2 = Path.Combine(temp.Path, "output");
@@ -311,39 +328,43 @@ public sealed class FreeRoomsTests
             "2025_sem2",
             "zi");
         Directory.CreateDirectory(zi);
+
         string CalculateFile()
         {
             string file = Path.Combine(
-                                   AppContext.BaseDirectory,
-                                   "fixtures",
-                                   "2025_sem2",
-                                   "zi",
-                                   "master.xlsx");
+                AppContext.BaseDirectory,
+                "fixtures",
+                "2025_sem2",
+                "zi",
+                "master.xlsx");
             return file;
         }
 
         using (var workbook = new XLWorkbook(
-                           CalculateFile()))
+                   CalculateFile()))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
                 .Delete();
-            global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
+            var xLWorkbook = workbook;
             string file3 = Path.Combine(zi, "master.xlsx");
             xLWorkbook.SaveAs(file3);
         }
         using var output = new TempDirectory();
         var result = await Export(outputDirectory: output.Path, dataDirectory: source.Path);
-        Assert.Equal(expected: 0, actual: result.GetProperty("exitCode")
-            .GetInt32());
-        Assert.Equal(expected: 0, actual: result.GetProperty("data")
-            .GetProperty("lessonCount")
-            .GetInt32());
+        Assert.Equal(expected: 0,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
+        Assert.Equal(expected: 0,
+            actual: result.GetProperty("data")
+                .GetProperty("lessonCount")
+                .GetInt32());
         Assert.Contains(
             "The schedule contains no weekly lessons; the workbook has no day rows.",
             result.GetProperty("warnings")
                 .EnumerateArray()
                 .Select(x => x.GetString() ?? ""));
+
         string CalculateFile2()
         {
             string file2 = Path.Combine(output.Path, "free-rooms.xlsx");
@@ -366,22 +387,27 @@ public sealed class FreeRoomsTests
     public async Task CancelledExportReturns130BeforeLoading()
     {
         using var temp = new TempDirectory();
-        global::System.Threading.CancellationToken CalculateCancellationToken()
+
+        CancellationToken CalculateCancellationToken()
         {
-            global::System.Threading.CancellationToken cancellationToken = new CancellationToken(canceled: true);
+            var cancellationToken = new CancellationToken(canceled: true);
             return cancellationToken;
         }
 
         Assert.Equal(
-                    expected: 130,
-                    actual: await new FixtureExport().FreeRooms(
-                        new(),
-                        new() { Directory = temp.Path },
-                        new(),
-                        CalculateCancellationToken()));
-        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+            expected: 130,
+            actual: await new FixtureExport().FreeRooms(
+                new(),
+                new()
+                {
+                    Directory = temp.Path,
+                },
+                new(),
+                CalculateCancellationToken()));
+
+        IEnumerable<string> CalculateCollection()
         {
-            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFileSystemEntries(temp.Path);
+            var collection = Directory.EnumerateFileSystemEntries(temp.Path);
             return collection;
         }
 
@@ -403,26 +429,31 @@ public sealed class FreeRoomsTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid()
-                            .ToString()),
+                        DataDirectory = Path.Combine(Path.GetTempPath(),
+                            Guid.NewGuid()
+                                .ToString()),
                     },
-                    new() { Directory = temp.Path },
-                    new() { Json = true }));
+                    new()
+                    {
+                        Directory = temp.Path,
+                    },
+                    new()
+                    {
+                        Json = true,
+                    }));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 3, actual: result.RootElement.GetProperty("exitCode")
-                .GetInt32());
-            Assert.Equal(expected: "failed", actual: result.RootElement.GetProperty("status")
-                .GetString());
+            Assert.Equal(expected: 3,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+            Assert.Equal(expected: "failed",
+                actual: result.RootElement.GetProperty("status")
+                    .GetString());
+
             bool CalculateCondition()
             {
                 string path = Path.Combine(temp.Path, "schedulelib-manifest.json");
                 bool condition = File.Exists(path);
-                if (condition)
-                {
-                    return true;
-                }
-
-                return false;
+                return condition;
             }
 
             Assert.False(CalculateCondition());
@@ -436,8 +467,9 @@ public sealed class FreeRoomsTests
     private static string[] Row(IXLWorksheet sheet, int row)
     {
         return sheet.Row(row)
-            .Cells(firstColumn: 1, lastColumn: sheet.LastColumnUsed()!
-                .ColumnNumber())
+            .Cells(firstColumn: 1,
+                lastColumn: sheet.LastColumnUsed()!
+                    .ColumnNumber())
             .Select(x => x.GetFormattedString())
             .Where(x => x.Length != 0)
             .ToArray();
@@ -459,16 +491,24 @@ public sealed class FreeRoomsTests
                     NoCache = true,
                     DataDirectory = dataDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 },
-                new() { Directory = outputDirectory },
-                new() { Json = true },
+                new()
+                {
+                    Directory = outputDirectory,
+                },
+                new()
+                {
+                    Json = true,
+                },
                 CancellationToken.None,
                 settings);
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1, actual: document.RootElement.GetProperty("schemaVersion")
-                .GetInt32());
-            Assert.Equal(expected: "export free-rooms", actual: document.RootElement.GetProperty("command")
-                .GetString());
+            Assert.Equal(expected: 1,
+                actual: document.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(expected: "export free-rooms",
+                actual: document.RootElement.GetProperty("command")
+                    .GetString());
             return document.RootElement.Clone();
         }
         finally
@@ -498,7 +538,7 @@ public sealed class FreeRoomsTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>

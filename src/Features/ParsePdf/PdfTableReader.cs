@@ -7,6 +7,9 @@ namespace ScheduleLib.Import.Pdf;
 
 public static class PdfTableReader
 {
+    /// <summary>The point where a vertical and a horizontal border cross.</summary>
+    private readonly record struct BorderIntersection(double X, double Y);
+
     private const double Tolerance = 3;
 
     public static IReadOnlyList<PdfScheduleTable> Read(Stream input)
@@ -28,7 +31,7 @@ public static class PdfTableReader
                 {
                     if (Math.Abs(line.From.X - line.To.X) < 1)
                     {
-                        global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfBorder> list = raw;
+                        var list = raw;
                         bool vertical = true;
                         double position = line.From.X;
                         double doubleValue = page.Height;
@@ -37,7 +40,7 @@ public static class PdfTableReader
                         double doubleValue2 = page.Height;
                         double min = Math.Min(line.From.Y, line.To.Y);
                         double end = doubleValue2 - min;
-                        global::ScheduleLib.Import.Pdf.PdfBorder item = new(vertical,
+                        PdfBorder item = new(vertical,
                             Position: position,
                             Start: start,
                             End: end);
@@ -45,12 +48,12 @@ public static class PdfTableReader
                     }
                     else if (Math.Abs(line.From.Y - line.To.Y) < 1)
                     {
-                        global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfBorder> list2 = raw;
+                        var list2 = raw;
                         bool vertical2 = false;
                         double position2 = page.Height - line.From.Y;
                         double start2 = Math.Min(line.From.X, line.To.X);
                         double end2 = Math.Max(line.From.X, line.To.X);
-                        global::ScheduleLib.Import.Pdf.PdfBorder item2 = new(vertical2,
+                        PdfBorder item2 = new(vertical2,
                             Position: position2,
                             Start: start2,
                             End: end2);
@@ -61,22 +64,22 @@ public static class PdfTableReader
         }
 
         var borders = JoinBorders(raw.Where(b => b.End - b.Start >= 3));
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfBox> cells =
+        var cells =
             FindCells(borders);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfBox> cells2 = cells;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfBorder> borders2 = borders;
+        IEnumerable<PdfBox> cells2 = cells;
+        var borders2 = borders;
         var boxes = RecoverPartialBorders(cells2, borders2);
         if (boxes.Count == 0)
         {
             throw new PdfScheduleTableNotFoundException(page.Number);
         }
 
-        global::ScheduleLib.Import.Pdf.PdfTableCell ProjectValue(global::ScheduleLib.Import.Pdf.PdfBox b)
+        PdfTableCell ProjectValue(PdfBox b)
         {
-            global::ScheduleLib.Import.Pdf.PdfBox operationValue = b;
+            var operationValue = b;
             string operationValue2 = ReadText(page, b);
             string operationValue3 = operationValue2;
-            global::ScheduleLib.Import.Pdf.PdfTableCell operationValue4 =
+            var operationValue4 =
                 new PdfTableCell(operationValue, operationValue3);
             return operationValue4;
         }
@@ -149,7 +152,7 @@ public static class PdfTableReader
                           && v.End >= h.Position - Tolerance
                           && h.Start <= v.Position + Tolerance
                           && h.End >= v.Position - Tolerance
-                      select (X: v.Position, Y: h.Position)).Distinct()
+                      select new BorderIntersection(X: v.Position, Y: h.Position)).Distinct()
             .OrderBy(p => p.X)
             .ThenBy(p => p.Y)
             .ToArray();
@@ -205,8 +208,8 @@ public static class PdfTableReader
                         continue;
                     }
 
-                    global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfBox> list = result;
-                    global::ScheduleLib.Import.Pdf.PdfBox item = new(Left: point.X,
+                    var list = result;
+                    PdfBox item = new(Left: point.X,
                         Top: point.Y,
                         Right: end.X,
                         Bottom: bottom.Y);
@@ -231,7 +234,7 @@ public static class PdfTableReader
     {
         return borders.Any(b =>
         {
-            if (!(b.Position == position))
+            if (b.Position != position)
             {
                 return false;
             }
@@ -239,11 +242,13 @@ public static class PdfTableReader
             {
                 return false;
             }
-            if (!(b.End >= end - Tolerance))
+
+            if (b.End >= end - Tolerance)
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         });
     }
 
@@ -256,7 +261,7 @@ public static class PdfTableReader
         {
             var internalBorders = borders.Where(b =>
                 {
-                    if (!(b.Vertical))
+                    if (!b.Vertical)
                     {
                         return false;
                     }
@@ -268,11 +273,13 @@ public static class PdfTableReader
                     {
                         return false;
                     }
-                    if (!(Math.Min(b.End, box.Bottom) - Math.Max(b.Start, box.Top) > 5))
+
+                    if (Math.Min(b.End, box.Bottom) - Math.Max(b.Start, box.Top) > 5)
                     {
-                        return false;
+                        return true;
                     }
-                    return true;
+
+                    return false;
                 })
                 .ToArray();
             if (internalBorders.Length == 0)
@@ -296,7 +303,7 @@ public static class PdfTableReader
                 double[] value3 = ys;
                 int int323 = row - 1;
                 double doubleValue = value3[int323] + ys[row];
-                var middle = (doubleValue) / 2;
+                var middle = doubleValue / 2;
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
                     .Select(b => b.Position)
                     .Append(box.Left)
@@ -306,7 +313,7 @@ public static class PdfTableReader
                     .ToArray();
                 for (int column = 1; column < xs.Length; column++)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfBox> list = result;
+                    var list = result;
                     double[] value = xs;
                     int int32 = column - 1;
                     double left = value[int32];
@@ -315,7 +322,7 @@ public static class PdfTableReader
                     double top = value2[int322];
                     double right = xs[column];
                     double bottom = ys[row];
-                    global::ScheduleLib.Import.Pdf.PdfBox item = new(Left: left,
+                    PdfBox item = new(Left: left,
                         Top: top,
                         Right: right,
                         Bottom: bottom);
@@ -334,7 +341,7 @@ public static class PdfTableReader
                 double CalculateX()
                 {
                     double doubleValue = l.BoundingBox.Left + l.BoundingBox.Right;
-                    double x2 = (doubleValue) / 2;
+                    double x2 = doubleValue / 2;
                     return x2;
                 }
 
@@ -342,7 +349,7 @@ public static class PdfTableReader
                 {
                     double doubleValue2 = page.Height;
                     double doubleValue3 = l.BoundingBox.Top + l.BoundingBox.Bottom;
-                    double doubleValue4 = (doubleValue3) / 2;
+                    double doubleValue4 = doubleValue3 / 2;
                     double y2 = doubleValue2 - doubleValue4;
                     return y2;
                 }

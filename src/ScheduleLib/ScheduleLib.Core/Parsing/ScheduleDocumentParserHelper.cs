@@ -8,9 +8,12 @@ namespace ScheduleLib.Parsing;
 
 public static class ScheduleDocumentParserHelper
 {
+    /// <summary>A date interval from a schedule document.</summary>
+    public readonly record struct DateInterval(DateTime Start, DateTime End);
+
     extension(ref SequenceReader reader)
     {
-        public (DateTime Start, DateTime End) ParseDateInterval(string format)
+        public DateInterval ParseDateInterval(string format)
         {
             reader.SkipWhitespace();
             var bparser = reader.BufferedView();
@@ -34,7 +37,7 @@ public static class ScheduleDocumentParserHelper
                 throw new NotSupportedException("The start date must be before the end date");
             }
 
-            return (startDate, endDate);
+            return new(Start: startDate, End: endDate);
 
             DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
             {
@@ -127,7 +130,9 @@ public static class ScheduleDocumentParserHelper
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            bool parsed = DateOnly.TryParseExact(s: dateSpan, format: format, out var date);
+            bool parsed = DateOnly.TryParseExact(s: dateSpan,
+                format: format,
+                out var date);
             if (!parsed)
             {
                 throw InvalidScheduleDocumentException.ForDateNotMatchingFormat();
@@ -136,7 +141,6 @@ public static class ScheduleDocumentParserHelper
             reader.MoveTo(bparser.Position);
             return date;
         }
-
     }
 
     private struct SkipDate : IShouldSkip
@@ -147,10 +151,12 @@ public static class ScheduleDocumentParserHelper
             {
                 return true;
             }
+
             if (char.IsNumber(ch))
             {
                 return true;
             }
+
             return false;
         }
     }

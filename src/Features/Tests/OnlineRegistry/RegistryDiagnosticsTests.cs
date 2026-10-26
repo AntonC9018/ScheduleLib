@@ -9,23 +9,66 @@ namespace ScheduleLib.Tests.OnlineRegistry;
 public sealed class RegistryDiagnosticsTests
 {
     [Theory]
-    [InlineData(true, "ru", DayOfWeek.Monday, "same", true)]
-    [InlineData(false, "ru", DayOfWeek.Monday, "same", false)]
-    [InlineData(true, "ro", DayOfWeek.Monday, "same", false)]
-    [InlineData(true, "ru", DayOfWeek.Tuesday, "same", false)]
-    [InlineData(true, "ru", DayOfWeek.Monday, "teacher", false)]
-    [InlineData(true, "ru", DayOfWeek.Monday, "room", false)]
-    [InlineData(true, "ru", DayOfWeek.Monday, "lab", false)]
-    [InlineData(true, "ru", DayOfWeek.Monday, "intake", false)]
-    [InlineData(true, "ru", DayOfWeek.Monday, "ambiguous", false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "same",
+        true)]
+    [InlineData(false,
+        "ru",
+        DayOfWeek.Monday,
+        "same",
+        false)]
+    [InlineData(true,
+        "ro",
+        DayOfWeek.Monday,
+        "same",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Tuesday,
+        "same",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "teacher",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "room",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "lab",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "intake",
+        false)]
+    [InlineData(true,
+        "ru",
+        DayOfWeek.Monday,
+        "ambiguous",
+        false)]
     public void SharedEnglishLectureUsesTheParentLanguageRegistryDestination(
-        bool enableRule, string subgroup, DayOfWeek day, string difference, bool covered)
+        bool enableRule,
+        string subgroup,
+        DayOfWeek day,
+        string difference,
+        bool covered)
     {
         var builder = new ScheduleBuilder();
-        builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        builder.GroupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var course = builder.Course("Synthetic course");
         var parent = builder.Group("DJ2602(ru)");
-        global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder = builder;
+        var scheduleBuilder = builder;
         string fullName;
         if (difference == "intake")
         {
@@ -57,11 +100,11 @@ public sealed class RegistryDiagnosticsTests
         {
             lesson.Course(course);
             lesson.Group(english);
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
-            global::ScheduleLib.SubGroup subGroup = new(subgroup);
+            var lessonBuilder = lesson;
+            SubGroup subGroup = new(subgroup);
             lessonBuilder.SubGroup(subGroup);
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder3 = lesson;
-            global::ScheduleLib.LessonType type;
+            var lessonBuilder3 = lesson;
+            LessonType type;
             if (difference == "lab")
             {
                 type = LessonType.Lab;
@@ -74,8 +117,8 @@ public sealed class RegistryDiagnosticsTests
             lessonBuilder3.Type(type);
             lesson.DayOfWeek(day);
             lesson.TimeSlot(TimeSlot.First);
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder4 = lesson;
-            global::ScheduleLib.Builders.TeacherBuilder teacher2;
+            var lessonBuilder4 = lesson;
+            TeacherBuilder teacher2;
             if (difference == "teacher")
             {
                 teacher2 = otherTeacher;
@@ -85,12 +128,12 @@ public sealed class RegistryDiagnosticsTests
                 teacher2 = teacher;
             }
 
-            global::ScheduleLib.TeacherId teacher3 = teacher2;
+            TeacherId teacher3 = teacher2;
             lessonBuilder4.Teacher(teacher3);
             if (difference == "room")
             {
-                global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
-                global::ScheduleLib.RoomId room = new("222/4");
+                var lessonBuilder2 = lesson;
+                RoomId room = new("222/4");
                 lessonBuilder2.Room(room);
             }
         });
@@ -98,7 +141,7 @@ public sealed class RegistryDiagnosticsTests
         {
             lesson.Course(course);
             lesson.Group(english);
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
+            var lessonBuilder = lesson;
             string value;
             if (subgroup == "ru")
             {
@@ -109,27 +152,43 @@ public sealed class RegistryDiagnosticsTests
                 value = "ru";
             }
 
-            global::ScheduleLib.SubGroup subGroup = new(value);
+            SubGroup subGroup = new(value);
             lessonBuilder.SubGroup(subGroup);
             lesson.Type(LessonType.Curs);
             lesson.DayOfWeek(DayOfWeek.Friday);
             lesson.TimeSlot(TimeSlot.First);
         });
         var diagnostics = new RegistrySyncDiagnostics();
-        global::ScheduleLib.SubGroup subGroup2 = new SubGroup(subgroup);
-        global::ScheduleLib.Specialization specialization = Specialization.All;
+        var subGroup2 = new SubGroup(subgroup);
+        var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup2, specialization);
         var schedule = builder.Build();
         var coverage = new RegistryTargetCoverage(schedule,
-            [new(course, parent, GroupPartitionKey.All), new(course, english, partition)], diagnostics);
-        coverage.CoverLesson(new WeeklyLessonId(0).AsAny(), parent, GroupPartitionKey.All,
-            enableRule ? [new() {
-            Faculty = "DJ",
-            SubGroup = "eng",
-            Language = Language.En,
-                MatchByLanguage = true,
-                AllowParentGroup = true
-                }] : []);
+            [
+                new(course,
+                    parent,
+                    GroupPartitionKey.All),
+                new(course,
+                    english,
+                    partition),
+            ],
+            diagnostics);
+        coverage.CoverLesson(new WeeklyLessonId(0).AsAny(),
+            parent,
+            GroupPartitionKey.All,
+            enableRule
+                ?
+                [
+                    new()
+                    {
+                        Faculty = "DJ",
+                        SubGroup = "eng",
+                        Language = Language.En,
+                        MatchByLanguage = true,
+                        AllowParentGroup = true,
+                    },
+                ]
+                : []);
         coverage.ReportMissingGroups(course);
         if (covered)
         {
@@ -137,9 +196,9 @@ public sealed class RegistryDiagnosticsTests
         }
         else
         {
-            global::ScheduleLib.Group get = schedule.Get(english);
+            var get = schedule.Get(english);
             string expected2 = get.Name;
-            global::ScheduleLib.OnlineRegistry.RegistrySyncDiagnostic single = Assert.Single(diagnostics.Items);
+            var single = Assert.Single(diagnostics.Items);
             string? actual2 = single.Group;
             Assert.Equal(expected: expected2, actual: actual2);
         }
@@ -165,10 +224,20 @@ public sealed class RegistryDiagnosticsTests
         var diagnostics = new RegistrySyncDiagnostics();
         var partition = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
         var coverage = new RegistryTargetCoverage(builder.Build(),
-            [new(course, first, partition), new(course, second, partition)], diagnostics);
+            [
+                new(course,
+                    first,
+                    partition),
+                new(course,
+                    second,
+                    partition),
+            ],
+            diagnostics);
         coverage.ReportMissingCourses(new HashSet<CourseId> { course });
-        global::ScheduleLib.OnlineRegistry.RegistryTargetCoverage registryTargetCoverage = coverage;
-        global::ScheduleLib.OnlineRegistry.RegistryExpectedTarget target = new(course, first, partition);
+        var registryTargetCoverage = coverage;
+        RegistryExpectedTarget target = new(course,
+            first,
+            partition);
         registryTargetCoverage.Cover(target);
         coverage.ReportMissingGroups(course);
         var gap = Assert.Single(diagnostics.Items);
@@ -186,7 +255,13 @@ public sealed class RegistryDiagnosticsTests
         var course = builder.Course("Synthetic course");
         var parent = builder.Group("IA2501");
         var diagnostics = new RegistrySyncDiagnostics();
-        var coverage = new RegistryTargetCoverage(builder.Build(), [new(course, parent, GroupPartitionKey.All)], diagnostics);
+        var coverage = new RegistryTargetCoverage(builder.Build(),
+            [
+                new(course,
+                    parent,
+                    GroupPartitionKey.All),
+            ],
+            diagnostics);
         coverage.ReportMissingCourses(new HashSet<CourseId>());
         coverage.ReportMissingGroups(course);
         var errors = new RegistryErrorLogger(new CapturingLogger(), diagnostics);
@@ -204,10 +279,15 @@ public sealed class RegistryDiagnosticsTests
         public List<string> Messages { get; } = [];
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel logLevel) => true;
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            global::System.Collections.Generic.List<string> list = Messages;
+            var list = Messages;
             string item = formatter(state, exception);
             list.Add(item);
         }

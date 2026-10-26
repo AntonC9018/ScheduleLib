@@ -31,18 +31,18 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
         //     callerId,
         //     x => PropertyChanged?.Invoke(this, x),
         //     new(nameof(Count))));
-        global::System.Collections.Specialized.NotifyCollectionChangedEventArgs CalculateArg()
+        NotifyCollectionChangedEventArgs CalculateArg()
         {
-            global::System.Collections.Specialized.NotifyCollectionChangedEventArgs arg = new(NotifyCollectionChangedAction.Reset);
+            NotifyCollectionChangedEventArgs arg = new(NotifyCollectionChangedAction.Reset);
             return arg;
         }
 
         var iDispatcher = _dispatcher;
         PostArgs<NotifyCollectionChangedEventArgs> args = new(
-                    callerId,
-                    x => CollectionChanged?.Invoke(this, x),
-                    CalculateArg());
-        iDispatcher.Post<NotifyCollectionChangedEventArgs>(args);
+            callerId,
+            x => CollectionChanged?.Invoke(this, x),
+            CalculateArg());
+        iDispatcher.Post(args);
     }
 
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
@@ -65,6 +65,7 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
     bool ICollection.IsSynchronized => false;
     object ICollection.SyncRoot => this;
     public bool IsReadOnly => false;
+
     object? IList.this[int index]
     {
         get => this[index];

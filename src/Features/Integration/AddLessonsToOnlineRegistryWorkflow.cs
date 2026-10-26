@@ -24,7 +24,9 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
     // Maybe make a builder, make it possible to override default stuff,
     // then execute from builder (so it's not forced for the current teacher only).
     // Do the same thing for
-    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(IRegistrySyncNavigator navigator, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(
+        IRegistrySyncNavigator navigator,
+        CancellationToken cancellationToken)
     {
         return await _handler.Plan(new()
         {
@@ -35,11 +37,15 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
             LessonTopics = await _topicsLoader.Load(cancellationToken),
             Semester = _studyYear.Value.Semester,
             LessonFilter = _lessonFilterProvider.Get(),
-        }, cancellationToken, explicitApply: true);
+        },
+            cancellationToken,
+            explicitApply: true);
     }
 
-    public async Task PlanGroups(IRegistrySyncNavigator navigator,
-        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
+    public async Task PlanGroups(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
     {
         await _handler.PlanGroups(new()
         {
@@ -50,7 +56,10 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
             LessonTopics = await _topicsLoader.Load(cancellationToken),
             Semester = _studyYear.Value.Semester,
             LessonFilter = _lessonFilterProvider.Get(),
-        }, onGroupPlanned, cancellationToken, explicitApply: true);
+        },
+            onGroupPlanned,
+            cancellationToken,
+            explicitApply: true);
     }
 
     public async ValueTask Execute(CancellationToken cancellationToken)
@@ -76,11 +85,17 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         });
     }
 
-    public Task PlanIntakeLabCleanup(IRegistrySyncNavigator navigator,
-        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
+    public Task PlanIntakeLabCleanup(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
     {
-        return _handler.PlanIntakeLabCleanup(navigator, _studyYear.Value.Semester, _lessonFilterProvider.Get(),
-                _diagnostics, onGroupPlanned, cancellationToken);
+        return _handler.PlanIntakeLabCleanup(navigator,
+            _studyYear.Value.Semester,
+            _lessonFilterProvider.Get(),
+            _diagnostics,
+            onGroupPlanned,
+            cancellationToken);
     }
 }
 

@@ -82,7 +82,8 @@ public partial class ExportCommands
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);
                     var sheets = workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.OfType<Sheet>()
-                        .ToArray() ?? [];
+                            .ToArray()
+                        ?? [];
                     if (sheets.Length == 0 || workbook.WorkbookPart?.WorksheetParts.Any() != true)
                     {
                         throw new InvalidDataException("Generated free-room workbook has no usable worksheet.");
@@ -116,19 +117,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
-            global::ScheduleLib.Cli.FreeRoomsResult CalculateData()
+
+            FreeRoomsResult CalculateData()
             {
-                global::ScheduleLib.Cli.FreeRoomsResult data = new(
-                                    output?.DirectoryPath,
-                                    lessonCount,
-                                    worksheets.ToArray());
+                FreeRoomsResult data = new(
+                    output?.DirectoryPath,
+                    lessonCount,
+                    worksheets.ToArray());
                 return data;
             }
 
             return context.Finish(new CliCompletion<FreeRoomsResult>(
-                            exit,
-                            errors,
-                            CalculateData())
+                exit,
+                errors,
+                CalculateData())
             {
                 Summary = new
                 {
@@ -142,10 +144,11 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }

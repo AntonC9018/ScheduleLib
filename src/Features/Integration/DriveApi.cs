@@ -7,7 +7,9 @@ namespace ScheduleLib.Application.Core;
 using File = Google.Apis.Drive.v3.Data.File;
 
 public record struct BasicDriveFile(string Name, FileId Id);
+
 public record struct FileId(string Value);
+
 public record struct FolderId(string Value);
 
 public static class GoogleApiHelper1
@@ -67,29 +69,24 @@ public static class GoogleApiHelper1
             }
 
             if (ex.Error.Errors.Any(e =>
-            {
-                bool CheckCondition()
                 {
-                    if (e.Reason == "rateLimitExceeded")
+                    bool CheckCondition()
                     {
-                        return true;
+                        if (e.Reason == "rateLimitExceeded")
+                        {
+                            return true;
+                        }
+
+                        if (e.Reason == "userRateLimitExceeded")
+                        {
+                            return true;
+                        }
+
+                        return e.Reason == "backendError";
                     }
 
-                    if (e.Reason == "userRateLimitExceeded")
-                    {
-                        return true;
-                    }
-
-                    if (e.Reason == "backendError")
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                return CheckCondition();
-            }))
+                    return CheckCondition();
+                }))
             {
                 return true;
             }
@@ -97,7 +94,6 @@ public static class GoogleApiHelper1
             return false;
         }
     }
-
 }
 
 public static class DriveApiHelper
@@ -111,7 +107,7 @@ public static class DriveApiHelper
     {
         int int32 = x + y;
         int int322 = int32 - 1;
-        int int323 = (int322) / y;
+        int int323 = int322 / y;
         return int323;
     }
 
@@ -135,19 +131,20 @@ public static class DriveApiHelper
                 yield return () =>
                 {
                     var batch = new BatchRequest(driveService);
-                    var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>(
-                        (content, error, index, message) =>
+                    var callback = new BatchRequest.OnResponse<FilesResource.DeleteRequest>((
+                        content, error,
+                        index, message) =>
+                    {
+                        _ = content;
+                        _ = error;
+                        _ = index;
+                        _ = message;
+                        if (error != null)
                         {
-                            _ = content;
-                            _ = error;
-                            _ = index;
-                            _ = message;
-                            if (error != null)
-                            {
-                                string value = $"Delete failed for file {chunk[index]}";
-                                Console.WriteLine(value);
-                            }
-                        });
+                            string value = $"Delete failed for file {chunk[index]}";
+                            Console.WriteLine(value);
+                        }
+                    });
 
                     foreach (var f in chunk)
                     {
@@ -184,7 +181,7 @@ public static class DriveApiHelper
                 foreach (var f in response.Files)
                 {
                     string name = f.Name;
-                    global::ScheduleLib.Application.Core.FileId id = new(f.Id);
+                    FileId id = new(f.Id);
                     var basic = new BasicDriveFile(name, id);
                     result.Add(basic);
                 }
@@ -232,7 +229,9 @@ public static class DriveApiHelper
                 Parents = [folderId.Value],
             };
 
-            var request = driveService.Files.Create(fileMetadata, inputFile, "application/octet-stream");
+            var request = driveService.Files.Create(fileMetadata,
+                inputFile,
+                "application/octet-stream");
             request.Fields = "id";
             await request.UploadAsync(cancellationToken);
         }
@@ -248,9 +247,11 @@ public static class DriveApiHelper
 
         async Task Impl()
         {
-            var request = driveService.Files.Update(null, fileId: fileId.Value, inputFile, contentType: "application/octet-stream");
+            var request = driveService.Files.Update(null,
+                fileId: fileId.Value,
+                inputFile,
+                contentType: "application/octet-stream");
             await request.UploadAsync(cancellationToken);
         }
     }
 }
-

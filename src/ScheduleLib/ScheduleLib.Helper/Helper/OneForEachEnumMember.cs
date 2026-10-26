@@ -70,11 +70,7 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
 
         public bool MoveNext()
         {
-            if (!_e.MoveNext())
-            {
-                return false;
-            }
-            return true;
+            return _e.MoveNext();
         }
     }
 
@@ -159,11 +155,7 @@ public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
 
         public bool MoveNext()
         {
-            if (!_e.MoveNext())
-            {
-                return false;
-            }
-            return true;
+            return _e.MoveNext();
         }
     }
 
@@ -390,22 +382,22 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
 
             bool CheckCondition()
             {
-                if (!(typeof(TValue).IsClass))
+                if (!typeof(TValue).IsClass)
                 {
                     return false;
                 }
 
-                if (!(!typeof(TValue).IsSealed))
+                if (typeof(TValue).IsSealed)
                 {
                     return false;
                 }
 
-                if (!(!typeof(TValue).IsAssignableTo(typeof(IDisposable))))
+                if (!typeof(TValue).IsAssignableTo(typeof(IDisposable)))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             if (CheckCondition())

@@ -93,7 +93,10 @@ public static class ExcelScheduleParser
         bool isFirstIter = true;
         while (true)
         {
-            var result = DoParsingIter(rowE, p, config, isFirstIter);
+            var result = DoParsingIter(rowE,
+                p,
+                config,
+                isFirstIter);
             if (result == ParsingIterResult.EndOfFile)
             {
                 break;
@@ -120,7 +123,8 @@ public static class ExcelScheduleParser
         {
             return worksheets.First();
         }
-        global::ScheduleLib.Parsing.Excel.ExcelScheduleParser.NumberedWorksheet ProjectValue(global::ClosedXML.Excel.IXLWorksheet x)
+
+        NumberedWorksheet ProjectValue(IXLWorksheet x)
         {
             var parser = new SequenceReader(x.Name);
             if (!parser.ConsumeExactString("sem"))
@@ -139,6 +143,7 @@ public static class ExcelScheduleParser
 
             return new NumberedWorksheet(x, roman.Number);
         }
+
         var ret = xl.Worksheets
             .Select(ProjectValue)
             // TODO: add validation for sem number?
@@ -176,14 +181,12 @@ public static class ExcelScheduleParser
 
         bool CalculateConditionResult()
         {
-            if (isFirstTime)
-            {
-                return config.ExpectBullshitRow;
-            }
-            else
+            if (!isFirstTime)
             {
                 return false;
             }
+
+            return config.ExpectBullshitRow;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -223,7 +226,8 @@ public static class ExcelScheduleParser
             Debug.Assert(action == RowIterationContext.UpdateAction.Process);
             currentResult = ParsingIterResult.ProcessedNormally;
 
-            var cellIterationContext = new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
+            var cellIterationContext =
+                new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
 
             while (true)
             {
@@ -246,13 +250,13 @@ public static class ExcelScheduleParser
                     const string err = "Lesson found in a column that doesn't have a group assigned";
                     if (offsetIndex.Value < 0)
                     {
-                        global::ClosedXML.Excel.IXLCell iXLCell = cell;
+                        var iXLCell = cell;
                         string message = $"{err} (appearing BEFORE THE FIRST column with a group)";
                         throw iXLCell.Exception(message);
                     }
                     if (offsetIndex.Value >= groups.Len)
                     {
-                        global::ClosedXML.Excel.IXLCell iXLCell2 = cell;
+                        var iXLCell2 = cell;
                         string message2 = $"{err} (appearing AFTER THE LAST column with a group)";
                         throw iXLCell2.Exception(message2);
                     }
@@ -419,7 +423,10 @@ public static class ExcelScheduleParser
 
             _currentDayRowSpan = range.RowCount();
             _rowsSinceLastDate = 0;
-            var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
+            var newDay = ParseDay(cell,
+                text,
+                dayNameParser,
+                dayParseMode);
             _lastDateRange = range;
             _previousTimeSlotRoman = NoTimeSlotRoman;
             _rowsSinceLastTimeSlot = 0;
@@ -490,7 +497,7 @@ public static class ExcelScheduleParser
 
             if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
             {
-                global::ClosedXML.Excel.IXLCell iXLCell = cell;
+                var iXLCell = cell;
                 string message = $"Not found time slot with start time `{timeInterval.Start}`";
                 throw iXLCell.Exception(message);
             }
@@ -498,7 +505,7 @@ public static class ExcelScheduleParser
             var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
             if (newTimeSlotTime.End != timeInterval.End)
             {
-                global::ClosedXML.Excel.IXLCell iXLCell2 = cell;
+                var iXLCell2 = cell;
                 string message2 = $"The end time of interval `{timeInterval.End}` doesn't match.";
                 throw iXLCell2.Exception(message2);
             }
@@ -561,7 +568,8 @@ public static class ExcelScheduleParser
             var cell = _cellE.Current;
             var range = cell.ActualRange();
             if (range.LastRow()
-                .RowNumber() >= lessonsEndRowNumber)
+                    .RowNumber()
+                >= lessonsEndRowNumber)
             {
                 throw cell.Exception("Lesson's span exits the current time slot span");
             }
@@ -705,7 +713,7 @@ public static class ExcelScheduleParser
             var columnCount = cell.ColumnCount();
             int index = columnNumber - startOffset.Value;
 
-            global::ScheduleLib.Grade item2 = new(grade);
+            Grade item2 = new(grade);
             int size2 = columnCount;
             var item = new SizedItem<Grade>(item: item2, size: size2);
             if (ret.TotalSize != index)
@@ -818,13 +826,13 @@ public static class ExcelScheduleParser
                 var group = builder.Group(str);
                 if (!config.AllowedAttendanceModes.Contains(group.Ref.AttendanceMode))
                 {
-                    global::ClosedXML.Excel.IXLCell iXLCell = cell;
+                    var iXLCell = cell;
                     string message = $"Expected only {config.AllowedAttendanceModes} groups in the excel";
                     throw iXLCell.Exception(message);
                 }
                 if (!config.AllowedQualificationTypes.Contains(group.Ref.QualificationType))
                 {
-                    global::ClosedXML.Excel.IXLCell iXLCell2 = cell;
+                    var iXLCell2 = cell;
                     string message2 = $"Expected only {config.AllowedQualificationTypes} groups in the excel";
                     throw iXLCell2.Exception(message2);
                 }
@@ -957,7 +965,7 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
         if (!allowedTypes.Contains(p.ParsedLesson.LessonType))
         {
             string err = $"Only {allowedTypes} lesson types are supported";
-            global::ScheduleLib.Parsing.Excel.AddLessonResult error = AddLessonResult.Error(err);
+            var error = AddLessonResult.Error(err);
             return error;
         }
 

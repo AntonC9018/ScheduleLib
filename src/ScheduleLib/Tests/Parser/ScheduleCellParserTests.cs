@@ -17,14 +17,14 @@ public sealed class ScheduleCellParserTests
         var first = context.Schedule.Group("IA2601(ro)").Id;
         var second = context.Schedule.Group("IA2602(ro)").Id;
         var lesson = Parse(context, "15:00 HTML (lab, imp)\nG.Marin 326/4");
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = context;
-        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson,
+        var scheduleImportContext = context;
+        ImportedLessonInput input = new(lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
             [first]);
         scheduleImportContext.AddOrMergeLesson(input);
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext2 = context;
-        global::ScheduleLib.Parsing.ImportedLessonInput input2 = new(lesson,
+        var scheduleImportContext2 = context;
+        ImportedLessonInput input2 = new(lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
             [second]);
@@ -44,25 +44,25 @@ public sealed class ScheduleCellParserTests
         var context = CreateContext();
         var group = context.Schedule.Group("IA2504(ru)").Id;
         var lesson = Parse(context, "Antreprenoriat inovativ (curs)\nN.Nazar 528/3");
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = context;
-        global::ScheduleLib.Parsing.Lesson.ParsedLesson lesson2 = lesson;
-        global::System.DayOfWeek day = DayOfWeek.Monday;
-        global::TimeSlot timeSlot = TimeSlot.First;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.GroupId> groups = [group];
-        global::ScheduleLib.Alternative alternative = new("Gr.1");
-        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson2,
+        var scheduleImportContext = context;
+        var lesson2 = lesson;
+        var day = DayOfWeek.Monday;
+        var timeSlot = TimeSlot.First;
+        IReadOnlyList<GroupId> groups = [group];
+        Alternative alternative = new("Gr.1");
+        ImportedLessonInput input = new(lesson2,
             day,
             timeSlot,
             groups,
             alternative);
         scheduleImportContext.AddOrMergeLesson(input);
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext2 = context;
-        global::ScheduleLib.Parsing.Lesson.ParsedLesson lesson3 = lesson;
-        global::System.DayOfWeek day2 = DayOfWeek.Monday;
-        global::TimeSlot timeSlot2 = TimeSlot.First;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.GroupId> groups2 = [group];
-        global::ScheduleLib.Alternative alternative2 = new("Gr.2");
-        global::ScheduleLib.Parsing.ImportedLessonInput input2 = new(lesson3,
+        var scheduleImportContext2 = context;
+        var lesson3 = lesson;
+        var day2 = DayOfWeek.Monday;
+        var timeSlot2 = TimeSlot.First;
+        IReadOnlyList<GroupId> groups2 = [group];
+        Alternative alternative2 = new("Gr.2");
+        ImportedLessonInput input2 = new(lesson3,
             day2,
             timeSlot2,
             groups2,
@@ -88,16 +88,16 @@ public sealed class ScheduleCellParserTests
         var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
         lesson.GroupName = "IA2602(ro)".AsMemory();
 
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = context;
-        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson,
+        var scheduleImportContext = context;
+        ImportedLessonInput input = new(lesson,
             DayOfWeek.Tuesday,
             TimeSlot.First,
             [cellGroup]);
         scheduleImportContext.AddOrMergeLesson(input);
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
-        global::ScheduleLib.GroupId expected2 = lessonGroup;
-        global::ScheduleLib.GroupId actual2 = Assert.Single(result.Base.Group.Groups);
+        var expected2 = lessonGroup;
+        var actual2 = Assert.Single(result.Base.Group.Groups);
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: DayOfWeek.Tuesday, actual: result.Date.DayOfWeek);
     }
@@ -112,8 +112,8 @@ public sealed class ScheduleCellParserTests
 
         Assert.Throws<InvalidScheduleDocumentException.UnknownTimeSlotException>(() =>
         {
-            global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = context;
-            global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson,
+            var scheduleImportContext = context;
+            ImportedLessonInput input = new(lesson,
                 DayOfWeek.Monday,
                 TimeSlot.First,
                 [group]);
@@ -151,9 +151,9 @@ public sealed class ScheduleCellParserTests
             .GetEnumerator();
         var parser = context.ParserFactory.Create();
         parser.Lexer.Reset(lines);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Parsing.Lesson.ParsedLesson> collection =
+        var collection =
             parser.ParseLessons(new StringBuilder());
-        global::ScheduleLib.Parsing.Lesson.ParsedLesson single = Assert.Single(collection);
+        var single = Assert.Single(collection);
         return single;
     }
 }

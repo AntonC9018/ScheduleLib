@@ -19,7 +19,7 @@ public interface IRegistryGradePlanner
 public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
 {
     private readonly
-        Func<IServiceProvider, ScheduleLib.Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
+        Func<IServiceProvider, Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
         _openMoodle;
 
     public ConfiguredRegistryGradePlanner() : this((
@@ -32,7 +32,7 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
     }
 
     public ConfiguredRegistryGradePlanner(
-        Func<IServiceProvider, ScheduleLib.Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
+        Func<IServiceProvider, Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
             openMoodle) => _openMoodle = openMoodle;
 
     public async Task<RegistryGradePlan> Plan(
@@ -46,11 +46,12 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         }
 
         var services = configured.Services;
-        ScheduleLib.Scraping.Common.Credentials credentials;
+        Scraping.Common.Credentials credentials;
         try
         {
             credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>()
                 .Get();
+
             bool CheckCondition()
             {
                 if (credentials is null)

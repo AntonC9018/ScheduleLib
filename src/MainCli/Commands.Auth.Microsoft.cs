@@ -14,7 +14,7 @@ public partial class AuthCommands
         ResultArguments outputArgs,
         CancellationToken cancellationToken)
     {
-        var command = (string) $"auth {verb} microsoft";
+        var command = $"auth {verb} microsoft";
         using var context = new CliCommandContext(
             command,
             outputArgs,

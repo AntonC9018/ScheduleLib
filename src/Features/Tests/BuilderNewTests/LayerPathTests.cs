@@ -10,37 +10,42 @@ public sealed class LayerPathTests
         // var services = new ServiceCollection();
         // var sp = services.BuildServiceProvider();
         var tree = new TreeBuilder(null!);
-        global::Anton.LayeredData.Layer CalculateLayer()
+
+        Layer CalculateLayer()
         {
-            global::Anton.LayeredData.Layer layer = new("A");
+            Layer layer = new("A");
             return layer;
         }
 
         var a = tree.Defaults.AddLayer(CalculateLayer());
-        global::Anton.LayeredData.Layer CalculateLayer2()
+
+        Layer CalculateLayer2()
         {
-            global::Anton.LayeredData.Layer layer2 = new("B");
+            Layer layer2 = new("B");
             return layer2;
         }
 
         var b = tree.Defaults.AddLayer(CalculateLayer2());
-        global::Anton.LayeredData.Layer CalculateLayer3()
+
+        Layer CalculateLayer3()
         {
-            global::Anton.LayeredData.Layer layer3 = new("C");
+            Layer layer3 = new("C");
             return layer3;
         }
 
         var c = a.AddLayer(CalculateLayer3());
-        global::Anton.LayeredData.Layer CalculateLayer4()
+
+        Layer CalculateLayer4()
         {
-            global::Anton.LayeredData.Layer layer4 = new("D");
+            Layer layer4 = new("D");
             return layer4;
         }
 
         var d = c.AddLayer(CalculateLayer4());
-        global::Anton.LayeredData.Layer CalculateLayer5()
+
+        Layer CalculateLayer5()
         {
-            global::Anton.LayeredData.Layer layer5 = new("E");
+            Layer layer5 = new("E");
             return layer5;
         }
 

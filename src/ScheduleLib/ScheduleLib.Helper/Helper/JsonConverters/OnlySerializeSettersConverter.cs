@@ -22,13 +22,11 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
     private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
-        global::System.Collections.Concurrent.ConcurrentDictionary<
-                global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key,
-                global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>>
+        var
             concurrentDictionary = _propertyCache;
-        global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key key = new(namingPolicy);
-        global::System.Func<global::ScheduleLib.Helper.JsonConverters.OnlySerializeSettersConverter<T>.Key,
-                global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo>>
+        Key key = new(namingPolicy);
+        Func<Key,
+                Dictionary<string, PropertyInfo>>
             valueFactory = np =>
             {
                 var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
@@ -40,7 +38,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
                 return dict;
             };
-        global::System.Collections.Generic.Dictionary<string, global::System.Reflection.PropertyInfo> orAdd =
+        var orAdd =
             concurrentDictionary.GetOrAdd(key, valueFactory);
         return orAdd;
     }
@@ -100,15 +98,11 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p =>
             {
-                if (!(p.CanRead))
+                if (!p.CanRead)
                 {
                     return false;
                 }
-                if (!(p.CanWrite))
-                {
-                    return false;
-                }
-                return true;
+                return p.CanWrite;
             });
 
         foreach (var prop in props)
@@ -132,12 +126,12 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
         // Check if the type is a user-defined type (not a primitive, enum, string, or built-in collection)
         bool CheckCondition()
         {
-            if (!(!typeToConvert.IsPrimitive))
+            if (typeToConvert.IsPrimitive)
             {
                 return false;
             }
 
-            if (!(!typeToConvert.IsEnum))
+            if (typeToConvert.IsEnum)
             {
                 return false;
             }
@@ -147,17 +141,17 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
                 return false;
             }
 
-            if (!(!typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert)))
+            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
             {
                 return false;
             }
 
-            if (!(!typeToConvert.IsGenericType))
+            if (!typeToConvert.IsGenericType)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         return CheckCondition();

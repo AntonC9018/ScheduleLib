@@ -65,6 +65,7 @@ public sealed class ResetValueUpdater<T> : IUpdater<T>
     where T : class
 {
     public static readonly ResetValueUpdater<T> Instance = new();
+
     public T? Update(IServiceProvider scopedServiceProvider, T value)
     {
         var basicOps = scopedServiceProvider.GetRequiredService<IBasicOperations<T>>();
@@ -85,17 +86,20 @@ public static class BuilderUpdaterExtensions
         {
             builder.AddUpdate(RemoveValueUpdater<T>.Instance);
         }
+
         public void AddUpdate(IUpdater<T> updater)
         {
             builder.MutableGuard();
             builder.Enable().UpdateActions
                 .Add(updater);
         }
+
         public void AddUpdate(Func<IServiceProvider, T, T?> updateAction)
         {
             var update = new DelegateUpdater<T>(updateAction);
             builder.AddUpdate(update);
         }
+
         public void AddUpdate(Func<T, T?> updateAction)
         {
             builder.AddUpdate((sp, x) =>
@@ -104,6 +108,7 @@ public static class BuilderUpdaterExtensions
                 return updateAction(x);
             });
         }
+
         public void AddUpdate(Action<T> updateAction)
         {
             builder.AddUpdate((sp, x) =>

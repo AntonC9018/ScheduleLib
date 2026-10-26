@@ -6,18 +6,23 @@ namespace ConvertDocToDocx;
 
 public static class DocToDocxConversionHelper
 {
-    public static async Task<bool> TryConvertFile(string inputPath, string outputPath, CancellationToken cancellationToken)
+    public static async Task<bool> TryConvertFile(
+        string inputPath,
+        string outputPath,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsWindows())
         {
-            throw new PlatformNotSupportedException("Legacy .doc conversion requires Windows and Microsoft Word. Supply DOCX sources on Linux.");
+            throw new PlatformNotSupportedException(
+                "Legacy .doc conversion requires Windows and Microsoft Word. Supply DOCX sources on Linux.");
         }
 
         var converterPath = Path.Combine(AppContext.BaseDirectory, "ConvertDocToDocx.exe");
         if (!File.Exists(converterPath))
         {
-            throw new PlatformNotSupportedException("Legacy .doc conversion requires the bundled Windows converter and Microsoft Word. Supply DOCX sources instead.");
+            throw new PlatformNotSupportedException(
+                "Legacy .doc conversion requires the bundled Windows converter and Microsoft Word. Supply DOCX sources instead.");
         }
 
         var existingWord = new HashSet<int>();
@@ -37,21 +42,38 @@ public static class DocToDocxConversionHelper
             UseShellExecute = false,
             RedirectStandardOutput = true,
         };
-        foreach (var argument in new[] { Path.GetFullPath(inputPath), Path.GetFullPath(outputPath), nonce, cancellationPath })
+        foreach (var argument in new[]
+                 {
+                     Path.GetFullPath(inputPath),
+                     Path.GetFullPath(outputPath),
+                     nonce,
+                     cancellationPath,
+                 })
         {
             processInfo.ArgumentList.Add(argument);
         }
 
         using var process = Process.Start(processInfo) ?? throw Unreachable();
-        return await WaitForConverter(process, nonce: nonce, existingWord, cancellationPath: cancellationPath, cancellationToken);
+        return await WaitForConverter(process,
+            nonce: nonce,
+            existingWord,
+            cancellationPath: cancellationPath,
+            cancellationToken);
     }
 
-    internal static async Task<bool> WaitForConverter(Process process, string nonce, HashSet<int> existingWord,
-        string cancellationPath, CancellationToken cancellationToken)
+    internal static async Task<bool> WaitForConverter(
+        Process process,
+        string nonce,
+        HashSet<int> existingWord,
+        string cancellationPath,
+        CancellationToken cancellationToken)
     {
         using var ownershipReadCancellation = new CancellationTokenSource();
         // Read immediately, pinning the process handle while Word is still alive.
-        var ownership = ReadOwnedWord(process, nonce, existingWord, ownershipReadCancellation.Token);
+        var ownership = ReadOwnedWord(process,
+            nonce,
+            existingWord,
+            ownershipReadCancellation.Token);
         Process? ownedWord = null;
         try
         {
@@ -62,12 +84,15 @@ public static class DocToDocxConversionHelper
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 try
-                { File.WriteAllText(path: cancellationPath, contents: "cancel"); }
+                {
+                    File.WriteAllText(path: cancellationPath, contents: "cancel");
+                }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
-                global::System.TimeSpan CalculateTimeout()
+
+                TimeSpan CalculateTimeout()
                 {
-                    global::System.TimeSpan timeout = TimeSpan.FromSeconds(2);
+                    var timeout = TimeSpan.FromSeconds(2);
                     return timeout;
                 }
 
@@ -85,9 +110,10 @@ public static class DocToDocxConversionHelper
                 if (!converterExited)
                 {
                     TryKillConverter(process);
-                    global::System.TimeSpan CalculateTimeout2()
+
+                    TimeSpan CalculateTimeout2()
                     {
-                        global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(3);
+                        var timeout2 = TimeSpan.FromSeconds(3);
                         return timeout2;
                     }
 
@@ -111,13 +137,20 @@ public static class DocToDocxConversionHelper
         }
     }
 
-    private static async Task<Process?> ReadOwnedWord(Process converter, string nonce, HashSet<int> existingWord, CancellationToken cancellationToken)
+    private static async Task<Process?> ReadOwnedWord(
+        Process converter,
+        string nonce,
+        HashSet<int> existingWord,
+        CancellationToken cancellationToken)
     {
         Process? word = null;
         try
         {
             var message = await converter.StandardOutput.ReadLineAsync(cancellationToken);
-            if (!WordConverterProtocol.TryReadOwnership(message: message, nonce: nonce, out var pid, out var ticks))
+            if (!WordConverterProtocol.TryReadOwnership(message: message,
+                    nonce: nonce,
+                    out var pid,
+                    out var ticks))
             {
                 return null;
             }
@@ -134,12 +167,23 @@ public static class DocToDocxConversionHelper
             int converterSession2 = converter.SessionId;
             string processName = word.ProcessName;
             bool existedBeforeConversion = existingWord.Contains(pid);
-            if (WordConverterProtocol.IsOwnedProcess(pid: pid2, reportedTicks: reportedTicks2, actualTicks: actualTicks2, converterTicks: converterTicks2, session: session2, converterSession: converterSession2, processName, existedBeforeConversion))
+            if (WordConverterProtocol.IsOwnedProcess(pid: pid2,
+                    reportedTicks: reportedTicks2,
+                    actualTicks: actualTicks2,
+                    converterTicks: converterTicks2,
+                    session: session2,
+                    converterSession: converterSession2,
+                    processName,
+                    existedBeforeConversion))
             {
                 return word;
             }
         }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException or OperationCanceledException)
+        catch (Exception exception) when (exception is ArgumentException
+                                              or InvalidOperationException
+                                              or System.ComponentModel.Win32Exception
+                                              or IOException
+                                              or OperationCanceledException)
         {
             // An unverifiable identity is never a license to kill a process.
         }

@@ -31,6 +31,7 @@ public static class LessonFilterBuilderExtensions
     {
         public LessonFilterBuilder LessonFilterBuilder() => new(sp);
     }
+
     extension(LessonFilterBuilder builder)
     {
         public ILessonFilter Create() => builder.Current;
@@ -46,9 +47,9 @@ public static class LessonFilterBuilderExtensions
 
         public LessonFilterBuilder SkipAttendance(AttendanceMode attendance)
         {
-            global::ScheduleLib.Application.Core.SkipAttendanceLessonFilter CalculateValue()
+            SkipAttendanceLessonFilter CalculateValue()
             {
-                global::ScheduleLib.Application.Core.SkipAttendanceLessonFilter value = new SkipAttendanceLessonFilter(attendance);
+                var value = new SkipAttendanceLessonFilter(attendance);
                 return value;
             }
 
@@ -122,11 +123,13 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
                 {
                     Id = c.Lessons[0],
                     Course = c.Schedule.Get(lesson.Course).FullName,
-                    Teachers = string.Join(",", lesson.Teachers.Select(x => s.Get(x).PersonName
-                        .ToString())),
-                    Groups = string.Join(",", lesson.Groups.Select(x => s.Get(x).Name
-                        .ToString())),
-                    Type = lesson.Type,
+                    Teachers = string.Join(",",
+                        lesson.Teachers.Select(x => s.Get(x).PersonName
+                            .ToString())),
+                    Groups = string.Join(",",
+                        lesson.Groups.Select(x => s.Get(x).Name
+                            .ToString())),
+                    lesson.Type,
                 },
             });
         }
@@ -154,12 +157,14 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
 
 public sealed class RegistryLessonFilterConfig : INodeData<RegistryLessonFilterConfig>
 {
-    public static NodeDataKey<RegistryLessonFilterConfig> Key { get; } = NodeDataKey.Registry.Register<RegistryLessonFilterConfig>();
+    public static NodeDataKey<RegistryLessonFilterConfig> Key { get; } =
+        NodeDataKey.Registry.Register<RegistryLessonFilterConfig>();
+
     public AttendanceMode? SkipAttendance { get; set; }
 
     public static void Register(IServiceCollection services)
     {
         services.RegisterBasicOperationsAndMergers<RegistryLessonFilterConfig>();
-        services.AddConfigProvider(RegistryLessonFilterConfig.Key);
+        services.AddConfigProvider(Key);
     }
 }

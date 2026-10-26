@@ -32,10 +32,11 @@ public static partial class StylesheetBuilderHelper
     public static StyleIds<TEnum, BorderId> Borders<TEnum>(
         this StylesheetBuilder builder,
         Action<Border, TEnum> configure)
-
         where TEnum : struct, Enum
     {
-        return Create<TEnum, BorderId, Border>(builder, StylesheetResource.Border, configure);
+        return Create<TEnum, BorderId, Border>(builder,
+            StylesheetResource.Border,
+            configure);
     }
 
     /// <summary>
@@ -44,10 +45,11 @@ public static partial class StylesheetBuilderHelper
     public static StyleIds<TEnum, CellFormatId> CellFormats<TEnum>(
         this StylesheetBuilder builder,
         Action<CellFormat, TEnum> configure)
-
         where TEnum : struct, Enum
     {
-        return Create<TEnum, CellFormatId, CellFormat>(builder, StylesheetResource.CellFormat, configure);
+        return Create<TEnum, CellFormatId, CellFormat>(builder,
+            StylesheetResource.CellFormat,
+            configure);
     }
 
     /// <summary>
@@ -57,15 +59,14 @@ public static partial class StylesheetBuilderHelper
         StylesheetBuilder builder,
         StylesheetResource resource,
         Action<TResource, TEnum> configure)
-
         where TEnum : struct, Enum
         where TResource : OpenXmlCompositeElement
     {
         uint Next(TEnum val)
         {
-            var (i, it) = builder.Next(resource);
-            configure((TResource) it, val);
-            return i;
+            var entry = builder.Next(resource);
+            configure((TResource) entry.Element, val);
+            return entry.Id;
         }
 
         var e = new EnumMembers<TEnum>().GetEnumerator();
@@ -78,5 +79,4 @@ public static partial class StylesheetBuilderHelper
         }
         return new(first);
     }
-
 }

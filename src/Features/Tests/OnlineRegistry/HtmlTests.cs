@@ -43,12 +43,13 @@ public sealed class HtmlTests
             },
         })
             .ToArray();
-        var resultWithNames = result.Zip(courseNames, (a, b) => new
-        {
-            Url = a.Url.ToString(),
-            Id = a.CourseId.Id,
-            CourseName = b,
-        });
+        var resultWithNames = result.Zip(courseNames,
+            (a, b) => new
+            {
+                Url = a.Url.ToString(),
+                a.CourseId.Id,
+                CourseName = b,
+            });
         await Verify(resultWithNames);
     }
 
@@ -84,13 +85,14 @@ public sealed class HtmlTests
         })
             .ToArray();
 
-        var mapped = result.Zip(groups, (a, b) => new
-        {
-            Uri = a.Uri.ToString(),
-            b.GroupNumber,
-            SubGroup = b.SubGroupName.ToString(),
-            FacultyName = b.FacultyName.ToString(),
-        });
+        var mapped = result.Zip(groups,
+            (a, b) => new
+            {
+                Uri = a.Uri.ToString(),
+                b.GroupNumber,
+                SubGroup = b.SubGroupName.ToString(),
+                FacultyName = b.FacultyName.ToString(),
+            });
         await Verify(mapped);
     }
 
@@ -99,16 +101,18 @@ public sealed class HtmlTests
     {
         // Explicit null: no custom registry; only built-in specializations apply.
         var resolver = new GroupPartitionResolver(null);
-        global::ScheduleLib.OnlineRegistry.GroupForSearch CalculateGroupForSearch()
+
+        GroupForSearch CalculateGroupForSearch()
         {
-            global::ScheduleLib.OnlineRegistry.GroupForSearch groupForSearch = MakeGroupForSearch("Spring");
+            var groupForSearch = MakeGroupForSearch("Spring");
             return groupForSearch;
         }
 
         var specialization = resolver.Resolve(CalculateGroupForSearch());
-        global::ScheduleLib.OnlineRegistry.GroupForSearch CalculateGroupForSearch2()
+
+        GroupForSearch CalculateGroupForSearch2()
         {
-            global::ScheduleLib.OnlineRegistry.GroupForSearch groupForSearch2 = MakeGroupForSearch("I");
+            var groupForSearch2 = MakeGroupForSearch("I");
             return groupForSearch2;
         }
 
@@ -120,16 +124,16 @@ public sealed class HtmlTests
         var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
             MakeGroupForSearch(futureSpecialization.Value!));
 
-        global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All, Specialization.Spring);
-        global::ScheduleLib.GroupPartitionKey actual2 = specialization;
+        var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.Spring);
+        var actual2 = specialization;
         Assert.Equal(expected: expected2, actual: actual2);
-        global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
-        global::ScheduleLib.Specialization specialization2 = Specialization.All;
-        global::ScheduleLib.GroupPartitionKey expected3 = new GroupPartitionKey(subGroup2, specialization2);
-        global::ScheduleLib.GroupPartitionKey actual3 = numeric;
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        var specialization2 = Specialization.All;
+        var expected3 = new GroupPartitionKey(subGroup2, specialization2);
+        var actual3 = numeric;
         Assert.Equal(expected: expected3, actual: actual3);
-        global::ScheduleLib.GroupPartitionKey expected4 = new GroupPartitionKey(SubGroup.All, futureSpecialization);
-        global::ScheduleLib.GroupPartitionKey actual4 = future;
+        var expected4 = new GroupPartitionKey(SubGroup.All, futureSpecialization);
+        var actual4 = future;
         Assert.Equal(expected: expected4, actual: actual4);
 
         static GroupForSearch MakeGroupForSearch(string subGroup)
@@ -201,7 +205,7 @@ public sealed class HtmlTests
                 .Address("https://test.com"));
         }
 
-        global::AngleSharp.Html.Dom.IHtmlTableElement table = HtmlSearch.FindAttendanceTable(addDoc);
+        var table = HtmlSearch.FindAttendanceTable(addDoc);
         var students = HtmlSearch.FindStudents(table);
         var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present)
             .ToArray();
@@ -237,7 +241,9 @@ public sealed class HtmlTests
             {
                 Attendance = attendance,
                 Topic = "My Topic",
-                DateTime = new DateTime(year: 2026, day: 11, month: 10),
+                DateTime = new DateTime(year: 2026,
+                    day: 11,
+                    month: 10),
                 LessonId = lessonId,
                 RegistryLessonType = schedule.Get(lessonId).Lesson.Type,
             },

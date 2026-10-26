@@ -108,16 +108,16 @@ public static class TeacherProfileScheduleLookup
         // The registry credential profile predates the spelling in the current schedule.
         if (profileName.ToString() == "Visnevschi Vlada")
         {
-            global::ScheduleLib.Builders.LookupFacade lookupFacade = lookup;
-            global::ScheduleLib.Parsing.Name parse = NameHelper.Parse("Vișnevschii Vlada");
-            global::ScheduleLib.Builders.TeacherBuilderModel.NameModel name = parse.ToNameModel();
+            var lookupFacade = lookup;
+            var parse = NameHelper.Parse("Vișnevschii Vlada");
+            var name = parse.ToNameModel();
             var result = lookupFacade.Teacher(name);
-            if (result is not null)
+            if (result is null)
             {
-                return result;
+                return null;
             }
 
-            return null;
+            return result;
         }
 
         return null;

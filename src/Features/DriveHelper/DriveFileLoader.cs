@@ -69,19 +69,16 @@ public sealed class DriveFileLoader : IDisposable
             var progress = await exportRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
-        else if (meta.MimeType == uploadedFileTypeString)
+        if (meta.MimeType == uploadedFileTypeString)
         {
             // don't do conversion
             var downloadRequest = _driveService.Files.Get(fileId);
             var progress = await downloadRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
-        else
-        {
-            throw new UnexpectedDriveFileFormatException(uploadedFileTypeString: uploadedFileTypeString,
-                fileType,
-                actualMimeType: meta.MimeType);
-        }
+        throw new UnexpectedDriveFileFormatException(uploadedFileTypeString: uploadedFileTypeString,
+            fileType,
+            actualMimeType: meta.MimeType);
     }
 
     public void Dispose()

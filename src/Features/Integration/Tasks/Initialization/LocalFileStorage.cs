@@ -25,11 +25,11 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
             token.ThrowIfCancellationRequested();
             try
             {
-                global::System.IO.FileStream stream = new FileStream(path,
+                var stream = new FileStream(path,
                     FileMode.OpenOrCreate,
                     FileAccess.ReadWrite,
                     FileShare.None);
-                global::ScheduleLib.Application.Core.LocalFileLock localFileLock = new(stream);
+                LocalFileLock localFileLock = new(stream);
                 return localFileLock;
             }
             catch (IOException e) when (e.HResult == unchecked((int) 0x80070020) || (e.HResult & 0xffff) == 11)

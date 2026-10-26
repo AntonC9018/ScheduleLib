@@ -33,6 +33,7 @@ public sealed class RegistryLessonAdapterTests
     {
         const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
         const string detail = "/studregistry/LessonAttendance/LessonDetail/42";
+
         string CalculateText()
         {
             if (scenario == "identity")
@@ -44,7 +45,7 @@ public sealed class RegistryLessonAdapterTests
         }
 
         var details =
-                    $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{(CalculateText())}'></form>";
+            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{CalculateText()}'></form>";
         string text;
         if (scenario == "present")
         {
@@ -57,13 +58,13 @@ public sealed class RegistryLessonAdapterTests
         }
 
         var saved =
-            $"<a href='/studregistry/LessonAttendance/CreateLesson/1'>Adaugare</a><table><tr><th>lesson</th></tr>{(text)}</table>";
+            $"<a href='/studregistry/LessonAttendance/CreateLesson/1'>Adaugare</a><table><tr><th>lesson</th></tr>{text}</table>";
         using var handler = new Handler(request =>
         {
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) status, "redirect");
-                global::System.Net.Http.Headers.HttpResponseHeaders httpResponseHeaders = redirect.Headers;
+                var httpResponseHeaders = redirect.Headers;
                 string uriString;
                 if (scenario == "unexpected")
                 {
@@ -74,8 +75,8 @@ public sealed class RegistryLessonAdapterTests
                     uriString = list;
                 }
 
-                global::System.UriKind uriKind = UriKind.Relative;
-                global::System.Uri uri = new(uriString, uriKind);
+                var uriKind = UriKind.Relative;
+                Uri uri = new(uriString, uriKind);
                 httpResponseHeaders.Location = uri;
                 return redirect;
             }
@@ -84,7 +85,7 @@ public sealed class RegistryLessonAdapterTests
                 return Response(HttpStatusCode.OK, details);
             }
 
-            global::System.Net.HttpStatusCode status2;
+            HttpStatusCode status2;
             if (scenario == "read-failure")
             {
                 status2 = HttpStatusCode.InternalServerError;
@@ -114,8 +115,9 @@ public sealed class RegistryLessonAdapterTests
                 body = text;
             }
 
-            global::System.Net.Http.HttpResponseMessage response = Response(
-            status2, body);
+            var response = Response(
+                status2,
+                body);
             return response;
         });
         using var client = new HttpClient(handler);
@@ -125,15 +127,19 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
-        global::System.Uri CalculateUri()
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test" + detail);
+            Uri uri = new("https://registry.test" + detail);
             return uri;
         }
 
@@ -204,7 +210,7 @@ public sealed class RegistryLessonAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                global::System.Net.HttpStatusCode status2 = HttpStatusCode.OK;
+                var status2 = HttpStatusCode.OK;
                 string body2;
                 if (kind == "delete")
                 {
@@ -215,7 +221,7 @@ public sealed class RegistryLessonAdapterTests
                     body2 = LessonForm;
                 }
 
-                global::System.Net.Http.HttpResponseMessage response2 = Response(status2, body2);
+                var response2 = Response(status2, body2);
                 return response2;
             }
 
@@ -234,17 +240,21 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
-        global::System.Uri CalculateUri()
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
         {
             string text = $"https://registry.test/{kind}";
-            string uriString = (string) text;
-            global::System.Uri uri = new(uriString);
+            string uriString = text;
+            Uri uri = new(uriString);
             return uri;
         }
 
@@ -278,7 +288,7 @@ public sealed class RegistryLessonAdapterTests
     {
         using var handler = new Handler(request =>
         {
-            global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+            var status = HttpStatusCode.OK;
             string body;
             if (request.Method == HttpMethod.Post)
             {
@@ -299,8 +309,9 @@ public sealed class RegistryLessonAdapterTests
                 body = text;
             }
 
-            global::System.Net.Http.HttpResponseMessage response = Response(
-            status, body);
+            var response = Response(
+                status,
+                body);
             return response;
         });
         using var client = new HttpClient(handler);
@@ -310,17 +321,21 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
-        global::System.Uri CalculateUri()
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
         {
             string text = $"https://registry.test/{kind}";
-            string uriString = (string) text;
-            global::System.Uri uri = new(uriString);
+            string uriString = text;
+            Uri uri = new(uriString);
             return uri;
         }
 
@@ -346,7 +361,7 @@ public sealed class RegistryLessonAdapterTests
     {
         using var handler = new Handler(_ =>
         {
-            global::System.Net.HttpStatusCode status = HttpStatusCode.OK;
+            var status = HttpStatusCode.OK;
             string text;
             if (kind == "delete")
             {
@@ -357,12 +372,13 @@ public sealed class RegistryLessonAdapterTests
                 text = LessonForm;
             }
 
-            string text2 = (text);
+            string text2 = text;
             string oldValue = "method='post'";
             string newValue = "method='get'";
             string body = text2.Replace(oldValue, newValue);
-            global::System.Net.Http.HttpResponseMessage response = Response(
-            status, body);
+            var response = Response(
+                status,
+                body);
             return response;
         });
         using var client = new HttpClient(handler);
@@ -372,17 +388,21 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
-        global::System.Uri CalculateUri()
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
         {
             string text = $"https://registry.test/{kind}";
-            string uriString = (string) text;
-            global::System.Uri uri = new(uriString);
+            string uriString = text;
+            Uri uri = new(uriString);
             return uri;
         }
 
@@ -451,35 +471,36 @@ public sealed class RegistryLessonAdapterTests
                     $"<tr><td>03.09.2026 13:15 curs</td><td>Synthetic topic</td><td><a href='{edit}'>Edit</a></td></tr>";
                 return Response(
                     HttpStatusCode.OK,
-                    (string) $"<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>{(scenario == "missing" ? "" : row)}{(scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")}</table>");
+                    $"<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>{(scenario == "missing" ? "" : row)}{(scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")}</table>");
             }
-            if (request.RequestUri.AbsolutePath.Contains("/Edit/"))
+            if (!request.RequestUri.AbsolutePath.Contains("/Edit/"))
             {
-                if (scenario == "edit-login")
-                {
-                    return Response(HttpStatusCode.OK, "<input type='password'>");
-                }
-
-                if (scenario == "edit-failure")
-                {
-                    return Response(HttpStatusCode.InternalServerError, "failed");
-                }
-
-                return Response(
-                    HttpStatusCode.OK,
-                    scenario switch
-                    {
-                        "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
-                        "mode" => form.Replace("value='curs'", "value='laborator'"),
-                        "topic" => form.Replace("Synthetic topic", "Different topic"),
-                        "topic-line-endings" => form.Replace("\n", "&#13;&#10;"),
-                        "topic-different-multiline" => form.Replace("second line", "Different line")
-                            .Replace("\n", "&#13;&#10;"),
-                        "attendance" => form.Replace("value='a'", "value='am'"),
-                        _ => form,
-                    });
+                return Response(HttpStatusCode.OK, form);
             }
-            return Response(HttpStatusCode.OK, form);
+
+            if (scenario == "edit-login")
+            {
+                return Response(HttpStatusCode.OK, "<input type='password'>");
+            }
+
+            if (scenario == "edit-failure")
+            {
+                return Response(HttpStatusCode.InternalServerError, "failed");
+            }
+
+            return Response(
+                HttpStatusCode.OK,
+                scenario switch
+                {
+                    "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
+                    "mode" => form.Replace("value='curs'", "value='laborator'"),
+                    "topic" => form.Replace("Synthetic topic", "Different topic"),
+                    "topic-line-endings" => form.Replace("\n", "&#13;&#10;"),
+                    "topic-different-multiline" => form.Replace("second line", "Different line")
+                        .Replace("\n", "&#13;&#10;"),
+                    "attendance" => form.Replace("value='a'", "value='am'"),
+                    _ => form,
+                });
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -488,15 +509,19 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = services;
-        global::System.Threading.CancellationToken cancellationToken = default;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
-        global::System.Uri CalculateUri()
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
         {
-            global::System.Uri uri = new("https://registry.test/create");
+            Uri uri = new("https://registry.test/create");
             return uri;
         }
 
@@ -543,7 +568,8 @@ public sealed class RegistryLessonAdapterTests
 
         int actual2 = handler.Reads;
         Assert.Equal(
-            expected: expected2, actual: actual2);
+            expected: expected2,
+            actual: actual2);
         Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
@@ -594,9 +620,9 @@ public sealed class RegistryLessonAdapterTests
                 Reads++;
             }
 
-            global::System.Net.Http.HttpResponseMessage CalculateResult()
+            HttpResponseMessage CalculateResult()
             {
-                global::System.Net.Http.HttpResponseMessage result = send(request);
+                var result = send(request);
                 return result;
             }
 

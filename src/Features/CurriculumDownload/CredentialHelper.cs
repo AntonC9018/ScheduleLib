@@ -37,5 +37,4 @@ public static class CredentialHelper
         }
         return ret;
     }
-
 }

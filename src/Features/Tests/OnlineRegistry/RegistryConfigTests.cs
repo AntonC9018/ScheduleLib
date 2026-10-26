@@ -17,48 +17,75 @@ public sealed class RegistryConfigTests
         using var provider = services.BuildServiceProvider();
         var merger = provider.GetRequiredService<IMerger<List<RegistryGroupMatchRule>>>();
 
-        var existingRule = Rule(faculty: "DJ", subGroup: "eng", Language.En, matchByLanguage: true, allowParentGroup: true);
-        var unrelatedRule = Rule(faculty: "IA", subGroup: "eng", Language.En, matchByLanguage: true);
-        var replacementRule = Rule(faculty: "DJ", subGroup: "eng", Language.Ro, matchByLanguage: false);
+        var existingRule = Rule(faculty: "DJ",
+            subGroup: "eng",
+            Language.En,
+            matchByLanguage: true,
+            allowParentGroup: true);
+        var unrelatedRule = Rule(faculty: "IA",
+            subGroup: "eng",
+            Language.En,
+            matchByLanguage: true);
+        var replacementRule = Rule(faculty: "DJ",
+            subGroup: "eng",
+            Language.Ro,
+            matchByLanguage: false);
 
         var result = merger.Merge(@from: [replacementRule], @into: [existingRule, unrelatedRule]);
 
         Assert.Equal(expected: 2, actual: result.Count);
-        Assert.Contains(result, rule =>
-        {
-            bool CheckCondition()
+        Assert.Contains(result,
+            rule =>
             {
-                if (!(rule.Faculty == "DJ"))
+                bool CheckCondition()
                 {
+                    if (rule.Faculty != "DJ")
+                    {
+                        return false;
+                    }
+
+                    if (rule.SubGroup != "eng")
+                    {
+                        return false;
+                    }
+
+                    if (rule.Language != Language.Ro)
+                    {
+                        return false;
+                    }
+
+                    if (rule.MatchByLanguage)
+                    {
+                        return false;
+                    }
+
+                    if (!rule.AllowParentGroup)
+                    {
+                        return true;
+                    }
+
                     return false;
                 }
 
-                if (!(rule.SubGroup == "eng"))
+                return CheckCondition();
+            });
+        Assert.Contains(result,
+            rule =>
+            {
+                if (rule.Faculty != "IA")
                 {
                     return false;
                 }
-
-                if (!(rule.Language == Language.Ro))
+                if (rule.SubGroup != "eng")
                 {
                     return false;
                 }
-
-                if (!(!rule.MatchByLanguage))
+                if (rule.Language != Language.En)
                 {
                     return false;
                 }
-
-                if (!(!rule.AllowParentGroup))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            return CheckCondition();
-        });
-        Assert.Contains(result, rule => { if (!(rule.Faculty == "IA")) { return false; } if (!(rule.SubGroup == "eng")) { return false; } if (!(rule.Language == Language.En)) { return false; } if (!(rule.MatchByLanguage)) { return false; } return true; });
+                return rule.MatchByLanguage;
+            });
     }
 
     [Fact]
@@ -74,8 +101,8 @@ public sealed class RegistryConfigTests
         var input = ValidConfig();
         input.HttpCallDelay = TimeSpan.FromSeconds(2);
         var mapped = new RegistryConfigMapper().Map(input);
-        global::System.TimeSpan expected2 = TimeSpan.FromSeconds(2);
-        global::System.TimeSpan actual2 = mapped.HttpCallDelay;
+        var expected2 = TimeSpan.FromSeconds(2);
+        var actual2 = mapped.HttpCallDelay;
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -105,8 +132,8 @@ public sealed class RegistryConfigTests
                 Value = new()
                 {
                     Login = "login",
-                    Password = "pass"
-                }
+                    Password = "pass",
+                },
             },
             EquationCommandsDerivation = new AnyDayDerivation(),
         };
@@ -121,19 +148,28 @@ public sealed class RegistryConfigTests
         var merger = provider.GetRequiredService<IMerger<RegistryConfig>>();
 
         var overridden = merger.Merge(
-            @from: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(1) },
-            @into: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(5) });
-        global::System.TimeSpan expected2 = TimeSpan.FromSeconds(1);
-        global::System.TimeSpan? expected3 = expected2;
-        global::System.TimeSpan? actual2 = overridden.HttpCallDelay;
+            @from: new RegistryConfig
+            {
+                HttpCallDelay = TimeSpan.FromSeconds(1),
+            },
+            @into: new RegistryConfig
+            {
+                HttpCallDelay = TimeSpan.FromSeconds(5),
+            });
+        var expected2 = TimeSpan.FromSeconds(1);
+        TimeSpan? expected3 = expected2;
+        var actual2 = overridden.HttpCallDelay;
         Assert.Equal(expected: expected3, actual: actual2);
 
         var inherit = merger.Merge(
             @from: new RegistryConfig(),
-            @into: new RegistryConfig { HttpCallDelay = TimeSpan.FromSeconds(5) });
-        global::System.TimeSpan expected4 = TimeSpan.FromSeconds(5);
-        global::System.TimeSpan? expected5 = expected4;
-        global::System.TimeSpan? actual3 = inherit.HttpCallDelay;
+            @into: new RegistryConfig
+            {
+                HttpCallDelay = TimeSpan.FromSeconds(5),
+            });
+        var expected4 = TimeSpan.FromSeconds(5);
+        TimeSpan? expected5 = expected4;
+        var actual3 = inherit.HttpCallDelay;
         Assert.Equal(expected: expected5, actual: actual3);
     }
 
@@ -142,13 +178,17 @@ public sealed class RegistryConfigTests
     {
         using var inner = new StubHandler();
         var index = new Uri("https://registry.test/studregistry/LessonAttendance");
-        global::System.Uri CalculateLogin()
+
+        Uri CalculateLogin()
         {
-            global::System.Uri login2 = new(index, "../Account/Login");
+            Uri login2 = new(index, "../Account/Login");
             return login2;
         }
 
-        using var guard = new RegistryHistoryRequestHandler(inner, index: index, login: CalculateLogin(), TimeSpan.Zero);
+        using var guard = new RegistryHistoryRequestHandler(inner,
+            index: index,
+            login: CalculateLogin(),
+            TimeSpan.Zero);
         guard.CompleteAuthentication();
         Assert.NotNull(guard);
     }
@@ -160,11 +200,14 @@ public sealed class RegistryConfigTests
         var index = new Uri("https://registry.test/studregistry/LessonAttendance");
         Assert.Throws<ArgumentOutOfRangeException>(() =>
         {
-            global::System.Net.Http.HttpMessageHandler inner2 = inner;
-            global::System.Uri index2 = index;
-            global::System.Uri login2 = new(index, "../Account/Login");
-            global::System.TimeSpan spacing = TimeSpan.FromSeconds(-1);
-            global::ScheduleLib.OnlineRegistry.RegistryHistoryRequestHandler registryHistoryRequestHandler = new RegistryHistoryRequestHandler(inner2, index: index2, login: login2, spacing);
+            HttpMessageHandler inner2 = inner;
+            var index2 = index;
+            Uri login2 = new(index, "../Account/Login");
+            var spacing = TimeSpan.FromSeconds(-1);
+            var registryHistoryRequestHandler = new RegistryHistoryRequestHandler(inner2,
+                index: index2,
+                login: login2,
+                spacing);
             return registryHistoryRequestHandler;
         });
     }
@@ -175,8 +218,8 @@ public sealed class RegistryConfigTests
         var builder = new ScrapingContextBuilder();
         Assert.Throws<ArgumentOutOfRangeException>(() =>
         {
-            global::ScheduleLib.Scraping.Common.ScrapingContextBuilder b = builder;
-            global::System.TimeSpan delay = TimeSpan.FromSeconds(-1);
+            var b = builder;
+            var delay = TimeSpan.FromSeconds(-1);
             RegistryScraping.AddDefaultConfigWithoutHandlers(b, delay);
         });
     }
@@ -188,8 +231,12 @@ public sealed class RegistryConfigTests
         RegistryScraping.AddDefaultConfigWithoutHandlers(builder, TimeSpan.Zero);
     }
 
-    private static RegistryGroupMatchRule Rule(string faculty, string subGroup, Language language,
-        bool matchByLanguage, bool allowParentGroup = false)
+    private static RegistryGroupMatchRule Rule(
+        string faculty,
+        string subGroup,
+        Language language,
+        bool matchByLanguage,
+        bool allowParentGroup = false)
     {
         return new()
         {
@@ -205,8 +252,8 @@ public sealed class RegistryConfigTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
-            global::System.Net.Http.HttpResponseMessage result = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
-            global::System.Threading.Tasks.Task<global::System.Net.Http.HttpResponseMessage> fromResult = Task.FromResult(result);
+            var result = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            var fromResult = Task.FromResult(result);
             return fromResult;
         }
     }

@@ -12,9 +12,11 @@ public sealed class AddUserTests
     {
         string input = "C A";
         string person = "Curmanschii Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First, NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.First, NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -23,9 +25,11 @@ public sealed class AddUserTests
     {
         string input = "C";
         string person = "Curmanschii Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -34,9 +38,11 @@ public sealed class AddUserTests
     {
         string input = "A";
         string person = "Anton Antonov";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last, NameField.First);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.Last, NameField.First);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -45,10 +51,13 @@ public sealed class AddUserTests
     {
         string input = "C X";
         string person = "Curmanschii Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
+        EnumBitArray<NameField> fullyMatched = new(NameField.Last);
         int unmatchedCount = 1;
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched, UnmatchedCount: unmatchedCount);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched,
+            UnmatchedCount: unmatchedCount);
         DoScoreFunctionTest(data);
     }
 
@@ -57,9 +66,11 @@ public sealed class AddUserTests
     {
         string input = "A";
         string person = "Curmanschii Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.First);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -68,17 +79,20 @@ public sealed class AddUserTests
     {
         string input = "A X";
         string person = "Curmanschii Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
+        EnumBitArray<NameField> fullyMatched = new(NameField.First);
         int unmatchedCount = 1;
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched, UnmatchedCount: unmatchedCount);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched,
+            UnmatchedCount: unmatchedCount);
         DoScoreFunctionTest(data);
     }
 
     [Fact]
     public void DoubleNameNotMatches_WhenPersonHasSingleName()
     {
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+        TestDataRecord data = new(
             Input: "A-C",
             Person: "Curmanschii Anton",
             FullyMatched: new(),
@@ -90,7 +104,7 @@ public sealed class AddUserTests
     [Fact]
     public void EmptyNoMatch()
     {
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
+        TestDataRecord data = new(
             Input: "",
             Person: "Curmanschii Anton",
             ExpectedScorePositive: false);
@@ -102,9 +116,11 @@ public sealed class AddUserTests
     {
         string input = "Curm";
         string person = "C. Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        EnumBitArray<NameField> partiallyMatched = new(NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            PartiallyMatched: partiallyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -113,9 +129,11 @@ public sealed class AddUserTests
     {
         string input = "C.";
         string person = "Curm. Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -124,9 +142,11 @@ public sealed class AddUserTests
     {
         string input = "Curm.";
         string person = "C. Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        EnumBitArray<NameField> partiallyMatched = new(NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            PartiallyMatched: partiallyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -135,9 +155,11 @@ public sealed class AddUserTests
     {
         string input = "A.";
         string person = "Curm Anton";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.First);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -146,9 +168,11 @@ public sealed class AddUserTests
     {
         string input = "Titu";
         string person = "Capcelea Titu";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> fullyMatched = new(NameField.First);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, FullyMatched: fullyMatched);
+        EnumBitArray<NameField> fullyMatched = new(NameField.First);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            FullyMatched: fullyMatched);
         DoScoreFunctionTest(data);
     }
 
@@ -157,9 +181,11 @@ public sealed class AddUserTests
     {
         string input = "Capceleaa";
         string person = "Capcelea Titu";
-        global::ScheduleLib.Helper.EnumBitArray<global::ScheduleLib.Parsing.NameField> partiallyMatched = new(NameField.Last);
-        global::Desktop.Tests.AddUserTests.TestDataRecord data = new(
-            Input: input, Person: person, PartiallyMatched: partiallyMatched);
+        EnumBitArray<NameField> partiallyMatched = new(NameField.Last);
+        TestDataRecord data = new(
+            Input: input,
+            Person: person,
+            PartiallyMatched: partiallyMatched);
         DoScoreFunctionTest(data);
     }
 

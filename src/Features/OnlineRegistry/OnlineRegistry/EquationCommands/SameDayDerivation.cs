@@ -65,7 +65,6 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             void AddTodaysItems<T>(
                 ref EnumerableExtensions.RememberIsDoneEnumerator<T> e,
                 List<T> list)
-
                 where T : struct, IDateTime
             {
                 while (true)
@@ -88,7 +87,8 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
 
             void AddPartialMatches()
             {
-                ReadOnlySpan<LessonProperty> criteria = [
+                ReadOnlySpan<LessonProperty> criteria =
+                [
                     LessonProperty.Time,
                     LessonProperty.Type,
                     LessonProperty.Topic,
@@ -161,7 +161,6 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
         }
     }
 }
-
 
 internal readonly record struct Mapping(int AllIndex, int ExistingIndex);
 
@@ -243,11 +242,13 @@ internal struct MatchingResult
     {
         private readonly BitArray32 _bits;
         private readonly List<T> _items;
+
         public UnusedEnumerable(BitArray32 bits, List<T> items)
         {
             _bits = bits;
             _items = items;
         }
+
         public UnusedEnumerator<T> GetEnumerator() => new(_bits, _items);
     }
 

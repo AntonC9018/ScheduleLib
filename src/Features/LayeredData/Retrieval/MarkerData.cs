@@ -20,6 +20,7 @@ public abstract class MarkerDataHelperBase<T> : IMarkerDataHelper
         var c = GetMarkerData(sp);
         return new(c);
     }
+
     NodePath? IMarkerDataHelper.GetCurrentPath(MarkerData data)
     {
         if (data.Value is not T c)
@@ -33,4 +34,3 @@ public abstract class MarkerDataHelperBase<T> : IMarkerDataHelper
     public abstract T GetMarkerData(IServiceProvider sp);
     public abstract NodePath? GetCurrentPath(T marker);
 }
-

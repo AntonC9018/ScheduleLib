@@ -14,6 +14,7 @@ public struct ScheduleFilter()
     public GroupFilter GroupFilter = new();
     public LessonFilter LessonFilter = new();
     public CourseFilter CourseFilter = new();
+
     public PeriodFilter PeriodFilter = new()
     {
         MatchAny = true,
@@ -104,11 +105,14 @@ public static class FilterHelper
         };
     }
 
-    public static ScheduleFilter WithAttendanceMode(this ScheduleFilter b, params ReadOnlySpan<AttendanceMode> attendanceModes)
+    public static ScheduleFilter WithAttendanceMode(
+        this ScheduleFilter b,
+        params ReadOnlySpan<AttendanceMode> attendanceModes)
     {
         b.GroupFilter.AttendanceMode = EnumBitArray<AttendanceMode>.From(attendanceModes);
         return b;
     }
+
     public static ScheduleFilter WithLessonRegularity(
         this ScheduleFilter b,
         params ReadOnlySpan<LessonRegularity> regularity)
@@ -226,8 +230,9 @@ public static class FilterHelper
             // filter is constant across lessons.
             var selections = ToPartitionKeys(filter.GroupFilter);
 
-            static (PartitionKey[]? SubGroup, PartitionKey[]? Specialization, PartitionKey[]? Alternative) ToPartitionKeys(
-                GroupFilter groupFilter)
+            static (PartitionKey[]? SubGroup, PartitionKey[]? Specialization, PartitionKey[]? Alternative)
+                ToPartitionKeys(
+                    GroupFilter groupFilter)
             {
                 return (
                     SubGroup: ToKeys(groupFilter.SubGroups, s => s),
@@ -282,16 +287,17 @@ public static class FilterHelper
 
                 bool PassesRegularityTest()
                 {
-                    if (!filter.IncludeRegularity.IsEmpty)
+                    if (filter.IncludeRegularity.IsEmpty)
                     {
-                        if (filter.IncludeRegularity.Contains(l.Regularity))
-                        {
-                            return true;
-                        }
-
-                        return false;
+                        return true;
                     }
-                    return true;
+
+                    if (filter.IncludeRegularity.Contains(l.Regularity))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool PassesGradeTest()
@@ -353,7 +359,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
-                    PartitionKey lessonValue = l.Lesson.GroupPartitionKey.GetPartitionDimension(dimension);
+                    var lessonValue = l.Lesson.GroupPartitionKey.GetPartitionDimension(dimension);
                     if (lessonValue.Value is null)
                     {
                         return true;
@@ -430,8 +436,10 @@ public static class FilterHelper
                     return dimension switch
                     {
                         PartitionDimension.SubGroup => null,
-                        PartitionDimension.Specialization => specializationCounts ??= CountObservedValues(schedule, dimension),
-                        PartitionDimension.Alternative => alternativeCounts ??= CountObservedValues(schedule, dimension),
+                        PartitionDimension.Specialization => specializationCounts ??=
+                            CountObservedValues(schedule, dimension),
+                        PartitionDimension.Alternative =>
+                            alternativeCounts ??= CountObservedValues(schedule, dimension),
                         _ => throw Unreachable(),
                     };
                 }
@@ -442,7 +450,7 @@ public static class FilterHelper
                     foreach (var l1 in schedule.EnumerateAllLessons())
                     {
                         ref readonly var lesson = ref l1.Lesson;
-                        PartitionKey value = lesson.GroupPartitionKey.GetPartitionDimension(dimension);
+                        var value = lesson.GroupPartitionKey.GetPartitionDimension(dimension);
                         if (value.Value is null)
                         {
                             continue;
@@ -482,6 +490,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
+
                     bool CheckId(GroupId groupId)
                     {
                         foreach (var x in l.Lesson.Groups)
@@ -493,6 +502,7 @@ public static class FilterHelper
                         }
                         return false;
                     }
+
                     foreach (var groupId1 in groupIds)
                     {
                         if (CheckId(groupId1))
@@ -515,16 +525,15 @@ public static class FilterHelper
                     }
 
                     var p = weekly.Date.Period;
+
                     bool CalculateConditionResult()
                     {
-                        if (p.IsUnspecified)
-                        {
-                            return filter.PeriodFilter.UnspecifiedIsAll;
-                        }
-                        else
+                        if (!p.IsUnspecified)
                         {
                             return false;
                         }
+
+                        return filter.PeriodFilter.UnspecifiedIsAll;
                     }
 
                     bool conditionResult = CalculateConditionResult();
@@ -534,20 +543,18 @@ public static class FilterHelper
                     {
                         return true;
                     }
+
                     if (p == filter.PeriodFilter.PeriodId)
                     {
                         return true;
                     }
+
                     return false;
                 }
 
                 bool PassesLessonFilter()
                 {
-                    if (LessonTypeFilter())
-                    {
-                        return true;
-                    }
-                    return false;
+                    return LessonTypeFilter();
 
                     bool LessonTypeFilter()
                     {
@@ -555,10 +562,12 @@ public static class FilterHelper
                         {
                             return true;
                         }
+
                         if (l.Lesson.Type == lessonType)
                         {
                             return true;
                         }
+
                         return false;
                     }
                 }
@@ -574,6 +583,7 @@ public static class FilterHelper
                     {
                         return true;
                     }
+
                     return false;
                 }
             }
@@ -656,7 +666,6 @@ public static class FilterHelper
                 }
                 return max1;
             }
-
         }
 
         // TODO: Use bit sets
@@ -694,6 +703,9 @@ public static class FilterHelper
     }
 }
 
+/// <summary>One item from a grouping together with the schedule it was filtered into.</summary>
+public readonly record struct FilteredItem<T>(T Item, FilteredSchedule Schedule);
+
 // TODO: O(n^2), make this linear
 // TODO: Idk about this abstractions, think about this more.
 public sealed class FilterGrouping<T>
@@ -712,14 +724,13 @@ public sealed class FilterGrouping<T>
         _producer = producer;
     }
 
-    public IEnumerable<(T Item, FilteredSchedule Schedule)> Filter(Schedule schedule)
+    public IEnumerable<FilteredItem<T>> Filter(Schedule schedule)
     {
         foreach (var it in _items)
         {
             var filter = _producer(it, _default);
             var ret = schedule.Filter(filter);
-            yield return (it, ret);
+            yield return new(it, ret);
         }
     }
 }
-

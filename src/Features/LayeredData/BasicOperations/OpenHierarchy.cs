@@ -23,7 +23,9 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x, y: y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+                y: y,
+                out bool b))
         {
             return b;
         }
@@ -34,7 +36,9 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
             return false;
         }
 
-        var ret = KeyEqualityCallHelper.CompareUsingService(_serviceProvider, x: x, y: y);
+        var ret = KeyEqualityCallHelper.CompareUsingService(_serviceProvider,
+            x: x,
+            y: y);
         return ret;
     }
 
@@ -66,7 +70,9 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsDefault(x: x, y: y, out bool bothDefault))
+        if (ComparisonHelper.AtLeastOneIsDefault(x: x,
+                y: y,
+                out bool bothDefault))
         {
             return bothDefault;
         }
@@ -97,7 +103,6 @@ public static class KeyEqualityComparer
     private static KeyEqualityComparer<T, TProperty> Create<T, TProperty>(
         Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
-
         where TProperty : notnull
     {
         return new(keyGetter, propertyComparer);
@@ -108,7 +113,6 @@ public static class KeyEqualityComparer
         public void AddKeyEqualityComparer<T, TProperty>(
             Func<T, TProperty?> keyGetter,
             IEqualityComparer<TProperty>? propertyComparer = null)
-
             where TProperty : notnull
         {
             var s = Create(keyGetter, propertyComparer);
@@ -145,7 +149,6 @@ public readonly struct OpenHierarchyConfigurer<TBase>(IServiceCollection service
     public void AddKeyEqualityComparer<TProperty>(
         Func<TBase, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
-
         where TProperty : notnull
     {
         services.AddKeyEqualityComparer(keyGetter, propertyComparer);
@@ -164,7 +167,6 @@ public readonly struct DerivedTypeConfig<T>(IServiceCollection services)
     public DerivedTypeConfig<T> AddKeyEqualityComparer<TProperty>(
         Func<T, TProperty?> keyGetter,
         IEqualityComparer<TProperty>? propertyComparer = null)
-
         where TProperty : notnull
     {
         services.AddKeyEqualityComparer(keyGetter, propertyComparer);
@@ -181,6 +183,7 @@ public sealed class OpenHierarchyOptions
         var list = HierarchyRootToDerived.GetOrAdd(root, _ => new());
         _ = list;
     }
+
     public void AddDerivedType(Type root, Type derived)
     {
         HierarchyRootToDerived[root].Add(derived);
@@ -238,7 +241,9 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
         }
         // Types match.
         {
-            var ret = CallMergerHelper.MergeUsingService(_sp, @from: from, @into: into);
+            var ret = CallMergerHelper.MergeUsingService(_sp,
+                @from: from,
+                @into: into);
             return ret;
         }
     }
@@ -247,17 +252,27 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
 // This code is so shit I'm losing my mind.
 internal static class KeyEqualityCallHelper
 {
-    public static bool CompareUsingService(IServiceProvider sp, object x, object y)
+    public static bool CompareUsingService(
+        IServiceProvider sp,
+        object x,
+        object y)
     {
         var comparer = GetService(sp, x);
-        return Compare(comparer: comparer, x: x, y: y);
+        return Compare(comparer: comparer,
+            x: x,
+            y: y);
     }
 
-    public static bool Compare(object comparer, object x, object y)
+    public static bool Compare(
+        object comparer,
+        object x,
+        object y)
     {
         var comparerType = comparer.GetType();
         var compareDelegate = _compareCallHelper.Get(comparerType);
-        return compareDelegate(comparer: comparer, x: x, y: y);
+        return compareDelegate(comparer: comparer,
+            x: x,
+            y: y);
     }
 
     public static int GetHashCodeUsingService(IServiceProvider sp, object x)
@@ -281,15 +296,28 @@ internal static class KeyEqualityCallHelper
         return comparer;
     }
 
-    private delegate bool CompareDelegate(object comparer, object x, object y);
+    private delegate bool CompareDelegate(
+        object comparer,
+        object x,
+        object y);
 
     private static readonly MethodInfo _compareGenericMethod = typeof(KeyEqualityCallHelper)
         .GetMethod(nameof(Compare1), BindingFlags.NonPublic | BindingFlags.Static)!;
-    private static bool Compare1<T>(object comparer, object x, object y)
+
+    private static bool Compare1<T>(
+        object comparer,
+        object x,
+        object y)
     {
-        Debug.Assert(comparer.GetType().IsAssignableTo(typeof(IKeyEqualityComparer<T>)));
-        Debug.Assert(x.GetType().IsAssignableTo(typeof(T)));
-        Debug.Assert(y.GetType().IsAssignableTo(typeof(T)));
+        Debug.Assert(
+            comparer.GetType().IsAssignableTo(typeof(IKeyEqualityComparer<T>)),
+            "The comparer value must support the IKeyEqualityComparer<T> contract.");
+        Debug.Assert(
+            x.GetType().IsAssignableTo(typeof(T)),
+            "The x value must support the T contract.");
+        Debug.Assert(
+            y.GetType().IsAssignableTo(typeof(T)),
+            "The y value must support the T contract.");
         var comparer1 = (IKeyEqualityComparer<T>) comparer;
         var x1 = (T) x;
         var y1 = (T) y;
@@ -305,10 +333,15 @@ internal static class KeyEqualityCallHelper
 
     private static readonly MethodInfo _getHashCodeGenericMethod = typeof(KeyEqualityCallHelper)
         .GetMethod(nameof(GetHashCode1), BindingFlags.NonPublic | BindingFlags.Static)!;
+
     private static int GetHashCode1<T>(object comparer, object x)
     {
-        Debug.Assert(comparer.GetType().IsAssignableTo(typeof(IKeyEqualityComparer<T>)));
-        Debug.Assert(x.GetType().IsAssignableTo(typeof(T)));
+        Debug.Assert(
+            comparer.GetType().IsAssignableTo(typeof(IKeyEqualityComparer<T>)),
+            "The comparer value must support the IKeyEqualityComparer<T> contract.");
+        Debug.Assert(
+            x.GetType().IsAssignableTo(typeof(T)),
+            "The x value must support the T contract.");
         var comparer1 = (IKeyEqualityComparer<T>) comparer;
         var x1 = (T) x;
         var ret = comparer1.GetHashCode(x1);

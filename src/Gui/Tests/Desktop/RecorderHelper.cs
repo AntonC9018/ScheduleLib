@@ -98,6 +98,7 @@ public abstract class EventRecorder : IDisposable
 {
     public string? Name { get; set; }
     public override string? ToString() => Name;
+
     public virtual void Dispose()
     {
         GC.SuppressFinalize(this);
@@ -133,8 +134,8 @@ public sealed class PropertyChangedRecorder : EventRecorderBase<PropertyChangedE
 
     public void Update(object? o, PropertyChangedEventArgs? args)
     {
-        global::Desktop.Tests.EventRecorderSource eventRecorderSource = _s;
-        global::Desktop.Tests.Ev ev = new(this, args);
+        var eventRecorderSource = _s;
+        Ev ev = new(this, args);
         eventRecorderSource.AddEvent(ev);
     }
 
@@ -160,8 +161,8 @@ public sealed class CanExecuteChangedRecorder : EventRecorderBase<EventArgs>
 
     public void Update(object? o, EventArgs? args)
     {
-        global::Desktop.Tests.EventRecorderSource eventRecorderSource = _s;
-        global::Desktop.Tests.Ev ev = new(this, args);
+        var eventRecorderSource = _s;
+        Ev ev = new(this, args);
         eventRecorderSource.AddEvent(ev);
     }
 
@@ -183,7 +184,6 @@ public static partial class RecorderHelper
     }
 }
 
-
 public sealed partial class EventRecorder<T> : EventRecorderBase<T>
 {
     private readonly EventSubscription<T> _eventSub;
@@ -194,8 +194,8 @@ public sealed partial class EventRecorder<T> : EventRecorderBase<T>
     {
         _eventSub = e.Sub(x =>
         {
-            global::Desktop.Tests.EventRecorderSource eventRecorderSource = source;
-            global::Desktop.Tests.Ev ev = new(this, x);
+            var eventRecorderSource = source;
+            Ev ev = new(this, x);
             eventRecorderSource.AddEvent(ev);
         });
     }
@@ -257,8 +257,10 @@ public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
         {
             return x => f(x.GetPayload<T>());
         }
-        Assert.Collection(Events, a.Select(Wrapped)
-            .ToArray());
+
+        Assert.Collection(Events,
+            a.Select(Wrapped)
+                .ToArray());
     }
 }
 

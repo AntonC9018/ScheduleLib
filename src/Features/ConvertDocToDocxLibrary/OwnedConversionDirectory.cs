@@ -13,7 +13,7 @@ public sealed class OwnedConversionDirectory : IDisposable
         string toString = Guid.NewGuid()
             .ToString("N");
         string text = $"schedulelib-doc-{toString}";
-        string path2 = (string) text;
+        string path2 = text;
         var path = Path.Combine(path1, path2);
         Directory.CreateDirectory(path);
         return new OwnedConversionDirectory(path);

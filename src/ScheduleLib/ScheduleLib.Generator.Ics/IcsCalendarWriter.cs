@@ -35,9 +35,9 @@ public static class IcsCalendarWriter
     public static void Write(Stream output, IcsCalendar calendar)
     {
         // No BOM: some importers treat one as part of the first property name.
-        global::System.Text.UTF8Encoding CalculateEncoding()
+        UTF8Encoding CalculateEncoding()
         {
-            global::System.Text.UTF8Encoding encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             return encoding;
         }
 
@@ -49,7 +49,7 @@ public static class IcsCalendarWriter
 
         writer.WriteLine("BEGIN:VCALENDAR");
         writer.WriteLine("VERSION:2.0");
-        global::System.IO.StreamWriter streamWriter = writer;
+        var streamWriter = writer;
         string value2 = $"PRODID:{ProdId}";
         streamWriter.WriteLine(value2);
         writer.WriteLine("CALSCALE:GREGORIAN");
@@ -57,7 +57,7 @@ public static class IcsCalendarWriter
         WriteEscapedLine(writer,
             name: "X-WR-CALNAME",
             value: calendar.Name);
-        global::System.IO.StreamWriter streamWriter2 = writer;
+        var streamWriter2 = writer;
         string value3 = $"X-WR-TIMEZONE:{calendar.TimeZoneId}";
         streamWriter2.WriteLine(value3);
 
@@ -86,7 +86,7 @@ public static class IcsCalendarWriter
         WriteEscapedLine(writer,
             name: "UID",
             value: e.Uid ?? DefaultUid(calendar, e));
-        global::System.IO.StreamWriter streamWriter = writer;
+        var streamWriter = writer;
         string formatUtc = FormatUtc(dtStamp);
         string value2 = $"DTSTAMP:{formatUtc}";
         streamWriter.WriteLine(value2);
@@ -135,7 +135,7 @@ public static class IcsCalendarWriter
         byte[] hash = SHA256.HashData(source);
         string toHexString = Convert.ToHexString(hash);
         string text = $"{toHexString}@schedulelib";
-        string text2 = (string) text;
+        string text2 = text;
         return text2;
     }
 
@@ -215,7 +215,7 @@ public static class IcsCalendarWriter
 
             bool CheckCondition()
             {
-                if (!(char.IsHighSurrogate(line[i])))
+                if (!char.IsHighSurrogate(line[i]))
                 {
                     return false;
                 }
@@ -225,12 +225,12 @@ public static class IcsCalendarWriter
                     return false;
                 }
 
-                if (!(char.IsLowSurrogate(line[i + 1])))
+                if (char.IsLowSurrogate(line[i + 1]))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             if (CheckCondition())
@@ -297,7 +297,7 @@ public static class IcsCalendarWriter
         }
 
         writer.WriteLine("BEGIN:VTIMEZONE");
-        global::System.IO.StreamWriter streamWriter = writer;
+        var streamWriter = writer;
         string value = $"TZID:{timeZoneId}";
         streamWriter.WriteLine(value);
         writer.WriteLine("BEGIN:STANDARD");

@@ -47,11 +47,13 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
         {
             return true;
         }
-        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: x.Patronymic, y: y.Patronymic))
+
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: x.Patronymic, y: y.Patronymic))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     public int GetHashCode(Name obj)

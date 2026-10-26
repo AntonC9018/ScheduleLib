@@ -125,11 +125,11 @@ public static class EnumConverterExtensions
         var opts = new EnumConverterOptions<TMember>();
         configure?.Invoke(opts);
 
-        global::CsvHelper.Configuration.MemberMap<TClass, TMember> memberMap = map;
-        global::ScheduleLib.Application.Core.Topics.ConfigurableEnumConverter<TMember> typeConverter =
+        var memberMap = map;
+        var typeConverter =
             new ConfigurableEnumConverter<TMember>(opts);
-        global::CsvHelper.TypeConversion.ITypeConverter typeConverter2 = typeConverter;
-        global::CsvHelper.Configuration.MemberMap<TClass, TMember> typeConverter3 =
+        ITypeConverter typeConverter2 = typeConverter;
+        var typeConverter3 =
             memberMap.TypeConverter(typeConverter2);
         return typeConverter3;
     }

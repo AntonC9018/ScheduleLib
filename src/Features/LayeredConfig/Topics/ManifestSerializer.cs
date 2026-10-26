@@ -100,7 +100,6 @@ public sealed class NoTeacherNameException : TeacherNameManifestException
     public NoTeacherNameException()
         : base("No teacher name has been found either as a directly provided value or in the manifest")
     {
-
     }
 }
 
@@ -123,6 +122,7 @@ public sealed class Manifest
     internal Manifest()
     {
     }
+
     public Name? Teacher { get; set; } = null!;
     public string? FileNameWithoutExtension { get; set; }
     public required List<Document> Documents { get; set; }
@@ -132,6 +132,7 @@ public sealed class Document
 {
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<string>? Groups { get; set; }
+
     public int? Semester { get; set; }
     public bool WholeGroupOnly { get; set; }
     public string? SubGroup { get; set; }
@@ -140,14 +141,18 @@ public sealed class Document
     public bool AllowMissingLessonTypes { get; set; }
     public required string Path { get; set; }
     public string? Series { get; set; }
+
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public required List<string> Course { get; set; }
+
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Faculty>? Faculty { get; set; }
+
     public EnumBitArray<AttendanceMode> Attendance { get; set; }
     public LessonType? LessonType { get; set; }
     public Language? Language { get; set; }
     public string? Delimiter { get; set; }
+
     [JsonConverter(typeof(SingleValueOrArrayConverter))]
     public List<Grade>? Grade { get; set; }
 }

@@ -23,22 +23,22 @@ public static class CliExit
     {
         bool CheckCondition()
         {
-            if (!(effects))
+            if (!effects)
             {
                 return false;
             }
 
-            if (!(exit != Success))
+            if (exit == Success)
             {
                 return false;
             }
 
-            if (!(exit != Cancelled))
+            if (exit != Cancelled)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         if (CheckCondition())
@@ -51,6 +51,13 @@ public static class CliExit
 
 public sealed record CliFailure(int ExitCode, string[] Errors);
 
+/// <summary>One streamed progress update, with pre-rendered text for human output.</summary>
+public readonly record struct StreamedUpdate(
+    string Id,
+    string Status,
+    object? Item,
+    string Human);
+
 /// <summary>Owns one invocation's output, cancellation, warnings and published artifacts.</summary>
 public sealed class CliCommandContext : IDisposable
 {
@@ -60,7 +67,10 @@ public sealed class CliCommandContext : IDisposable
     private bool _started;
 
     private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
 
     public CliCommandContext(
         string command,
@@ -97,14 +107,12 @@ public sealed class CliCommandContext : IDisposable
     {
         bool CalculateConditionResult()
         {
-            if (Output.Json)
-            {
-                return Output.Jsonl;
-            }
-            else
+            if (!Output.Json)
             {
                 return false;
             }
+
+            return Output.Jsonl;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -129,19 +137,17 @@ public sealed class CliCommandContext : IDisposable
     {
         bool CalculateConditionResult()
         {
-            if (cancellation)
+            if (!cancellation)
             {
-                if (exit == CliExit.Cancelled)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (exit == CliExit.Cancelled)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -155,21 +161,20 @@ public sealed class CliCommandContext : IDisposable
         {
             return success;
         }
+
         bool CalculateConditionResult2()
         {
             if (partial)
             {
                 return true;
             }
-            else
-            {
-                if (exit == CliExit.Partial)
-                {
-                    return true;
-                }
 
-                return false;
+            if (exit == CliExit.Partial)
+            {
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult2 = CalculateConditionResult2();
@@ -179,6 +184,7 @@ public sealed class CliCommandContext : IDisposable
         {
             return "partial";
         }
+
         return "failed";
     }
 
@@ -280,7 +286,7 @@ public sealed class CliCommandContext : IDisposable
         return services;
     }
 
-    public void StreamUpdate((string Id, string Status, object? Item, string Human) update)
+    public void StreamUpdate(StreamedUpdate update)
     {
         StreamItem(
             id: update.Id,
@@ -326,17 +332,19 @@ public sealed class CliCommandContext : IDisposable
         }
         while (_streamed < Artifacts.PublishedPaths.Count)
         {
-            global::System.Collections.Generic.List<string> list = Artifacts.PublishedPaths;
+            var list = Artifacts.PublishedPaths;
             int index = _streamed++;
             var path = list[index];
             Output.WriteHuman(path);
-            global::ScheduleLib.Cli.CliOutput cliOutput = Output;
+            var cliOutput = Output;
             string text = $"artifact:{path}";
-            string id2 = (string) text;
+            string id2 = text;
             string status2 = "completed";
             object item = new { path };
             cliOutput.EmitItem(
-                id: id2, status: status2, item);
+                id: id2,
+                status: status2,
+                item);
         }
     }
 
@@ -356,7 +364,7 @@ public sealed class CliCommandContext : IDisposable
                         }
                         catch (Exception error)
                         {
-                            global::System.Collections.Generic.List<string> list = Warnings;
+                            var list = Warnings;
                             string item = $"Could not publish partial output manifest: {error.Message}";
                             list.Add(item);
                         }

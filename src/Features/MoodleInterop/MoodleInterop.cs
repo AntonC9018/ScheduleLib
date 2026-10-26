@@ -18,12 +18,14 @@ public sealed class MoodleScrapingContext : IDisposable
     }
 
     private const string BaseUrl = "https://elearning.usm.md";
+
     internal static readonly TokenNamesConfig Names = new()
     {
         BaseUrl = new(BaseUrl),
         LoginUrl = new(CalculateUriString()),
         TokenCookieName = new("MoodleSessionusmmd"),
     };
+
     internal static readonly PasswordLoginFormConfig TokenRetrieverConfig = new()
     {
         LoginName = new("username"),
@@ -39,13 +41,12 @@ public sealed class MoodleScrapingContext : IDisposable
         HttpClientContext? httpContext = null)
     {
         var builder = new ScrapingContextBuilder();
-        global::ScheduleLib.Scraping.Common.ScrapingContextBuilder scrapingContextBuilder = builder;
-        global::System.TimeSpan delay = TimeSpan.FromSeconds(0.4);
+        var scrapingContextBuilder = builder;
+        var delay = TimeSpan.FromSeconds(0.4);
         scrapingContextBuilder.Delay(delay);
         builder.AddConfig(Names);
         builder.AddConfig(TokenRetrieverConfig);
-        builder.TokenAuth(
-            f => f.PasswordLoginForm(credentials));
+        builder.TokenAuth(f => f.PasswordLoginForm(credentials));
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         var context = await builder.Build(cancellationToken, httpContext);
         return new MoodleScrapingContext(context);
@@ -113,5 +114,4 @@ public static class MoodleInterop
         await xml.SaveForDebug();
         return;
     }
-
 }

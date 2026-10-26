@@ -6,8 +6,11 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace ScheduleLib.Application.Core.ExcelBuilder;
 
 public readonly record struct FontId(uint Value);
+
 public readonly record struct FillId(uint Value);
+
 public readonly record struct BorderId(uint Value);
+
 public readonly record struct CellFormatId(uint Value);
 
 public readonly struct StylesheetBuilder : IDisposable
@@ -34,28 +37,29 @@ public readonly struct StylesheetBuilder : IDisposable
 
     public FontId Font(Action<Font> configure)
     {
-        var (id, font) = _fonts.Next();
-        configure(font);
-        return new(id);
+        var entry = _fonts.Next();
+        configure(entry.Element);
+        return new(entry.Id);
     }
 
     public FillId Fill(Action<Fill> configure)
     {
-        var (id, fill) = _fills.Next();
-        configure(fill);
-        return new(id);
+        var entry = _fills.Next();
+        configure(entry.Element);
+        return new(entry.Id);
     }
 
     public BorderId Border(Action<Border> configure)
     {
-        var (id, border) = _borders.Next();
-        configure(border);
-        return new(id);
+        var entry = _borders.Next();
+        configure(entry.Element);
+        return new(entry.Id);
     }
 
     public CellFormatId CellFormat(Action<CellFormat> configure)
     {
-        var (id, cellFormat) = _cellFormats.Next();
+        var entry = _cellFormats.Next();
+        var cellFormat = entry.Element;
         configure(cellFormat);
 
         if (cellFormat.Alignment != null && cellFormat.ApplyAlignment == null)
@@ -75,10 +79,10 @@ public readonly struct StylesheetBuilder : IDisposable
             cellFormat.ApplyBorder = true;
         }
 
-        return new(id);
+        return new(entry.Id);
     }
 
-    internal (uint Id, OpenXmlElement Obj) Next(StylesheetResource resource)
+    internal StylesheetResourceEntry<OpenXmlElement> Next(StylesheetResource resource)
     {
         INext inext = resource switch
         {
@@ -158,15 +162,20 @@ public enum StylesheetResource
     CellFormat,
 }
 
+/// <summary>
+/// A stylesheet resource that was appended to its collection, together with the
+/// index the stylesheet uses to refer to it.
+/// </summary>
+public readonly record struct StylesheetResourceEntry<TElement>(uint Id, TElement Element)
+    where TElement : OpenXmlElement;
+
 internal interface INext
 {
-    (uint Id, OpenXmlElement Obj) Next();
+    StylesheetResourceEntry<OpenXmlElement> Next();
 }
 
 public abstract class CountedAdderBase<T, TItem>
-
     : INext
-
     where T : OpenXmlCompositeElement, new()
     where TItem : OpenXmlElement, new()
 {
@@ -183,24 +192,25 @@ public abstract class CountedAdderBase<T, TItem>
         return _index != 0;
     }
 
-    (uint Id, OpenXmlElement Obj) INext.Next()
+    StylesheetResourceEntry<OpenXmlElement> INext.Next()
     {
-        return Next();
+        var entry = Next();
+        return new(entry.Id, entry.Element);
     }
 
-    public (uint Id, TItem Item) Next()
+    public StylesheetResourceEntry<TItem> Next()
     {
         var ret = new TItem();
         Element.Append(ret);
         var id = _index;
         _index++;
-        return (id, ret);
+        return new(id, ret);
     }
 
     public virtual TItem AppendDefault()
     {
-        (_, var it) = Next();
-        return it;
+        var entry = Next();
+        return entry.Element;
     }
 }
 

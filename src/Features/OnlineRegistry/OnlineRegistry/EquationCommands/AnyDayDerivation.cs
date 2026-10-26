@@ -57,5 +57,3 @@ public sealed class AnyDayDerivation : IEquationCommandsDerivation
         }
     }
 }
-
-

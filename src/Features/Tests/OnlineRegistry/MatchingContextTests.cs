@@ -4,12 +4,65 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class MatchingContextTests
 {
-    private static DateTime DT1 => new(year: 2025, month: 1, day: 1);
-    private static DateTime DT2 => new(year: 2025, month: 1, day: 2);
-    private static DateTime DT3 => new(year: 2025, month: 1, day: 3);
-    private static DateTime DT4 => new(year: 2025, month: 1, day: 4);
-    private static DateTime DT5 => new(year: 2025, month: 1, day: 5);
-    private static DateTime DT6 => new(year: 2025, month: 1, day: 6);
+    private static DateTime DT1
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 1);
+        }
+    }
+
+    private static DateTime DT2
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 2);
+        }
+    }
+
+    private static DateTime DT3
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 3);
+        }
+    }
+
+    private static DateTime DT4
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 4);
+        }
+    }
+
+    private static DateTime DT5
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 5);
+        }
+    }
+
+    private static DateTime DT6
+    {
+        get
+        {
+            return new(year: 2025,
+                month: 1,
+                day: 6);
+        }
+    }
 
     [Fact]
     public void BasicCombinationsTest()
@@ -42,11 +95,12 @@ public sealed class MatchingContextTests
         lists.AddExisting(DT6);
 
         var context = lists.CreateContext();
-        global::ScheduleLib.OnlineRegistry.Impl.Mapping CalculateM()
+
+        Mapping CalculateM()
         {
-            global::ScheduleLib.OnlineRegistry.Impl.Mapping m = new(
-                        AllIndex: 1,
-                        ExistingIndex: 2);
+            Mapping m = new(
+                AllIndex: 1,
+                ExistingIndex: 2);
             return m;
         }
 
@@ -164,4 +218,3 @@ file static class Extensions
         Assert.False(e.MoveNext());
     }
 }
-

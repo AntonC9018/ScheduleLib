@@ -114,7 +114,9 @@ public sealed class GroupPartitionInfo
     // This stores the permitted subset only, not the raw observed set, so it
     // diverges from FilteredSchedule raw observed counts by design.
     public required ImmutableArray<Specialization> PermittedSpecializations { get; init; }
+
     public bool SpecializationActive => PermittedSpecializations.Length >= 2;
+
     // Same activation rule for the alternative partition.
     public required ImmutableArray<Alternative> ObservedAlternatives { get; init; }
     public bool AlternativeActive => ObservedAlternatives.Length >= 2;
@@ -152,7 +154,7 @@ public sealed class GroupPartitionInfo
         }
 
         if (combination.Alternative is { } selected
-           && selected == lesson.Alternative)
+            && selected == lesson.Alternative)
         {
             return true;
         }
@@ -173,7 +175,7 @@ public sealed class GroupPartitionInfo
         }
 
         if (combination.Specialization is { } selected
-           && selected == lesson.Specialization)
+            && selected == lesson.Specialization)
         {
             return true;
         }
@@ -268,7 +270,7 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 numeric[groupId].Add(number);
             }
-            else if (SpecialSubGroups.IsLanguageSubGroup(subGroup))
+            else if (subGroup.IsLanguageSubGroup())
             {
                 languages[groupId].Add(subGroup);
             }
@@ -318,26 +320,36 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             // dimension fans out into three combination axes; the other two
             // dimensions map one-to-one onto PartitionDimension.
             var combinations = new List<GroupCombination> { default };
-            combinations = Expand(combinations, altValues, (c, v) => c with
-            {
-                Alternative = v,
-            });
-            combinations = Expand(combinations, specValues, (c, v) => c with
-            {
-                Specialization = v,
-            });
-            combinations = Expand(combinations, nums, (c, v) => c with
-            {
-                Numeric = v,
-            });
-            combinations = Expand(combinations, profValues, (c, v) => c with
-            {
-                Proficiency = v,
-            });
-            combinations = Expand(combinations, langs, (c, v) => c with
-            {
-                Language = v,
-            });
+            combinations = Expand(combinations,
+                altValues,
+                (c, v) => c with
+                {
+                    Alternative = v,
+                });
+            combinations = Expand(combinations,
+                specValues,
+                (c, v) => c with
+                {
+                    Specialization = v,
+                });
+            combinations = Expand(combinations,
+                nums,
+                (c, v) => c with
+                {
+                    Numeric = v,
+                });
+            combinations = Expand(combinations,
+                profValues,
+                (c, v) => c with
+                {
+                    Proficiency = v,
+                });
+            combinations = Expand(combinations,
+                langs,
+                (c, v) => c with
+                {
+                    Language = v,
+                });
 
             // A group with no active partition has no suffixed combinations at all;
             // it only gets its whole-group schedule.
@@ -390,8 +402,8 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 foreach (var value in values)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.GroupCombination> list = next;
-                    global::ScheduleLib.GroupCombination item = apply(seed, value);
+                    var list = next;
+                    var item = apply(seed, value);
                     list.Add(item);
                 }
             }

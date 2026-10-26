@@ -11,15 +11,18 @@ public delegate void ImportedLessonHandler(ImportedLessonInput input);
 
 public static class PdfScheduleImporter
 {
+    /// <summary>A group column header and its horizontal center within the table.</summary>
+    private readonly record struct ColumnHeader(string Name, double Center);
+
     private static readonly Regex Group = new(@"^(?:DU-)?[A-Z]+\d{4}\((?:ro|ru|en)\)$");
     private static readonly Regex Time = new(@"^[IV]+\s+(\d{1,2}:\d{2})-\d{1,2}:\d{2}$");
 
     public static IReadOnlyList<PdfScheduleCell> Read(Stream pdf, string source)
     {
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleTable> tables =
+        var tables =
             PdfTableReader.Read(pdf);
         string source2 = source;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> resolve =
+        var resolve =
             Resolve(tables, source2);
         return resolve;
     }
@@ -30,11 +33,11 @@ public static class PdfScheduleImporter
         string source,
         ImportedLessonHandler? addLesson = null)
     {
-        global::ScheduleLib.Parsing.ScheduleImportContext context2 = context;
-        global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells =
+        var context2 = context;
+        var cells =
             Read(pdf, source);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell> cells2 = cells;
-        global::ScheduleLib.Import.Pdf.ImportedLessonHandler? addLesson2 = addLesson;
+        IEnumerable<PdfScheduleCell> cells2 = cells;
+        var addLesson2 = addLesson;
         Import(context2,
             cells2,
             addLesson2);
@@ -43,7 +46,7 @@ public static class PdfScheduleImporter
     public static IReadOnlyList<PdfScheduleCell> Resolve(IReadOnlyList<PdfScheduleTable> tables, string source)
     {
         var result = new List<PdfScheduleCell>();
-        (string Name, double Center)[] columns = [];
+        ColumnHeader[] columns = [];
         var dayParser = new DayNameParser(new());
         foreach (var table in tables)
         {
@@ -67,14 +70,14 @@ public static class PdfScheduleImporter
                 .ToArray();
             if (headers.Length > 0)
             {
-                (string Name, double Center) ProjectValue(global::ScheduleLib.Import.Pdf.PdfTableCell c)
+                ColumnHeader ProjectValue(PdfTableCell c)
                 {
                     string operationValue = c.Text;
                     double operationValue2 = c.Bounds.CenterX - left;
-                    double operationValue3 = (operationValue2);
+                    double operationValue3 = operationValue2;
                     double operationValue4 = right - left;
-                    double operationValue5 = operationValue3 / (operationValue4);
-                    return (Name: operationValue, Center: operationValue5);
+                    double operationValue5 = operationValue3 / operationValue4;
+                    return new(operationValue, operationValue5);
                 }
 
                 columns = headers.Select(ProjectValue)
@@ -179,13 +182,13 @@ public static class PdfScheduleImporter
                 int page = table.Page;
                 string[] groups2 = groups;
                 string day2 = day[0].Text;
-                global::System.Text.RegularExpressions.Match match = Time.Match(time[0].Text);
-                global::System.Text.RegularExpressions.GroupCollection groupCollection = match.Groups;
+                var match = Time.Match(time[0].Text);
+                var groupCollection = match.Groups;
                 int groupnum = 1;
                 string start = groupCollection[groupnum].Value;
                 string text = PdfTextNormalizer.Normalize(cell.Text);
                 string rawText = cell.Text;
-                global::ScheduleLib.Import.Pdf.PdfBox bounds = box;
+                var bounds = box;
                 var resolved = new PdfScheduleCell(Source: source2,
                     page,
                     groups2,
@@ -194,12 +197,12 @@ public static class PdfScheduleImporter
                     Text: text,
                     RawText: rawText,
                     Bounds: bounds);
-                global::System.Collections.Generic.List<global::ScheduleLib.Import.Pdf.PdfScheduleCell> list = result;
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                var list = result;
+                var
                     expandCohorts = PdfTextNormalizer.ExpandCohorts(resolved);
-                global::System.Func<global::ScheduleLib.Import.Pdf.PdfScheduleCell,
-                    global::ScheduleLib.Import.Pdf.PdfScheduleCell> selector = PdfTextNormalizer.RepairMissingParity;
-                global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Import.Pdf.PdfScheduleCell>
+                Func<PdfScheduleCell,
+                    PdfScheduleCell> selector = PdfTextNormalizer.RepairMissingParity;
+                var
                     collection = expandCohorts.Select(selector);
                 list.AddRange(collection);
             }
@@ -235,11 +238,11 @@ public static class PdfScheduleImporter
                     }
                     var groups = names.Select(g => context.Schedule.Group(g).Id)
                         .ToArray();
-                    global::ScheduleLib.Parsing.Lesson.ParsedLesson lesson2 = lesson;
-                    global::System.DayOfWeek day2 = day;
-                    global::TimeSlot timeSlot = time;
-                    global::System.Collections.Generic.IReadOnlyList<global::ScheduleLib.GroupId> groups2 = groups;
-                    global::ScheduleLib.Alternative alternative = new(cell.Alternative);
+                    var lesson2 = lesson;
+                    var day2 = day;
+                    var timeSlot = time;
+                    IReadOnlyList<GroupId> groups2 = groups;
+                    Alternative alternative = new(cell.Alternative);
                     var input = new ImportedLessonInput(lesson2,
                         day2,
                         timeSlot,

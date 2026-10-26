@@ -26,16 +26,19 @@ public readonly struct UpdateActionsList<T> : IEnumerable<IUpdater<T>>
         }
         return (List<IUpdater<T>>) val;
     }
+
     public readonly List<IUpdater<T>>? MaybeList()
     {
-        if (_impl.UpdateActions is { } val)
+        if (!(_impl.UpdateActions is { } val))
         {
-            return (List<IUpdater<T>>) val;
+            return null;
         }
-        return null;
+
+        return (List<IUpdater<T>>) val;
     }
 
     public readonly bool IsEmpty => MaybeList() is not { } x || x.Count == 0;
+
     public readonly void Add(IUpdater<T> value)
     {
         List()
@@ -104,6 +107,7 @@ public readonly struct NodeDataContainer<T>
     private readonly MergeValueUpdater<T>? ValueHolder => (MergeValueUpdater<T>?) _impl.ValueHolder;
 
     public readonly T? GetValue() => (T?) _impl.GetValue();
+
     public readonly void SetValue(T value)
     {
         if (ValueHolder is not { } holder)
@@ -116,6 +120,7 @@ public readonly struct NodeDataContainer<T>
             holder.Value = value;
         }
     }
+
     public readonly UpdateActionsList<T> UpdateActions => new(_impl.Container);
 }
 
@@ -130,6 +135,7 @@ public readonly struct MaybeNodeDataContainer<T>
     }
 
     public bool Exists => _impl != default;
+
     public NodeDataContainer<T> Value
     {
         get

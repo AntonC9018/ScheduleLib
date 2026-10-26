@@ -40,8 +40,8 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         var initializer = helper.CreateServiceInitializer(credential);
         // Disable SDK exponential backoff too: lost create responses must not cause duplicate files.
         initializer.DefaultExponentialBackOffPolicy = Google.Apis.Http.ExponentialBackOffPolicy.None;
-        global::Google.Apis.Drive.v3.DriveService service = new DriveService(initializer);
-        global::ScheduleLib.Cli.GoogleDriveSyncProvider googleDriveSyncProvider = new GoogleDriveSyncProvider(service);
+        var service = new DriveService(initializer);
+        var googleDriveSyncProvider = new GoogleDriveSyncProvider(service);
         return googleDriveSyncProvider;
     }
 
@@ -65,7 +65,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            global::Google.Apis.Drive.v3.FilesResource.ListRequest listRequest = request;
+            var listRequest = request;
             string escape = Escape(name);
             string text = $"mimeType='application/vnd.google-apps.folder' and name='{escape}' and trashed=false";
             listRequest.Q = text;
@@ -99,7 +99,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            global::Google.Apis.Drive.v3.FilesResource.ListRequest listRequest = request;
+            var listRequest = request;
             string escape = Escape(folderId);
             string text = $"'{escape}' in parents and trashed=false";
             listRequest.Q = text;
@@ -176,12 +176,15 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         {
             string escapeDataString = Uri.EscapeDataString(fileId);
             string text2 = $"/{escapeDataString}";
-            text = (string) text2;
+            text = text2;
         }
 
-        string text3 = $"https://www.googleapis.com/upload/drive/v3/files{(text)}?uploadType=multipart&fields=id";
-        var uri = (string) text3;
-        using var request = new HttpRequestMessage(method, uri) { Content = multipart };
+        string text3 = $"https://www.googleapis.com/upload/drive/v3/files{text}?uploadType=multipart&fields=id";
+        var uri = text3;
+        using var request = new HttpRequestMessage(method, uri)
+        {
+            Content = multipart,
+        };
         using var response = await _service.HttpClient.SendAsync(request, token);
         if (!response.IsSuccessStatusCode)
         {

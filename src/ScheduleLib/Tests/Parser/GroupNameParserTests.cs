@@ -14,10 +14,23 @@ public sealed class GroupNameParserTests
     private Group Parse(string s) => _context.Parse(s.AsMemory());
 
     [Theory]
-    [InlineData("DU-IA2401(ro)", "IA", AttendanceMode.DualZi, Language.Ro)]
-    [InlineData("DU-DJ2401(ru)", "DJ", AttendanceMode.DualZi, Language.Ru)]
-    [InlineData("DU-IAFR2401(ru)", "IA", AttendanceMode.DualFr, Language.Ru)]
-    public void DualPrefixPreservesProgramAndAttendanceForm(string name, string faculty, AttendanceMode mode, Language language)
+    [InlineData("DU-IA2401(ro)",
+        "IA",
+        AttendanceMode.DualZi,
+        Language.Ro)]
+    [InlineData("DU-DJ2401(ru)",
+        "DJ",
+        AttendanceMode.DualZi,
+        Language.Ru)]
+    [InlineData("DU-IAFR2401(ru)",
+        "IA",
+        AttendanceMode.DualFr,
+        Language.Ru)]
+    public void DualPrefixPreservesProgramAndAttendanceForm(
+        string name,
+        string faculty,
+        AttendanceMode mode,
+        Language language)
     {
         var group = Parse(name);
         Assert.Equal(expected: faculty, actual: group.Faculty.Name);
@@ -31,7 +44,10 @@ public sealed class GroupNameParserTests
     [Fact]
     public void LegacyDualCodeNeedsAnExplicitProgramAlias()
     {
-        var builder = new ScheduleBuilder { GroupParseContext = _context };
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = _context,
+        };
         var unmapped = builder.ParseGroup("DU2501(ru)");
         Assert.Equal(expected: "DU", actual: unmapped.Faculty.Name);
         Assert.Equal(expected: AttendanceMode.Zi, actual: unmapped.AttendanceMode);
@@ -48,7 +64,10 @@ public sealed class GroupNameParserTests
     [Fact]
     public void AliasAndCanonicalCodeResolveToOneGroup()
     {
-        var builder = new ScheduleBuilder { GroupParseContext = _context };
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = _context,
+        };
         builder.EnableLookupModule();
         Config.ConfigureRemappings(builder.Remappings);
         var alias = builder.Group("DU2501(ro)");

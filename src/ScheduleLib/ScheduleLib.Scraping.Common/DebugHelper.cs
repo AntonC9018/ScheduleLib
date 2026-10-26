@@ -15,10 +15,14 @@ public static class DebugHelper
         {
             return $"temp.{ext}";
         }
+
         FileStream Open(string fileName)
         {
-            return new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            return new FileStream(fileName,
+                FileMode.Create,
+                FileAccess.Write);
         }
+
         string Ext()
         {
             return doc switch
@@ -28,6 +32,7 @@ public static class DebugHelper
                 _ => throw new InvalidOperationException(),
             };
         }
+
         string ext = Ext();
         string fileName = FileName(ext);
         await using var outputStream = Open(fileName);

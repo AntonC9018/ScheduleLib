@@ -8,43 +8,57 @@ namespace ScheduleLib.Helper.Expressions;
 /// <typeparam name="T">The captured value type</typeparam>
 public sealed record class Box<T>(T Value)
 {
-    public (ConstantExpression Constant, MemberExpression Member) MakeExpressions()
+    /// <summary>The constant that holds this box and the member access that reads its value.</summary>
+    public readonly record struct Expressions(ConstantExpression Constant, MemberExpression Member);
+
+    public Expressions MakeExpressions()
     {
         var constant = Expression.Constant(this);
-        global::System.Reflection.PropertyInfo CalculateMember()
+
+        System.Reflection.PropertyInfo CalculateMember()
         {
-            global::System.Reflection.PropertyInfo member2 = typeof(Box<T>)
-                        .GetProperty(nameof(Value))!;
+            var member2 = typeof(Box<T>)
+                .GetProperty(nameof(Value))!;
             return member2;
         }
 
         var member = Expression.MakeMemberAccess(constant, CalculateMember());
-        return (constant, member);
+        return new(constant, member);
     }
 }
 
 public sealed record class Box<T, U>(T Value1, U Value2)
 {
-    public (ConstantExpression Constant, MemberExpression Member1, MemberExpression Member2) MakeExpressions()
+    /// <summary>The constant that holds this box and the member accesses that read its values.</summary>
+    public readonly record struct Expressions(
+        ConstantExpression Constant,
+        MemberExpression Member1,
+        MemberExpression Member2);
+
+    public Expressions MakeExpressions()
     {
         var boxConstant = Expression.Constant(this);
-        global::System.Reflection.PropertyInfo CalculateMember()
+
+        System.Reflection.PropertyInfo CalculateMember()
         {
-            global::System.Reflection.PropertyInfo member = typeof(Box<T, U>)
-                        .GetProperty(nameof(Value1))!;
+            var member = typeof(Box<T, U>)
+                .GetProperty(nameof(Value1))!;
             return member;
         }
 
         var member1 = Expression.MakeMemberAccess(boxConstant, CalculateMember());
-        global::System.Reflection.PropertyInfo CalculateMember2()
+
+        System.Reflection.PropertyInfo CalculateMember2()
         {
-            global::System.Reflection.PropertyInfo member3 = typeof(Box<T, U>)
-                        .GetProperty(nameof(Value2))!;
+            var member3 = typeof(Box<T, U>)
+                .GetProperty(nameof(Value2))!;
             return member3;
         }
 
         var member2 = Expression.MakeMemberAccess(boxConstant, CalculateMember2());
-        return (boxConstant, member1, member2);
+        return new(boxConstant,
+            Member1: member1,
+            Member2: member2);
     }
 }
 

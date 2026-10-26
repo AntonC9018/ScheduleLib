@@ -47,27 +47,23 @@ public static class DriveBundle
                 ReportOmission = warnings.Add,
             });
         token.ThrowIfCancellationRequested();
+
         // Only this invocation's successfully published schedule artifacts, never directory enumeration or prior manifest entries.
-        global::ScheduleLib.Cli.DriveArtifact ProjectValue(string x)
+        DriveArtifact ProjectValue(string x)
         {
             string operationValue = Path.GetFileName(x);
             string operationValue2 = operationValue;
             string operationValue3 = x;
-            global::ScheduleLib.Cli.DriveArtifact operationValue4 = new DriveArtifact(Name: operationValue2, Path: operationValue3);
+            var operationValue4 = new DriveArtifact(Name: operationValue2, Path: operationValue3);
             return operationValue4;
         }
 
         return output.PublishedPaths.Where(x =>
-        {
-            string name = Path.GetFileName(x);
-            bool isScheduleArtifact = DriveSync.IsScheduleArtifact(name);
-            if (isScheduleArtifact)
             {
-                return true;
-            }
-
-            return false;
-        })
+                string name = Path.GetFileName(x);
+                bool isScheduleArtifact = DriveSync.IsScheduleArtifact(name);
+                return isScheduleArtifact;
+            })
             .Select(ProjectValue)
             .ToArray();
     }

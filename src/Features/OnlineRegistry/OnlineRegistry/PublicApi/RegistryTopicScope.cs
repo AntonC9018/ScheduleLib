@@ -51,11 +51,11 @@ internal static class RegistryTopicScope
         }
         ids.Sort((a, b) =>
         {
-            global::ScheduleLib.Group get = schedule.Get(a);
+            var get = schedule.Get(a);
             string strA2 = get.Name;
-            global::ScheduleLib.Group get2 = schedule.Get(b);
+            var get2 = schedule.Get(b);
             string strB2 = get2.Name;
-            global::System.StringComparison comparisonType = StringComparison.Ordinal;
+            var comparisonType = StringComparison.Ordinal;
             int comparison = string.Compare(strA: strA2,
                 strB: strB2,
                 comparisonType);
@@ -64,10 +64,10 @@ internal static class RegistryTopicScope
                 return comparison;
             }
 
-            global::ScheduleLib.Language CalculateTarget()
+            Language CalculateTarget()
             {
-                global::ScheduleLib.Group get3 = schedule.Get(b);
-                global::ScheduleLib.Language target = get3.Language;
+                var get3 = schedule.Get(b);
+                var target = get3.Language;
                 return target;
             }
 
@@ -86,7 +86,7 @@ internal static class RegistryTopicScope
             var group = schedule.Get(id);
             if (group.Language is Language.Ro or Language.Ru or Language.En)
             {
-                global::System.Collections.Generic.List<string> list = parents;
+                var list = parents;
                 string item = $"{group.Name} ({group.Language.GetName()})";
                 list.Add(item);
             }
@@ -100,21 +100,21 @@ internal static class RegistryTopicScope
         var tokens = new List<string>(3);
         if (!string.IsNullOrEmpty(partition.Alternative.Value))
         {
-            global::System.Collections.Generic.List<string> list2 = tokens;
+            var list2 = tokens;
             string text = $"/alt:{partition.Alternative.Value}";
-            string item2 = (string) text;
+            string item2 = text;
             list2.Add(item2);
         }
         if (!string.IsNullOrEmpty(partition.Specialization.Value))
         {
-            global::System.Collections.Generic.List<string> list3 = tokens;
+            var list3 = tokens;
             string text2 = $"/spec:{partition.Specialization.Value}";
-            string item3 = (string) text2;
+            string item3 = text2;
             list3.Add(item3);
         }
         if (!string.IsNullOrEmpty(partition.SubGroup.Value))
         {
-            global::System.Collections.Generic.List<string> list4 = tokens;
+            var list4 = tokens;
             string item4 = FormatSubGroupToken(partition.SubGroup.Value!);
             list4.Add(item4);
         }
@@ -127,7 +127,7 @@ internal static class RegistryTopicScope
         {
             return string.Join(" ", tokens);
         }
-        return (string) $"{basePart} {string.Join(" ", tokens)}";
+        return $"{basePart} {string.Join(" ", tokens)}";
     }
 
     private static string FormatSubGroupToken(string value)
@@ -141,12 +141,12 @@ internal static class RegistryTopicScope
         if (LanguageHelper.ParseName(value.AsSpan()) is { } language
             && language is Language.Ro or Language.Ru or Language.En)
         {
-            return (string) $"/{language.GetName()}";
+            return $"/{language.GetName()}";
         }
         var upper = value.ToUpperInvariant();
         if (NumberHelper.FromRoman(upper.AsSpan()) is not null)
         {
-            return (string) $"/{upper}";
+            return $"/{upper}";
         }
         if (int.TryParse(value, out int arabic))
         {
@@ -156,12 +156,12 @@ internal static class RegistryTopicScope
                 {
                     string toRoman = NumberHelper.ToRoman(arabic);
                     string text = $"/{toRoman}";
-                    string text2 = (string) text;
+                    string text2 = text;
                     return text2;
                 }
             }
         }
-        return (string) $"/sub:{value}";
+        return $"/sub:{value}";
     }
 
     /// <summary>
@@ -183,18 +183,19 @@ internal static class RegistryTopicScope
         {
             return topic;
         }
-        if (TrySplit(topic: topic,
+        if (!TrySplit(topic: topic,
                 knownScopes,
                 baseTopic: out var baseTopic,
                 scope: out _))
         {
-            if (baseTopic!.Length == 0)
-            {
-                return (string) $"({scope})";
-            }
-            return (string) $"{baseTopic} ({scope})";
+            return $"{topic.TrimEnd()} ({scope})";
         }
-        return (string) $"{topic.TrimEnd()} ({scope})";
+
+        if (baseTopic!.Length == 0)
+        {
+            return $"({scope})";
+        }
+        return $"{baseTopic} ({scope})";
     }
 
     /// <summary>
@@ -288,7 +289,7 @@ internal static class RegistryTopicScope
             }
             string a = normalizedInner;
             string b = NormalizeAlias(known);
-            global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
+            var comparisonType = StringComparison.OrdinalIgnoreCase;
             if (string.Equals(a,
                     b,
                     comparisonType))
@@ -333,7 +334,7 @@ internal static class RegistryTopicScope
             string oldToken2 = "/" + number;
             string toRoman = NumberHelper.ToRoman(number);
             string text = $"/{toRoman}";
-            string newToken2 = (string) text;
+            string newToken2 = text;
             string replaceToken = ReplaceToken(value: value2,
                 oldToken: oldToken2,
                 newToken: newToken2);
@@ -364,7 +365,7 @@ internal static class RegistryTopicScope
                     else
                     {
                         conditionResult = char.IsLetterOrDigit(value[i + oldToken.Length]);
-                        conditionResult = !(conditionResult);
+                        conditionResult = !conditionResult;
                     }
                 }
                 else

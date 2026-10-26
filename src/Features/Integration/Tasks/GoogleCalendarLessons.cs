@@ -24,19 +24,21 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
     private readonly LessonTimeConfig _timeConfig;
     private readonly GoogleApiHelper _helper;
 
-    private static readonly string[] Scopes = [
+    private static readonly string[] Scopes =
+    [
         CalendarService.Scope.Calendar,
     ];
 
     /// <summary>Builds the same recurring events used by replacement synchronization, without remote access.</summary>
     public IReadOnlyList<Event> BuildDesiredEvents(CancellationToken cancellationToken)
     {
-        var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices, new()
-        {
-            PrintsTeacherName = false,
-            PrintsGroupNames = true,
-            PrintsSubGroup = true,
-        });
+        var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices,
+            new()
+            {
+                PrintsTeacherName = false,
+                PrintsGroupNames = true,
+                PrintsSubGroup = true,
+            });
 
         var filteredSchedule = _filteredScheduleProvider.Get();
         var lessons = filteredSchedule.Lessons;
@@ -64,9 +66,9 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                 var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                 var date = timeEvent.Event.First;
                 var dateTime = new DateTime(date, time);
-                global::System.DateTime dateTime2 = dateTime;
-                global::System.TimeSpan offset = zone.GetUtcOffset(dateTime);
-                global::System.DateTimeOffset dateTimeOffset = new(dateTime2, offset);
+                var dateTime2 = dateTime;
+                var offset = zone.GetUtcOffset(dateTime);
+                DateTimeOffset dateTimeOffset = new(dateTime2, offset);
                 return dateTimeOffset;
             }
 
@@ -140,7 +142,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
             Summary = config.CalendarName,
             Location = "Chișinău, Moldova",
             TimeZone = "Europe/Chisinau",
-        }, cancellationToken);
+        },
+            cancellationToken);
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var ev in desired)
         {
@@ -161,7 +164,9 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 file sealed class LessonToColorConverter()
 {
     private GoogleCalendarColorId _nextColor;
-    private Dictionary<(LessonGroups Groups, GroupPartitionKey Partition, CourseId Course), GoogleCalendarColorId> lessonToColorMap = new();
+
+    private Dictionary<(LessonGroups Groups, GroupPartitionKey Partition, CourseId Course), GoogleCalendarColorId>
+        lessonToColorMap = new();
 
     public GoogleCalendarColorId GetColorId(AnyLessonAccessor lesson)
     {
@@ -173,7 +178,9 @@ file sealed class LessonToColorConverter()
 
         lock (this)
         {
-            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(lessonToColorMap, key, out bool exists);
+            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(lessonToColorMap,
+                key,
+                out bool exists);
             if (!exists)
             {
                 v = _nextColor;

@@ -50,21 +50,23 @@ public static class Registration
                 builder = builder.Enrich.FromLogContext();
                 builder.WriteTo.Logger(w =>
                 {
-                    global::ScheduleLib.Application.Config.RemovePropertyEnricher CalculateEnrichers()
+                    RemovePropertyEnricher CalculateEnrichers()
                     {
-                        global::ScheduleLib.Application.Config.RemovePropertyEnricher enrichers = new RemovePropertyEnricher("EventId");
+                        var enrichers = new RemovePropertyEnricher("EventId");
                         return enrichers;
                     }
 
                     w = w.Enrich.With(CalculateEnrichers());
-                    global::ScheduleLib.Application.Config.RemovePropertyEnricher CalculateEnrichers2()
+
+                    RemovePropertyEnricher CalculateEnrichers2()
                     {
-                        global::ScheduleLib.Application.Config.RemovePropertyEnricher enrichers2 = new RemovePropertyEnricher("SourceContext");
+                        var enrichers2 = new RemovePropertyEnricher("SourceContext");
                         return enrichers2;
                     }
 
                     w = w.Enrich.With(CalculateEnrichers2());
-                    w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose, outputTemplate:
+                    w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose,
+                        outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
                 });
 
@@ -107,8 +109,10 @@ public static class Registration
         public void AddDynamicConfigurationBinders()
         {
             services.AddScoped<IMarkedConfigurationSectionResolver, MarkedConfigurationSectionResolver>();
-            services.AddScoped(serviceType: typeof(MarkedDynamicOptionsResolver<>), implementationType: typeof(MarkedDynamicOptionsResolver<>));
-            services.AddScoped(serviceType: typeof(DynamicOptionsBinder<>), implementationType: typeof(DynamicOptionsBinder<>));
+            services.AddScoped(serviceType: typeof(MarkedDynamicOptionsResolver<>),
+                implementationType: typeof(MarkedDynamicOptionsResolver<>));
+            services.AddScoped(serviceType: typeof(DynamicOptionsBinder<>),
+                implementationType: typeof(DynamicOptionsBinder<>));
         }
 
         public void AddScheduleServices()
@@ -124,11 +128,11 @@ public static class Registration
             void AddScheduleGeneralServices()
             {
                 services.AddSingleton<LookupFacade>();
-                services.AddSingleton<LookupModule>(sp =>
+                services.AddSingleton(sp =>
                 {
                     return sp.GetRequiredService<ScheduleBuilder>().LookupModule!;
                 });
-                services.AddSingleton<ScheduleBuilder>(sp =>
+                services.AddSingleton(sp =>
                 {
                     var builder = new ScheduleBuilder();
                     builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
@@ -142,7 +146,7 @@ public static class Registration
 
             void AddParserServices()
             {
-                services.AddSingleton<GroupParseContext>(sp =>
+                services.AddSingleton(sp =>
                 {
                     var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
                     return GroupParseContext.Create(new()
@@ -153,8 +157,8 @@ public static class Registration
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
                 services.AddSingleton(ScheduleDefaults.Config.SpecializationRegistry);
-                services.AddSingleton<CourseNameParserConfig>(ScheduleDefaults.Config.CourseNameParser);
-                services.AddSingleton<CourseNameUnifierConfig>(sp =>
+                services.AddSingleton(ScheduleDefaults.Config.CourseNameParser);
+                services.AddSingleton(sp =>
                 {
                     var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
                     var unificationConfig = ScheduleDefaults.Config.CourseNameUnificationConfig;
@@ -168,7 +172,7 @@ public static class Registration
                 services.AddSingleton(LessonTypeParser.Instance);
                 services.AddSingleton(RoomParser.Instance);
                 services.AddSingleton(SubGroupPrefixMatcher.Default);
-                services.AddSingleton<LessonParserFactory>(sp =>
+                services.AddSingleton(sp =>
                 {
                     return new LessonParserFactory(new()
                     {
@@ -187,7 +191,7 @@ public static class Registration
             {
                 services.AddSingleton<LessonTimeConfig>(
                     LessonTimeConfig.CreateDefault());
-                services.AddSingleton<CurrentYearSemesterIntervalProvider>(sp =>
+                services.AddSingleton(sp =>
                 {
                     _ = sp;
                     return ScheduleDefaults.Config.SemesterIntervalProvider();
@@ -220,7 +224,7 @@ public static class Registration
                 // These don't seem necessary?
                 // I'm not sure how to set up the schedule in DI.
                 services.AddSingleton<ScheduleProvider>();
-                services.AddScoped<Schedule>(x =>
+                services.AddScoped(x =>
                 {
                     var provider = x.GetRequiredService<ScheduleProvider>();
                     // Caching this should probably be on by default / make this singleton.

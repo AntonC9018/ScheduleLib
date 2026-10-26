@@ -29,12 +29,12 @@ public sealed class ScrapingContextBuilder
         {
             return HttpClientContext.Create(_delay);
         });
-        _services.AddSingleton<CookieContainer>(sp =>
+        _services.AddSingleton(sp =>
         {
             var ctx = sp.GetRequiredService<HttpClientContext>();
             return ctx.Cookies;
         });
-        _services.AddSingleton<HttpClient>(sp =>
+        _services.AddSingleton(sp =>
         {
             var ctx = sp.GetRequiredService<HttpClientContext>();
             return ctx.Client;
@@ -58,8 +58,8 @@ public sealed class ScrapingContextBuilder
     {
         if (value != null)
         {
-            global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
-            global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton(value);
+            var serviceCollection = _services;
+            var descriptor = ServiceDescriptor.Singleton(value);
             serviceCollection.Replace(descriptor);
             return;
         }
@@ -85,7 +85,7 @@ public sealed class ScrapingContextBuilder
             optsConfig.ValidateDataAnnotations();
         }
         _services
-            .AddSingleton<T>(static services =>
+            .AddSingleton(static services =>
             {
                 // get and validate
                 var options = services.GetRequiredService<IOptions<T>>();
@@ -103,7 +103,7 @@ public sealed class ScrapingContextBuilder
         public TokenAuthBuilder(ScrapingContextBuilder builder)
         {
             _builder = builder;
-            _builder._services.AddSingleton<ITokenRetriever>(sp =>
+            _builder._services.AddSingleton(sp =>
             {
                 var factory = sp.GetRequiredService<Func<ITokenRetriever>>();
                 var impl = factory();
@@ -128,8 +128,8 @@ public sealed class ScrapingContextBuilder
             _builder.AddConfig(credentials);
             _builder.AddConfig(formConfig);
             _builder._services.AddSingleton<PasswordLoginFormTokenRetriever>();
-            _builder._services.AddSingleton<Func<ITokenRetriever>>(
-                sp => sp.GetRequiredService<PasswordLoginFormTokenRetriever>);
+            _builder._services.AddSingleton<Func<ITokenRetriever>>(sp =>
+                sp.GetRequiredService<PasswordLoginFormTokenRetriever>);
             _password = true;
         }
 
@@ -143,8 +143,7 @@ public sealed class ScrapingContextBuilder
             _builder.AddConfig(credentials);
             _builder.AddConfig(fieldNames);
             _builder._services.AddSingleton<PasswordTokenRetriever>();
-            _builder._services.AddSingleton<Func<ITokenRetriever>>(
-                sp => sp.GetRequiredService<PasswordTokenRetriever>);
+            _builder._services.AddSingleton<Func<ITokenRetriever>>(sp => sp.GetRequiredService<PasswordTokenRetriever>);
             _password = true;
         }
 
@@ -165,7 +164,7 @@ public sealed class ScrapingContextBuilder
             if (_cached)
             {
                 conditionResult = _password;
-                conditionResult = !(conditionResult);
+                conditionResult = !conditionResult;
             }
             else
             {
@@ -204,8 +203,8 @@ public sealed class ScrapingContextBuilder
 
     public void JsonOptions(JsonSerializerOptions jsonOptions)
     {
-        global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
-        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton(jsonOptions);
+        var serviceCollection = _services;
+        var descriptor = ServiceDescriptor.Singleton(jsonOptions);
         serviceCollection.Replace(descriptor);
     }
 
@@ -216,8 +215,8 @@ public sealed class ScrapingContextBuilder
     {
         if (httpContext is not null)
         {
-            global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = _services;
-            global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = ServiceDescriptor.Singleton<HttpClientContext>(_ => httpContext);
+            var serviceCollection = _services;
+            var descriptor = ServiceDescriptor.Singleton(_ => httpContext);
             serviceCollection.Replace(descriptor);
         }
 

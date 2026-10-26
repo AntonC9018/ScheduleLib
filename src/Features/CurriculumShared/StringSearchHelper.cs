@@ -8,6 +8,23 @@ namespace ScheduleLib.Curriculum;
 
 public static class StringSearchHelper
 {
+    // Inputs are values, so the ref-like reader and slice never escape or get captured.
+    private static ReadOnlyMemory<char> RemainingMatchText(
+        bool sectionExhausted,
+        ReadOnlyMemory<char> remainingText,
+        int matchedLength)
+    {
+        if (!sectionExhausted)
+        {
+            return default;
+        }
+        if (remainingText.Length <= matchedLength)
+        {
+            return default;
+        }
+        return remainingText[matchedLength..];
+    }
+
     public static SectionParseResult Search<TPreprocess>(
         Paragraph para,
         TPreprocess preprocess,
@@ -71,23 +88,12 @@ public static class StringSearchHelper
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
 
-                    bool conditionResult;
-                    if (p.IsEmpty)
+                    if (extraStuffFromMatch.Array[sectionIndex].IsEmpty)
                     {
-                        conditionResult = remainingMem.Length > currentSlice.Length;
-                    }
-                    else
-                    {
-                        conditionResult = false;
-                    }
-
-                    if (conditionResult)
-                    {
-                        ref var x = ref extraStuffFromMatch.Array[sectionIndex];
-                        if (x.IsEmpty)
-                        {
-                            x = remainingMem[currentSlice.Length..];
-                        }
+                        extraStuffFromMatch.Array[sectionIndex] = RemainingMatchText(
+                            p.IsEmpty,
+                            remainingMem,
+                            currentSlice.Length);
                     }
                 }
                 else
@@ -123,8 +129,8 @@ public static class StringSearchHelper
             if (str.Length != start)
             {
                 int sectionType = sectionIndex;
-                global::System.ReadOnlyMemory<char> missingText2 = str.AsMemory(start);
-                global::ScheduleLib.Curriculum.SectionParseResult createPartialMatch =
+                var missingText2 = str.AsMemory(start);
+                var createPartialMatch =
                     SectionParseResult.CreatePartialMatch(
                         sectionType,
                         missingText: missingText2);

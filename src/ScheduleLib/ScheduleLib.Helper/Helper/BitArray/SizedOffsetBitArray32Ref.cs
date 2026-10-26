@@ -39,7 +39,9 @@ public ref struct SizedOffsetBitArray32Ref
 
     private readonly void ValidateMask(UnsizedBitArray32 mask)
     {
-        Debug.Assert(mask.WithShrunkLen(_length).AsUnsized() == mask);
+        Debug.Assert(
+            mask.WithShrunkLen(_length).AsUnsized() == mask,
+            "The bit mask must not contain bits outside its declared length.");
     }
 
     private readonly int RestoreIndex(int index)
@@ -105,14 +107,24 @@ public ref struct SizedOffsetBitArray32Ref
 
 public static partial class BitArrayExtensions
 {
-    public static SizedOffsetBitArray32Ref PortionRef(ref this BitArray32 arr, int offset, int len)
+    public static SizedOffsetBitArray32Ref PortionRef(
+        ref this BitArray32 arr,
+        int offset,
+        int len)
     {
-        return SizedOffsetBitArray32Ref.Create(ref arr, offset: offset, len: len);
+        return SizedOffsetBitArray32Ref.Create(ref arr,
+            offset: offset,
+            len: len);
     }
 
-    public static SizedOffsetBitArray32Ref PortionRef(ref this UnsizedBitArray32 arr, int offset, int len)
+    public static SizedOffsetBitArray32Ref PortionRef(
+        ref this UnsizedBitArray32 arr,
+        int offset,
+        int len)
     {
-        return new(ref arr, offset: offset, length: len);
+        return new(ref arr,
+            offset: offset,
+            length: len);
     }
 
     // Compute bounds

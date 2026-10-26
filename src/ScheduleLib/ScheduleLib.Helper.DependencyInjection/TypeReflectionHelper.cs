@@ -47,7 +47,7 @@ public static class TypeReflectionHelper
         this Type implementingType,
         Type genericInterface)
     {
-        return GetImplementationsOfGenericInterface(implementingType: implementingType, genericInterface: genericInterface)
+        return implementingType.GetImplementationsOfGenericInterface(genericInterface: genericInterface)
             .Select(i => i.GenericTypeArguments);
     }
 }

@@ -9,12 +9,7 @@ public sealed class WordConverterTests
         bool CalculateCondition()
         {
             bool condition = WordConverterProtocol.IsMissingWordActivation(unchecked((int) 0x80040154));
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.True(CalculateCondition());
@@ -59,20 +54,15 @@ public sealed class WordConverterOwnershipTests
         bool CalculateCondition()
         {
             bool condition = WordConverterProtocol.TryReadOwnership(
-                            message: message,
-                            nonce: "nonce",
-                            out _,
-                            out _);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+                message: message,
+                nonce: "nonce",
+                out _,
+                out _);
+            return condition;
         }
 
         Assert.False(
-                    CalculateCondition());
+            CalculateCondition());
     }
 
     [Fact]
@@ -83,138 +73,114 @@ public sealed class WordConverterOwnershipTests
             42,
             100);
         bool condition7 = WordConverterProtocol.TryReadOwnership(
-                message: message,
-                nonce: "nonce",
-                out var pid,
-                out var ticks);
+            message: message,
+            nonce: "nonce",
+            out var pid,
+            out var ticks);
         Assert.True(
             condition7);
+
         bool CalculateCondition()
         {
             bool condition = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 100,
-                            converterTicks: 90,
-                            session: 1,
-                            converterSession: 1,
-                            "WINWORD",
-                            false);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 100,
+                converterTicks: 90,
+                session: 1,
+                converterSession: 1,
+                "WINWORD",
+                false);
+            return condition;
         }
 
         Assert.True(
-                    CalculateCondition());
+            CalculateCondition());
+
         bool CalculateCondition2()
         {
             bool condition2 = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 101,
-                            converterTicks: 90,
-                            session: 1,
-                            converterSession: 1,
-                            "WINWORD",
-                            false);
-            if (condition2)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 101,
+                converterTicks: 90,
+                session: 1,
+                converterSession: 1,
+                "WINWORD",
+                false);
+            return condition2;
         }
 
         Assert.False(
-                    CalculateCondition2()); // recycled PID
+            CalculateCondition2()); // recycled PID
+
         bool CalculateCondition3()
         {
             bool condition3 = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 100,
-                            converterTicks: 90,
-                            session: 1,
-                            converterSession: 1,
-                            "WINWORD",
-                            true);
-            if (condition3)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 100,
+                converterTicks: 90,
+                session: 1,
+                converterSession: 1,
+                "WINWORD",
+                true);
+            return condition3;
         }
 
         Assert.False(
-                    CalculateCondition3()); // existing Word
+            CalculateCondition3()); // existing Word
+
         bool CalculateCondition4()
         {
             bool condition4 = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 100,
-                            converterTicks: 110,
-                            session: 1,
-                            converterSession: 1,
-                            "WINWORD",
-                            false);
-            if (condition4)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 100,
+                converterTicks: 110,
+                session: 1,
+                converterSession: 1,
+                "WINWORD",
+                false);
+            return condition4;
         }
 
         Assert.False(
-                    CalculateCondition4()); // older process
+            CalculateCondition4()); // older process
+
         bool CalculateCondition5()
         {
             bool condition5 = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 100,
-                            converterTicks: 90,
-                            session: 2,
-                            converterSession: 1,
-                            "WINWORD",
-                            false);
-            if (condition5)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 100,
+                converterTicks: 90,
+                session: 2,
+                converterSession: 1,
+                "WINWORD",
+                false);
+            return condition5;
         }
 
         Assert.False(
-                    CalculateCondition5()); // other session
+            CalculateCondition5()); // other session
+
         bool CalculateCondition6()
         {
             bool condition6 = WordConverterProtocol.IsOwnedProcess(
-                            pid: pid,
-                            reportedTicks: ticks,
-                            actualTicks: 100,
-                            converterTicks: 90,
-                            session: 1,
-                            converterSession: 1,
-                            "other",
-                            false);
-            if (condition6)
-            {
-                return true;
-            }
-
-            return false;
+                pid: pid,
+                reportedTicks: ticks,
+                actualTicks: 100,
+                converterTicks: 90,
+                session: 1,
+                converterSession: 1,
+                "other",
+                false);
+            return condition6;
         }
 
         Assert.False(
-                    CalculateCondition6());
+            CalculateCondition6());
     }
 
     [Theory]
@@ -265,7 +231,7 @@ public sealed class WordConverterOwnershipTests
             staging.Dispose();
             bool condition = File.Exists(retained);
             Assert.True(condition);
-            global::System.IO.DirectoryInfo directoryInfo = new DirectoryInfo(staging.DirectoryPath);
+            var directoryInfo = new DirectoryInfo(staging.DirectoryPath);
             object? objectValue = directoryInfo.LinkTarget;
             Assert.NotNull(objectValue);
         }
@@ -295,20 +261,24 @@ public sealed class WordConverterOwnershipTests
             return; // Linux portable process test, no Word installed.
         }
 
-        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fileName: "/bin/sleep", arguments: "10") { UseShellExecute = false })!;
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fileName: "/bin/sleep", arguments: "10")
+        {
+            UseShellExecute = false,
+        })!;
         try
         {
-            global::System.TimeSpan CalculateTimeout()
+            TimeSpan CalculateTimeout()
             {
-                global::System.TimeSpan timeout = TimeSpan.FromMilliseconds(50);
+                var timeout = TimeSpan.FromMilliseconds(50);
                 return timeout;
             }
 
             Assert.False(await DocToDocxConversionHelper.WaitForExitBounded(process, CalculateTimeout()));
             process.Kill();
-            global::System.TimeSpan CalculateTimeout2()
+
+            TimeSpan CalculateTimeout2()
             {
-                global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(2);
+                var timeout2 = TimeSpan.FromSeconds(2);
                 return timeout2;
             }
 
@@ -341,7 +311,7 @@ public sealed class WordConverterOwnershipTests
             RedirectStandardOutput = true,
         };
         info.ArgumentList.Add("-c");
-        global::System.Collections.ObjectModel.Collection<string> collection = info.ArgumentList;
+        var collection = info.ArgumentList;
         string item;
         if (cooperative)
         {
@@ -356,9 +326,10 @@ public sealed class WordConverterOwnershipTests
         info.ArgumentList.Add("fake-converter");
         info.ArgumentList.Add(cancellationPath);
         using var process = System.Diagnostics.Process.Start(info)!;
-        global::System.TimeSpan CalculateDelay()
+
+        TimeSpan CalculateDelay()
         {
-            global::System.TimeSpan delay = TimeSpan.FromMilliseconds(100);
+            var delay = TimeSpan.FromMilliseconds(100);
             return delay;
         }
 

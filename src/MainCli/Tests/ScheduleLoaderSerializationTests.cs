@@ -61,9 +61,10 @@ public sealed class ScheduleLoaderSerializationTests
         Assert.Equal(expected: "Imported course", actual: Assert.Single(rebuilt.Schedule.Build().Courses).FullName);
         await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
-        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+
+        IEnumerable<string> CalculateCollection()
         {
-            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            var collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
             return collection;
         }
 
@@ -98,23 +99,24 @@ public sealed class ScheduleLoaderSerializationTests
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 loader.Load(CreateContext(),
-                    cancellation.Token,
-                    bypassCache: true)
+                        cancellation.Token,
+                        bypassCache: true)
                     .AsTask());
         }
         else
         {
             await Assert.ThrowsAsync<IOException>(() => loader.Load(CreateContext(),
-                cancellation.Token,
-                bypassCache: true)
+                    cancellation.Token,
+                    bypassCache: true)
                 .AsTask());
         }
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
         using var input = new MemoryStream(previous);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
-        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+
+        IEnumerable<string> CalculateCollection()
         {
-            global::System.Collections.Generic.IEnumerable<string> collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            var collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
             return collection;
         }
 
@@ -147,7 +149,7 @@ public sealed class ScheduleLoaderSerializationTests
         public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            global::System.Security.Cryptography.IncrementalHash incrementalHash = hasher;
+            var incrementalHash = hasher;
             byte[] data = Encoding.UTF8.GetBytes(Source);
             incrementalHash.AppendData(data);
             return ValueTask.CompletedTask;

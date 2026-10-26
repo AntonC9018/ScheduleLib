@@ -3,17 +3,27 @@ using Microsoft.Graph;
 namespace ScheduleLib.Curriculum.Download;
 
 public sealed record CurriculaSource(string Owner, string Path);
-public sealed record CurriculaFile(string Group, string Name, string Id, string DriveId);
+
+public sealed record CurriculaFile(
+    string Group,
+    string Name,
+    string Id,
+    string DriveId);
 
 public static class CurriculaDownloadTasks
 {
-    public static readonly string[] ApiRequiredScopes = ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
+    public static readonly string[] ApiRequiredScopes =
+        ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
+
     // Existing source configuration is intentionally retained; this slice does not discover newer academic years.
     public static CurriculaSource ConfiguredSource { get; } = new(Owner: "titu.capcelea@usm.md",
         Path: "Curricula DI anul universitar 2024-2025/Curricula per program studii");
 
-    public static Task PullCurriculaToDisk(MicrosoftAuthConfig config, CancellationToken cancellationToken) =>
-        throw new InvalidOperationException("Use schedulelib curricula download --profile TEACHER after explicit schedulelib auth login microsoft --profile TEACHER. Legacy implicit Microsoft consent is disabled.");
+    public static Task PullCurriculaToDisk(MicrosoftAuthConfig config, CancellationToken cancellationToken)
+    {
+        throw new InvalidOperationException(
+            "Use schedulelib curricula download --profile TEACHER after explicit schedulelib auth login microsoft --profile TEACHER. Legacy implicit Microsoft consent is disabled.");
+    }
 }
 
 public interface ICurriculaProvider : IDisposable
@@ -31,6 +41,7 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
             .Request()
             .Select("folder,parentReference,id")
             .GetAsync(token);
+
         bool CheckCondition()
         {
             if (root.Folder is null)
@@ -53,7 +64,8 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
 
         if (CheckCondition())
         {
-            throw new CurriculaSourceUnavailableException("The coded curricula source is unavailable or is not a folder; update its owner/path in C# configuration if required.");
+            throw new CurriculaSourceUnavailableException(
+                "The coded curricula source is unavailable or is not a folder; update its owner/path in C# configuration if required.");
         }
 
         var driveId = root.ParentReference.DriveId;
@@ -78,18 +90,24 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
                 {
                     foreach (var document in documents.Where(x => x.File is not null))
                     {
-                        global::System.Collections.Generic.List<global::ScheduleLib.Curriculum.Download.CurriculaFile> list = files;
-                        global::ScheduleLib.Curriculum.Download.CurriculaFile item = new(Group: group.Name, Name: document.Name, Id: document.Id, DriveId: driveId);
+                        var list = files;
+                        CurriculaFile item = new(Group: group.Name,
+                            Name: document.Name,
+                            Id: document.Id,
+                            DriveId: driveId);
                         list.Add(item);
                     }
 
-                    documents = documents.NextPageRequest is { } nextDocuments ? await nextDocuments.GetAsync(token) : null;
+                    documents = documents.NextPageRequest is { } nextDocuments
+                        ? await nextDocuments.GetAsync(token)
+                        : null;
                 }
             }
             groups = groups.NextPageRequest is { } nextGroups ? await nextGroups.GetAsync(token) : null;
         }
         return files;
     }
+
     public Task<Stream> Download(CurriculaFile file, CancellationToken token)
     {
         return graph.Drives[file.DriveId].Items[file.Id].Content.Request()

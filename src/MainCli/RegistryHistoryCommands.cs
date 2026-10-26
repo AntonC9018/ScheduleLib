@@ -45,14 +45,13 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
             settings,
             client =>
             {
-                global::System.Net.Http.HttpClient client2 = client;
-                global::System.Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                global::ScheduleLib.OnlineRegistry.RegistryHistoryReader registryHistoryReader =
+                var client2 = client;
+                Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                var registryHistoryReader =
                     new RegistryHistoryReader(client2, index);
                 string? year2 = year;
-                global::System.Threading.CancellationToken token2 = token;
-                global::System.Threading.Tasks.Task<global::System.Collections.Generic.IReadOnlyList<
-                    global::ScheduleLib.OnlineRegistry.RegistryHistoryYearSummary>> discover =
+                var token2 = token;
+                var discover =
                     registryHistoryReader.Discover(
                         year2,
                         token2);
@@ -210,7 +209,7 @@ public partial class RegistryCommands
 
             string path1 = directory;
             string text = $"summary-{context.RunId}.json";
-            string path2 = (string) text;
+            string path2 = text;
             var path = Path.Combine(path1, path2);
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
@@ -238,10 +237,10 @@ public partial class RegistryCommands
                 var year = summary[yearIndex];
                 var courseCount = year.Courses.Count;
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
-                global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                var cliOutput = output;
                 string line = $"Year {year.Year}: {courseCount} courses, {groupCount} groups.";
                 cliOutput.WriteHuman(line);
-                global::ScheduleLib.Cli.CliOutput cliOutput2 = output;
+                var cliOutput2 = output;
                 string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string status2 = "completed";
                 object item = new
@@ -329,7 +328,7 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        var cliOutput = output;
                         string line = $"Saved local summary: {years} years, {courses} courses, {groups} groups.";
                         cliOutput.WriteHuman(
                             line);

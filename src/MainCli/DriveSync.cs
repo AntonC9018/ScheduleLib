@@ -69,14 +69,14 @@ public static class DriveSync
         string folderId)
     {
         string path1 = root;
-        global::System.Text.Encoding encoding = Encoding.UTF8;
+        var encoding = Encoding.UTF8;
         string text = $"{account}\n{folderId}";
-        string s = (string) text;
+        string s = text;
         byte[] source = encoding.GetBytes(s);
         byte[] inArray = SHA256.HashData(source);
         string toHexString = Convert.ToHexString(inArray);
         string text2 = $"{toHexString}.lock";
-        string path2 = (string) text2;
+        string path2 = text2;
         string combine = Path.Combine(
             path1,
             path2);
@@ -90,7 +90,7 @@ public static class DriveSync
         bool apply,
         CancellationToken token,
         string? lockRoot = null,
-        Action<(string Id, string Status, object? Item, string Human)>? onOutcome = null)
+        Action<StreamedUpdate>? onOutcome = null)
     {
         static bool IsCancellationTransportError(CancellationToken cancellationToken, Exception error)
         {
@@ -99,12 +99,12 @@ public static class DriveSync
                 return false;
             }
 
-            if (error is not (OperationCanceledException or GooglePreSendTransportException))
+            if (error is (OperationCanceledException or GooglePreSendTransportException))
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         var account = await provider.GetAccount(token);
@@ -185,7 +185,10 @@ public static class DriveSync
         {
             try
             {
-                onOutcome?.Invoke((Id: id, Status: outcome.State, Item: outcome, Human: human));
+                onOutcome?.Invoke(new(Id: id,
+                    Status: outcome.State,
+                    outcome,
+                    Human: human));
             }
             catch (CliOutputStreamingException ex)
             {
@@ -193,9 +196,9 @@ public static class DriveSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                global::ScheduleLib.Cli.GeneralCliOutputStreamingException inner =
+                var inner =
                     new GeneralCliOutputStreamingException("Drive output streaming failed.", ex);
-                global::System.Exception inner2 = inner;
+                Exception inner2 = inner;
                 throw StreamingFailure(inner2);
             }
         }
@@ -216,11 +219,11 @@ public static class DriveSync
             [
                 "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
             ];
-            global::ScheduleLib.Cli.DriveSyncResult partialResult = Result(
+            var partialResult = Result(
                 exit,
                 errors);
-            global::System.Exception inner2 = inner;
-            global::ScheduleLib.Cli.DriveStreamingException driveStreamingException = new(
+            var inner2 = inner;
+            DriveStreamingException driveStreamingException = new(
                 partialResult,
                 inner2);
             return driveStreamingException;
@@ -233,7 +236,7 @@ public static class DriveSync
                 State: "planned",
                 ResultFileId: null);
             string id2 = PlanId(index);
-            global::ScheduleLib.Cli.DriveOutcome outcome = planned;
+            var outcome = planned;
             string human2 = $"{action.Action} {action.Name}: {planned.State}";
             Report(
                 id: id2,
@@ -251,7 +254,7 @@ public static class DriveSync
             outcomes.Add(outcome);
             var index = outcomes.Count - 1;
             string id2 = PlanId(index);
-            global::ScheduleLib.Cli.DriveOutcome outcome2 = outcome;
+            var outcome2 = outcome;
             string human2 =
                 $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}";
             Report(
@@ -283,7 +286,7 @@ public static class DriveSync
                 {
                     attempted = true;
                     await provider.Delete(action.FileId!, token);
-                    global::ScheduleLib.Cli.DriveOutcome outcome3 = new(
+                    DriveOutcome outcome3 = new(
                         action,
                         State: "completed",
                         ResultFileId: action.FileId);
@@ -304,7 +307,7 @@ public static class DriveSync
                             action.FileId!,
                             input,
                             token);
-                    global::ScheduleLib.Cli.DriveOutcome outcome4 = new(
+                    DriveOutcome outcome4 = new(
                         action,
                         State: "completed",
                         ResultFileId: id);
@@ -319,7 +322,7 @@ public static class DriveSync
             }
             catch (Exception error) when (IsCancellationTransportError(token, error))
             {
-                global::ScheduleLib.Cli.DriveAction action2 = action;
+                var action2 = action;
                 string state;
                 if (attempted)
                 {
@@ -331,7 +334,7 @@ public static class DriveSync
                 }
 
                 string? resultFileId = null;
-                global::ScheduleLib.Cli.DriveOutcome outcome7 = new(
+                DriveOutcome outcome7 = new(
                     action2,
                     State: state,
                     ResultFileId: resultFileId);
@@ -345,7 +348,7 @@ public static class DriveSync
             }
             catch (GooglePreSendTransportException)
             {
-                global::ScheduleLib.Cli.DriveOutcome outcome5 = new(
+                DriveOutcome outcome5 = new(
                     action,
                     State: "failed",
                     ResultFileId: null);
@@ -365,7 +368,7 @@ public static class DriveSync
                 [
                     "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
                 ];
-                global::ScheduleLib.Cli.DriveSyncResult result = Result(
+                var result = Result(
                     exit2,
                     errors2);
                 return result;
@@ -378,7 +381,7 @@ public static class DriveSync
                                                       or 412
                                                       or 422)
             {
-                global::ScheduleLib.Cli.DriveOutcome outcome6 = new(
+                DriveOutcome outcome6 = new(
                     action,
                     State: "failed",
                     ResultFileId: null);
@@ -407,14 +410,14 @@ public static class DriveSync
 
                 string[] errors3 =
                     ["Drive rejected the action. Completed actions remain applied; no action was retried."];
-                global::ScheduleLib.Cli.DriveSyncResult result2 = Result(
+                var result2 = Result(
                     exit3,
                     errors3);
                 return result2;
             }
             catch (Exception)
             {
-                global::ScheduleLib.Cli.DriveAction action3 = action;
+                var action3 = action;
                 string state2;
                 if (attempted)
                 {
@@ -426,7 +429,7 @@ public static class DriveSync
                 }
 
                 string? resultFileId2 = null;
-                global::ScheduleLib.Cli.DriveOutcome outcome8 = new(
+                DriveOutcome outcome8 = new(
                     action3,
                     State: state2,
                     ResultFileId: resultFileId2);
@@ -446,7 +449,7 @@ public static class DriveSync
                 [
                     "Drive application failed. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
                 ];
-                global::ScheduleLib.Cli.DriveSyncResult result3 = Result(
+                var result3 = Result(
                     exit4,
                     errors4);
                 return result3;
@@ -472,7 +475,7 @@ public static class DriveSync
             errors5 = [];
         }
 
-        global::ScheduleLib.Cli.DriveSyncResult result4 = Result(
+        var result4 = Result(
             exit5,
             errors5);
         return result4;
@@ -481,7 +484,7 @@ public static class DriveSync
         {
             foreach (var action in actions.Skip(outcomes.Count))
             {
-                global::ScheduleLib.Cli.DriveOutcome outcome = new(
+                DriveOutcome outcome = new(
                     action,
                     State: "not-attempted",
                     ResultFileId: null);

@@ -31,18 +31,13 @@ public sealed class Schedule
         }
         else
         {
-            global::System.Collections.Immutable.ImmutableHashSet<global::ScheduleLib.WeeklyLessonId> immutableHashSet = SuppressedWeeklyLessons;
-            global::ScheduleLib.WeeklyLessonId item = new(id.Id);
+            var immutableHashSet = SuppressedWeeklyLessons;
+            WeeklyLessonId item = new(id.Id);
             bool contains = immutableHashSet.Contains(item);
             condition = !contains;
         }
 
-        if (condition)
-        {
-            return true;
-        }
-
-        return false;
+        return condition;
     }
 
     public static readonly Schedule Empty = new()
@@ -92,6 +87,7 @@ public readonly struct Accessor<T, TId> : IAccessor<Accessor<T, TId>, T>
         var id = Unsafe.As<int, TId>(ref index);
         return FromId(id, arr);
     }
+
     public static Accessor<T, TId> FromId(TId id, ImmutableArray<T> arr)
     {
         return new(id, arr);
@@ -118,6 +114,7 @@ public readonly partial struct RefAccessor<T, TRef, TId>
         var impl = Accessor<T, TId>.FromIndex(index, arr);
         return new(impl);
     }
+
     public static RefAccessor<T, TRef, TId> FromId(TId id, ImmutableArray<T> arr)
     {
         var impl = Accessor<T, TId>.FromId(id, arr);
@@ -195,7 +192,6 @@ public readonly record struct ScheduleObjectEnumerable<T, TAccessor>
         {
         }
     }
-
 }
 
 // Should be source-generated as well.
@@ -216,11 +212,13 @@ public readonly struct AnyLessonAccessor
         _id = id;
         _arrays = arrays;
     }
+
     public AnyLessonAccessor(WeeklyLessonId id, Schedule arrays)
     {
         _id = new(LessonRegularity.Weekly, id.Id);
         _arrays = arrays;
     }
+
     public AnyLessonAccessor(OneTimeLessonId id, Schedule arrays)
     {
         _id = new(LessonRegularity.OneTime, id.Id);
@@ -230,6 +228,7 @@ public readonly struct AnyLessonAccessor
     public bool IsWeekly => Regularity == LessonRegularity.Weekly;
     public bool IsOneTime => Regularity == LessonRegularity.OneTime;
     public LessonRegularity Regularity => _id.Regularity;
+
     public WeeklyLessonAccessor? Weekly
     {
         get
@@ -241,6 +240,7 @@ public readonly struct AnyLessonAccessor
             return WeeklyLessonAccessor.FromIndex(_id.Id, _arrays.WeeklyLessons);
         }
     }
+
     public OneTimeLessonAccessor? OneTime
     {
         get
@@ -307,10 +307,11 @@ public readonly record struct AllLessonsEnumerable
         {
             get
             {
-                global::ScheduleLib.AnyLessonId id = new AnyLessonId(_regularity, _index);
-                global::ScheduleLib.Schedule arrays = _arrays;
-                global::ScheduleLib.AnyLessonAccessor anyLessonAccessor = new(
-                id, arrays);
+                var id = new AnyLessonId(_regularity, _index);
+                var arrays = _arrays;
+                AnyLessonAccessor anyLessonAccessor = new(
+                    id,
+                    arrays);
                 return anyLessonAccessor;
             }
         }
@@ -344,8 +345,8 @@ public readonly record struct AllLessonsEnumerable
 
                 if (_index < len)
                 {
-                    global::ScheduleLib.Schedule schedule = _arrays;
-                    global::ScheduleLib.AnyLessonId id = new(_regularity, _index);
+                    var schedule = _arrays;
+                    AnyLessonId id = new(_regularity, _index);
                     bool isLessonActive = schedule.IsLessonActive(id);
                     if (!isLessonActive)
                     {
@@ -362,6 +363,7 @@ public readonly record struct AllLessonsEnumerable
         public void Dispose()
         {
         }
+
         public void Reset() => throw new NotSupportedException();
         object? IEnumerator.Current => Current;
     }
@@ -387,6 +389,7 @@ internal struct LessonGroupsImpl
     internal const int _Capacity = 16;
     public GroupId _value;
 }
+
 // [StructLayout(LayoutKind.Sequential)]
 public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 {
@@ -496,15 +499,16 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 
     public override bool Equals(object? o)
     {
-        if (o is LessonGroups other)
+        if (!(o is LessonGroups other))
         {
-            if (this == other)
-            {
-                return true;
-            }
-
             return false;
         }
+
+        if (this == other)
+        {
+            return true;
+        }
+
         return false;
     }
 
@@ -536,6 +540,7 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         }
         return true;
     }
+
     public static bool operator !=(in LessonGroups a, in LessonGroups b) => !(a == b);
 }
 
@@ -584,7 +589,6 @@ public static class LessonGroupsHelper
         }
         return true;
     }
-
 }
 
 public readonly record struct CourseId(int Id)
@@ -596,6 +600,7 @@ public readonly record struct CourseId(int Id)
 public record struct Course
 {
     public string FullName => Names[0];
+
     /// <summary>
     /// Sorted from longest to least long.
     /// </summary>
@@ -609,6 +614,7 @@ public record struct LessonData()
     public required CourseId Course;
 
     private readonly SequenceComparableImmutableArray<TeacherId> _teachers;
+
     public required ImmutableArray<TeacherId> Teachers
     {
         get => _teachers.Array;
@@ -664,7 +670,8 @@ public static class PartitionDimensions
     {
         get
         {
-            return [
+            return
+            [
                 PartitionDimension.SubGroup,
                 PartitionDimension.Specialization,
                 PartitionDimension.Alternative,
@@ -679,7 +686,8 @@ public static class PartitionDimensions
     {
         get
         {
-            return [
+            return
+            [
                 PartitionDimension.Alternative,
                 PartitionDimension.Specialization,
                 PartitionDimension.SubGroup,
@@ -693,16 +701,35 @@ public static class PartitionDimensions
 /// into one identity. Used wherever equality or grouping must consider all fields.
 /// Not serialized.
 /// </summary>
-public readonly record struct GroupPartitionKey(SubGroup SubGroup, Specialization Specialization, Alternative Alternative = default)
+public readonly record struct GroupPartitionKey(
+    SubGroup SubGroup,
+    Specialization Specialization,
+    Alternative Alternative = default)
 {
-    public static GroupPartitionKey All => new(SubGroup.All, Specialization.All, Alternative.All);
+    public static GroupPartitionKey All
+    {
+        get
+        {
+            return new(SubGroup.All,
+                Specialization.All,
+                Alternative.All);
+        }
+    }
 }
 
 public static class LessonDataExtensions
 {
     extension(in LessonData lesson)
     {
-        public GroupPartitionKey GroupPartitionKey => new(lesson.SubGroup, lesson.Specialization, lesson.Alternative);
+        public GroupPartitionKey GroupPartitionKey
+        {
+            get
+            {
+                return new(lesson.SubGroup,
+                    lesson.Specialization,
+                    lesson.Alternative);
+            }
+        }
     }
 
     extension(in GroupPartitionKey key)
@@ -740,7 +767,13 @@ public static class LessonDataExtensions
             {
                 parts.Add(subGroup);
             }
-            return parts.Count == 0 ? null : string.Join(separator, parts);
+
+            if (parts.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Join(separator, parts);
         }
     }
 }
@@ -775,10 +808,12 @@ public static class LessonRegularityHelper
 }
 
 public readonly record struct AnyLessonId(LessonRegularity Regularity, int Id);
+
 public readonly record struct WeeklyLessonId(int Id)
 {
     public AnyLessonId AsAny() => new(LessonRegularity.Weekly, Id);
 }
+
 public readonly record struct OneTimeLessonId(int Id)
 {
     public AnyLessonId AsAny() => new(LessonRegularity.OneTime, Id);
@@ -788,11 +823,13 @@ public record struct LessonBase
 {
     public required LessonData Data;
 }
+
 public record struct WeeklyLesson
 {
     public required LessonBase Base;
     public required WeeklyLessonDate Date;
 }
+
 public record struct OneTimeLesson
 {
     public required LessonBase Base;
@@ -853,7 +890,7 @@ public readonly record struct SubGroup
     public static SubGroup CreateNumeric(int i)
     {
         string value = NumberHelper.ToRoman(i);
-        global::ScheduleLib.SubGroup subGroup = new(value);
+        SubGroup subGroup = new(value);
         return subGroup;
     }
 
@@ -916,7 +953,8 @@ public readonly record struct Alternative
 /// </summary>
 public static class Specializations
 {
-    public static readonly ImmutableArray<Specialization> AllKnown = [
+    public static readonly ImmutableArray<Specialization> AllKnown =
+    [
         new("AG"),
         new("Algoritmica Grafurilor"),
         new("CV"),
@@ -940,7 +978,9 @@ public static class Specializations
         }
         foreach (var candidate in AllKnown)
         {
-            if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+            if (string.Equals(candidate.Value,
+                    value,
+                    StringComparison.Ordinal))
             {
                 specialization = candidate;
                 return true;
@@ -1011,6 +1051,7 @@ public enum Language
 }
 
 public readonly record struct Faculty(string Name);
+
 public readonly record struct Specialty(string? Name);
 
 public readonly record struct Grade(int Value)
@@ -1128,15 +1169,15 @@ public static class AttendanceModeFlagsHelper
             return false;
         }
 
-        global::ScheduleLib.AttendanceModeFlags conditionValue = flags;
+        var conditionValue = flags;
         int conditionValue2 = (int) mode;
-        global::ScheduleLib.AttendanceModeFlags conditionValue3 = (AttendanceModeFlags) (1 << conditionValue2);
-        if (!((conditionValue & conditionValue3) != 0))
+        var conditionValue3 = (AttendanceModeFlags) (1 << conditionValue2);
+        if ((conditionValue & conditionValue3) != 0)
         {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 }
 
@@ -1166,6 +1207,7 @@ public sealed class Teacher
 public struct PersonName
 {
     public required NameParts<OptionalNamePart> FirstName;
+
     // One is required
     public required LastName LastName;
 
@@ -1197,24 +1239,29 @@ public static class ScheduleAccessorHelper
 {
     public static Group Get(this Schedule schedule, GroupId id) => schedule.Groups[id.Value];
     public static Course Get(this Schedule schedule, CourseId id) => schedule.Courses[id.Id];
+
     public static Teacher Get(this Schedule schedule, TeacherId id)
     {
         return schedule.Teachers[id.Id];
     }
+
     public static string Get(this Schedule schedule, RoomId id)
     {
         Debug.Assert(id.IsValid);
         _ = schedule;
         return id.Id!;
     }
+
     public static WeeklyLessonAccessor Get(this Schedule schedule, WeeklyLessonId id)
     {
         return WeeklyLessonAccessor.FromId(id, schedule.WeeklyLessons);
     }
+
     public static OneTimeLessonAccessor Get(this Schedule schedule, OneTimeLessonId id)
     {
         return OneTimeLessonAccessor.FromId(id, schedule.OneTimeLessons);
     }
+
     public static AnyLessonAccessor Get(this Schedule schedule, AnyLessonId id)
     {
         return new AnyLessonAccessor(id, schedule);
@@ -1231,18 +1278,23 @@ public static class ScheduleAccessorHelper
     {
         return new(schedule.Courses);
     }
+
     public static ScheduleObjectEnumerable<Group, Accessor<Group, GroupId>> EnumerateGroups(this Schedule schedule)
     {
         return new(schedule.Groups);
     }
-    public static ScheduleObjectEnumerable<Teacher, Accessor<Teacher, TeacherId>> EnumerateTeachers(this Schedule schedule)
+
+    public static ScheduleObjectEnumerable<Teacher, Accessor<Teacher, TeacherId>> EnumerateTeachers(
+        this Schedule schedule)
     {
         return new(schedule.Teachers);
     }
+
     public static ScheduleObjectEnumerable<Period, Accessor<Period, PeriodId>> EnumeratePeriods(this Schedule schedule)
     {
         return new(schedule.Periods);
     }
+
     public static IEnumerable<WeeklyLessonAccessor> EnumerateWeeklyLessons(this Schedule schedule)
     {
         for (var index = 0; index < schedule.WeeklyLessons.Length; index++)
@@ -1255,10 +1307,13 @@ public static class ScheduleAccessorHelper
             }
         }
     }
-    public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(this Schedule schedule)
+
+    public static ScheduleObjectEnumerable<OneTimeLesson, OneTimeLessonAccessor> EnumerateOneTimeLessons(
+        this Schedule schedule)
     {
         return new(schedule.OneTimeLessons);
     }
+
     public static AllLessonsEnumerable EnumerateAllLessons(this Schedule schedule)
     {
         return new(schedule);
@@ -1281,6 +1336,7 @@ public static class ScheduleAccessorHelper
     {
         Debug.Assert(Marshal.SizeOf<T>() == sizeof(int));
     }
+
     internal static int ToStoredId<TId>(TId id)
     {
         return Unsafe.As<TId, int>(ref id);
@@ -1324,7 +1380,10 @@ public readonly partial struct WeeklyLessonAccessor : IAccessor<WeeklyLessonAcce
         var r = RefAccessor<WeeklyLesson, WeeklyLessonRef, WeeklyLessonId>.FromId(id, arr);
         return new(r);
     }
-    static WeeklyLessonAccessor IAccessor<WeeklyLessonAccessor, WeeklyLesson>.Create(int index, ImmutableArray<WeeklyLesson> arr)
+
+    static WeeklyLessonAccessor IAccessor<WeeklyLessonAccessor, WeeklyLesson>.Create(
+        int index,
+        ImmutableArray<WeeklyLesson> arr)
     {
         return FromIndex(index, arr);
     }
@@ -1351,7 +1410,10 @@ public readonly partial struct OneTimeLessonAccessor : IAccessor<OneTimeLessonAc
         var r = RefAccessor<OneTimeLesson, OneTimeLessonRef, OneTimeLessonId>.FromId(id, arr);
         return new(r);
     }
-    static OneTimeLessonAccessor IAccessor<OneTimeLessonAccessor, OneTimeLesson>.Create(int index, ImmutableArray<OneTimeLesson> arr)
+
+    static OneTimeLessonAccessor IAccessor<OneTimeLessonAccessor, OneTimeLesson>.Create(
+        int index,
+        ImmutableArray<OneTimeLesson> arr)
     {
         return FromIndex(index, arr);
     }

@@ -17,7 +17,7 @@ public static class AtomicFilePublisher
         }
 
         Directory.CreateDirectory(CalculatePath());
-        var staged = (string) $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
+        var staged = $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
         try
         {
             await using (var stream = new FileStream(staged,

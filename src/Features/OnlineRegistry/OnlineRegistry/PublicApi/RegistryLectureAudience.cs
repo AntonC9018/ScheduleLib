@@ -5,7 +5,12 @@ internal static class RegistryLectureAudience
     internal static string Format(Schedule schedule, AnyLessonId id)
     {
         var source = schedule.Get(id);
-        var scopes = new List<string> { RegistryTopicScope.Format(schedule, source.Lesson.Groups, source.Lesson.GroupPartitionKey) };
+        var scopes = new List<string>
+        {
+            RegistryTopicScope.Format(schedule,
+                source.Lesson.Groups,
+                source.Lesson.GroupPartitionKey),
+        };
         if (source.Lesson.SubGroup != SubGroup.All && !source.Lesson.SubGroup.IsLanguageSubGroup())
         {
             return scopes[0];
@@ -13,7 +18,8 @@ internal static class RegistryLectureAudience
 
         foreach (var candidate in schedule.EnumerateAllLessons())
         {
-            if (!schedule.IsLessonActive(candidate.Id) || candidate.Id == id
+            if (!schedule.IsLessonActive(candidate.Id)
+                || candidate.Id == id
                 || candidate.Lesson.SubGroup != SubGroup.All && !candidate.Lesson.SubGroup.IsLanguageSubGroup()
                 || !(candidate.Lesson with
                 {
@@ -26,26 +32,22 @@ internal static class RegistryLectureAudience
 
             bool CalculateConditionResult()
             {
-                if (source.Weekly is { } weekly)
-                {
-                    if (candidate.Weekly is { } otherWeekly)
-                    {
-                        if (weekly.Date == otherWeekly.Date)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                else
+                if (!(source.Weekly is { } weekly))
                 {
                     return false;
                 }
+
+                if (!(candidate.Weekly is { } otherWeekly))
+                {
+                    return false;
+                }
+
+                if (weekly.Date == otherWeekly.Date)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -80,11 +82,14 @@ internal static class RegistryLectureAudience
                 continue;
             }
 
-            global::System.Collections.Generic.List<string> list = scopes;
-            string item = RegistryTopicScope.Format(schedule, candidate.Lesson.Groups, candidate.Lesson.GroupPartitionKey);
+            var list = scopes;
+            string item = RegistryTopicScope.Format(schedule,
+                candidate.Lesson.Groups,
+                candidate.Lesson.GroupPartitionKey);
             list.Add(item);
         }
-        return string.Join(", ", scopes.Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.Ordinal));
+        return string.Join(", ",
+            scopes.Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.Ordinal));
     }
 }

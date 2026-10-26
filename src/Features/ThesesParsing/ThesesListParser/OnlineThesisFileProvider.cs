@@ -6,8 +6,7 @@ namespace ScheduleLib.Theses.Parsing;
 
 public sealed class OnlineThesesFileProviderOptions
 {
-    [MinLength(1)]
-    public required string OutputFilePath { get; set; } = "data/online-theses.xlsx";
+    [MinLength(1)] public required string OutputFilePath { get; set; } = "data/online-theses.xlsx";
 }
 
 public sealed class OnlineThesesFileProvider : IThesesFileProvider
@@ -33,7 +32,9 @@ public sealed class OnlineThesesFileProvider : IThesesFileProvider
 
     public async ValueTask<Stream> Open(CancellationToken cancellationToken)
     {
-        var outputFile = new FileStream(_opts.OutputFilePath, FileMode.Create, FileAccess.ReadWrite);
+        var outputFile = new FileStream(_opts.OutputFilePath,
+            FileMode.Create,
+            FileAccess.ReadWrite);
         try
         {
             await _loader.Load(
@@ -50,4 +51,3 @@ public sealed class OnlineThesesFileProvider : IThesesFileProvider
         return outputFile;
     }
 }
-

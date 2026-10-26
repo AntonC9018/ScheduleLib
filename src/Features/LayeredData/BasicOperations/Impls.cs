@@ -88,15 +88,11 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p =>
             {
-                if (!(p.CanWrite))
+                if (!p.CanWrite)
                 {
                     return false;
                 }
-                if (!(p.CanRead))
-                {
-                    return false;
-                }
-                return true;
+                return p.CanRead;
             })
             .ToArray();
 
@@ -160,8 +156,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             }
 
             var targetValue = property.GetValue(to);
-            global::System.IServiceProvider iServiceProvider = _serviceProvider;
-            global::System.Type serviceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
+            var iServiceProvider = _serviceProvider;
+            var serviceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
             var merger = iServiceProvider.GetService(serviceType);
             if (merger != null)
             {
@@ -172,8 +168,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
                 continue;
             }
 
-            global::System.IServiceProvider iServiceProvider2 = _serviceProvider;
-            global::System.Type serviceType2 = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
+            var iServiceProvider2 = _serviceProvider;
+            var serviceType2 = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
             var copier = iServiceProvider2.GetService(serviceType2);
             if (copier != null)
             {
@@ -215,7 +211,7 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         }
         if (typeof(T).IsValueType)
         {
-            return default(T)!;
+            return default!;
         }
         throw new TypeMissingParameterlessConstructorException(typeof(T));
     }
@@ -227,7 +223,7 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
             throw new ArgumentNullException(nameof(from));
         }
 
-        T newInstance = Empty();
+        var newInstance = Empty();
         // can't inject, because then it's going to be circular.
         var merger = _serviceProvider.GetRequiredService<IMerger<T>>();
         return merger.Merge(@from: from, @into: newInstance);

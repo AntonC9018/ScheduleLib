@@ -13,7 +13,10 @@ public static class ExpressionHelper
         var body = originalPredicate.Body;
 
         // x + u  -->   x + box.value
-        var lambda = CurryParameter<T, TReturn>(body: body, queryParameter: queryParameter, contextParameter: contextParameter, value: value);
+        var lambda = CurryParameter<T, TReturn>(body: body,
+            queryParameter: queryParameter,
+            contextParameter: contextParameter,
+            value: value);
 
         return lambda;
     }
@@ -23,7 +26,7 @@ public static class ExpressionHelper
         Box<TValue> box)
     {
         var boxAccessExpression = box.MakeExpressions().Member;
-        return CurrySecondParameter(originalPredicate, boxAccessExpression);
+        return originalPredicate.CurrySecondParameter(boxAccessExpression);
     }
 
     public static Expression<Func<T, TReturn>> CurryFirstParameter<T, TValue, TReturn>(
@@ -35,7 +38,10 @@ public static class ExpressionHelper
         var body = originalFunc.Body;
 
         // x + u  -->   box.value + u
-        var lambda = CurryParameter<T, TReturn>(body: body, queryParameter: queryParameter, contextParameter: contextParameter, value: value);
+        var lambda = CurryParameter<T, TReturn>(body: body,
+            queryParameter: queryParameter,
+            contextParameter: contextParameter,
+            value: value);
 
         return lambda;
     }
@@ -45,7 +51,7 @@ public static class ExpressionHelper
         Box<TValue> box)
     {
         var boxAccessExpression = box.MakeExpressions().Member;
-        return CurryFirstParameter(originalPredicate, boxAccessExpression);
+        return originalPredicate.CurryFirstParameter(boxAccessExpression);
     }
 
     public static Expression<Func<T, TReturn>> CurryParameter<T, TReturn>(
@@ -90,7 +96,8 @@ public static class ExpressionHelper
         return (Expression<Func<TReplacement, TReturn>>) ret;
     }
 
-    public static Expression<Func<TReplacement, TOther, TReturn>> ReplaceParameter<TTarget, TReplacement, TOther, TReturn>(
+    public static Expression<Func<TReplacement, TOther, TReturn>> ReplaceParameter<TTarget, TReplacement, TOther,
+        TReturn>(
         Expression<Func<TTarget, TOther, TReturn>> source,
         AccessExpression<TReplacement, TTarget> parameterReplacement)
     {

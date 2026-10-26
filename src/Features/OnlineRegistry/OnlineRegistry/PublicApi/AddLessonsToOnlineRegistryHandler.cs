@@ -83,12 +83,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 return false;
             }
 
-            if (error.InnerException is not RegistryDeletionRefusedException)
+            if (error.InnerException is RegistryDeletionRefusedException)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         static bool IsFormPreparationFailureBeforeSubmission(RegistryActionExecutionException error)
@@ -98,12 +98,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 return false;
             }
 
-            if (error.InnerException is not RegistryFormPreparationException)
+            if (error.InnerException is RegistryFormPreparationException)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         var plan = await Plan(p);
@@ -178,7 +178,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         {
             // Discover every assignment for this canonical course before routing or submitting.
             var courseLink = courseAssignments.First();
-            var destinations = new List<(GroupLink Group, RegistryLessonSelection Selection)>();
+            var destinations = new List<RegistryLessonDestination>();
             var visited = new HashSet<Uri>();
             foreach (var assignment in courseAssignments)
             {
@@ -193,8 +193,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var filter = new LessonSearchFilter(courseLink.CourseId,
                         group.Groups,
                         group.GroupPartition);
-                    global::ScheduleLib.OnlineRegistry.BuiltRegistryConfig config2 = config;
-                    global::ScheduleLib.OnlineRegistry.LessonMatchParams parameters = new(filter,
+                    var config2 = config;
+                    LessonMatchParams parameters = new(filter,
                         _lookup.LessonsByCourse,
                         _schedule);
                     var candidates = RegistryLessonRouting.Candidates(config2, parameters);
@@ -203,8 +203,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         candidates.Lessons));
                     if (validity.Decision == LessonValidityDecision.Error)
                     {
-                        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler iRegistryErrorHandler = _errorHandler;
-                        global::ScheduleLib.OnlineRegistry.ErroneousLesson lessons2 = new(validity.ErrorContext);
+                        var iRegistryErrorHandler = _errorHandler;
+                        ErroneousLesson lessons2 = new(validity.ErrorContext);
                         iRegistryErrorHandler.LessonsDecidedErroneous(lessons2);
                         p.Diagnostics?.Add(kind: "registry-assignment-mismatch",
                             course: _schedule.Get(courseLink.CourseId).FullName,
@@ -218,7 +218,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         continue;
                     }
 
-                    destinations.Add((Group: group, Selection: candidates));
+                    destinations.Add(new(Group: group, Selection: candidates));
                 }
             }
 
@@ -276,9 +276,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var lesson = _schedule.Get(lessonId).Lesson;
                     foreach (var parent in audiences[lessonId])
                     {
-                        global::ScheduleLib.GroupPartitionKey CalculatePartition()
+                        GroupPartitionKey CalculatePartition()
                         {
-                            global::ScheduleLib.GroupPartitionKey partition = ProjectPartition(lesson, parent);
+                            var partition = ProjectPartition(lesson, parent);
                             return partition;
                         }
 
@@ -322,16 +322,16 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 foreach (ref var x in lessonsWithTimes.Span)
                 {
                     var lesson = _schedule.Get(x.LessonId).Lesson;
-                    var key = (Type: lesson.Type, Partition: AttendancePartition(lesson),
+                    var key = (lesson.Type, Partition: AttendancePartition(lesson),
                         Audience: audiences[x.LessonId].Ordered());
                     if (remapHelpers.ContainsKey(key))
                     {
                         continue;
                     }
 
-                    global::ScheduleLib.OnlineRegistry.StudentsLookupKey CalculateKey()
+                    StudentsLookupKey CalculateKey()
                     {
-                        global::ScheduleLib.OnlineRegistry.StudentsLookupKey key2 = new(
+                        StudentsLookupKey key2 = new(
                             courseId: courseLink.CourseId,
                             groups: key.Audience,
                             groupPartition: key.Partition,
@@ -343,19 +343,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     bool CalculateConditionResult3()
                     {
-                        if (p.HasAttendanceSources)
+                        if (!p.HasAttendanceSources)
                         {
-                            if (studentNames.Count == 0)
-                            {
-                                return true;
-                            }
+                            return false;
+                        }
 
-                            return false;
-                        }
-                        else
+                        if (studentNames.Count == 0)
                         {
-                            return false;
+                            return true;
                         }
+
+                        return false;
                     }
 
                     bool conditionResult = CalculateConditionResult3();
@@ -382,7 +380,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     {
                         var membershipKeys = selection.Lessons.Select(id =>
                         {
-                            global::ScheduleLib.OnlineRegistry.StudentsLookupKey ProjectValue()
+                            StudentsLookupKey ProjectValue()
                             {
                                 var lesson = _schedule.Get(id).Lesson;
                                 var audience = new LessonGroups();
@@ -391,9 +389,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     audience.Add(parent);
                                 }
 
-                                global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+                                GroupPartitionKey CalculateGroupPartition()
                                 {
-                                    global::ScheduleLib.GroupPartitionKey groupPartition = AttendancePartition(lesson);
+                                    var groupPartition = AttendancePartition(lesson);
                                     return groupPartition;
                                 }
 
@@ -465,9 +463,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var lesson = _schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
 
-                    global::ScheduleLib.GroupPartitionKey CalculateGroupPartition()
+                    GroupPartitionKey CalculateGroupPartition()
                     {
-                        global::ScheduleLib.GroupPartitionKey groupPartition2 = AttendancePartition(lesson.Lesson);
+                        var groupPartition2 = AttendancePartition(lesson.Lesson);
                         return groupPartition2;
                     }
 
@@ -553,17 +551,20 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 string Scope(LessonInstance local)
                 {
-                    global::ScheduleLib.LessonGroups CalculateGroups()
+                    LessonGroups CalculateGroups()
                     {
-                        global::ScheduleLib.LessonGroups groups = TopicGroups(local);
+                        var groups = TopicGroups(local);
                         return groups;
                     }
 
-                    return local.RegistryLessonType == LessonType.Curs
-                        ? RegistryLectureAudience.Format(_schedule, local.LessonId)
-                        : RegistryTopicScope.Format(_schedule,
-                            CalculateGroups(),
-                            AttendancePartition(_schedule.Get(local.LessonId).Lesson));
+                    if (local.RegistryLessonType == LessonType.Curs)
+                    {
+                        return RegistryLectureAudience.Format(_schedule, local.LessonId);
+                    }
+
+                    return RegistryTopicScope.Format(_schedule,
+                        CalculateGroups(),
+                        AttendancePartition(_schedule.Get(local.LessonId).Lesson));
                 }
 
                 knownScopes = knownScopes.Concat(localInstances.Select(Scope))
@@ -593,16 +594,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     {
                         string a = Scope(local);
                         string b = oldScope;
-                        global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
+                        var comparisonType = StringComparison.OrdinalIgnoreCase;
                         bool equals = string.Equals(a,
                             b,
                             comparisonType);
-                        if (equals)
-                        {
-                            return true;
-                        }
-
-                        return false;
+                        return equals;
                     });
                     if (direct.Any())
                     {
@@ -622,7 +618,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         .ToArray();
                     var atTime = migrated.Where(local => local.DateTime == remote.DateTime)
                         .ToArray();
-                    global::ScheduleLib.OnlineRegistry.LessonInstance[] value;
+                    LessonInstance[] value;
                     if (atTime.Length == 0)
                     {
                         value = migrated;
@@ -632,17 +628,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         value = atTime;
                     }
 
-                    global::ScheduleLib.OnlineRegistry.LessonInstance[] value2 = (value);
-                    global::System.Func<global::ScheduleLib.OnlineRegistry.LessonInstance, string> selector = Scope;
-                    global::System.Collections.Generic.IEnumerable<string> select = value2.Select(selector);
-                    global::System.Collections.Generic.IEnumerable<string> distinct = select.Distinct();
+                    var value2 = value;
+                    Func<LessonInstance, string> selector = Scope;
+                    var select = value2.Select(selector);
+                    var distinct = select.Distinct();
                     var scopes = distinct.ToArray();
-                    if (scopes.Length == 1)
+                    if (scopes.Length != 1)
                     {
-                        return scopes[0];
+                        return null;
                     }
 
-                    return null;
+                    return scopes[0];
                 }
 
                 var movedLabs = selection.Lessons.Except(lessons)
@@ -681,17 +677,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 {
                                     return true;
                                 }
-                                else
-                                {
-                                    if (localInstances.Any(local =>
-                                            local.RegistryLessonType == LessonType.Lab
-                                            && local.DateTime == remote.DateTime))
-                                    {
-                                        return true;
-                                    }
 
-                                    return false;
+                                if (localInstances.Any(local =>
+                                        local.RegistryLessonType == LessonType.Lab
+                                        && local.DateTime == remote.DateTime))
+                                {
+                                    return true;
                                 }
+
+                                return false;
                             }
 
                             bool conditionResult = CalculateConditionResult();
@@ -700,12 +694,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             conditionValue = conditionResult;
                         }
 
-                        if ((conditionValue))
-                        {
-                            return true;
-                        }
-
-                        return false;
+                        return conditionValue;
                     })
                     .OrderBy(remote => remote.DateTime)
                     .ToArray();
@@ -746,19 +735,21 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         .ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var remote = remoteInstances.Where(existing =>
                         {
-                            if (!(owners.TryGetValue(existing.ViewUri, out var owner)))
+                            if (!owners.TryGetValue(existing.ViewUri, out var owner))
                             {
                                 return false;
                             }
-                            if (!(bucketScopes.Contains(owner)))
+                            if (!bucketScopes.Contains(owner))
                             {
                                 return false;
                             }
-                            if (!(!consumedRemote.Contains(existing.ViewUri)))
+
+                            if (!consumedRemote.Contains(existing.ViewUri))
                             {
-                                return false;
+                                return true;
                             }
-                            return true;
+
+                            return false;
                         })
                         .ToArray();
                     foreach (var existing in remote)
@@ -770,37 +761,28 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         {
                             bool CalculateConditionResult()
                             {
-                                if (assessment.DateTime.Date == lesson.DateTime.Date)
-                                {
-                                    if (assessment.LessonType == LessonType.Unspecified)
-                                    {
-                                        return true;
-                                    }
-                                    else
-                                    {
-                                        if (assessment.LessonType == lesson.RegistryLessonType)
-                                        {
-                                            return true;
-                                        }
-
-                                        return false;
-                                    }
-                                }
-                                else
+                                if (!(assessment.DateTime.Date == lesson.DateTime.Date))
                                 {
                                     return false;
                                 }
+
+                                if (assessment.LessonType == LessonType.Unspecified)
+                                {
+                                    return true;
+                                }
+
+                                if (assessment.LessonType == lesson.RegistryLessonType)
+                                {
+                                    return true;
+                                }
+
+                                return false;
                             }
 
                             bool conditionResult = CalculateConditionResult();
 
 
-                            if (conditionResult)
-                            {
-                                return true;
-                            }
-
-                            return false;
+                            return conditionResult;
                         })))
                     {
                         continue;
@@ -837,21 +819,23 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 return scope2;
                             }
 
-                            return labelScopes
-                                ? lesson with
+                            if (labelScopes)
+                            {
+                                return lesson with
                                 {
                                     Topic = RegistryTopicScope.Append(topic: lesson.Topic,
                                         scope: CalculateScope(),
                                         knownScopes),
-                                }
-                                : lesson;
+                                };
+                            }
+
+                            return lesson;
                         })
                         .ToArray();
                     arrangedLocal.AddRange(labelledLocal);
-                    global::System.Collections.Generic.List<global::ScheduleLib.OnlineRegistry.LessonEquationCommand>
+                    var
                         list = equationCommands;
-                    global::System.Collections.Generic.IEnumerable<
-                        global::ScheduleLib.OnlineRegistry.LessonEquationCommand> collection =
+                    var collection =
                         RegistryScopeReconciliation.Derive(_schedule,
                             labelledLocal,
                             arrangedAudience.Remote,
@@ -882,9 +866,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     if (config.CommandProcessingConfig.HasLog(command.Type)
                         || config.CommandProcessingConfig.HasDryRun(command.Type))
                     {
-                        global::System.DateTime CalculateDateTime()
+                        DateTime CalculateDateTime()
                         {
-                            global::System.DateTime dateTime2;
+                            DateTime dateTime2;
                             if (command.HasAll)
                             {
                                 dateTime2 = command.Local.DateTime;
@@ -898,8 +882,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         }
 
                         LogCommandBeforeExecution(CommandName: command.Type.ToString(),
-                            DateString: (CalculateDateTime())
-                            .ToString("dd.MM.yy"),
+                            DateString: CalculateDateTime()
+                                .ToString("dd.MM.yy"),
                             LessonName: _schedule.Get(courseLink.CourseId).FullName,
                             GroupName: group.Groups.Value.ToString(_schedule),
                             command.HasAll
@@ -917,7 +901,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         if (config.CommandProcessingConfig.HasProcess(command.Type))
                         {
                             conditionResult3 = config.CommandProcessingConfig.HasDryRun(command.Type);
-                            conditionResult3 = !(conditionResult3);
+                            conditionResult3 = !conditionResult3;
                         }
                         else
                         {
@@ -1004,7 +988,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             }
                         }));
                 }
-                if (!await onGroupPlanned(actions))
+                if (!(await onGroupPlanned(actions)))
                 {
                     return;
                 }
@@ -1012,14 +996,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
             bool CalculateConditionResult2()
             {
-                if (p.HasAttendanceSources)
-                {
-                    return studentCoverageComplete;
-                }
-                else
+                if (!p.HasAttendanceSources)
                 {
                     return false;
                 }
+
+                return studentCoverageComplete;
             }
 
             bool conditionResult2 = CalculateConditionResult2();
@@ -1058,15 +1040,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     {
                         return true;
                     }
-                    else
-                    {
-                        if (ids.Count == 0)
-                        {
-                            return true;
-                        }
 
-                        return false;
+                    if (ids.Count == 0)
+                    {
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -1103,9 +1083,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 foreach (var parent in lesson.Lesson.Groups)
                 {
-                    global::ScheduleLib.GroupPartitionKey CalculatePartition()
+                    GroupPartitionKey CalculatePartition()
                     {
-                        global::ScheduleLib.GroupPartitionKey partition = ProjectPartition(lesson.Lesson, parent);
+                        var partition = ProjectPartition(lesson.Lesson, parent);
                         return partition;
                     }
 
@@ -1126,7 +1106,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             else
             {
                 conditionResult = lesson.Groups.IsSingleGroup;
-                conditionResult = !(conditionResult);
+                conditionResult = !conditionResult;
             }
 
             if (conditionResult)

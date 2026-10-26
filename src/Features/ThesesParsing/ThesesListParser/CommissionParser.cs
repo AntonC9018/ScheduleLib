@@ -25,11 +25,13 @@ public static class CommissionParser
 {
     public static CommissionSchedule ParseCommissions(string filePath)
     {
-        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
-        {
-            AutoSave = false,
-            CompatibilityLevel = CompatibilityLevel.Version_2_20,
-        });
+        using var excel = SpreadsheetDocument.Open(filePath,
+            isEditable: false,
+            new()
+            {
+                AutoSave = false,
+                CompatibilityLevel = CompatibilityLevel.Version_2_20,
+            });
 
         var workbook = excel.WorkbookPart;
         if (workbook is null)
@@ -50,21 +52,20 @@ public static class CommissionParser
         while (rows.MoveNext())
         {
             var row = rows.Current;
+
             bool CalculateConditionResult()
             {
-                if (row.IsJump)
+                if (!row.IsJump)
                 {
-                    if (state.Action == Action.NameRow)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (state.Action == Action.NameRow)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -86,9 +87,10 @@ public static class CommissionParser
                             {
                                 continue;
                             }
-                            global::ScheduleLib.Helper.SizedItem<global::System.DateOnly?> CalculateIt()
+
+                            SizedItem<DateOnly?> CalculateIt()
                             {
-                                global::ScheduleLib.Helper.SizedItem<global::System.DateOnly?> it2 = new(date, cell.Size);
+                                SizedItem<DateOnly?> it2 = new(date, cell.Size);
                                 return it2;
                             }
 
@@ -104,7 +106,9 @@ public static class CommissionParser
                         {
                             DateOnly DateFromString(string s)
                             {
-                                var excelEpoch = new DateOnly(year: 1899, month: 12, day: 30);
+                                var excelEpoch = new DateOnly(year: 1899,
+                                    month: 12,
+                                    day: 30);
 
                                 var parser = new SequenceReader(s);
                                 var bparser = parser.BufferedView();
@@ -154,9 +158,10 @@ public static class CommissionParser
                                 throw new InvalidOperationException("Expected roman number after 'Comisia'");
                             }
                             int num = romanResult.Number;
-                            global::ScheduleLib.Helper.SizedItem<int> CalculateIt2()
+
+                            SizedItem<int> CalculateIt2()
                             {
-                                global::ScheduleLib.Helper.SizedItem<int> it3 = new(item: num, size: cell.Size);
+                                SizedItem<int> it3 = new(item: num, size: cell.Size);
                                 return it3;
                             }
 
@@ -184,6 +189,7 @@ public static class CommissionParser
                                 }
                             }
                         }
+
                         bool NoneHasText()
                         {
                             foreach (var x in NonEmptyCells())

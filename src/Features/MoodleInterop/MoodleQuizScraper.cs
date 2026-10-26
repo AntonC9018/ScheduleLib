@@ -13,10 +13,16 @@ using AngleSharp.Html.Dom;
 
 namespace QuizModels;
 
+/// <summary>
+/// One entry of the Moodle page breadcrumb. The last entry, the current page,
+/// has no link.
+/// </summary>
+public readonly record struct MoodleBreadcrumbItem(string Name, string? Href);
+
 public sealed class QuizAttemptsPage
 {
     public required List<QuizAttempt> Attempts { get; init; }
-    public required List<(string Name, string? Href)> Path { get; init; }
+    public required List<MoodleBreadcrumbItem> Path { get; init; }
 }
 
 // claude wrote most of the code.
@@ -36,17 +42,17 @@ public static class MoodleQuizScraper
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
 
-        (string, string?) ProjectValue(global::AngleSharp.Html.Dom.IHtmlListItemElement x)
+        MoodleBreadcrumbItem ProjectValue(IHtmlListItemElement x)
         {
             var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
             if (anchor != null)
             {
-                return (anchor.TextContent.Trim(), anchor.Href);
+                return new(Name: anchor.TextContent.Trim(), Href: anchor.Href);
             }
             var span = x.QuerySelector<IHtmlSpanElement>("span");
             if (span != null)
             {
-                return (span.TextContent.Trim(), (string?) null);
+                return new(Name: span.TextContent.Trim(), Href: null);
             }
             throw new InvalidOperationException("Expected span or anchor in path");
         }
@@ -144,8 +150,8 @@ public static class MoodleQuizScraper
                 .MaybeExtractText());
             var grade = ParseGrade(rowSearch.FindCell("sumgrades")
                 .MaybeExtractText());
-            global::QuizModels.MoodleQuizScraper.CellSearchResult x = new(nameCell);
-            var reviewLink = ExtractReviewLink(x);
+            CellSearchResult x = new(nameCell);
+            var reviewLink = x.ExtractReviewLink();
             var questionGrades = ExtractQuestionGrades(rowSearch);
             if (reviewLink is null)
             {
@@ -287,12 +293,12 @@ public static class MoodleQuizScraper
         }
 
         var result = link.GetAttribute("href");
-        if (result is not null)
+        if (result is null)
         {
-            return result;
+            return null;
         }
 
-        return null;
+        return result;
     }
 
     private static List<QuestionGrade> ExtractQuestionGrades(MappedTableHelper.RowSearchHelper row)
@@ -589,15 +595,15 @@ public static class MoodleQuizScraper
         // Replace comma with period for decimal separator
         value = value.Replace(',', '.');
 
-        if (float.TryParse(value,
+        if (!float.TryParse(value,
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
                 out var result))
         {
-            return result;
+            return null;
         }
 
-        return null;
+        return result;
     }
 
     private static float? ParseGrade(string? grade)
@@ -695,12 +701,12 @@ public static class MoodleQuizScraper
         if (parts.Length > 0)
         {
             var result = ParseGrade(parts[0]);
-            if (result is not null)
+            if (result is null)
             {
-                return result;
+                return null;
             }
 
-            return null;
+            return result;
         }
         return null;
     }
@@ -1130,11 +1136,17 @@ file static class Accessors
         MemberInfo Member,
         Type ValueType);
 
+    /// <summary>A candidate constructor together with the parameters it was inspected for.</summary>
+    private readonly record struct ConstructorCandidate(ParameterInfo[] Params, ConstructorInfo Constructor);
+
+    /// <summary>A candidate static factory method together with the parameters it was inspected for.</summary>
+    private readonly record struct FactoryCandidate(ParameterInfo[] Params, MethodInfo Method);
+
     private static Info FindInfo(Type type)
     {
         var constructors = type
             .GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-            .Select(c => (Params: c.GetParameters(), Constructor: c))
+            .Select(c => new ConstructorCandidate(c.GetParameters(), c))
             .ToArray();
         if (constructors.Any(x => x.Params.Length > 1))
         {
@@ -1151,7 +1163,7 @@ file static class Accessors
 
         var createMethods = type
             .GetMethods(BindingFlags.Static | BindingFlags.Public)
-            .Select(x => (Params: x.GetParameters(), Method: x))
+            .Select(x => new FactoryCandidate(x.GetParameters(), x))
             .Where(x => x.Params.Length == 1)
             .Where(x => x.Method.ReturnType == type)
             .ToArray();
@@ -1273,9 +1285,9 @@ file sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
         T value,
         JsonSerializerOptions options)
     {
-        global::System.Text.Json.Utf8JsonWriter writer2 = writer;
-        TValue? value2 = _accessor.Extractor(value);
-        global::System.Text.Json.JsonSerializerOptions options2 = options;
+        var writer2 = writer;
+        var value2 = _accessor.Extractor(value);
+        var options2 = options;
         JsonSerializer.Serialize(writer2,
             value2,
             options2);
@@ -1296,10 +1308,7 @@ file sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
             {
                 return true;
             }
-            else
-            {
-                return typeToConvert.IsEnum;
-            }
+            return typeToConvert.IsEnum;
         }
 
         bool conditionResult = CalculateConditionResult();

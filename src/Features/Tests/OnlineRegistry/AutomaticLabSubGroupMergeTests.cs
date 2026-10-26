@@ -23,13 +23,13 @@ public sealed class AutomaticLabSubGroupMergeTests
             fixture.NewTeacher);
         var raw = fixture.Build();
         object expected2 = raw;
-        global::ScheduleLib.Schedule actual2 = LabSubGroupMerges.Project(raw, enabled: false);
+        var actual2 = LabSubGroupMerges.Project(raw, enabled: false);
         object actual3 = actual2;
         Assert.Same(expected: expected2, actual: actual3);
         var merged = LabSubGroupMerges.Project(raw, enabled: true);
         var detection = Assert.Single(merged.AutomaticLabSubGroupMerges);
-        global::ScheduleLib.SubGroup expected3 = new SubGroup(survivor);
-        global::ScheduleLib.SubGroup actual4 = detection.SurvivingSubGroup;
+        var expected3 = new SubGroup(survivor);
+        var actual4 = detection.SurvivingSubGroup;
         Assert.Equal(expected: expected3, actual: actual4);
         var lesson = Assert.Single(merged.EnumerateWeeklyLessons());
         Assert.Equal(expected: SubGroup.All, actual: lesson.Lesson.SubGroup);
@@ -40,9 +40,9 @@ public sealed class AutomaticLabSubGroupMergeTests
                 .Count());
         Assert.Equal(expected: 3, actual: merged.WeeklyLessons.Length); // Stable raw lookup IDs.
 
-        global::ScheduleLib.ScheduleFilter CalculateFilter()
+        ScheduleFilter CalculateFilter()
         {
-            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder()
+            var filter = FilterHelper.Builder()
                 .WithTeacher(fixture.OldTeacher);
             return filter;
         }
@@ -59,10 +59,10 @@ public sealed class AutomaticLabSubGroupMergeTests
             LessonTimeConfig.CreateDefault(),
             Config.SemesterIntervalProvider());
         var dates = new ScheduledDateTimeProvider(weekly, helper);
-        global::ScheduleLib.Dates.ScheduledEventsProviderTransformer eventsProvider =
+        var eventsProvider =
             new ScheduledEventsProviderTransformer(weekly);
-        global::ScheduleLib.Dates.IWeeklyScheduledEventsProvider eventsProvider2 = eventsProvider;
-        global::ScheduleLib.Dates.ScheduleDateProviderHelper helper2 = helper;
+        IWeeklyScheduledEventsProvider eventsProvider2 = eventsProvider;
+        var helper2 = helper;
         var events = new ScheduledTimeEventsProvider(eventsProvider2, helper2);
         var parameters = new GetDateTimesParams
         {
@@ -185,8 +185,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         fixture.Add("II",
             fixture.Latest,
             DayOfWeek.Thursday);
-        global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder = fixture.Builder;
-        global::System.DateOnly start = new(year: 2026,
+        var scheduleBuilder = fixture.Builder;
+        DateOnly start = new(year: 2026,
             month: 11,
             day: 1);
         var newest = scheduleBuilder.Period(start);
@@ -260,10 +260,10 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(expected: 2, actual: merged.AutomaticLabSubGroupMerges.Length);
         var partitioned = Assert.Single(merged.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Specialization == specialization));
-        global::ScheduleLib.GroupPartitionKey expected2 = new GroupPartitionKey(SubGroup.All,
+        var expected2 = new GroupPartitionKey(SubGroup.All,
             specialization,
             alternative);
-        global::ScheduleLib.GroupPartitionKey actual2 = partitioned.Lesson.GroupPartitionKey;
+        var actual2 = partitioned.Lesson.GroupPartitionKey;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Equal(expected: raw.EnumerateAllLessons()
                 .Count(x => x.Lesson.Group == otherGroup),
@@ -303,9 +303,9 @@ public sealed class AutomaticLabSubGroupMergeTests
                 merged));
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
 
-        global::ScheduleLib.SubGroup CalculateExpected()
+        SubGroup CalculateExpected()
         {
-            global::ScheduleLib.SubGroup expected2 = new SubGroup("II");
+            var expected2 = new SubGroup("II");
             return expected2;
         }
 
@@ -333,11 +333,11 @@ public sealed class AutomaticLabSubGroupMergeTests
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Alpha";
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        global::ScheduleLib.Parsing.GroupParser.GroupParseContext groupParser = fixture.Builder.GroupParseContext!;
-        global::ScheduleLib.Builders.LookupFacade lookup = fixture.Lookup;
-        global::ScheduleLib.Parsing.Lesson.LessonTypeParser lessonTypeParser = LessonTypeParser.Instance;
-        global::ScheduleLib.Builders.SubGroupNameRemapper subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
-        global::ScheduleLib.SpecializationRegistry specializationRegistry = SpecializationRegistry.Empty;
+        var groupParser = fixture.Builder.GroupParseContext!;
+        var lookup = fixture.Lookup;
+        var lessonTypeParser = LessonTypeParser.Instance;
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(groupParser,
             lookup,
             lessonTypeParser,
@@ -348,9 +348,9 @@ public sealed class AutomaticLabSubGroupMergeTests
             merged.Filter(new()),
             workbook));
 
-        global::ScheduleLib.OnlineRegistry.StudentAttendanceList CalculateCollection()
+        StudentAttendanceList CalculateCollection()
         {
-            global::ScheduleLib.OnlineRegistry.StudentAttendanceList collection = attendance.Build(Attendance.Present);
+            var collection = attendance.Build(Attendance.Present);
             return collection;
         }
 
@@ -375,7 +375,7 @@ public sealed class AutomaticLabSubGroupMergeTests
                      "II",
                  })
         {
-            global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
+            var xLWorkbook = workbook;
             string sheetName = $"IA2601 {subgroup}";
             var sheet = xLWorkbook.AddWorksheet(sheetName);
             sheet.Cell(row: 1, column: 2).Value = "lab";
@@ -383,11 +383,11 @@ public sealed class AutomaticLabSubGroupMergeTests
             sheet.Cell(row: 2, column: 2).Value = subgroup == "I" ? "a" : "am";
         }
         var builder = new AllStudentAttendanceListBuilder();
-        global::ScheduleLib.Parsing.GroupParser.GroupParseContext groupParser = fixture.Builder.GroupParseContext!;
-        global::ScheduleLib.Builders.LookupFacade lookup = fixture.Lookup;
-        global::ScheduleLib.Parsing.Lesson.LessonTypeParser lessonTypeParser = LessonTypeParser.Instance;
-        global::ScheduleLib.Builders.SubGroupNameRemapper subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
-        global::ScheduleLib.SpecializationRegistry specializationRegistry = SpecializationRegistry.Empty;
+        var groupParser = fixture.Builder.GroupParseContext!;
+        var lookup = fixture.Lookup;
+        var lessonTypeParser = LessonTypeParser.Instance;
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(groupParser,
             lookup,
             lessonTypeParser,
@@ -434,26 +434,26 @@ public sealed class AutomaticLabSubGroupMergeTests
             fixture.NewTeacher);
         var schedule = LabSubGroupMerges.Project(fixture.Build(), true);
         using var workbook = new XLWorkbook();
-        global::ClosedXML.Excel.XLWorkbook xLWorkbook = workbook;
+        var xLWorkbook = workbook;
         string sheetName = $"IA2601 {subgroup}";
         var sheet = xLWorkbook.AddWorksheet(sheetName);
         sheet.Cell(row: 1, column: 2).Value = "lab";
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Alpha";
         sheet.Cell(row: 2, column: 2).Value = "a";
-        global::ScheduleLib.Parsing.GroupParser.GroupParseContext groupParser = fixture.Builder.GroupParseContext!;
-        global::ScheduleLib.Builders.LookupFacade lookup = fixture.Lookup;
-        global::ScheduleLib.Parsing.Lesson.LessonTypeParser lessonTypeParser = LessonTypeParser.Instance;
-        global::ScheduleLib.Builders.SubGroupNameRemapper subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
-        global::ScheduleLib.SpecializationRegistry specializationRegistry = SpecializationRegistry.Empty;
+        var groupParser = fixture.Builder.GroupParseContext!;
+        var lookup = fixture.Lookup;
+        var lessonTypeParser = LessonTypeParser.Instance;
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(groupParser,
             lookup,
             lessonTypeParser,
             subGroupRemapper,
             specializationRegistry);
 
-        global::ScheduleLib.ScheduleFilter CalculateFilter()
+        ScheduleFilter CalculateFilter()
         {
-            global::ScheduleLib.ScheduleFilter filter = FilterHelper.Builder()
+            var filter = FilterHelper.Builder()
                 .WithTeacher(fixture.OldTeacher);
             return filter;
         }
@@ -462,7 +462,10 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Throws<AttendanceLessonNotFoundException>(() => parser.Parse(new(new()
         {
             WorksheetNames =
-                    new Dictionary<string, string> { [sheet.Name] = $"Synthetic course IA2601 {subgroup} (lab)" },
+                    new Dictionary<string, string>
+                    {
+                        [sheet.Name] = $"Synthetic course IA2601 {subgroup} (lab)",
+                    },
         },
             new AllStudentAttendanceListBuilder(),
             filtered,
@@ -482,23 +485,26 @@ public sealed class AutomaticLabSubGroupMergeTests
 
         internal Fixture()
         {
-            Builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+            Builder.GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            });
             Builder.EnableLookupModule();
             Course = Builder.Course("Synthetic course");
             Group = Builder.Group("IA2601");
             OldTeacher = Builder.Teacher("Synthetic Alpha").Id;
             NewTeacher = Builder.Teacher("Synthetic Beta").Id;
-            global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder = Builder;
-            global::System.DateOnly start = new(year: 2026,
+            var scheduleBuilder = Builder;
+            DateOnly start = new(year: 2026,
                 month: 9,
                 day: 1);
-            global::ScheduleLib.Builders.PeriodBuilder period = scheduleBuilder.Period(start);
+            var period = scheduleBuilder.Period(start);
             Older = period;
-            global::ScheduleLib.Builders.ScheduleBuilder scheduleBuilder2 = Builder;
-            global::System.DateOnly start2 = new(year: 2026,
+            var scheduleBuilder2 = Builder;
+            DateOnly start2 = new(year: 2026,
                 month: 10,
                 day: 11);
-            global::ScheduleLib.Builders.PeriodBuilder period2 = scheduleBuilder2.Period(start2);
+            var period2 = scheduleBuilder2.Period(start2);
             Latest = period2;
             Older.Model.EndExclusive = Latest.Model.Start;
             Add("I",
@@ -524,9 +530,9 @@ public sealed class AutomaticLabSubGroupMergeTests
             {
                 lesson.Course(course ?? Course);
                 lesson.Group(group ?? Group);
-                global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+                var
                     lessonBuilder = lesson;
-                global::ScheduleLib.SubGroup subGroup = new(subgroup);
+                SubGroup subGroup = new(subgroup);
                 lessonBuilder.SubGroup(subGroup);
                 lesson.Specialization(specialization);
                 lesson.Alternative(alternative);

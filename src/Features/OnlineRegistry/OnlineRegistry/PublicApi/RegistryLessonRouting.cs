@@ -13,7 +13,36 @@ internal static class RegistryLessonRouting
 
         var filter = parameters.Filter;
         var lessons = MatchLessonHelper.MatchLessonCandidates(parameters)
-            .Where(id => { bool CalculateConditionResult() { if (IsCurrentLab(config, parameters.Schedule, parameters.Schedule.Get(id).Lesson)) { if (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab) { return true; } else { if (ContainsPartition(destination: filter.GroupPartition, source: ProjectPartition(config, parameters.Schedule, parameters.Schedule.Get(id).Lesson))) { return true; } return false; } } else { return false; } } bool conditionResult = CalculateConditionResult(); if (conditionResult) { return true; } return false; })
+            .Where(id =>
+            {
+                bool CalculateConditionResult()
+                {
+                    if (!IsCurrentLab(config,
+                            parameters.Schedule,
+                            parameters.Schedule.Get(id).Lesson))
+                    {
+                        return false;
+                    }
+
+                    if (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab)
+                    {
+                        return true;
+                    }
+
+                    if (ContainsPartition(destination: filter.GroupPartition,
+                            source: ProjectPartition(config,
+                                parameters.Schedule,
+                                parameters.Schedule.Get(id).Lesson)))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                bool conditionResult = CalculateConditionResult();
+                return conditionResult;
+            })
             .ToHashSet();
         foreach (var id in parameters.Lookup[filter.CourseId])
         {
@@ -28,7 +57,9 @@ internal static class RegistryLessonRouting
                 continue;
             }
 
-            if (!IsCurrentLab(config, parameters.Schedule, lesson))
+            if (!IsCurrentLab(config,
+                    parameters.Schedule,
+                    lesson))
             {
                 continue;
             }
@@ -45,22 +76,22 @@ internal static class RegistryLessonRouting
 
             bool CheckCondition()
             {
-                if (!(filter.Groups.IsWildcard))
+                if (!filter.Groups.IsWildcard)
                 {
                     return false;
                 }
 
-                if (!(!lesson.Groups.IsSubSetOf(filter.Groups.Value)))
+                if (lesson.Groups.IsSubSetOf(filter.Groups.Value))
                 {
                     return false;
                 }
 
-                if (!(!filter.Groups.Value.IsSubSetOf(lesson.Groups)))
+                if (!filter.Groups.Value.IsSubSetOf(lesson.Groups))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             if (CheckCondition())
@@ -68,7 +99,9 @@ internal static class RegistryLessonRouting
                 continue;
             }
             // A parent list can contain sessions of its subgroups; the topic identifies the audience.
-            var partition = ProjectPartition(config, parameters.Schedule, lesson);
+            var partition = ProjectPartition(config,
+                parameters.Schedule,
+                lesson);
             if (ContainsPartition(destination: filter.GroupPartition, source: partition))
             {
                 lessons.Add(id);
@@ -77,137 +110,150 @@ internal static class RegistryLessonRouting
         return new(lessons.ToList(), filter.GroupPartition);
     }
 
-    internal static GroupPartitionKey ProjectPartition(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
+    internal static GroupPartitionKey ProjectPartition(
+        BuiltRegistryConfig config,
+        Schedule schedule,
+        LessonData lesson)
     {
-        return ManualMerge(config, schedule, lesson) is not null
-                ? lesson.GroupPartitionKey with
-                {
-                    SubGroup = SubGroup.All,
-                } : lesson.GroupPartitionKey;
-    }
-
-    private static bool IsCurrentLab(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
-        => ManualMerge(config, schedule, lesson) is not { } merge || lesson.SubGroup == new SubGroup(merge.SourceSubGroup);
-
-    private static RegistryLabMergeRule? ManualMerge(BuiltRegistryConfig config, Schedule schedule, LessonData lesson)
-    {
-        bool CalculateConditionResult()
+        if (ManualMerge(config,
+                schedule,
+                lesson) is not null)
         {
-            if (lesson.Type == LessonType.Lab)
+            return lesson.GroupPartitionKey with
             {
-                return lesson.Groups.IsSingleGroup;
-            }
-            else
-            {
-                return false;
-            }
+                SubGroup = SubGroup.All,
+            };
         }
 
-        bool conditionResult = CalculateConditionResult();
+        return lesson.GroupPartitionKey;
+    }
 
+    private static bool IsCurrentLab(
+        BuiltRegistryConfig config,
+        Schedule schedule,
+        LessonData lesson)
+    {
+        return ManualMerge(config,
+                schedule,
+                lesson) is not { } merge
+            || lesson.SubGroup == new SubGroup(merge.SourceSubGroup);
+    }
 
-        return conditionResult
-                ? RegistryLabMerges.Find(config.LabMerges, schedule, lesson.Course, lesson.Groups,
-                    lesson.GroupPartitionKey with
-                    {
-                        SubGroup = SubGroup.All,
-                    }) : null;
+    private static RegistryLabMergeRule? ManualMerge(
+        BuiltRegistryConfig config,
+        Schedule schedule,
+        LessonData lesson)
+    {
+        if (lesson.Type != LessonType.Lab)
+        {
+            return null;
+        }
+        if (!lesson.Groups.IsSingleGroup)
+        {
+            return null;
+        }
+
+        var result = RegistryLabMerges.Find(config.LabMerges,
+            schedule,
+            lesson.Course,
+            lesson.Groups,
+            lesson.GroupPartitionKey with
+            {
+                SubGroup = SubGroup.All,
+            });
+        if (result is not null)
+        {
+            return result;
+        }
+
+        return null;
     }
 
     private static bool ContainsPartition(GroupPartitionKey destination, GroupPartitionKey source)
     {
-        bool CalculateConditionResult()
+        bool MatchesSubGroup()
         {
             if (destination.SubGroup == SubGroup.All)
             {
                 return true;
             }
-            else
-            {
-                if (destination.SubGroup == source.SubGroup)
-                {
-                    return true;
-                }
 
-                return false;
+            if (destination.SubGroup == source.SubGroup)
+            {
+                return true;
             }
+
+            return false;
         }
 
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        bool MatchesSpecialization()
         {
             if (destination.Specialization == Specialization.All)
             {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = destination.Specialization == source.Specialization;
+                return true;
             }
 
-            if (conditionResult)
+            if (destination.Specialization == source.Specialization)
             {
-                if (destination.Alternative == Alternative.All)
-                {
-                    conditionResult = true;
-                }
-                else
-                {
-                    conditionResult = destination.Alternative == source.Alternative;
-                }
+                return true;
             }
-            else
-            {
-                conditionResult = false;
-            }
+
+            return false;
         }
-        else
+
+        bool MatchesAlternative()
         {
-            conditionResult = false;
+            if (destination.Alternative == Alternative.All)
+            {
+                return true;
+            }
+
+            if (destination.Alternative == source.Alternative)
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        if (conditionResult)
+        bool MatchesPartition()
+        {
+            if (!MatchesSubGroup())
+            {
+                return false;
+            }
+            if (!MatchesSpecialization())
+            {
+                return false;
+            }
+
+            if (MatchesAlternative())
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (MatchesPartition())
         {
             return true;
         }
         // Historical elective schedules use an Optional marker instead of the registry's named elective.
-        bool CalculateConditionResult2()
+        if (destination.SubGroup != SubGroup.All)
         {
-            if (destination.SubGroup == SubGroup.All)
-            {
-                if (destination.Specialization != Specialization.All)
-                {
-                    if (destination.Alternative == Alternative.All)
-                    {
-                        if (source == new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All))
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
+            return false;
+        }
+        if (destination.Specialization == Specialization.All)
+        {
+            return false;
+        }
+        if (destination.Alternative != Alternative.All)
+        {
+            return false;
         }
 
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (source == new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All))
         {
             return true;
         }
@@ -215,25 +261,34 @@ internal static class RegistryLessonRouting
         return false;
     }
 
-    internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(Schedule schedule,
-        IReadOnlyList<(GroupLink Group, RegistryLessonSelection Selection)> destinations,
+    internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(
+        Schedule schedule,
+        IReadOnlyList<RegistryLessonDestination> destinations,
         RegistrySyncDiagnostics? diagnostics)
-        => Prioritize(schedule, destinations, diagnostics, out _);
+    {
+        return Prioritize(schedule,
+            destinations,
+            diagnostics,
+            out _);
+    }
 
-    internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(Schedule schedule,
-        IReadOnlyList<(GroupLink Group, RegistryLessonSelection Selection)> destinations,
-        RegistrySyncDiagnostics? diagnostics, out bool hasUnresolvedAudience)
+    internal static Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> Prioritize(
+        Schedule schedule,
+        IReadOnlyList<RegistryLessonDestination> destinations,
+        RegistrySyncDiagnostics? diagnostics,
+        out bool hasUnresolvedAudience)
     {
         hasUnresolvedAudience = false;
-        var result = destinations.ToDictionary(keySelector: destination => destination.Group.Uri, elementSelector: _ => new Dictionary<AnyLessonId, LessonGroups>());
+        var result = destinations.ToDictionary(keySelector: destination => destination.Group.Uri,
+            elementSelector: _ => new Dictionary<AnyLessonId, LessonGroups>());
         foreach (var id in destinations.SelectMany(destination => destination.Selection.Lessons)
-            .Distinct())
+                     .Distinct())
         {
             var lesson = schedule.Get(id).Lesson;
             foreach (var parent in lesson.Groups)
             {
                 var eligible = destinations.Where(destination => destination.Selection.Lessons.Contains(id)
-                    && destination.Group.Groups.Value.Contains(parent))
+                        && destination.Group.Groups.Value.Contains(parent))
                     .ToArray();
                 if (eligible.Length == 0)
                 {
@@ -244,7 +299,10 @@ internal static class RegistryLessonRouting
                 {
                     foreach (var destination in eligible)
                     {
-                        AddAudience(result, destination, id, parent);
+                        AddAudience(result,
+                            destination,
+                            id,
+                            parent);
                     }
                     continue;
                 }
@@ -261,21 +319,27 @@ internal static class RegistryLessonRouting
                     if (winners.Length > 1)
                     {
                         hasUnresolvedAudience = true;
+
                         string CalculateGroup()
                         {
-                            global::ScheduleLib.Group get = schedule.Get(parent);
+                            var get = schedule.Get(parent);
                             string group2 = get.Name;
                             return group2;
                         }
 
-                        diagnostics?.Add(kind: "ambiguous-registry-destination", course: schedule.Get(lesson.Course).FullName,
-                                                    @group: CalculateGroup(),
-                                                    detail: "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
+                        diagnostics?.Add(kind: "ambiguous-registry-destination",
+                            course: schedule.Get(lesson.Course).FullName,
+                            @group: CalculateGroup(),
+                            detail:
+                            "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
                         continue;
                     }
                     foreach (var destination in winners)
                     {
-                        AddAudience(result, destination, id, parent);
+                        AddAudience(result,
+                            destination,
+                            id,
+                            parent);
                     }
                 }
             }
@@ -284,7 +348,7 @@ internal static class RegistryLessonRouting
 
         static void AddAudience(
             Dictionary<Uri, Dictionary<AnyLessonId, LessonGroups>> result,
-            (GroupLink Group, RegistryLessonSelection Selection) destination,
+            RegistryLessonDestination destination,
             AnyLessonId id,
             GroupId parent)
         {
@@ -302,21 +366,17 @@ internal static class RegistryLessonRouting
     {
         bool CalculateConditionResult()
         {
-            if (!group.Groups.IsWildcard)
-            {
-                if (!group.Groups.IsCombined)
-                {
-                    return group.Groups.Value.IsSingleGroup;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
+            if (group.Groups.IsWildcard)
             {
                 return false;
             }
+
+            if (group.Groups.IsCombined)
+            {
+                return false;
+            }
+
+            return group.Groups.Value.IsSingleGroup;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -334,7 +394,7 @@ internal static class RegistryLessonRouting
             int32 = 0;
         }
 
-        int int322 = (int32);
+        int int322 = int32;
         int int323;
         if (partition.SubGroup != SubGroup.All)
         {
@@ -345,7 +405,7 @@ internal static class RegistryLessonRouting
             int323 = 0;
         }
 
-        int int324 = int322 + (int323);
+        int int324 = int322 + int323;
         int int325;
         if (partition.Specialization != Specialization.All)
         {
@@ -356,7 +416,7 @@ internal static class RegistryLessonRouting
             int325 = 0;
         }
 
-        int int326 = int324 + (int325);
+        int int326 = int324 + int325;
         int int327;
         if (partition.Alternative != Alternative.All)
         {
@@ -367,7 +427,7 @@ internal static class RegistryLessonRouting
             int327 = 0;
         }
 
-        int int328 = int326 + (int327);
+        int int328 = int326 + int327;
         int int329 = int328 - group.Groups.Value.Count;
         return int329;
     }

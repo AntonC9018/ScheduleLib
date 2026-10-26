@@ -17,7 +17,9 @@ public sealed class NameTests
             FirstName = N("ANTON"),
             LastName = N("CURMANSCHII"),
         };
-        Assert.Equal(expected: a, actual: b, Comparer);
+        Assert.Equal(expected: a,
+            actual: b,
+            Comparer);
         int expected2 = Comparer.GetHashCode(a);
         int actual2 = Comparer.GetHashCode(b);
         Assert.Equal(expected: expected2, actual: actual2);
@@ -37,8 +39,12 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(expected: a, actual: b, Comparer);
-        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: a,
+            actual: b,
+            Comparer);
+        Assert.Equal(expected: b,
+            actual: a,
+            Comparer);
         int expected2 = Comparer.GetHashCode(a);
         int actual2 = Comparer.GetHashCode(b);
         Assert.Equal(expected: expected2, actual: actual2);
@@ -58,8 +64,12 @@ public sealed class NameTests
             FirstName = N("Stepvet"),
             LastName = N("dima"),
         };
-        Assert.Equal(expected: a, actual: b, Comparer);
-        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: a,
+            actual: b,
+            Comparer);
+        Assert.Equal(expected: b,
+            actual: a,
+            Comparer);
         int expected2 = Comparer.GetHashCode(a);
         int actual2 = Comparer.GetHashCode(b);
         Assert.Equal(expected: expected2, actual: actual2);
@@ -80,14 +90,19 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(expected: a, actual: b, Comparer);
-        Assert.Equal(expected: b, actual: a, Comparer);
+        Assert.Equal(expected: a,
+            actual: b,
+            Comparer);
+        Assert.Equal(expected: b,
+            actual: a,
+            Comparer);
         int expected2 = Comparer.GetHashCode(a);
         int actual2 = Comparer.GetHashCode(b);
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
-    private Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer Comparer => Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
+    private Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer Comparer =>
+        Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
     private static NameParts<string?> N(string s)
     {
@@ -96,5 +111,3 @@ public sealed class NameTests
         return ret;
     }
 }
-
-

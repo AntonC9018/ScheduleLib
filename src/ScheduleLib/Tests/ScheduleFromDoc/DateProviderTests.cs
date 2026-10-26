@@ -28,7 +28,11 @@ public sealed class DateProviderTests
         var groupId = new GroupId(groupSlot.Id);
         var schedule = builder.Build();
         var ranges = new CurrentYearSemesterIntervalBuilder();
-        foreach (var ordinaryMode in new[] { AttendanceMode.Zi, AttendanceMode.FrecventaRedusa })
+        foreach (var ordinaryMode in new[]
+                 {
+                     AttendanceMode.Zi,
+                     AttendanceMode.FrecventaRedusa,
+                 })
         {
             ranges.Scope(scope =>
             {
@@ -40,8 +44,8 @@ public sealed class DateProviderTests
                 scope.LessonsEndInclusive(month: 12, day: 13);
                 scope.Range(range =>
                 {
-                    global::ScheduleLib.Dates.YearDateRangeBuilder yearDateRangeBuilder = range;
-                    global::ScheduleLib.Grade grade = new(1);
+                    var yearDateRangeBuilder = range;
+                    Grade grade = new(1);
                     yearDateRangeBuilder.Grade(grade);
                 });
             });
@@ -105,51 +109,101 @@ public sealed class DateProviderTests
     {
         var semesterIntervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
         int grade2 = 1;
-        global::ScheduleLib.Dates.Semester semester2 = Semester.Sem1;
-        global::System.DateOnly start2 = new(year: 2026, month: 9, day: 1);
-        global::System.DateOnly endInclusive2 = new(year: 2026, month: 12, day: 13);
-        AssertRange(grade: grade2, semester2, start: start2, endInclusive: endInclusive2);
+        var semester2 = Semester.Sem1;
+        DateOnly start2 = new(year: 2026,
+            month: 9,
+            day: 1);
+        DateOnly endInclusive2 = new(year: 2026,
+            month: 12,
+            day: 13);
+        AssertRange(grade: grade2,
+            semester2,
+            start: start2,
+            endInclusive: endInclusive2);
         int grade3 = 2;
-        global::ScheduleLib.Dates.Semester semester3 = Semester.Sem1;
-        global::System.DateOnly start3 = new(year: 2026, month: 9, day: 1);
-        global::System.DateOnly endInclusive3 = new(year: 2026, month: 12, day: 13);
-        AssertRange(grade: grade3, semester3, start: start3, endInclusive: endInclusive3);
+        var semester3 = Semester.Sem1;
+        DateOnly start3 = new(year: 2026,
+            month: 9,
+            day: 1);
+        DateOnly endInclusive3 = new(year: 2026,
+            month: 12,
+            day: 13);
+        AssertRange(grade: grade3,
+            semester3,
+            start: start3,
+            endInclusive: endInclusive3);
         int grade4 = 3;
-        global::ScheduleLib.Dates.Semester semester4 = Semester.Sem1;
-        global::System.DateOnly start4 = new(year: 2026, month: 9, day: 1);
-        global::System.DateOnly endInclusive4 = new(year: 2026, month: 12, day: 13);
-        AssertRange(grade: grade4, semester4, start: start4, endInclusive: endInclusive4);
+        var semester4 = Semester.Sem1;
+        DateOnly start4 = new(year: 2026,
+            month: 9,
+            day: 1);
+        DateOnly endInclusive4 = new(year: 2026,
+            month: 12,
+            day: 13);
+        AssertRange(grade: grade4,
+            semester4,
+            start: start4,
+            endInclusive: endInclusive4);
         int grade5 = 1;
-        global::ScheduleLib.Dates.Semester semester5 = Semester.Sem2;
-        global::System.DateOnly start5 = new(year: 2027, month: 2, day: 1);
-        global::System.DateOnly endInclusive5 = new(year: 2027, month: 5, day: 1);
-        AssertRange(grade: grade5, semester5, start: start5, endInclusive: endInclusive5);
+        var semester5 = Semester.Sem2;
+        DateOnly start5 = new(year: 2027,
+            month: 2,
+            day: 1);
+        DateOnly endInclusive5 = new(year: 2027,
+            month: 5,
+            day: 1);
+        AssertRange(grade: grade5,
+            semester5,
+            start: start5,
+            endInclusive: endInclusive5);
         int grade6 = 2;
-        global::ScheduleLib.Dates.Semester semester6 = Semester.Sem2;
-        global::System.DateOnly start6 = new(year: 2027, month: 2, day: 1);
-        global::System.DateOnly endInclusive6 = new(year: 2027, month: 5, day: 1);
-        AssertRange(grade: grade6, semester6, start: start6, endInclusive: endInclusive6);
+        var semester6 = Semester.Sem2;
+        DateOnly start6 = new(year: 2027,
+            month: 2,
+            day: 1);
+        DateOnly endInclusive6 = new(year: 2027,
+            month: 5,
+            day: 1);
+        AssertRange(grade: grade6,
+            semester6,
+            start: start6,
+            endInclusive: endInclusive6);
         int grade7 = 3;
-        global::ScheduleLib.Dates.Semester semester7 = Semester.Sem2;
-        global::System.DateOnly start7 = new(year: 2027, month: 2, day: 22);
-        global::System.DateOnly endInclusive7 = new(year: 2027, month: 4, day: 11);
-        AssertRange(grade: grade7, semester7, start: start7, endInclusive: endInclusive7);
+        var semester7 = Semester.Sem2;
+        DateOnly start7 = new(year: 2027,
+            month: 2,
+            day: 22);
+        DateOnly endInclusive7 = new(year: 2027,
+            month: 4,
+            day: 11);
+        AssertRange(grade: grade7,
+            semester7,
+            start: start7,
+            endInclusive: endInclusive7);
 
         var weeks = ScheduleLib.ScheduleDefaults.Config.StudyWeeks;
         Assert.Equal(expected: 28, actual: weeks.Length);
-        global::System.DateOnly expected2 = new DateOnly(year: 2026, month: 8, day: 31);
-        global::System.DateOnly actual2 = weeks[0].MondayDate;
+        var expected2 = new DateOnly(year: 2026,
+            month: 8,
+            day: 31);
+        var actual2 = weeks[0].MondayDate;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.False(weeks[0].IsOddWeek);
-        global::System.DateOnly expected3 = new DateOnly(year: 2026, month: 12, day: 7);
-        global::System.DateOnly actual3 = weeks[14].MondayDate;
+        var expected3 = new DateOnly(year: 2026,
+            month: 12,
+            day: 7);
+        var actual3 = weeks[14].MondayDate;
         Assert.Equal(expected: expected3, actual: actual3);
-        global::System.DateOnly expected4 = new DateOnly(year: 2027, month: 2, day: 1);
-        global::System.DateOnly actual4 = weeks[15].MondayDate;
+        var expected4 = new DateOnly(year: 2027,
+            month: 2,
+            day: 1);
+        var actual4 = weeks[15].MondayDate;
         Assert.Equal(expected: expected4, actual: actual4);
         Assert.True(weeks[15].IsOddWeek);
-        global::System.DateOnly expected5 = new DateOnly(year: 2027, month: 4, day: 26);
-        global::System.DateOnly actual5 = weeks[^1].MondayDate;
+        var expected5 = new DateOnly(year: 2027,
+            month: 4,
+            day: 26);
+        var actual5 = weeks[^1].MondayDate;
         Assert.Equal(expected: expected5, actual: actual5);
 
         for (int i = 1; i < weeks.Length; i++)
@@ -161,34 +215,62 @@ public sealed class DateProviderTests
             ScheduleLib.ScheduleDefaults.Config.HolidayPeriods,
             period =>
             {
-                global::ScheduleLib.Dates.HolidayPeriod period2 = period;
-                global::System.DateOnly start2 = new(year: 2026, month: 10, day: 14);
-                global::System.DateOnly endExclusive2 = new(year: 2026, month: 10, day: 15);
-                AssertPeriod(period2, start: start2, endExclusive: endExclusive2);
+                var period2 = period;
+                DateOnly start2 = new(year: 2026,
+                    month: 10,
+                    day: 14);
+                DateOnly endExclusive2 = new(year: 2026,
+                    month: 10,
+                    day: 15);
+                AssertPeriod(period2,
+                    start: start2,
+                    endExclusive: endExclusive2);
             },
             period =>
             {
-                global::ScheduleLib.Dates.HolidayPeriod period2 = period;
-                global::System.DateOnly start2 = new(year: 2027, month: 1, day: 1);
-                global::System.DateOnly endExclusive2 = new(year: 2027, month: 1, day: 25);
-                AssertPeriod(period2, start: start2, endExclusive: endExclusive2);
+                var period2 = period;
+                DateOnly start2 = new(year: 2027,
+                    month: 1,
+                    day: 1);
+                DateOnly endExclusive2 = new(year: 2027,
+                    month: 1,
+                    day: 25);
+                AssertPeriod(period2,
+                    start: start2,
+                    endExclusive: endExclusive2);
             },
             period =>
             {
-                global::ScheduleLib.Dates.HolidayPeriod period2 = period;
-                global::System.DateOnly start2 = new(year: 2027, month: 5, day: 1);
-                global::System.DateOnly endExclusive2 = new(year: 2027, month: 5, day: 2);
-                AssertPeriod(period2, start: start2, endExclusive: endExclusive2);
+                var period2 = period;
+                DateOnly start2 = new(year: 2027,
+                    month: 5,
+                    day: 1);
+                DateOnly endExclusive2 = new(year: 2027,
+                    month: 5,
+                    day: 2);
+                AssertPeriod(period2,
+                    start: start2,
+                    endExclusive: endExclusive2);
             },
             period =>
             {
-                global::ScheduleLib.Dates.HolidayPeriod period2 = period;
-                global::System.DateOnly start2 = new(year: 2027, month: 5, day: 2);
-                global::System.DateOnly endExclusive2 = new(year: 2027, month: 5, day: 11);
-                AssertPeriod(period2, start: start2, endExclusive: endExclusive2);
+                var period2 = period;
+                DateOnly start2 = new(year: 2027,
+                    month: 5,
+                    day: 2);
+                DateOnly endExclusive2 = new(year: 2027,
+                    month: 5,
+                    day: 11);
+                AssertPeriod(period2,
+                    start: start2,
+                    endExclusive: endExclusive2);
             });
 
-        void AssertRange(int grade, Semester semester, DateOnly start, DateOnly endInclusive)
+        void AssertRange(
+            int grade,
+            Semester semester,
+            DateOnly start,
+            DateOnly endInclusive)
         {
             var builder = new ScheduleBuilder();
             var groupSlot = builder.Groups.New();
@@ -214,7 +296,10 @@ public sealed class DateProviderTests
             Assert.Equal(expected: endInclusive, actual: actual.EndInclusive);
         }
 
-        static void AssertPeriod(HolidayPeriod period, DateOnly start, DateOnly endExclusive)
+        static void AssertPeriod(
+            HolidayPeriod period,
+            DateOnly start,
+            DateOnly endExclusive)
         {
             Assert.Equal(expected: start, actual: period.Start);
             Assert.Equal(expected: endExclusive, actual: period.EndExclusive);
@@ -226,42 +311,49 @@ public sealed class DateProviderTests
     {
         DateOnly Date(int day)
         {
-            return new(year: 2025, month: 9, day: day);
+            return new(year: 2025,
+                month: 9,
+                day: day);
         }
 
         var result = ScheduledDatesToEventsTransformerHelper.TransformDatesToEvents(
-            [
-                Date(day: 1),
-                Date(day: 4),
-                Date(day: 7),
-                Date(day: 10),
-                Date(day: 11),
-                Date(day: 12),
-                Date(day: 15),
-                Date(day: 18),
-            ], interval: 3)
+                [
+                    Date(day: 1),
+                    Date(day: 4),
+                    Date(day: 7),
+                    Date(day: 10),
+                    Date(day: 11),
+                    Date(day: 12),
+                    Date(day: 15),
+                    Date(day: 18),
+                ],
+                interval: 3)
             .ToArray();
         Assert.Collection(result,
             e1 =>
             {
-                global::System.DateOnly first = Date(1);
+                var first = Date(1);
                 int count2 = 4;
                 int interval2 = 3;
-                var ev = Event.CreateRecurring(first, count: count2, interval: interval2);
+                var ev = Event.CreateRecurring(first,
+                    count: count2,
+                    interval: interval2);
                 Assert.Equal(expected: ev, actual: e1);
             },
             e2 =>
             {
-                global::System.DateOnly date = Date(11);
+                var date = Date(11);
                 var ev = Event.CreateSingle(date);
                 Assert.Equal(expected: ev, actual: e2);
             },
             e2 =>
             {
-                global::System.DateOnly first = Date(12);
+                var first = Date(12);
                 int count2 = 3;
                 int interval2 = 3;
-                var ev = Event.CreateRecurring(first, count: count2, interval: interval2);
+                var ev = Event.CreateRecurring(first,
+                    count: count2,
+                    interval: interval2);
                 Assert.Equal(expected: ev, actual: e2);
             });
     }

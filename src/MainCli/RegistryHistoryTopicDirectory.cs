@@ -13,7 +13,13 @@ public sealed class RegistryHistoryTopicDirectory
         Validate();
     }
 
-    public Task<RegistryHistoryTopicFilesResult> Save(RegistryHistoryTopicsAnalysis analysis, CancellationToken token) => RegistryHistoryTopicFiles.Save(this, analysis, token);
+    public Task<RegistryHistoryTopicFilesResult>
+        Save(RegistryHistoryTopicsAnalysis analysis, CancellationToken token)
+    {
+        return RegistryHistoryTopicFiles.Save(this,
+            analysis,
+            token);
+    }
 
     internal void EnsureCreated()
     {
@@ -76,10 +82,12 @@ public sealed class RegistryHistoryTopicDirectory
         {
             return false;
         }
+
         if ((directory.Attributes & FileAttributes.ReparsePoint) != 0)
         {
             return true;
         }
+
         return false;
     }
 }

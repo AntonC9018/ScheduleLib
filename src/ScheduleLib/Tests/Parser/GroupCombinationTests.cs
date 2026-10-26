@@ -39,39 +39,39 @@ public sealed class GroupCombinationTests
         string courseName = "Course")
     {
         var lesson = s.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = lesson;
-        global::ScheduleLib.CourseId course = s.Course(courseName);
+        var course = s.Course(courseName);
         lessonBuilder.Course(course);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder2 = lesson;
-        global::ScheduleLib.Builders.GroupBuilder group = s.Group(groupName);
-        global::ScheduleLib.GroupId group2 = group;
+        var group = s.Group(groupName);
+        GroupId group2 = group;
         lessonBuilder2.Group(group2);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder3 = lesson;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder3.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (subGroup is { } sub)
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            var
                 lessonBuilder4 = lesson;
-            global::ScheduleLib.SubGroup subGroup2 = new(sub);
+            SubGroup subGroup2 = new(sub);
             lessonBuilder4.SubGroup(subGroup2);
         }
         if (specialization is { } spec)
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            var
                 lessonBuilder5 = lesson;
-            global::ScheduleLib.Specialization specialization2 = new(spec);
+            Specialization specialization2 = new(spec);
             lessonBuilder5.Specialization(specialization2);
         }
         if (alternative is { } alt)
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            var
                 lessonBuilder6 = lesson;
-            global::ScheduleLib.Alternative alternative2 = new(alt);
+            Alternative alternative2 = new(alt);
             lessonBuilder6.Alternative(alternative2);
         }
     }
@@ -104,9 +104,9 @@ public sealed class GroupCombinationTests
     {
         var sb = new StringBuilder();
 
-        global::ScheduleLib.ListStringBuilder CalculateLb()
+        ListStringBuilder CalculateLb()
         {
-            global::ScheduleLib.ListStringBuilder lb = new ListStringBuilder(sb, "-");
+            var lb = new ListStringBuilder(sb, "-");
             return lb;
         }
 
@@ -244,9 +244,9 @@ public sealed class GroupCombinationTests
         var sharedSpring = builder.RegularLesson();
         sharedSpring.Course(sharedCourse);
         sharedSpring.Groups([iGroup, iaGroup]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = sharedSpring;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder.TimeSlot(timeSlot);
         sharedSpring.DayOfWeek(DayOfWeek.Monday);
         sharedSpring.Specialization(Specialization.Spring);
@@ -517,8 +517,8 @@ public sealed class GroupCombinationTests
         var rebuilt = builder.Build();
 
         var lesson = Assert.Single(rebuilt.EnumerateAllLessons());
-        global::ScheduleLib.Alternative expected2 = new Alternative("Psihologie");
-        global::ScheduleLib.Alternative actual2 = lesson.Lesson.Alternative;
+        var expected2 = new Alternative("Psihologie");
+        var actual2 = lesson.Lesson.Alternative;
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
@@ -614,11 +614,11 @@ public sealed class GroupCombinationTests
         Assert.Equal(expected: 2, actual: freshLessons.Count);
         var freshElective = Assert.Single(
             freshLessons.Where(l => l.Lesson.Alternative == new Alternative("Psihologie")));
-        global::ScheduleLib.SubGroup expected2 = new SubGroup("I");
-        global::ScheduleLib.SubGroup actual2 = freshElective.Lesson.SubGroup;
+        var expected2 = new SubGroup("I");
+        var actual2 = freshElective.Lesson.SubGroup;
         Assert.Equal(expected: expected2, actual: actual2);
-        global::ScheduleLib.Specialization expected3 = new Specialization("GA2D");
-        global::ScheduleLib.Specialization actual3 = freshElective.Lesson.Specialization;
+        var expected3 = new Specialization("GA2D");
+        var actual3 = freshElective.Lesson.Specialization;
         Assert.Equal(expected: expected3, actual: actual3);
         Assert.All(
             freshLessons.Where(l => l.Lesson.Alternative == Alternative.All),
@@ -884,32 +884,32 @@ public sealed class GroupCombinationTests
             Language = Language.Ro,
         };
 
-        global::ScheduleLib.Specialization[] value = new[]
+        var value = new[]
         {
             Specialization.CV,
             Specialization.DJ,
         };
-        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Specialization> second =
+        var second =
             registry.PermittedFor(in both);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Specialization> second2 = second;
+        IEnumerable<Specialization> second2 = second;
         bool condition = value.SequenceEqual(second2);
         Assert.True(condition);
-        global::ScheduleLib.Specialization[] value2 = new[]
+        var value2 = new[]
         {
             Specialization.CV,
         };
-        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Specialization> second3 =
+        var second3 =
             registry.PermittedFor(in otherFaculty);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Specialization> second4 = second3;
+        IEnumerable<Specialization> second4 = second3;
         bool condition2 = value2.SequenceEqual(second4);
         Assert.True(condition2);
-        global::ScheduleLib.Specialization[] value3 = new[]
+        var value3 = new[]
         {
             Specialization.DJ,
         };
-        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Specialization> second5 =
+        var second5 =
             registry.PermittedFor(in otherGrade);
-        global::System.Collections.Generic.IEnumerable<global::ScheduleLib.Specialization> second6 = second5;
+        IEnumerable<Specialization> second6 = second5;
         bool condition3 = value3.SequenceEqual(second6);
         Assert.True(condition3);
     }
@@ -1081,92 +1081,92 @@ public sealed class GroupCombinationTests
                     return false;
                 }
 
-                if (!(c.Numeric == SubGroup.CreateNumeric(1)))
+                if (c.Numeric == SubGroup.CreateNumeric(1))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             return CheckCondition();
         });
 
-        global::ScheduleLib.LessonData CalculateLesson()
+        LessonData CalculateLesson()
         {
-            global::ScheduleLib.LessonData lesson = Lesson("Shared");
+            var lesson = Lesson("Shared");
             return lesson;
         }
 
         bool condition = info.IncludesLesson(combination, CalculateLesson());
         Assert.True(condition);
 
-        global::ScheduleLib.LessonData CalculateLesson2()
+        LessonData CalculateLesson2()
         {
-            global::ScheduleLib.LessonData lesson2 = Lesson("Numeric I");
+            var lesson2 = Lesson("Numeric I");
             return lesson2;
         }
 
         bool condition2 = info.IncludesLesson(combination, CalculateLesson2());
         Assert.True(condition2);
 
-        global::ScheduleLib.LessonData CalculateLesson3()
+        LessonData CalculateLesson3()
         {
-            global::ScheduleLib.LessonData lesson3 = Lesson("Romanian");
+            var lesson3 = Lesson("Romanian");
             return lesson3;
         }
 
         bool condition3 = info.IncludesLesson(combination, CalculateLesson3());
         Assert.True(condition3);
 
-        global::ScheduleLib.LessonData CalculateLesson4()
+        LessonData CalculateLesson4()
         {
-            global::ScheduleLib.LessonData lesson4 = Lesson("Language", SpecialSubGroups.Beginners);
+            var lesson4 = Lesson("Language", SpecialSubGroups.Beginners);
             return lesson4;
         }
 
         bool condition4 = info.IncludesLesson(combination, CalculateLesson4());
         Assert.True(condition4);
 
-        global::ScheduleLib.LessonData CalculateLesson5()
+        LessonData CalculateLesson5()
         {
-            global::ScheduleLib.LessonData lesson5 = Lesson("CV");
+            var lesson5 = Lesson("CV");
             return lesson5;
         }
 
         bool condition5 = info.IncludesLesson(combination, CalculateLesson5());
         Assert.True(condition5);
 
-        global::ScheduleLib.LessonData CalculateLesson6()
+        LessonData CalculateLesson6()
         {
-            global::ScheduleLib.LessonData lesson6 = Lesson("Numeric II");
+            var lesson6 = Lesson("Numeric II");
             return lesson6;
         }
 
         bool condition6 = info.IncludesLesson(combination, CalculateLesson6());
         Assert.False(condition6);
 
-        global::ScheduleLib.LessonData CalculateLesson7()
+        LessonData CalculateLesson7()
         {
-            global::ScheduleLib.LessonData lesson7 = Lesson("Russian");
+            var lesson7 = Lesson("Russian");
             return lesson7;
         }
 
         bool condition7 = info.IncludesLesson(combination, CalculateLesson7());
         Assert.False(condition7);
 
-        global::ScheduleLib.LessonData CalculateLesson8()
+        LessonData CalculateLesson8()
         {
-            global::ScheduleLib.LessonData lesson8 = Lesson("Language", SpecialSubGroups.NonBeginners);
+            var lesson8 = Lesson("Language", SpecialSubGroups.NonBeginners);
             return lesson8;
         }
 
         bool condition8 = info.IncludesLesson(combination, CalculateLesson8());
         Assert.False(condition8);
 
-        global::ScheduleLib.LessonData CalculateLesson9()
+        LessonData CalculateLesson9()
         {
-            global::ScheduleLib.LessonData lesson9 = Lesson("DJ");
+            var lesson9 = Lesson("DJ");
             return lesson9;
         }
 
@@ -1180,35 +1180,27 @@ public sealed class GroupCombinationTests
                 {
                     bool CalculateConditionResult()
                     {
-                        if (schedule.Get(x.Lesson.Course).FullName == courseName)
-                        {
-                            if (subGroup is null)
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (x.Lesson.SubGroup == subGroup)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                        }
-                        else
+                        if (schedule.Get(x.Lesson.Course).FullName != courseName)
                         {
                             return false;
                         }
+
+                        if (subGroup is null)
+                        {
+                            return true;
+                        }
+
+                        if (x.Lesson.SubGroup == subGroup)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult = CalculateConditionResult();
 
-                    if (conditionResult)
-                    {
-                        return true;
-                    }
-                    return false;
+                    return conditionResult;
                 })
                 .Lesson;
         }

@@ -87,12 +87,7 @@ public sealed class MoodlePathTokenReader : ITokenReader
         public bool ShouldSkip(char ch)
         {
             // Stop at whitespace
-            if (char.IsWhiteSpace(ch))
-            {
-                return false;
-            }
-
-            return true;
+            return !char.IsWhiteSpace(ch);
         }
     }
 }
@@ -123,10 +118,9 @@ public static class MoodlePathParser
 
         // Parse "Ciclul X QualificationType"
         var qualificationSegment = segments[2];
-        var (cycle, qualificationType) = ParseQualificationSegment(qualificationSegment);
-        _ = cycle;
+        var qualification = ParseQualificationSegment(qualificationSegment);
 
-        if (qualificationType == null)
+        if (qualification.QualificationType is not { } qualificationType)
         {
             return null;
         }
@@ -140,22 +134,28 @@ public static class MoodlePathParser
 
         // Parse "Atestare TestNumber" or just section name
         var sectionSegment = segments[6];
-        var (sectionName, testNumber) = ParseSectionSegment(sectionSegment);
+        var section = ParseSectionSegment(sectionSegment);
 
         return new ParsedMoodlePath
         {
             Base = baseSegment,
             Faculty = faculty,
-            QualificationType = qualificationType.Value,
+            QualificationType = qualificationType,
             Specialty = specialty,
             Grade = grade,
             CourseName = courseName,
-            SectionName = sectionName,
-            TestNumber = testNumber,
+            SectionName = section.SectionName,
+            TestNumber = section.TestNumber,
         };
     }
 
-    private static (int? cycle, QualificationType? qualificationType) ParseQualificationSegment(string segment)
+    /// <summary>The parsed "Ciclul &lt;number&gt; &lt;qualification type&gt;" segment.</summary>
+    private readonly record struct ParsedQualification(int? Cycle, QualificationType? QualificationType);
+
+    /// <summary>The parsed "Atestare &lt;number&gt;" segment, or a plain section name.</summary>
+    private readonly record struct ParsedSection(string SectionName, int TestNumber);
+
+    private static ParsedQualification ParseQualificationSegment(string segment)
     {
         var lexer = new Lexer(MoodlePathTokenReader.Instance);
         using var e = SingleItemEnumerator.Create(segment.AsMemory());
@@ -166,14 +166,14 @@ public static class MoodlePathParser
         // Expect: Ciclul <number> <text>
         if (!scope.TryConsume(MoodlePathTokenType.Ciclul))
         {
-            return (null, null);
+            return new(null, null);
         }
 
         scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
         if (!scope.CanPeek(1))
         {
-            return (null, null);
+            return new(null, null);
         }
 
         int? cycleNumber = null;
@@ -194,7 +194,7 @@ public static class MoodlePathParser
 
         if (cycleNumber == null)
         {
-            return (null, null);
+            return new(null, null);
         }
 
         scope.ConsumeAllConsecutive([TokenType.Whitespace]);
@@ -218,7 +218,7 @@ public static class MoodlePathParser
         qualificationText = qualificationText.Trim();
         var qualType = ParseQualificationType(qualificationText);
 
-        return (cycleNumber, qualType);
+        return new(cycleNumber, qualType);
     }
 
     private static Grade ParseGradeSegment(string segment)
@@ -264,7 +264,7 @@ public static class MoodlePathParser
         return new((int) gradeNumber);
     }
 
-    private static (string sectionName, int testNumber) ParseSectionSegment(string segment)
+    private static ParsedSection ParseSectionSegment(string segment)
     {
         var lexer = new Lexer(MoodlePathTokenReader.Instance);
         using var e = SingleItemEnumerator.Create(segment.AsMemory());
@@ -287,11 +287,11 @@ public static class MoodlePathParser
                 }
             }
 
-            return (segment, testNumber);
+            return new(segment, testNumber);
         }
 
         // Otherwise just return the segment as-is
-        return (segment, 0);
+        return new(segment, 0);
     }
 
     private static QualificationType? ParseQualificationType(string text)
@@ -301,12 +301,13 @@ public static class MoodlePathParser
         {
             return QualificationType.Licenta;
         }
-        if (text.AsSpan()
-            .StartsWith("Master", StringComparison.OrdinalIgnoreCase))
+        if (!text.AsSpan()
+                .StartsWith("Master", StringComparison.OrdinalIgnoreCase))
         {
-            return QualificationType.Master;
+            // Add more as needed
+            return null;
         }
-        // Add more as needed
-        return null;
+
+        return QualificationType.Master;
     }
 }

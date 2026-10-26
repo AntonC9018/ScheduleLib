@@ -111,9 +111,9 @@ public sealed class SettingsRemovalTests
         Assert.Equal(
             expected: "[]",
             actual: (await files.Get("LessonAttendanceConfig.sources"))
-                .Replace(" ", "")
-                .Replace("\n", "")
-                .Replace("\r", ""));
+            .Replace(" ", "")
+            .Replace("\n", "")
+            .Replace("\r", ""));
         await files.Success(
             "unset",
             "LessonAttendanceConfig.sources",
@@ -129,12 +129,12 @@ public sealed class SettingsRemovalTests
         using var files = new SettingsWriteTests.Fixture();
         var manifest = Path.Combine(files.Root, "topics.json");
         await files.User(
-            (string) $"{{\"schemaVersion\":1,\"defaults\":{{\"LessonTopicsConfig\":{{\"sources\":[{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}]}},\"GoogleCalendarConfig\":{{\"calendarName\":\"inherited\"}}}}}}");
+            $"{{\"schemaVersion\":1,\"defaults\":{{\"LessonTopicsConfig\":{{\"sources\":[{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}]}},\"GoogleCalendarConfig\":{{\"calendarName\":\"inherited\"}}}}}}");
         await files.Success(
             "remove",
             "LessonTopicsConfig.sources",
             "--item",
-            (string) $"{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}",
+            $"{{\"$type\":\"ManifestLessonTopicSourceDefinition\",\"path\":{JsonSerializer.Serialize(manifest)}}}",
             "--scope",
             "project");
         Assert.DoesNotContain(expectedSubstring: manifest, actualString: await files.Get("LessonTopicsConfig.sources"));
@@ -146,7 +146,8 @@ public sealed class SettingsRemovalTests
         Assert.Contains(expectedSubstring: manifest, actualString: await files.Get("LessonTopicsConfig.sources"));
         await File.WriteAllTextAsync(
             path: files.ProjectFile,
-            contents: """{"schemaVersion":1,"operations":{"defaults":[{"operation":"reset","key":"GoogleCalendarConfig"}]}}""");
+            contents:
+            """{"schemaVersion":1,"operations":{"defaults":[{"operation":"reset","key":"GoogleCalendarConfig"}]}}""");
         Assert.NotEqual(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "unset",
@@ -201,17 +202,13 @@ public sealed class SettingsRemovalTests
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.NotEmpty(result.Error);
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
+
         bool CalculateCondition()
         {
             string text = $"{files.ProjectFile}.lock";
-            string path2 = (string) text;
+            string path2 = text;
             bool condition = File.Exists(path2);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.False(CalculateCondition());
@@ -225,10 +222,11 @@ public sealed class SettingsRemovalTests
     public async Task HandEditedInvalidOperationsFailValidation(string operations)
     {
         using var files = new SettingsWriteTests.Fixture();
+
         string CalculateContents()
         {
             string text = $"{{\"schemaVersion\":1,\"operations\":{operations}}}";
-            string contents2 = (string) text;
+            string contents2 = text;
             return contents2;
         }
 

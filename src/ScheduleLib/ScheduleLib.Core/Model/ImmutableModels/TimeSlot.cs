@@ -49,19 +49,23 @@ public sealed class LessonTimeConfig
                 return 1;
             }
             var endTime = startTime.Add(_duration);
-            if (search > endTime)
+            if (!(search > endTime))
             {
-                return -1;
+                return 0;
             }
-            return 0;
+
+            return -1;
         }
     }
 
     private IncludesComparer? _includesComparer;
+
     public TimeSlot? FindTimeSlotByIncludedTime(TimeOnly time)
     {
         _includesComparer ??= new(LessonDuration);
-        var i = Array.BinarySearch(TimeSlotStarts, time, _includesComparer);
+        var i = Array.BinarySearch(TimeSlotStarts,
+            time,
+            _includesComparer);
         if (i < 0)
         {
             return null;
@@ -84,6 +88,7 @@ public sealed class LessonTimeConfig
                     var t1 = (t.Item.Add(offset) - time).TotalMinutes;
                     return Math.Abs(t1);
                 }
+
                 var a = Diff(TimeSpan.Zero);
                 var b = Diff(LessonDuration);
                 return Math.Min(a, b);
@@ -113,8 +118,8 @@ public sealed class LessonTimeConfig
             {
                 break;
             }
-            global::System.Collections.Generic.List<global::TimeSlot> list = output;
-            global::TimeSlot item = new(currentIndex);
+            var list = output;
+            TimeSlot item = new(currentIndex);
             list.Add(item);
             currentIndex++;
         }
@@ -134,12 +139,15 @@ public sealed class LessonTimeConfig
     {
         TimeOnly New(int hour, int min)
         {
-            var t = new TimeSpan(hours: hour, minutes: min, seconds: 0);
+            var t = new TimeSpan(hours: hour,
+                minutes: min,
+                seconds: 0);
             var ret = TimeOnly.FromTimeSpan(t);
             return ret;
         }
 
-        return [
+        return
+        [
             New(hour: 8, min: 00),
             New(hour: 9, min: 45),
             New(hour: 11, min: 30),
@@ -169,9 +177,9 @@ public sealed class LessonTimeConfig
         {
             for (int i = 0; i < TimeSlotStarts.Length; i++)
             {
-                global::TimeSlot CalculateIndex()
+                TimeSlot CalculateIndex()
                 {
-                    global::TimeSlot index = new TimeSlot(i);
+                    var index = new TimeSlot(i);
                     return index;
                 }
 

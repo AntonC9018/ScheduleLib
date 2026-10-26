@@ -23,18 +23,23 @@ public sealed class CalendarReportingTests
                     Jsonl = jsonl,
                 },
                 default);
-            global::ScheduleLib.Cli.CalendarReport CalculateUpdate()
+
+            CalendarReport CalculateUpdate()
             {
                 string id = "desired-0";
                 string status = "completed";
                 object item = new { index = 0 };
-                global::CalendarReportingTests.ProbeMessage human = new ProbeMessage(probe);
-                global::ScheduleLib.Cli.ICliMessage human2 = human;
-                global::ScheduleLib.Cli.CalendarReport update = new CalendarReport(Id: id, Status: status, item, human2);
+                var human = new ProbeMessage(probe);
+                ICliMessage human2 = human;
+                var update = new CalendarReport(Id: id,
+                    Status: status,
+                    item,
+                    human2);
                 return update;
             }
 
             context.StreamUpdate(CalculateUpdate());
+
             bool CheckCondition()
             {
                 if (json)
@@ -42,12 +47,7 @@ public sealed class CalendarReportingTests
                     return true;
                 }
 
-                if (jsonl)
-                {
-                    return true;
-                }
-
-                return false;
+                return jsonl;
             }
 
             int expected2;
@@ -65,13 +65,16 @@ public sealed class CalendarReportingTests
             if (jsonl)
             {
                 using var document = JsonDocument.Parse(text.ToString());
-                Assert.Equal(expected: "desired-0", actual: document.RootElement.GetProperty("id")
-                    .GetString());
-                Assert.Equal(expected: 0, actual: document.RootElement.GetProperty("item")
-                    .GetProperty("index")
-                    .GetInt32());
-                Assert.DoesNotContain("human", document.RootElement.EnumerateObject()
-                    .Select(x => x.Name));
+                Assert.Equal(expected: "desired-0",
+                    actual: document.RootElement.GetProperty("id")
+                        .GetString());
+                Assert.Equal(expected: 0,
+                    actual: document.RootElement.GetProperty("item")
+                        .GetProperty("index")
+                        .GetInt32());
+                Assert.DoesNotContain("human",
+                    document.RootElement.EnumerateObject()
+                        .Select(x => x.Name));
             }
             else
             {
@@ -83,7 +86,7 @@ public sealed class CalendarReportingTests
                 else
                 {
                     string text2 = $"probe{Environment.NewLine}";
-                    expected3 = (string) text2;
+                    expected3 = text2;
                 }
 
                 string actual3 = text.ToString();
@@ -105,7 +108,10 @@ public sealed class CalendarReportingTests
         {
             Console.SetOut(text);
             using var context = new CliCommandContext("calendar sync",
-                new() { Json = true },
+                new()
+                {
+                    Json = true,
+                },
                 default);
             context.Finish(new CliCompletion<object?>(0,
                 [],
@@ -139,19 +145,19 @@ public sealed class CalendarReportingTests
     [Fact]
     public void RenderingUsesTheBoundaryCultureAndPreservesNullFields()
     {
-        global::System.TimeSpan CalculateOffset()
+        TimeSpan CalculateOffset()
         {
-            global::System.TimeSpan offset = TimeSpan.FromHours(3);
+            var offset = TimeSpan.FromHours(3);
             return offset;
         }
 
         var start = new DateTimeOffset(year: 2026,
-                    month: 10,
-                    day: 18,
-                    hour: 9,
-                    minute: 0,
-                    second: 0,
-                    CalculateOffset());
+            month: 10,
+            day: 18,
+            hour: 9,
+            minute: 0,
+            second: 0,
+            CalculateOffset());
         var message = new CalendarDesiredEventMessage(0,
             null,
             Start: start,

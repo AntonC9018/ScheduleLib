@@ -15,16 +15,15 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
     {
         bool isOtherDefault = other.Array == default;
         bool isSelfDefault = Array == default;
+
         bool CalculateConditionResult()
         {
-            if (isSelfDefault)
-            {
-                return isOtherDefault;
-            }
-            else
+            if (!isSelfDefault)
             {
                 return false;
             }
+
+            return isOtherDefault;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -34,16 +33,14 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
         {
             return true;
         }
+
         bool CalculateConditionResult2()
         {
             if (isSelfDefault)
             {
                 return true;
             }
-            else
-            {
-                return isOtherDefault;
-            }
+            return isOtherDefault;
         }
 
         bool conditionResult2 = CalculateConditionResult2();
@@ -76,7 +73,12 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
 
         return false;
     }
-    public static bool operator !=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => !(a == b);
-    public static bool operator ==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => Equals(objA: a, objB: b);
+
+    public static bool operator !=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
+        !(a == b);
+
+    public static bool operator ==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
+        Equals(objA: a, objB: b);
+
     public override int GetHashCode() => Array.GetHashCode();
 }

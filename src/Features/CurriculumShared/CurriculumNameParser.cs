@@ -344,29 +344,28 @@ public static class CurriculumNameParser
                     {
                         return AttendanceMode.Zi;
                     }
-                    if (s.SequenceEqual("fr"))
+                    if (!s.SequenceEqual("fr"))
                     {
-                        return AttendanceMode.FrecventaRedusa;
+                        return null;
                     }
-                    return null;
+
+                    return AttendanceMode.FrecventaRedusa;
                 }
             }
 
             bool CalculateConditionResult()
             {
-                if (hasUnparsedItem)
+                if (!hasUnparsedItem)
                 {
-                    if (itemCount > 1)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (itemCount > 1)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -671,7 +670,7 @@ public sealed class CurriculumCache
     public static CurriculumCache CreateDefault()
     {
         var rootPath = Path.GetFullPath(CurriculumDirectoryHelper.DefaultRootDirName);
-        global::ScheduleLib.Curriculum.RootCurriculumDirectory rootDirectory = new(rootPath);
+        RootCurriculumDirectory rootDirectory = new(rootPath);
         var ret = new CurriculumCache(rootDirectory);
         return ret;
     }
@@ -703,9 +702,9 @@ public sealed class CurriculumCache
                 var facultyInitialsParsed = new ParsedCourseName();
                 foreach (var letter in g.Faculty.Name)
                 {
-                    global::System.Collections.Generic.List<global::ScheduleLib.Parsing.CourseName.CourseNameSegment>
+                    var
                         list = facultyInitialsParsed.Segments;
-                    global::ScheduleLib.Parsing.CourseName.CourseNameSegment
+                    var
                         item = CourseNameSegment.AsInitials(letter);
                     list.Add(
                         item);
@@ -717,22 +716,14 @@ public sealed class CurriculumCache
                         IgnorePunctuation = false,
                     });
 
-                if (!facultyParsed.Equals(facultyInitialsParsed))
-                {
-                    return false;
-                }
-                return true;
+                return facultyParsed.Equals(facultyInitialsParsed);
             }
 
             bool QualificationOk()
             {
                 var q = group.Key.QualificationType;
                 var g = p.Schedule.Get(lesson.Lesson.Group);
-                if (g.QualificationType != q)
-                {
-                    return false;
-                }
-                return true;
+                return g.QualificationType == q;
             }
 
             bool AttendanceModeOk()
@@ -747,6 +738,7 @@ public sealed class CurriculumCache
                 {
                     return true;
                 }
+
                 return false;
             }
         }
@@ -782,23 +774,19 @@ public sealed class CurriculumCache
                 }
 
                 var lesson = p.Schedule.Get(p.LessonId);
-                if (courseId != lesson.Lesson.Course)
+                if (!(courseId != lesson.Lesson.Course))
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             bool GradeOk()
             {
                 var lesson = p.Schedule.Get(p.LessonId);
                 var g = p.Schedule.Get(lesson.Lesson.Group);
-                if (g.Grade.Value != file.Key.Grade)
-                {
-                    return false;
-                }
-                return true;
+                return g.Grade.Value == file.Key.Grade;
             }
         }
 
@@ -1395,23 +1383,16 @@ internal static class ThesisName
                 {
                     return QualificationType.Licenta;
                 }
-                else if (Equals1(name: name, label: "master"))
+                if (Equals1(name: name, label: "master"))
                 {
                     return QualificationType.Master;
                 }
-                else
-                {
-                    throw new InvalidOperationException("Unknown qualification type");
-                }
+                throw new InvalidOperationException("Unknown qualification type");
             }
 
             static bool Equals1(ReadOnlySpan<char> name, ReadOnlySpan<char> label)
             {
-                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: name, y: label))
-                {
-                    return true;
-                }
-                return false;
+                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: name, y: label);
             }
         }
 
@@ -1657,12 +1638,7 @@ internal static class SectionTypeHelper
             int conditionValue = _index;
             int conditionValue2 = (int) SectionType.Count;
             conditionResult = conditionValue < conditionValue2;
-            if (conditionResult)
-            {
-                return true;
-            }
-
-            return false;
+            return conditionResult;
         }
 
         public void Reset() => _index = -1;
@@ -1710,11 +1686,13 @@ internal readonly struct SectionItemsEnumerable : IEnumerable<OpenXmlElement>
             {
                 return false;
             }
-            if (_e.Current == _nextSectionStart)
+
+            if (_e.Current != _nextSectionStart)
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         }
 
         public OpenXmlElement Current => _e.Current;
@@ -1823,10 +1801,12 @@ internal static class PreliminarySectionProcessing
                 {
                     return true;
                 }
+
                 if (props.Italic is { })
                 {
                     return true;
                 }
+
                 return false;
             }
         }
@@ -2082,10 +2062,12 @@ internal static class DisciplineProvisionsProcessing
             {
                 return false;
             }
+
             if (val == MergedCellValues.Continue)
             {
                 return true;
             }
+
             return false;
         }
 
@@ -2176,11 +2158,13 @@ internal static class DisciplineProvisionsProcessing
                     {
                         return false;
                     }
-                    if (merge.Val != MergedCellValues.Continue)
+
+                    if (!(merge.Val != MergedCellValues.Continue))
                     {
-                        return false;
+                        return true;
                     }
-                    return true;
+
+                    return false;
                 }
 
                 static ImmutableArray<string> CreateStrings()
@@ -2270,17 +2254,17 @@ public readonly struct SectionParseResult
     {
         get
         {
-            if (!(IsNotEmpty))
+            if (!IsNotEmpty)
             {
                 return false;
             }
 
-            if (!(MatchIndex == -1))
+            if (MatchIndex == -1)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
     }
 

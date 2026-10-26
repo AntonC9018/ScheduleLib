@@ -21,8 +21,18 @@ public sealed class IcsCalendarWriterTests
             Summary = summary ?? "Programare orientată obiect (Curs)",
             Description = "Curmanschii A.  B407",
             Location = "B407",
-            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
-            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 30, second: 0),
+            Start = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 8,
+                minute: 0,
+                second: 0),
+            End = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 9,
+                minute: 30,
+                second: 0),
         };
     }
 
@@ -35,7 +45,7 @@ public sealed class IcsCalendarWriterTests
 
     private static string WriteText(IcsCalendar calendar)
     {
-        global::System.Text.Encoding encoding = Encoding.UTF8;
+        var encoding = Encoding.UTF8;
         byte[] bytes = IcsCalendarWriter.Write(calendar);
         string stringValue = encoding.GetString(bytes);
         return stringValue;
@@ -82,7 +92,7 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Event_HasRequiredPropertiesWithTimezone()
     {
-        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var calendar = Calendar(Event());
         var lines = PhysicalLines(calendar);
 
         Assert.Contains("BEGIN:VEVENT", lines);
@@ -100,7 +110,7 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Event_HasNoValarm()
     {
-        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var calendar = Calendar(Event());
         var lines = PhysicalLines(calendar);
 
         Assert.DoesNotContain(lines, l => l.StartsWith("BEGIN:VALARM"));
@@ -109,9 +119,9 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Uid_IsStableForSameContent()
     {
-        global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(Event());
+        var calendar = Calendar(Event());
         var first = WriteText(calendar);
-        global::ScheduleLib.Generation.Ics.IcsCalendar calendar2 = Calendar(Event());
+        var calendar2 = Calendar(Event());
         var second = WriteText(calendar2);
 
         string expected2 = UidOf(first);
@@ -122,28 +132,29 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Uid_DiffersForDifferentContent()
     {
-        global::ScheduleLib.Generation.Ics.IcsEvent CalculateEvents()
+        IcsEvent CalculateEvents()
         {
-            global::ScheduleLib.Generation.Ics.IcsEvent events = Event("Curs A");
+            var events = Event("Curs A");
             return events;
         }
 
-        global::ScheduleLib.Generation.Ics.IcsCalendar CalculateCalendar()
+        IcsCalendar CalculateCalendar()
         {
-            global::ScheduleLib.Generation.Ics.IcsCalendar calendar = Calendar(CalculateEvents());
+            var calendar = Calendar(CalculateEvents());
             return calendar;
         }
 
         var a = WriteText(CalculateCalendar());
-        global::ScheduleLib.Generation.Ics.IcsEvent CalculateEvents2()
+
+        IcsEvent CalculateEvents2()
         {
-            global::ScheduleLib.Generation.Ics.IcsEvent events2 = Event("Curs B");
+            var events2 = Event("Curs B");
             return events2;
         }
 
-        global::ScheduleLib.Generation.Ics.IcsCalendar CalculateCalendar2()
+        IcsCalendar CalculateCalendar2()
         {
-            global::ScheduleLib.Generation.Ics.IcsCalendar calendar2 = Calendar(CalculateEvents2());
+            var calendar2 = Calendar(CalculateEvents2());
             return calendar2;
         }
 
@@ -160,14 +171,24 @@ public sealed class IcsCalendarWriterTests
         var calendar = Calendar(new IcsEvent()
         {
             Summary = "x",
-            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
-            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 30, second: 0),
+            Start = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 8,
+                minute: 0,
+                second: 0),
+            End = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 9,
+                minute: 30,
+                second: 0),
             Uid = "explicit@schedulelib",
         });
 
         string expected = "UID:explicit@schedulelib";
         string[] collection = PhysicalLines(calendar);
-        global::System.Collections.Generic.IEnumerable<string> collection2 = collection;
+        IEnumerable<string> collection2 = collection;
         Assert.Contains(expected, collection2);
     }
 
@@ -177,8 +198,18 @@ public sealed class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = @"Back\slash, comma; semi",
-            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
-            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
+            Start = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 8,
+                minute: 0,
+                second: 0),
+            End = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 9,
+                minute: 0,
+                second: 0),
         }));
 
         Assert.Contains(@"SUMMARY:Back\\slash\, comma\; semi", lines);
@@ -190,8 +221,18 @@ public sealed class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = "line1\r\nline2\nline3",
-            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
-            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
+            Start = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 8,
+                minute: 0,
+                second: 0),
+            End = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 9,
+                minute: 0,
+                second: 0),
         }));
 
         Assert.Contains(@"SUMMARY:line1\nline2\nline3", lines);
@@ -202,12 +243,22 @@ public sealed class IcsCalendarWriterTests
     {
         // Cyrillic chars are 2 octets each, an emoji is 4: both stress the
         // octet-vs-char distinction and the 2-octet/4-octet UTF-8 ranges.
-        var longText = (string) $"{(new string('а', 60))}{(new string('б', 30))}🏝️{(new string('в', 40))}";
+        var longText = $"{new string('а', 60)}{new string('б', 30)}🏝️{new string('в', 40)}";
         var calendar = Calendar(new IcsEvent()
         {
             Summary = longText,
-            Start = new DateTime(year: 2026, month: 9, day: 7, hour: 8, minute: 0, second: 0),
-            End = new DateTime(year: 2026, month: 9, day: 7, hour: 9, minute: 0, second: 0),
+            Start = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 8,
+                minute: 0,
+                second: 0),
+            End = new DateTime(year: 2026,
+                month: 9,
+                day: 7,
+                hour: 9,
+                minute: 0,
+                second: 0),
         });
 
         var lines = PhysicalLines(calendar);
@@ -248,10 +299,11 @@ public sealed class IcsCalendarWriterTests
             Assert.True(condition, userMessage);
         }
 
-        var unfolded = string.Join("", summaryLines
-            .Select((l, i) => i == 0 ? l : l[1..]));
+        var unfolded = string.Join("",
+            summaryLines
+                .Select((l, i) => i == 0 ? l : l[1..]));
         string text = $"SUMMARY:{longText}";
-        string expected2 = (string) text;
+        string expected2 = text;
         string actual2 = unfolded;
         Assert.Equal(expected: expected2, actual: actual2);
     }
@@ -262,8 +314,8 @@ public sealed class IcsCalendarWriterTests
         // 74 ASCII chars then an emoji: the pair does not fit in the first
         // segment, so it must move to the continuation line whole.
         string text = new string('a', 67);
-        string text2 = $"SUMMARY:{(text)}🏝️";
-        var line = (string) text2;
+        string text2 = $"SUMMARY:{text}🏝️";
+        var line = text2;
 
         var folded = IcsCalendarWriter.Fold(line);
         var segments = folded.Split("\r\n");

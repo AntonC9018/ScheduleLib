@@ -18,10 +18,10 @@ public sealed class FmiUpdateTests : IDisposable
         {
             calls++;
             Assert.Equal(expected: 3, actual: update.Downloads.Count);
-            global::System.DateOnly expected2 = new DateOnly(year: 2026,
+            var expected2 = new DateOnly(year: 2026,
                 month: 9,
                 day: 25);
-            global::System.DateOnly actual2 = update.PeriodStart;
+            var actual2 = update.PeriodStart;
             Assert.Equal(expected: expected2, actual: actual2);
             return Task.CompletedTask;
         }
@@ -76,9 +76,9 @@ public sealed class FmiUpdateTests : IDisposable
             day: 17));
         var updater = Create(() => downloads);
 
-        global::System.DateOnly CalculateExpected()
+        DateOnly CalculateExpected()
         {
-            global::System.DateOnly expected2 = new DateOnly(year: 2026,
+            var expected2 = new DateOnly(year: 2026,
                 month: 9,
                 day: 17);
             return expected2;
@@ -97,9 +97,9 @@ public sealed class FmiUpdateTests : IDisposable
             },
         };
 
-        global::System.DateOnly CalculateExpected2()
+        DateOnly CalculateExpected2()
         {
-            global::System.DateOnly expected3 = new DateOnly(year: 2026,
+            var expected3 = new DateOnly(year: 2026,
                 month: 9,
                 day: 23);
             return expected3;
@@ -116,9 +116,9 @@ public sealed class FmiUpdateTests : IDisposable
             },
         };
 
-        global::System.DateOnly CalculateExpected3()
+        DateOnly CalculateExpected3()
         {
-            global::System.DateOnly expected4 = new DateOnly(year: 2026,
+            var expected4 = new DateOnly(year: 2026,
                 month: 9,
                 day: 25);
             return expected4;
@@ -180,20 +180,20 @@ public sealed class FmiUpdateTests : IDisposable
                                                """,
             FmiScheduleClient.SchedulePage);
         Assert.Equal(expected: 3, actual: links.Count);
-        global::System.Uri expected2 = new Uri("https://fmi.usm.md/one.pdf");
-        global::System.Uri actual2 = links[0].Url;
+        var expected2 = new Uri("https://fmi.usm.md/one.pdf");
+        var actual2 = links[0].Url;
         Assert.Equal(expected: expected2, actual: actual2);
-        global::System.DateOnly expected3 = new DateOnly(year: 2026,
+        var expected3 = new DateOnly(year: 2026,
             month: 9,
             day: 17);
-        global::System.DateOnly? expected4 = expected3;
-        global::System.DateOnly? actual3 = links[0].UploadDate;
+        DateOnly? expected4 = expected3;
+        var actual3 = links[0].UploadDate;
         Assert.Equal(expected: expected4, actual: actual3);
-        global::System.DateOnly expected5 = new DateOnly(year: 2026,
+        var expected5 = new DateOnly(year: 2026,
             month: 9,
             day: 18);
-        global::System.DateOnly? expected6 = expected5;
-        global::System.DateOnly? actual4 = links[1].UploadDate;
+        DateOnly? expected6 = expected5;
+        var actual4 = links[1].UploadDate;
         Assert.Equal(expected: expected6, actual: actual4);
         Assert.Null(links[2].UploadDate);
     }
@@ -219,13 +219,13 @@ public sealed class FmiUpdateTests : IDisposable
             {
                 int year2 = year;
                 string uriString = $"https://fmi.usm.md/orar{year}.pdf";
-                global::System.Uri url = new Uri(uriString);
-                global::System.DateOnly? uploadDate = date;
-                global::FmiWebsiteInterop.FmiScheduleLink link = new(year2,
+                var url = new Uri(uriString);
+                var uploadDate = date;
+                FmiScheduleLink link = new(year2,
                     url,
                     uploadDate);
                 byte[] content = [(byte) year];
-                global::FmiWebsiteInterop.FmiScheduleDownload fmiScheduleDownload =
+                var fmiScheduleDownload =
                     new FmiScheduleDownload(link, content);
                 return fmiScheduleDownload;
             })
@@ -261,7 +261,7 @@ public sealed class FmiUpdateTests : IDisposable
         string toString = Guid.NewGuid()
             .ToString("N");
         string text = $"schedule-update-tests-{toString}";
-        string path2 = (string) text;
+        string path2 = text;
         return path2;
     }
 }

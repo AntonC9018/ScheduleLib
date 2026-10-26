@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 
 namespace Desktop.NodeData.Features.Registry;
 
-
 public sealed class Registry<T>
 {
     private readonly List<Named<T>> _values;
@@ -51,6 +50,7 @@ public sealed record class Named<T>(
 public readonly record struct RegistryKey(
     NodeDataKey NodeData,
     PropertyId Property);
+
 public readonly record struct RegistryKey<T>(RegistryKey Value)
 {
     public override string ToString() => Value.ToString();
@@ -65,11 +65,12 @@ public static class ThingRegistryHelper
             Action<ThingRegistryOptions<T>>? configure = null)
         {
             var keyStr = key == default ? null : key.ToString();
-            services.AddKeyedSingleton<Registry<T>>(keyStr, static (sp, keyStr) =>
-            {
-                var opts = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
-                return new(opts, (string?) keyStr);
-            });
+            services.AddKeyedSingleton<Registry<T>>(keyStr,
+                static (sp, keyStr) =>
+                {
+                    var opts = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
+                    return new(opts, (string?) keyStr);
+                });
 
             var ret = services.AddOptions<ThingRegistryOptions<T>>(keyStr);
             if (configure != null)
@@ -111,8 +112,8 @@ public static class ThingRegistryHelper
     {
         public void Add(string name, T value)
         {
-            global::System.Collections.Generic.List<global::Desktop.NodeData.Features.Registry.Named<T>> list = opts.Values;
-            global::Desktop.NodeData.Features.Registry.Named<T> item = new(name, value);
+            var list = opts.Values;
+            Named<T> item = new(name, value);
             list.Add(item);
         }
 

@@ -16,6 +16,9 @@ using Tests.ScheduleCommon;
 
 public sealed class IntegrationTest
 {
+    /// <summary>The service provider and layered tree builder shared by one integration fixture.</summary>
+    private readonly record struct FixtureSetup(ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder);
+
     [Fact]
     public async Task LessonTopicsMergeTest()
     {
@@ -61,7 +64,9 @@ public sealed class IntegrationTest
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        await using var outputFile = outputDirectory.OpenFile(outputPath, FileMode.Create, FileAccess.ReadWrite);
+        await using var outputFile = outputDirectory.OpenFile(outputPath,
+            FileMode.Create,
+            FileAccess.ReadWrite);
 
         var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelTaskHandler>(serviceProvider);
 
@@ -75,7 +80,7 @@ public sealed class IntegrationTest
         outputDirectory.TryOpenFileInExplorer(outputPath);
     }
 
-    private (ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder) Fixture()
+    private FixtureSetup Fixture()
     {
         var services = new ServiceCollection();
         services.AddAllServices();
@@ -91,8 +96,8 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
-        global::Microsoft.Extensions.DependencyInjection.ServiceCollection serviceCollection = services;
-        global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor descriptor = new(
+        var serviceCollection = services;
+        ServiceDescriptor descriptor = new(
             serviceType: typeof(IScheduleInitializer),
             implementationType: typeof(ScheduleBuilderInitializer),
             ServiceLifetime.Singleton);
@@ -106,7 +111,7 @@ public sealed class IntegrationTest
         var builder = serviceProvider.GetRequiredService<TreeBuilder>();
         TestBuilderHelper.Configure(builder);
 
-        return (serviceProvider, builder);
+        return new(serviceProvider, builder);
     }
 }
 

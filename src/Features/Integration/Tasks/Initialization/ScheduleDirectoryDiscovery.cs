@@ -63,6 +63,7 @@ public static class ScheduleDirectoryDiscovery
     private static (StudyYear StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
     {
         var baseParser = new SequenceReader(path);
+
         InvalidScheduleDirectoryFormat Error(SequencePosition position, string reason)
         {
             var segment = baseParser.Segment(position);
@@ -176,7 +177,8 @@ public sealed class ScheduleDirectoryDescriptor
 
 public abstract class InvalidScheduleSourceException(string message) : NotSupportedException(message);
 
-public sealed class InvalidAttendanceDirectoryFormat(string name) : InvalidScheduleSourceException($"Invalid attendance mode: {name}");
+public sealed class InvalidAttendanceDirectoryFormat(string name)
+    : InvalidScheduleSourceException($"Invalid attendance mode: {name}");
 
 public sealed class InvalidScheduleDirectoryFormat : InvalidScheduleSourceException
 {

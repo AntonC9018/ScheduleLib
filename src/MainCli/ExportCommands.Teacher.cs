@@ -27,15 +27,17 @@ public partial class ExportCommands
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ExportRequest request = new(
-                    source,
-                    destination,
-                    resultArgs,
-                    settings);
-        global::ScheduleLib.Cli.TeacherExportKind kind = TeacherExportKind.LabDeadlines;
-        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
-        global::System.Threading.Tasks.Task<int> teacherExport = TeacherExport(
-        request, kind, cancellationToken2);
+        ExportRequest request = new(
+            source,
+            destination,
+            resultArgs,
+            settings);
+        var kind = TeacherExportKind.LabDeadlines;
+        var cancellationToken2 = cancellationToken;
+        var teacherExport = TeacherExport(
+            request,
+            kind,
+            cancellationToken2);
         return teacherExport;
     }
 
@@ -49,15 +51,17 @@ public partial class ExportCommands
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ExportRequest request = new(
-                    null,
-                    destination,
-                    resultArgs,
-                    settings);
-        global::ScheduleLib.Cli.TeacherExportKind kind = TeacherExportKind.PreDefense;
-        global::System.Threading.CancellationToken cancellationToken2 = cancellationToken;
-        global::System.Threading.Tasks.Task<int> teacherExport = TeacherExport(
-        request, kind, cancellationToken2);
+        ExportRequest request = new(
+            null,
+            destination,
+            resultArgs,
+            settings);
+        var kind = TeacherExportKind.PreDefense;
+        var cancellationToken2 = cancellationToken;
+        var teacherExport = TeacherExport(
+            request,
+            kind,
+            cancellationToken2);
         return teacherExport;
     }
 
@@ -71,6 +75,7 @@ public partial class ExportCommands
         var resultArgs = request.Result;
         var settings = request.Settings;
         var preDefense = kind == TeacherExportKind.PreDefense;
+
         string CalculateCommand()
         {
             string command2;
@@ -87,9 +92,9 @@ public partial class ExportCommands
         }
 
         using var context = new CliCommandContext(
-                    CalculateCommand(),
-                    resultArgs,
-                    cancellationToken);
+            CalculateCommand(),
+            resultArgs,
+            cancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -110,21 +115,20 @@ public partial class ExportCommands
 
             using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
+
             bool CalculateConditionResult()
             {
-                if (!preDefense)
+                if (preDefense)
                 {
-                    if (teacher is null)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (teacher is null)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -226,17 +230,17 @@ public partial class ExportCommands
                     }
 
                     await output.Publish(
-                                            CalculateName(),
-                                            async (stream, token) =>
-                                            {
-                                                await ListsForPredzashitaTaskHandler.WriteAsync(
-                                                    number,
-                                                    students,
-                                                    stream,
-                                                    token);
-                                                VerifyTeacherWorkbook(stream, token);
-                                            },
-                                            cancellation.Token);
+                        CalculateName(),
+                        async (stream, token) =>
+                        {
+                            await ListsForPredzashitaTaskHandler.WriteAsync(
+                                number,
+                                students,
+                                stream,
+                                token);
+                            VerifyTeacherWorkbook(stream, token);
+                        },
+                        cancellation.Token);
                     workbookCount++;
                     StreamNew();
                 }
@@ -255,11 +259,11 @@ public partial class ExportCommands
 
                 var schedule = scope.ServiceProvider.GetRequiredService<Schedule>()
                     .Filter(
-                    FilterHelper.Builder()
-                        .WithTeacher(teacherId)
-                        .WithLessonType(LessonType.Lab));
+                        FilterHelper.Builder()
+                            .WithTeacher(teacherId)
+                            .WithLessonType(LessonType.Lab));
                 if (!schedule.EnumerateLessons()
-                    .Any())
+                        .Any())
                 {
                     return await Finish(
                         CliExit.InvalidConfiguration,
@@ -272,7 +276,7 @@ public partial class ExportCommands
                 {
                     var partitions = schedule.EnumerateLessons()
                         .Where(x => x.Lesson.Group == group)
-                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course))
+                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, x.Lesson.Course))
                         .ToArray();
                     if (partitions.Length > 1 && partitions.Any(x => x.Key.Partition == GroupPartitionKey.All))
                     {
@@ -330,19 +334,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: true);
-            global::ScheduleLib.Cli.TeacherExportResult CalculateData()
+
+            TeacherExportResult CalculateData()
             {
-                global::ScheduleLib.Cli.TeacherExportResult data = new(
-                                    OutputDirectory: output?.DirectoryPath,
-                                    Teacher: teacher,
-                                    workbookCount);
+                TeacherExportResult data = new(
+                    OutputDirectory: output?.DirectoryPath,
+                    Teacher: teacher,
+                    workbookCount);
                 return data;
             }
 
             return context.Finish(new CliCompletion<TeacherExportResult>(
-                            exit,
-                            errors,
-                            CalculateData())
+                exit,
+                errors,
+                CalculateData())
             {
                 Summary = new
                 {
@@ -356,10 +361,11 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                    string line = $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
-                    line);
+                        line);
                 },
             });
         }
@@ -393,7 +399,7 @@ public partial class ExportCommands
         {
             if (IsEnabled(level))
             {
-                global::System.Collections.Generic.List<string> list = warnings;
+                var list = warnings;
                 string item = formatter(state, exception);
                 list.Add(item);
             }

@@ -37,11 +37,13 @@ public sealed class LessonDiffTests
                 Course = new(2),
             },
         };
-        var diff = LessonBuilderHelper.Diff(a: lesson1, b: lesson2, new()
-        {
-            Room = true,
-            Course = true,
-        });
+        var diff = LessonBuilderHelper.Diff(a: lesson1,
+            b: lesson2,
+            new()
+            {
+                Room = true,
+                Course = true,
+            });
         Assert.True(diff.Course);
         Assert.False(diff.Room);
     }
@@ -63,10 +65,12 @@ public sealed class LessonDiffTests
                 Teachers = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(to: ref lesson1, @from: lesson2, new()
-        {
-            Teachers = true,
-        });
+        LessonBuilderHelper.Merge(to: ref lesson1,
+            @from: lesson2,
+            new()
+            {
+                Teachers = true,
+            });
         Assert.Equal(expected: [new(1), new(2), new(3)], actual: lesson1.General.Teachers);
     }
 
@@ -87,20 +91,22 @@ public sealed class LessonDiffTests
                 Groups = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(to: ref lesson1, @from: lesson2, new()
-        {
-            Groups = true,
-        });
+        LessonBuilderHelper.Merge(to: ref lesson1,
+            @from: lesson2,
+            new()
+            {
+                Groups = true,
+            });
 
         var g = lesson1.Group.Groups;
-        global::ScheduleLib.GroupId expected2 = new GroupId(1);
-        global::ScheduleLib.GroupId actual2 = g[0];
+        var expected2 = new GroupId(1);
+        var actual2 = g[0];
         Assert.Equal(expected: expected2, actual: actual2);
-        global::ScheduleLib.GroupId expected3 = new GroupId(2);
-        global::ScheduleLib.GroupId actual3 = g[1];
+        var expected3 = new GroupId(2);
+        var actual3 = g[1];
         Assert.Equal(expected: expected3, actual: actual3);
-        global::ScheduleLib.GroupId expected4 = new GroupId(3);
-        global::ScheduleLib.GroupId actual4 = g[2];
+        var expected4 = new GroupId(3);
+        var actual4 = g[2];
         Assert.Equal(expected: expected4, actual: actual4);
     }
 }

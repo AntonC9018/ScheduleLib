@@ -93,7 +93,7 @@ public partial class ExportCommands
                 .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                global::System.Collections.Generic.List<string> list = warnings;
+                var list = warnings;
                 string item = $"The website schedule export omits {teacherless} weekly lessons with no teacher.";
                 list.Add(item);
             }
@@ -111,7 +111,7 @@ public partial class ExportCommands
                 if (!slugLookup.TryGetValue(name, out var slug))
                 {
                     missingSlugs.Add(name.ToString());
-                    global::System.Collections.Generic.List<string> list2 = warnings;
+                    var list2 = warnings;
                     string item2 = $"No slug for '{name}'.";
                     list2.Add(item2);
                     continue;
@@ -120,14 +120,14 @@ public partial class ExportCommands
                 if (model.ScheduleDaysDto.IsEmpty)
                 {
                     omittedEmpty.Add(name.ToString());
-                    global::System.Collections.Generic.List<string> list3 = warnings;
+                    var list3 = warnings;
                     string item3 = $"Teacher '{name}' has no website schedule entries and is omitted.";
                     list3.Add(item3);
                     continue;
                 }
                 using var buffer = new MemoryStream();
                 await WebsiteJsonScheduleHelper.Serialize(model, buffer);
-                global::System.Collections.Generic.Dictionary<string, byte[]> dictionary = files;
+                var dictionary = files;
                 string key = $"{slug}.json";
                 byte[] value = buffer.ToArray();
                 bool tryAdd = dictionary.TryAdd(key, value);
@@ -221,7 +221,7 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    var cliOutput = cli;
                     string line =
                         $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
@@ -298,7 +298,11 @@ public partial class ExportCommands
                 staging.Initialize(clear: true);
                 var handler = scope.ServiceProvider.GetRequiredService<ThesesConversionTaskHandler>();
                 await handler.Handle(cancellation.Token, staging);
-                foreach (var file in staging.FilePaths("*.json", new() { RecurseSubdirectories = false })
+                foreach (var file in staging.FilePaths("*.json",
+                                 new()
+                                 {
+                                     RecurseSubdirectories = false,
+                                 })
                              .OrderBy(x => x.Path, StringComparer.Ordinal))
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
@@ -327,7 +331,7 @@ public partial class ExportCommands
             }
             foreach (var warning in thesisWarnings.Messages)
             {
-                global::System.Collections.Generic.List<string> list = missingSlugs;
+                var list = missingSlugs;
                 string item = ExtractTeacher(warning);
                 list.Add(item);
                 warnings.Add(warning);
@@ -412,7 +416,7 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    var cliOutput = cli;
                     string line =
                         $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
                     cliOutput.WriteHuman(
@@ -553,7 +557,12 @@ public partial class ExportCommands
     {
         var first = warning.IndexOf('\'');
         var last = warning.LastIndexOf('\'');
-        return first >= 0 && last > first ? warning[(first + 1)..last] : warning;
+        if (first >= 0 && last > first)
+        {
+            return warning[(first + 1)..last];
+        }
+
+        return warning;
     }
 
     private sealed class ThesisWarningCollector
@@ -563,7 +572,7 @@ public partial class ExportCommands
 
     private sealed class ThesisWarningLoggerProvider(ThesisWarningCollector collector) : ILoggerProvider
     {
-        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+        public ILogger CreateLogger(string categoryName)
         {
             return categoryName.Contains("ThesesConversion", StringComparison.Ordinal)
                 ? new ThesisWarningLogger(collector)
@@ -575,7 +584,7 @@ public partial class ExportCommands
         }
     }
 
-    private sealed class ThesisWarningLogger(ThesisWarningCollector collector) : Microsoft.Extensions.Logging.ILogger
+    private sealed class ThesisWarningLogger(ThesisWarningCollector collector) : ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullWebsiteScope.Instance;
 
@@ -595,14 +604,14 @@ public partial class ExportCommands
 
             lock (collector)
             {
-                global::System.Collections.Generic.List<string> list = collector.Messages;
+                var list = collector.Messages;
                 string item = formatter(state, exception);
                 list.Add(item);
             }
         }
     }
 
-    private sealed class NullWebsiteLogger : Microsoft.Extensions.Logging.ILogger
+    private sealed class NullWebsiteLogger : ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullWebsiteScope.Instance;
 

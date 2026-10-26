@@ -24,11 +24,13 @@ public enum DfsVisitationState
 public sealed class DfsEnumerator() : IDfsEnumerator
 {
     public DfsAction Action { get; set; } = DfsAction.Recurse;
+
     private Value _current = new()
     {
         Node = null!,
         State = DfsVisitationState.Start,
     };
+
     private readonly EnumerationContextCollection _enumerationContextCollection;
     private readonly Stack<StackFrame> _stack = new();
 
@@ -83,15 +85,16 @@ public sealed class DfsEnumerator() : IDfsEnumerator
 
     private bool TryConsumePreventRecursion()
     {
-        if (Action is DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce)
+        if (!(Action is DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce))
         {
-            if (Action == DfsAction.PreventRecursionOnce)
-            {
-                Action = DfsAction.Recurse;
-            }
-            return true;
+            return false;
         }
-        return false;
+
+        if (Action == DfsAction.PreventRecursionOnce)
+        {
+            Action = DfsAction.Recurse;
+        }
+        return true;
     }
 
     public bool MoveNext()
@@ -199,6 +202,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
     public void Dispose()
     {
     }
+
     public void Reset()
     {
         throw new NotImplementedException();
@@ -214,8 +218,11 @@ public interface IDfsEnumerationContext : IEnumerationContext
 
 public readonly struct DfsEnumerable : IDfsEnumerable
 {
+    /// <summary>A context key with the factory that creates a context for it.</summary>
+    private readonly record struct ContextFactory(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory);
+
     private readonly MutableNode _root;
-    private readonly List<(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory)> _contextFactories = new();
+    private readonly List<ContextFactory> _contextFactories = new();
 
     public DfsEnumerable(MutableNode root)
     {
@@ -231,7 +238,7 @@ public readonly struct DfsEnumerable : IDfsEnumerable
         {
             return this;
         }
-        _contextFactories.Add((key.Value, factory));
+        _contextFactories.Add(new(key.Value, factory));
         return this;
     }
 
@@ -251,7 +258,6 @@ public readonly struct DfsEnumerable : IDfsEnumerable
     IEnumerator<DfsEnumerationContext> IEnumerable<DfsEnumerationContext>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
-
 
 public interface IDfsController
 {

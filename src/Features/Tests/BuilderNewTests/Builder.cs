@@ -20,28 +20,29 @@ public static class TestBuilderHelper
         {
             defaults.Registry()
                 .Configure(x =>
-            {
-                x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
-                x.CommandDerivation<AnyDayDerivation>();
-                global::ScheduleLib.OnlineRegistry.CommandProcessingConfig CalculateFlags()
                 {
-                    global::ScheduleLib.OnlineRegistry.CommandProcessingConfig flags = CommandProcessingConfig.Process
-                                        .WithLog(LessonEquationCommandTypes.All);
-                    return flags;
-                }
+                    x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
+                    x.CommandDerivation<AnyDayDerivation>();
 
-                x.ProcessingFlags(CalculateFlags());
-            });
+                    CommandProcessingConfig CalculateFlags()
+                    {
+                        var flags = CommandProcessingConfig.Process
+                            .WithLog(LessonEquationCommandTypes.All);
+                        return flags;
+                    }
+
+                    x.ProcessingFlags(CalculateFlags());
+                });
 
             // Adds default source.
             // b.LessonTopics.AddSource<ManifestLessonTopicSource>(topics => ...)
             defaults.LessonTopics()
                 .Manifest(topics =>
-            {
-                // If someone else tries using topics.Manifest()
-                // in their source config, it would bind to this one.
-                _ = topics;
-            });
+                {
+                    // If someone else tries using topics.Manifest()
+                    // in their source config, it would bind to this one.
+                    _ = topics;
+                });
 
             defaults.Registry()
                 .Credentials()
@@ -58,53 +59,57 @@ public static class TestBuilderHelper
         //     scope.LessonTopics.Manifest();
         // });
 
-        b.Defaults.TeacherLayer("Anton Curmanschii", t =>
-        {
-            t.GoogleDrive();
-
-            t.Registry()
-                .Configure(x =>
+        b.Defaults.TeacherLayer("Anton Curmanschii",
+            t =>
             {
-                x.ProcessingFlags(CommandProcessingConfig.None);
-            });
+                t.GoogleDrive();
 
-            string CalculateFilePath()
-            {
-                string path12 = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                string path22 = "Desktop";
-                string path32 = "lipse.xlsx";
-                string filePath = Path.Join(
-                                    path1: path12, path2: path22, path3: path32);
-                return filePath;
-            }
+                t.Registry()
+                    .Configure(x =>
+                    {
+                        x.ProcessingFlags(CommandProcessingConfig.None);
+                    });
 
-            t.LessonAttendance()
-                .Source(
-                            CalculateFilePath(),
-                            attendance =>
-                            {
-                                attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                            });
-            t.LessonTopics()
-                .Configure(topics =>
-            {
-                topics.Manifest();
-                topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                string CalculateFilePath()
+                {
+                    string path12 = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                    string path22 = "Desktop";
+                    string path32 = "lipse.xlsx";
+                    string filePath = Path.Join(
+                        path1: path12,
+                        path2: path22,
+                        path3: path32);
+                    return filePath;
+                }
+
+                t.LessonAttendance()
+                    .Source(
+                        CalculateFilePath(),
+                        attendance =>
+                        {
+                            attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+                        });
                 t.LessonTopics()
-                    .Manifest(m => m.Path("path.xlsx"));
+                    .Configure(topics =>
+                    {
+                        topics.Manifest();
+                        topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                        t.LessonTopics()
+                            .Manifest(m => m.Path("path.xlsx"));
+                    });
+                t.Moodle()
+                    .Credentials()
+                    .FromConfig();
             });
-            t.Moodle()
-                .Credentials()
-                .FromConfig();
-        });
 
-        b.Defaults.TeacherLayer("Tamara Iatasina", t =>
-        {
-            t.Moodle()
-                .Remove();
-            t.LessonTopics()
-                .Remove();
-        });
+        b.Defaults.TeacherLayer("Tamara Iatasina",
+            t =>
+            {
+                t.Moodle()
+                    .Remove();
+                t.LessonTopics()
+                    .Remove();
+            });
 
         return b;
     }

@@ -84,8 +84,6 @@ public static partial class AnyLessonSchedulingDateHelper
             Date = null,
         };
     }
-
-
 }
 
 [AutoConstructor]
@@ -112,12 +110,13 @@ public sealed partial class ScheduleDateProviderHelper
             GroupId = lesson.Lesson.Group,
             Semester = sem,
         });
-        return new(timeSlotInterval, new()
-        {
-            Schedule = _schedule,
-            Lesson = lessonId,
-            Semester = semesterInterval,
-        });
+        return new(timeSlotInterval,
+            new()
+            {
+                Schedule = _schedule,
+                Lesson = lessonId,
+                Semester = semesterInterval,
+            });
     }
 
     public readonly record struct LessonValues(
@@ -135,7 +134,9 @@ public sealed partial class ScheduleDateProviderHelper
             }
 
             var v = Get(lessonId, p.Semester);
-            yield return new(lessonId, v.TimeInterval, v.Params);
+            yield return new(lessonId,
+                v.TimeInterval,
+                v.Params);
         }
     }
 }

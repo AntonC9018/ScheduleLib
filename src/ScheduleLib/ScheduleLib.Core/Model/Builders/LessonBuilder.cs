@@ -568,7 +568,7 @@ public static class LessonBuilderHelper
         this ScheduleBuilder s,
         in WeeklyLessonBuilderModelData modelData)
     {
-        var ret = RegularLesson(s);
+        var ret = s.RegularLesson();
         ret.Model.Data = modelData;
 
         ref var subGroup = ref ret.Model.Group.SubGroup;
@@ -582,7 +582,7 @@ public static class LessonBuilderHelper
         this ScheduleBuilder s,
         Action<LessonBuilder<WeeklyLessonBuilderModel>> b)
     {
-        var ret = RegularLesson(s);
+        var ret = s.RegularLesson();
         b(ret);
         return ret;
     }

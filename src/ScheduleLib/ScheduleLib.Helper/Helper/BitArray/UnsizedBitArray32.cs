@@ -13,8 +13,8 @@ public record struct UnsizedBitArray32
 
     [Pure]
     public readonly BitArray32 WithFixedSize(int size) => new(this, size);
-    [Pure]
-    public readonly int SetCount => BitOperations.PopCount(_bits);
+
+    [Pure] public readonly int SetCount => BitOperations.PopCount(_bits);
 
     private static void ValidateIndex(int index)
     {
@@ -24,6 +24,7 @@ public record struct UnsizedBitArray32
             Debug.Fail(message);
         }
     }
+
     internal static void ValidateLen(int len)
     {
         if (len < 0 || len > BitArray32.MaxLength)
@@ -66,7 +67,7 @@ public record struct UnsizedBitArray32
 
     public void ClearArray(UnsizedBitArray32 other)
     {
-        _bits &= ~(other._bits);
+        _bits &= ~other._bits;
     }
 
     public void Clear(int index)
@@ -74,11 +75,12 @@ public record struct UnsizedBitArray32
         var mask = IndexMask(index);
         ClearArray(mask);
     }
+
     [Pure]
     public readonly bool IsSet(int index)
     {
         ValidateIndex(index);
-        return (_bits & (1u << index)) != 0;
+        return (_bits & 1u << index) != 0;
     }
 
     [Pure]
@@ -86,6 +88,7 @@ public record struct UnsizedBitArray32
     {
         return Intersect(arr) == arr;
     }
+
     [Pure]
     public readonly int GetSetAfter(int index)
     {
@@ -102,6 +105,7 @@ public record struct UnsizedBitArray32
 
         return BitOperations.TrailingZeroCount(set);
     }
+
     [Pure]
     public readonly int GetUnsetAfter(int index, int length)
     {
@@ -125,6 +129,7 @@ public record struct UnsizedBitArray32
 
         return BitOperations.TrailingZeroCount(unset);
     }
+
     [Pure]
     public readonly UnsizedBitArray32 WithSet(int index)
     {
@@ -134,6 +139,7 @@ public record struct UnsizedBitArray32
         copy.Set(index);
         return copy;
     }
+
     [Pure]
     public readonly UnsizedBitArray32 WithClear(int index)
     {
@@ -143,12 +149,14 @@ public record struct UnsizedBitArray32
         copy.Clear(index);
         return copy;
     }
+
     [Pure]
     public readonly UnsizedBitArray32 Flipped()
     {
         var not = ~_bits;
         return new(not);
     }
+
     [Pure]
     public readonly BitArray32 Flipped(int length)
     {
@@ -161,9 +169,10 @@ public record struct UnsizedBitArray32
     public readonly BitArray32 WithShrunkLen(int len)
     {
         var x = this;
-        global::UnsizedBitArray32 CalculateOther()
+
+        UnsizedBitArray32 CalculateOther()
         {
-            global::UnsizedBitArray32 other = GetMask(len);
+            var other = GetMask(len);
             return other;
         }
 
@@ -180,11 +189,13 @@ public record struct UnsizedBitArray32
         var mask = GetMask(length);
         return new(bits & mask.Bits, length);
     }
+
     [Pure]
     public readonly UnsizedBitArray32 Intersect(UnsizedBitArray32 other)
     {
         return new(_bits & other._bits);
     }
+
     [Pure]
     public readonly UnsizedBitArray32 Remove(UnsizedBitArray32 other)
     {
@@ -244,12 +255,9 @@ public record struct UnsizedBitArray32
         return Intersect(mask) == mask;
     }
 
-    [Pure]
-    public readonly bool AreNoneSet => _bits == 0;
-    [Pure]
-    public readonly uint Bits => _bits;
-    [Pure]
-    public readonly bool IsEmpty => AreNoneSet;
+    [Pure] public readonly bool AreNoneSet => _bits == 0;
+    [Pure] public readonly uint Bits => _bits;
+    [Pure] public readonly bool IsEmpty => AreNoneSet;
 
     public static UnsizedBitArray32 AllSet(int length = BitArray32.MaxLength)
     {
@@ -270,7 +278,7 @@ public record struct UnsizedBitArray32
         int shift = int32 - length;
         uint uInt32 = ~default(uint);
         uint bits = uInt32 >> shift;
-        global::UnsizedBitArray32 unsizedBitArray32 = new(bits);
+        UnsizedBitArray32 unsizedBitArray32 = new(bits);
         return unsizedBitArray32;
     }
 
@@ -291,12 +299,9 @@ public record struct UnsizedBitArray32
     }
 
     // These would wrap custom enumerable structs if needed
-    [Pure]
-    public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(Bits);
-    [Pure]
-    public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(Bits);
-    [Pure]
-    public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped().Bits);
+    [Pure] public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(Bits);
+    [Pure] public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(Bits);
+    [Pure] public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped().Bits);
 }
 
 public static class UnsizedBitArrayHelper

@@ -13,15 +13,18 @@ public sealed class NodeDataKeyRegistry
     {
         return _typeMap[key];
     }
+
     public Type? TryGetTypeFromKey(NodeDataKey key)
     {
         return _typeMap.GetValueOrDefault(key);
     }
+
     public NodeDataKey<T> Register<T>() where T : class
     {
         var ret = Register<T>(typeof(T).Name);
         return ret;
     }
+
     public NodeDataKey<T> Register<T>(string name) where T : class
     {
         var ret = _impl.Register(name);
@@ -37,9 +40,9 @@ public readonly record struct NodeDataKey<T>(NodeDataKey Value) where T : class
     public static bool operator ==(NodeDataKey self, NodeDataKey<T> other) => other == self;
     public static bool operator !=(NodeDataKey self, NodeDataKey<T> other) => other != self;
 }
+
 public readonly record struct NodeDataKey(string Value) : ICreateFromString<NodeDataKey>
 {
     public static readonly NodeDataKeyRegistry Registry = new();
     public static NodeDataKey Create(string val) => new(val);
 }
-

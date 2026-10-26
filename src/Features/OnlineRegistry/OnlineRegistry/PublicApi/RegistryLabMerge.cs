@@ -9,65 +9,78 @@ public sealed class RegistryLabMergeRule
 }
 
 internal readonly record struct RegistryLessonSelection(
-    List<AnyLessonId> Lessons, GroupPartitionKey AttendancePartition, bool IsLabMerge = false);
+    List<AnyLessonId> Lessons,
+    GroupPartitionKey AttendancePartition,
+    bool IsLabMerge = false);
 
 internal static class RegistryLabMerges
 {
-    internal static RegistryLabMergeRule? Find(IReadOnlyList<RegistryLabMergeRule> rules,
-        Schedule schedule, CourseId course, in LessonGroups groups, GroupPartitionKey partition)
+    internal static RegistryLabMergeRule? Find(
+        IReadOnlyList<RegistryLabMergeRule> rules,
+        Schedule schedule,
+        CourseId course,
+        in LessonGroups groups,
+        GroupPartitionKey partition)
     {
-        bool conditionResult2;
-        if (!groups.IsSingleGroup)
+        static bool ShouldSkipMerge(
+            in LessonGroups candidateGroups,
+            CourseId candidateCourse,
+            GroupPartitionKey candidatePartition)
         {
-            conditionResult2 = true;
-        }
-        else
-        {
-            if (course.IsInvalid)
+            if (!candidateGroups.IsSingleGroup)
             {
-                conditionResult2 = true;
+                return true;
             }
-            else
+            if (candidateCourse.IsInvalid)
             {
-                conditionResult2 = partition != GroupPartitionKey.All;
+                return true;
             }
+
+            if (candidatePartition != GroupPartitionKey.All)
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        if (conditionResult2)
+        if (ShouldSkipMerge(in groups,
+                course,
+                partition))
         {
             return null;
         }
 
         var group = groups[0];
         if (schedule.AutomaticLabSubGroupMerges.Any(merge =>
-        {
-            bool CheckCondition()
             {
-                if (!(merge.Course == course))
+                bool CheckCondition()
                 {
+                    if (!(merge.Course == course))
+                    {
+                        return false;
+                    }
+
+                    if (!(merge.Group == group))
+                    {
+                        return false;
+                    }
+
+                    if (!(merge.Specialization == partition.Specialization))
+                    {
+                        return false;
+                    }
+
+                    if (merge.Alternative == partition.Alternative)
+                    {
+                        return true;
+                    }
+
                     return false;
                 }
 
-                if (!(merge.Group == group))
-                {
-                    return false;
-                }
-
-                if (!(merge.Specialization == partition.Specialization))
-                {
-                    return false;
-                }
-
-                if (!(merge.Alternative == partition.Alternative))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            return CheckCondition();
-        }))
+                return CheckCondition();
+            }))
         {
             return null;
         }
@@ -75,23 +88,16 @@ internal static class RegistryLabMerges
         RegistryLabMergeRule? found = null;
         foreach (var rule in rules)
         {
-            bool conditionResult;
-            if (!string.Equals(rule.Course, schedule.Get(course).FullName, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(rule.Course,
+                    schedule.Get(course).FullName,
+                    StringComparison.OrdinalIgnoreCase))
             {
-                conditionResult = true;
+                continue;
             }
-            else
-            {
-                string a = rule.Group;
-                global::ScheduleLib.Group get = schedule.Get(groups[0]);
-                string b = get.Name;
-                global::System.StringComparison comparisonType = StringComparison.OrdinalIgnoreCase;
-                bool equals = string.Equals(a, b, comparisonType);
-                conditionResult = equals;
-                conditionResult = !(conditionResult);
-            }
-
-            if (conditionResult)
+            var groupName = schedule.Get(groups[0]).Name;
+            if (!string.Equals(rule.Group,
+                    groupName,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -111,87 +117,83 @@ internal static class RegistryLabMerges
         return found;
     }
 
-    internal static RegistryLessonSelection Select(IReadOnlyList<RegistryLabMergeRule> rules,
+    internal static RegistryLessonSelection Select(
+        IReadOnlyList<RegistryLabMergeRule> rules,
         LessonMatchParams parameters)
     {
         var filter = parameters.Filter;
+
         bool CalculateConditionResult()
         {
             if (filter.Groups.IsWildcard)
             {
                 return true;
             }
-            else
-            {
-                return filter.Groups.IsCombined;
-            }
+            return filter.Groups.IsCombined;
         }
 
         bool conditionResult = CalculateConditionResult();
 
 
-        var rule = conditionResult ? null
-            : Find(rules, parameters.Schedule, filter.CourseId, filter.Groups.Value, filter.GroupPartition);
+        var rule = conditionResult
+            ? null
+            : Find(rules,
+                parameters.Schedule,
+                filter.CourseId,
+                filter.Groups.Value,
+                filter.GroupPartition);
         if (rule is null)
         {
             var ordinary = MatchLessonHelper.MatchLessonsInSchedule(parameters)
                 .ToList();
-            return new(ordinary, ordinary.Count == 0 ? filter.GroupPartition
-                : parameters.Schedule.Get(ordinary[0]).Lesson.GroupPartitionKey);
+            return new(ordinary,
+                ordinary.Count == 0
+                    ? filter.GroupPartition
+                    : parameters.Schedule.Get(ordinary[0]).Lesson.GroupPartitionKey);
         }
-        global::ScheduleLib.SubGroup subGroup = new SubGroup(rule.SourceSubGroup);
-        global::ScheduleLib.Specialization specialization = Specialization.All;
+        var subGroup = new SubGroup(rule.SourceSubGroup);
+        var specialization = Specialization.All;
         var survivingPartition = new GroupPartitionKey(subGroup, specialization);
         // Exact surviving lab partition; no elective fallback or cross-parent lesson.
         var lessons = parameters.Lookup[filter.CourseId].Where(id =>
-        {
-            if (!parameters.Schedule.IsLessonActive(id))
             {
-                return false;
-            }
-
-            var lesson = parameters.Schedule.Get(id).Lesson;
-            bool CalculateConditionResult()
-            {
-                if (lesson.Type == LessonType.Lab)
-                {
-                    if (lesson.GroupPartitionKey == survivingPartition)
-                    {
-                        if (lesson.Groups.IsSingleGroup)
-                        {
-                            if (lesson.Groups[0] == filter.Groups.Value[0])
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                else
+                if (!parameters.Schedule.IsLessonActive(id))
                 {
                     return false;
                 }
-            }
 
-            bool conditionResult = CalculateConditionResult();
+                var lesson = parameters.Schedule.Get(id).Lesson;
+
+                bool CalculateConditionResult()
+                {
+                    if (lesson.Type != LessonType.Lab)
+                    {
+                        return false;
+                    }
+
+                    if (!(lesson.GroupPartitionKey == survivingPartition))
+                    {
+                        return false;
+                    }
+
+                    if (!lesson.Groups.IsSingleGroup)
+                    {
+                        return false;
+                    }
+
+                    if (lesson.Groups[0] == filter.Groups.Value[0])
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                bool conditionResult = CalculateConditionResult();
 
 
-            if (conditionResult)
-            {
-                return true;
-            }
-
-            return false;
-        })
+                return conditionResult;
+            })
             .ToList();
         if (lessons.Count == 0)
         {
@@ -200,6 +202,8 @@ internal static class RegistryLabMerges
         // A registry course can contain lectures as well as the merged labs.
         lessons.AddRange(MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .Where(id => parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab));
-        return new(lessons, GroupPartitionKey.All, IsLabMerge: true);
+        return new(lessons,
+            GroupPartitionKey.All,
+            IsLabMerge: true);
     }
 }

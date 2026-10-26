@@ -36,9 +36,9 @@ public sealed class ImplicitSplitAssignmentTests
             x.Qualification = QualificationType.Licenta;
             x.Specialization("RVA", Specialization.DJ);
             x.Specialization("SAWM", Specialization.DJ);
-            global::ScheduleLib.ImplicitSplitScopeBuilder implicitSplitScopeBuilder = x;
+            var implicitSplitScopeBuilder = x;
             string course = "Antreprenoriat inovativ";
-            global::ScheduleLib.Alternative alternative = new("Antreprenoriat");
+            Alternative alternative = new("Antreprenoriat");
             implicitSplitScopeBuilder.Alternative(course, alternative);
         });
         return builder.Build();
@@ -58,25 +58,25 @@ public sealed class ImplicitSplitAssignmentTests
         string? specialization = null)
     {
         var lesson = s.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = lesson;
-        global::ScheduleLib.CourseId course = s.Course(courseName);
+        var course = s.Course(courseName);
         lessonBuilder.Course(course);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder2 = lesson;
-        global::ScheduleLib.Builders.GroupBuilder group = s.Group(groupName);
-        global::ScheduleLib.GroupId group2 = group;
+        var group = s.Group(groupName);
+        GroupId group2 = group;
         lessonBuilder2.Group(group2);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder3 = lesson;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder3.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (specialization is { } spec)
         {
-            global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+            var
                 lessonBuilder4 = lesson;
-            global::ScheduleLib.Specialization specialization2 = new(spec);
+            Specialization specialization2 = new(spec);
             lessonBuilder4.Specialization(specialization2);
         }
     }
@@ -126,13 +126,13 @@ public sealed class ImplicitSplitAssignmentTests
                 courseName: "Cloud");
         });
 
-        global::ScheduleLib.Specialization expected2 = Specialization.DJ;
-        global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
+        var expected2 = Specialization.DJ;
+        var actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
             expected: expected2,
             actual: actual2);
-        global::ScheduleLib.Specialization expected3 = Specialization.All;
-        global::ScheduleLib.Specialization actual3 = SpecializationOf(schedule, "Cloud");
+        var expected3 = Specialization.All;
+        var actual3 = SpecializationOf(schedule, "Cloud");
         Assert.Equal(
             expected: expected3,
             actual: actual3);
@@ -148,8 +148,8 @@ public sealed class ImplicitSplitAssignmentTests
                 courseName: "Antreprenoriat inovativ");
         });
 
-        global::ScheduleLib.Alternative expected2 = new Alternative("Antreprenoriat");
-        global::ScheduleLib.Alternative actual2 = AlternativeOf(schedule, "Antreprenoriat inovativ");
+        var expected2 = new Alternative("Antreprenoriat");
+        var actual2 = AlternativeOf(schedule, "Antreprenoriat inovativ");
         Assert.Equal(
             expected: expected2,
             actual: actual2);
@@ -163,21 +163,21 @@ public sealed class ImplicitSplitAssignmentTests
             groupName: "IA2403",
             courseName: "RVA");
         var shared = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = shared;
-        global::ScheduleLib.CourseId course = builder.Course("SAWM");
+        var course = builder.Course("SAWM");
         lessonBuilder.Course(course);
         shared.Groups([builder.Group("IA2403"), builder.Group("M2403")]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder2 = shared;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         shared.DayOfWeek(DayOfWeek.Monday);
 
         var schedule = builder.Build();
 
-        global::ScheduleLib.Specialization expected2 = Specialization.DJ;
-        global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
+        var expected2 = Specialization.DJ;
+        var actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(expected: expected2, actual: actual2);
 
         // The covered groups get the specialization; the rest keep the lesson without
@@ -186,11 +186,11 @@ public sealed class ImplicitSplitAssignmentTests
         Assert.Equal(expected: 2, actual: sawm.Count);
         var stamped = sawm.Single(x => x.Lesson.Specialization == Specialization.DJ);
         var unstamped = sawm.Single(x => x.Lesson.Specialization == Specialization.All);
-        global::System.Collections.Generic.List<string> expected3 = ["IA2403"];
-        global::System.Collections.Generic.List<string> actual3 = GroupNamesOf(stamped, schedule);
+        List<string> expected3 = ["IA2403"];
+        var actual3 = GroupNamesOf(stamped, schedule);
         Assert.Equal(expected: expected3, actual: actual3);
-        global::System.Collections.Generic.List<string> expected4 = ["M2403"];
-        global::System.Collections.Generic.List<string> actual4 = GroupNamesOf(unstamped, schedule);
+        List<string> expected4 = ["M2403"];
+        var actual4 = GroupNamesOf(unstamped, schedule);
         Assert.Equal(expected: expected4, actual: actual4);
         Assert.Equal(expected: stamped.Lesson.Room, actual: unstamped.Lesson.Room);
         Assert.Equal(
@@ -228,21 +228,21 @@ public sealed class ImplicitSplitAssignmentTests
         };
         builder.EnableLookupModule();
         var lesson = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = lesson;
-        global::ScheduleLib.CourseId course = builder.Course("Realitate virtuală și augmentată");
+        var course = builder.Course("Realitate virtuală și augmentată");
         lessonBuilder.Course(course);
         lesson.Groups([builder.Group("IA2403"), builder.Group("M2403")]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder2 = lesson;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
 
         var schedule = builder.Build();
 
-        global::ScheduleLib.Specialization expected2 = Specialization.DJ;
-        global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "Realitate virtuală și augmentată");
+        var expected2 = Specialization.DJ;
+        var actual2 = SpecializationOf(schedule, "Realitate virtuală și augmentată");
         Assert.Equal(
             expected: expected2,
             actual: actual2);
@@ -268,8 +268,8 @@ public sealed class ImplicitSplitAssignmentTests
 
         var schedule = builder.Build();
 
-        global::ScheduleLib.Specialization expected2 = Specialization.All;
-        global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
+        var expected2 = Specialization.All;
+        var actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
             expected: expected2,
             actual: actual2);
@@ -330,8 +330,8 @@ public sealed class ImplicitSplitAssignmentTests
 
         var schedule = builder.Build();
 
-        global::ScheduleLib.Specialization expected2 = Specialization.DJ;
-        global::ScheduleLib.Specialization actual2 = SpecializationOf(schedule, "RVA");
+        var expected2 = Specialization.DJ;
+        var actual2 = SpecializationOf(schedule, "RVA");
         Assert.Equal(
             expected: expected2,
             actual: actual2);

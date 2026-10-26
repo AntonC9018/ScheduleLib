@@ -17,10 +17,10 @@ public sealed partial class UpdateTreeHelper
     public void ExecTreeAction(Func<NodePath> change)
     {
         ExecTreeActionAsync(() =>
-        {
-            var ret = change();
-            return ValueTask.FromResult(ret);
-        })
+            {
+                var ret = change();
+                return ValueTask.FromResult(ret);
+            })
             .EnsureCompletedSync();
     }
 

@@ -54,7 +54,10 @@ internal static class RegistryHistoryTopicFiles
                     }
 
                     var name = $"topics-{runId}-{files.Count + 1}.csv";
-                    await WriteTopics(directory, name, ordered, token);
+                    await WriteTopics(directory,
+                        name,
+                        ordered,
+                        token);
                     files.Add(name);
                     var dates = ordered.Select(lesson => lesson.Date)
                         .ToArray();
@@ -75,14 +78,20 @@ internal static class RegistryHistoryTopicFiles
         }
 
         var inventory = $"topics-candidates-{runId}.json";
-        await WriteInventory(directory, inventory, analysis, sources, token);
+        await WriteInventory(directory,
+            inventory,
+            analysis,
+            sources,
+            token);
         return new(inventory, files);
     }
 
     private static List<TopicExport> SelectExports(RegistryHistoryTopicsAnalysis analysis)
     {
         var exports = analysis.Selection.Candidates
-            .Select(candidate => new TopicExport(candidate.CurrentCourse, candidate.Historical, "requires-group-mapping"))
+            .Select(candidate => new TopicExport(candidate.CurrentCourse,
+                candidate.Historical,
+                "requires-group-mapping"))
             .ToList();
         if (analysis.Historical is not { } historical)
         {
@@ -95,7 +104,8 @@ internal static class RegistryHistoryTopicFiles
         foreach (var item in ambiguous)
         {
             var matches = historical
-                .Where(snapshot => RegistryHistoryTopicSelection.Matches(current: item.CurrentCourse, historical: snapshot.Course))
+                .Where(snapshot =>
+                    RegistryHistoryTopicSelection.Matches(current: item.CurrentCourse, historical: snapshot.Course))
                 .ToArray();
             var latest = matches
                 .Where(HasTopics)
@@ -108,7 +118,9 @@ internal static class RegistryHistoryTopicFiles
 
             var latestExports = matches
                 .Where(snapshot => snapshot.Year == latest)
-                .Select(snapshot => new TopicExport(item.CurrentCourse, snapshot, "ambiguous-course"));
+                .Select(snapshot => new TopicExport(item.CurrentCourse,
+                    snapshot,
+                    "ambiguous-course"));
             exports.AddRange(latestExports);
         }
         return exports;
@@ -120,14 +132,17 @@ internal static class RegistryHistoryTopicFiles
         {
             return false;
         }
-        if (RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+
+        if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
-    private static bool HasTopics(RegistryHistoryCourseTopics snapshot) => snapshot.Groups.Any(group => group.Lessons.Any(IsExportableTopic));
+    private static bool HasTopics(RegistryHistoryCourseTopics snapshot) =>
+        snapshot.Groups.Any(group => group.Lessons.Any(IsExportableTopic));
 
     private static async Task WriteTopics(
         RegistryHistoryTopicDirectory directory,
@@ -178,7 +193,9 @@ internal static class RegistryHistoryTopicFiles
             sources,
             unresolved = analysis.Selection.Unresolved,
         };
-        await JsonSerializer.SerializeAsync(stream, inventory, options, token);
+        await JsonSerializer.SerializeAsync(stream,
+            inventory,
+            options,
+            token);
     }
-
 }

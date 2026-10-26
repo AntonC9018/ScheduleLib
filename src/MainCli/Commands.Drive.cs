@@ -8,8 +8,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public DriveCommands Drive { get; set; } = new();
+    [Subcommand] public DriveCommands Drive { get; set; } = new();
 }
 
 [Command(
@@ -26,9 +25,9 @@ public class DriveCommands
         CancellationToken token)
     {
         return GoogleDriveSyncProvider.Connect(
-                services,
-                config,
-                token);
+            services,
+            config,
+            token);
     }
 
     [Command(
@@ -200,13 +199,15 @@ public class DriveCommands
                 if (streamedArtifacts.Add(path))
                 {
                     cli.WriteHuman(path);
-                    global::ScheduleLib.Cli.CliOutput cliOutput = cli;
+                    var cliOutput = cli;
                     string text = $"artifact:{path}";
-                    string id2 = (string) text;
+                    string id2 = text;
                     string status2 = "completed";
                     object item = new { path };
                     cliOutput.EmitItem(
-                        id: id2, status: status2, item);
+                        id: id2,
+                        status: status2,
+                        item);
                 }
             }
         }
@@ -235,7 +236,8 @@ public class DriveCommands
             var allWarnings = warnings.Concat(data?.Warnings ?? [])
                 .ToArray();
             var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}")
-                .ToArray() ?? [];
+                    .ToArray()
+                ?? [];
             var success = "preview";
             if (apply.Apply)
             {
@@ -279,8 +281,9 @@ public class DriveCommands
                 {
                     if (data is not null)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = cli;
-                        string line = $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})";
+                        var cliOutput = cli;
+                        string line =
+                            $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})";
                         cliOutput.WriteHuman(
                             line);
                     }

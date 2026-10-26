@@ -38,8 +38,8 @@ public sealed partial class DataProvider
     private object? GetWrapper<T>(NodeDataKey key)
         where T : class
     {
-        global::Anton.LayeredData.NodeDataKey<T> key2 = new(key);
-        T? get = Get<T>(key2);
+        NodeDataKey<T> key2 = new(key);
+        var get = Get(key2);
         return get;
     }
 

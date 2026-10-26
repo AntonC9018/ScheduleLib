@@ -52,6 +52,7 @@ public static class EventSourceExtensions
     {
         public void Invoke() => s.Invoke(default);
     }
+
     extension(Event<Nothing> s)
     {
         public EventSubscription<Nothing> Sub(Action a)
@@ -64,11 +65,13 @@ public static class EventSourceExtensions
             return ret;
         }
     }
+
     extension(IDispatcher d)
     {
         public EventSource<T> CreateEvent<T>() => new(d.GetDispatcher<T>());
         public EventSource<Nothing> CreateEvent() => new(d.GetDispatcher<Nothing>());
     }
+
     extension<T>(IDispatcher<T> d)
     {
         public EventSource<T> CreateEvent() => new(d);
@@ -90,8 +93,10 @@ public sealed class EventSource<T>
         if (_impl != null)
         {
             var callerId = new CallerIdentity(this);
-            global::Desktop.MvvmEssentials.IDispatcher<T> iDispatcher = _dispatcher;
-            global::Desktop.MvvmEssentials.PostArgs<T> args = new(callerId, _impl, val);
+            var iDispatcher = _dispatcher;
+            PostArgs<T> args = new(callerId,
+                _impl,
+                val);
             iDispatcher.Post(args);
         }
     }

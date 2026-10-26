@@ -8,7 +8,7 @@ namespace ScheduleLib;
 /// Injectable prefix matcher over subgroup/specialization labels.
 /// Follows the <see cref="Parsing.Lesson.RoomParser"/> precedent: a concrete
 /// sealed class with a <see cref="Default"/> instance, taken via ctor/param
-/// (<see cref="Parsing.ScheduleImportContext"/>). The parser uses the
+/// (<see cref="ScheduleImportContext"/>). The parser uses the
 /// injected instance, so it no longer depends on the exact
 /// <see cref="Specializations.AllKnown"/> list; callers with their own labels
 /// supply their own candidate set.
@@ -45,8 +45,8 @@ public sealed class SubGroupPrefixMatcher
         builder.Add(SpecialSubGroups.Eng);
         foreach (var specialization in Specializations.AllKnown)
         {
-            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.SubGroup>.Builder builder2 = builder;
-            global::ScheduleLib.SubGroup item = new(specialization.Value!);
+            var builder2 = builder;
+            SubGroup item = new(specialization.Value!);
             builder2.Add(item);
         }
         builder.AddRange(SpecialSubGroups.Legacy);
@@ -97,7 +97,8 @@ public static class SpecialSubGroups
 {
     // The meaning of these historical labels is unresolved.
     // They stay ordinary subgroup values: don't split their digits and don't treat them as specializations.
-    public static readonly ImmutableArray<SubGroup> Legacy = [
+    public static readonly ImmutableArray<SubGroup> Legacy =
+    [
         new("S1"),
         new("S11"),
         new("S12"),
@@ -115,15 +116,17 @@ public static class SpecialSubGroups
         new("UI-2"),
     ];
 
-    public static readonly ImmutableArray<SubGroup> AllSpecial = [
+    public static readonly ImmutableArray<SubGroup> AllSpecial =
+    [
         Optional,
         Beginners,
         NonBeginners,
         Ru,
         Ro,
         Eng,
-        ..Legacy,
+        .. Legacy,
     ];
+
     // Legacy marker for an unspecified specialization subgroup. New schedules should name the specialization.
     public static SubGroup Optional => new("opțional");
     public static SubGroup Beginners => new("începători");

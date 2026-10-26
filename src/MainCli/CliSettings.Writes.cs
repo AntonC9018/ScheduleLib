@@ -21,6 +21,9 @@ public sealed record SettingsEdit(
 
 public static partial class CliSettings
 {
+    /// <summary>A parent object on a settings path, and the member name under it.</summary>
+    private readonly record struct SettingsParent(JsonObject Parent, string Key);
+
     // The candidate is resolved through the same engine as a fresh invocation before publication.
     internal static async Task<SettingsEdit> Edit(
         SettingsArguments arguments,
@@ -46,19 +49,17 @@ public static partial class CliSettings
 
         bool CalculateConditionResult()
         {
-            if (!unset)
+            if (unset)
             {
-                if (operation is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (operation is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -101,7 +102,10 @@ public static partial class CliSettings
                 file);
         }
         // Validate a synthetic document before creating even the coordination file.
-        var probe = new JsonObject { ["schemaVersion"] = 1 };
+        var probe = new JsonObject
+        {
+            ["schemaVersion"] = 1,
+        };
         if (action is null)
         {
             Apply(
@@ -125,7 +129,7 @@ public static partial class CliSettings
             initial.Json,
             initial.Profiles);
         await using var lease = await LocalFileLock.Acquire(
-            (string) $"{file}.lock",
+            $"{file}.lock",
             cancellationToken,
             wait: true);
         // Re-read under the lease so concurrent edits cannot overwrite one another.
@@ -138,7 +142,10 @@ public static partial class CliSettings
         var envelope = exists
             ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!
                 .AsObject()
-            : new JsonObject { ["schemaVersion"] = 1 };
+            : new JsonObject
+            {
+                ["schemaVersion"] = 1,
+            };
         var before = envelope.ToJsonString();
         if (action is not null)
         {
@@ -179,7 +186,10 @@ public static partial class CliSettings
                 (stream, token) => JsonSerializer.SerializeAsync(
                     stream,
                     envelope,
-                    new JsonSerializerOptions { WriteIndented = true },
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                    },
                     token),
                 cancellationToken);
         }
@@ -196,8 +206,8 @@ public static partial class CliSettings
     private static void ValidateEditKey(string key, ResolvedSettings settings)
     {
         var parts = key.Split('.');
-        global::Anton.LayeredData.NodeDataKeyRegistry nodeDataKeyRegistry = NodeDataKey.Registry;
-        global::Anton.LayeredData.NodeDataKey key2 = new(parts[0]);
+        var nodeDataKeyRegistry = NodeDataKey.Registry;
+        NodeDataKey key2 = new(parts[0]);
         var type = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
         if (type is null)
         {
@@ -260,7 +270,7 @@ public static partial class CliSettings
 
         var path = value2;
         var current = envelope;
-        var parents = new List<(JsonObject Parent, string Key)>();
+        var parents = new List<SettingsParent>();
         foreach (var part in path.SkipLast(1))
         {
             if (current[part] is not JsonObject next)
@@ -277,7 +287,7 @@ public static partial class CliSettings
 
                 current[part] = next = new JsonObject();
             }
-            parents.Add((current, part));
+            parents.Add(new(current, part));
             current = next;
         }
         if (!unset)

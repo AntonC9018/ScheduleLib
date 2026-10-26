@@ -43,7 +43,9 @@ internal static class Program
             NativeMethods.GetWindowThreadProcessId(new IntPtr(identityDoc.ActiveWindow.Hwnd), out var pid);
             using (var word = Process.GetProcessById((int) pid))
             {
-                string value = WordConverterProtocol.OwnershipMessage(nonce, word.Id, word.StartTime.ToUniversalTime().Ticks);
+                string value = WordConverterProtocol.OwnershipMessage(nonce,
+                    word.Id,
+                    word.StartTime.ToUniversalTime().Ticks);
                 Console.WriteLine(value);
                 Console.Out.Flush();
             }
@@ -74,11 +76,15 @@ internal static class Program
         finally
         {
             try
-            { inputDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
+            {
+                inputDoc?.Close(WdSaveOptions.wdDoNotSaveChanges);
+            }
             finally
             {
                 try
-                { identityDoc?.Close(WdSaveOptions.wdDoNotSaveChanges); }
+                {
+                    identityDoc?.Close(WdSaveOptions.wdDoNotSaveChanges);
+                }
                 finally { app.Quit(WdSaveOptions.wdDoNotSaveChanges); }
             }
         }

@@ -113,18 +113,21 @@ public sealed class AttendanceModeTests
     {
         var builder = new ScheduleBuilder
         {
-            GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) }),
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            }),
         };
         builder.EnableLookupModule();
         var lesson = builder.RegularLesson();
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder = lesson;
-        global::ScheduleLib.CourseId course = builder.Course("Course");
+        var course = builder.Course("Course");
         lessonBuilder.Course(course);
         lesson.Groups([builder.Group(first), builder.Group(second)]);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel>
+        var
             lessonBuilder2 = lesson;
-        global::TimeSlot timeSlot = new(0);
+        TimeSlot timeSlot = new(0);
         lessonBuilder2.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (valid)

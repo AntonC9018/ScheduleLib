@@ -25,7 +25,11 @@ public sealed class FmiScheduleUpdater(
     TimeProvider? clock = null)
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        WriteIndented = true,
+    };
 
     public async Task<ScheduleUpdateResult> RunAsync(
         string stateFile,
@@ -46,7 +50,7 @@ public sealed class FmiScheduleUpdater(
         string CalculatePath2()
         {
             string text = $"{stateFile}.lock";
-            string path2 = (string) text;
+            string path2 = text;
             return path2;
         }
 
@@ -114,7 +118,7 @@ public sealed class FmiScheduleUpdater(
             throw new FormatException("An update requires all three bachelor schedules.");
         }
 
-        global::FmiScheduleImport.ScheduleSourceHash ProjectValue(global::FmiWebsiteInterop.FmiScheduleDownload d)
+        ScheduleSourceHash ProjectValue(FmiScheduleDownload d)
         {
             int operationValue = d.Link.Year;
             string operationValue2 = d.Link.Url.AbsoluteUri;
@@ -122,8 +126,8 @@ public sealed class FmiScheduleUpdater(
             byte[] operationValue4 = operationValue3;
             string operationValue5 = Convert.ToHexStringLower(operationValue4);
             string operationValue6 = operationValue5;
-            global::System.DateOnly? operationValue7 = d.Link.UploadDate;
-            global::FmiScheduleImport.ScheduleSourceHash operationValue8 = new ScheduleSourceHash(operationValue,
+            var operationValue7 = d.Link.UploadDate;
+            var operationValue8 = new ScheduleSourceHash(operationValue,
                 Url: operationValue2,
                 Sha256: operationValue6,
                 operationValue7);
@@ -158,7 +162,7 @@ public sealed class FmiScheduleUpdater(
                 sources),
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var temporary = (string) $"{stateFile}.{Guid.NewGuid().ToString("N")}.tmp";
+        var temporary = $"{stateFile}.{Guid.NewGuid().ToString("N")}.tmp";
         try
         {
             await using (var output = new FileStream(temporary,

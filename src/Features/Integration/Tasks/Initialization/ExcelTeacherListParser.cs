@@ -66,11 +66,7 @@ public static class ExcelTeacherListParser
 
         bool ParseHeaderRow()
         {
-            if (!rowEnumerator.MoveNext())
-            {
-                return false;
-            }
-            return true;
+            return rowEnumerator.MoveNext();
         }
 
         void ParseDataRows()
@@ -106,11 +102,12 @@ public static class ExcelTeacherListParser
                     {
                         case 0:
                             {
-                                if (cell.CellValue is null)
+                                if (!(cell.CellValue is null))
                                 {
-                                    return false;
+                                    return true;
                                 }
-                                return true;
+
+                                return false;
                             }
                         // Nume, prenume
                         case 1:
@@ -169,7 +166,6 @@ public static class ExcelTeacherListParser
                     }
                 }
             }
-
         }
     }
 
@@ -261,4 +257,3 @@ public static class ExcelTeacherListParser
         return lastName;
     }
 }
-

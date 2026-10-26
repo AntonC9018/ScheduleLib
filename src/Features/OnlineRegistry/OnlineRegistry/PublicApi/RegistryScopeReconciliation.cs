@@ -68,7 +68,7 @@ internal static class RegistryScopeReconciliation
 
         var legacyLocal = local.Where(lesson => !remote.Any(row =>
             {
-                if (!(owners.TryGetValue(row.ViewUri, out var scope)))
+                if (!owners.TryGetValue(row.ViewUri, out var scope))
                 {
                     return false;
                 }
@@ -80,7 +80,7 @@ internal static class RegistryScopeReconciliation
                 {
                     return false;
                 }
-                if (!(MatchesType(lesson, row)))
+                if (!MatchesType(lesson, row))
                 {
                     return false;
                 }
@@ -151,11 +151,12 @@ internal static class RegistryScopeReconciliation
                     {
                         if (inferredTypes.TryGetValue(row.ViewUri, out var inferred))
                         {
-                            if (inferred != audience.Key.Type)
+                            if (inferred == audience.Key.Type)
                             {
-                                return false;
+                                return true;
                             }
-                            return true;
+
+                            return false;
                         }
                     }
 
@@ -168,12 +169,12 @@ internal static class RegistryScopeReconciliation
                             .Select(lesson => lesson.RegistryLessonType)
                             .Distinct()
                             .Count()
-                        != 1)
+                        == 1)
                     {
-                        return false;
+                        return true;
                     }
 
-                    return true;
+                    return false;
                 })
                 .ToArray();
             foreach (var row in matching)

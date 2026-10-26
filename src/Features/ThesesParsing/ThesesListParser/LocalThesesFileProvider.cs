@@ -19,7 +19,10 @@ public sealed class LocalThesesFileProvider(
         var opts = _opts.Value;
         var filePath = opts.FilePath;
 #pragma warning disable CA2000
-        var f = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var f = new FileStream(filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite);
 #pragma warning restore CA2000
         return ValueTask.FromResult((Stream) f);
     }
@@ -27,7 +30,5 @@ public sealed class LocalThesesFileProvider(
 
 public sealed class LocalThesesFileProviderOptions
 {
-    [MinLength(1)]
-    public required string FilePath { get; set; } = "data/theses.xlsx";
+    [MinLength(1)] public required string FilePath { get; set; } = "data/theses.xlsx";
 }
-

@@ -44,7 +44,7 @@ public sealed class MergeCellMap
             }
             uint uInt32 = end.Col - start.Col;
             uint uInt322 = uInt32 + 1;
-            int width = (int) (uInt322);
+            int width = (int) uInt322;
             _cellWidths[start] = width;
         }
     }

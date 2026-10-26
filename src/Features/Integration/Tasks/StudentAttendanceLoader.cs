@@ -70,11 +70,14 @@ public sealed partial class StudentAttendanceLoader
                 }
             }
 
-            using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var stream = new FileStream(source.FilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
             using var workbook = new XLWorkbook(stream);
             var parser = _parser;
-            global::OnlineRegistry.AttendanceExcel.AttendanceListsExcelParser attendanceListsExcelParser = parser;
-            global::OnlineRegistry.AttendanceExcel.ParseAttendanceListsExcelParams p = new(
+            var attendanceListsExcelParser = parser;
+            ParseAttendanceListsExcelParams p = new(
                 parseParameters: parseParams,
                 builder: builder,
                 schedule: filteredSchedule,
@@ -85,6 +88,8 @@ public sealed partial class StudentAttendanceLoader
         // Maybe configure this per workbook.
         var ret = builder.Build(missingDaysFiller:
             attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return AttendanceLabMerges.Project(ret, filteredSchedule.Source, _registryConfig.Get()?.LabMerges ?? []);
+        return AttendanceLabMerges.Project(ret,
+            filteredSchedule.Source,
+            _registryConfig.Get()?.LabMerges ?? []);
     }
 }

@@ -37,12 +37,14 @@ public readonly record struct GroupCategorySelector(
         {
             return false;
         }
-        if (Qualification is { } qualification
-            && group.QualificationType != qualification)
+
+        if (!(Qualification is { } qualification
+                && group.QualificationType != qualification))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 }
 
@@ -53,10 +55,12 @@ public readonly record struct GroupCategorySelector(
 /// </summary>
 public sealed class SpecializationRegistry
 {
-    private readonly ImmutableArray<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> _entries;
+    /// <summary>A category selector together with the specialization values it permits.</summary>
+    internal readonly record struct Entry(GroupCategorySelector Selector, ImmutableArray<Specialization> Values);
 
-    internal SpecializationRegistry(
-        ImmutableArray<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> entries)
+    private readonly ImmutableArray<Entry> _entries;
+
+    internal SpecializationRegistry(ImmutableArray<Entry> entries)
     {
         _entries = entries;
     }
@@ -101,7 +105,9 @@ public sealed class SpecializationRegistry
             {
                 foreach (var candidate in values)
                 {
-                    if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+                    if (string.Equals(candidate.Value,
+                            value,
+                            StringComparison.Ordinal))
                     {
                         specialization = candidate;
                         return true;
@@ -132,25 +138,25 @@ public sealed class SpecializationRegistry
             var constraints = new List<string>(4);
             if (selector.Grade is { } grade)
             {
-                global::System.Collections.Generic.List<string> list = constraints;
+                var list = constraints;
                 string item = $"grade {grade.Value}";
                 list.Add(item);
             }
             if (selector.Faculty is { } faculty)
             {
-                global::System.Collections.Generic.List<string> list2 = constraints;
+                var list2 = constraints;
                 string item2 = $"faculty {faculty.Name}";
                 list2.Add(item2);
             }
             if (selector.AttendanceMode is { } attendance)
             {
-                global::System.Collections.Generic.List<string> list3 = constraints;
+                var list3 = constraints;
                 string item3 = $"attendance {attendance}";
                 list3.Add(item3);
             }
             if (selector.Qualification is { } qualification)
             {
-                global::System.Collections.Generic.List<string> list4 = constraints;
+                var list4 = constraints;
                 string item4 = $"qualification {qualification}";
                 list4.Add(item4);
             }
@@ -158,14 +164,17 @@ public sealed class SpecializationRegistry
             var selectorText = constraints.Count == 0
                 ? "any group"
                 : string.Join(", ", constraints);
-            global::System.Collections.Generic.List<string> list5 = matches;
+            var list5 = matches;
             string item5 = $"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]";
             list5.Add(item5);
         }
 
-        return matches.Count == 0
-            ? "no matching selector"
-            : string.Join("; ", matches);
+        if (matches.Count == 0)
+        {
+            return "no matching selector";
+        }
+
+        return string.Join("; ", matches);
     }
 }
 
@@ -173,7 +182,7 @@ public sealed class SpecializationRegistryBuilder()
 {
     // Set reuse: identical value lists share one array instance.
     private readonly Dictionary<string, ImmutableArray<Specialization>> _sets = new(StringComparer.Ordinal);
-    private readonly List<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> _entries = new();
+    private readonly List<SpecializationRegistry.Entry> _entries = new();
 
     public SpecializationSetBuilder Set(params ReadOnlySpan<Specialization> values)
     {
@@ -188,13 +197,14 @@ public sealed class SpecializationRegistryBuilder()
 
     internal void Add(GroupCategorySelector selector, ImmutableArray<Specialization> values)
     {
-        _entries.Add((selector, values));
+        _entries.Add(new(selector, values));
     }
 
     private ImmutableArray<Specialization> Intern(ReadOnlySpan<Specialization> values)
     {
-        var key = string.Join("|", values.ToArray()
-            .Select(x => x.Value));
+        var key = string.Join("|",
+            values.ToArray()
+                .Select(x => x.Value));
         if (_sets.TryGetValue(key, out var set))
         {
             return set;
@@ -222,13 +232,13 @@ public sealed class SpecializationSetBuilder
     {
         var b = new GroupSelectorBuilder();
         configure(b);
-        global::ScheduleLib.SpecializationRegistryBuilder specializationRegistryBuilder = _owner;
-        global::ScheduleLib.GroupCategorySelector selector = new(
+        var specializationRegistryBuilder = _owner;
+        GroupCategorySelector selector = new(
             Grade: b.Grade,
             Faculty: b.Faculty,
             AttendanceMode: b.AttendanceMode,
             Qualification: b.Qualification);
-        global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Specialization> values = _values;
+        var values = _values;
         specializationRegistryBuilder.Add(selector, values);
     }
 }

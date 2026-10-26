@@ -185,8 +185,8 @@ public sealed class TreeSerializer
                     continue;
                 }
 
-                global::Anton.LayeredData.TreeSerializer.PendingConfigs pendingConfigs = pendingProperties;
-                global::Anton.LayeredData.TreeSerializer.PendingConfig item = new(key, value);
+                var pendingConfigs = pendingProperties;
+                PendingConfig item = new(key, value);
                 pendingConfigs.Add(item);
             }
 
@@ -196,8 +196,8 @@ public sealed class TreeSerializer
                 var type = NodeDataKey.Registry.GetTypeFromKey(key);
                 var method = _setValueGenericMethod.MakeGenericMethod(type);
                 var deleg = method.CreateDelegate<Action<SetValueArgs>>();
-                global::System.Action<global::Anton.LayeredData.TreeSerializer.SetValueArgs> action = deleg;
-                global::Anton.LayeredData.TreeSerializer.SetValueArgs obj = new(layer,
+                var action = deleg;
+                SetValueArgs obj = new(layer,
                     key,
                     value);
                 action(obj);
@@ -214,9 +214,9 @@ public sealed class TreeSerializer
     private static void SetValue<T>(SetValueArgs args)
         where T : class
     {
-        global::Anton.LayeredData.MutableNode mutableNode = args.Layer.Node;
-        global::Anton.LayeredData.NodeDataKey<T> key = new(args.Key);
-        var conf = mutableNode.GetOrAdd<T>(key);
+        var mutableNode = args.Layer.Node;
+        NodeDataKey<T> key = new(args.Key);
+        var conf = mutableNode.GetOrAdd(key);
         var value = conf.GetValue();
         if (value == null)
         {

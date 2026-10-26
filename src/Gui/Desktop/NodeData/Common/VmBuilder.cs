@@ -1,5 +1,6 @@
 // I'm sorry, I overengineered this.
 // There's only 1 wrapper class currently, this is not needed.
+
 using System.Diagnostics;
 using Anton.LayeredData;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -76,7 +77,7 @@ public struct VmBuilderData<T> : IDisposable
         var vm = OutermostObject;
         OutermostObject = null;
 
-        var ret = new NodeDataViewModelResult((ObservableObject) vm!, (IDisposable) vm!);
+        var ret = new NodeDataViewModelResult(vm!, (IDisposable) vm!);
         return ret;
     }
 }
@@ -85,6 +86,7 @@ public readonly ref struct VmBuilder<T>
     where T : class
 {
     public readonly ref VmBuilderData<T> Data;
+
     public VmBuilder(ref VmBuilderData<T> data)
     {
         Data = ref data;
@@ -92,6 +94,7 @@ public readonly ref struct VmBuilder<T>
 }
 
 public delegate void VmFactory<T>(VmBuilder<T> builder) where T : class;
+
 public delegate VmFactory<T> VmFactoryMiddleware<T>(VmFactory<T> next) where T : class;
 
 public readonly struct VmFactoryBuilder<T>()
@@ -102,7 +105,7 @@ public readonly struct VmFactoryBuilder<T>()
     public VmFactoryBuilder<T, TVM> VM<TVM>()
         where TVM : ObservableObject, IDisposable
     {
-        VM<TVM>(x =>
+        VM(x =>
         {
             var ret = ActivatorUtilities.CreateInstance<TVM>(
                 x.Data.ServiceProvider,
@@ -181,7 +184,6 @@ public static class VmBuilderExtensions
 {
     public static VmFactoryBuilder<T, NodeDataVmHost<T>> UseUpdateOnDataChange<T, TVM>(
         this VmFactoryBuilder<T, TVM> builder)
-
         where T : class
         where TVM : ObservableObject, INodeDataViewModel<T>, IDisposable
     {
@@ -221,4 +223,3 @@ public static class VmBuilderExtensions
     }
 #endif
 }
-

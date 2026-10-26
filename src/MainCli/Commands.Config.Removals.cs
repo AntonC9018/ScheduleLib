@@ -22,7 +22,7 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ConfigEditRequest request = new(
+        ConfigEditRequest request = new(
             Verb: "remove",
             Key: key.Key,
             Value: null,
@@ -31,7 +31,7 @@ public sealed partial class ConfigCommands
             output,
             cancellationToken,
             Item: item.Item);
-        global::System.Threading.Tasks.Task<int> write = Write(request);
+        var write = Write(request);
         return write;
     }
 
@@ -43,7 +43,7 @@ public sealed partial class ConfigCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        global::ScheduleLib.Cli.ConfigEditRequest request = new(
+        ConfigEditRequest request = new(
             Verb: "clear",
             Key: key.Key,
             Value: null,
@@ -51,7 +51,7 @@ public sealed partial class ConfigCommands
             settings,
             output,
             cancellationToken);
-        global::System.Threading.Tasks.Task<int> write = Write(request);
+        var write = Write(request);
         return write;
     }
 }

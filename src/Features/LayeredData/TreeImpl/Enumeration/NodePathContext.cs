@@ -21,7 +21,9 @@ public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
 
 public sealed class LayerPathContext() : IDfsEnumerationContext
 {
-    public static readonly EnumerationContextKey<LayerPathContext> Key = EnumerationContextKey.Registry.Register<LayerPathContext>();
+    public static readonly EnumerationContextKey<LayerPathContext> Key =
+        EnumerationContextKey.Registry.Register<LayerPathContext>();
+
     public readonly ImmutableArray<MutableNode>.Builder Builder = ImmutableArray.CreateBuilder<MutableNode>();
 
     public void Update(DfsEnumerationContext context)

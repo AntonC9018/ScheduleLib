@@ -7,13 +7,14 @@ using Desktop.ViewModelData;
 namespace Desktop.NodeData.Editor;
 
 public sealed partial class NodeDataEditorViewModel(
-        DataStore _dataStore,
-        NodeDataViewModelResolver _modelResolver,
-        ConfigTypesProvider _configTypesProvider)
+    DataStore _dataStore,
+    NodeDataViewModelResolver _modelResolver,
+    ConfigTypesProvider _configTypesProvider)
     : ViewModelBase(_dataStore.TreeContext.Dispatcher), IDisposable
 {
     private NullableOwnedViewModel _selectedViewModel;
     public ObservableObject? SelectedNodeEditorViewModel => _selectedViewModel.Value;
+
     public IReadOnlyList<ConfigType> ConfigTypes
     {
         get
@@ -25,8 +26,7 @@ public sealed partial class NodeDataEditorViewModel(
         }
     }
 
-    [ObservableProperty]
-    public partial ConfigType? CurrentConfigType { get; set; }
+    [ObservableProperty] public partial ConfigType? CurrentConfigType { get; set; }
 
     partial void OnCurrentConfigTypeChanged(ConfigType? value)
     {
@@ -72,11 +72,14 @@ public sealed class ConfigTypesProvider
     //         Type = x.Value,
     //         DisplayName = x.Key.Value,
     //     }).ToArray();
-    public ConfigType[] ConfigTypes = [new()
-    {
-        DisplayName = "Registry",
-        Key = new("Registry"),
-    }];
+    public ConfigType[] ConfigTypes =
+    [
+        new()
+        {
+            DisplayName = "Registry",
+            Key = new("Registry"),
+        },
+    ];
 }
 
 public readonly struct NullableOwnedViewModel : IDisposable
@@ -110,4 +113,3 @@ public readonly struct NullableOwnedViewModel : IDisposable
         }
     }
 }
-

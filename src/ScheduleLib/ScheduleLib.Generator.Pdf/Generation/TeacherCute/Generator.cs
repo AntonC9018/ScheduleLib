@@ -32,6 +32,7 @@ public sealed class Generator : IDocument
     }
 
     private readonly record struct RowKey(TimeSlot Time);
+
     private readonly record struct ColumnKey(DayOfWeek Day);
 
     public void Compose(IDocumentContainer container)
@@ -207,6 +208,7 @@ file record struct CellPos(uint X, uint Y)
         X = 0;
         Y += yOffset;
     }
+
     public void MoveToRow(uint y)
     {
         X = 0;

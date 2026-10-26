@@ -8,6 +8,7 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 {
     public static readonly T Start;
     public static readonly T End;
+
     public static int Count
     {
         get
@@ -75,8 +76,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         Debug.Assert(length >= 1, "Empty enum can't be enumerated");
 
-        T start = adjustForUnknown ? values[1] : values[0];
-        T end = adjustForCount ? values[^2] : values[^1];
+        var start = adjustForUnknown ? values[1] : values[0];
+        var end = adjustForCount ? values[^2] : values[^1];
 
         Start = start;
         End = end;

@@ -54,7 +54,9 @@ public sealed class HttpClientContext : IDisposable
 
             var httpClient = new HttpClient(handler);
 
-            httpClient.DefaultRequestHeaders.Add(name: "User-Agent", value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
+            httpClient.DefaultRequestHeaders.Add(name: "User-Agent",
+                value:
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
             httpClient.DefaultRequestHeaders.Add(name: "Accept-Language", value: "en-US,en;q=0.9");
 
             return new(
@@ -110,18 +112,24 @@ public sealed class ScrapingContext : IDisposable
         config = config.With<ICookieProvider>(_ => http.CookieProvider);
 
         var browsingContext = BrowsingContext.New(config);
-        return new(http, browsingContext, requester);
+        return new(http,
+            browsingContext,
+            requester);
     }
 
     /// <summary>Suppresses authentication replay and redirect navigation for this explicit mutation.</summary>
-    public Task<IDocument> SubmitFormOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted = null)
+    public Task<IDocument> SubmitFormOnce(
+        IHtmlFormElement form,
+        CancellationToken token,
+        Action? onSubmissionStarted = null)
     {
         return _requester.WithoutAuthenticationReplay(() => form.SubmitAsync()
-            .WaitAsync(token), () =>
-        {
-            token.ThrowIfCancellationRequested();
-            onSubmissionStarted?.Invoke();
-        });
+                .WaitAsync(token),
+            () =>
+            {
+                token.ThrowIfCancellationRequested();
+                onSubmissionStarted?.Invoke();
+            });
     }
 
     public void Dispose()
@@ -204,7 +212,9 @@ internal sealed class HttpClientRequester : BaseRequester
         _suppressAuthenticationReplay.Value = true;
         _onSubmissionStarted.Value = onSubmissionStarted;
         try
-        { return await submit(); }
+        {
+            return await submit();
+        }
         finally
         {
             _suppressAuthenticationReplay.Value = previous;
@@ -237,11 +247,13 @@ internal sealed class HttpClientRequester : BaseRequester
                 {
                     return true;
                 }
+
                 if (httpRequest.Method == HttpMethod.Get
                     && httpResponse.StatusCode == HttpStatusCode.Redirect)
                 {
                     return true;
                 }
+
                 return false;
             }
 
@@ -267,7 +279,9 @@ internal sealed class HttpClientRequester : BaseRequester
                 httpResponse.Dispose();
                 throw new FormSubmissionRedirectException(location, statusCode);
             }
-            var response = await ToResponse(request.Address, httpResponse, cancel);
+            var response = await ToResponse(request.Address,
+                httpResponse,
+                cancel);
             return response;
         }
     }
@@ -276,21 +290,22 @@ internal sealed class HttpClientRequester : BaseRequester
     {
         var method = request.Method switch
         {
-            AngleSharp.Io.HttpMethod.Get => System.Net.Http.HttpMethod.Get,
-            AngleSharp.Io.HttpMethod.Post => System.Net.Http.HttpMethod.Post,
-            AngleSharp.Io.HttpMethod.Put => System.Net.Http.HttpMethod.Put,
-            AngleSharp.Io.HttpMethod.Delete => System.Net.Http.HttpMethod.Delete,
-            AngleSharp.Io.HttpMethod.Options => System.Net.Http.HttpMethod.Options,
-            AngleSharp.Io.HttpMethod.Head => System.Net.Http.HttpMethod.Head,
-            AngleSharp.Io.HttpMethod.Trace => System.Net.Http.HttpMethod.Trace,
-            AngleSharp.Io.HttpMethod.Connect => System.Net.Http.HttpMethod.Connect,
+            AngleSharp.Io.HttpMethod.Get => HttpMethod.Get,
+            AngleSharp.Io.HttpMethod.Post => HttpMethod.Post,
+            AngleSharp.Io.HttpMethod.Put => HttpMethod.Put,
+            AngleSharp.Io.HttpMethod.Delete => HttpMethod.Delete,
+            AngleSharp.Io.HttpMethod.Options => HttpMethod.Options,
+            AngleSharp.Io.HttpMethod.Head => HttpMethod.Head,
+            AngleSharp.Io.HttpMethod.Trace => HttpMethod.Trace,
+            AngleSharp.Io.HttpMethod.Connect => HttpMethod.Connect,
             _ => throw new ArgumentOutOfRangeException(nameof(request.Method)),
         };
 
-        global::System.Net.Http.HttpMethod method2 = method;
-        global::System.Uri requestUri2 = new Uri(request.Address.ToString());
+        var method2 = method;
+        var requestUri2 = new Uri(request.Address.ToString());
         var ret = new HttpRequestMessage(
-            method: method2, requestUri: requestUri2);
+            method: method2,
+            requestUri: requestUri2);
         try
         {
             if (request.Content != null)
@@ -334,7 +349,8 @@ internal sealed class HttpClientRequester : BaseRequester
         {
             ret.Address = requestUrl;
             ret.Content = stream;
-            ret.Headers = response.Headers.ToDictionary(keySelector: x => x.Key, elementSelector: x => string.Join(", ", x.Value));
+            ret.Headers = response.Headers.ToDictionary(keySelector: x => x.Key,
+                elementSelector: x => string.Join(", ", x.Value));
             ret.StatusCode = response.StatusCode;
         }
         catch

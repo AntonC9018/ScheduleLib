@@ -84,17 +84,20 @@ public partial class AuthCommands
         ResultArguments output,
         CancellationToken token)
     {
-        return provider == AuthProvider.microsoft
-            ? ExecuteMicrosoft(
-                verb,
-                settings,
-                output,
-                token)
-            : Execute(
+        if (provider == AuthProvider.microsoft)
+        {
+            return ExecuteMicrosoft(
                 verb,
                 settings,
                 output,
                 token);
+        }
+
+        return Execute(
+            verb,
+            settings,
+            output,
+            token);
     }
 
     private static async Task<int> Execute(
@@ -103,7 +106,7 @@ public partial class AuthCommands
         ResultArguments outputArgs,
         CancellationToken cancellationToken)
     {
-        var command = (string) $"auth {verb} google";
+        var command = $"auth {verb} google";
         using var context = new CliCommandContext(
             command,
             outputArgs,

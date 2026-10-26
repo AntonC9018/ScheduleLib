@@ -4,7 +4,9 @@ namespace Anton.LayeredData.TreeEnumeration;
 
 public sealed class ParentContext() : IDfsEnumerationContext
 {
-    public static readonly EnumerationContextKey<ParentContext> Key = EnumerationContextKey.Registry.Register<ParentContext>();
+    public static readonly EnumerationContextKey<ParentContext> Key =
+        EnumerationContextKey.Registry.Register<ParentContext>();
+
     private readonly Stack<MutableNode> _stack = new();
 
     public void Update(DfsEnumerationContext context)
@@ -28,9 +30,12 @@ public sealed class ParentContext() : IDfsEnumerationContext
     {
         get
         {
-            return _stack.Count > 0
-                ? _stack.Peek()
-                : null;
+            if (!(_stack.Count > 0))
+            {
+                return null;
+            }
+
+            return _stack.Peek();
         }
     }
 }

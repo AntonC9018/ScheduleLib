@@ -156,11 +156,11 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
     {
         string path1 = ProfileDirectory(profile);
         string text = $"{binding.TenantId}\n{binding.ClientId}";
-        string value = (string) text;
+        string value = text;
         string path2 = Key(value);
         string key = Key(binding.AccountId);
         string text2 = $"{key}.json";
-        string path3 = (string) text2;
+        string path3 = text2;
         string combine = Path.Combine(
             path1,
             path2,
@@ -173,8 +173,8 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         string path1 = ProfileDirectory(profile);
         string path2 = ".operation.lock";
         string path = Path.Combine(path1, path2);
-        global::System.Threading.CancellationToken token2 = token;
-        global::System.Threading.Tasks.Task<global::ScheduleLib.Application.Core.LocalFileLock> acquire =
+        var token2 = token;
+        var acquire =
             LocalFileLock.Acquire(
                 path,
                 token2);
@@ -208,9 +208,9 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             ClientId: config.ClientId,
             AccountId: authorization.AccountId);
 
-        global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
+        CachedAuthorization CalculateValue()
         {
-            global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
+            var value = new CachedAuthorization(
                 1,
                 authorization.Cache,
                 authorization.ExpiresOn,
@@ -295,9 +295,9 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
-        global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization CalculateValue()
+        CachedAuthorization CalculateValue()
         {
-            global::ScheduleLib.Cli.MicrosoftAuthentication.CachedAuthorization value = new CachedAuthorization(
+            var value = new CachedAuthorization(
                 1,
                 authorization.Cache,
                 authorization.ExpiresOn,
@@ -414,15 +414,13 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             {
                 return true;
             }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(config.ClientId))
-                {
-                    return true;
-                }
 
-                return false;
+            if (string.IsNullOrWhiteSpace(config.ClientId))
+            {
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -442,38 +440,27 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
             {
                 return true;
             }
-            else
+            if (string.IsNullOrWhiteSpace(authorization.AccountId))
             {
-                if (string.IsNullOrWhiteSpace(authorization.AccountId))
-                {
-                    return true;
-                }
-                else
-                {
-                    if (authorization.Cache.Length == 0)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (authorization.ExpiresOn <= DateTimeOffset.UtcNow)
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes,
-                                    StringComparer.OrdinalIgnoreCase)
-                                .Any())
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-                    }
-                }
+                return true;
             }
+            if (authorization.Cache.Length == 0)
+            {
+                return true;
+            }
+            if (authorization.ExpiresOn <= DateTimeOffset.UtcNow)
+            {
+                return true;
+            }
+
+            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes,
+                    StringComparer.OrdinalIgnoreCase)
+                .Any())
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

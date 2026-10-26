@@ -60,11 +60,7 @@ public static class UiLayerHelper
     {
         root.RemoveNodes(layer =>
         {
-            if (ReferenceEquals(objA: nodeToRemove, objB: layer))
-            {
-                return true;
-            }
-            return false;
+            return ReferenceEquals(objA: nodeToRemove, objB: layer);
         });
     }
 

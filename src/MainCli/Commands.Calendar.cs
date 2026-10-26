@@ -10,14 +10,14 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public CalendarCommands Calendar { get; set; } = new();
+    [Subcommand] public CalendarCommands Calendar { get; set; } = new();
 }
 
 [Command(
     "calendar",
     Description = "Preview or apply named Google Calendar replacement using provisioned authorization.")]
-[SuppressMessage(category: "Readability", checkId: "CR1400",
+[SuppressMessage(category: "Readability",
+    checkId: "CR1400",
     Justification = "Virtual command seams await architecture review in issue #247.")]
 public class CalendarCommands
 {
@@ -30,9 +30,9 @@ public class CalendarCommands
         CancellationToken token)
     {
         return GoogleCalendarSyncProvider.Connect(
-                services,
-                config,
-                token);
+            services,
+            config,
+            token);
     }
 
     [Command(
@@ -190,7 +190,7 @@ public class CalendarCommands
                 {
                     if (data is not null)
                     {
-                        global::ScheduleLib.Cli.CliOutput cliOutput = output;
+                        var cliOutput = output;
                         string line = $"{status}: {data.Account} / {data.CalendarName}";
                         cliOutput.WriteHuman(line);
                     }
@@ -208,18 +208,18 @@ public class CalendarCommands
         var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list = actions;
-            global::ScheduleLib.Cli.CalendarDeleteAction item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
-            global::ScheduleLib.Cli.ICliMessage item2 = item;
+            var list = actions;
+            var item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
+            ICliMessage item2 = item;
             list.Add(item2);
         }
-        global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list2 = actions;
-        global::ScheduleLib.Cli.CalendarCreateAction item3 = new CalendarCreateAction(data.CalendarName);
-        global::ScheduleLib.Cli.ICliMessage item4 = item3;
+        var list2 = actions;
+        var item3 = new CalendarCreateAction(data.CalendarName);
+        ICliMessage item4 = item3;
         list2.Add(item4);
-        global::System.Collections.Generic.List<global::ScheduleLib.Cli.ICliMessage> list3 = actions;
-        global::ScheduleLib.Cli.CalendarCreateEventsAction item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
-        global::ScheduleLib.Cli.ICliMessage item6 = item5;
+        var list3 = actions;
+        var item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
+        ICliMessage item6 = item5;
         list3.Add(item6);
         return actions.ToArray();
     }

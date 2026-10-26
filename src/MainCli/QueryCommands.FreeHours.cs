@@ -143,23 +143,27 @@ public partial class QueryCommands
             for (var i = 0; i < data.Sections.Length; i++)
             {
                 var section = data.Sections[i];
-                global::ScheduleLib.Cli.CliCommandContext cliCommandContext = context;
+                var cliCommandContext = context;
                 string id2 = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string status2 = "completed";
                 object item = section;
-                global::System.Action renderHuman2 = () =>
+                Action renderHuman2 = () =>
+                {
+                    output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
+                    foreach (var day in section.Days)
                     {
-                        output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
-                        foreach (var day in section.Days)
-                        {
-                            var cliOutput = output;
-                            string line = $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
-                            cliOutput.WriteHuman(
-line);
-                        }
-                    };
+                        var cliOutput = output;
+                        string line =
+                            $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
+                        cliOutput.WriteHuman(
+                            line);
+                    }
+                };
                 cliCommandContext.StreamItem(
-                    id: id2, status: status2, item, renderHuman: renderHuman2);
+                    id: id2,
+                    status: status2,
+                    item,
+                    renderHuman: renderHuman2);
             }
             return Finish(CliExit.Success, []);
         }
@@ -192,9 +196,12 @@ line);
 
         static string Describe(string mode)
         {
-            return mode == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
-                ? "whole-group lessons and unspecialized optional lessons occupy their slot"
-                : "every lesson occupies its slot";
+            if (mode != nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy))
+            {
+                return "every lesson occupies its slot";
+            }
+
+            return "whole-group lessons and unspecialized optional lessons occupy their slot";
         }
 
         static string UnknownGroups(string[] unknown, string[] known)
@@ -207,7 +214,8 @@ line);
                         x,
                         name,
                         StringComparison.OrdinalIgnoreCase));
-                    return (string) $"{($"Unknown group '{name}'.")}{(suggestion is null ? "" : $" Did you mean '{suggestion}'?")}";
+                    return
+                        $"{$"Unknown group '{name}'."}{(suggestion is null ? "" : $" Did you mean '{suggestion}'?")}";
                 }));
         }
     }

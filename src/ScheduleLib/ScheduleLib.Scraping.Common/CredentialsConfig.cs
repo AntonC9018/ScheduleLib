@@ -91,7 +91,6 @@ public static class CredentialsBuilderExtensions
         public void AddCredentialsResolver<T>(
             string serviceKey,
             Func<T, CredentialsSource> getter)
-
             where T : class
         {
             services.AddScoped<CredentialsResolver<T>>(sp =>

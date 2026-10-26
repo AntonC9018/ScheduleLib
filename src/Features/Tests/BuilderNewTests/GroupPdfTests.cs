@@ -60,16 +60,16 @@ public sealed class GroupPdfTests
         var course = builder.Course("Course");
 
         AddLesson();
-        global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
-        global::ScheduleLib.SubGroup? subGroup3 = subGroup2;
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        SubGroup? subGroup3 = subGroup2;
         AddLesson(subGroup: subGroup3);
         AddLesson(specialization: Specialization.CV);
         AddLesson(specialization: Specialization.DJ);
-        global::ScheduleLib.Alternative alternative2 = new Alternative("A1");
-        global::ScheduleLib.Alternative? alternative3 = alternative2;
+        var alternative2 = new Alternative("A1");
+        Alternative? alternative3 = alternative2;
         AddLesson(alternative: alternative3);
-        global::ScheduleLib.Alternative alternative4 = new Alternative("A2");
-        global::ScheduleLib.Alternative? alternative5 = alternative4;
+        var alternative4 = new Alternative("A2");
+        Alternative? alternative5 = alternative4;
         AddLesson(alternative: alternative5);
 
         return builder.Build();
@@ -132,8 +132,8 @@ public sealed class GroupPdfTests
 
             string text2 = text.BoldPrefix;
             string text3 = $"{alternative}:";
-            string value = (string) text3;
-            global::System.StringComparison comparisonType = StringComparison.Ordinal;
+            string value = text3;
+            var comparisonType = StringComparison.Ordinal;
             bool condition;
             if (text2.StartsWith(value, comparisonType))
             {
@@ -143,14 +143,15 @@ public sealed class GroupPdfTests
             {
                 string text4 = text.BoldPrefix;
                 string text5 = $"{alternative},";
-                string value2 = (string) text5;
-                global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                string value2 = text5;
+                var comparisonType2 = StringComparison.Ordinal;
                 condition = text4.StartsWith(value2, comparisonType2);
             }
 
             string userMessage = $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'";
             Assert.True(
-                condition, userMessage);
+                condition,
+                userMessage);
         }
         Assert.True(seenAlternative);
     }
@@ -175,12 +176,12 @@ public sealed class GroupPdfTests
         lesson.Course(course);
         lesson.DayOfWeek(DayOfWeek.Monday);
         lesson.TimeSlot(TimeSlot.First);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder = lesson;
-        global::ScheduleLib.SubGroup subGroup = SubGroup.CreateNumeric(1);
+        var lessonBuilder = lesson;
+        var subGroup = SubGroup.CreateNumeric(1);
         lessonBuilder.SubGroup(subGroup);
         lesson.Specialization(Specialization.CV);
-        global::ScheduleLib.Builders.LessonBuilder<global::ScheduleLib.Builders.WeeklyLessonBuilderModel> lessonBuilder2 = lesson;
-        global::ScheduleLib.Alternative alternative = new Alternative("A1");
+        var lessonBuilder2 = lesson;
+        var alternative = new Alternative("A1");
         lessonBuilder2.Alternative(alternative);
 
         var schedule = builder.Build();
@@ -210,23 +211,22 @@ public sealed class GroupPdfTests
     private sealed class RecordingRichText : IRichText
     {
         public string BoldPrefix = "";
+
         public void Span(string str, bool isBold = false)
         {
             bool CalculateConditionResult()
             {
-                if (isBold)
+                if (!isBold)
                 {
-                    if (BoldPrefix == "")
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (BoldPrefix == "")
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -237,10 +237,12 @@ public sealed class GroupPdfTests
                 BoldPrefix = str;
             }
         }
+
         public void Line(string str)
         {
         }
     }
+
     [Fact]
     public async Task AGroupWithoutSplitsGetsOnlyItsWholeGroupPdf()
     {
@@ -248,7 +250,10 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        bool condition = new[] { "IA2401.pdf" }.SequenceEqual(files);
+        bool condition = new[]
+        {
+            "IA2401.pdf",
+        }.SequenceEqual(files);
         Assert.True(condition);
     }
 
@@ -269,11 +274,11 @@ public sealed class GroupPdfTests
         AddLesson();
         if (withSplits)
         {
-            global::ScheduleLib.SubGroup subGroup2 = SubGroup.CreateNumeric(1);
-            global::ScheduleLib.SubGroup? subGroup3 = subGroup2;
+            var subGroup2 = SubGroup.CreateNumeric(1);
+            SubGroup? subGroup3 = subGroup2;
             AddLesson(subGroup: subGroup3);
-            global::ScheduleLib.SubGroup subGroup4 = SubGroup.CreateNumeric(2);
-            global::ScheduleLib.SubGroup? subGroup5 = subGroup4;
+            var subGroup4 = SubGroup.CreateNumeric(2);
+            SubGroup? subGroup5 = subGroup4;
             AddLesson(subGroup: subGroup5);
             AddLesson(specialization: Specialization.CV);
             AddLesson(specialization: Specialization.DJ);
@@ -332,13 +337,14 @@ public sealed class GroupPdfTests
                 .Select(x => x.Path)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            Assert.All(files, file =>
-            {
-                string fileName = output.BuildPath(file);
-                global::System.IO.FileInfo fileInfo = new FileInfo(fileName);
-                bool condition = fileInfo.Length > 0;
-                Assert.True(condition);
-            });
+            Assert.All(files,
+                file =>
+                {
+                    string fileName = output.BuildPath(file);
+                    var fileInfo = new FileInfo(fileName);
+                    bool condition = fileInfo.Length > 0;
+                    Assert.True(condition);
+                });
             return files;
         }
         finally

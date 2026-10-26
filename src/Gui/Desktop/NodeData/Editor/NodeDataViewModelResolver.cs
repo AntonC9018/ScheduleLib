@@ -62,8 +62,8 @@ public sealed class NodeDataViewModelResolver
 
         try
         {
-            global::Desktop.NodeData.Common.IPropertySetViewModelFactory iPropertySetViewModelFactory = factory;
-            global::Desktop.NodeData.Common.NodeDataVMCreateParams p = new(scope.ServiceProvider, dataStore);
+            var iPropertySetViewModelFactory = factory;
+            NodeDataVMCreateParams p = new(scope.ServiceProvider, dataStore);
             var ret = iPropertySetViewModelFactory.Create(p);
             return new(scope, ret);
         }

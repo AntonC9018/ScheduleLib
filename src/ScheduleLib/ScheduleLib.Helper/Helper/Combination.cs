@@ -79,15 +79,15 @@ public static class CombinationHelper
 
     public static IEnumerable<T[]> Generate<T>(T[] items, T[] resultMem)
     {
-        global::System.ArraySegment<T> CalculateItems()
+        ArraySegment<T> CalculateItems()
         {
-            global::System.ArraySegment<T> items2 = new ArraySegment<T>(items);
+            var items2 = new ArraySegment<T>(items);
             return items2;
         }
 
-        global::System.ArraySegment<T> CalculateResultMem()
+        ArraySegment<T> CalculateResultMem()
         {
-            global::System.ArraySegment<T> resultMem2 = new(resultMem);
+            ArraySegment<T> resultMem2 = new(resultMem);
             return resultMem2;
         }
 

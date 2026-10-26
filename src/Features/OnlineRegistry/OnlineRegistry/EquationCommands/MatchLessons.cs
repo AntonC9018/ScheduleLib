@@ -42,14 +42,14 @@ internal static class MatchLessonHelper
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
         return MatchLessonCandidates(p)
-                .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
+            .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
     }
 
     internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
     {
         return MatchLessonCandidates(p)
-                .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
-                .ToList();
+            .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
+            .ToList();
     }
 
     private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
@@ -64,7 +64,7 @@ internal static class MatchLessonHelper
             else
             {
                 conditionResult = groups.Value.IsSingleGroup;
-                conditionResult = !(conditionResult);
+                conditionResult = !conditionResult;
             }
         }
         else
@@ -72,12 +72,7 @@ internal static class MatchLessonHelper
             conditionResult = false;
         }
 
-        if (conditionResult)
-        {
-            return true;
-        }
-
-        return false;
+        return conditionResult;
     }
 
     internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
@@ -89,16 +84,14 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
+
             bool CalculateConditionResult()
             {
                 if (yielded)
                 {
                     return true;
                 }
-                else
-                {
-                    return p.Filter.Groups.IsCombined;
-                }
+                return p.Filter.Groups.IsCombined;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -123,7 +116,10 @@ internal static class MatchLessonHelper
         }
     }
 
-    internal static bool MatchesPartition(Schedule schedule, LessonData lesson, GroupPartitionKey partition)
+    internal static bool MatchesPartition(
+        Schedule schedule,
+        LessonData lesson,
+        GroupPartitionKey partition)
     {
         if (lesson.GroupPartitionKey == partition)
         {
@@ -147,12 +143,7 @@ internal static class MatchLessonHelper
                 return true;
             }
 
-            if (lesson.Groups.IsEmpty)
-            {
-                return true;
-            }
-
-            return false;
+            return lesson.Groups.IsEmpty;
         }
 
         if (CheckCondition())
@@ -162,18 +153,18 @@ internal static class MatchLessonHelper
         // The ordinary registry destination represents the parent's teaching language;
         // another language subgroup has its own destination.
         if (lesson.SubGroup.IsLanguageSubGroup()
-           && lesson.Groups.All(group =>
-           {
-               global::ScheduleLib.Language CalculateLang()
-               {
-                   global::ScheduleLib.Group get = schedule.Get(group);
-                   global::ScheduleLib.Language lang = get.Language;
-                   return lang;
-               }
+            && lesson.Groups.All(group =>
+            {
+                Language CalculateLang()
+                {
+                    var get = schedule.Get(group);
+                    var lang = get.Language;
+                    return lang;
+                }
 
-               return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
-                              && SpecialSubGroups.FromLanguage(CalculateLang()) == lesson.SubGroup;
-           }))
+                return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                    && SpecialSubGroups.FromLanguage(CalculateLang()) == lesson.SubGroup;
+            }))
         {
             return true;
         }
@@ -201,7 +192,9 @@ internal static class MatchLessonHelper
             }
             else
             {
-                bool matchesPartition = MatchesPartition(p.Schedule, lesson.Lesson, groupPartition);
+                bool matchesPartition = MatchesPartition(p.Schedule,
+                    lesson.Lesson,
+                    groupPartition);
                 condition = !matchesPartition;
             }
 
@@ -233,7 +226,7 @@ internal static class MatchLessonHelper
                     if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
                     {
                         conditionResult = lesson.Lesson.Groups.IsSubSetOf(g.Value);
-                        conditionResult = !(conditionResult);
+                        conditionResult = !conditionResult;
                     }
                     else
                     {

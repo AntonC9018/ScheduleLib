@@ -9,6 +9,9 @@ namespace ScheduleLib.Application.Config;
 
 public static class MarkerConfigExtension
 {
+    /// <summary>A teacher configuration found on a layer together with the builder for its node.</summary>
+    public readonly record struct MarkerNode(TeacherLayerConfig Config, NodeBuilder Builder);
+
     public static void AddMarkerServices(this IServiceCollection services)
     {
         MarkerDataHelper.Register(services);
@@ -39,21 +42,24 @@ public static class MarkerConfigExtension
         this IServiceProvider sp,
         TeacherLayerConfig marker)
     {
-        var ret = CreateMarkerScope(sp, x =>
+        var ret = sp.CreateMarkerScope(x =>
         {
             x.TeacherName = marker.TeacherName;
         });
         return ret;
     }
 
+    /// <summary>A node to be deleted together with its parent.</summary>
+    private readonly record struct NodeDeletion(MutableNode Parent, MutableNode Node);
+
     extension(TreeBuilder b)
     {
-        public IEnumerable<(TeacherLayerConfig Config, NodeBuilder Builder)> GetMarkerNodes()
+        public IEnumerable<MarkerNode> GetMarkerNodes()
         {
             // NOTE:
             // We assume that a TeacherLayerConfig exists on ALL levels of the layers.
             // But we only consider the last such layers.
-            (global::ScheduleLib.Application.Config.TeacherLayerConfig value, global::Anton.LayeredData.NodeBuilder) ProjectValue(global::Anton.LayeredData.TreeEnumeration.Infrastructure.DfsEnumerationContext x)
+            MarkerNode ProjectValue(DfsEnumerationContext x)
             {
                 var config = x.Node.Get(TeacherLayerConfig.Key);
                 if (!config.Exists)
@@ -65,8 +71,9 @@ public static class MarkerConfigExtension
                 {
                     throw new InvalidOperationException("Teacher layer config must be explicitly set!");
                 }
-                return (value, b.CreateBuilder(x.Node));
+                return new(value, b.CreateBuilder(x.Node));
             }
+
             return b.BaseNode
                 .Dfs()
                 .Process()
@@ -87,7 +94,7 @@ public static class MarkerConfigExtension
                     c.Controller.Action = DfsAction.PreventRecursionOnce;
                     var parent = c.Get(ParentContext.Key).Parent;
                     Debug.Assert(parent != null);
-                    return (Parent: parent, Node: c.Node);
+                    return new NodeDeletion(Parent: parent, Node: c.Node);
                 })
                 .ToList();
             foreach (var x in deletionList)
@@ -165,11 +172,13 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
             {
                 return false;
             }
-            if (!existing.TeacherName.Equals(scoped.TeacherName))
+
+            if (existing.TeacherName.Equals(scoped.TeacherName))
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         }
     }
 }

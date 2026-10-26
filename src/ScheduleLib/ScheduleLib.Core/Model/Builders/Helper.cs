@@ -28,13 +28,14 @@ public readonly struct ListBuilder<T>()
     }
 
     public ImmutableArray<T> Build() => [.. List];
+
     public ImmutableArray<U> Build<U>(Func<T, U> f)
     {
         var builder = ImmutableArray.CreateBuilder<U>(List.Count);
         foreach (var item in List)
         {
-            global::System.Collections.Immutable.ImmutableArray<U>.Builder builder2 = builder;
-            U? item2 = f(item);
+            var builder2 = builder;
+            var item2 = f(item);
             builder2.Add(item2);
         }
         return builder.ToImmutable();
@@ -44,4 +45,3 @@ public readonly struct ListBuilder<T>()
 
     public ref T Ref(int id) => ref CollectionsMarshal.AsSpan(List)[id];
 }
-

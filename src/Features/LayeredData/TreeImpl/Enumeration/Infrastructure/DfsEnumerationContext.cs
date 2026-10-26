@@ -101,11 +101,7 @@ public readonly struct EnumerationContextCollection : IDisposable
         public bool MoveNext()
         {
             _index++;
-            if (_index < self._items.Length)
-            {
-                return true;
-            }
-            return false;
+            return _index < self._items.Length;
         }
 
         public KeyedContext Current => self._items[_index];

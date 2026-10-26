@@ -15,16 +15,15 @@ public static class ComparisonHelper
         var comparer = EqualityComparer<T?>.Default;
         bool xdefault = comparer.Equals(x: x, y: default);
         bool ydefault = comparer.Equals(x: y, y: default);
+
         bool CalculateConditionResult()
         {
-            if (xdefault)
-            {
-                return ydefault;
-            }
-            else
+            if (!xdefault)
             {
                 return false;
             }
+
+            return ydefault;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -40,11 +39,7 @@ public static class ComparisonHelper
         {
             return true;
         }
-        if (ydefault)
-        {
-            return true;
-        }
-        return false;
+        return ydefault;
     }
 
     public static bool NullGuardCompare<T>(
@@ -54,19 +49,17 @@ public static class ComparisonHelper
     {
         bool CalculateConditionResult()
         {
-            if (x is null)
+            if (!(x is null))
             {
-                if (y is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (y is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -77,21 +70,20 @@ public static class ComparisonHelper
             score = 0;
             return true;
         }
+
         bool CalculateConditionResult2()
         {
-            if (x is not null)
+            if (x is null)
             {
-                if (y is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (y is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult2 = CalculateConditionResult2();
@@ -102,21 +94,20 @@ public static class ComparisonHelper
             score = 1;
             return true;
         }
+
         bool CalculateConditionResult3()
         {
-            if (x is null)
+            if (!(x is null))
             {
-                if (y is not null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (y is not null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult3 = CalculateConditionResult3();
@@ -150,10 +141,12 @@ public static class ComparisonHelper
         {
             return true;
         }
+
         if (y is null)
         {
             return true;
         }
+
         return false;
     }
 
@@ -163,7 +156,9 @@ public static class ComparisonHelper
         Func<T, T, bool> comparer)
         where T : class
     {
-        if (AtLeastOneIsNull(x: x, y: y, out bool bothNull))
+        if (AtLeastOneIsNull(x: x,
+                y: y,
+                out bool bothNull))
         {
             return bothNull;
         }
@@ -187,19 +182,17 @@ public static class StructComparisonHelper
     {
         bool CalculateConditionResult()
         {
-            if (x is null)
+            if (!(x is null))
             {
-                if (y is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (y is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -226,19 +219,17 @@ public static class StructComparisonHelper
     {
         bool CalculateConditionResult()
         {
-            if (x is null)
+            if (!(x is null))
             {
-                if (y is null)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (y is null)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

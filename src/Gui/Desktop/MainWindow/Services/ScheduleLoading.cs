@@ -78,4 +78,3 @@ public sealed class AllTeacherNamesProvider : IAllTeacherNamesProvider, IDisposa
         _scheduleUpdatedSub.Dispose();
     }
 }
-

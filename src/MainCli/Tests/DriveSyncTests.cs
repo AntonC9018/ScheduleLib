@@ -18,7 +18,11 @@ public sealed class DriveSyncTests
             "notes.txt");
         using var fake = new Fake
         {
-            Remote = [new(Id: "old", Name: "obsolete.xlsx"), new(Id: "one", Name: "SCHEDULE.PDF"), new(Id: "two", Name: "schedule.pdf")],
+            Remote =
+            [
+                new(Id: "old", Name: "obsolete.xlsx"), new(Id: "one", Name: "SCHEDULE.PDF"),
+                new(Id: "two", Name: "schedule.pdf"),
+            ],
         };
         var preview = await DriveSync.Run(
             fake,
@@ -81,7 +85,10 @@ public sealed class DriveSyncTests
     {
         using var temp = new Temp();
         var files = await temp.Artifacts("first.pdf", "second.ics");
-        using var fake = new Fake { Fail = fail };
+        using var fake = new Fake
+        {
+            Fail = fail,
+        };
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
@@ -115,7 +122,10 @@ public sealed class DriveSyncTests
         Assert.Equal(expected: "failed", actual: deletion.Outcomes[0].State);
         Assert.Equal(expected: "not-attempted", actual: deletion.Outcomes[1].State);
         Assert.Single(rejectedDelete.Writes);
-        using var unauthorized = new Fake { Fail = "unauthorized" };
+        using var unauthorized = new Fake
+        {
+            Fail = "unauthorized",
+        };
         var creation = await DriveSync.Run(
             unauthorized,
             folderName: "Configured",
@@ -125,7 +135,7 @@ public sealed class DriveSyncTests
             lockRoot: temp.Path);
         Assert.Equal(expected: 4, actual: creation.ExitCode);
         string expected2 = "failed";
-        global::ScheduleLib.Cli.DriveOutcome single = Assert.Single(creation.Outcomes);
+        var single = Assert.Single(creation.Outcomes);
         string actual2 = single.State;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(unauthorized.Writes);
@@ -160,7 +170,10 @@ public sealed class DriveSyncTests
     {
         using var temp = new Temp();
         using var cancellation = new CancellationTokenSource();
-        using var fake = new Fake { AfterWrite = cancellation.Cancel };
+        using var fake = new Fake
+        {
+            AfterWrite = cancellation.Cancel,
+        };
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
@@ -179,18 +192,19 @@ public sealed class DriveSyncTests
     {
         using var temp = new Temp();
         using var fake = new Fake();
+
         string CalculatePath()
         {
             string path = DriveSync.LockPath(
-                                         root: temp.Path,
-                                         account: "actual-account",
-                                         folderId: "actual-folder");
+                root: temp.Path,
+                account: "actual-account",
+                folderId: "actual-folder");
             return path;
         }
 
         await using (var lease = await LocalFileLock.Acquire(
-                                 CalculatePath(),
-                                 default))
+                         CalculatePath(),
+                         default))
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => DriveSync.Run(
                 fake,
@@ -226,7 +240,10 @@ public sealed class DriveSyncTests
     public async Task DestinationChangeUnderLockRefusesAllWrites()
     {
         using var temp = new Temp();
-        using var fake = new Fake { ChangeFolder = true };
+        using var fake = new Fake
+        {
+            ChangeFolder = true,
+        };
         await Assert.ThrowsAsync<IOException>(() => DriveSync.Run(
             fake,
             folderName: "Configured",
@@ -244,9 +261,10 @@ public sealed class DriveSyncTests
     public async Task CommandBuildsRealBundleAndExcludesManifestsAndCallerFiles(bool apply)
     {
         using var temp = new Temp();
+
         string CalculatePath()
         {
-            string path2 = System.IO.Path.Combine(temp.Path, "caller.pdf");
+            string path2 = Path.Combine(temp.Path, "caller.pdf");
             return path2;
         }
 
@@ -263,13 +281,26 @@ public sealed class DriveSyncTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = System.IO.Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                     },
-                    new() { Profile = "Curmanschii Anton" },
-                    new() { Directory = temp.Path },
-                    new() { Json = true },
-                    new() { Apply = apply }));
+                    new()
+                    {
+                        Profile = "Curmanschii Anton",
+                    },
+                    new()
+                    {
+                        Directory = temp.Path,
+                    },
+                    new()
+                    {
+                        Json = true,
+                    },
+                    new()
+                    {
+                        Apply = apply,
+                    }));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
+
             string CalculateExpected()
             {
                 if (apply)
@@ -280,14 +311,15 @@ public sealed class DriveSyncTests
                 return "preview";
             }
 
-            Assert.Equal(expected: CalculateExpected(), actual: json.RootElement.GetProperty("status")
-                            .GetString());
+            Assert.Equal(expected: CalculateExpected(),
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
             var actions = json.RootElement.GetProperty("data")
                 .GetProperty("actions")
                 .EnumerateArray()
                 .ToArray();
             var names = actions.Select(x => x.GetProperty("name")
-                .GetString())
+                    .GetString())
                 .ToArray();
             Assert.Contains("all-teachers.xlsx", names);
             Assert.Contains("free-rooms.xlsx", names);
@@ -307,8 +339,9 @@ public sealed class DriveSyncTests
                     await File.ReadAllBytesAsync(
                         Directory.GetFiles(path: temp.Path, searchPattern: "*.pdf")
                             .First(x => !x.EndsWith(
-                            "caller.pdf",
-                            StringComparison.Ordinal)))));
+                                "caller.pdf",
+                                StringComparison.Ordinal)))));
+
             string CalculatePath2()
             {
                 string[] files = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics");
@@ -317,7 +350,8 @@ public sealed class DriveSyncTests
                 return path3;
             }
 
-            Assert.Contains(expectedSubstring: "BEGIN:VEVENT", actualString: await File.ReadAllTextAsync(CalculatePath2()));
+            Assert.Contains(expectedSubstring: "BEGIN:VEVENT",
+                actualString: await File.ReadAllTextAsync(CalculatePath2()));
             if (apply)
             {
                 Assert.Equal(expected: actions.Length, actual: fake.Writes.Count);
@@ -329,7 +363,7 @@ public sealed class DriveSyncTests
 
             string CalculatePath3()
             {
-                string path4 = System.IO.Path.Combine(temp.Path, "caller.pdf");
+                string path4 = Path.Combine(temp.Path, "caller.pdf");
                 return path4;
             }
 
@@ -375,15 +409,22 @@ public sealed class DriveSyncTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = System.IO.Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                        DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                     },
-                    new() { Profile = "Curmanschii Anton" },
+                    new()
+                    {
+                        Profile = "Curmanschii Anton",
+                    },
                     new(),
-                    new() { Json = true },
+                    new()
+                    {
+                        Json = true,
+                    },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 4, actual: json.RootElement.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: 4,
+                actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
             Assert.Empty(json.RootElement.GetProperty("outputs")
                 .EnumerateArray());
         }
@@ -400,7 +441,7 @@ public sealed class DriveSyncTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
@@ -416,8 +457,8 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             return fake is null
-                        ? throw new AuthenticationRequiredException(provider: "google", teacher: "Curmanschii Anton")
-                        : Task.FromResult<IDriveSyncProvider>(fake);
+                ? throw new AuthenticationRequiredException(provider: "google", teacher: "Curmanschii Anton")
+                : Task.FromResult(fake);
         }
     }
 
@@ -441,9 +482,9 @@ public sealed class DriveSyncTests
 
         public Task<DriveAccount> GetAccount(CancellationToken token)
         {
-            global::ScheduleLib.Cli.DriveAccount CalculateResult()
+            DriveAccount CalculateResult()
             {
-                global::ScheduleLib.Cli.DriveAccount result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
+                var result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
                 return result;
             }
 
@@ -454,18 +495,18 @@ public sealed class DriveSyncTests
         {
             bool CheckCondition()
             {
-                if (!(ChangeFolder))
+                if (!ChangeFolder)
                 {
                     return false;
                 }
 
                 int conditionValue = ++_folderCalls;
-                if (!(conditionValue > 1))
+                if (conditionValue > 1)
                 {
-                    return false;
+                    return true;
                 }
 
-                return true;
+                return false;
             }
 
             string id;
@@ -479,9 +520,10 @@ public sealed class DriveSyncTests
             }
 
             string name2 = "Actual folder";
-            global::ScheduleLib.Cli.DriveDestination result = new DriveDestination(
-                                                Id: id, Name: name2);
-            global::System.Threading.Tasks.Task<global::ScheduleLib.Cli.DriveDestination> fromResult = Task.FromResult(result);
+            var result = new DriveDestination(
+                Id: id,
+                Name: name2);
+            var fromResult = Task.FromResult(result);
             return fromResult;
         }
 
@@ -496,7 +538,7 @@ public sealed class DriveSyncTests
             string CalculateItem()
             {
                 string text = $"delete {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -520,10 +562,11 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
+
             string CalculateItem()
             {
                 string text = $"create {name}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -564,10 +607,11 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             Assert.True(input.Length > 0);
+
             string CalculateItem()
             {
                 string text = $"update {id}";
-                string item = (string) text;
+                string item = text;
                 return item;
             }
 
@@ -594,18 +638,18 @@ public sealed class DriveSyncTests
             }
 
             return names.Select(x =>
-            {
-                global::ScheduleLib.Cli.DriveArtifact ProjectValue()
                 {
-                    string operationValue = x;
-                    string operationValue2 = System.IO.Path.Combine(Path, x);
-                    string operationValue3 = operationValue2;
-                    global::ScheduleLib.Cli.DriveArtifact operationValue4 = new DriveArtifact(Name: operationValue, Path: operationValue3);
-                    return operationValue4;
-                }
+                    DriveArtifact ProjectValue()
+                    {
+                        string operationValue = x;
+                        string operationValue2 = System.IO.Path.Combine(Path, x);
+                        string operationValue3 = operationValue2;
+                        var operationValue4 = new DriveArtifact(Name: operationValue, Path: operationValue3);
+                        return operationValue4;
+                    }
 
-                return ProjectValue();
-            })
+                    return ProjectValue();
+                })
                 .ToArray();
         }
 

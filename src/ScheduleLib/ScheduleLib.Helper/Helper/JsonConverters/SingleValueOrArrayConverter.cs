@@ -148,8 +148,8 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             }
             if (genericTypeDef == typeof(List<>))
             {
-                global::System.Collections.Generic.List<TElement> list = new List<TElement>(items);
-                TCollection tCollection = (TCollection) (object) list;
+                var list = new List<TElement>(items);
+                var tCollection = (TCollection) (object) list;
                 return tCollection;
             }
 
@@ -159,36 +159,25 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 {
                     return true;
                 }
-                else
+                if (genericTypeDef == typeof(ICollection<>))
                 {
-                    if (genericTypeDef == typeof(ICollection<>))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (genericTypeDef == typeof(IList<>))
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            if (genericTypeDef == typeof(IReadOnlyCollection<>))
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                if (genericTypeDef == typeof(IReadOnlyList<>))
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                        }
-                    }
+                    return true;
                 }
+                if (genericTypeDef == typeof(IList<>))
+                {
+                    return true;
+                }
+                if (genericTypeDef == typeof(IReadOnlyCollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyList<>))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();

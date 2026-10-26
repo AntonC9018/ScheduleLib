@@ -147,10 +147,10 @@ public static class WordScheduleParser
                                                 int pos = cell.ColumnSizeCounter - skippedSize;
 
                                                 // Add an invalid id, just to set up the breakpoints
-                                                global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId>
+                                                SizedItem<GroupId>
                                                     CalculateItem()
                                                 {
-                                                    global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> item =
+                                                    SizedItem<GroupId> item =
                                                         new(GroupId.Invalid, size);
                                                     return item;
                                                 }
@@ -204,9 +204,9 @@ public static class WordScheduleParser
                                     }
                                 }
 
-                                global::ScheduleLib.Parsing.WordDoc.SkippedHeaderColumnsInfo CalculateSkipped()
+                                SkippedHeaderColumnsInfo CalculateSkipped()
                                 {
-                                    global::ScheduleLib.Parsing.WordDoc.SkippedHeaderColumnsInfo skipped = new(Count: 2,
+                                    SkippedHeaderColumnsInfo skipped = new(Count: 2,
                                         Size: skippedSize);
                                     return skipped;
                                 }
@@ -501,11 +501,13 @@ public static class WordScheduleParser
                             {
                                 return true;
                             }
+
                             if (merge.Val is { } val
                                 && val == MergedCellValues.Restart)
                             {
                                 return true;
                             }
+
                             return false;
                         }
 
@@ -556,8 +558,8 @@ public static class WordScheduleParser
             i += groupBucket.Size;
             groups.Add(groupBucket.Item);
         }
-        global::ScheduleLib.Parsing.ScheduleImportContext scheduleImportContext = c;
-        global::ScheduleLib.Parsing.ImportedLessonInput input = new(lesson,
+        var scheduleImportContext = c;
+        ImportedLessonInput input = new(lesson,
             state.CurrentDay!.Value,
             state.Time!.Value.TimeSlot,
             groups);
@@ -762,9 +764,9 @@ public static class WordScheduleParser
                 var group = c.Schedule.Group(groupName);
                 var colSpan = cell.GetWidth();
 
-                global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> CalculateIt()
+                SizedItem<GroupId> CalculateIt()
                 {
-                    global::ScheduleLib.Helper.SizedItem<global::ScheduleLib.GroupId> it = new(group, colSpan);
+                    SizedItem<GroupId> it = new(group, colSpan);
                     return it;
                 }
 
@@ -795,16 +797,19 @@ public static class WordprocessingHelper
         return cell.TableCellProperties?.GridSpan?.Val ?? 1;
     }
 
-    public static IEnumerable<(TableCell Cell, int Position)> WithPosition(this IEnumerable<TableCell> e)
+    public static IEnumerable<TableCellWithPosition> WithPosition(this IEnumerable<TableCell> e)
     {
         var pos = 0;
         foreach (var x in e)
         {
-            yield return (x, pos);
+            yield return new(x, pos);
             pos += x.GetWidth();
         }
     }
 }
+
+/// <summary>A table cell together with the grid column it starts at.</summary>
+public readonly record struct TableCellWithPosition(TableCell Cell, int Position);
 
 internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
 {

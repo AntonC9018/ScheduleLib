@@ -9,6 +9,9 @@ namespace ScheduleLib.Cli;
 
 public static partial class CliSettings
 {
+    /// <summary>A setting path resolved to the configuration block and value it addresses.</summary>
+    private readonly record struct OperationTarget(Type Block, PropertyInfo[] Members, Type Value);
+
     // Operations belong to the CLI envelope; desktop TreeSerializer remains values-only.
     private static JsonObject? ReadOperations(
         JsonNode? node,
@@ -98,13 +101,13 @@ public static partial class CliSettings
     private static JsonArray? GetOperations(JsonObject? operations, string? profile) =>
         (profile is null ? operations?["defaults"] : operations?["profiles"]?[profile]) as JsonArray;
 
-    private static (Type Block, PropertyInfo[] Members, Type Value) OperationPath(
+    private static OperationTarget OperationPath(
         string key,
         JsonSerializerOptions json)
     {
         var parts = key.Split('.');
-        global::Anton.LayeredData.NodeDataKeyRegistry nodeDataKeyRegistry = NodeDataKey.Registry;
-        global::Anton.LayeredData.NodeDataKey key2 = new(parts[0]);
+        var nodeDataKeyRegistry = NodeDataKey.Registry;
+        NodeDataKey key2 = new(parts[0]);
         var block = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
         if (block is null || !SupportedBlocks.Contains(parts[0]))
         {
@@ -125,7 +128,9 @@ public static partial class CliSettings
             members.Add(member);
             type = member.PropertyType;
         }
-        return (block, members.ToArray(), type);
+        return new(Block: block,
+            members.ToArray(),
+            Value: type);
     }
 
     private static void ValidateOperation(JsonObject action, JsonSerializerOptions json)
@@ -158,17 +163,17 @@ public static partial class CliSettings
                 return false;
             }
 
-            if (!(path.Members.Length == 0))
+            if (path.Members.Length != 0)
             {
                 return false;
             }
 
-            if (!(!hasItem))
+            if (!hasItem)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         if (CheckCondition())
@@ -185,7 +190,7 @@ public static partial class CliSettings
         {
             throw new UnsupportedSettingsOperationException(operation: operation, settingKey: key);
         }
-        if ((operation == "remove") != hasItem)
+        if (operation == "remove" != hasItem)
         {
             throw new UnsupportedSettingsOperationException(operation: operation, settingKey: key);
         }
@@ -199,11 +204,11 @@ public static partial class CliSettings
 
             try
             {
-                global::System.Text.Json.Nodes.JsonNode node = item;
-                global::System.Type[] genericArguments = path.Value.GetGenericArguments();
+                JsonNode node = item;
+                var genericArguments = path.Value.GetGenericArguments();
                 int int32 = 0;
-                global::System.Type type = genericArguments[int32];
-                global::System.Text.Json.JsonSerializerOptions json2 = json;
+                var type = genericArguments[int32];
+                var json2 = json;
                 string file = "operation item";
                 NormalizeInheritance(
                     node,
@@ -211,11 +216,11 @@ public static partial class CliSettings
                     json2,
                     file);
 
-                global::System.Type CalculateReturnType()
+                Type CalculateReturnType()
                 {
-                    global::System.Type[] genericArguments2 = path.Value.GetGenericArguments();
+                    var genericArguments2 = path.Value.GetGenericArguments();
                     int int322 = 0;
-                    global::System.Type returnType = genericArguments2[int322];
+                    var returnType = genericArguments2[int322];
                     return returnType;
                 }
 
@@ -266,8 +271,8 @@ public static partial class CliSettings
         }
 
         var element = path.Value.GetGenericArguments()[0];
-        global::System.IServiceProvider iServiceProvider = settings.Services;
-        global::System.Type serviceType = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
+        var iServiceProvider = settings.Services;
+        var serviceType = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
         var comparer = iServiceProvider.GetService(serviceType);
         if (comparer is null)
         {
@@ -324,17 +329,17 @@ public static partial class CliSettings
         bool conditionResult;
         if (path.Members.Length != 0)
         {
-            global::System.Type CalculateTypeArguments()
+            Type CalculateTypeArguments()
             {
-                global::System.Type[] genericArguments = path.Value.GetGenericArguments();
+                var genericArguments = path.Value.GetGenericArguments();
                 int int32 = 0;
-                global::System.Type typeArguments = genericArguments[int32];
+                var typeArguments = genericArguments[int32];
                 return typeArguments;
             }
 
-            global::System.Type CalculateServiceType()
+            Type CalculateServiceType()
             {
-                global::System.Type serviceType =
+                var serviceType =
                     typeof(IKeyEqualityComparer<>).MakeGenericType(CalculateTypeArguments());
                 return serviceType;
             }
@@ -365,14 +370,14 @@ public static partial class CliSettings
         IServiceProvider provider,
         JsonSerializerOptions json) where T : class
     {
-        global::Anton.LayeredData.NodeDataKey<T> CalculateKey()
+        NodeDataKey<T> CalculateKey()
         {
             string[] split = action["key"]!.GetValue<string>()
                 .Split('.');
             int int32 = 0;
             string value2 = split[int32];
-            global::Anton.LayeredData.NodeDataKey value3 = new(value2);
-            global::Anton.LayeredData.NodeDataKey<T> key = new NodeDataKey<T>(value3);
+            NodeDataKey value3 = new(value2);
+            var key = new NodeDataKey<T>(value3);
             return key;
         }
 
@@ -403,8 +408,8 @@ public static partial class CliSettings
             if (operation == "clear")
             {
                 // The registered basic operation defines collection reset semantics.
-                global::System.IServiceProvider iServiceProvider = sp;
-                global::System.Type serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
+                var iServiceProvider = sp;
+                var serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
                 var basic = iServiceProvider.GetRequiredService(
                     serviceType);
                 basic.GetType()
@@ -414,8 +419,8 @@ public static partial class CliSettings
             else
             {
                 var element = members[^1].PropertyType.GetGenericArguments()[0];
-                global::System.IServiceProvider iServiceProvider2 = sp;
-                global::System.Type serviceType2 = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
+                var iServiceProvider2 = sp;
+                var serviceType2 = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
                 var comparer = iServiceProvider2.GetRequiredService(serviceType2);
                 var item = action["item"]!.Deserialize(element, json)!;
                 for (var i = list.Count - 1; i >= 0; i--)
@@ -445,7 +450,7 @@ public static partial class CliSettings
             envelope["operations"] = operations = new();
         }
 
-        JsonObject target = operations;
+        var target = operations;
         var name = "defaults";
         if (profile is not null)
         {
@@ -493,8 +498,8 @@ public static partial class CliSettings
             {
                 string text = actionKey;
                 string text2 = $"{key}.";
-                string value = (string) text2;
-                global::System.StringComparison comparisonType = StringComparison.Ordinal;
+                string value = text2;
+                var comparisonType = StringComparison.Ordinal;
                 if (text.StartsWith(value, comparisonType))
                 {
                     conditionResult = true;
@@ -505,8 +510,8 @@ public static partial class CliSettings
                     {
                         string text3 = key;
                         string text4 = $"{actionKey}.";
-                        string value2 = (string) text4;
-                        global::System.StringComparison comparisonType2 = StringComparison.Ordinal;
+                        string value2 = text4;
+                        var comparisonType2 = StringComparison.Ordinal;
                         bool startsWith = text3.StartsWith(value2, comparisonType2);
                         conditionResult = startsWith;
                     }

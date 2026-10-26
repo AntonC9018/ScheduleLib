@@ -140,7 +140,10 @@ public sealed class RegistryGradePreflightTests
         int posts,
         string[] statuses)
     {
-        using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
+        using var settings = await CliSettings.Load(new()
+        {
+            Profile = "Curmanschii Anton",
+        });
         var collection = CliRuntime.CreateServices(
             new()
             {
@@ -151,7 +154,7 @@ public sealed class RegistryGradePreflightTests
         settings.ConfigureServices(collection);
         collection.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
-            global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+            var scheduleBuilderInitializerOptions = x;
             scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
         });
         collection.Configure<StudyYearOptions>(x =>
@@ -165,7 +168,7 @@ public sealed class RegistryGradePreflightTests
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(x =>
-            schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
+                schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         using var cancellation = new CancellationTokenSource();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var pending = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -176,16 +179,17 @@ public sealed class RegistryGradePreflightTests
             var number = path.EndsWith('1') ? 1 : 2;
             if (path.StartsWith("/evaluation", StringComparison.Ordinal))
             {
-                global::System.Net.Http.HttpResponseMessage CalculateResult()
+                HttpResponseMessage CalculateResult()
                 {
-                    string html = $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>";
-                    global::System.Net.Http.HttpResponseMessage result = Response(
-                    html);
+                    string html =
+                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>";
+                    var result = Response(
+                        html);
                     return result;
                 }
 
                 return Task.FromResult(
-                                    CalculateResult());
+                    CalculateResult());
             }
 
             if (request.Method == HttpMethod.Post)
@@ -198,33 +202,23 @@ public sealed class RegistryGradePreflightTests
                         {
                             return true;
                         }
-                        else
+                        if (defect != "lost-later")
                         {
-                            if (defect == "lost-later")
-                            {
-                                if (number == 2)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                            else
-                            {
-                                return false;
-                            }
+                            return false;
                         }
+
+                        if (number == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult = CalculateConditionResult();
 
 
-                    if (conditionResult)
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return conditionResult;
                 }
 
                 if (CheckCondition())
@@ -240,33 +234,23 @@ public sealed class RegistryGradePreflightTests
                         {
                             return true;
                         }
-                        else
+                        if (defect != "cancel-later")
                         {
-                            if (defect == "cancel-later")
-                            {
-                                if (number == 2)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-                            else
-                            {
-                                return false;
-                            }
+                            return false;
                         }
+
+                        if (number == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     bool conditionResult2 = CalculateConditionResult2();
 
 
-                    if (conditionResult2)
-                    {
-                        return true;
-                    }
-
-                    return false;
+                    return conditionResult2;
                 }
 
                 if (CheckCondition2())
@@ -280,6 +264,7 @@ public sealed class RegistryGradePreflightTests
             var extra = number == invalidForm && defect == "duplicate"
                 ? "<input type='text' name='grade[1]' value='5'>"
                 : "";
+
             string CalculateText()
             {
                 if (number == 1)
@@ -291,8 +276,8 @@ public sealed class RegistryGradePreflightTests
             }
 
             return Task.FromResult(
-                            Response(
-                                $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{(CalculateText())}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
+                Response(
+                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{CalculateText()}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -300,12 +285,15 @@ public sealed class RegistryGradePreflightTests
             client,
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
-        global::ScheduleLib.OnlineRegistry.IRegistryErrorHandler errorHandler = null!;
-        global::ScheduleLib.OnlineRegistry.RegistryScrapingContext context2 = new(context);
-        global::System.IServiceProvider serviceProvider = scope.ServiceProvider;
-        global::System.Threading.CancellationToken cancellationToken = cancellation.Token;
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        var serviceProvider = scope.ServiceProvider;
+        var cancellationToken = cancellation.Token;
         var adapter = new OnlineRegistryNavigator(
-            errorHandler, context2, serviceProvider, cancellationToken);
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
         var navigator = new Navigator(
             adapter,
             lesson.Lesson.Course,
@@ -314,15 +302,15 @@ public sealed class RegistryGradePreflightTests
         var quiz = new QuizAttemptsPage
         {
             Path = new[]
-            {
-                "Cursuri USM",
-                "Matematică și Informatică",
-                "Ciclul I Licență",
-                "Informatică aplicată",
-                $"Anul {schedule.Get(lesson.Lesson.Groups[0]).Grade.Value}",
-                schedule.Get(lesson.Lesson.Course).FullName,
-                "Atestare 1",
-            }.Select(x => (Name: x, Href: (string?) null))
+                {
+                    "Cursuri USM",
+                    "Matematică și Informatică",
+                    "Ciclul I Licență",
+                    "Informatică aplicată",
+                    $"Anul {schedule.Get(lesson.Lesson.Groups[0]).Grade.Value}",
+                    schedule.Get(lesson.Lesson.Course).FullName,
+                    "Atestare 1",
+                }.Select(x => new MoodleBreadcrumbItem(Name: x, Href: null))
                 .ToList(),
             Attempts =
             [
@@ -355,17 +343,29 @@ public sealed class RegistryGradePreflightTests
         try
         {
             var task = commands.ImportGrades(
-                new() { QuizId = "123" },
+                new()
+                {
+                    QuizId = "123",
+                },
                 new(),
-                new() { Profile = "teacher" },
-                new() { Json = true },
-                new() { Apply = apply },
+                new()
+                {
+                    Profile = "teacher",
+                },
+                new()
+                {
+                    Json = true,
+                },
+                new()
+                {
+                    Apply = apply,
+                },
                 cancellation.Token);
             if (defect.StartsWith("cancel", StringComparison.Ordinal))
             {
-                global::System.TimeSpan CalculateTimeout()
+                TimeSpan CalculateTimeout()
                 {
-                    global::System.TimeSpan timeout = TimeSpan.FromSeconds(5);
+                    var timeout = TimeSpan.FromSeconds(5);
                     return timeout;
                 }
 
@@ -373,9 +373,10 @@ public sealed class RegistryGradePreflightTests
                 Assert.True(accountLock.Held);
                 cancellation.Cancel();
             }
-            global::System.TimeSpan CalculateTimeout2()
+
+            TimeSpan CalculateTimeout2()
             {
-                global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(5);
+                var timeout2 = TimeSpan.FromSeconds(5);
                 return timeout2;
             }
 
@@ -385,8 +386,10 @@ public sealed class RegistryGradePreflightTests
             Assert.True(session.Disposed);
             using var result = JsonDocument.Parse(output.ToString());
             var root = result.RootElement;
-            Assert.Equal(expected: exit, actual: root.GetProperty("exitCode")
-                .GetInt32());
+            Assert.Equal(expected: exit,
+                actual: root.GetProperty("exitCode")
+                    .GetInt32());
+
             string CalculateExpected()
             {
                 if (exit == 130)
@@ -403,9 +406,9 @@ public sealed class RegistryGradePreflightTests
             }
 
             Assert.Equal(
-                            expected: CalculateExpected(),
-                            actual: root.GetProperty("status")
-                                .GetString());
+                expected: CalculateExpected(),
+                actual: root.GetProperty("status")
+                    .GetString());
             Assert.Equal(
                 expected: statuses,
                 actual: root.GetProperty("data")
@@ -440,9 +443,10 @@ public sealed class RegistryGradePreflightTests
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
         {
             Assert.Equal(expected: Semester.Sem2, actual: semester);
-            global::System.Uri CalculateUrl()
+
+            Uri CalculateUrl()
             {
-                global::System.Uri url = new("https://registry.test/course");
+                Uri url = new("https://registry.test/course");
                 return url;
             }
 
@@ -451,34 +455,34 @@ public sealed class RegistryGradePreflightTests
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
-            return Task.FromResult<IEnumerable<GroupLink>>(
+            return Task.FromResult(
                 Enumerable.Range(start: 1, count: 2)
                     .Select(i =>
-                {
-                    global::System.Uri CalculateUri()
                     {
-                        string uriString = $"https://registry.test/group{i}";
-                        global::System.Uri uri2 = new(uriString);
-                        return uri2;
-                    }
+                        Uri CalculateUri()
+                        {
+                            string uriString = $"https://registry.test/group{i}";
+                            Uri uri2 = new(uriString);
+                            return uri2;
+                        }
 
-                    global::System.Uri CalculateEvaluationUri()
-                    {
-                        string uriString2 = $"https://registry.test/evaluation{i}";
-                        global::System.Uri evaluationUri2 = new(uriString2);
-                        return evaluationUri2;
-                    }
+                        Uri CalculateEvaluationUri()
+                        {
+                            string uriString2 = $"https://registry.test/evaluation{i}";
+                            Uri evaluationUri2 = new(uriString2);
+                            return evaluationUri2;
+                        }
 
-                    return new GroupLink(
-                                                            new FoundGroups
-                                                            {
-                                                                IsWildcard = false,
-                                                                Value = groups,
-                                                            },
-                                                            partition,
-                                                            uri: CalculateUri(),
-                                                            evaluationUri: CalculateEvaluationUri());
-                }));
+                        return new GroupLink(
+                            new FoundGroups
+                            {
+                                IsWildcard = false,
+                                Value = groups,
+                            },
+                            partition,
+                            uri: CalculateUri(),
+                            evaluationUri: CalculateEvaluationUri());
+                    }));
         }
 
         public async Task<IDocument> GetHtml(Uri uri)
@@ -498,9 +502,9 @@ public sealed class RegistryGradePreflightTests
             Action? onSubmissionStarted = null)
         {
             return adapter.SubmitGrades(
-            document,
-            token,
-            onSubmissionStarted);
+                document,
+                token,
+                onSubmissionStarted);
         }
     }
 
@@ -559,7 +563,8 @@ public sealed class RegistryGradePreflightTests
     {
         public bool Disposed;
 
-        public RegistryDestination Target { get; } = new(Account: "test-account", Destination: "https://registry.test/");
+        public RegistryDestination Target { get; } =
+            new(Account: "test-account", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -583,9 +588,9 @@ public sealed class RegistryGradePreflightTests
         public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token)
         {
             Held = true;
-            global::RegistryGradePreflightTests.AccountLock.Lease result = new Lease(this);
-            global::System.IAsyncDisposable result2 = result;
-            global::System.Threading.Tasks.Task<global::System.IAsyncDisposable> fromResult = Task.FromResult<IAsyncDisposable>(result2);
+            var result = new Lease(this);
+            IAsyncDisposable result2 = result;
+            var fromResult = Task.FromResult(result2);
             return fromResult;
         }
 

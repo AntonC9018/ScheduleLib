@@ -69,12 +69,7 @@ public readonly record struct AttendanceDate
             conditionResult = false;
         }
 
-        if (conditionResult)
-        {
-            return true;
-        }
-
-        return false;
+        return conditionResult;
     }
 }
 
@@ -348,11 +343,14 @@ public sealed class StudentAttendanceListBuilder()
     }
 }
 
+/// <summary>The list builder registered for a lookup key, and whether it existed before this lookup.</summary>
+public readonly record struct AttendanceListEntry(StudentAttendanceListBuilder Builder, bool Existed);
+
 public readonly struct AllStudentAttendanceListBuilder()
 {
     private readonly Dictionary<StudentsLookupKey, StudentAttendanceListBuilder> _values = new();
 
-    public (StudentAttendanceListBuilder Builder, bool Existed) TryList(StudentsLookupKey key)
+    public AttendanceListEntry TryList(StudentsLookupKey key)
     {
         ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(_values,
             key,
@@ -361,7 +359,7 @@ public readonly struct AllStudentAttendanceListBuilder()
         {
             x = new();
         }
-        return (x!, exists);
+        return new(x!, exists);
     }
 
     public StudentAttendanceListBuilder List(
@@ -427,11 +425,11 @@ public readonly struct AllStudentAttendanceListBuilder()
                         LessonType = lessonType,
                     };
 
-                    global::ScheduleLib.OnlineRegistry.AttendanceLists attendance =
+                    AttendanceLists attendance =
                         new(perLessonBuilder.DrainToImmutable());
-                    global::ScheduleLib.OnlineRegistry.NamesInDb studentNames = namesDb;
-                    global::System.Collections.Immutable.ImmutableArray<
-                        global::ScheduleLib.OnlineRegistry.AttendanceDate>? dates2;
+                    var studentNames = namesDb;
+                    ImmutableArray<
+                        AttendanceDate>? dates2;
                     if (x.Dates is { } dates)
                     {
                         dates2 = lessonTypes.Select((type, index) => (Type: type, Index: index))
@@ -464,6 +462,9 @@ public readonly struct AllStudentAttendanceListBuilder()
     }
 }
 
+/// <summary>One lookup key that supplies student names, and the names it supplies.</summary>
+internal readonly record struct StudentNameSource(StudentsLookupKey Key, NamesInDb Names);
+
 public readonly struct StudentAttendanceList
     : IEnumerable<KeyValuePair<StudentsLookupKey, StudentAttendanceList.BetterAttendances>>
 {
@@ -471,6 +472,9 @@ public readonly struct StudentAttendanceList
         AttendanceLists Attendance,
         NamesInDb StudentNames,
         ImmutableArray<AttendanceDate>? Dates = null);
+
+    /// <summary>A parent group and the attendance list registered for it.</summary>
+    private readonly record struct ParentAttendance(GroupId Parent, BetterAttendances Attendance);
 
     private readonly Dictionary<StudentsLookupKey, BetterAttendances> _map;
 
@@ -494,10 +498,7 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            else
-            {
-                return key.Groups.IsEmpty;
-            }
+            return key.Groups.IsEmpty;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -515,12 +516,12 @@ public readonly struct StudentAttendanceList
         ]);
     }
 
-    internal IEnumerable<(StudentsLookupKey Key, NamesInDb Names)> StudentNameSources(StudentsLookupKey key)
+    internal IEnumerable<StudentNameSource> StudentNameSources(StudentsLookupKey key)
     {
         key = key.WithGroups(key.Groups.Ordered());
         if (_map.TryGetValue(key, out var list))
         {
-            yield return (key, list.StudentNames);
+            yield return new(key, list.StudentNames);
             yield break;
         }
 
@@ -530,10 +531,7 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            else
-            {
-                return key.Groups.IsEmpty;
-            }
+            return key.Groups.IsEmpty;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -546,17 +544,17 @@ public readonly struct StudentAttendanceList
 
         foreach (var parent in ParentLists(key))
         {
-            yield return (key.WithGroups(new LessonGroups { parent.Parent }), parent.Attendance.StudentNames);
+            yield return new(key.WithGroups(new LessonGroups { parent.Parent }), parent.Attendance.StudentNames);
         }
     }
 
-    private IEnumerable<(GroupId Parent, BetterAttendances Attendance)> ParentLists(StudentsLookupKey key)
+    private IEnumerable<ParentAttendance> ParentLists(StudentsLookupKey key)
     {
         foreach (var parent in key.Groups.Ordered())
         {
             if (_map.TryGetValue(key.WithGroups(new LessonGroups { parent }), out var list))
             {
-                yield return (parent, list);
+                yield return new(parent, list);
             }
         }
     }
@@ -579,10 +577,7 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            else
-            {
-                return attendanceKey.Groups.IsEmpty;
-            }
+            return attendanceKey.Groups.IsEmpty;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -601,19 +596,17 @@ public readonly struct StudentAttendanceList
 
             bool CalculateConditionResult2()
             {
-                if (active)
+                if (!active)
                 {
-                    if (parent.Attendance.Dates is not null)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    return false;
-                }
-                else
+                if (parent.Attendance.Dates is not null)
                 {
-                    return false;
+                    return true;
                 }
+
+                return false;
             }
 
             bool conditionResult2 = CalculateConditionResult2();
@@ -747,10 +740,9 @@ internal readonly struct StudentNameRemapHelper
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
         {
-            global::System.Collections.Generic.Dictionary<global::ScheduleLib.Parsing.Name,
-                global::ScheduleLib.Parsing.Name> dictionary = aliases;
-            global::ScheduleLib.Parsing.Name key2 = NameHelper.Parse(alias.Key);
-            global::ScheduleLib.Parsing.Name value2 = NameHelper.Parse(alias.Value);
+            var dictionary = aliases;
+            var key2 = NameHelper.Parse(alias.Key);
+            var value2 = NameHelper.Parse(alias.Value);
             dictionary.Add(key: key2, value: value2);
         }
 

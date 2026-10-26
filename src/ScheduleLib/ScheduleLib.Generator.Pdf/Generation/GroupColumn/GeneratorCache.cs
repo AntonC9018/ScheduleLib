@@ -50,19 +50,24 @@ public readonly struct ColumnOrderBuilder<TKey>() where TKey : IComparable<TKey>
     }
 
     public bool ContainsKey(TKey key) => Dict.ContainsKey(key);
+
     public ref int GetRefOrAddDefault(TKey key, out bool exists)
     {
-        return ref CollectionsMarshal.GetValueRefOrAddDefault(Dict, key, out exists);
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(Dict,
+            key,
+            out exists);
     }
 
     public int? MaybeGet(TKey key)
     {
-        if (Dict.TryGetValue(key, out int value))
+        if (!Dict.TryGetValue(key, out int value))
         {
-            return value;
+            return null;
         }
-        return null;
+
+        return value;
     }
+
     public void Add(TKey key, int value) => Dict.Add(key, value);
     public void Remove(TKey key) => Dict.Remove(key);
     public int Count => Dict.Count;
@@ -151,7 +156,6 @@ public struct GeneratorCache
     }
 }
 
-
 public static class MappingsCreationHelper
 {
     public static RegularLessonsByCellKey<TRowKey, TColumnKey> CreateCellMappings<TRowKey, TColumnKey>(
@@ -172,7 +176,9 @@ public static class MappingsCreationHelper
                     RowKey = rowKey,
                     ColumnKey = columnKey,
                 };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, cellKey, out bool exists);
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret,
+                    cellKey,
+                    out bool exists);
                 if (!exists)
                 {
                     list = new(2);

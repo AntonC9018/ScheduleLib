@@ -71,11 +71,12 @@ public sealed class NodeDataAccessor<T> : IDisposable
     {
         get
         {
-            if (IsEditable)
+            if (!IsEditable)
             {
-                return ConditionallyEditableData.Value;
+                return null;
             }
-            return null;
+
+            return ConditionallyEditableData.Value;
         }
     }
 

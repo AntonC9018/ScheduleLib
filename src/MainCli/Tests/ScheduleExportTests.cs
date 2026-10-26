@@ -15,9 +15,10 @@ public sealed class ScheduleExportTests
         Assert.Equal(expected: 0, actual: await CliHost.Run(["export", format, "--help"]));
         using var capture = new Capture();
         Assert.Equal(expected: 2, actual: await CliHost.Run(["export", format, "--unknown", "--json"]));
-        Assert.Equal(expected: 2, actual: capture.Result()
-            .GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: 2,
+            actual: capture.Result()
+                .GetProperty("exitCode")
+                .GetInt32());
     }
 
     [Theory]
@@ -26,23 +27,25 @@ public sealed class ScheduleExportTests
     public async Task CancellationProducesOneJsonResultWithoutOutputs(bool calendar)
     {
         using var capture = new Capture();
-        global::System.Threading.CancellationToken CalculateToken()
+
+        CancellationToken CalculateToken()
         {
-            global::System.Threading.CancellationToken token = new CancellationToken(true);
+            var token = new CancellationToken(true);
             return token;
         }
 
         Assert.Equal(
-                    expected: 130,
-                    actual: await Execute(
-                        new FixtureExport(),
-                        calendar,
-                        new(),
-                        new(),
-                        CalculateToken()));
+            expected: 130,
+            actual: await Execute(
+                new FixtureExport(),
+                calendar,
+                new(),
+                new(),
+                CalculateToken()));
         var result = capture.Result();
-        Assert.Equal(expected: 130, actual: result.GetProperty("exitCode")
-            .GetInt32());
+        Assert.Equal(expected: 130,
+            actual: result.GetProperty("exitCode")
+                .GetInt32());
         Assert.Empty(result.GetProperty("outputs")
             .EnumerateArray());
     }
@@ -74,13 +77,15 @@ public sealed class ScheduleExportTests
             .Select(x => x["Skipping calendar ".Length..x.IndexOf(".ics:")])
             .ToArray();
         Assert.Equal(expected: names.Except(skipped)
-            .Order(), actual: calendarNames);
+                .Order(),
+            actual: calendarNames);
         Assert.Contains(calendarNames, x => x!.Contains('_'));
         Assert.Contains(calendarNames, x => x!.StartsWith("IA"));
         var pdf = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf")
             .First(x => Path.GetFileName(x)
-            .StartsWith("IA"));
-        Assert.StartsWith(expectedStartString: "%PDF-", actualString: System.Text.Encoding.ASCII.GetString(await File.ReadAllBytesAsync(pdf)));
+                .StartsWith("IA"));
+        Assert.StartsWith(expectedStartString: "%PDF-",
+            actualString: System.Text.Encoding.ASCII.GetString(await File.ReadAllBytesAsync(pdf)));
         if (OperatingSystem.IsLinux() && File.Exists("/usr/bin/pdftotext"))
         {
             var info = new ProcessStartInfo("/usr/bin/pdftotext")
@@ -126,7 +131,7 @@ public sealed class ScheduleExportTests
                 AppConfiguration.ConfigureServices(services);
                 services.Configure<ScheduleBuilderInitializerOptions>(x =>
                 {
-                    global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                    var scheduleBuilderInitializerOptions = x;
                     scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
                 });
                 services.Configure<StudyYearOptions>(x =>
@@ -184,25 +189,30 @@ public sealed class ScheduleExportTests
         var notes = Path.Combine(temp.Path, "notes.txt");
         await File.WriteAllTextAsync(path: notes, contents: "caller data");
         using var capture = new Capture();
-        global::ScheduleExportTests.FixtureExport CalculateExport()
+
+        FixtureExport CalculateExport()
         {
-            global::ScheduleExportTests.FixtureExport export = new FixtureExport(missingDates: true);
+            var export = new FixtureExport(missingDates: true);
             return export;
         }
 
         Assert.Equal(
-                    expected: 0,
-                    actual: await Execute(
-                        CalculateExport(),
-                        true,
-                        Source(),
-                        new() { Directory = temp.Path }));
+            expected: 0,
+            actual: await Execute(
+                CalculateExport(),
+                true,
+                Source(),
+                new()
+                {
+                    Directory = temp.Path,
+                }));
         var result = capture.Result();
         Assert.Contains(
             result.GetProperty("warnings")
                 .EnumerateArray(),
             x => x.GetString()!
                 .StartsWith("Skipping calendar"));
+
         string[] CalculateCollection()
         {
             string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics");
@@ -211,16 +221,12 @@ public sealed class ScheduleExportTests
 
         Assert.Empty(CalculateCollection());
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(notes));
+
         bool CalculateCondition()
         {
             string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
             bool condition = File.Exists(path2);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.True(CalculateCondition());
@@ -235,23 +241,24 @@ public sealed class ScheduleExportTests
                 new FixtureExport(),
                 calendar,
                 Source(),
-                new() { Directory = destination }));
+                new()
+                {
+                    Directory = destination,
+                }));
         var result = capture.Result();
-        Assert.Equal(expected: "succeeded", actual: result.GetProperty("status")
-            .GetString());
+        Assert.Equal(expected: "succeeded",
+            actual: result.GetProperty("status")
+                .GetString());
         Assert.True(result.GetProperty("data")
-            .GetProperty("lessonCount")
-            .GetInt32() > 0);
+                .GetProperty("lessonCount")
+                .GetInt32()
+            > 0);
+
         bool CalculateCondition()
         {
             string path = Path.Combine(destination, "schedulelib-manifest.json");
             bool condition = File.Exists(path);
-            if (condition)
-            {
-                return true;
-            }
-
-            return false;
+            return condition;
         }
 
         Assert.True(CalculateCondition());
@@ -274,17 +281,26 @@ public sealed class ScheduleExportTests
         OutputArguments output,
         CancellationToken token = default)
     {
-        return calendar
-                ? export.Ics(
-                    source,
-                    output,
-                    new() { Json = true },
-                    token)
-                : export.Pdf(
-                    source,
-                    output,
-                    new() { Json = true },
-                    token);
+        if (calendar)
+        {
+            return export.Ics(
+                source,
+                output,
+                new()
+                {
+                    Json = true,
+                },
+                token);
+        }
+
+        return export.Pdf(
+            source,
+            output,
+            new()
+            {
+                Json = true,
+            },
+            token);
     }
 
     private sealed class FixtureExport(bool missingDates = false) : ExportCommands
@@ -294,7 +310,7 @@ public sealed class ScheduleExportTests
             base.ConfigureServices(services);
             services.Configure<ScheduleBuilderInitializerOptions>(x =>
             {
-                global::ScheduleLib.Application.Core.ScheduleBuilderInitializerOptions scheduleBuilderInitializerOptions = x;
+                var scheduleBuilderInitializerOptions = x;
                 scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>

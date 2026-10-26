@@ -152,8 +152,8 @@ internal static class HtmlSearch
                 }
                 catch (GroupParsingException e)
                 {
-                    global::ScheduleLib.OnlineRegistry.ScanGroupsParams scanGroupsParams = p;
-                    global::ScheduleLib.OnlineRegistry.GroupParseErrorContext context = new(e, groupName);
+                    var scanGroupsParams = p;
+                    GroupParseErrorContext context = new(e, groupName);
                     scanGroupsParams.ParseErrorHandler(context);
                     continue;
                 }
@@ -192,19 +192,17 @@ internal static class HtmlSearch
 
                 bool CalculateConditionResult()
                 {
-                    if (groupForSearch.IsWildcard)
+                    if (!groupForSearch.IsWildcard)
                     {
-                        if (groups.Count == 0)
-                        {
-                            return true;
-                        }
+                        return false;
+                    }
 
-                        return false;
-                    }
-                    else
+                    if (groups.Count == 0)
                     {
-                        return false;
+                        return true;
                     }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -412,23 +410,26 @@ internal static class HtmlSearch
             public required Uri EditUri { get; init; }
         }
 
+        /// <summary>The lesson identification parsed from the first cell of a lesson row.</summary>
+        public readonly record struct LessonHeader(LessonType LessonType, DateTime DateTime, Uri ViewUri);
+
         public Lesson GetLesson(int i)
         {
             var row = _table.Rows[i + lessonRowStart];
-            var first = ProcessFirst(row.Cells[0], _errorHandler);
+            var header = ProcessFirst(row.Cells[0], _errorHandler);
             var topic = ExtractTopic(row.Cells[1]);
             var editUri = ProcessEdit(row.Cells[2]);
             return new Lesson
             {
-                LessonType = first.LessonType,
-                DateTime = first.DateTime,
-                ViewUri = first.ViewUri,
+                LessonType = header.LessonType,
+                DateTime = header.DateTime,
+                ViewUri = header.ViewUri,
                 Topic = topic,
                 EditUri = editUri,
             };
         }
 
-        private static (LessonType LessonType, DateTime DateTime, Uri ViewUri) ProcessFirst(
+        private static LessonHeader ProcessFirst(
             IHtmlTableCellElement cell,
             IRegistryLessonParserErrorHandler errorHandler)
         {
@@ -465,7 +466,9 @@ internal static class HtmlSearch
 
             Uri viewUri = new(anchor.Href);
 
-            return (lessonType, dateTime, viewUri);
+            return new(lessonType,
+                dateTime,
+                viewUri);
         }
 
         private static string ExtractTopic(IHtmlTableCellElement cell)
@@ -545,12 +548,15 @@ internal static class HtmlSearch
 
         public readonly record struct LessonAttendance(IEnumerable<IHtmlTableCellElement> Cells);
 
+        /// <summary>The lesson an attendance column belongs to, parsed from its header cell.</summary>
+        public readonly record struct AttendanceLessonHeader(LessonType LessonType, DateTime DateTime);
+
         public LessonAttendance DayCells(int index)
         {
             return new(Cells(attendanceStartColIndex + index));
         }
 
-        public (LessonType LessonType, DateTime DateTime) GetLesson(int index)
+        public AttendanceLessonHeader GetLesson(int index)
         {
             var headerRow = _table!.Rows[0];
             var cell = headerRow.Cells[attendanceStartColIndex + index];
@@ -599,7 +605,7 @@ internal static class HtmlSearch
                 }
             }
 
-            return (lessonType, dateTime);
+            return new(lessonType, dateTime);
         }
     }
 
@@ -610,7 +616,7 @@ internal static class HtmlSearch
             .Take(2)
             .ToArray();
         var lessonTable = new EditableLessonsHelper(tables[0], p.ErrorHandler);
-        global::AngleSharp.Html.Dom.IHtmlTableElement? table2;
+        IHtmlTableElement? table2;
         if (tables.Length > 1)
         {
             table2 = tables[1];
@@ -657,7 +663,7 @@ internal static class HtmlSearch
 
     internal static IHtmlTableElement FindAttendanceTable(IDocument doc)
     {
-        global::AngleSharp.Dom.IHtmlCollection<global::AngleSharp.Dom.IElement> querySelectorAll =
+        var querySelectorAll =
             doc.QuerySelectorAll("table");
         var table = (IHtmlTableElement) querySelectorAll.Last();
         return table;
@@ -754,12 +760,13 @@ internal static class HtmlSearch
 
                         var expected1 = ParseStudent(expected);
                         var actual1 = ParseStudent(actual);
-                        if (expected1 != actual1
-                            || expected.IsExpelled != actual.IsExpelled)
+                        if (!(expected1 != actual1
+                                || expected.IsExpelled != actual.IsExpelled))
                         {
-                            return $"Student mismatch at index {i}.";
+                            return null;
                         }
-                        return null;
+
+                        return $"Student mismatch at index {i}.";
                     }
 
                     if (CheckStudentsEqual() is { } err)

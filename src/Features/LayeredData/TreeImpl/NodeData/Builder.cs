@@ -36,13 +36,17 @@ public static class BaseExtensions
         public NodeDataBuilder<T> Builder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder, key, isReadOnly: false);
+            return new(builder,
+                key,
+                isReadOnly: false);
         }
 
         public NodeDataBuilder<T> ReadOnlyBuilder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder, key, isReadOnly: true);
+            return new(builder,
+                key,
+                isReadOnly: true);
         }
 
         public void ClearData()
@@ -90,7 +94,8 @@ public static class BaseExtensions
                     .Empty();
                 if (val is null)
                 {
-                    throw new InvalidOperationException("Root BasicOperations is supposed to create actual objects, not null.");
+                    throw new InvalidOperationException(
+                        "Root BasicOperations is supposed to create actual objects, not null.");
                 }
                 x.SetValue(val);
             }
@@ -104,11 +109,12 @@ public static class BaseExtensions
             {
                 return null;
             }
-            if (container.Value.GetValue() is { } val)
+            if (!(container.Value.GetValue() is { } val))
             {
-                return val;
+                return null;
             }
-            return null;
+
+            return val;
         }
 
         public NodeDataContainer<T> Enable()

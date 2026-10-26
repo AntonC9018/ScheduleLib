@@ -10,6 +10,7 @@ namespace Desktop.ViewModelData;
 public sealed record class UiNode
 {
     public readonly NodeBuilder Leaf;
+
     public UiNode(NodeBuilder leaf)
     {
         Leaf = leaf;
@@ -17,21 +18,17 @@ public sealed record class UiNode
 
     public static readonly UiNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
+
     public bool IsEditable
     {
         get
         {
-            if (!(!IsNull))
+            if (IsNull)
             {
                 return false;
             }
 
-            if (!(IsUiLayer))
-            {
-                return false;
-            }
-
-            return true;
+            return IsUiLayer;
         }
     }
 
@@ -115,7 +112,6 @@ public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable
         {
             return UiNode.Null;
         }
-        else
         {
             var b = _tree.CreateBuilder(leaf);
             return new(b);

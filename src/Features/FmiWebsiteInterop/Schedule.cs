@@ -90,7 +90,9 @@ public static class WebsiteJsonScheduleHelper
                 {
                     var lessons = lessonGroup.ToList();
                     var weekType = DetermineWeekType(lessons);
-                    var pairInfo = BuildPairInfo(schedule.Source, lessons, services);
+                    var pairInfo = BuildPairInfo(schedule.Source,
+                        lessons,
+                        services);
 
                     slotDtos.Add(new SchedulePairsDto
                     {
@@ -125,26 +127,29 @@ public static class WebsiteJsonScheduleHelper
             ret.Add(daysDto);
         }
 
-        return new() { ScheduleDaysDto = ret.ToImmutable(), };
+        return new()
+        {
+            ScheduleDaysDto = ret.ToImmutable(),
+        };
     }
 
     private static string DetermineWeekType(List<WeeklyLessonAccessor> lessons)
     {
         // If all lessons have the same parity, use that
         var firstParity = lessons[0].Date.Parity;
-        if (lessons.All(l => l.Date.Parity == firstParity))
+        if (!lessons.All(l => l.Date.Parity == firstParity))
         {
-            return firstParity switch
-            {
-                Parity.EvenWeek => "PAR",
-                Parity.EveryWeek => "GENERAL",
-                Parity.OddWeek => "IMPAR",
-                _ => throw Unreachable(),
-            };
+            // Mixed parities default to GENERAL
+            return "GENERAL";
         }
 
-        // Mixed parities default to GENERAL
-        return "GENERAL";
+        return firstParity switch
+        {
+            Parity.EvenWeek => "PAR",
+            Parity.EveryWeek => "GENERAL",
+            Parity.OddWeek => "IMPAR",
+            _ => throw Unreachable(),
+        };
     }
 
     private static string BuildPairInfo(
@@ -161,8 +166,9 @@ public static class WebsiteJsonScheduleHelper
         listBuilder.Append(course.FullName);
 
         var hasMixedParity = lessons.Select(l => l.Date.Parity)
-            .Distinct()
-            .Count() > 1;
+                .Distinct()
+                .Count()
+            > 1;
 
         // Lesson type and details in parentheses
         {
@@ -274,7 +280,7 @@ public static class WebsiteJsonScheduleHelper
         const int weekDayCount = 7;
         int int32 = (int) day - (int) DayOfWeek.Monday;
         int int322 = int32 + weekDayCount;
-        int int323 = (int322) % weekDayCount;
+        int int323 = int322 % weekDayCount;
         return int323;
     }
 }

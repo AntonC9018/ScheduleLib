@@ -8,6 +8,9 @@ using ScheduleLib.Cli;
 
 public sealed class StorageTests
 {
+    /// <summary>The exit code and captured output of a finished CLI process.</summary>
+    private readonly record struct ProcessResult(int Exit, string Output, string Error);
+
     [Theory]
     [InlineData("--data-dir", "")]
     [InlineData("--cache-dir", "")]
@@ -62,14 +65,14 @@ public sealed class StorageTests
 
         string CalculatePath()
         {
-            string path = System.IO.Path.Combine(
+            string path = Path.Combine(
                 temp.Path,
                 "2026_sem1",
                 "bad");
             return path;
         }
 
-        System.IO.Directory.CreateDirectory(
+        Directory.CreateDirectory(
             CalculatePath());
         var original = Console.Out;
         using var text = new StringWriter();
@@ -179,32 +182,27 @@ public sealed class StorageTests
 
             string CalculateActual()
             {
-                global::ClosedXML.Excel.IXLWorksheet worksheet = workbook.Worksheet(1);
+                var worksheet = workbook.Worksheet(1);
                 string actual2 = worksheet.Name;
                 return actual2;
             }
 
             Assert.Equal(expected: "main", actual: CalculateActual());
             string separator = " ";
-            global::ClosedXML.Excel.IXLWorksheet worksheet3 = workbook.Worksheet(1);
-            global::ClosedXML.Excel.IXLCells cellsUsed = worksheet3.CellsUsed();
-            global::System.Func<global::ClosedXML.Excel.IXLCell, string> selector = x => x.GetFormattedString();
-            global::System.Collections.Generic.IEnumerable<string> values = cellsUsed.Select(selector);
+            var worksheet3 = workbook.Worksheet(1);
+            var cellsUsed = worksheet3.CellsUsed();
+            Func<IXLCell, string> selector = x => x.GetFormattedString();
+            var values = cellsUsed.Select(selector);
             var content = string.Join(separator, values);
             Assert.Contains(expectedSubstring: "423/4", actualString: content);
             Assert.Contains(expectedSubstring: "IA", actualString: content);
 
             bool CalculateCondition()
             {
-                global::ClosedXML.Excel.IXLWorksheet worksheet2 = workbook.Worksheet(1);
-                global::ClosedXML.Excel.IXLRows rowsUsed = worksheet2.RowsUsed();
+                var worksheet2 = workbook.Worksheet(1);
+                var rowsUsed = worksheet2.RowsUsed();
                 bool condition = rowsUsed.Count() > 20;
-                if (condition)
-                {
-                    return true;
-                }
-
-                return false;
+                return condition;
             }
 
             Assert.True(CalculateCondition());
@@ -212,7 +210,7 @@ public sealed class StorageTests
             bool condition2 = File.Exists(path2);
             Assert.True(condition2);
         }
-        global::System.Collections.Generic.IEnumerable<string> collection =
+        var collection =
             Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
         var cached = Assert.Single(collection);
         var publishedAt = File.GetLastWriteTimeUtc(cached);
@@ -224,8 +222,8 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        global::System.DateTime expected2 = publishedAt;
-        global::System.DateTime actual3 = File.GetLastWriteTimeUtc(cached);
+        var expected2 = publishedAt;
+        var actual3 = File.GetLastWriteTimeUtc(cached);
         Assert.Equal(expected: expected2, actual: actual3);
         var bypass = Path.Combine(temp.Path, "bypassed");
         using (var query = Start(
@@ -242,9 +240,9 @@ public sealed class StorageTests
         await using var input = File.OpenRead(cached);
         var model = await ScheduleSerializer.Deserialize(input, CancellationToken.None);
         Assert.NotNull(model);
-        global::System.Collections.Generic.IEnumerable<string> collection2 =
+        var collection2 =
             Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp");
-        global::System.Collections.IEnumerable collection3 = collection2;
+        System.Collections.IEnumerable collection3 = collection2;
         Assert.Empty(collection3);
     }
 
@@ -322,7 +320,7 @@ public sealed class StorageTests
             await Finish(query);
         }
 
-        global::System.Collections.Generic.IEnumerable<string> collection =
+        var collection =
             Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
         var cacheFile = Assert.Single(collection);
         var previous = await File.ReadAllBytesAsync(cacheFile);
@@ -341,9 +339,9 @@ public sealed class StorageTests
             var stdout = query.StandardOutput.ReadToEndAsync();
             var stderr = query.StandardError.ReadToEndAsync();
 
-            global::System.TimeSpan CalculateTimeout()
+            TimeSpan CalculateTimeout()
             {
-                global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);
+                var timeout = TimeSpan.FromSeconds(60);
                 return timeout;
             }
 
@@ -369,9 +367,9 @@ public sealed class StorageTests
         await File.WriteAllTextAsync(path: cacheFile, contents: "previous complete cache");
         using (var writer = Start("interrupt", cacheFile))
         {
-            global::System.TimeSpan CalculateTimeout()
+            TimeSpan CalculateTimeout()
             {
-                global::System.TimeSpan timeout = TimeSpan.FromSeconds(30);
+                var timeout = TimeSpan.FromSeconds(30);
                 return timeout;
             }
 
@@ -383,15 +381,15 @@ public sealed class StorageTests
             await writer.WaitForExitAsync();
         }
         Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
-        await using (var lease = await LocalFileLock.Acquire((string) $"{cacheFile}.lock", CancellationToken.None))
+        await using (var lease = await LocalFileLock.Acquire($"{cacheFile}.lock", CancellationToken.None))
         {
         }
         var lockPath = Path.Combine(temp.Path, ".schedulelib-output.lock");
         using var owner = Start("lock", lockPath);
 
-        global::System.TimeSpan CalculateTimeout2()
+        TimeSpan CalculateTimeout2()
         {
-            global::System.TimeSpan timeout2 = TimeSpan.FromSeconds(30);
+            var timeout2 = TimeSpan.FromSeconds(30);
             return timeout2;
         }
 
@@ -446,9 +444,9 @@ public sealed class StorageTests
             cancellation.Token));
         Assert.Equal(expected: "previous", actual: await File.ReadAllTextAsync(path));
 
-        global::System.Collections.Generic.IEnumerable<string> CalculateCollection()
+        IEnumerable<string> CalculateCollection()
         {
-            global::System.Collections.Generic.IEnumerable<string> collection =
+            var collection =
                 Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
             return collection;
         }
@@ -478,20 +476,22 @@ public sealed class StorageTests
         return Process.Start(info)!;
     }
 
-    private static async Task<(int Exit, string Output, string Error)> Finish(Process process)
+    private static async Task<ProcessResult> Finish(Process process)
     {
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
 
-        global::System.TimeSpan CalculateTimeout()
+        TimeSpan CalculateTimeout()
         {
-            global::System.TimeSpan timeout = TimeSpan.FromSeconds(60);
+            var timeout = TimeSpan.FromSeconds(60);
             return timeout;
         }
 
         await process.WaitForExitAsync()
             .WaitAsync(CalculateTimeout());
-        var result = (Exit: process.ExitCode, Output: await stdout, Error: await stderr);
+        var result = new ProcessResult(Exit: process.ExitCode,
+            Output: await stdout,
+            Error: await stderr);
         Assert.True(result.Exit == 0, result.Error);
         return result;
     }

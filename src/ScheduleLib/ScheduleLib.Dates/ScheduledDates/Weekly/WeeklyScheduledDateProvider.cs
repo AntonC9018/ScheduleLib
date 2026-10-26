@@ -64,11 +64,13 @@ public sealed class ManualWeeklyScheduledDateProvider
                 {
                     return false;
                 }
-                if (holidayE.OrderedCheckIsHoliday(ret))
+
+                if (!holidayE.OrderedCheckIsHoliday(ret))
                 {
-                    return false;
+                    return true;
                 }
-                return true;
+
+                return false;
             }
 
             bool IsParityMatch()
@@ -157,11 +159,7 @@ file struct DayEnumerator
     public bool MoveNext()
     {
         _index++;
-        if (_index >= _weeks.Length)
-        {
-            return false;
-        }
-        return true;
+        return !(_index >= _weeks.Length);
     }
 
     public readonly StudyWeek Week => _weeks[_index];

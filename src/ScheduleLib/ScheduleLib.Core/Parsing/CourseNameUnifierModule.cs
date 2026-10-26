@@ -42,6 +42,7 @@ public sealed class CourseNameUnifierConfig
 {
     public required CourseNameParserConfig ParserConfig { get; init; }
     private ImmutableArray<FullyRenamedCourse> FullyRemappedNames { get; init; } = [];
+
     private CourseNameUnifierConfig()
     {
     }
@@ -60,15 +61,23 @@ public sealed class CourseNameUnifierConfig
 
     public static CourseNameUnifierConfig Create(
         CourseNameParserConfig config,
-        ReadOnlySpan<(string From, string To)> fullyRenamedNames)
+        ReadOnlySpan<CourseNameMapping> fullyRenamedNames)
     {
         var remappedNames = ImmutableArray.CreateBuilder<FullyRenamedCourse>(fullyRenamedNames.Length);
         foreach (var (from, to) in fullyRenamedNames)
         {
-            var fromParsed = config.Parse(from.AsMemory(), new() { IgnorePunctuation = true });
-            var toParsed = config.Parse(to.AsMemory(), new() { IgnorePunctuation = true });
-            global::System.Collections.Immutable.ImmutableArray<global::ScheduleLib.Parsing.CourseName.FullyRenamedCourse>.Builder builder = remappedNames;
-            global::ScheduleLib.Parsing.CourseName.FullyRenamedCourse item = new FullyRenamedCourse(From: fromParsed, To: toParsed);
+            var fromParsed = config.Parse(from.AsMemory(),
+                new()
+                {
+                    IgnorePunctuation = true,
+                });
+            var toParsed = config.Parse(to.AsMemory(),
+                new()
+                {
+                    IgnorePunctuation = true,
+                });
+            var builder = remappedNames;
+            var item = new FullyRenamedCourse(From: fromParsed, To: toParsed);
             builder.Add(item);
         }
         return new CourseNameUnifierConfig
@@ -96,7 +105,8 @@ public sealed class CourseNameUnifierModule
         if (builder.LookupModule is not { } lookup)
         {
             Debug.Assert(false, "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
-            throw new InvalidOperationException("Lookup module must be enabled before refreshing CourseNameUnifierModule.");
+            throw new InvalidOperationException(
+                "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
         }
 
         for (int i = 0; i < courses.Count; i++)
@@ -126,8 +136,8 @@ public sealed class CourseNameUnifierModule
             },
         });
         parsedCourse = TryRemap(parsedCourse);
-        global::System.Collections.Generic.List<global::ScheduleLib.Parsing.WordDoc.SlowCourse> list = SlowCourses;
-        global::ScheduleLib.Parsing.WordDoc.SlowCourse item = new(parsedCourse, id);
+        var list = SlowCourses;
+        SlowCourse item = new(parsedCourse, id);
         list.Add(item);
     }
 

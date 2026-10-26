@@ -119,7 +119,10 @@ public readonly struct SizedItemArray<T>
         _items.Add(it);
     }
 
-    public void AddAt(int position, SizedItem<T> it, T? fillerValue = default)
+    public void AddAt(
+        int position,
+        SizedItem<T> it,
+        T? fillerValue = default)
     {
         var totalSize = TotalSize;
         if (position < totalSize)
@@ -130,8 +133,8 @@ public readonly struct SizedItemArray<T>
         var diff = position - totalSize;
         if (diff > 0)
         {
-            global::System.Collections.Generic.List<global::ScheduleLib.Helper.SizedItem<T>> list = _items;
-            global::ScheduleLib.Helper.SizedItem<T> item = new(fillerValue!, diff);
+            var list = _items;
+            SizedItem<T> item = new(fillerValue!, diff);
             list.Add(item);
         }
 
@@ -140,15 +143,16 @@ public readonly struct SizedItemArray<T>
 
     public bool Replace(T oldItem, T newItem)
     {
-        if (FindPosition(oldItem) is { } index)
+        if (!(FindPosition(oldItem) is { } index))
         {
-            if (ReplaceItem(index, newItem))
-            {
-                return true;
-            }
-
             return false;
         }
+
+        if (ReplaceItem(index, newItem))
+        {
+            return true;
+        }
+
         return false;
     }
 
@@ -218,21 +222,20 @@ public readonly struct SizedItemArray<T>
         }
 
         int remainingSizeEnd = availableSize - sizeOfItems;
+
         bool CalculateConditionResult()
         {
-            if (offset > 0)
+            if (!(offset > 0))
             {
-                if (remainingSizeEnd > 0)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (remainingSizeEnd > 0)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -259,19 +262,17 @@ public readonly struct SizedItemArray<T>
 
         bool CalculateConditionResult2()
         {
-            if (offset == 0)
+            if (offset != 0)
             {
-                if (remainingSizeEnd > 0)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (remainingSizeEnd > 0)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult2 = CalculateConditionResult2();
@@ -286,19 +287,17 @@ public readonly struct SizedItemArray<T>
 
         bool CalculateConditionResult3()
         {
-            if (offset > 0)
+            if (!(offset > 0))
             {
-                if (remainingSizeEnd == 0)
-                {
-                    return true;
-                }
+                return false;
+            }
 
-                return false;
-            }
-            else
+            if (remainingSizeEnd == 0)
             {
-                return false;
+                return true;
             }
+
+            return false;
         }
 
         bool conditionResult3 = CalculateConditionResult3();
@@ -384,6 +383,7 @@ public readonly struct SizedItemArray<T>
         }
 
         public SizedItem<T> Current => _enumerator.Current;
+
         public bool MoveNext()
         {
             while (true)
@@ -414,6 +414,7 @@ public readonly struct SizedItemArray<T>
 
         public WithPositionEnumerator GetEnumerator() => new(_arr);
     }
+
     public struct WithPositionEnumerator
     {
         private Enumerator _enumerator;
@@ -459,11 +460,12 @@ public static class SizedItemArrayExtensions
 
         public int? FindCountAfterFirstOtherThan(T otherValue)
         {
-            if (FindPositionOfFirstOtherThan(items, otherValue) is { } pos)
+            if (!(FindPositionOfFirstOtherThan(items, otherValue) is { } pos))
             {
-                return items.Count - pos;
+                return 0;
             }
-            return 0;
+
+            return items.Count - pos;
         }
     }
 }

@@ -6,6 +6,7 @@ public static class StringCleanHelper
     {
         return new(s);
     }
+
     public static WordsSeparatedWithSpacesEnumerable WordsSeparatedWithSpaces(this ReadOnlySpan<char> s)
     {
         return new(s);
@@ -66,16 +67,15 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
             }
 
             bool isCurrentSpace = _withoutSpaces.Current == ' ';
+
             bool CalculateConditionResult2()
             {
-                if (!isCurrentSpace)
-                {
-                    return isPrevPunctuation;
-                }
-                else
+                if (isCurrentSpace)
                 {
                     return false;
                 }
+
+                return isPrevPunctuation;
             }
 
             bool conditionResult2 = CalculateConditionResult2();

@@ -56,12 +56,12 @@ internal static class RegistryMutation
                 return false;
             }
 
-            if (error.InnerException is not RegistryDeletionRefusedException)
+            if (error.InnerException is RegistryDeletionRefusedException)
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
 
         try

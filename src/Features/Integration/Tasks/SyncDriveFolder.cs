@@ -9,14 +9,13 @@ using ScheduleLib.Application.Core.Helper;
 
 namespace ScheduleLib.Application.Core;
 
-
 [AutoConstructor]
 public sealed partial class SyncDriveFolderTaskHandler
 {
     private readonly IOptions<GoogleDriveOptions> _options;
     private readonly DataProvider<BuiltGoogleDriveConfig> _configProvider;
     private readonly GoogleApiHelper _helper;
-    private readonly Microsoft.Extensions.Logging.ILogger _logger;
+    private readonly ILogger _logger;
 
     public struct RunParams
     {
@@ -28,7 +27,8 @@ public sealed partial class SyncDriveFolderTaskHandler
     {
         get
         {
-            return [
+            return
+            [
                 DriveService.Scope.DriveFile,
                 DriveService.Scope.Drive,
             ];
@@ -43,7 +43,9 @@ public sealed partial class SyncDriveFolderTaskHandler
             throw new InvalidOperationException("No google drive config found.");
         }
 
-        var credential = await _helper.CredentialResolver.Resolve(config.Credentials, Scopes, p.CancellationToken);
+        var credential = await _helper.CredentialResolver.Resolve(config.Credentials,
+            Scopes,
+            p.CancellationToken);
         using var driveService = new DriveService(_helper.CreateServiceInitializer(credential));
         _ = driveService;
 
@@ -99,39 +101,43 @@ public sealed partial class SyncDriveFolderTaskHandler
                 // _logger.LogInformation("File deletion complete");
             });
         }
+
         Stream File(string path)
         {
-            global::ScheduleLib.Application.Core.IFilesProvider iFilesProvider = p.FilesProvider;
-            global::ScheduleLib.Application.Core.Helper.RelativeFilePath relativeFile = new(path);
+            var iFilesProvider = p.FilesProvider;
+            RelativeFilePath relativeFile = new(path);
             var stream = iFilesProvider.OpenForReading(relativeFile);
             return stream;
         }
+
         foreach (var fileName in cloudFilesToCreate)
         {
-            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (cancellationToken) =>
-            {
-                await using var stream = File(fileName);
-                _logger.LogInformation("Uploading file '{FileName}'", fileName);
-                await driveService.UploadFile(
-                    stream,
-                    outputFileName: fileName,
-                    folderId: folderId,
-                    cancellationToken: cancellationToken);
-                // _logger.LogInformation("Finished upload of file '{FileName}'", fileName);
-            });
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
+            async (cancellationToken) =>
+                {
+                    await using var stream = File(fileName);
+                    _logger.LogInformation("Uploading file '{FileName}'", fileName);
+                    await driveService.UploadFile(
+                        stream,
+                        outputFileName: fileName,
+                        folderId: folderId,
+                        cancellationToken: cancellationToken);
+                    // _logger.LogInformation("Finished upload of file '{FileName}'", fileName);
+                });
         }
         foreach (var file in cloudFilesToUpdate)
         {
-            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (cancellationToken) =>
-            {
-                await using var stream = File(file.Name);
-                _logger.LogInformation("Updating file '{FileName}'", file.Name);
-                await driveService.UpdateFile(
-                    stream,
-                    fileId: file.Id,
-                    cancellationToken: cancellationToken);
-                // _logger.LogInformation("Finished update of file '{FileName}'", file.Name);
-            });
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
+            async (cancellationToken) =>
+                {
+                    await using var stream = File(file.Name);
+                    _logger.LogInformation("Updating file '{FileName}'", file.Name);
+                    await driveService.UpdateFile(
+                        stream,
+                        fileId: file.Id,
+                        cancellationToken: cancellationToken);
+                    // _logger.LogInformation("Finished update of file '{FileName}'", file.Name);
+                });
         }
         await runner.WhenDone();
     }
@@ -154,14 +160,18 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
 
     public IEnumerable<RelativeFilePath> GetFilePaths()
     {
-        return _directory.FilePaths("*", new()
-        {
-            RecurseSubdirectories = true,
-        });
+        return _directory.FilePaths("*",
+            new()
+            {
+                RecurseSubdirectories = true,
+            });
     }
 
     public Stream OpenForReading(RelativeFilePath relativeFile)
     {
-        return _directory.OpenFile(relativeFile.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        return _directory.OpenFile(relativeFile.Path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite);
     }
 }

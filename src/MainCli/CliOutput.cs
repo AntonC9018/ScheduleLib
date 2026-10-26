@@ -23,7 +23,10 @@ public sealed class CliOutput
     public const string ConflictingResultFormatsMessage = "Only one of --json and --jsonl may be specified.";
 
     private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
 
     private readonly object _gate = new();
     private int _stdoutSeq;
@@ -157,10 +160,7 @@ public sealed class CliOutput
             {
                 return true;
             }
-            else
-            {
-                return Jsonl;
-            }
+            return Jsonl;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -186,10 +186,7 @@ public sealed class CliOutput
             {
                 return true;
             }
-            else
-            {
-                return Jsonl;
-            }
+            return Jsonl;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -373,7 +370,7 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
     private IExternalScopeProvider _scopes = new LoggerExternalScopeProvider();
     public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopes = scopeProvider;
 
-    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+    public ILogger CreateLogger(string categoryName)
     {
         return new Logger(
             output,
@@ -386,7 +383,7 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
     }
 
     private sealed class Logger(CliOutput output, string category, Func<IExternalScopeProvider> scopeProvider)
-        : Microsoft.Extensions.Logging.ILogger
+        : ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull
         {
@@ -436,11 +433,11 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                         collected.Add(scope?.ToString() ?? string.Empty);
                     },
                     scopes);
-            global::ScheduleLib.Cli.CliOutput cliOutput = output;
-            global::Microsoft.Extensions.Logging.LogLevel level = logLevel;
+            var cliOutput = output;
+            var level = logLevel;
             string message2 = message;
             string? exception2 = exception?.ToString();
-            global::System.Collections.Generic.Dictionary<string, object?>? properties2;
+            Dictionary<string, object?>? properties2;
             if (properties.Count > 0)
             {
                 properties2 = properties;
@@ -450,8 +447,8 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                 properties2 = null;
             }
 
-            global::System.Collections.Generic.IReadOnlyDictionary<string, object?>? properties3 = properties2;
-            global::System.Collections.Generic.List<string>? scopes2;
+            IReadOnlyDictionary<string, object?>? properties3 = properties2;
+            List<string>? scopes2;
             if (scopes.Count > 0)
             {
                 scopes2 = scopes;
@@ -461,9 +458,9 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                 scopes2 = null;
             }
 
-            global::System.Collections.Generic.IReadOnlyList<string>? scopes3 = scopes2;
+            IReadOnlyList<string>? scopes3 = scopes2;
             string category2 = category;
-            global::System.DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            var timestamp = DateTimeOffset.UtcNow;
             cliOutput.WriteStructuredLog(
                 level,
                 message: message2,
@@ -505,9 +502,9 @@ public static class CliLogging
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
-            global::Microsoft.Extensions.Logging.ILoggingBuilder iLoggingBuilder = builder;
-            global::ScheduleLib.Cli.CliJsonlLoggerProvider provider = new CliJsonlLoggerProvider(output);
-            global::Microsoft.Extensions.Logging.ILoggerProvider provider2 = provider;
+            var iLoggingBuilder = builder;
+            var provider = new CliJsonlLoggerProvider(output);
+            ILoggerProvider provider2 = provider;
             iLoggingBuilder.AddProvider(provider2);
         });
     }

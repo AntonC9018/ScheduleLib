@@ -29,7 +29,6 @@ public readonly struct PermutationEnumerableWithoutCopy<T>(T[] elems) : IEnumera
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-
 public readonly record struct SwapAction(int Index0, int Index1);
 
 // Heap's algorithm.

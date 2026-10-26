@@ -90,7 +90,7 @@ public static partial class RegistryScraping
         if (!mainParser.IsEmpty)
         {
             conditionResult = isRepeat;
-            conditionResult = !(conditionResult);
+            conditionResult = !conditionResult;
         }
         else
         {
@@ -339,7 +339,7 @@ internal static class RegistryFacultyLabels
         if (IsCombined(label))
         {
             if (faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
-               || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase))
+                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

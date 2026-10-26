@@ -47,10 +47,10 @@ public struct WhiteSpaceContext
     // TODO: refine these
     public readonly WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
     {
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Default;
-        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
-        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+        var action = WhiteSpaceAction.Default;
+        var start2 = StartPosition;
+        var end2 = EndPosition(skipLaterProcessing);
+        var create = WhiteSpaceResult.Create(action,
             start: start2,
             end: end2);
         return create;
@@ -65,10 +65,10 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
     {
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.Insert;
-        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
-        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+        var action = WhiteSpaceAction.Insert;
+        var start2 = StartPosition;
+        var end2 = EndPosition(skipLaterProcessing);
+        var create = WhiteSpaceResult.Create(action,
             start: start2,
             end: end2);
         return create;
@@ -83,10 +83,10 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
     {
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceAction action = WhiteSpaceAction.DontInsert;
-        global::ScheduleLib.Helper.Parsing.LexerPosition start2 = StartPosition;
-        global::ScheduleLib.Helper.Parsing.LexerPosition end2 = EndPosition(skipLaterProcessing);
-        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult create = WhiteSpaceResult.Create(action,
+        var action = WhiteSpaceAction.DontInsert;
+        var start2 = StartPosition;
+        var end2 = EndPosition(skipLaterProcessing);
+        var create = WhiteSpaceResult.Create(action,
             start: start2,
             end: end2);
         return create;
@@ -204,6 +204,22 @@ internal struct ParsingStateStack
 
 public static class LessonParsingHelper
 {
+    /// <summary>
+    /// A modifier group that has not been interpreted yet, and a subgroup short form found in it.
+    /// The members are fields because the stored lexer is advanced in place through a ref local.
+    /// </summary>
+    private record struct UnparsedModifierGroup
+    {
+        public LimitedLexerScope Lexer;
+        public ReadOnlyMemory<char> SubGroup;
+
+        public UnparsedModifierGroup(LimitedLexerScope lexer, ReadOnlyMemory<char> subGroup)
+        {
+            Lexer = lexer;
+            SubGroup = subGroup;
+        }
+    }
+
     public static Lexer CreateLexer() => new(LessonTokenReader.Instance);
 
     /// <summary>
@@ -391,14 +407,12 @@ public static class LessonParsingHelper
 
                         bool CalculateConditionResult()
                         {
-                            if (isDefaultKey)
-                            {
-                                return shouldNotOutputDefaultKey;
-                            }
-                            else
+                            if (!isDefaultKey)
                             {
                                 return false;
                             }
+
+                            return shouldNotOutputDefaultKey;
                         }
 
                         bool conditionResult = CalculateConditionResult();
@@ -455,7 +469,7 @@ public static class LessonParsingHelper
                         else
                         {
                             conditionResult3 = lesson1.Modifiers.IsEmpty;
-                            conditionResult3 = !(conditionResult3);
+                            conditionResult3 = !conditionResult3;
                         }
                     }
                     else
@@ -675,7 +689,7 @@ public static class LessonParsingHelper
                         break;
                     }
 
-                    var unparsedModifiers = new List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)>();
+                    var unparsedModifiers = new List<UnparsedModifierGroup>();
                     foreach (var l in c.Lexer.List())
                     {
                         var lexer = l;
@@ -684,7 +698,7 @@ public static class LessonParsingHelper
                             WrongFormatException.EmptyListItem();
                         }
                         lexer.TryConsume(TokenType.Whitespace);
-                        unparsedModifiers.Add((lexer, default));
+                        unparsedModifiers.Add(new(lexer, default));
                     }
 
                     var defaultSubGroup = DetermineDefaultSubGroupByParsingSbShortForm(
@@ -696,7 +710,7 @@ public static class LessonParsingHelper
                     }
 
                     static ReadOnlyMemory<char> DetermineDefaultSubGroupByParsingSbShortForm(
-                        List<(LimitedLexerScope Lexer, ReadOnlyMemory<char> SubGroup)> unparsedModifiers,
+                        List<UnparsedModifierGroup> unparsedModifiers,
                         ParsingContext c)
                     {
                         ReadOnlyMemory<char> defaultSubGroup = default;
@@ -826,7 +840,7 @@ public static class LessonParsingHelper
                                     if (c.State.LastModifiers.Specific.TeacherNames.Count != 0)
                                     {
                                         conditionResult = c.State.LastModifiers.Specific.LastTeacher.IsNull;
-                                        conditionResult = !(conditionResult);
+                                        conditionResult = !conditionResult;
                                     }
                                     else
                                     {
@@ -903,7 +917,7 @@ public static class LessonParsingHelper
 
                             // Skip both the word and the -
                             lexer.Move(2);
-                            LessonParsingHelper.RejectExplicitNonBeginners(token.Value.Span);
+                            RejectExplicitNonBeginners(token.Value.Span);
                             return new()
                             {
                                 SubGroup = token.Value,
@@ -999,7 +1013,7 @@ public static class LessonParsingHelper
                         {
                             WrongFormatException.InvalidToken(t);
                         }
-                        LessonParsingHelper.RejectExplicitNonBeginners(t.Value.Span);
+                        RejectExplicitNonBeginners(t.Value.Span);
 
                         if (c.Params.LessonTypeParser.Parse(t.Value.Span) is { } lessonType)
                         {
@@ -1079,7 +1093,7 @@ public static class LessonParsingHelper
                     var subGroupStr = subgroupStartLexer
                         .Until(subGroupEndPos)
                         .Concat(sb);
-                    LessonParsingHelper.RejectExplicitNonBeginners(subGroupStr.Span);
+                    RejectExplicitNonBeginners(subGroupStr.Span);
                     c.State.SetDefaultModifier(subGroupStr);
 
                     c.Lexer.MoveTo(lexer.Position);
@@ -1109,11 +1123,12 @@ public static class LessonParsingHelper
                         {
                             return spos;
                         }
-                        if (VerifyColonOrDot(ref lexer) is { } cpos)
+                        if (!(VerifyColonOrDot(ref lexer) is { } cpos))
                         {
-                            return cpos;
+                            return null;
                         }
-                        return null;
+
+                        return cpos;
 
                         // Format UI-1, UI-2: the narrow configured dashed legacy labels,
                         // whose hyphen is otherwise treated as a separator.
@@ -1313,15 +1328,17 @@ public static class LessonParsingHelper
                     {
                         if (name.Any(x =>
                             {
-                                if (!(!x.IsEmpty))
+                                if (x.IsEmpty)
                                 {
                                     return false;
                                 }
-                                if (!(x.Span[^1] == WordHelper.ShortenedWordCharacter))
+
+                                if (x.Span[^1] == WordHelper.ShortenedWordCharacter)
                                 {
-                                    return false;
+                                    return true;
                                 }
-                                return true;
+
+                                return false;
                             }))
                         {
                             WrongFormatException.InvalidLastName();
@@ -1337,11 +1354,12 @@ public static class LessonParsingHelper
                                 return false;
                             }
                             var w = new WordSpan(x.Span);
-                            if (w.LooksFull)
+                            if (!w.LooksFull)
                             {
-                                return false;
+                                return true;
                             }
-                            return true;
+
+                            return false;
                         });
                         if (oneIsShort)
                         {
@@ -1489,9 +1507,9 @@ public static class LessonParsingHelper
                 {
                     if (ShouldRefreshWhiteSpace())
                     {
-                        global::ScheduleLib.Parsing.Lesson.ProcessSpaces processSpaces2 = processSpaces;
-                        global::ScheduleLib.Parsing.Lesson.WhiteSpaceContext context = new(lexer);
-                        global::ScheduleLib.Parsing.Lesson.WhiteSpaceResult invoke = processSpaces2(context);
+                        var processSpaces2 = processSpaces;
+                        WhiteSpaceContext context = new(lexer);
+                        var invoke = processSpaces2(context);
                         whiteSpaceResult = invoke;
                     }
                     if (!ProcessCurrentToken())
@@ -1629,7 +1647,7 @@ public static class LessonParsingHelper
 
                 bool CheckCondition()
                 {
-                    if (!(t.Type == LessonTokenType.Number))
+                    if (t.Type != LessonTokenType.Number)
                     {
                         return false;
                     }
@@ -1639,12 +1657,12 @@ public static class LessonParsingHelper
                         return false;
                     }
 
-                    if (!(!isInsideParen))
+                    if (!isInsideParen)
                     {
-                        return false;
+                        return true;
                     }
 
-                    return true;
+                    return false;
                 }
 
                 if (CheckCondition())
@@ -1836,10 +1854,12 @@ public static class LessonParsingHelper
         {
             return true;
         }
+
         if (char.IsLetter(ch))
         {
             return true;
         }
+
         return false;
     }
 }
@@ -1886,11 +1906,12 @@ public sealed class ParityParser
         {
             return Parity.OddWeek;
         }
-        if (Equals1(parity, "impar"))
+        if (!Equals1(parity, "impar"))
         {
-            return Parity.OddWeek;
+            return null;
         }
-        return null;
+
+        return Parity.OddWeek;
     }
 }
 
@@ -1915,10 +1936,12 @@ public sealed class RoomParser
         {
             return true;
         }
+
         if (token.Value.Span[0] == Mediacor[0])
         {
             return true;
         }
+
         return false;
     }
 
@@ -2002,22 +2025,17 @@ public sealed class RoomParser
                     {
                         return true;
                     }
-                    else
+                    if (t.Type == TokenType.Whitespace)
                     {
-                        if (t.Type == TokenType.Whitespace)
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            if (t.Type == TokenType.EndOfLine)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
+                        return true;
                     }
+
+                    if (t.Type == TokenType.EndOfLine)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult2();
@@ -2089,26 +2107,22 @@ public sealed class RoomParser
 
                 bool CalculateConditionResult()
                 {
-                    if (t.Type == LessonTokenType.Word)
-                    {
-                        if (t.Value.Length == 1)
-                        {
-                            if (char.IsLetter(t.Value.Span[0]))
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else
+                    if (t.Type != LessonTokenType.Word)
                     {
                         return false;
                     }
+
+                    if (t.Value.Length != 1)
+                    {
+                        return false;
+                    }
+
+                    if (char.IsLetter(t.Value.Span[0]))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 bool conditionResult = CalculateConditionResult();
@@ -2683,11 +2697,7 @@ internal struct ListWithCapacity<T>() : IBasic<ListWithCapacity<T>>
         public bool MoveNext()
         {
             _i++;
-            if (_i >= _self._count)
-            {
-                return false;
-            }
-            return true;
+            return !(_i >= _self._count);
         }
 
         public ref T Current => ref _self.Items[_i];

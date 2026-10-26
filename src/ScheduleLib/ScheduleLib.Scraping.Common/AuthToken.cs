@@ -90,18 +90,15 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
         var uri = _services.Names.LoginUrl;
         using var content = new FormUrlEncodedContent([
             new(key: _services.FieldNames.Login, value: _services.Credentials.Login),
-            new(key: _services.FieldNames.Password, value: _services.Credentials.Password)]);
+            new(key: _services.FieldNames.Password, value: _services.Credentials.Password),
+        ]);
 
         var response = await _services.HttpClient.PostAsync(
             uri,
             content: content,
             cancellationToken: cancellationToken);
         _ = response;
-        if (response.StatusCode == HttpStatusCode.Redirect)
-        {
-            return true;
-        }
-        return false;
+        return response.StatusCode == HttpStatusCode.Redirect;
     }
 }
 
@@ -199,7 +196,9 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
 
         IDocument response;
         try
-        { response = await submission.WaitAsync(cancellationToken); }
+        {
+            response = await submission.WaitAsync(cancellationToken);
+        }
         catch (OperationCanceledException)
         {
             // AngleSharp cannot cancel submission; end this owned browsing session and
@@ -207,54 +206,45 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
             _browser.Get()
                 .Dispose();
             _ = submission.ContinueWith(task => _ = task.Exception,
-                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
             throw;
         }
+
         bool CalculateConditionResult()
         {
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                if (response.QuerySelector("input[type=password]") is null)
-                {
-                    if (_formConfig.AuthenticationSuccessSelector is not { } selector)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        if (response.QuerySelector(selector) is not null)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
+            if (response.StatusCode != HttpStatusCode.OK)
             {
                 return false;
             }
+
+            if (!(response.QuerySelector("input[type=password]") is null))
+            {
+                return false;
+            }
+
+            if (_formConfig.AuthenticationSuccessSelector is not { } selector)
+            {
+                return true;
+            }
+
+            if (response.QuerySelector(selector) is not null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
 
 
-        if (conditionResult)
-        {
-            return true;
-        }
-
-        return false;
+        return conditionResult;
 
         IHtmlInputElement? GetInput(string name)
         {
-            global::AngleSharp.Dom.IDocument iDocument = html;
+            var iDocument = html;
             string selectors = $"""input[name="{name}"]""";
             var ret = iDocument.QuerySelector<IHtmlInputElement>(selectors);
             if (ret is null)
@@ -276,11 +266,12 @@ public static class TokenCookieHelper
     public static Cookie? FindCookie(this CookieContainer cookieContainer, TokenNamesConfig names)
     {
         var cookies = cookieContainer.GetCookies(names.LoginUrl);
-        if (cookies[names.TokenCookieName] is { } token)
+        if (!(cookies[names.TokenCookieName] is { } token))
         {
-            return token;
+            return null;
         }
-        return null;
+
+        return token;
     }
 }
 
@@ -421,7 +412,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
 
     public async Task<bool> RecreateToken(CancellationToken cancellationToken)
     {
-        if (!await _fields.UnderlyingRetriever.InitializeToken(cancellationToken))
+        if (!(await _fields.UnderlyingRetriever.InitializeToken(cancellationToken)))
         {
             return false;
         }
@@ -429,7 +420,9 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         var token = _fields.CookieContainer.FindCookie(_fields.Names);
         Debug.Assert(token != null, "Must be set by token retriever");
 
-        await using var stream = File.Open(_fields.StorageConfig.TokensFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+        await using var stream = File.Open(_fields.StorageConfig.TokensFile,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite);
         if (await TryUpdateExisting())
         {
             return true;
@@ -492,5 +485,4 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             return true;
         }
     }
-
 }

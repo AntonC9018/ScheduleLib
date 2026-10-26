@@ -89,7 +89,7 @@ public static partial class ScheduleBuilderHelper
 
     public static Schedule Build(this ScheduleBuilder s)
     {
-        var ret = Build(s, CreateDefaultModel);
+        var ret = s.Build(CreateDefaultModel);
         return ret;
     }
 
@@ -192,7 +192,9 @@ public static partial class ScheduleBuilderHelper
             }
 
             var registryContext = text2;
-            throw UnknownSubGroupException.ForInvalid(subGroupValue: subGroup.Value, groupContext: groupContext, registryContext: registryContext);
+            throw UnknownSubGroupException.ForInvalid(subGroupValue: subGroup.Value,
+                groupContext: groupContext,
+                registryContext: registryContext);
         }
 
         string DescribeGroup(GroupId id)
@@ -202,7 +204,8 @@ public static partial class ScheduleBuilderHelper
                 return id.Value.ToString();
             }
             var group = s.Groups.List[id.Value];
-            return (string) $"{($"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, ")}{($"attendance {group.AttendanceMode}, qualification {group.QualificationType})")}";
+            return
+                $"{$"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "}{$"attendance {group.AttendanceMode}, qualification {group.QualificationType})"}";
         }
 
         string DescribeRegistryContext(SpecializationRegistry registry, GroupId id)
@@ -286,11 +289,12 @@ public static partial class ScheduleBuilderHelper
                 {
                     return shortf;
                 }
-                if (x.Full is { } fullf)
+                if (!(x.Full is { } fullf))
                 {
-                    return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
+                    return null;
                 }
-                return null;
+
+                return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
             }
         });
         var courses = s.Courses.Build();
@@ -363,7 +367,9 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static TeacherNameRemapStatus RemapTeacherName(this ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
+    public static TeacherNameRemapStatus RemapTeacherName(
+        this ScheduleBuilder s,
+        ref TeacherBuilderModel.NameModel name)
     {
         var status = Impl(s, ref name);
         if (status != TeacherNameRemapStatus.None)
