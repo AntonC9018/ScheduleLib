@@ -85,3 +85,28 @@ These remaining findings are visible in builds. Their correction is separate
 from the reviewed migration; no inheritance redesign or controlled-check
 implementation was included. The tuple signature changes intentionally require
 external tuple-literal callers to use the corresponding named records.
+
+## CodeRabbit follow-up and refreshed clusters
+
+CodeRabbit reviewed the latest CodingRules change range in
+[CodingRules #35](https://github.com/AntonC9018/CodingRules/pull/35).
+All four findings were fixed in `2abd37a`: classify CR0205 as a new rule,
+follow receiver wrappers when checking the short-chain allowance, and reconcile
+the earlier initializer and CR0001 spec text with their approved refinements.
+The five wrapper regressions fail before the fix and pass afterward. All 18
+focused chain tests, all 1,475 solution tests and all 11 consumer gates pass.
+
+The reviewed candidate archive SHA-256 is
+`b87e5d8e8d5c87a7ade0dbc3583c15a27ce354c48e2cfb1c64f457bddb81b50a`.
+Both ScheduleLib Release rebuilds pass with this package. Their refreshed
+inventory still contains 142 source findings and 55 advisory rows; all 538
+source hashes match the earlier tested snapshot. The full ScheduleLib test
+suites were not repeated because no consumer source changed. The unchanged
+baseline evidence above remains applicable.
+
+The local feed is configured for the reviewed candidate; local restore remains
+unverified. [Remaining clusters](analyzer-remaining-clusters-2026-10-27.md)
+separate fixture arguments, invariant assertions, production computations,
+Boolean scratch decisions and other outstanding review work. They are proposals,
+not additional source migrations. Analyzer regressions belong in CodingRules;
+temporary debugging probes do not belong in ScheduleLib's permanent suite.
