@@ -373,21 +373,10 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
             }
         }
-        var iGoogleTokenProvider = _tokens;
-        var secrets2 = secrets;
-        string teacher2 = teacher;
-        string[] scopes2 = scopes;
-        var authorization2 = authorization;
-        string path2 = AccountFile(teacher: teacher, clientId: secrets.ClientId);
-        bool requireExisting2 = true;
-        var store2 = new AtomicTokenStore(path2, requireExisting: requireExisting2);
-        IDataStore store3 = store2;
-        var createCredential = iGoogleTokenProvider.CreateCredential(new GoogleTokenContext(secrets2,
-                teacher2,
-                scopes2),
-            authorization2,
-            store3);
-        return createCredential;
+        var credentialPath = AccountFile(teacher: teacher, clientId: secrets.ClientId);
+        var credentialStore = new AtomicTokenStore(credentialPath, requireExisting: true);
+        var tokenContext = new GoogleTokenContext(secrets, teacher, scopes);
+        return _tokens.CreateCredential(tokenContext, authorization, credentialStore);
     }
 
     private static bool Usable(TokenResponse authorization, string[] scopes)

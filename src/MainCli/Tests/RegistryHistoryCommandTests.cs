@@ -86,7 +86,7 @@ public sealed class RegistryHistoryCommandTests
             string? path = Path.GetDirectoryName(directory);
             if (Directory.Exists(path))
             {
-                Directory.Delete(Path.GetDirectoryName(directory)!, true);
+                Directory.Delete(path!, true);
             }
         }
     }

@@ -349,17 +349,7 @@ public static class LessonParsingHelper
 
             // Special case
             // Only appears to happen in Educatia fizica.
-            bool conditionResult;
-            if (state.IsTerminalState)
-            {
-                conditionResult = state.Step is not ParsingStep.Output and not ParsingStep.Start;
-            }
-            else
-            {
-                conditionResult = false;
-            }
-
-            if (conditionResult)
+            if (state.Step is not ParsingStep.Output and not ParsingStep.Start)
             {
                 foreach (var x in DoOutput())
                 {
@@ -412,7 +402,11 @@ public static class LessonParsingHelper
                                 return false;
                             }
 
-                            return shouldNotOutputDefaultKey;
+                            if (shouldNotOutputDefaultKey)
+                            {
+                                return true;
+                            }
+                            return false;
                         }
 
                         bool conditionResult = CalculateConditionResult();
@@ -459,27 +453,16 @@ public static class LessonParsingHelper
                 foreach (var defaultMod in state2.DefaultModifiers)
                 {
                     ref var lesson1 = ref lessonsE.Current;
-                    bool conditionResult3;
                     if (defaultMod.SubGroup.IsEmpty)
                     {
                         if (defaultHasOtherThanAllSubGroup)
                         {
-                            conditionResult3 = true;
+                            continue;
                         }
-                        else
+                        if (!lesson1.Modifiers.IsEmpty)
                         {
-                            conditionResult3 = lesson1.Modifiers.IsEmpty;
-                            conditionResult3 = !conditionResult3;
+                            continue;
                         }
-                    }
-                    else
-                    {
-                        conditionResult3 = false;
-                    }
-
-                    if (conditionResult3)
-                    {
-                        continue;
                     }
 
                     var key = new SubLessonModifiersKey
@@ -506,23 +489,18 @@ public static class LessonParsingHelper
                     ref var lesson1 = ref lessonsE.Current;
                     ref var state3 = ref stateStack.First();
 
-                    bool conditionResult2;
-                    if (lesson1.Modifiers.IsEmpty)
+                    if (!lesson1.Modifiers.IsEmpty)
                     {
-                        conditionResult2 = state3.DefaultModifiers.IsEmpty;
+                        continue;
                     }
-                    else
+                    if (!state3.DefaultModifiers.IsEmpty)
                     {
-                        conditionResult2 = false;
+                        continue;
                     }
-
-                    if (conditionResult2)
-                    {
-                        yield return Output(
-                            subGroup: default,
-                            allFallback,
-                            lessonName: lesson1.LessonName);
-                    }
+                    yield return Output(
+                        subGroup: default,
+                        allFallback,
+                        lessonName: lesson1.LessonName);
                 }
             }
 
@@ -580,25 +558,16 @@ public static class LessonParsingHelper
                 Apply(ref c);
                 return true;
             }
-            bool conditionResult;
-            if (lexerCopy.IsEmpty)
+            if (!lexerCopy.IsEmpty)
             {
-                conditionResult = c.State.IsTerminalState;
+                continue;
             }
-            else
-            {
-                conditionResult = false;
-            }
-
-            if (conditionResult)
-            {
-                Apply(ref c);
-                return true;
-            }
-            if (lexerCopy.IsEmpty)
+            if (!c.State.IsTerminalState)
             {
                 break;
             }
+            Apply(ref c);
+            return true;
         }
 
         return false;

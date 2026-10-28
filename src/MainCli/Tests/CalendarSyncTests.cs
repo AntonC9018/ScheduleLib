@@ -190,10 +190,14 @@ public sealed class CalendarSyncTests
             Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
                 actual: item.EnumerateObject()
                     .Select(x => x.Name));
-            Assert.Equal(expected: ExpectedCalendarTimestamp(start),
+            string? expectedStartTimestamp = ExpectedCalendarTimestamp(start);
+            Assert.Equal(
+                expected: expectedStartTimestamp,
                 actual: item.GetProperty("start")
                     .GetString());
-            Assert.Equal(expected: ExpectedCalendarTimestamp(end),
+            string? expectedEndTimestamp = ExpectedCalendarTimestamp(end);
+            Assert.Equal(
+                expected: expectedEndTimestamp,
                 actual: item.GetProperty("end")
                     .GetString());
 

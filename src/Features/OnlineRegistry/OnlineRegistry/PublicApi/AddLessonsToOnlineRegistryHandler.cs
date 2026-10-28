@@ -881,14 +881,26 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             return dateTime2;
                         }
 
-                        LogCommandBeforeExecution(CommandName: command.Type.ToString(),
-                            DateString: CalculateDateTime()
-                                .ToString("dd.MM.yy"),
-                            LessonName: _schedule.Get(courseLink.CourseId).FullName,
-                            GroupName: group.Groups.Value.ToString(_schedule),
-                            command.HasAll
-                                ? _schedule.Get(command.Local.LessonId).Lesson.Type
-                                : command.Remote.LessonType);
+                        var commandName = command.Type.ToString();
+                        var dateTime = CalculateDateTime();
+                        var dateString = dateTime.ToString("dd.MM.yy");
+                        var lessonName = _schedule.Get(courseLink.CourseId).FullName;
+                        var groupName = group.Groups.Value.ToString(_schedule);
+                        LessonType lessonType;
+                        if (command.HasAll)
+                        {
+                            lessonType = _schedule.Get(command.Local.LessonId).Lesson.Type;
+                        }
+                        else
+                        {
+                            lessonType = command.Remote.LessonType;
+                        }
+                        LogCommandBeforeExecution(
+                            CommandName: commandName,
+                            DateString: dateString,
+                            LessonName: lessonName,
+                            GroupName: groupName,
+                            lessonType);
                     }
                     var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
                     bool conditionResult3;

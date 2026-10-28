@@ -410,17 +410,11 @@ public sealed class ThesisListParser(
 
     private static bool TrySkipParenthesizedText(ref SequenceReader reader)
     {
-        bool conditionResult;
         if (reader.IsEmpty)
         {
-            conditionResult = true;
+            return false;
         }
-        else
-        {
-            conditionResult = reader.Current != '(';
-        }
-
-        if (conditionResult)
+        if (reader.Current != '(')
         {
             return false;
         }

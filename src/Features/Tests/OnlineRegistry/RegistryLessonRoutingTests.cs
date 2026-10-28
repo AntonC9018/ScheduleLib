@@ -255,18 +255,19 @@ public sealed class RegistryLessonRoutingTests
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
         Assert.False(selection.IsLabMerge);
 
+        var fallbackLink = MakeLink(
+            new LessonGroups
+            {
+                first,
+                second,
+            },
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: isCombined,
+            "https://registry.test/fallback");
         List<RegistryLessonDestination> destinations =
         [
-            new(Group: MakeLink(new LessonGroups
-                    {
-                        first,
-                        second,
-                    },
-                    GroupPartitionKey.All,
-                    isWildcard: true,
-                    isCombined: isCombined,
-                    "https://registry.test/fallback"),
-                Selection: selection),
+            new(Group: fallbackLink, Selection: selection),
         ];
         var routed = RegistryLessonRouting.Prioritize(schedule,
             destinations,

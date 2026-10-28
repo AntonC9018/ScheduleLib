@@ -827,13 +827,22 @@ public sealed class RegistryHistoryTests
     [InlineData(false)]
     public async Task LoginPageOrIgnoredYearStopsBeforeGroupReads(bool loginPage)
     {
-        using var inner = new FakeHandler((request, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        using var inner = new FakeHandler((request, _) =>
         {
-            Content = new StringContent(
-                loginPage
-                    ? "<input type='password' value='canary-password'>"
-                    : Years + "<div id='nav-1'></div><div id='nav-2'></div>"),
-        }));
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            string body;
+            if (loginPage)
+            {
+                body = "<input type='password' value='canary-password'>";
+            }
+            else
+            {
+                body = Years + "<div id='nav-1'></div><div id='nav-2'></div>";
+            }
+
+            response.Content = new StringContent(body);
+            return Task.FromResult(response);
+        });
 
         Uri CalculateLogin()
         {

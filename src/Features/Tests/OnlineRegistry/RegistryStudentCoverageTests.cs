@@ -16,22 +16,18 @@ public sealed class RegistryStudentCoverageTests
             ["Synthetic Ana", "Synthetic Boris", "Synthetic Carla", "Synthetic Elena"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Ana",
             "Synthetic Boris",
             "Synthetic Dina");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [key];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var students2 = Roster("Synthetic Carla", "Synthetic Dina");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [key];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var diagnostics = fixture.Report(coverage);
         string expectedStartString2 = "1 attendance students";
         var single = Assert.Single(diagnostics.Items, item => item.Kind == "attendance-students-not-in-registry");
@@ -63,20 +59,16 @@ public sealed class RegistryStudentCoverageTests
             {
                 ["Synthetic Anna"] = "Synthetic Ana",
             });
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Anna");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [key];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var students2 = Roster("Synthetic Anna", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [key];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var report = fixture.Report(coverage);
         System.Collections.IEnumerable collection = report.Items;
         Assert.Empty(collection);
@@ -99,20 +91,16 @@ public sealed class RegistryStudentCoverageTests
             {
                 ["Synthetic Anna"] = "Synthetic Ana",
             });
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Anna", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [key];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var students2 = Roster("Synthetic Ana");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [key];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [key];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [key],
+            membershipKeys: [key]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
         var missing = Assert.Single(collection);
@@ -130,20 +118,16 @@ public sealed class RegistryStudentCoverageTests
             new(second, ["Synthetic Boris"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [first];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [first],
+            membershipKeys: [first]);
         var students2 = Roster("Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [second];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [second];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [second],
+            membershipKeys: [second]);
         var diagnostics = fixture.Report(coverage);
         Assert.Equal(expected: 2, actual: diagnostics.Items.Count);
         Assert.All(diagnostics.Items, item => Assert.Equal(expected: "IA2601", actual: item.Group));
@@ -160,20 +144,16 @@ public sealed class RegistryStudentCoverageTests
             new(second, ["Synthetic Boris"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Ana", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [second];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [combined];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [second],
+            membershipKeys: [combined]);
         var students2 = Roster("Synthetic Ana");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [first];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [first],
+            membershipKeys: [first]);
         var report = fixture.Report(coverage);
         System.Collections.IEnumerable collection = report.Items;
         Assert.Empty(collection);
@@ -190,20 +170,16 @@ public sealed class RegistryStudentCoverageTests
             new(second, ["Synthetic Boris"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [first];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [first],
+            membershipKeys: [first]);
         var students2 = Roster("Synthetic Ana", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [combined];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [combined];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [combined],
+            membershipKeys: [combined]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
         var missing = Assert.Single(collection);
@@ -224,20 +200,16 @@ public sealed class RegistryStudentCoverageTests
             new(lecture, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Dina");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [lab];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [lab];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [lab],
+            membershipKeys: [lab]);
         var students2 = Roster("Synthetic Ana");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [lecture];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [lecture];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [lecture],
+            membershipKeys: [lecture]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
         Predicate<RegistrySyncDiagnostic> predicate = item => item.Kind == "attendance-students-not-in-registry";
@@ -258,20 +230,16 @@ public sealed class RegistryStudentCoverageTests
             new(lecture, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Ana", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [lab];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [lab];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [lab],
+            membershipKeys: [lab]);
         var students2 = Roster("Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [lecture];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [lecture];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [lecture],
+            membershipKeys: [lecture]);
         var diagnostics = fixture.Report(coverage).Items;
         string expectedSubstring2 = "Curs";
         var single = Assert.Single(diagnostics, item => item.Kind == "attendance-students-not-in-registry");
@@ -297,13 +265,11 @@ public sealed class RegistryStudentCoverageTests
             new(lecture, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [lecture];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [lab, lecture];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
+        coverage.Observe(
+            students,
+            routedKeys: [lecture],
+            membershipKeys: [lab, lecture]);
         string expected2 = "attendance-students-not-in-registry";
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
@@ -316,32 +282,30 @@ public sealed class RegistryStudentCoverageTests
     public void EqualUnknownCountsForDifferentSubgroupsProduceSeparateDiagnostics()
     {
         var fixture = new Fixture();
+        var firstSubGroup = SubGroup.CreateNumeric(1);
         var first = fixture.Key(fixture.First) with
         {
-            GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All),
+            GroupPartition = new(firstSubGroup, Specialization.All),
         };
+        var secondSubGroup = SubGroup.CreateNumeric(2);
         var second = first with
         {
-            GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All),
+            GroupPartition = new(secondSubGroup, Specialization.All),
         };
         var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
             new(second, ["Synthetic Boris"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Dina");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [first];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [first],
+            membershipKeys: [first]);
         var students2 = Roster("Synthetic Elena");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [second];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [second];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [second],
+            membershipKeys: [second]);
         var unknown = fixture.Report(coverage).Items
             .Where(item => item.Kind == "unmatched-attendance-students")
             .ToArray();
@@ -354,32 +318,30 @@ public sealed class RegistryStudentCoverageTests
     public void AnotherSubgroupCannotHideMissingEnrollment()
     {
         var fixture = new Fixture();
+        var firstSubGroup = SubGroup.CreateNumeric(1);
         var first = fixture.Key(fixture.First) with
         {
-            GroupPartition = new(SubGroup.CreateNumeric(1), Specialization.All),
+            GroupPartition = new(firstSubGroup, Specialization.All),
         };
+        var secondSubGroup = SubGroup.CreateNumeric(2);
         var second = first with
         {
-            GroupPartition = new(SubGroup.CreateNumeric(2), Specialization.All),
+            GroupPartition = new(secondSubGroup, Specialization.All),
         };
         var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
             new(second, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Dina");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [first];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
-        var registryStudentCoverage2 = coverage;
+        coverage.Observe(
+            students,
+            routedKeys: [first],
+            membershipKeys: [first]);
         var students2 = Roster("Synthetic Ana");
-        IEnumerable<StudentsLookupKey> routedKeys3 = [second];
-        IEnumerable<StudentsLookupKey> membershipKeys3 = [second];
-        registryStudentCoverage2.Observe(students2,
-            routedKeys: routedKeys3,
-            membershipKeys: membershipKeys3);
+        coverage.Observe(
+            students2,
+            routedKeys: [second],
+            membershipKeys: [second]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
         Predicate<RegistrySyncDiagnostic> predicate = item => item.Kind == "attendance-students-not-in-registry";
@@ -396,13 +358,11 @@ public sealed class RegistryStudentCoverageTests
         var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var registryStudentCoverage = coverage;
         var students = Roster("Synthetic Ana", "Synthetic Boris");
-        IEnumerable<StudentsLookupKey> routedKeys2 = [first];
-        IEnumerable<StudentsLookupKey> membershipKeys2 = [combined];
-        registryStudentCoverage.Observe(students,
-            routedKeys: routedKeys2,
-            membershipKeys: membershipKeys2);
+        coverage.Observe(
+            students,
+            routedKeys: [first],
+            membershipKeys: [combined]);
         var report = fixture.Report(coverage);
         System.Collections.IEnumerable collection = report.Items;
         Assert.Empty(collection);

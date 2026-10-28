@@ -30,15 +30,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         continue;
                     }
 
-                    var filter = new LessonSearchFilter(course.CourseId,
+                    var filter = new LessonSearchFilter(
+                        course.CourseId,
                         group.Groups,
                         group.GroupPartition);
-                    var config2 = config;
-                    LessonMatchParams parameters = new(filter,
+                    LessonMatchParams parameters = new(
+                        filter,
                         _lookup.LessonsByCourse,
                         _schedule);
-                    var selection = RegistryLessonRouting.Candidates(config2, parameters);
-                    var decision = lessonFilter.Filter(new(filter,
+                    var selection = RegistryLessonRouting.Candidates(config, parameters);
+                    var decision = lessonFilter.Filter(new(
+                        filter,
                         _schedule,
                         selection.Lessons));
                     if (decision.Decision is LessonValidityDecision.Skip or LessonValidityDecision.Error)
@@ -69,7 +71,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return false;
                     }
 
-                    return group.Groups.Value.IsSingleGroup;
+                    if (group.Groups.Value.IsSingleGroup)
+                    {
+                        return true;
+                    }
+                    return false;
                 }
 
                 if (CheckCondition())
@@ -113,16 +119,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var unwanted = remote.Where(lesson => lesson.LessonType == LessonType.Lab)
                     .ToArray();
                 var marks = unwanted.Sum(lesson => lesson.Attendance.Count(IsRecordedMark));
-                var registrySyncDiagnostics = diagnostics;
-                string kind2 = "unsafe-registry-lab-cleanup";
-                string course2 = courseName;
-                string group2 = groupNames;
-                string detail2 =
+                string detail =
                     $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.";
-                registrySyncDiagnostics.Add(kind: kind2,
-                    course: course2,
-                    @group: group2,
-                    detail: detail2);
+                diagnostics.Add(
+                    kind: "unsafe-registry-lab-cleanup",
+                    course: courseName,
+                    @group: groupNames,
+                    detail: detail);
                 var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: "delete",
                         destination: group.Uri.ToString(),
                         course: courseName,

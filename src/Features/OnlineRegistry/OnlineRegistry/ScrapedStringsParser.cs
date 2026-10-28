@@ -144,27 +144,19 @@ public static partial class RegistryScraping
             }
             reader.MoveTo(bparser.Position);
             // Historical ordinary groups sometimes separate the faculty and year.
-            bool conditionResult;
-            if (reader.CanPeekCount(2))
+            if (!reader.CanPeekCount(2))
             {
-                if (reader.PeekSpan(2)[0] == '_')
-                {
-                    conditionResult = char.IsAsciiDigit(reader.PeekSpan(2)[1]);
-                }
-                else
-                {
-                    conditionResult = false;
-                }
+                return ret;
             }
-            else
+            if (reader.PeekSpan(2)[0] != '_')
             {
-                conditionResult = false;
+                return ret;
             }
-
-            if (conditionResult)
+            if (!char.IsAsciiDigit(reader.PeekSpan(2)[1]))
             {
-                reader.Move();
+                return ret;
             }
+            reader.Move();
             return ret;
         }
 

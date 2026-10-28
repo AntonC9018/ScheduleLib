@@ -314,6 +314,9 @@ public sealed class AuthenticationRequiredException : Exception
         LoginCommand = BuildLoginCommand(provider: provider, teacher: teacher);
     }
 
-    private static string BuildLoginCommand(string provider, string teacher) =>
-        $"schedulelib auth login {provider} --profile \"{teacher.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+    private static string BuildLoginCommand(string provider, string teacher)
+    {
+        var escapedTeacher = teacher.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        return $"schedulelib auth login {provider} --profile \"{escapedTeacher}\"";
+    }
 }

@@ -81,7 +81,11 @@ public static class RegistryCourseNameLookup
 
         var normalized = Normalize(parsed.Name);
         var candidates = lookup.LookupModule.Courses
-            .Select(course => new NormalizedCourseName(Normalize(course.Key), course.Value))
+            .Select(course =>
+            {
+                var normalizedCourseName = Normalize(course.Key);
+                return new NormalizedCourseName(normalizedCourseName, course.Value);
+            })
             .ToArray();
         var normalizedMatches = candidates.Where(course => course.Name == normalized)
             .Select(course => course.Id)

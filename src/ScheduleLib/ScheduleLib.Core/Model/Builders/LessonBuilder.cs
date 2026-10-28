@@ -709,24 +709,7 @@ public static class LessonBuilderHelper
 
         if (whatToDiff.SubGroup)
         {
-            bool conditionResult;
-            if (a.Group.SubGroup != b.Group.SubGroup)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                if (a.Group.Specialization != b.Group.Specialization)
-                {
-                    conditionResult = true;
-                }
-                else
-                {
-                    conditionResult = a.Group.Alternative != b.Group.Alternative;
-                }
-            }
-
-            if (conditionResult)
+            if (HaveDifferentPartitions(a: a, b: b))
             {
                 ret.SubGroup = true;
             }
@@ -741,6 +724,25 @@ public static class LessonBuilderHelper
         }
 
         return ret;
+    }
+
+    private static bool HaveDifferentPartitions(
+        in LessonBuilderModelDataBase a,
+        in LessonBuilderModelDataBase b)
+    {
+        if (a.Group.SubGroup != b.Group.SubGroup)
+        {
+            return true;
+        }
+        if (a.Group.Specialization != b.Group.Specialization)
+        {
+            return true;
+        }
+        if (a.Group.Alternative != b.Group.Alternative)
+        {
+            return true;
+        }
+        return false;
     }
 
     public static LessonModelDiffMask Diff(

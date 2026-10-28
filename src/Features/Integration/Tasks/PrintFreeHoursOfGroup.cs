@@ -151,18 +151,20 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
         var unusedTimes = allTimes.Except(usedTimes);
 
+        FreeHoursDay CreateFreeHoursDay(
+            IGrouping<DayOfWeek, (DayOfWeek Day, TimeSlot Time)> dayTimes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var day = dayTimes.Key;
+            var mergeConsecutive = MergeConsecutive(dayTimes.Select(x => x.Time));
+            var intervals = mergeConsecutive.ToArray();
+            return new FreeHoursDay(day, intervals);
+        }
+
         var days = unusedTimes
             .OrderBy(x => (x.Day, x.Time))
             .GroupBy(x => x.Day)
-            .Select(x =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var day = x.Key;
-                var mergeConsecutive = MergeConsecutive(x.Select(y => y.Time));
-                var intervals = mergeConsecutive.ToArray();
-                var freeHoursDay = new FreeHoursDay(day, intervals);
-                return freeHoursDay;
-            })
+            .Select(CreateFreeHoursDay)
             .ToArray();
         cancellationToken.ThrowIfCancellationRequested();
         return new(group,

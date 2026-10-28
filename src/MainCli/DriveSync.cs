@@ -185,10 +185,15 @@ public static class DriveSync
         {
             try
             {
-                onOutcome?.Invoke(new(Id: id,
-                    Status: outcome.State,
-                    outcome,
-                    Human: human));
+                if (onOutcome is not null)
+                {
+                    var update = new StreamedUpdate(
+                        Id: id,
+                        Status: outcome.State,
+                        outcome,
+                        Human: human);
+                    onOutcome.Invoke(update);
+                }
             }
             catch (CliOutputStreamingException ex)
             {

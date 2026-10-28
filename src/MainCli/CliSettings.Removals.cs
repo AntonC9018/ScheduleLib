@@ -296,11 +296,15 @@ public static partial class CliSettings
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
         if (values is null
-            || !values.Any(x => KeyMatches(
-                element,
-                comparer,
-                item,
-                x!.Deserialize(element, settings.Json)!)))
+            || !values.Any(x =>
+            {
+                var resolvedValue = x!.Deserialize(element, settings.Json)!;
+                return KeyMatches(
+                    element,
+                    comparer: comparer,
+                    item: item,
+                    value: resolvedValue);
+            }))
         {
             throw new JsonException("Unknown collection item key; no resolved entry matches --item.");
         }

@@ -702,10 +702,23 @@ public sealed class FreeHoursTests
 
     private static string Day(JsonElement day)
     {
-        return $"{day.GetProperty("day").GetString()}: {string.Join(
+        var dayNameElement = day.GetProperty("day");
+        var dayName = dayNameElement.GetString();
+        var intervalsElement = day.GetProperty("intervals");
+        var intervalValues = intervalsElement.EnumerateArray();
+        var formattedIntervals = string.Join(
             ",",
-            day.GetProperty("intervals").EnumerateArray()
-                .Select(x => $"{x.GetProperty("start").GetString()}-{x.GetProperty("end").GetString()}"))} | ";
+            intervalValues.Select(FormatInterval));
+        return $"{dayName}: {formattedIntervals} | ";
+
+        static string FormatInterval(JsonElement interval)
+        {
+            var startElement = interval.GetProperty("start");
+            var start = startElement.GetString();
+            var endElement = interval.GetProperty("end");
+            var end = endElement.GetString();
+            return $"{start}-{end}";
+        }
     }
 
     private static string Day(JsonElement section, string day)
@@ -784,17 +797,11 @@ public sealed class FreeHoursTests
                     .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
 
-            IEnumerable<string> CalculateCollection()
-            {
-                var collection = Directory.EnumerateFiles(
-                    path: FixtureDirectory(),
-                    searchPattern: "*schedule_*.json",
-                    SearchOption.AllDirectories);
-                return collection;
-            }
-
-            Assert.Empty(
-                CalculateCollection());
+            var scheduleFiles = Directory.EnumerateFiles(
+                path: FixtureDirectory(),
+                searchPattern: "*schedule_*.json",
+                SearchOption.AllDirectories);
+            Assert.Empty(scheduleFiles);
             return document.RootElement.Clone();
         }
         finally
@@ -805,11 +812,17 @@ public sealed class FreeHoursTests
 
     private static string Name(JsonElement section)
     {
-        return
-            $"{$"{section.GetProperty("group").GetString()}/{section.GetProperty("parity").GetString()}/"}{(section.GetProperty("mode").GetString()
-                == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
-                    ? "whole"
-                    : "every")}";
+        var groupElement = section.GetProperty("group");
+        var group = groupElement.GetString();
+        var parityElement = section.GetProperty("parity");
+        var parity = parityElement.GetString();
+        var modeElement = section.GetProperty("mode");
+        var mode = modeElement.GetString();
+        var modeName = mode == nameof(FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy)
+            ? "whole"
+            : "every";
+
+        return $"{group}/{parity}/{modeName}";
     }
 
     private sealed class TempDirectory : IDisposable

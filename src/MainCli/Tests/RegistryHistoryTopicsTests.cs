@@ -389,7 +389,8 @@ public sealed class RegistryHistoryTopicsTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+            var temporaryRoot = Path.GetDirectoryName(directory)!;
+            Directory.Delete(temporaryRoot, recursive: true);
         }
     }
 
@@ -651,7 +652,8 @@ public sealed class RegistryHistoryTopicsTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+            var temporaryRoot = Path.GetDirectoryName(directory)!;
+            Directory.Delete(temporaryRoot, recursive: true);
         }
     }
 
@@ -692,7 +694,8 @@ public sealed class RegistryHistoryTopicsTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+            var temporaryRoot = Path.GetDirectoryName(directory)!;
+            Directory.Delete(temporaryRoot, recursive: true);
         }
     }
 
@@ -732,19 +735,41 @@ public sealed class RegistryHistoryTopicsTests
                 }
 
                 var year = text4;
-                var courseIds = year == "2025/26" ? duplicateCurrent ? new[]
+                var courseIds = CourseIdsForYear(year);
+
+                int[] CourseIdsForYear(string academicYear)
+                {
+                    if (academicYear == "2025/26")
                     {
-                        1,
-                        2,
-                    } :
-                    secondCourseFallsBack ? [1, 6] : [1]
-                    : year == "2024/25" ? latestDuplicate ? new[]
+                        if (duplicateCurrent)
+                        {
+                            return [1, 2];
+                        }
+                        if (secondCourseFallsBack)
+                        {
+                            return [1, 6];
+                        }
+                        return [1];
+                    }
+                    if (academicYear == "2024/25")
                     {
-                        3,
-                        4,
-                    } :
-                    secondCourseFallsBack ? [3, 7] : [3]
-                    : secondCourseFallsBack ? [5, 8] : [5];
+                        if (latestDuplicate)
+                        {
+                            return [3, 4];
+                        }
+                        if (secondCourseFallsBack)
+                        {
+                            return [3, 7];
+                        }
+                        return [3];
+                    }
+                    if (secondCourseFallsBack)
+                    {
+                        return [5, 8];
+                    }
+                    return [5];
+                }
+
                 html = $"<form><select id='AnUniv' name='AnUniv'>{string.Concat(
                     new[]
                     {
@@ -980,7 +1005,8 @@ public sealed class RegistryHistoryTopicsTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+            var temporaryRoot = Path.GetDirectoryName(directory)!;
+            Directory.Delete(temporaryRoot, recursive: true);
         }
     }
 

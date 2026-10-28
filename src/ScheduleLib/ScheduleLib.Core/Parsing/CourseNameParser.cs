@@ -304,7 +304,11 @@ public static class CourseNameParsing
                 return false;
             }
 
-            return b.IsDone;
+            if (b.IsDone)
+            {
+                return true;
+            }
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult2();
@@ -326,7 +330,11 @@ public static class CourseNameParsing
                     return false;
                 }
 
-                return a.CanIgnoreCurrent;
+                if (a.CanIgnoreCurrent)
+                {
+                    return true;
+                }
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();
@@ -371,31 +379,11 @@ public static class CourseNameParsing
             foreach (var wb in b.GetPossibleWords())
             {
                 var equal = wa.Word.Shortened.Compare(wb.Word.Shortened);
-                bool conditionResult2;
-                if (wa.Type == WordType.Plain)
-                {
-                    if (wb.Type == WordType.Plain)
-                    {
-                        if (a.MightBeInitials)
-                        {
-                            conditionResult2 = true;
-                        }
-                        else
-                        {
-                            conditionResult2 = b.MightBeInitials;
-                        }
-                    }
-                    else
-                    {
-                        conditionResult2 = false;
-                    }
-                }
-                else
-                {
-                    conditionResult2 = false;
-                }
-
-                if (conditionResult2)
+                if (RequiresExactWordMatch(
+                        leftType: wa.Type,
+                        rightType: wb.Type,
+                        left: a,
+                        right: b))
                 {
                     if (equal != CompareShortenedWordsResult.Equal_Exactly)
                     {
@@ -418,6 +406,31 @@ public static class CourseNameParsing
             }
         }
 
+        return false;
+    }
+
+    private static bool RequiresExactWordMatch(
+        WordType leftType,
+        WordType rightType,
+        CourseIter left,
+        CourseIter right)
+    {
+        if (leftType != WordType.Plain)
+        {
+            return false;
+        }
+        if (rightType != WordType.Plain)
+        {
+            return false;
+        }
+        if (left.MightBeInitials)
+        {
+            return true;
+        }
+        if (right.MightBeInitials)
+        {
+            return true;
+        }
         return false;
     }
 

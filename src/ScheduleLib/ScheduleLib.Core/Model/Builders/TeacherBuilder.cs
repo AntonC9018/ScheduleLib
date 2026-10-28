@@ -212,13 +212,23 @@ public static class TeacherLookupHelper
                                         var newFull = newPart.Span.Value;
                                         if (existingPart.Full is { } f)
                                         {
-                                            return IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f);
+                                            if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
+                                            {
+                                                return true;
+                                            }
+
+                                            return false;
                                         }
                                         if (existingPart.Short is { } s)
                                         {
-                                            return IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                                x: newFull,
-                                                y: new Word(s).Span.Shortened.Value);
+                                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                                    x: newFull,
+                                                    y: new Word(s).Span.Shortened.Value))
+                                            {
+                                                return true;
+                                            }
+
+                                            return false;
                                         }
                                         throw Unreachable();
                                     }))

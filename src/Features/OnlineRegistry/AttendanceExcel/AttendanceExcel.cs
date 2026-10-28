@@ -569,7 +569,17 @@ public sealed partial class AttendanceListsExcelParser
                             ignored,
                             target.GroupPartition) is { } projected)
                     {
-                        return new(additionallyIgnoredFields.LessonType ? LessonType.None : LessonType.Lab,
+                        LessonType lessonType;
+                        if (additionallyIgnoredFields.LessonType)
+                        {
+                            lessonType = LessonType.None;
+                        }
+                        else
+                        {
+                            lessonType = LessonType.Lab;
+                        }
+                        return new(
+                            lessonType,
                             projected.Lesson.Groups,
                             key.GroupPartition,
                             candidates[0]);
@@ -1149,6 +1159,21 @@ public sealed partial class AttendanceListsExcelParser
         return false;
     }
 
+    private static bool HasHeaderRow(
+        in ParsedHeaderInfo header,
+        in WorksheetParseParameters parameters)
+    {
+        if (header.IsApplicable)
+        {
+            return true;
+        }
+        if (parameters.HeaderFormat.FormatType == HeaderFormatType.IgnoreHeader)
+        {
+            return true;
+        }
+        return false;
+    }
+
     // TODO: reuse the list
     private static void BuildList(
         IXLWorksheet sheet,
@@ -1170,17 +1195,7 @@ public sealed partial class AttendanceListsExcelParser
             .SkipWhile(row => row.RowNumber() < firstRow.RowNumber())
             .GetEnumerator()
             .RememberIsDone();
-        bool conditionResult;
-        if (header.HeaderType != HeaderType.None)
-        {
-            conditionResult = true;
-        }
-        else
-        {
-            conditionResult = p.HeaderFormat.FormatType == HeaderFormatType.IgnoreHeader;
-        }
-
-        if (conditionResult)
+        if (HasHeaderRow(header, p))
         {
             var x = rowE.MoveNext();
             Debug.Assert(x);
@@ -1265,29 +1280,12 @@ public sealed partial class AttendanceListsExcelParser
 
             while (cells.MoveNext())
             {
-                bool conditionResult2;
-                if (header.IsApplicable)
+                if (HasHeaderRow(header, p))
                 {
-                    conditionResult2 = true;
-                }
-                else
-                {
-                    conditionResult2 = p.HeaderFormat.FormatType == HeaderFormatType.IgnoreHeader;
-                }
-
-                if (conditionResult2)
-                {
-                    conditionResult2 = contentColumns.Contains(cells.Current!.Address.ColumnNumber);
-                    conditionResult2 = !conditionResult2;
-                }
-                else
-                {
-                    conditionResult2 = false;
-                }
-
-                if (conditionResult2)
-                {
-                    continue;
+                    if (!contentColumns.Contains(cells.Current!.Address.ColumnNumber))
+                    {
+                        continue;
+                    }
                 }
 
                 if (!cells.Current!.TryGetValue(out string attendanceStr))

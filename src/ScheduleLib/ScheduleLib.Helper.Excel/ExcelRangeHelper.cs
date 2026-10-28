@@ -107,6 +107,8 @@ public static class ExcelRangeHelper
 
     public static CellPosition ParseCellPosition(this ref SequenceReader reader)
     {
+        const int ExcelColumnAlphabetRadix = 'Z' - 'A' + 1;
+
         uint col = 0;
         while (true)
         {
@@ -118,7 +120,7 @@ public static class ExcelRangeHelper
             {
                 break;
             }
-            col *= 'Z' - 'A' + 1;
+            col *= ExcelColumnAlphabetRadix;
             col += (uint) (char.ToUpperInvariant(reader.Current) - 'A' + 1);
             reader.Move();
         }

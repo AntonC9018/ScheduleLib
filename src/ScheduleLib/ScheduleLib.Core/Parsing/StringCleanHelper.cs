@@ -50,17 +50,7 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
                 return true;
             }
 
-            bool conditionResult;
-            if (_withoutSpaces.IsInitialized)
-            {
-                conditionResult = _withoutSpaces.Current is ',' or '.' or ':' or ';';
-            }
-            else
-            {
-                conditionResult = false;
-            }
-
-            bool isPrevPunctuation = conditionResult;
+            bool isPrevPunctuation = IsPreviousPunctuation();
             if (!_withoutSpaces.MoveNext())
             {
                 return false;
@@ -68,25 +58,28 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
 
             bool isCurrentSpace = _withoutSpaces.Current == ' ';
 
-            bool CalculateConditionResult2()
+            if (isCurrentSpace)
             {
-                if (isCurrentSpace)
-                {
-                    return false;
-                }
-
-                return isPrevPunctuation;
+                return true;
             }
-
-            bool conditionResult2 = CalculateConditionResult2();
-
-
-            if (conditionResult2)
+            if (isPrevPunctuation)
             {
                 _shouldOutputSpace = true;
             }
-
             return true;
+        }
+
+        private readonly bool IsPreviousPunctuation()
+        {
+            if (!_withoutSpaces.IsInitialized)
+            {
+                return false;
+            }
+            if (_withoutSpaces.Current is ',' or '.' or ':' or ';')
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
@@ -133,19 +126,12 @@ public readonly ref struct WithoutConsecutiveSpacesEnumerable
                 }
 
                 bool isCurrentSpace = Current is ' ' or '\t' or '\r' or '\n';
-                bool conditionResult;
                 if (_isSpace)
                 {
-                    conditionResult = isCurrentSpace;
-                }
-                else
-                {
-                    conditionResult = false;
-                }
-
-                if (conditionResult)
-                {
-                    continue;
+                    if (isCurrentSpace)
+                    {
+                        continue;
+                    }
                 }
 
                 _isSpace = isCurrentSpace;

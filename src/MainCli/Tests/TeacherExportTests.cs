@@ -876,7 +876,8 @@ public sealed class TeacherExportTests
 
         public Fixture(bool mixed = false)
         {
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(SourceFile)!);
+            string? sourceDirectory = System.IO.Path.GetDirectoryName(SourceFile);
+            Directory.CreateDirectory(sourceDirectory!);
 
             string CalculateFile()
             {

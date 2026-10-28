@@ -234,68 +234,79 @@ public sealed class GroupsNavigator
         GroupPartitionKey partition,
         IReadOnlyList<RegistryGroupMatchRule>? rules = null)
     {
-        bool conditionResult;
         if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All))
         {
-            if (parents.Count != 0)
+            if (AreEnglishParents(schedule, parents))
             {
-                conditionResult = parents.All(id => schedule.Get(id).Language == Language.En);
-            }
-            else
-            {
-                conditionResult = false;
+                return GroupPartitionKey.All;
             }
         }
-        else
+        if (rules is null)
         {
-            conditionResult = false;
+            return partition;
         }
-
-        if (conditionResult)
+        if (parents.Count == 0)
         {
-            return GroupPartitionKey.All;
+            return partition;
         }
-
-        if (rules is not null)
+        foreach (var rule in rules)
         {
-            if (parents.Count != 0)
+            if (!rule.MatchByLanguage)
             {
-                foreach (var rule in rules)
-                {
-                    bool conditionResult2;
-                    if (rule.MatchByLanguage)
-                    {
-                        if (rule.AllowParentGroup)
-                        {
-                            if (partition == new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All))
-                            {
-                                conditionResult2 = parents.All(id => schedule.Get(id).Language == rule.Language
-                                    && schedule.Get(id).Faculty.Name
-                                        .Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase));
-                            }
-                            else
-                            {
-                                conditionResult2 = false;
-                            }
-                        }
-                        else
-                        {
-                            conditionResult2 = false;
-                        }
-                    }
-                    else
-                    {
-                        conditionResult2 = false;
-                    }
-
-                    if (conditionResult2)
-                    {
-                        return GroupPartitionKey.All;
-                    }
-                }
+                continue;
+            }
+            if (!rule.AllowParentGroup)
+            {
+                continue;
+            }
+            var subGroup = new SubGroup(rule.SubGroup);
+            var rulePartition = new GroupPartitionKey(subGroup, Specialization.All);
+            if (partition != rulePartition)
+            {
+                continue;
+            }
+            if (MatchParentLanguageRule(schedule, parents, rule))
+            {
+                return GroupPartitionKey.All;
             }
         }
         return partition;
+
+        static bool AreEnglishParents(Schedule schedule, in LessonGroups parents)
+        {
+            if (parents.Count == 0)
+            {
+                return false;
+            }
+            foreach (var id in parents)
+            {
+                if (schedule.Get(id).Language != Language.En)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static bool MatchParentLanguageRule(
+            Schedule schedule,
+            in LessonGroups parents,
+            RegistryGroupMatchRule rule)
+        {
+            foreach (var id in parents)
+            {
+                var parent = schedule.Get(id);
+                if (parent.Language != rule.Language)
+                {
+                    return false;
+                }
+                if (!parent.Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     internal static LessonGroups FindGroupMatch(
@@ -348,24 +359,11 @@ public sealed class GroupsNavigator
                 languages.Add(candidate.Item.Language);
             }
         }
-        bool conditionResult;
-        if (combined)
+        if (group.Language is not null)
         {
-            if (group.Language is null)
-            {
-                conditionResult = languages.Count != 1;
-            }
-            else
-            {
-                conditionResult = false;
-            }
+            return ret;
         }
-        else
-        {
-            conditionResult = false;
-        }
-
-        if (conditionResult)
+        if (languages.Count != 1)
         {
             return new LessonGroups();
         }
@@ -403,25 +401,17 @@ public sealed class GroupsNavigator
     {
         foreach (var rule in rules)
         {
-            bool conditionResult2;
             if (!rule.MatchByLanguage)
             {
-                conditionResult2 = true;
+                continue;
             }
-            else
+            if (!group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
             {
-                if (!group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
-                {
-                    conditionResult2 = true;
-                }
-                else
-                {
-                    conditionResult2 =
-                        partition != new GroupPartitionKey(new SubGroup(rule.SubGroup), Specialization.All);
-                }
+                continue;
             }
-
-            if (conditionResult2)
+            var subGroup = new SubGroup(rule.SubGroup);
+            var rulePartition = new GroupPartitionKey(subGroup, Specialization.All);
+            if (partition != rulePartition)
             {
                 continue;
             }

@@ -90,7 +90,7 @@ public sealed class RegistryHistoryTopicsCommandTests
             string? path3 = Path.GetDirectoryName(directory);
             if (Directory.Exists(path3))
             {
-                Directory.Delete(Path.GetDirectoryName(directory)!, true);
+                Directory.Delete(path3!, true);
             }
         }
     }

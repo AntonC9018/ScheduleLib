@@ -103,7 +103,12 @@ public static class AttendanceLabMerges
                 {
                     return false;
                 }
-                return item.Base.Data.GroupPartitionKey == partition;
+                if (item.Base.Data.GroupPartitionKey == partition)
+                {
+                    return true;
+                }
+
+                return false;
             })
             || schedule.AutomaticLabSubGroupMerges.Any(merge =>
             {
@@ -123,7 +128,12 @@ public static class AttendanceLabMerges
                 {
                     return false;
                 }
-                return merge.SurvivingSubGroup == partition.SubGroup;
+                if (merge.SurvivingSubGroup == partition.SubGroup)
+                {
+                    return true;
+                }
+
+                return false;
             }))
         {
             return true;

@@ -144,24 +144,7 @@ public static class RegistryHistoryTopicsHtml
                 numberLength++;
             }
             // Observed leading registry sequence number is separated by whitespace.
-            bool conditionResult2;
-            if (numberLength > 0)
-            {
-                if (numberLength < raw.Length)
-                {
-                    conditionResult2 = char.IsWhiteSpace(raw[numberLength]);
-                }
-                else
-                {
-                    conditionResult2 = false;
-                }
-            }
-            else
-            {
-                conditionResult2 = false;
-            }
-
-            if (conditionResult2)
+            if (HasLeadingSequenceNumber(raw, numberLength))
             {
                 raw = raw[numberLength..].TrimStart();
             }
@@ -172,6 +155,23 @@ public static class RegistryHistoryTopicsHtml
                     .ToString()));
         }
         return result;
+    }
+
+    private static bool HasLeadingSequenceNumber(ReadOnlySpan<char> text, int digitCount)
+    {
+        if (digitCount == 0)
+        {
+            return false;
+        }
+        if (digitCount >= text.Length)
+        {
+            return false;
+        }
+        if (char.IsWhiteSpace(text[digitCount]))
+        {
+            return true;
+        }
+        return false;
     }
 
     private static RegistryHistoryException InvalidMarkup()
@@ -246,7 +246,11 @@ public static class RegistryHistoryTopicSelection
     {
         var currentStart = AcademicYearStart(currentYear);
         var previous = offeredYears.Distinct(StringComparer.Ordinal)
-            .Select(x => new PrecedingYear(x, AcademicYearStart(x)))
+            .Select(year =>
+            {
+                var start = AcademicYearStart(year);
+                return new PrecedingYear(year, start);
+            })
             .Where(x => x.Start < currentStart)
             .OrderByDescending(x => x.Start)
             .ToArray();
@@ -345,7 +349,11 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
         var currentStart = RegistryHistoryTopicSelection.AcademicYearStart(currentYear);
         // Validate every year before requesting any historical navigation.
         var previous = years
-            .Select(x => new PrecedingYearLink(x, RegistryHistoryTopicSelection.AcademicYearStart(x.Value)))
+            .Select(year =>
+            {
+                var start = RegistryHistoryTopicSelection.AcademicYearStart(year.Value);
+                return new PrecedingYearLink(year, start);
+            })
             .Where(x => x.Start < currentStart)
             .OrderByDescending(x => x.Start)
             .ToArray();

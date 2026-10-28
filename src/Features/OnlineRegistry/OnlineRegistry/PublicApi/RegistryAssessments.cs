@@ -384,7 +384,12 @@ internal static class RegistryAssessments
                             {
                                 return false;
                             }
-                            return RegistryAssessmentTopics.IsAssessment(existing.Topic);
+                            if (RegistryAssessmentTopics.IsAssessment(existing.Topic))
+                            {
+                                return true;
+                            }
+
+                            return false;
                         }))
                     {
                         return true;

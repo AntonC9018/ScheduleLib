@@ -1474,7 +1474,8 @@ public sealed class CliJsonlTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(historyDirectory)!, recursive: true);
+            string? historyRoot = Path.GetDirectoryName(historyDirectory);
+            Directory.Delete(historyRoot!, recursive: true);
         }
     }
 
@@ -1720,7 +1721,8 @@ public sealed class CliJsonlTests
         }
         finally
         {
-            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+            string? root = Path.GetDirectoryName(directory);
+            Directory.Delete(root!, recursive: true);
         }
     }
 

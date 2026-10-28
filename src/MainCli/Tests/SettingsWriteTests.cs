@@ -406,7 +406,8 @@ public sealed class SettingsWriteTests
         public Fixture()
         {
             Directory.CreateDirectory(ProjectDirectory);
-            Directory.CreateDirectory(Path.GetDirectoryName(UserFile)!);
+            var userDirectory = Path.GetDirectoryName(UserFile)!;
+            Directory.CreateDirectory(userDirectory);
         }
 
         public Task User(string json) => File.WriteAllTextAsync(path: UserFile, contents: json);

@@ -1733,9 +1733,10 @@ public sealed class RegistryLabDestinationTests
                 throw new IOException("Synthetic uncertain deletion.");
             }
 
+            var inputValue = document.QuerySelector("input")!
+                .GetAttribute("value")!;
             var id = int.Parse(
-                document.QuerySelector("input")!
-                    .GetAttribute("value")!,
+                inputValue,
                 System.Globalization.CultureInfo.InvariantCulture);
             if (id == RefusedLessonId)
             {

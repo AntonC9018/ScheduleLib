@@ -82,7 +82,12 @@ public static class GoogleApiHelper1
                             return true;
                         }
 
-                        return e.Reason == "backendError";
+                        if (e.Reason == "backendError")
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     return CheckCondition();

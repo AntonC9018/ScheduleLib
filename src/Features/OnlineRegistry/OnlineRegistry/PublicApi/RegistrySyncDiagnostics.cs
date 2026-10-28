@@ -188,7 +188,12 @@ internal sealed class RegistryTargetCoverage(
                         {
                             return false;
                         }
-                        return rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value;
+                        if (rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }))
                 {
                     return true;

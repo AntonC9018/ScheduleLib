@@ -330,9 +330,18 @@ public sealed class ScheduleImportContext
     {
         var lesson = input.Lesson;
         var builder = Schedule.DetachedRegularLesson();
-        builder.TimeSlot(lesson.StartTime is { } startTime
-            ? new(FindTimeSlotIndex(startTime))
-            : input.TimeSlot);
+        TimeSlot timeSlot;
+        if (lesson.StartTime is { } startTime)
+        {
+            var timeSlotIndex = FindTimeSlotIndex(startTime);
+            timeSlot = new(timeSlotIndex);
+        }
+        else
+        {
+            timeSlot = input.TimeSlot;
+        }
+
+        builder.TimeSlot(timeSlot);
         builder.DayOfWeek(input.Day);
         builder.Parity(lesson.Parity);
         builder.Alternative(input.Alternative);

@@ -308,7 +308,8 @@ public sealed class StorageTests
             string path1 = source;
             string path2 = Path.GetRelativePath(relativeTo: fixtures, path: file);
             var destination = Path.Combine(path1, path2);
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            var destinationDirectory = Path.GetDirectoryName(destination)!;
+            Directory.CreateDirectory(destinationDirectory);
             File.Copy(sourceFileName: file, destFileName: destination);
         }
         var cache = Path.Combine(temp.Path, "cache");

@@ -393,7 +393,10 @@ public static class CliHost
                 Console.WriteLine(
                     JsonSerializer.Serialize(
                         CalculateValue(),
-                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                        new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        }));
             }
         }
     }

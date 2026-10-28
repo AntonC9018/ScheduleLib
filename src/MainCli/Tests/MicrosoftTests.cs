@@ -1384,15 +1384,22 @@ public sealed class MicrosoftTests
                     return conditionResult2;
                 }
 
-                response = new(HttpStatusCode.OK)
+                response = new(HttpStatusCode.OK);
+                byte[] content;
+                if (fileName.EndsWith(".doc", StringComparison.Ordinal))
                 {
-                    Content = new ByteArrayContent(
-                        fileName.EndsWith(".doc", StringComparison.Ordinal)
-                            ? Encoding.UTF8.GetBytes("original-doc")
-                            : CheckCondition2()
-                                ? Encoding.UTF8.GetBytes("not-docx")
-                                : Docx()),
-                };
+                    content = Encoding.UTF8.GetBytes("original-doc");
+                }
+                else if (CheckCondition2())
+                {
+                    content = Encoding.UTF8.GetBytes("not-docx");
+                }
+                else
+                {
+                    content = Docx();
+                }
+
+                response.Content = new ByteArrayContent(content);
             }
             else
             {

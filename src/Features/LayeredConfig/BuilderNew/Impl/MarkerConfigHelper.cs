@@ -71,7 +71,8 @@ public static class MarkerConfigExtension
                 {
                     throw new InvalidOperationException("Teacher layer config must be explicitly set!");
                 }
-                return new(value, b.CreateBuilder(x.Node));
+                var nodeBuilder = b.CreateBuilder(x.Node);
+                return new(value, nodeBuilder);
             }
 
             return b.BaseNode

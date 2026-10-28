@@ -60,19 +60,22 @@ public sealed class WebsiteExportTests
         Assert.Equal(expected: 0, actual: exit);
         using var document = JsonDocument.Parse(stdout);
         var root = document.RootElement;
-        Assert.Equal(expected: 1,
+        Assert.Equal(
+            expected: 1,
             actual: root.GetProperty("schemaVersion")
                 .GetInt32());
-        Assert.Equal(expected: "export website-schedules",
+        Assert.Equal(
+            expected: "export website-schedules",
             actual: root.GetProperty("command")
                 .GetString());
-        Assert.Equal(expected: "succeeded",
+        Assert.Equal(
+            expected: "succeeded",
             actual: root.GetProperty("status")
                 .GetString());
         var data = root.GetProperty("data");
-        Assert.True(data.GetProperty("fileCount")
-                .GetInt32()
-            >= 1);
+        var fileCountElement = data.GetProperty("fileCount");
+        var fileCount = fileCountElement.GetInt32();
+        Assert.True(fileCount >= 1);
         Assert.NotEmpty(data.GetProperty("missingSlugs")
             .EnumerateArray());
         Assert.Contains(expectedSubstring: "No slug", actualString: stderr);
@@ -88,7 +91,8 @@ public sealed class WebsiteExportTests
         var zipPath = Path.Combine(output, "orar.zip");
         bool condition2 = File.Exists(zipPath);
         Assert.True(condition2);
-        Assert.Equal(expected: zipPath,
+        Assert.Equal(
+            expected: zipPath,
             actual: data.GetProperty("zipPath")
                 .GetString());
         AssertZipMatchesDirectory(zipPath: zipPath, directory: output);
@@ -97,17 +101,11 @@ public sealed class WebsiteExportTests
         Assert.True(condition3);
         Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(Path.Combine(output, "notes.txt")));
 
-        IEnumerable<string> CalculateCollection()
-        {
-            var collection = Directory.EnumerateFiles(
-                path: Fixtures,
-                searchPattern: "*schedule_*.json",
-                SearchOption.AllDirectories);
-            return collection;
-        }
-
-        Assert.Empty(
-            CalculateCollection());
+        var scheduleFiles = Directory.EnumerateFiles(
+            path: Fixtures,
+            searchPattern: "*schedule_*.json",
+            SearchOption.AllDirectories);
+        Assert.Empty(scheduleFiles);
     }
 
     [Fact]
@@ -161,17 +159,21 @@ public sealed class WebsiteExportTests
         Assert.Equal(expected: 0, actual: exit);
         using var document = JsonDocument.Parse(stdout);
         var root = document.RootElement;
-        Assert.Equal(expected: 1,
+        Assert.Equal(
+            expected: 1,
             actual: root.GetProperty("schemaVersion")
                 .GetInt32());
-        Assert.Equal(expected: "export website-theses",
+        Assert.Equal(
+            expected: "export website-theses",
             actual: root.GetProperty("command")
                 .GetString());
-        Assert.Equal(expected: "succeeded",
+        Assert.Equal(
+            expected: "succeeded",
             actual: root.GetProperty("status")
                 .GetString());
         var data = root.GetProperty("data");
-        Assert.Equal(expected: 1,
+        Assert.Equal(
+            expected: 1,
             actual: data.GetProperty("fileCount")
                 .GetInt32());
         var missing = data.GetProperty("missingSlugs")
@@ -190,17 +192,20 @@ public sealed class WebsiteExportTests
                 .EnumerateArray()
                 .ToArray();
             Assert.Single(items);
-            Assert.Equal(expected: "I2301",
+            Assert.Equal(
+                expected: "I2301",
                 actual: items[0].GetProperty("studentGroup")
                     .GetString());
-            Assert.Equal(expected: teachers.ThesisKey1.ToString(),
+            Assert.Equal(
+                expected: teachers.ThesisKey1.ToString(),
                 actual: items[0].GetProperty("teacher")
                     .GetString());
         }
         var zipPath = Path.Combine(output, "theses.zip");
         bool condition2 = File.Exists(zipPath);
         Assert.True(condition2);
-        Assert.Equal(expected: zipPath,
+        Assert.Equal(
+            expected: zipPath,
             actual: data.GetProperty("zipPath")
                 .GetString());
         AssertZipMatchesDirectory(zipPath: zipPath, directory: output);
@@ -237,10 +242,12 @@ public sealed class WebsiteExportTests
         System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: document.RootElement.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 5,
+        Assert.Equal(
+            expected: 5,
             actual: document.RootElement.GetProperty("exitCode")
                 .GetInt32());
     }
@@ -277,10 +284,12 @@ public sealed class WebsiteExportTests
             System.Collections.IEnumerable collection2 = collection;
             Assert.Empty(collection2);
             using var document = JsonDocument.Parse(stdout);
-            Assert.Equal(expected: "failed",
+            Assert.Equal(
+                expected: "failed",
                 actual: document.RootElement.GetProperty("status")
                     .GetString());
-            Assert.Equal(expected: 5,
+            Assert.Equal(
+                expected: 5,
                 actual: document.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -429,10 +438,12 @@ public sealed class WebsiteExportTests
         System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: document.RootElement.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 5,
+        Assert.Equal(
+            expected: 5,
             actual: document.RootElement.GetProperty("exitCode")
                 .GetInt32());
     }
@@ -470,10 +481,12 @@ public sealed class WebsiteExportTests
         System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: document.RootElement.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 5,
+        Assert.Equal(
+            expected: 5,
             actual: document.RootElement.GetProperty("exitCode")
                 .GetInt32());
     }
@@ -506,10 +519,12 @@ public sealed class WebsiteExportTests
         System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: document.RootElement.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 5,
+        Assert.Equal(
+            expected: 5,
             actual: document.RootElement.GetProperty("exitCode")
                 .GetInt32());
     }
@@ -544,10 +559,12 @@ public sealed class WebsiteExportTests
         System.Collections.IEnumerable collection2 = collection;
         Assert.Empty(collection2);
         using var document = JsonDocument.Parse(stdout);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: document.RootElement.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 5,
+        Assert.Equal(
+            expected: 5,
             actual: document.RootElement.GetProperty("exitCode")
                 .GetInt32());
     }
@@ -583,9 +600,9 @@ public sealed class WebsiteExportTests
         Assert.Equal(expected: 0, actual: exit);
         using var document = JsonDocument.Parse(stdout);
         var data = document.RootElement.GetProperty("data");
-        Assert.True(data.GetProperty("fileCount")
-                .GetInt32()
-            >= 1);
+        var fileCountElement = data.GetProperty("fileCount");
+        var fileCount = fileCountElement.GetInt32();
+        Assert.True(fileCount >= 1);
         var warnings = document.RootElement.GetProperty("warnings")
             .EnumerateArray()
             .Select(x => x.GetString())

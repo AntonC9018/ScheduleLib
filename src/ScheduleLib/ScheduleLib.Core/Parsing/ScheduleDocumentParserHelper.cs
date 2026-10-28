@@ -11,6 +11,19 @@ public static class ScheduleDocumentParserHelper
     /// <summary>A date interval from a schedule document.</summary>
     public readonly record struct DateInterval(DateTime Start, DateTime End);
 
+    private static bool HasTimeRangeSeparator(ref SequenceReader reader)
+    {
+        if (reader.IsEmpty)
+        {
+            return false;
+        }
+        if (reader.Current == '-')
+        {
+            return true;
+        }
+        return false;
+    }
+
     extension(ref SequenceReader reader)
     {
         public DateInterval ParseDateInterval(string format)
@@ -66,17 +79,7 @@ public static class ScheduleDocumentParserHelper
             {
                 throw new NotSupportedException("Expected time range start");
             }
-            bool conditionResult;
-            if (reader.IsEmpty)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = reader.Current != '-';
-            }
-
-            if (conditionResult)
+            if (!HasTimeRangeSeparator(ref reader))
             {
                 if (allowOpenInterval)
                 {

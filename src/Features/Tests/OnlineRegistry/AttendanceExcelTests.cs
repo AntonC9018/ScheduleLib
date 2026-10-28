@@ -365,8 +365,10 @@ public sealed class AttendanceExcelTests
         var schedule = builder.Build();
         var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
         unifier.Refresh(builder);
-        return new(builder,
-            schedule.Filter(new()),
+        var filteredSchedule = schedule.Filter(new());
+        return new(
+            builder,
+            filteredSchedule,
             course,
             group);
     }

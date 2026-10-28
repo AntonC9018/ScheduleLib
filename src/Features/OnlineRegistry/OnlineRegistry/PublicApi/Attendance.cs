@@ -39,37 +39,30 @@ public readonly record struct AttendanceDate
 
     public bool Matches(DateTime dateTime)
     {
-        if (dateTime.Month != Month || dateTime.Day != Day)
+        if (dateTime.Month != Month)
         {
             return false;
         }
-        bool conditionResult;
-        if (Year is null)
+        if (dateTime.Day != Day)
         {
-            conditionResult = true;
+            return false;
         }
-        else
+        if (Year is not null)
         {
-            conditionResult = dateTime.Year == Year;
-        }
-
-        if (conditionResult)
-        {
-            if (Time is null)
+            if (dateTime.Year != Year)
             {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = TimeOnly.FromDateTime(dateTime) == Time;
+                return false;
             }
         }
-        else
+        if (Time is null)
         {
-            conditionResult = false;
+            return true;
         }
-
-        return conditionResult;
+        if (TimeOnly.FromDateTime(dateTime) == Time)
+        {
+            return true;
+        }
+        return false;
     }
 }
 
