@@ -114,8 +114,12 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
-            new(second, ["Synthetic Boris"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(first, ["Synthetic Ana"]),
+            new(second, ["Synthetic Boris"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Boris");
@@ -140,8 +144,12 @@ public sealed class RegistryStudentCoverageTests
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
         var combined = first.WithGroups([fixture.First, fixture.Second]);
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
-            new(second, ["Synthetic Boris"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(first, ["Synthetic Ana"]),
+            new(second, ["Synthetic Boris"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Ana", "Synthetic Boris");
@@ -166,8 +174,12 @@ public sealed class RegistryStudentCoverageTests
         var first = fixture.Key(fixture.First);
         var second = fixture.Key(fixture.Second);
         var combined = first.WithGroups([fixture.First, fixture.Second]);
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
-            new(second, ["Synthetic Boris"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(first, ["Synthetic Ana"]),
+            new(second, ["Synthetic Boris"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Boris");
@@ -196,8 +208,12 @@ public sealed class RegistryStudentCoverageTests
         {
             LessonType = LessonType.Curs,
         };
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(lab, ["Synthetic Ana"]),
-            new(lecture, ["Synthetic Ana"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(lab, ["Synthetic Ana"]),
+            new(lecture, ["Synthetic Ana"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Dina");
@@ -226,8 +242,12 @@ public sealed class RegistryStudentCoverageTests
         {
             LessonType = LessonType.Curs,
         };
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(lab, ["Synthetic Boris"]),
-            new(lecture, ["Synthetic Ana"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(lab, ["Synthetic Boris"]),
+            new(lecture, ["Synthetic Ana"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Ana", "Synthetic Boris");
@@ -261,8 +281,12 @@ public sealed class RegistryStudentCoverageTests
         {
             LessonType = LessonType.Curs,
         };
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(lab, ["Synthetic Boris"]),
-            new(lecture, ["Synthetic Ana"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(lab, ["Synthetic Boris"]),
+            new(lecture, ["Synthetic Ana"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Boris");
@@ -292,8 +316,12 @@ public sealed class RegistryStudentCoverageTests
         {
             GroupPartition = new(secondSubGroup, Specialization.All),
         };
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
-            new(second, ["Synthetic Boris"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(first, ["Synthetic Ana"]),
+            new(second, ["Synthetic Boris"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Dina");
@@ -328,8 +356,12 @@ public sealed class RegistryStudentCoverageTests
         {
             GroupPartition = new(secondSubGroup, Specialization.All),
         };
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]),
-            new(second, ["Synthetic Ana"]));
+        Fixture.AttendanceSource[] attendanceSources =
+        [
+            new(first, ["Synthetic Ana"]),
+            new(second, ["Synthetic Ana"]),
+        ];
+        var attendance = fixture.Attendance(attendanceSources);
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
         var students = Roster("Synthetic Dina");
