@@ -1,8 +1,29 @@
 # Coding Standards
 
-Single source of truth for prose code-style rules. (Machine-enforced formatting lives in `.editorconfig` and `All.sln.DotSettings`; it complements — not duplicates — this doc.)
+Single source of truth for prose code-style rules. (Machine-enforced formatting lives in
+`.editorconfig` and `All.sln.DotSettings`; it complements — not duplicates — this doc.)
 
-- **Data contracts:** use meaningful record structs for returned, stored, or forwarded data aggregates. Keep separate domain concepts separate. Any remaining transient tuple must name every element at declaration and use those names, never `Item1`/`Item2`/etc.
-- **Typed exceptions:** domain errors in `ScheduleLib.Core` (+ Dates ranges/parity) throw a specific `ScheduleBuildException` subtype (e.g. `ConflictingImplicitAssignmentException`), never a bare `InvalidOperationException` — that one is only for unreachable internal invariants (with `Debug.Assert`). New types derive from `ScheduleBuildException` so existing `InvalidOperationException` catches keep working. Scope: Core/Dates only — infra-layer assemblies (`Helper`, `Helper.Excel`, `Helper.DependencyInjection`, `Scraping.*`) and test helpers must NOT reference Core (layering: Core depends on Helper), so their bare `InvalidOperationException` throws stay as-is.
-- **Chained Try-patterns:** a chained `TryX(...) || TryY(..., out sameVar)` disjunction must live in a named helper (e.g. `Specializations.TryResolveSpecialization(value, registry, out spec)` for built-in `||` registry specialization lookup) — never inline the double disjunction at call sites.
-- **Git identity:** never override git identity (no `-c user.name/email`, no `GIT_AUTHOR_*`/`GIT_COMMITTER_*` env); commits must use the repo's configured identity; model attribution goes ONLY in the `Generated-by:` trailer.
+- **Data contracts:** use meaningful record structs for returned, stored, or forwarded data
+  aggregates. Keep separate domain concepts separate. Any remaining transient tuple must name every
+  element at declaration and use those names, never `Item1`/`Item2`/etc.
+- **Typed exceptions:** domain errors in `ScheduleLib.Core` (+ Dates ranges/parity) throw a specific
+  `ScheduleBuildException` subtype (e.g. `ConflictingImplicitAssignmentException`), never a bare
+  `InvalidOperationException` — that one is only for unreachable internal invariants (with
+  `Debug.Assert`). New types derive from `ScheduleBuildException` so existing
+  `InvalidOperationException` catches keep working. Scope: Core/Dates only — infra-layer assemblies
+  (`Helper`, `Helper.Excel`, `Helper.DependencyInjection`, `Scraping.*`) and test helpers must NOT
+  reference Core (layering: Core depends on Helper), so their bare `InvalidOperationException`
+  throws stay as-is.
+- **Chained Try-patterns:** a chained `TryX(...) || TryY(..., out sameVar)` disjunction must live in
+  a named helper (e.g. `Specializations.TryResolveSpecialization(value, registry, out spec)` for
+  built-in `||` registry specialization lookup) — never inline the double disjunction at call sites.
+- **Git identity:** never override git identity (no `-c user.name/email`, no
+  `GIT_AUTHOR_*`/`GIT_COMMITTER_*` env); commits must use the repo's configured identity; model
+  attribution goes ONLY in the `Generated-by:` trailer.
+
+- **Wrapped call arguments:** when an ordinary argument list is chopped, put its
+  first argument on the next line too. Preserve the lambda exception. Keep a sole
+  positional constructor adjacent to the outer call; chop its own arguments below
+  `new(` when needed.
+- **Review examples:** link each source example to its exact line and show a
+  short relevant excerpt.

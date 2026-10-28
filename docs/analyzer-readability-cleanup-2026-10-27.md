@@ -110,3 +110,30 @@ separate fixture arguments, invariant assertions, production computations,
 Boolean scratch decisions and other outstanding review work. They are proposals,
 not additional source migrations. Analyzer regressions belong in CodingRules;
 temporary debugging probes do not belong in ScheduleLib's permanent suite.
+
+## Reviewed consumer cleanup — 2026-10-28
+
+Consumer source `b4270ba` cleans the unambiguous remaining conditional-value,
+Boolean scratch-decision, return, pipeline and layout clusters. The refreshed
+[remaining-case report](analyzer-remaining-clusters-2026-10-27.md) now supplies
+exact line links and separates the readable constructor/assertion policy cases
+from applied fixes. New analyzer/fixer complaints are recorded in
+[CodingRules #36](https://github.com/AntonC9018/CodingRules/issues/36).
+
+Within the reviewed scope, findings fall from 134 to 62: 43 test constructions,
+9 production constructions and 10 readable assertions, all CR0300. This also
+corrects the previous assertion/production bucket counts without changing their
+combined original total. No suppressions or blanket constructor exemptions were
+introduced. The analyzer binary and candidate package remain `2abd37a`.
+
+Both final AWS Release rebuilds pass. Focused checks pass, and full test failures
+match the established baseline exactly: solution 715 cases / 11 failures /
+7 skipped; CLI 770 cases / 3 failures. No ScheduleLib test cases were added.
+All 538 source hashes match the tested archive, whose SHA-256 is:
+
+```text
+4414330526cd4975fe78db5e316705e076de852455ec0afdaa5a79167156666b
+```
+
+Validation logs, TRX reports, inventory and source hashes are retained in the
+ignored CodingRules `artifacts/schedulelib-clusters-20261028/` directory.
