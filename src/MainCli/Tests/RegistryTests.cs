@@ -206,7 +206,7 @@ public sealed class RegistryTests
                 },
                 explicitApply: true);
         Assert.NotEmpty(plan);
-        Assert.Contains(plan, action => action.Kind == "create");
+        Assert.Contains(plan, action => action.Kind == RegistrySyncActionKind.Create);
         Assert.Equal(expected: 0, actual: navigator.Submissions);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
         Assert.Equal(expected: hasAttendanceSources,
@@ -1006,7 +1006,7 @@ public sealed class RegistryTests
             }
 
             var action = new RegistrySyncAction(
-                kind: "create",
+                kind: RegistrySyncActionKind.Create,
                 destination: Target.Destination,
                 course: "course",
                 groups: "group",
@@ -1089,14 +1089,14 @@ public sealed class RegistryTests
             Plans++;
             IReadOnlyList<RegistrySyncAction> actions = new[]
                 {
-                    "create",
-                    "update",
-                    "delete",
+                    RegistrySyncActionKind.Create,
+                    RegistrySyncActionKind.Update,
+                    RegistrySyncActionKind.Delete,
                 }.Select(kind =>
                 {
                     RegistrySyncAction ProjectValue()
                     {
-                        string operationValue = kind;
+                        RegistrySyncActionKind operationValue = kind;
                         string operationValue2 = Target.Destination;
                         string operationValue3 = "course";
                         string operationValue4 = "group";
@@ -1116,7 +1116,7 @@ public sealed class RegistryTests
                                 throw ActionFailure;
                             }
 
-                            if (kind == "delete")
+                            if (kind == RegistrySyncActionKind.Delete)
                             {
                                 await Navigator.SubmitDelete(null!);
                             }
@@ -1137,7 +1137,7 @@ public sealed class RegistryTests
                                     return false;
                                 }
 
-                                if (kind == "update")
+                                if (kind == RegistrySyncActionKind.Update)
                                 {
                                     return true;
                                 }

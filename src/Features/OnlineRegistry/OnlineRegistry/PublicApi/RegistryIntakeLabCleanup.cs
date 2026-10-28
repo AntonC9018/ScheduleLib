@@ -152,7 +152,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     course: courseName,
                     @group: groupNames,
                     detail: detail);
-                var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: "delete",
+                var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: RegistrySyncActionKind.Delete,
                         destination: group.Uri.ToString(),
                         course: courseName,
                         groups: groupNames,

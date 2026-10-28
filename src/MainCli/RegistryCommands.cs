@@ -226,7 +226,7 @@ public partial class RegistryCommands
                     var request = new RegistryMutationRequest(action.Execute, cancellation.Token)
                     {
                         CancellationPolicy = "Creates",
-                        AllowRefusedDeletion = action.Kind == "delete",
+                        AllowRefusedDeletion = action.Kind == RegistrySyncActionKind.Delete,
                     };
                     var outcome = await RegistryMutation.Execute(request);
                     attempted |= outcome.SubmissionStarted;
@@ -284,7 +284,7 @@ public partial class RegistryCommands
             string? detail)
         {
             return new(
-                Kind: action.Kind,
+                Kind: action.Kind.ToLowercaseValue(),
                 Destination: action.Destination,
                 Course: action.Course,
                 Groups: action.Groups,

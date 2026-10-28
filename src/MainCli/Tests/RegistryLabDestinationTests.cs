@@ -551,7 +551,8 @@ public sealed class RegistryLabDestinationTests
             explicitApply: true);
 
         Assert.NotEmpty(plan);
-        Assert.All(plan, action => Assert.Equal(expected: "create", actual: action.Kind));
+        Assert.All(plan,
+            action => Assert.Equal(expected: RegistrySyncActionKind.Create, actual: action.Kind));
         Assert.All(
             plan,
             action =>

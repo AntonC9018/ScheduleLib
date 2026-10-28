@@ -2584,15 +2584,15 @@ public sealed class CliJsonlTests
         {
             var kinds = new[]
             {
-                "create",
-                "update",
-                "delete",
+                RegistrySyncActionKind.Create,
+                RegistrySyncActionKind.Update,
+                RegistrySyncActionKind.Delete,
             };
             IReadOnlyList<RegistrySyncAction> actions = kinds.Select((kind, index) =>
                 {
                     RegistrySyncAction ProjectValue()
                     {
-                        string operationValue = kind;
+                        RegistrySyncActionKind operationValue = kind;
                         string operationValue2 = Target.Destination;
                         string operationValue3 = "synthetic-course";
                         string operationValue4 = "synthetic-group";

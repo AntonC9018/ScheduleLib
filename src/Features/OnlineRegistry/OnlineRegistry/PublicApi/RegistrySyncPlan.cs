@@ -25,8 +25,29 @@ public interface IRegistrySyncNavigator
     }
 }
 
+public enum RegistrySyncActionKind
+{
+    Create,
+    Update,
+    Delete,
+}
+
+public static class RegistrySyncActionKindExtensions
+{
+    public static string ToLowercaseValue(this RegistrySyncActionKind kind)
+    {
+        return kind switch
+        {
+            RegistrySyncActionKind.Create => "create",
+            RegistrySyncActionKind.Update => "update",
+            RegistrySyncActionKind.Delete => "delete",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+}
+
 public sealed class RegistrySyncAction(
-    string kind,
+    RegistrySyncActionKind kind,
     string destination,
     string course,
     string groups,
@@ -37,7 +58,7 @@ public sealed class RegistrySyncAction(
     string? omission,
     Func<CancellationToken, Task> execute)
 {
-    public string Kind { get; } = kind;
+    public RegistrySyncActionKind Kind { get; } = kind;
     public string Destination { get; } = destination;
     public string Course { get; } = course;
     public string Groups { get; } = groups;

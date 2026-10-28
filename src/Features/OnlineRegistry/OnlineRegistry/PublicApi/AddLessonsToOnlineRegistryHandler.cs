@@ -76,9 +76,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
     public async Task Run(RunParams p)
     {
-        static bool IsRefusedDeletion(string actionKind, RegistryActionExecutionException error)
+        static bool IsRefusedDeletion(RegistrySyncActionKind actionKind, RegistryActionExecutionException error)
         {
-            if (actionKind != "delete")
+            if (actionKind != RegistrySyncActionKind.Delete)
             {
                 return false;
             }
@@ -129,7 +129,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             catch (RegistryActionExecutionException error) when (IsFormPreparationFailureBeforeSubmission(error))
             {
                 _logger.LogError("Registry {Kind} form preparation failed for {Date}",
-                    action.Kind,
+                    action.Kind.ToLowercaseValue(),
                     action.Date);
             }
         }
@@ -966,8 +966,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return attendanceCount;
                     }
 
-                    actions.Add(new(kind: command.Type.ToString()
-                            .ToLowerInvariant(),
+                    var actionKind = command.Type switch
+                    {
+                        LessonEquationCommandType.Create => RegistrySyncActionKind.Create,
+                        LessonEquationCommandType.Update => RegistrySyncActionKind.Update,
+                        LessonEquationCommandType.Delete => RegistrySyncActionKind.Delete,
+                        _ => throw new ArgumentOutOfRangeException(
+                            nameof(command.Type),
+                            command.Type,
+                            null),
+                    };
+
+                    actions.Add(new(kind: actionKind,
                         destination: group.Uri.ToString(),
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         groups: group.Groups.Value.ToString(_schedule),
