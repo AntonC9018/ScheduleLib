@@ -61,7 +61,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 bool ShouldSkipSingleGroupDestination()
                 {
-                    if (group.Groups.IsWildcard || group.Groups.IsCombined)
+                    if (group.Groups.IsWildcard)
+                    {
+                        return false;
+                    }
+
+                    if (group.Groups.IsCombined)
                     {
                         return false;
                     }
@@ -81,17 +86,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 bool IsLabLesson(AnyLessonId lessonId)
                 {
-                    return _schedule.Get(lessonId).Lesson.Type == LessonType.Lab;
+                    var lesson = _schedule.Get(lessonId).Lesson;
+                    return lesson.Type == LessonType.Lab;
                 }
 
                 if (!destination.Selection.Lessons.Any(IsLabLesson))
                 {
                     continue;
-                }
-
-                bool HasUnresolvedLabRouting()
-                {
-                    return destination.Selection.Lessons.Any(IsUnresolvedLabLesson);
                 }
 
                 bool IsUnresolvedLabLesson(AnyLessonId lessonId)
@@ -115,14 +116,29 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                 bool IsParentCoveredByMatchingDestination(AnyLessonId lessonId, GroupId parent)
                 {
-                    return destinations.Where(candidate =>
-                            candidate.Group.IsAdditionalCourses == group.IsAdditionalCourses)
-                        .Any(candidate =>
-                            routed[candidate.Group.Uri].TryGetValue(lessonId, out var covered)
-                            && covered.Contains(parent));
+                    foreach (var candidate in destinations)
+                    {
+                        if (candidate.Group.IsAdditionalCourses != group.IsAdditionalCourses)
+                        {
+                            continue;
+                        }
+
+                        if (!routed[candidate.Group.Uri].TryGetValue(lessonId, out var covered))
+                        {
+                            continue;
+                        }
+
+                        if (covered.Contains(parent))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
 
-                if (HasUnresolvedLabRouting())
+                var hasUnresolvedLabRouting = destination.Selection.Lessons.Any(IsUnresolvedLabLesson);
+                if (hasUnresolvedLabRouting)
                 {
                     diagnostics.Add(kind: "registry-lab-routing-unresolved",
                         course: _schedule.Get(course.CourseId).FullName,
