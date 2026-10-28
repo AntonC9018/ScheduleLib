@@ -17,7 +17,7 @@ public static class CliHost
     internal static async Task<int> RunCore(string[] args, Action<AppRunner<Commands>>? configure)
     {
         var invoked = false;
-        var inputFailure = false;
+        var startupRequest = StartupRequest.None;
         string? parseDetail = null;
         var runner = new AppRunner<Commands>(new AppSettings
         {
@@ -28,44 +28,27 @@ public static class CliHost
             },
             DisableDirectives = true,
         });
-        // When --jsonl is selected (without --json and without explicit --help), capture
-        // CommandDotNet's own human parse-error output so neither stdout nor stderr
-        // mixes human text into JSONL. Command results use System.Console directly and
-        // are unaffected; explicit --help keeps the ordinary text console.
-        var hasJson = args.Contains("--json");
-        var hasJsonl = args.Contains("--jsonl");
-        var hasHelp = args.Contains("--help") || args.Contains("-h");
         CapturingConsole? capture = null;
-
-        bool CheckCondition()
-        {
-            if (!hasJsonl)
+        runner.Configure(builder => builder.UseMiddleware(
+            (context, next) =>
             {
-                return false;
-            }
+                var parseResult = context.ParseResult;
+                startupRequest = new StartupRequest(
+                    parseResult?.TargetCommand.HasInputValues("json") == true,
+                    parseResult?.TargetCommand.HasInputValues("jsonl") == true,
+                    parseResult?.HelpWasRequested() == true);
 
-            if (hasJson)
-            {
-                return false;
-            }
+                // Keep CommandDotNet diagnostics inside the JSONL stderr stream. Help
+                // remains human-readable, and command output continues through Console.
+                if (startupRequest.CapturesDiagnostics)
+                {
+                    capture = new();
+                    context.Console = capture;
+                }
 
-            if (!hasHelp)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        if (CheckCondition())
-        {
-            capture = new();
-            runner.Configure(builder =>
-            {
-                var appConfigBuilder = builder;
-                appConfigBuilder.Console = capture;
-            });
-        }
+                return next(context);
+            },
+            MiddlewareSteps.ParseInput + 1));
         runner.Configure(builder => builder.UseMiddleware(
             (context, next) =>
             {
@@ -77,65 +60,15 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-
-                bool CalculateConditionResult()
-                {
-                    if (invoked)
-                    {
-                        return false;
-                    }
-
-                    if (context.ParseResult?.ParseError is not null)
-                    {
-                        return true;
-                    }
-
-                    if (exit == ExitCodes.ValidationError)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                inputFailure = conditionResult;
                 if (!invoked && context.ParseResult?.ParseError is not null)
                 {
                     parseDetail = context.ParseResult.ParseError.ToString();
                 }
 
-                bool CalculateConditionResult2()
-                {
-                    if (exit == CliExit.Success)
-                    {
-                        return false;
-                    }
-
-                    if (invoked)
-                    {
-                        return false;
-                    }
-
-                    if (args.Contains("--json"))
-                    {
-                        return true;
-                    }
-
-                    if (args.Contains("--jsonl"))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult2 = CalculateConditionResult2();
-
-
-                if (conditionResult2)
+                if (!invoked
+                    && exit != CliExit.Success
+                    && startupRequest.HasFormat
+                    && !startupRequest.HelpRequested)
                 {
                     context.ShowHelpOnExit = false;
                 }
@@ -146,62 +79,19 @@ public static class CliHost
         try
         {
             configure?.Invoke(runner);
-
-            string[] CalculateArgs()
-            {
-                string[] args2;
-                if (args.Length == 0)
-                {
-                    args2 = ["--help"];
-                }
-                else
-                {
-                    args2 = args;
-                }
-
-                return args2;
-            }
-
-            var result = await runner.RunAsync(CalculateArgs());
-
-            bool CalculateConditionResult4()
-            {
-                if (result == 0)
-                {
-                    return true;
-                }
-                return invoked;
-            }
-
-            bool conditionResult = CalculateConditionResult4();
-
-
-            if (conditionResult)
+            var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
+            if (result == CliExit.Success || invoked)
             {
                 return result;
             }
 
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-
-            bool CalculateConditionResult2()
-            {
-                if (!hasJson)
-                {
-                    return false;
-                }
-
-                return hasJsonl;
-            }
-
-            bool conditionResult2 = CalculateConditionResult2();
-
-
-            if (conditionResult2)
+            if (startupRequest.ConflictingFormats && !startupRequest.HelpRequested)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
+            var inputFailure = result == ExitCodes.ValidationError
+                || parseDetail is not null;
             var exit = inputFailure ? CliExit.InvalidArguments : CliExit.Unexpected;
             // Preserve actionable parser diagnostics on stderr without dumping argv
             // or credentials: CommandDotNet's captured human error plus ParseError.
@@ -240,165 +130,83 @@ public static class CliHost
                 details.Add(summary);
             }
 
-            WriteStartupResult(
-                exit,
-                summary,
-                details.ToArray());
+            WriteStartupResult(exit, summary, details);
             return exit;
         }
         catch (Exception e)
         {
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-
-            bool CalculateConditionResult3()
-            {
-                if (!hasJson)
-                {
-                    return false;
-                }
-
-                return hasJsonl;
-            }
-
-            bool conditionResult3 = CalculateConditionResult3();
-
-
-            if (conditionResult3)
+            if (startupRequest.ConflictingFormats && !startupRequest.HelpRequested)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
-            bool conditionResult4;
-            if (hasJsonl)
-            {
-                conditionResult4 = hasJson;
-                conditionResult4 = !conditionResult4;
-            }
-            else
-            {
-                conditionResult4 = false;
-            }
-
-            if (conditionResult4)
-            {
-                string command = "cli";
-                string runId = Guid.NewGuid()
-                    .ToString("N");
-                bool json = false;
-                bool jsonl = true;
-                var output = new CliOutput(
-                    command,
-                    runId,
-                    json,
-                    jsonl);
-                output.EmitStart();
-                output.WriteError(e.Message);
-                output.EmitFinal(
-                    "failed",
-                    1,
-                    [],
-                    ["Unexpected CLI startup failure. See stderr for details."],
-                    null);
-                return CliExit.Unexpected;
-            }
-            Console.Error.WriteLine(e.Message);
             WriteStartupResult(
                 1,
                 "Unexpected CLI startup failure. See stderr for details.",
                 [e.Message]);
+            if (!startupRequest.Jsonl)
+            {
+                Console.Error.WriteLine(e.Message);
+            }
             return CliExit.Unexpected;
         }
 
         void WriteStartupResult(
             int exit,
             string error,
-            string[] details)
+            IReadOnlyList<string> details)
         {
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-
-            bool CalculateConditionResult()
-            {
-                if (!hasJson)
-                {
-                    return false;
-                }
-
-                return hasJsonl;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (startupRequest.HelpRequested)
             {
                 return;
             }
 
-            if (hasJsonl)
+            if (startupRequest.Jsonl)
             {
-                string command = "cli";
-                string runId = Guid.NewGuid()
-                    .ToString("N");
-                bool json = false;
-                bool jsonl = true;
-                var output = new CliOutput(
-                    command,
-                    runId,
-                    json,
-                    jsonl);
+                var output = new CliOutput("cli", Guid.NewGuid().ToString("N"), false, true);
                 output.EmitStart();
                 foreach (var detail in details)
                 {
                     output.WriteError(detail);
                 }
 
-                output.EmitFinal(
+                output.EmitFinal("failed", exit, [], [error], null);
+                return;
+            }
+
+            if (startupRequest.Json)
+            {
+                var value = new CommandResult<object?>(
+                    1,
+                    "cli",
+                    Guid.NewGuid().ToString("N"),
                     "failed",
                     exit,
                     [],
+                    [],
+                    [],
                     [error],
                     null);
-            }
-            else if (hasJson)
-            {
-                CommandResult<object?> CalculateValue()
-                {
-                    int schemaVersion = 1;
-                    string command2 = "cli";
-                    string runId2 = Guid.NewGuid()
-                        .ToString("N");
-                    string status = "failed";
-                    int exitCode = exit;
-                    string[] outputs = [];
-                    string[] actions = [];
-                    string[] warnings = [];
-                    string[] errors = [error];
-                    object? data = null;
-                    var value = new CommandResult<object?>(
-                        schemaVersion,
-                        command2,
-                        runId2,
-                        status,
-                        exitCode,
-                        outputs,
-                        actions,
-                        warnings,
-                        errors,
-                        data);
-                    return value;
-                }
-
                 Console.WriteLine(
                     JsonSerializer.Serialize(
-                        CalculateValue(),
+                        value,
                         new JsonSerializerOptions
                         {
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         }));
             }
         }
+    }
+
+    private readonly record struct StartupRequest(bool Json, bool Jsonl, bool HelpRequested)
+    {
+        public static StartupRequest None => new(false, false, false);
+
+        public bool HasFormat => Json || Jsonl;
+
+        public bool ConflictingFormats => Json && Jsonl;
+
+        public bool CapturesDiagnostics => Jsonl && !Json && !HelpRequested;
     }
 
     private sealed class CapturingConsole : CommandDotNet.Rendering.SystemConsole

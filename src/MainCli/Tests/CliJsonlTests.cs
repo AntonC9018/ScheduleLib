@@ -462,19 +462,20 @@ public sealed class CliJsonlTests
                 .GetString());
     }
 
-    [Fact]
-    public async Task StartupParseErrorWithJsonlEmitsJsonlOnBothStreams()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task StartupParseErrorUsesOnlyFormatOptionsParsedBeforeTheError(bool jsonlBeforeError)
     {
-        var originalOut = Console.Out;
-        var originalError = Console.Error;
-        using var stdout = new StringWriter();
-        using var stderr = new StringWriter();
-        try
+        var arguments = jsonlBeforeError
+            ? new[] { "query", "lessons", "--jsonl", "--unknown-flag" }
+            : new[] { "query", "lessons", "--unknown-flag", "--jsonl" };
+        var (exit, output, error) = await CaptureHost(arguments);
+
+        Assert.Equal(expected: 2, actual: exit);
+        if (jsonlBeforeError)
         {
-            Console.SetOut(stdout);
-            Console.SetError(stderr);
-            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--unknown-flag", "--jsonl"]));
-            var outLines = stdout.ToString()
+            var outLines = output
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(expected: 2, actual: outLines.Length);
             Assert.Equal(expected: "start",
@@ -485,13 +486,100 @@ public sealed class CliJsonlTests
                 actual: JsonDocument.Parse(outLines[1]).RootElement
                     .GetProperty("event")
                     .GetString());
-            var errLines = stderr.ToString()
+            var errLines = error
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries);
             Assert.NotEmpty(errLines);
             foreach (var line in errLines)
             {
                 JsonDocument.Parse(line);
             }
+        }
+        else
+        {
+            Assert.DoesNotContain("\"event\"", output);
+            Assert.DoesNotContain("\"event\"", error);
+            Assert.Contains("unknown", output + error, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task HelpAliasTakesPrecedenceOverResultFormats()
+    {
+        var (exit, output, error) = await CaptureHost(
+            ["query", "lessons", "-?", "--jsonl", "--json"]);
+
+        Assert.Equal(expected: CliExit.Success, actual: exit);
+        Assert.Contains("Usage:", output, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"event\"", output);
+        Assert.Empty(error);
+    }
+
+    [Fact]
+    public async Task OptionAfterEndOfOptionsDoesNotSelectJsonl()
+    {
+        var (exit, output, error) = await CaptureHost(["query", "lessons", "--", "--jsonl"]);
+
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: exit);
+        Assert.DoesNotContain("\"event\"", output);
+        Assert.DoesNotContain("\"event\"", error);
+        Assert.NotEmpty(output + error);
+    }
+
+    [Fact]
+    public async Task JsonlAfterParseErrorDoesNotConflictWithEarlierJson()
+    {
+        var (exit, output, _) = await CaptureHost(
+            ["query", "lessons", "--json", "--unknown-flag", "--jsonl"]);
+
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: exit);
+        using var document = JsonDocument.Parse(output);
+        Assert.Equal(expected: CliExit.InvalidArguments,
+            actual: document.RootElement.GetProperty("exitCode").GetInt32());
+        Assert.Equal(expected: "failed",
+            actual: document.RootElement.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task FailureBeforeParsingDoesNotUseRawFormatArguments()
+    {
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        try
+        {
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+            var exit = await CliHost.RunCore(
+                ["query", "lessons", "--jsonl"],
+                runner => runner.Configure(builder => builder.UseMiddleware(
+                    (_, _) => throw new InvalidOperationException("failure before parsing"),
+                    CommandDotNet.Execution.MiddlewareSteps.ParseInput - 1)));
+
+            Assert.Equal(expected: CliExit.Unexpected, actual: exit);
+            Assert.Empty(stdout.ToString());
+            Assert.Contains("failure before parsing", stderr.ToString());
+            Assert.DoesNotContain("\"event\"", stderr.ToString());
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+    }
+
+    private static async Task<(int Exit, string Output, string Error)> CaptureHost(string[] args)
+    {
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        try
+        {
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+            var exit = await CliHost.Run(args);
+            return (exit, stdout.ToString(), stderr.ToString());
         }
         finally
         {
