@@ -174,8 +174,19 @@ Use the shortest type name that binds unambiguously at the insertion point, or
 var when suitable. Prefer a local variable for a one-off computed value. Use a
 local function with explicit returns for a branching decision. Preserve captures
 needed for evaluation order, but do not copy an unchanged, uncaptured local just
-to pass it to the next call. A function chosen by an automatic refactoring is
-not evidence that the function improves readability.
+to pass it to the next call. Keep aliases that clarify a domain or configuration
+role, such as `var appConfigBuilder = builder` before configuring its Console.
+Single use alone does not make a local useless. Prefer the smallest meaningful
+scope, and give branching helpers names that describe their decisions. Do not
+move computations into a narrower scope when doing so delays, repeats or skips
+observable work. The proposed scope diagnostic is recorded in CodingRules #37.
+A function chosen by an automatic refactoring is not evidence that the function
+improves readability.
+
+One simple directly constructed argument may remain inline per call, including
+explicit and target-typed `new(...)` with other simple arguments. Multiple direct
+constructions still need named steps or an appropriate builder. Keep nested input
+computations visible under the existing rules.
 
 Do not add shared API members solely for tests unless they are intended consumer
 APIs or planned production capabilities. Change tests to exercise the actual API
@@ -198,8 +209,10 @@ transient grouping does not establish that unrelated concepts share a record.
 
 Object initializers expand onto new lines even with one member. Up to two
 receiver-chain calls may stay on one line only when the full line is at most
-90 characters. Longer chains wrap; when a wrapped call is an argument, prefer
-placing the argument below its enclosing call's opening parenthesis. Debug
+90 characters. Longer chains wrap. When an ordinary argument list is chopped,
+place every argument below the opening parenthesis, including the first. Preserve
+the lambda exception and keep a sole positional constructor adjacent to its outer
+call; chop the constructor's own arguments below `new(` when needed. Debug
 assertions should supply a meaningful explicit message rather than depending
 on incidental caller-expression source text. Replacing public API assertions
 with configurable safe-by-default checks is tracked separately in ScheduleLib

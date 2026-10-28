@@ -137,3 +137,35 @@ All 538 source hashes match the tested archive, whose SHA-256 is:
 
 Validation logs, TRX reports, inventory and source hashes are retained in the
 ignored CodingRules `artifacts/schedulelib-clusters-20261028/` directory.
+
+## Single-construction allowance — 2026-10-28
+
+CodingRules candidate `97de786` accepts one simple directly constructed argument
+per call, including explicit and target-typed forms with other simple arguments.
+Multiple directly constructed arguments and nested input computations retain
+CR0300. Its SHA-256 is:
+
+```text
+ea2022c5760ba614e40003ab4d933d0c48b0fa3921e6f1d5e93ad0936509da7c
+```
+
+All 1,488 analyzer/fixer/package cases and all 11 consumer gates pass against the
+stable source/candidate. Both consumer Release rebuilds and all 18 website tests
+pass. The reviewed warning count falls from 62 to 26: 16 construction arguments
+across eight multi-roster calls, plus the 10 readable assertions held for review.
+The source snapshot is `9e09740`; all 538 C# hashes match the transferred files.
+The current code change is limited to short-chain layout in WebsiteExportTests.
+No consumer test cases were added or analyzer fixes applied to other source here.
+
+The exported guidance now matches this package, including narrow meaningful
+scope, purposeful helper names and the approved appConfigBuilder alias.
+The reference-style report is restored with corrected line links and separate
+inline-key/alias examples. CLI design is recorded for later in
+[ScheduleLib #250](https://github.com/AntonC9018/ScheduleLib/issues/250); the
+scope/name analyzer proposal is deferred in
+[CodingRules #37](https://github.com/AntonC9018/CodingRules/issues/37).
+
+Logs, TRX reports, the package, inventory and source hashes are retained in
+CodingRules' ignored `artifacts/single-construction-97de786/` directory.
+The local candidate feed is prepared. Local restoration remains unverified
+because the Nix SDK cannot load CoreCLR against its current glibc/libm.
