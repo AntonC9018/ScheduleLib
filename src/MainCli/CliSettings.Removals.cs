@@ -157,7 +157,7 @@ public static partial class CliSettings
         var list = path.Value.IsGenericType && path.Value.GetGenericTypeDefinition() == typeof(List<>);
         var hasItem = action.ContainsKey("item");
 
-        bool CheckCondition()
+        bool RemovesWholeBlock()
         {
             if (!(operation is "remove" or "reset"))
             {
@@ -177,7 +177,7 @@ public static partial class CliSettings
             return false;
         }
 
-        if (CheckCondition())
+        if (RemovesWholeBlock())
         {
             return;
         }
@@ -462,41 +462,35 @@ public static partial class CliSettings
         foreach (var action in actions.Cast<JsonObject>()
                      .ToArray())
         {
-            var actionKey = action["key"]!.GetValue<string>();
-            bool conditionResult;
-            if (actionKey == key)
+            bool MatchesRemovedKey()
             {
-                conditionResult = true;
-            }
-            else
-            {
-                string text = actionKey;
-                string text2 = $"{key}.";
-                string value = text2;
-                var comparisonType = StringComparison.Ordinal;
-                if (text.StartsWith(value, comparisonType))
+                var actionKey = action["key"]!.GetValue<string>();
+                if (actionKey == key)
                 {
-                    conditionResult = true;
+                    return true;
                 }
-                else
+
+                var descendantPrefix = $"{key}.";
+                if (actionKey.StartsWith(descendantPrefix, StringComparison.Ordinal))
                 {
-                    if (includeAncestors)
-                    {
-                        string text3 = key;
-                        string text4 = $"{actionKey}.";
-                        string value2 = text4;
-                        var comparisonType2 = StringComparison.Ordinal;
-                        bool startsWith = text3.StartsWith(value2, comparisonType2);
-                        conditionResult = startsWith;
-                    }
-                    else
-                    {
-                        conditionResult = false;
-                    }
+                    return true;
                 }
+
+                if (!includeAncestors)
+                {
+                    return false;
+                }
+
+                var ancestorPrefix = $"{actionKey}.";
+                if (key.StartsWith(ancestorPrefix, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
-            if (conditionResult)
+            if (MatchesRemovedKey())
             {
                 actions.Remove(action);
             }
