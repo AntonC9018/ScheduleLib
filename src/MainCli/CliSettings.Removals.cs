@@ -330,36 +330,14 @@ public static partial class CliSettings
         JsonSerializerOptions json)
     {
         var path = OperationPath(action["key"]!.GetValue<string>(), json);
-        bool conditionResult;
         if (path.Members.Length != 0)
         {
-            Type CalculateTypeArguments()
+            var elementType = path.Value.GetGenericArguments()[0];
+            var comparerType = typeof(IKeyEqualityComparer<>).MakeGenericType(elementType);
+            if (provider.GetService(comparerType) is null)
             {
-                var genericArguments = path.Value.GetGenericArguments();
-                int int32 = 0;
-                var typeArguments = genericArguments[int32];
-                return typeArguments;
+                throw new JsonException("Collection has no registered item key.");
             }
-
-            Type CalculateServiceType()
-            {
-                var serviceType =
-                    typeof(IKeyEqualityComparer<>).MakeGenericType(CalculateTypeArguments());
-                return serviceType;
-            }
-
-            object? conditionValue = provider.GetService(
-                CalculateServiceType());
-            conditionResult = conditionValue is null;
-        }
-        else
-        {
-            conditionResult = false;
-        }
-
-        if (conditionResult)
-        {
-            throw new JsonException("Collection has no registered item key.");
         }
 
         typeof(CliSettings).GetMethod(nameof(AddTypedOperation), BindingFlags.NonPublic | BindingFlags.Static)!
@@ -374,18 +352,10 @@ public static partial class CliSettings
         IServiceProvider provider,
         JsonSerializerOptions json) where T : class
     {
-        NodeDataKey<T> CalculateKey()
-        {
-            string[] split = action["key"]!.GetValue<string>()
-                .Split('.');
-            int int32 = 0;
-            string value2 = split[int32];
-            NodeDataKey value3 = new(value2);
-            var key = new NodeDataKey<T>(value3);
-            return key;
-        }
-
-        var updates = node.GetOrAdd(CalculateKey())
+        var keyPath = action["key"]!.GetValue<string>().Split('.');
+        var keyName = keyPath[0];
+        var key = new NodeDataKey<T>(new NodeDataKey(keyName));
+        var updates = node.GetOrAdd(key)
             .UpdateActions;
         var operation = action["operation"]!.GetValue<string>();
         if (members.Length == 0)
@@ -412,9 +382,8 @@ public static partial class CliSettings
             if (operation == "clear")
             {
                 // The registered basic operation defines collection reset semantics.
-                var iServiceProvider = sp;
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
-                var basic = iServiceProvider.GetRequiredService(
+                var basic = sp.GetRequiredService(
                     serviceType);
                 basic.GetType()
                     .GetMethod("Reset")!
@@ -423,9 +392,8 @@ public static partial class CliSettings
             else
             {
                 var element = members[^1].PropertyType.GetGenericArguments()[0];
-                var iServiceProvider2 = sp;
                 var serviceType2 = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
-                var comparer = iServiceProvider2.GetRequiredService(serviceType2);
+                var comparer = sp.GetRequiredService(serviceType2);
                 var item = action["item"]!.Deserialize(element, json)!;
                 for (var i = list.Count - 1; i >= 0; i--)
                 {
