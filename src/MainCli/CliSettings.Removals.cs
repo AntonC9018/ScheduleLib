@@ -334,7 +334,8 @@ public static partial class CliSettings
         {
             var elementType = path.Value.GetGenericArguments()[0];
             var comparerType = typeof(IKeyEqualityComparer<>).MakeGenericType(elementType);
-            if (provider.GetService(comparerType) is null)
+            var comparer = provider.GetService(comparerType);
+            if (comparer is null)
             {
                 throw new JsonException("Collection has no registered item key.");
             }
