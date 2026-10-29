@@ -29,17 +29,17 @@ public static class CliHost
             DisableDirectives = true,
         });
         CapturingConsole? capture = null;
-        runner.Configure(builder => builder.UseMiddleware(
+        runner.Configure(builder =>
+        {
+            var appConfigBuilder = builder;
+            appConfigBuilder.UseMiddleware(
             (context, next) =>
             {
                 var parseResult = context.ParseResult;
-                startupRequest = new StartupRequest(
-                    parseResult?.TargetCommand.HasInputValues("json") == true,
-                    parseResult?.TargetCommand.HasInputValues("jsonl") == true,
-                    parseResult?.HelpWasRequested() == true);
+                startupRequest = StartupRequest.FromParsedInput(parseResult);
 
-                // Keep CommandDotNet diagnostics inside the JSONL stderr stream. Help
-                // remains human-readable, and command output continues through Console.
+                // Capture parser diagnostics for JSONL or a format conflict. Help
+                // remains human-readable; conflicts produce one dedicated error.
                 if (startupRequest.CapturesDiagnostics)
                 {
                     capture = new();
@@ -48,7 +48,8 @@ public static class CliHost
 
                 return next(context);
             },
-            MiddlewareSteps.ParseInput + 1));
+            MiddlewareSteps.ParseInput + 1);
+        });
         runner.Configure(builder => builder.UseMiddleware(
             (context, next) =>
             {
@@ -60,15 +61,15 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-                if (!invoked && context.ParseResult?.ParseError is not null)
+                if (!invoked)
                 {
-                    parseDetail = context.ParseResult.ParseError.ToString();
+                    if (context.ParseResult?.ParseError is { } parseError)
+                    {
+                        parseDetail = parseError.ToString();
+                    }
                 }
 
-                if (!invoked
-                    && exit != CliExit.Success
-                    && startupRequest.HasFormat
-                    && !startupRequest.HelpRequested)
+                if (startupRequest.ShouldSuppressFailureHelp(invoked, exit))
                 {
                     context.ShowHelpOnExit = false;
                 }
@@ -79,19 +80,24 @@ public static class CliHost
         try
         {
             configure?.Invoke(runner);
-            var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
-            if (result == CliExit.Success || invoked)
+            var invocationArguments = args.Length == 0 ? ["--help"] : args;
+            var result = await runner.RunAsync(invocationArguments);
+            if (result == CliExit.Success)
             {
                 return result;
             }
 
-            if (startupRequest.ConflictingFormats && !startupRequest.HelpRequested)
+            if (invoked)
+            {
+                return result;
+            }
+
+            if (startupRequest.RejectsFormatConflict)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
-            var inputFailure = result == ExitCodes.ValidationError
-                || parseDetail is not null;
+            var inputFailure = IsStartupInputFailure(result, parseDetail);
             var exit = inputFailure ? CliExit.InvalidArguments : CliExit.Unexpected;
             // Preserve actionable parser diagnostics on stderr without dumping argv
             // or credentials: CommandDotNet's captured human error plus ParseError.
@@ -117,9 +123,12 @@ public static class CliHost
                     }
                 }
             }
-            if (parseDetail is { Length: > 0 } parsed && !details.Contains(parsed))
+            if (parseDetail is { Length: > 0 } parsed)
             {
-                details.Add(parsed);
+                if (!details.Contains(parsed))
+                {
+                    details.Add(parsed);
+                }
             }
 
             var summary = inputFailure
@@ -135,7 +144,7 @@ public static class CliHost
         }
         catch (Exception e)
         {
-            if (startupRequest.ConflictingFormats && !startupRequest.HelpRequested)
+            if (startupRequest.RejectsFormatConflict)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
@@ -144,7 +153,7 @@ public static class CliHost
                 1,
                 "Unexpected CLI startup failure. See stderr for details.",
                 [e.Message]);
-            if (!startupRequest.Jsonl)
+            if (!startupRequest.UsesJsonlOutput)
             {
                 Console.Error.WriteLine(e.Message);
             }
@@ -198,15 +207,125 @@ public static class CliHost
         }
     }
 
+    private static bool IsStartupInputFailure(int exit, string? parseDetail)
+    {
+        if (exit == ExitCodes.ValidationError)
+        {
+            return true;
+        }
+
+        if (parseDetail is not null)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private readonly record struct StartupRequest(bool Json, bool Jsonl, bool HelpRequested)
     {
-        public static StartupRequest None => new(false, false, false);
+        public static StartupRequest None => default;
 
         public bool HasFormat => Json || Jsonl;
 
         public bool ConflictingFormats => Json && Jsonl;
 
-        public bool CapturesDiagnostics => Jsonl && !Json && !HelpRequested;
+        public bool CapturesDiagnostics
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (ConflictingFormats)
+                {
+                    return true;
+                }
+
+                if (Jsonl)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool UsesJsonlOutput
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (Json)
+                {
+                    return false;
+                }
+
+                if (Jsonl)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool RejectsFormatConflict
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (ConflictingFormats)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool ShouldSuppressFailureHelp(bool commandInvoked, int exit)
+        {
+            if (commandInvoked)
+            {
+                return false;
+            }
+
+            if (exit == CliExit.Success)
+            {
+                return false;
+            }
+
+            if (HelpRequested)
+            {
+                return false;
+            }
+
+            if (HasFormat)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static StartupRequest FromParsedInput(CommandDotNet.Parsing.ParseResult? parseResult)
+        {
+            var json = parseResult?.TargetCommand.HasInputValues("json") == true;
+            var jsonl = parseResult?.TargetCommand.HasInputValues("jsonl") == true;
+            var helpRequested = parseResult?.HelpWasRequested() == true;
+            return new(Json: json, Jsonl: jsonl, HelpRequested: helpRequested);
+        }
     }
 
     private sealed class CapturingConsole : CommandDotNet.Rendering.SystemConsole
@@ -316,42 +435,33 @@ public partial class QueryCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            bool conditionResult;
-            if (query.BeforeSlot is < 1 or > 7)
+            bool IsValidQuery()
             {
-                conditionResult = true;
-            }
-            else
-            {
+                if (query.BeforeSlot is < 1 or > 7)
+                {
+                    return false;
+                }
+
                 if (query.Day is { } day)
                 {
-                    conditionResult = Enum.IsDefined(day);
-                    conditionResult = !conditionResult;
-                }
-                else
-                {
-                    conditionResult = false;
+                    if (!Enum.IsDefined(day))
+                    {
+                        return false;
+                    }
                 }
 
-                if (conditionResult)
+                if (query.Parity is { } parity)
                 {
-                    conditionResult = true;
-                }
-                else
-                {
-                    if (query.Parity is { } parity)
+                    if (!Enum.IsDefined(parity))
                     {
-                        conditionResult = Enum.IsDefined(parity);
-                        conditionResult = !conditionResult;
-                    }
-                    else
-                    {
-                        conditionResult = false;
+                        return false;
                     }
                 }
+
+                return true;
             }
 
-            if (conditionResult)
+            if (!IsValidQuery())
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -387,91 +497,48 @@ public partial class QueryCommands
             {
                 cancellation.Token.ThrowIfCancellationRequested();
 
-                bool CalculateConditionResult2()
+                if (query.Room is { } roomFilter)
                 {
-                    if (!(query.Room is { } r))
+                    if (lesson.Lesson.Room.Id != roomFilter)
                     {
-                        return false;
-                    }
-
-                    if (lesson.Lesson.Room.Id != r)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult2 = CalculateConditionResult2();
-
-
-                if (conditionResult2)
-                {
-                    conditionResult2 = true;
-                }
-                else
-                {
-                    if (query.Day is { } d)
-                    {
-                        conditionResult2 = lesson.Date.DayOfWeek != d;
-                    }
-                    else
-                    {
-                        conditionResult2 = false;
-                    }
-
-                    if (conditionResult2)
-                    {
-                        conditionResult2 = true;
-                    }
-                    else
-                    {
-                        if (query.Parity is { } p)
-                        {
-                            conditionResult2 = lesson.Date.Parity.IsMatch(p);
-                            conditionResult2 = !conditionResult2;
-                        }
-                        else
-                        {
-                            conditionResult2 = false;
-                        }
-
-                        if (conditionResult2)
-                        {
-                            conditionResult2 = true;
-                        }
-                        else
-                        {
-                            if (query.BeforeSlot is { } slot)
-                            {
-                                conditionResult2 = lesson.Date.TimeSlot.Index + 1 > slot;
-                            }
-                            else
-                            {
-                                conditionResult2 = false;
-                            }
-                        }
+                        continue;
                     }
                 }
 
-                if (conditionResult2)
+                if (query.Day is { } dayFilter)
                 {
-                    continue;
+                    if (lesson.Date.DayOfWeek != dayFilter)
+                    {
+                        continue;
+                    }
+                }
+
+                if (query.Parity is { } parityFilter)
+                {
+                    if (!lesson.Date.Parity.IsMatch(parityFilter))
+                    {
+                        continue;
+                    }
+                }
+
+                if (query.BeforeSlot is { } lastSlot)
+                {
+                    var slotNumber = lesson.Date.TimeSlot.Index + 1;
+                    if (slotNumber > lastSlot)
+                    {
+                        continue;
+                    }
                 }
 
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
 
-                string CalculateStart()
-                {
-                    string start = interval.Start.ToString("HH:mm");
-                    return start;
-                }
+                var start = interval.Start.ToString("HH:mm");
 
                 var item = new LessonResult(
                     lesson.Date.DayOfWeek.ToString(),
                     lesson.Date.Parity.ToString(),
                     lesson.Date.TimeSlot.Index + 1,
-                    CalculateStart(),
+                    start,
                     interval.End.ToString("HH:mm"),
                     lesson.Lesson.Room.Id,
                     schedule.Get(lesson.Lesson.Course).FullName,
@@ -479,20 +546,17 @@ public partial class QueryCommands
                             .ToString())
                         .ToArray());
                 lessons.Add(item);
-                var cliCommandContext = context;
-                string id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string status2 = "completed";
-                object item2 = item;
-                Action renderHuman2 = () =>
+                var id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Action renderHuman = () =>
                 {
                     output.WriteHuman(
                         $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
                 };
-                cliCommandContext.StreamItem(
+                context.StreamItem(
                     id,
-                    status2,
-                    item2,
-                    renderHuman: renderHuman2);
+                    status: "completed",
+                    item,
+                    renderHuman: renderHuman);
                 streamed++;
             }
             return Finish(

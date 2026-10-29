@@ -534,9 +534,9 @@ public sealed class SettingsTests
         {
             "query",
             "lessons",
+            "--json",
             "--calendar-name",
             "irrelevant",
-            "--json",
         },
         2)]
     public async Task MissingAndIrrelevantArgumentsProduceVersionedJsonErrors(string[] arguments, int expected)

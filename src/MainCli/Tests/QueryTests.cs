@@ -215,7 +215,7 @@ public sealed class QueryTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--day", "invalid", "--json"]));
+            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--json", "--day", "invalid"]));
             using var document = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 2,
                 actual: document.RootElement.GetProperty("exitCode")

@@ -670,6 +670,9 @@ public sealed class RegistryTests
             actual: result.GetProperty("data")
                 .GetProperty("outcomes")
                 .GetArrayLength());
+        var outcomes = result.GetProperty("data").GetProperty("outcomes");
+        var kinds = outcomes.EnumerateArray().Select(outcome => outcome.GetProperty("kind").GetString());
+        Assert.Equal(expected: ["create", "update", "delete"], actual: kinds);
     }
 
     [Fact]

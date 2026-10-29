@@ -145,7 +145,8 @@ public sealed class CommandSurfaceTests
         {
             Console.SetOut(output);
             Console.SetError(error);
-            Assert.Equal(expected: 2, actual: await CliHost.Run([.. arguments, "--json"]));
+            string[] jsonArguments = [.. arguments[..2], "--json", .. arguments[2..]];
+            Assert.Equal(expected: 2, actual: await CliHost.Run(jsonArguments));
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 1,
                 actual: result.RootElement.GetProperty("schemaVersion")
