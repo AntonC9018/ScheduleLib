@@ -33,22 +33,22 @@ public static class CliHost
         {
             var appConfigBuilder = builder;
             appConfigBuilder.UseMiddleware(
-            (context, next) =>
-            {
-                var parseResult = context.ParseResult;
-                startupRequest = StartupRequest.FromParsedInput(parseResult);
-
-                // Capture parser diagnostics for JSONL or a format conflict. Help
-                // remains human-readable; conflicts produce one dedicated error.
-                if (startupRequest.CapturesDiagnostics)
+                (context, next) =>
                 {
-                    capture = new();
-                    context.Console = capture;
-                }
+                    var parseResult = context.ParseResult;
+                    startupRequest = StartupRequest.FromParsedInput(parseResult);
 
-                return next(context);
-            },
-            MiddlewareSteps.ParseInput + 1);
+                    // Capture parser diagnostics for JSONL or a format conflict. Help
+                    // remains human-readable; conflicts produce one dedicated error.
+                    if (startupRequest.CapturesDiagnostics)
+                    {
+                        capture = new();
+                        context.Console = capture;
+                    }
+
+                    return next(context);
+                },
+                MiddlewareSteps.ParseInput + 1);
         });
         runner.Configure(builder => builder.UseMiddleware(
             (context, next) =>
