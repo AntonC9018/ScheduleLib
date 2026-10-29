@@ -258,7 +258,8 @@ public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
             return x => f(x.GetPayload<T>());
         }
 
-        Assert.Collection(Events,
+        Assert.Collection(
+            Events,
             a.Select(Wrapped)
                 .ToArray());
     }

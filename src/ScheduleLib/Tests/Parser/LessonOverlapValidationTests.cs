@@ -71,20 +71,24 @@ public sealed class LessonOverlapValidationTests
     public void EveryOffendingPairIsReportedInOneError()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X",
             timeSlot: 0);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y",
             timeSlot: 0);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "M2401",
             courseName: "P",
             day: DayOfWeek.Tuesday,
             timeSlot: 1);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "M2401",
             courseName: "Q",
             day: DayOfWeek.Tuesday,
@@ -102,11 +106,13 @@ public sealed class LessonOverlapValidationTests
     public void DisjointWeekParitiesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X",
             parity: Parity.OddWeek);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y",
             parity: Parity.EvenWeek);
@@ -118,11 +124,13 @@ public sealed class LessonOverlapValidationTests
     public void EveryWeekIntersectsBothParities()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X",
             parity: Parity.EveryWeek);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y",
             parity: Parity.OddWeek);
@@ -134,11 +142,13 @@ public sealed class LessonOverlapValidationTests
     public void DifferentSpecializationsDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "X",
             specialization: "DJ");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "Y",
             specialization: "CV");
@@ -150,11 +160,13 @@ public sealed class LessonOverlapValidationTests
     public void DifferentSubGroupsDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "X",
             subGroup: "I");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "Y",
             subGroup: "II");
@@ -166,11 +178,13 @@ public sealed class LessonOverlapValidationTests
     public void DifferentAlternativesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "X",
             alternative: "Antreprenoriat");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "Y",
             alternative: "Psihologie");
@@ -182,10 +196,12 @@ public sealed class LessonOverlapValidationTests
     public void WholeGroupLessonsConflictWithSplitOnes()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "X");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "Y",
             subGroup: "I");
@@ -197,20 +213,24 @@ public sealed class LessonOverlapValidationTests
     public void DisjointGroupsOrDifferentTimesDoNotConflict()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "X",
             timeSlot: 0);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2404",
             courseName: "Y",
             timeSlot: 0);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "P",
             day: DayOfWeek.Tuesday,
             timeSlot: 0);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2403",
             courseName: "Q",
             day: DayOfWeek.Tuesday,
@@ -238,10 +258,12 @@ public sealed class LessonOverlapValidationTests
             ],
         };
         var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y");
 
@@ -265,10 +287,12 @@ public sealed class LessonOverlapValidationTests
             ],
         };
         var builder = CreateBuilder(config);
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y");
 
@@ -279,7 +303,8 @@ public sealed class LessonOverlapValidationTests
     public void OneTimeLessonsAreNotChecked()
     {
         var builder = CreateBuilder();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X");
         var oneTime = builder.OneTimeLesson();
@@ -294,7 +319,8 @@ public sealed class LessonOverlapValidationTests
         TimeSlot timeSlot = new(0);
         lessonBuilder3.TimeSlot(timeSlot);
         var lessonBuilder4 = oneTime;
-        var date = new DateOnly(year: 2026,
+        var date = new DateOnly(
+            year: 2026,
             month: 9,
             day: 7);
         lessonBuilder4.Date(date);
@@ -313,10 +339,12 @@ public sealed class LessonOverlapValidationTests
             }),
         };
         builder.EnableLookupModule();
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "X");
-        AddWeeklyLesson(builder,
+        AddWeeklyLesson(
+            builder,
             groupName: "IA2401",
             courseName: "Y",
             timeSlot: 0);

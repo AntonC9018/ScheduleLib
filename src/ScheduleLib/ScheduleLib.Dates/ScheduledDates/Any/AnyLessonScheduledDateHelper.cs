@@ -110,7 +110,8 @@ public sealed partial class ScheduleDateProviderHelper
             GroupId = lesson.Lesson.Group,
             Semester = sem,
         });
-        return new(timeSlotInterval,
+        return new(
+            timeSlotInterval,
             new()
             {
                 Schedule = _schedule,
@@ -134,7 +135,8 @@ public sealed partial class ScheduleDateProviderHelper
             }
 
             var v = Get(lessonId, p.Semester);
-            yield return new(lessonId,
+            yield return new(
+                lessonId,
                 v.TimeInterval,
                 v.Params);
         }

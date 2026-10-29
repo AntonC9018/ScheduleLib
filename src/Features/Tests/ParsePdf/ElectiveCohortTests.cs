@@ -21,16 +21,19 @@ public sealed class ElectiveCohortTests
             "IA2504(ru)",
             "IA2505(ru)",
         };
-        var cohorts = new ElectiveCohorts(context,
+        var cohorts = new ElectiveCohorts(
+        context,
         [
-            new(Source: "test.pdf",
+            new(
+                Source: "test.pdf",
                 1,
                 [groups[0], groups[2]],
                 Day: "Luni",
                 Start: "8:00",
                 Text: "",
                 Alternative: "Antreprenoriat Gr.1"),
-            new(Source: "test.pdf",
+            new(
+                Source: "test.pdf",
                 1,
                 [groups[1], groups[2]],
                 Day: "Luni",
@@ -49,7 +52,8 @@ public sealed class ElectiveCohortTests
             StartTime = new(hour: 15, minute: 0),
             Parity = Parity.OddWeek,
         };
-        var input = new ImportedLessonInput(lesson,
+        var input = new ImportedLessonInput(
+            lesson,
             DayOfWeek.Tuesday,
             TimeSlot.First,
             ids);
@@ -58,7 +62,8 @@ public sealed class ElectiveCohortTests
         Assert.Equal(expected: default, actual: input.Alternative);
         var lectures = context.Schedule.WeeklyLessons.List;
         Assert.Equal(expected: 3, actual: lectures.Count);
-        Assert.All(lectures,
+        Assert.All(
+            lectures,
             l =>
             {
                 Assert.Equal(expected: DayOfWeek.Tuesday, actual: l.Date.DayOfWeek);
@@ -71,20 +76,23 @@ public sealed class ElectiveCohortTests
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.All(lectures, l => Assert.Equal(expected: SubGroup.All, actual: l.Base.Group.SubGroup));
         var first = Assert.Single(lectures.Where(l => l.Base.Group.Alternative.Value == "Antreprenoriat Gr.1"));
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 ids[0],
                 ids[2],
             },
             actual: first.Base.Group.Groups.ToArray());
         var second = Assert.Single(lectures.Where(l => l.Base.Group.Alternative.Value == "Antreprenoriat Gr.2"));
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 ids[1],
                 ids[2],
             },
             actual: second.Base.Group.Groups.ToArray());
-        Assert.Contains(Config.ImplicitSplitConfig.Scopes,
+        Assert.Contains(
+            Config.ImplicitSplitConfig.Scopes,
             s => s.AlternativeCourses.ContainsKey("Antreprenoriat inovativ"));
     }
 
@@ -92,14 +100,16 @@ public sealed class ElectiveCohortTests
     public void ExplicitCohortFlowsThroughPdfCallbackWithoutExpansion()
     {
         var context = CreateContext();
-        var cell = new PdfScheduleCell(Source: "test.pdf",
+        var cell = new PdfScheduleCell(
+            Source: "test.pdf",
             1,
             ["IA2504(ru)"],
             Day: "Luni",
             Start: "8:00",
             Text: "Antreprenoriat inovativ (curs)",
             Alternative: "Antreprenoriat Gr.1");
-        var cohorts = new ElectiveCohorts(context,
+        var cohorts = new ElectiveCohorts(
+        context,
         [
             cell, cell with
             {
@@ -107,7 +117,8 @@ public sealed class ElectiveCohortTests
             },
         ]);
 
-        PdfScheduleImporter.Import(context,
+        PdfScheduleImporter.Import(
+            context,
             [cell],
             cohorts.Add);
 
@@ -127,7 +138,8 @@ public sealed class ElectiveCohortTests
     public void OtherCoursesRequireNoCohortAnnotation(string? alternative)
     {
         var context = CreateContext();
-        var cell = new PdfScheduleCell(Source: "test.pdf",
+        var cell = new PdfScheduleCell(
+            Source: "test.pdf",
             1,
             ["IA2504(ru)"],
             Day: "Luni",
@@ -138,19 +150,22 @@ public sealed class ElectiveCohortTests
 
         if (alternative is not null)
         {
-            var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(context,
+            var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(
+                context,
                 [cell],
                 cohorts.Add));
             var objectValue = Assert.Single(error.InnerExceptions);
             object objectValue2 = objectValue;
             var cellError = Assert.IsType<PdfScheduleCellImportException>(objectValue2);
-            Assert.Equal(expected: "Cohort annotation on an unexpected course.",
+            Assert.Equal(
+                expected: "Cohort annotation on an unexpected course.",
                 actual: cellError.InnerException!.Message);
             Assert.Empty(context.Schedule.WeeklyLessons.List);
             return;
         }
 
-        PdfScheduleImporter.Import(context,
+        PdfScheduleImporter.Import(
+            context,
             [cell],
             cohorts.Add);
 

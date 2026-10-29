@@ -80,7 +80,8 @@ public static class FmiPdfImport
         {
             StartDate = start,
         });
-        PdfScheduleImporter.Import(context,
+        PdfScheduleImporter.Import(
+            context,
             cells,
             cohorts.Add);
         Schedule schedule;
@@ -111,19 +112,21 @@ public static class FmiPdfImport
             return path2;
         }
 
-        await File.WriteAllTextAsync(path: CalculatePath(),
-            contents: JsonSerializer.Serialize(new
-            {
-                PeriodStart = start,
-                Cells = cells.Count,
-                Groups = schedule.Groups.Length,
-                Teachers = schedule.Teachers.Length,
-                Lessons = schedule.EnumerateAllLessons()
+        await File.WriteAllTextAsync(
+            path: CalculatePath(),
+            contents: JsonSerializer.Serialize(
+                new
+                {
+                    PeriodStart = start,
+                    Cells = cells.Count,
+                    Groups = schedule.Groups.Length,
+                    Teachers = schedule.Teachers.Length,
+                    Lessons = schedule.EnumerateAllLessons()
                         .Count(),
-                SourceConflicts = sourceConflicts,
-                CohortProjection =
+                    SourceConflicts = sourceConflicts,
+                    CohortProjection =
                         "Teaching-section Gr.1/Gr.2 are temporarily projected onto elective alternatives, independently of academic-group I/II. Shared lectures belong to both. See README for model limitations.",
-            },
+                },
                 new JsonSerializerOptions
                 {
                     WriteIndented = true,
@@ -133,7 +136,8 @@ public static class FmiPdfImport
             .Input(schedule)
             .Output(schedulePath)
             .ExecuteAsync(cancellationToken);
-        LessonTextDisplayHandler.Services lessonTextDisplayServices = new(new SubGroupNumberDisplayHandler(),
+        LessonTextDisplayHandler.Services lessonTextDisplayServices = new(
+            new SubGroupNumberDisplayHandler(),
             new ParityDisplayHandler(),
             new LessonTypeDisplayHandler());
         var lessonTimeConfig = context.TimeConfig;
@@ -157,20 +161,25 @@ public static class FmiPdfImport
         Directory.CreateDirectory(sourceDirectory);
         foreach (var source in update.Downloads)
         {
-            await File.WriteAllBytesAsync(Path.Combine(sourceDirectory, $"orar{source.Link.Year}.pdf"),
+            await File.WriteAllBytesAsync(
+                Path.Combine(sourceDirectory, $"orar{source.Link.Year}.pdf"),
                 source.Content,
                 cancellationToken);
         }
 
-        await File.WriteAllTextAsync(path: Path.Combine(sourceDirectory, "cells.json"),
-            contents: JsonSerializer.Serialize(cells,
+        await File.WriteAllTextAsync(
+            path: Path.Combine(sourceDirectory, "cells.json"),
+            contents: JsonSerializer.Serialize(
+                cells,
                 new JsonSerializerOptions
                 {
                     WriteIndented = true,
                 }),
             cancellationToken);
-        await File.WriteAllTextAsync(path: Path.Combine(sourceDirectory, "sources.json"),
-            contents: JsonSerializer.Serialize(update.Sources,
+        await File.WriteAllTextAsync(
+            path: Path.Combine(sourceDirectory, "sources.json"),
+            contents: JsonSerializer.Serialize(
+                update.Sources,
                 new JsonSerializerOptions
                 {
                     WriteIndented = true,

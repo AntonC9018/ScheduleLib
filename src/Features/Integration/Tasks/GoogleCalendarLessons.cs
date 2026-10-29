@@ -32,7 +32,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
     /// <summary>Builds the same recurring events used by replacement synchronization, without remote access.</summary>
     public IReadOnlyList<Event> BuildDesiredEvents(CancellationToken cancellationToken)
     {
-        var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices,
+        var lessonDisplay = new LessonTextDisplayHandler(
+            _lessonDisplayServices,
             new()
             {
                 PrintsTeacherName = false,
@@ -137,12 +138,13 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         using var service = new CalendarService(_helper.CreateServiceInitializer(credential));
 
         var desired = BuildDesiredEvents(cancellationToken);
-        var calendarId = await service.MakeSureCleanCalendarWithSummary(new Calendar
-        {
-            Summary = config.CalendarName,
-            Location = "Chișinău, Moldova",
-            TimeZone = "Europe/Chisinau",
-        },
+        var calendarId = await service.MakeSureCleanCalendarWithSummary(
+            new Calendar
+            {
+                Summary = config.CalendarName,
+                Location = "Chișinău, Moldova",
+                TimeZone = "Europe/Chisinau",
+            },
             cancellationToken);
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var ev in desired)
@@ -178,7 +180,8 @@ file sealed class LessonToColorConverter()
 
         lock (this)
         {
-            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(lessonToColorMap,
+            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                lessonToColorMap,
                 key,
                 out bool exists);
             if (!exists)

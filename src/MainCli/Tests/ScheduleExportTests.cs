@@ -15,7 +15,8 @@ public sealed class ScheduleExportTests
         Assert.Equal(expected: 0, actual: await CliHost.Run(["export", format, "--help"]));
         using var capture = new Capture();
         Assert.Equal(expected: 2, actual: await CliHost.Run(["export", format, "--unknown", "--json"]));
-        Assert.Equal(expected: 2,
+        Assert.Equal(
+            expected: 2,
             actual: capture.Result()
                 .GetProperty("exitCode")
                 .GetInt32());
@@ -43,7 +44,8 @@ public sealed class ScheduleExportTests
                 new(),
                 CalculateToken()));
         var result = capture.Result();
-        Assert.Equal(expected: 130,
+        Assert.Equal(
+            expected: 130,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
         Assert.Empty(result.GetProperty("outputs")
@@ -76,7 +78,8 @@ public sealed class ScheduleExportTests
             .Where(x => x.StartsWith("Skipping calendar "))
             .Select(x => x["Skipping calendar ".Length..x.IndexOf(".ics:")])
             .ToArray();
-        Assert.Equal(expected: names.Except(skipped)
+        Assert.Equal(
+            expected: names.Except(skipped)
                 .Order(),
             actual: calendarNames);
         Assert.Contains(calendarNames, x => x!.Contains('_'));
@@ -84,7 +87,8 @@ public sealed class ScheduleExportTests
         var pdf = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf")
             .First(x => Path.GetFileName(x)
                 .StartsWith("IA"));
-        Assert.StartsWith(expectedStartString: "%PDF-",
+        Assert.StartsWith(
+            expectedStartString: "%PDF-",
             actualString: System.Text.Encoding.ASCII.GetString(await File.ReadAllBytesAsync(pdf)));
         if (OperatingSystem.IsLinux() && File.Exists("/usr/bin/pdftotext"))
         {
@@ -246,7 +250,8 @@ public sealed class ScheduleExportTests
                     Directory = destination,
                 }));
         var result = capture.Result();
-        Assert.Equal(expected: "succeeded",
+        Assert.Equal(
+            expected: "succeeded",
             actual: result.GetProperty("status")
                 .GetString());
         Assert.True(result.GetProperty("data")

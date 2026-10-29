@@ -43,7 +43,8 @@ public sealed partial class SyncDriveFolderTaskHandler
             throw new InvalidOperationException("No google drive config found.");
         }
 
-        var credential = await _helper.CredentialResolver.Resolve(config.Credentials,
+        var credential = await _helper.CredentialResolver.Resolve(
+            config.Credentials,
             Scopes,
             p.CancellationToken);
         using var driveService = new DriveService(_helper.CreateServiceInitializer(credential));
@@ -160,7 +161,8 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
 
     public IEnumerable<RelativeFilePath> GetFilePaths()
     {
-        return _directory.FilePaths("*",
+        return _directory.FilePaths(
+            "*",
             new()
             {
                 RecurseSubdirectories = true,
@@ -169,7 +171,8 @@ public sealed class OutputDirectoryFilesProvider : IFilesProvider
 
     public Stream OpenForReading(RelativeFilePath relativeFile)
     {
-        return _directory.OpenFile(relativeFile.Path,
+        return _directory.OpenFile(
+            relativeFile.Path,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite);

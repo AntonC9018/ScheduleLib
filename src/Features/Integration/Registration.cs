@@ -65,7 +65,8 @@ public static class Registration
                     }
 
                     w = w.Enrich.With(CalculateEnrichers2());
-                    w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose,
+                    w.WriteTo.Console(
+                        standardErrorFromLevel: LogEventLevel.Verbose,
                         outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
                 });
@@ -109,9 +110,11 @@ public static class Registration
         public void AddDynamicConfigurationBinders()
         {
             services.AddScoped<IMarkedConfigurationSectionResolver, MarkedConfigurationSectionResolver>();
-            services.AddScoped(serviceType: typeof(MarkedDynamicOptionsResolver<>),
+            services.AddScoped(
+                serviceType: typeof(MarkedDynamicOptionsResolver<>),
                 implementationType: typeof(MarkedDynamicOptionsResolver<>));
-            services.AddScoped(serviceType: typeof(DynamicOptionsBinder<>),
+            services.AddScoped(
+                serviceType: typeof(DynamicOptionsBinder<>),
                 implementationType: typeof(DynamicOptionsBinder<>));
         }
 

@@ -53,7 +53,8 @@ public static class TasksHelper
             return;
         }
 
-        using var excel = SpreadsheetDocument.Open(filePath,
+        using var excel = SpreadsheetDocument.Open(
+            filePath,
             isEditable: false,
             new()
             {
@@ -82,7 +83,8 @@ public static class TasksHelper
             wordSplitConfig,
             cancellationToken: cancellationToken);
 
-        var subdirs = Directory.EnumerateDirectories(path: dirName,
+        var subdirs = Directory.EnumerateDirectories(
+                path: dirName,
                 searchPattern: "*",
                 SearchOption.TopDirectoryOnly)
             .Select(x =>
@@ -129,7 +131,8 @@ public static class TasksHelper
         {
             var firstWeeklyLesson = context.Schedule.WeeklyLessons.Count;
             var firstOneTimeLesson = context.Schedule.OneTimeLessons.Count;
-            foreach (var filePath in Directory.EnumerateFiles(path: dirName,
+            foreach (var filePath in Directory.EnumerateFiles(
+                         path: dirName,
                          searchPattern: "*.doc",
                          SearchOption.TopDirectoryOnly))
             {
@@ -144,7 +147,8 @@ public static class TasksHelper
                     var stagedInput = Path.Combine(path1, path2);
                     File.Copy(sourceFileName: filePath, destFileName: stagedInput);
                     var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
-                    if (!(await DocToDocxConversionHelper.TryConvertFile(inputPath: stagedInput,
+                    if (!(await DocToDocxConversionHelper.TryConvertFile(
+                            inputPath: stagedInput,
                             outputPath: outputPath,
                             cancellationToken)))
                     {
@@ -162,7 +166,8 @@ public static class TasksHelper
                 }
             }
 
-            foreach (var filePath in Directory.EnumerateFiles(path: dirName,
+            foreach (var filePath in Directory.EnumerateFiles(
+                         path: dirName,
                          searchPattern: "*.docx",
                          SearchOption.TopDirectoryOnly))
             {
@@ -184,11 +189,13 @@ public static class TasksHelper
                 });
             }
 
-            context.Schedule.AssignImportedImplicitSplits(wordSplitConfig,
+            context.Schedule.AssignImportedImplicitSplits(
+                wordSplitConfig,
                 firstWeeklyLesson: firstWeeklyLesson,
                 firstOneTimeLesson: firstOneTimeLesson);
 
-            var pdfs = Directory.EnumerateFiles(path: dirName,
+            var pdfs = Directory.EnumerateFiles(
+                    path: dirName,
                     searchPattern: "*.pdf",
                     SearchOption.TopDirectoryOnly)
                 .Order()
@@ -220,7 +227,8 @@ public static class TasksHelper
             var cohorts = new ElectiveCohorts(context, cells);
             context.Schedule.ImplicitSplitConfig = cohorts.SplitConfig;
             context.SetPeriod(period);
-            PdfScheduleImporter.Import(context,
+            PdfScheduleImporter.Import(
+                context,
                 cells,
                 cohorts.Add);
         }

@@ -90,7 +90,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            return node.IsUiLayer;
+
+            if (node.IsUiLayer)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 

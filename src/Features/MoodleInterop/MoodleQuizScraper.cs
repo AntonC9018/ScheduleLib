@@ -530,7 +530,8 @@ public static class MoodleQuizScraper
 
         var culture = new CultureInfo("ro-RO");
 
-        if (DateTime.TryParseExact(dateTime.Trim(),
+        if (DateTime.TryParseExact(
+                dateTime.Trim(),
                 formats,
                 culture,
                 DateTimeStyles.None,
@@ -539,7 +540,8 @@ public static class MoodleQuizScraper
             return result;
         }
 
-        if (DateTime.TryParse(dateTime,
+        if (DateTime.TryParse(
+                dateTime,
                 culture,
                 DateTimeStyles.None,
                 out result))
@@ -580,7 +582,8 @@ public static class MoodleQuizScraper
             }
         }
 
-        return new TimeSpan(hours: 0,
+        return new TimeSpan(
+            hours: 0,
             minutes: minutes,
             seconds: seconds);
     }
@@ -595,7 +598,8 @@ public static class MoodleQuizScraper
         // Replace comma with period for decimal separator
         value = value.Replace(',', '.');
 
-        if (!float.TryParse(value,
+        if (!float.TryParse(
+                value,
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
                 out var result))
@@ -1210,7 +1214,8 @@ file static class Accessors
 
             var createMethod = createMethods
                 .FirstOrDefault(x => x.Params[0].ParameterType == ctor.Params[0].ParameterType);
-            wholeMatch = new(createMethod.Method,
+            wholeMatch = new(
+                createMethod.Method,
                 ctor.Constructor,
                 match,
                 paramType);
@@ -1288,7 +1293,8 @@ file sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
         var writer2 = writer;
         var value2 = _accessor.Extractor(value);
         var options2 = options;
-        JsonSerializer.Serialize(writer2,
+        JsonSerializer.Serialize(
+            writer2,
             value2,
             options2);
     }
@@ -1308,7 +1314,13 @@ file sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
             {
                 return true;
             }
-            return typeToConvert.IsEnum;
+
+            if (typeToConvert.IsEnum)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

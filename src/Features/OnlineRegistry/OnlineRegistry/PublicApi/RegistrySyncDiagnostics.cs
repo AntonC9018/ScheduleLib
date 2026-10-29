@@ -52,7 +52,8 @@ public sealed class RegistrySyncDiagnostics
         string? group,
         string detail)
     {
-        var item = new RegistrySyncDiagnostic(Kind: kind,
+        var item = new RegistrySyncDiagnostic(
+            Kind: kind,
             Course: course,
             Group: group,
             Detail: detail);
@@ -85,7 +86,8 @@ internal sealed class RegistryTargetCoverage(
                 return group2;
             }
 
-            diagnostics.Add(kind: "missing-registry-course",
+            diagnostics.Add(
+                kind: "missing-registry-course",
                 course: schedule.Get(target.Course).FullName,
                 @group: CalculateGroup(),
                 detail: "Ask the registry administrator to assign this scheduled course to the teacher.");
@@ -102,7 +104,8 @@ internal sealed class RegistryTargetCoverage(
         IReadOnlyList<RegistryGroupMatchRule> rules)
     {
         var source = schedule.Get(lessonId);
-        RegistryExpectedTarget target2 = new(source.Lesson.Course,
+        RegistryExpectedTarget target2 = new(
+            source.Lesson.Course,
             parent,
             partition);
         Cover(target2);
@@ -292,7 +295,8 @@ internal sealed class RegistryTargetCoverage(
                 return group2;
             }
 
-            diagnostics.Add(kind: "missing-registry-group",
+            diagnostics.Add(
+                kind: "missing-registry-group",
                 course: schedule.Get(course).FullName,
                 @group: CalculateGroup(),
                 detail:

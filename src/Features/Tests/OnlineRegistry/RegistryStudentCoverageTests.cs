@@ -12,11 +12,13 @@ public sealed class RegistryStudentCoverageTests
     {
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
-        var attendance = fixture.Attendance(new Fixture.AttendanceSource(key,
+        var attendance = fixture.Attendance(new Fixture.AttendanceSource(
+            key,
             ["Synthetic Ana", "Synthetic Boris", "Synthetic Carla", "Synthetic Elena"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        var students = Roster("Synthetic Ana",
+        var students = Roster(
+            "Synthetic Ana",
             "Synthetic Boris",
             "Synthetic Dina");
         coverage.Observe(
@@ -37,7 +39,8 @@ public sealed class RegistryStudentCoverageTests
         var single2 = Assert.Single(diagnostics.Items, item => item.Kind == "unmatched-attendance-students");
         string actualString3 = single2.Detail;
         Assert.StartsWith(expectedStartString: expectedStartString3, actualString: actualString3);
-        Assert.All(diagnostics.Items,
+        Assert.All(
+            diagnostics.Items,
             item => Assert.DoesNotContain(expectedSubstring: "Synthetic", actualString: item.Detail));
     }
 
@@ -54,7 +57,8 @@ public sealed class RegistryStudentCoverageTests
             return attendance;
         }
 
-        var coverage = new RegistryStudentCoverage(CalculateAttendance(),
+        var coverage = new RegistryStudentCoverage(
+            CalculateAttendance(),
             new Dictionary<string, string>
             {
                 ["Synthetic Anna"] = "Synthetic Ana",
@@ -86,7 +90,8 @@ public sealed class RegistryStudentCoverageTests
             return attendance;
         }
 
-        var coverage = new RegistryStudentCoverage(CalculateAttendance(),
+        var coverage = new RegistryStudentCoverage(
+            CalculateAttendance(),
             new Dictionary<string, string>
             {
                 ["Synthetic Anna"] = "Synthetic Ana",
@@ -401,7 +406,8 @@ public sealed class RegistryStudentCoverageTests
         var attendance2 = fixture.Attendance(new Fixture.AttendanceSource(first, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases2 = null;
         var expelled = new RegistryStudentCoverage(attendance2, aliases2);
-        expelled.Observe([new("Synthetic Ana", false), new("Synthetic Dina", true)],
+        expelled.Observe(
+            [new("Synthetic Ana", false), new("Synthetic Dina", true)],
             routedKeys: [first],
             membershipKeys: [first]);
         var report2 = fixture.Report(expelled);
@@ -417,7 +423,8 @@ public sealed class RegistryStudentCoverageTests
         var attendance = fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Ana"]));
         IReadOnlyDictionary<string, string>? aliases = null;
         var coverage = new RegistryStudentCoverage(attendance, aliases);
-        coverage.Observe([],
+        coverage.Observe(
+            [],
             routedKeys: [key],
             membershipKeys: [key]);
         string expected2 = "attendance-students-not-in-registry";
@@ -460,7 +467,8 @@ public sealed class RegistryStudentCoverageTests
 
         internal StudentsLookupKey Key(GroupId group)
         {
-            return new([group],
+            return new(
+                [group],
                 GroupPartitionKey.All,
                 Course,
                 LessonType.Lab);
@@ -484,7 +492,8 @@ public sealed class RegistryStudentCoverageTests
         internal RegistrySyncDiagnostics Report(RegistryStudentCoverage coverage)
         {
             var diagnostics = new RegistrySyncDiagnostics();
-            coverage.Report(Schedule,
+            coverage.Report(
+                Schedule,
                 Course,
                 diagnostics);
             return diagnostics;

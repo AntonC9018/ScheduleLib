@@ -36,7 +36,8 @@ public sealed class RegistryCourseNameTests
         var lookup = Lookup("Designul UI/U X");
         var expected2 = new CourseId(0);
         CourseId? expected3 = expected2;
-        var actual2 = RegistryCourseNameLookup.Find(lookup,
+        var actual2 = RegistryCourseNameLookup.Find(
+            lookup,
             "Design-ul UI/UX",
             new Dictionary<string, string>());
         Assert.Equal(expected: expected3, actual: actual2);
@@ -48,28 +49,33 @@ public sealed class RegistryCourseNameTests
         var lookup = Lookup("Introduction to networking");
         var expected2 = new CourseId(0);
         CourseId? expected3 = expected2;
-        var actual2 = RegistryCourseNameLookup.Find(lookup,
+        var actual2 = RegistryCourseNameLookup.Find(
+            lookup,
             "Introduction to netwroking",
             new Dictionary<string, string>());
         Assert.Equal(expected: expected3, actual: actual2);
-        var value = RegistryCourseNameLookup.Find(lookup,
+        var value = RegistryCourseNameLookup.Find(
+            lookup,
             "Introduction to netwroking",
             new Dictionary<string, string>(),
             maxDistance: 0);
         Assert.Null(value);
-        var value2 = RegistryCourseNameLookup.Find(lookup,
+        var value2 = RegistryCourseNameLookup.Find(
+            lookup,
             "Introduction to netwroking(Unknown)",
             new Dictionary<string, string>());
         Assert.Null(value2);
         var ambiguous = Lookup("Introduction to networking", "Introduction to networkinb");
-        var value3 = RegistryCourseNameLookup.Find(ambiguous,
+        var value3 = RegistryCourseNameLookup.Find(
+            ambiguous,
             "Introduction to networkinx",
             new Dictionary<string, string>());
         Assert.Null(value3);
         var lookup2 = Lookup("HTML");
         string registryName = "HTLM";
         IReadOnlyDictionary<string, string> courseNames = new Dictionary<string, string>();
-        var value4 = RegistryCourseNameLookup.Find(lookup2,
+        var value4 = RegistryCourseNameLookup.Find(
+            lookup2,
             registryName,
             courseNames);
         Assert.Null(value4);
@@ -85,7 +91,8 @@ public sealed class RegistryCourseNameTests
         };
         var expected2 = new CourseId(0);
         CourseId? expected3 = expected2;
-        var actual2 = RegistryCourseNameLookup.Find(lookup,
+        var actual2 = RegistryCourseNameLookup.Find(
+            lookup,
             "Application development with Node.js(BaDe)",
             aliases);
         Assert.Equal(expected: expected3, actual: actual2);
@@ -117,18 +124,22 @@ public sealed class RegistryCourseNameTests
         var lookup = builder.Lookup(unifier);
 
         CourseId? expected2 = automatic;
-        var actual2 = RegistryCourseNameLookup.Find(lookup,
+        var actual2 = RegistryCourseNameLookup.Find(
+            lookup,
             "Advanced web",
             new Dictionary<string, string>());
         Assert.Equal(expected: expected2, actual: actual2);
-        Assert.Equal(expected: intended,
-            actual: RegistryCourseNameLookup.Find(lookup,
+        Assert.Equal(
+            expected: intended,
+            actual: RegistryCourseNameLookup.Find(
+                lookup,
                 "Advanced web",
                 new Dictionary<string, string>
                 {
                     ["Advanced web"] = "Web fundamentals",
                 }));
-        Assert.Null(RegistryCourseNameLookup.Find(lookup,
+        Assert.Null(RegistryCourseNameLookup.Find(
+            lookup,
             "Advanced web",
             new Dictionary<string, string>
             {
@@ -162,7 +173,8 @@ public sealed class RegistryCourseNameTests
         var replacement = merger.Merge(@from: later, @into: earlier);
         Assert.Single(replacement.CourseNames!);
         Assert.Equal(expected: "New course", actual: replacement.CourseNames!["New alias"]);
-        var inherited = merger.Merge(@from: new RegistryConfig(),
+        var inherited = merger.Merge(
+            @from: new RegistryConfig(),
             @into: new RegistryConfig
             {
                 CourseNames = new Dictionary<string, string>

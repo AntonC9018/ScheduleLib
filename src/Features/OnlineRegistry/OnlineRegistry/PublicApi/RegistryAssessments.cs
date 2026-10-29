@@ -95,14 +95,16 @@ internal static class RegistryAssessments
             {
                 bool CheckCondition()
                 {
-                    if (!string.Equals(rule.Course,
+                    if (!string.Equals(
+                            rule.Course,
                             schedule.Get(course).FullName,
                             StringComparison.OrdinalIgnoreCase))
                     {
                         return false;
                     }
 
-                    if (!string.Equals(rule.Group,
+                    if (!string.Equals(
+                            rule.Group,
                             groupName,
                             StringComparison.OrdinalIgnoreCase))
                     {
@@ -128,7 +130,8 @@ internal static class RegistryAssessments
                     }
 
                     if (partition
-                        == new GroupPartitionKey(CalculateSubGroup(),
+                        == new GroupPartitionKey(
+                            CalculateSubGroup(),
                             CalculateSpecialization(),
                             CalculateAlternative()))
                     {
@@ -415,7 +418,8 @@ internal static class RegistryAssessments
                 registryIndexes[lesson.RegistryLessonType] = registryIndex + 1;
             }
         }
-        return new(local,
+        return new(
+            local,
             remote.Where((_, index) => !protectedRemote.Contains(index))
                 .ToArray());
 

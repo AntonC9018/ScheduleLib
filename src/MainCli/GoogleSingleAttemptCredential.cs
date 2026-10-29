@@ -40,7 +40,13 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
                 {
                     return true;
                 }
-                return user.Token.IsStale;
+
+                if (user.Token.IsStale)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();

@@ -34,7 +34,8 @@ public static partial class StylesheetBuilderHelper
         Action<Border, TEnum> configure)
         where TEnum : struct, Enum
     {
-        return Create<TEnum, BorderId, Border>(builder,
+        return Create<TEnum, BorderId, Border>(
+            builder,
             StylesheetResource.Border,
             configure);
     }
@@ -47,7 +48,8 @@ public static partial class StylesheetBuilderHelper
         Action<CellFormat, TEnum> configure)
         where TEnum : struct, Enum
     {
-        return Create<TEnum, CellFormatId, CellFormat>(builder,
+        return Create<TEnum, CellFormatId, CellFormat>(
+            builder,
             StylesheetResource.CellFormat,
             configure);
     }

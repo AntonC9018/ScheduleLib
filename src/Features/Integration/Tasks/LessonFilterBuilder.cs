@@ -123,10 +123,12 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
                 {
                     Id = c.Lessons[0],
                     Course = c.Schedule.Get(lesson.Course).FullName,
-                    Teachers = string.Join(",",
+                    Teachers = string.Join(
+                        ",",
                         lesson.Teachers.Select(x => s.Get(x).PersonName
                             .ToString())),
-                    Groups = string.Join(",",
+                    Groups = string.Join(
+                        ",",
                         lesson.Groups.Select(x => s.Get(x).Name
                             .ToString())),
                     lesson.Type,

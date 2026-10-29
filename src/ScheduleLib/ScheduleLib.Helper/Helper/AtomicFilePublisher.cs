@@ -20,7 +20,8 @@ public static class AtomicFilePublisher
         var staged = $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
         try
         {
-            await using (var stream = new FileStream(staged,
+            await using (var stream = new FileStream(
+                             staged,
                              FileMode.CreateNew,
                              FileAccess.ReadWrite,
                              FileShare.None))
@@ -30,7 +31,8 @@ public static class AtomicFilePublisher
                 stream.Flush(flushToDisk: true);
             }
             token.ThrowIfCancellationRequested();
-            File.Move(sourceFileName: staged,
+            File.Move(
+                sourceFileName: staged,
                 destFileName: destination,
                 overwrite: true);
         }

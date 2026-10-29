@@ -710,7 +710,8 @@ public readonly record struct GroupPartitionKey(
     {
         get
         {
-            return new(SubGroup.All,
+            return new(
+                SubGroup.All,
                 Specialization.All,
                 Alternative.All);
         }
@@ -725,7 +726,8 @@ public static class LessonDataExtensions
         {
             get
             {
-                return new(lesson.SubGroup,
+                return new(
+                    lesson.SubGroup,
                     lesson.Specialization,
                     lesson.Alternative);
             }
@@ -978,7 +980,8 @@ public static class Specializations
         }
         foreach (var candidate in AllKnown)
         {
-            if (string.Equals(candidate.Value,
+            if (string.Equals(
+                    candidate.Value,
                     value,
                     StringComparison.Ordinal))
             {

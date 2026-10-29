@@ -57,7 +57,8 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
             var name = remoteTeacher.Name;
             name = _remap.RemapName(name);
 
-            ref var t = ref CollectionsMarshal.GetValueRefOrAddDefault(ret,
+            ref var t = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                ret,
                 name,
                 out bool exists);
             if (exists && t != slug)

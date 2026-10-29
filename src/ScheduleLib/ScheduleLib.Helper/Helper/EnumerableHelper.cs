@@ -313,7 +313,13 @@ public static class EnumerableExtensions
                 {
                     return true;
                 }
-                return e2.IsDone;
+
+                if (e2.IsDone)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             bool conditionResult = CalculateConditionResult();

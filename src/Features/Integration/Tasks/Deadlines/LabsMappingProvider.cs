@@ -57,7 +57,8 @@ public sealed partial class LabsMappingProvider
         {
             var list = await s.GetTasks(_sp);
 
-            ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(ret,
+            ref var val = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                ret,
                 k.CourseId,
                 out bool exists);
             if (!exists)

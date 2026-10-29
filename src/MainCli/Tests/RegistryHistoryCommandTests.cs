@@ -58,7 +58,8 @@ public sealed class RegistryHistoryCommandTests
             Assert.DoesNotContain(expectedSubstring: "private-course", actualString: output.ToString());
             Assert.DoesNotContain(expectedSubstring: "private-group", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: result.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
             string[] collection = Directory.GetFiles(directory);
@@ -237,7 +238,8 @@ public sealed class RegistryHistoryCommandTests
                     },
                     new()));
             Assert.Contains(expectedSubstring: failure.ToString(), actualString: error.ToString());
-            Assert.Contains(expectedSubstring: "phase Unknown; diagnostic None; HTTP unknown",
+            Assert.Contains(
+                expectedSubstring: "phase Unknown; diagnostic None; HTTP unknown",
                 actualString: error.ToString());
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
         }
@@ -274,7 +276,8 @@ public sealed class RegistryHistoryCommandTests
                         LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history"),
                     },
                     new()));
-            Assert.Contains(expectedSubstring: "AccessRejected; phase Login; diagnostic HttpRejected; HTTP 403",
+            Assert.Contains(
+                expectedSubstring: "AccessRejected; phase Login; diagnostic HttpRejected; HTTP 403",
                 actualString: error.ToString());
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
             Assert.DoesNotContain(expectedSubstring: "https://", actualString: error.ToString());

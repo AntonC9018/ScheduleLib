@@ -20,21 +20,24 @@ public sealed class RegistryScopeReconciliationTests
             return date;
         }
 
-        var saved = Remote(0,
+        var saved = Remote(
+                0,
                 CalculateDate(),
                 "Old") with
         {
             LessonType = LessonType.Unspecified,
         };
         var inferred = new Dictionary<Uri, LessonType>();
-        var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(),
+        var owners = RegistryScopeReconciliation.Assign(
+            new ScheduleBuilder().Build(),
             local,
             [saved],
             ["A"],
             Scope,
             new AnyDayDerivation(),
             inferredTypes: inferred);
-        var commands = RegistryScopeReconciliation.Derive(new ScheduleBuilder().Build(),
+        var commands = RegistryScopeReconciliation.Derive(
+                new ScheduleBuilder().Build(),
                 local,
                 [saved],
                 owners,
@@ -54,20 +57,24 @@ public sealed class RegistryScopeReconciliationTests
             Local(id: 0, hour: 9),
             Local(id: 1, hour: 11),
         };
-        var saved = Remote(1,
+        var saved = Remote(
+            1,
             local[1].DateTime,
             "Old (B)");
-        var owners = Assign(local,
+        var owners = Assign(
+            local,
             [saved],
             false);
-        var commands = RegistryScopeReconciliation.Derive(new ScheduleBuilder().Build(),
+        var commands = RegistryScopeReconciliation.Derive(
+                new ScheduleBuilder().Build(),
                 local,
                 [saved],
                 owners,
                 Scope,
                 new AnyDayDerivation())
             .ToArray();
-        Assert.Contains(commands,
+        Assert.Contains(
+            commands,
             command => command.Type == LessonEquationCommandType.Create && command.Local.LessonId == local[0].LessonId);
         var update = Assert.Single(commands.Where(command => command.Type == LessonEquationCommandType.Update));
         Assert.Equal(expected: local[1].LessonId, actual: update.Local.LessonId);
@@ -84,19 +91,22 @@ public sealed class RegistryScopeReconciliationTests
                 RegistryLessonType = LessonType.Curs,
             },
         };
-        var saved = Remote(0,
+        var saved = Remote(
+            0,
             local[0].DateTime,
             "Old (A)");
         var schedule = new ScheduleBuilder().Build();
         var local2 = local;
         RemoteLessonInstance[] remote = [saved];
-        var owners = Assign(local,
+        var owners = Assign(
+            local,
             [saved],
             false);
         IReadOnlyDictionary<Uri, string> owners2 = owners;
         Func<LessonInstance, string> getScope = Scope;
         IEquationCommandsDerivation derivation = new AnyDayDerivation();
-        var derive = RegistryScopeReconciliation.Derive(schedule,
+        var derive = RegistryScopeReconciliation.Derive(
+            schedule,
             local2,
             remote,
             owners2,
@@ -117,15 +127,18 @@ public sealed class RegistryScopeReconciliationTests
             Local(id: 0, hour: 9),
             Local(id: 1, hour: 11),
         };
-        var saved = Remote(1,
+        var saved = Remote(
+            1,
             local[1].DateTime,
             "Second (B)");
-        var owners = Assign(local,
+        var owners = Assign(
+            local,
             [saved],
             sameDay);
         Assert.Equal(expected: "B", actual: owners[saved.ViewUri]);
         var derivation = Derivation(sameDay);
-        GetLessonEquationCommandsParams p = new(new ScheduleBuilder().Build(),
+        GetLessonEquationCommandsParams p = new(
+            new ScheduleBuilder().Build(),
             [],
             [local[0]]);
         var deriveCommands = derivation.DeriveCommands(p);
@@ -142,18 +155,22 @@ public sealed class RegistryScopeReconciliationTests
         {
             Local(id: 0, hour: 9),
         };
-        var first = Remote(0,
+        var first = Remote(
+            0,
             local[0].DateTime,
             "First");
-        var duplicate = Remote(1,
+        var duplicate = Remote(
+            1,
             local[0].DateTime,
             "First");
-        var owners = Assign(local,
+        var owners = Assign(
+            local,
             [first, duplicate],
             sameDay);
         Assert.Single(owners);
         var derivation = Derivation(sameDay);
-        GetLessonEquationCommandsParams p = new(new ScheduleBuilder().Build(),
+        GetLessonEquationCommandsParams p = new(
+            new ScheduleBuilder().Build(),
             [first, duplicate],
             local);
         var deriveCommands = derivation.DeriveCommands(p);
@@ -171,11 +188,13 @@ public sealed class RegistryScopeReconciliationTests
         int id2 = 0;
         var date = local[0].DateTime.AddHours(-1);
         string topic = "Atestare 1";
-        var assessment = Remote(id2,
+        var assessment = Remote(
+            id2,
             date,
             topic);
         string expected2 = "A";
-        var assign = Assign(local,
+        var assign = Assign(
+            local,
             [assessment],
             true);
         var key = assessment.ViewUri;
@@ -194,11 +213,13 @@ public sealed class RegistryScopeReconciliationTests
         int id2 = 0;
         var date = local[0].DateTime.AddHours(-1);
         string topic = "Atestare 1";
-        var assessment = Remote(id2,
+        var assessment = Remote(
+            id2,
             date,
             topic);
         var unresolved = new List<RemoteLessonInstance>();
-        var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(),
+        var owners = RegistryScopeReconciliation.Assign(
+            new ScheduleBuilder().Build(),
             local,
             [assessment],
             ["A", "B"],
@@ -218,10 +239,12 @@ public sealed class RegistryScopeReconciliationTests
         {
             Local(id: 1, hour: 11),
         };
-        var saved = Remote(0,
+        var saved = Remote(
+            0,
             local[0].DateTime,
             "Topic (A, B)");
-        var owners = RegistryScopeReconciliation.Assign(new ScheduleBuilder().Build(),
+        var owners = RegistryScopeReconciliation.Assign(
+            new ScheduleBuilder().Build(),
             local,
             [saved],
             ["A", "B", "A, B"],
@@ -242,7 +265,8 @@ public sealed class RegistryScopeReconciliationTests
         IReadOnlyCollection<string> knownScopes = ["A", "B"];
         Func<LessonInstance, string> getScope = Scope;
         var derivation = Derivation(sameDay);
-        var assign = RegistryScopeReconciliation.Assign(schedule,
+        var assign = RegistryScopeReconciliation.Assign(
+            schedule,
             local2,
             remote2,
             knownScopes,
@@ -261,7 +285,8 @@ public sealed class RegistryScopeReconciliationTests
         return new()
         {
             LessonId = new WeeklyLessonId(id).AsAny(),
-            DateTime = new(year: 2026,
+            DateTime = new(
+                year: 2026,
                 month: 10,
                 day: 12,
                 hour: hour,

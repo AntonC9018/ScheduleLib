@@ -82,7 +82,8 @@ public static class ServiceRegistrationHelper
             lifetime: lifetime);
         if (!registered)
         {
-            throw new InvalidMarkerServiceInheritanceException(markerServiceType: markerServiceType,
+            throw new InvalidMarkerServiceInheritanceException(
+                markerServiceType: markerServiceType,
                 unboundServiceType: unboundServiceType);
         }
         return services;
@@ -99,13 +100,15 @@ public static class ServiceRegistrationHelper
         ServiceDescriptor d;
         if (factory is null)
         {
-            d = new(serviceType: typeof(TImpl),
+            d = new(
+                serviceType: typeof(TImpl),
                 implementationType: typeof(TImpl),
                 lifetime);
         }
         else
         {
-            d = new(typeof(TImpl),
+            d = new(
+                typeof(TImpl),
                 factory,
                 lifetime);
         }

@@ -160,7 +160,13 @@ public sealed class CliOutput
             {
                 return true;
             }
-            return Jsonl;
+
+            if (Jsonl)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -186,7 +192,13 @@ public sealed class CliOutput
             {
                 return true;
             }
-            return Jsonl;
+
+            if (Jsonl)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

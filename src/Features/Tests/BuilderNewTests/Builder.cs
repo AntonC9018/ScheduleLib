@@ -59,7 +59,8 @@ public static class TestBuilderHelper
         //     scope.LessonTopics.Manifest();
         // });
 
-        b.Defaults.TeacherLayer("Anton Curmanschii",
+        b.Defaults.TeacherLayer(
+            "Anton Curmanschii",
             t =>
             {
                 t.GoogleDrive();
@@ -102,7 +103,8 @@ public static class TestBuilderHelper
                     .FromConfig();
             });
 
-        b.Defaults.TeacherLayer("Tamara Iatasina",
+        b.Defaults.TeacherLayer(
+            "Tamara Iatasina",
             t =>
             {
                 t.Moodle()

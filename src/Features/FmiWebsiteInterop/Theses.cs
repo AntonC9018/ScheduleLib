@@ -115,7 +115,8 @@ public sealed class ThesesConversionTaskHandler(
                 continue;
             }
             var fileName = $"{slug}.json";
-            await using var outputFile = outputDirectory.OpenFile(fileName,
+            await using var outputFile = outputDirectory.OpenFile(
+                fileName,
                 FileMode.Create,
                 FileAccess.Write);
             await JsonSerializer.SerializeAsync(

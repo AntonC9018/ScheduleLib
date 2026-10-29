@@ -43,7 +43,8 @@ internal static class Program
             NativeMethods.GetWindowThreadProcessId(new IntPtr(identityDoc.ActiveWindow.Hwnd), out var pid);
             using (var word = Process.GetProcessById((int) pid))
             {
-                string value = WordConverterProtocol.OwnershipMessage(nonce,
+                string value = WordConverterProtocol.OwnershipMessage(
+                    nonce,
                     word.Id,
                     word.StartTime.ToUniversalTime().Ticks);
                 Console.WriteLine(value);

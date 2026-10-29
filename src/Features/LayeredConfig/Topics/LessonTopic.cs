@@ -70,7 +70,8 @@ public static class LessonTopicCsvSerializer
         var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
         var csvContext = csvReader.Context;
         var map =
-            new LessonTopicMap(defaults,
+            new LessonTopicMap(
+                defaults,
                 hasLessonType: hasLessonType,
                 hasLanguage: hasLanguage);
         ClassMap map2 = map;
@@ -476,7 +477,8 @@ public sealed class LessonTopicsBuilder
 
     public void Add(LessonType type, string value)
     {
-        var list = _lists.GetOrAdd(type,
+        var list = _lists.GetOrAdd(
+            type,
             key =>
             {
                 _ = key;
@@ -526,7 +528,8 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             var fallbackProviders = GetProvidersNoFallback(it);
             var fallbackProvidersDS = fallbacks;
-            BuiltFallbackProvider item = new(it,
+            BuiltFallbackProvider item = new(
+                it,
                 fallbackProviders.Providers);
             fallbackProvidersDS.Add(item);
         }
@@ -656,11 +659,13 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     return false;
                 }
 
-                bylang.SetupBuilder(this,
+                bylang.SetupBuilder(
+                    this,
                     lang,
                     groups,
                     CheckCondition()
-                        ? new GroupPartitionKey(new SubGroup(document.SubGroup),
+                        ? new GroupPartitionKey(
+                            new SubGroup(document.SubGroup),
                             new Specialization(document.Specialization),
                             new Alternative(document.Alternative))
                         : null,

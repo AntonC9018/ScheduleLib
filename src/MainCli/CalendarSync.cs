@@ -190,7 +190,8 @@ public static class CalendarSync
             string action2 = "delete calendar";
             string calendarId = existing.Id;
             int? desiredEventIndex = null;
-            CalendarPlanStep item2 = new(Id: id2,
+            CalendarPlanStep item2 = new(
+                Id: id2,
                 Action: action2,
                 CalendarId: calendarId,
                 DesiredEventIndex: desiredEventIndex);
@@ -202,7 +203,8 @@ public static class CalendarSync
         string action3 = "create calendar";
         string? calendarId2 = null;
         int? desiredEventIndex2 = null;
-        CalendarPlanStep item3 = new(Id: id3,
+        CalendarPlanStep item3 = new(
+            Id: id3,
             Action: action3,
             CalendarId: calendarId2,
             DesiredEventIndex: desiredEventIndex2);
@@ -214,7 +216,8 @@ public static class CalendarSync
             string action4 = "create event";
             string? calendarId3 = null;
             int? desiredEventIndex3 = planIndex;
-            CalendarPlanStep item4 = new(Id: id4,
+            CalendarPlanStep item4 = new(
+                Id: id4,
                 Action: action4,
                 CalendarId: calendarId3,
                 DesiredEventIndex: desiredEventIndex3);
@@ -231,7 +234,8 @@ public static class CalendarSync
             {
                 CalendarReport CalculateObj()
                 {
-                    CalendarReport obj = new(Id: id,
+                    CalendarReport obj = new(
+                        Id: id,
                         Status: status,
                         item,
                         human);
@@ -702,7 +706,8 @@ public static class CalendarSync
                 return exit;
             }
 
-            return Result(CalculateExit(),
+            return Result(
+                CalculateExit(),
                 [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
         }
 

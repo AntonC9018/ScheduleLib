@@ -40,7 +40,8 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         foreach (var parity in parities)
         {
             string parityLabel = _parityDisplay.Get(parity)!;
-            await spreadsheet.StartWorksheetAsync(parityLabel,
+            await spreadsheet.StartWorksheetAsync(
+                parityLabel,
                 new() { },
                 p.CancellationToken);
 
@@ -55,7 +56,8 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 }
 
                 var dayName = _dayNameProvider.GetDayName(day);
-                await spreadsheet.AddHeaderRowAsync([dayName],
+                await spreadsheet.AddHeaderRowAsync(
+                    [dayName],
                     headerStyle,
                     p.CancellationToken);
 

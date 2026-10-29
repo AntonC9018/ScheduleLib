@@ -33,7 +33,8 @@ public sealed class ScheduleLoader
         // One local writer owns a cache key through the entire rebuild. Readers wait
         // and reopen after publication; the live file is never truncated in place.
         await using var cacheLock = CachedPath is { } cachePath
-            ? await LocalFileLock.Acquire($"{cachePath}.lock",
+            ? await LocalFileLock.Acquire(
+                $"{cachePath}.lock",
                 cancellationToken,
                 wait: true)
             : null;
@@ -66,7 +67,8 @@ public sealed class ScheduleLoader
                     SerializationModels.ScheduleModel? model = null;
                     try
                     {
-                        await using var input = new FileStream(existingPath,
+                        await using var input = new FileStream(
+                            existingPath,
                             FileMode.Open,
                             FileAccess.Read,
                             FileShare.Read | FileShare.Delete);
@@ -76,14 +78,16 @@ public sealed class ScheduleLoader
                     catch (InvalidDataException) { }
                     if (model is not null && model.Hash == hashHex)
                     {
-                        ScheduleSerializer.AddToBuilder(context.Schedule,
+                        ScheduleSerializer.AddToBuilder(
+                            context.Schedule,
                             model,
                             context.CourseNameUnifierModule);
                         // Cache models already contain the explicit PDF cohort assignments;
                         // reuse the same import policy before the builder validates them.
                         if (Components.OfType<DirectoryScheduleLoaderComponent>()
                             .Any(component =>
-                                Directory.EnumerateFiles(path: component.DirectoryPath.Value,
+                                Directory.EnumerateFiles(
+                                        path: component.DirectoryPath.Value,
                                         searchPattern: "*.pdf",
                                         SearchOption.AllDirectories)
                                     .Any()))
@@ -219,7 +223,8 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
 
     public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(path: DirectoryPath.Value,
+        foreach (var filePath in Directory.EnumerateFiles(
+                     path: DirectoryPath.Value,
                      searchPattern: "*.xlsx",
                      SearchOption.AllDirectories))
         {
@@ -230,7 +235,8 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
                 FileShare.ReadWrite);
             try
             {
-                await ExcelScheduleParser.ParseIntoSchedule(Config,
+                await ExcelScheduleParser.ParseIntoSchedule(
+                    Config,
                     new()
                     {
                         Context = context,
@@ -616,7 +622,8 @@ public static class HashHelper
                     return c;
                 }
                 bool conditionResult3;
-                int conditionValue3 = c = string.Compare(strA: x.Faculty?.Name,
+                int conditionValue3 = c = string.Compare(
+                    strA: x.Faculty?.Name,
                     strB: y.Faculty?.Name,
                     StringComparison.Ordinal);
                 conditionResult3 = conditionValue3 != 0;
@@ -670,7 +677,8 @@ public static class HashHelper
                     .GetEnumerator();
                 while (xe.MoveNext() && ye.MoveNext())
                 {
-                    int c = string.Compare(strA: xe.Current.Key,
+                    int c = string.Compare(
+                        strA: xe.Current.Key,
                         strB: ye.Current.Key,
                         StringComparison.Ordinal);
                     if (c != 0)

@@ -1095,7 +1095,8 @@ public sealed class RegistryGradeAdapterTests
             Assert.True(handler.Disposed);
             Assert.Equal(expected: 1, actual: handler.Posts);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: exit,
+            Assert.Equal(
+                expected: exit,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
             Assert.Empty(result.RootElement.GetProperty("data")

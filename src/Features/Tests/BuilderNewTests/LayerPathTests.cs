@@ -58,10 +58,12 @@ public sealed class LayerPathTests
             .Select(x => x.ContextCollection.Get(LayerPathContext.Key)
                 .Path());
 
-        Assert.Collection(paths,
+        Assert.Collection(
+            paths,
             p1 =>
             {
-                Assert.Collection(p1.Path,
+                Assert.Collection(
+                    p1.Path,
                     n1 => Assert.Same(expected: tree.BaseNode, actual: n1),
                     n2 => Assert.Same(expected: a.Node, actual: n2),
                     n3 => Assert.Same(expected: c.Node, actual: n3),
@@ -69,7 +71,8 @@ public sealed class LayerPathTests
             },
             p2 =>
             {
-                Assert.Collection(p2.Path,
+                Assert.Collection(
+                    p2.Path,
                     n1 => Assert.Same(expected: tree.BaseNode, actual: n1),
                     n2 => Assert.Same(expected: b.Node, actual: n2),
                     n3 => Assert.Same(expected: e.Node, actual: n3));

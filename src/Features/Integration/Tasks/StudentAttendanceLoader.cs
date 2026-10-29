@@ -70,7 +70,8 @@ public sealed partial class StudentAttendanceLoader
                 }
             }
 
-            using var stream = new FileStream(source.FilePath,
+            using var stream = new FileStream(
+                source.FilePath,
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite);
@@ -88,7 +89,8 @@ public sealed partial class StudentAttendanceLoader
         // Maybe configure this per workbook.
         var ret = builder.Build(missingDaysFiller:
             attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return AttendanceLabMerges.Project(ret,
+        return AttendanceLabMerges.Project(
+            ret,
             filteredSchedule.Source,
             _registryConfig.Get()?.LabMerges ?? []);
     }

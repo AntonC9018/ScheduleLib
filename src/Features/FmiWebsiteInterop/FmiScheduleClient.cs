@@ -78,13 +78,15 @@ public sealed class FmiScheduleClient(HttpClient http)
                 {
                     if (element.GetAttribute("href") is { } href)
                     {
-                        if (Uri.TryCreate(baseUri: page,
+                        if (Uri.TryCreate(
+                                baseUri: page,
                                 href,
                                 result: out var uri))
                         {
                             if (uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                             {
-                                var match = Regex.Match(input: prefix.ToString(),
+                                var match = Regex.Match(
+                                    input: prefix.ToString(),
                                     pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
                                 if (match.Success)
                                 {
@@ -94,7 +96,8 @@ public sealed class FmiScheduleClient(HttpClient http)
                                     int year2 = year;
                                     var url = uri;
                                     var uploadDate = ReadUploadDate(element);
-                                    FmiScheduleLink value = new(year2,
+                                    FmiScheduleLink value = new(
+                                        year2,
                                         url,
                                         uploadDate);
                                     bool tryAdd = dictionary.TryAdd(key, value);
@@ -124,7 +127,8 @@ public sealed class FmiScheduleClient(HttpClient http)
                 ?.GetAttribute("datetime");
         if (value is null)
         {
-            var labelled = Regex.Match(input: link.GetAttribute("title") ?? link.TextContent,
+            var labelled = Regex.Match(
+                input: link.GetAttribute("title") ?? link.TextContent,
                 pattern:
                 @"(?i)(?:uploaded|încărcat[ă]?|actualizat[ă]?)\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})");
             if (labelled.Success)
@@ -138,7 +142,8 @@ public sealed class FmiScheduleClient(HttpClient http)
         }
 
         var datePart = value.Split('T')[0];
-        if (!DateOnly.TryParseExact(datePart,
+        if (!DateOnly.TryParseExact(
+                datePart,
                 ["yyyy-MM-dd", "dd.MM.yyyy"],
                 CultureInfo.InvariantCulture,
                 DateTimeStyles.None,

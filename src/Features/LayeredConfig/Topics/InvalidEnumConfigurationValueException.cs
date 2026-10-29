@@ -26,7 +26,8 @@ public sealed class InvalidEnumConfigurationValueException : TypeConverterExcept
             memberMapData,
             text: text,
             context,
-            message: CreateMessage(enumType,
+            message: CreateMessage(
+                enumType,
                 text,
                 reason,
                 allowedValues))
@@ -107,7 +108,8 @@ public sealed class InvalidEnumConfigurationValueException : TypeConverterExcept
                 $"Numeric value '{text}' is not allowed for enum {enumType.Name}.",
             InvalidEnumConfigurationValueReason.NotAllowed =>
                 $"Value '{text}' is not allowed for enum {enumType.Name}. Allowed values: {string.Join(", ", allowedValues)}",
-            _ => throw new ArgumentOutOfRangeException(nameof(reason),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(reason),
                 reason,
                 null),
         };

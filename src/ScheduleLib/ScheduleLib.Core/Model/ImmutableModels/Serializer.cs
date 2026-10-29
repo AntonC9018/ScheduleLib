@@ -22,7 +22,8 @@ public static class ScheduleSerializer
         Stream output,
         CancellationToken cancellationToken)
     {
-        return JsonSerializer.SerializeAsync(output,
+        return JsonSerializer.SerializeAsync(
+            output,
             model,
             SerializerOptions,
             cancellationToken);

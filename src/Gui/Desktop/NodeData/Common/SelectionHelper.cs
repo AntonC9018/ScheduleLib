@@ -203,7 +203,8 @@ public static class SelectionHelper1
         {
             var access = AccessExpression.Create(selector);
             var propAccess = PropertyAccess.CreateNullable(access);
-            return accessor.SelectionHelper(registry,
+            return accessor.SelectionHelper(
+                registry,
                 propAccess,
                 allowNull);
         }
@@ -216,7 +217,8 @@ public static class SelectionHelper1
         {
             var access = AccessExpression.Create(selector);
             var propAccess = PropertyAccess.Create(access, nullValue);
-            return accessor.SelectionHelper(registry,
+            return accessor.SelectionHelper(
+                registry,
                 propAccess,
                 allowNull);
         }

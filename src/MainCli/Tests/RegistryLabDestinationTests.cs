@@ -108,10 +108,12 @@ public sealed class RegistryLabDestinationTests
                         Apply = false,
                     }));
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "preview",
+            Assert.Equal(
+                expected: "preview",
                 actual: result.RootElement.GetProperty("status")
                     .GetString());
-            Assert.Equal(expected: 0,
+            Assert.Equal(
+                expected: 0,
                 actual: result.RootElement.GetProperty("errors")
                     .GetArrayLength());
             Assert.True(result.RootElement.GetProperty("data")
@@ -162,7 +164,8 @@ public sealed class RegistryLabDestinationTests
         var fallback = plan.Where(action => action.Destination == navigator.Group.Uri.ToString())
             .ToArray();
         Assert.NotEmpty(fallback);
-        Assert.All(fallback,
+        Assert.All(
+            fallback,
             action => Assert.Equal(expected: "lab (IA2404 (ru) /spec:DezvoltareaAplicatiilor)", actual: action.Topic));
         Assert.All(fallback, action => Assert.Equal(expected: DayOfWeek.Friday, actual: action.Date.DayOfWeek));
         Assert.Contains(navigator.Group.Uri, navigator.ReadUris);
@@ -300,16 +303,20 @@ public sealed class RegistryLabDestinationTests
                 .EnumerateArray()
                 .ToArray();
             Assert.Equal(expected: 2, actual: outcomes.Length);
-            Assert.All(outcomes,
-                action => Assert.Equal(expected: "delete",
+            Assert.All(
+                outcomes,
+                action => Assert.Equal(
+                    expected: "delete",
                     actual: action.GetProperty("kind")
                         .GetString()));
             Assert.All(
                 outcomes,
-                action => Assert.Equal(expected: navigator.Group.Uri.ToString(),
+                action => Assert.Equal(
+                    expected: navigator.Group.Uri.ToString(),
                     actual: action.GetProperty("destination")
                         .GetString()));
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: outcomes[0].GetProperty("attendanceCount")
                     .GetInt32());
 
@@ -485,13 +492,16 @@ public sealed class RegistryLabDestinationTests
                 .GetProperty("outcomes")
                 .EnumerateArray()
                 .ToArray();
-            Assert.Equal(expected: "omitted",
+            Assert.Equal(
+                expected: "omitted",
                 actual: actions[0].GetProperty("status")
                     .GetString());
-            Assert.Contains(expectedSubstring: "refused",
+            Assert.Contains(
+                expectedSubstring: "refused",
                 actualString: actions[0].GetProperty("detail")
                     .GetString());
-            Assert.Equal(expected: "completed",
+            Assert.Equal(
+                expected: "completed",
                 actual: actions[1].GetProperty("status")
                     .GetString());
             Assert.Equal(expected: 2, actual: navigator.DeleteCalls);
@@ -551,7 +561,8 @@ public sealed class RegistryLabDestinationTests
             explicitApply: true);
 
         Assert.NotEmpty(plan);
-        Assert.All(plan,
+        Assert.All(
+            plan,
             action => Assert.Equal(expected: RegistrySyncActionKind.Create, actual: action.Kind));
         Assert.All(
             plan,
@@ -595,7 +606,8 @@ public sealed class RegistryLabDestinationTests
             Assert.All(
                 plan,
                 action =>
-                    Assert.Equal(expected: "lecture (IA2403 (ru), IA2404 (ru) /spec:DezvoltareaAplicatiilor)",
+                    Assert.Equal(
+                        expected: "lecture (IA2403 (ru), IA2404 (ru) /spec:DezvoltareaAplicatiilor)",
                         actual: action.Topic));
         }
         else

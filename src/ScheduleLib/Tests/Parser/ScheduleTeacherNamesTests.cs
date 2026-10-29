@@ -217,31 +217,36 @@ public sealed class Db
     {
         _teachers =
         [
-            Create("Last",
+            Create(
+                "Last",
                 CreateSinglePartName(new()
                 {
                     Full = "First",
                     Short = "F.",
                 })),
-            Create("Last",
+            Create(
+                "Last",
                 CreateSinglePartName(new()
                 {
                     Full = "Irst",
                     Short = "I.",
                 })),
-            Create("Last",
+            Create(
+                "Last",
                 CreateSinglePartName(new()
                 {
                     Full = "Rst",
                     Short = null,
                 })),
-            Create("Last",
+            Create(
+                "Last",
                 CreateSinglePartName(new()
                 {
                     Full = null,
                     Short = "O.",
                 })),
-            Create("Unrelated",
+            Create(
+                "Unrelated",
                 CreateSinglePartName(new()
                 {
                     Full = "First",

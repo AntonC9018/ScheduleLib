@@ -234,7 +234,8 @@ public static class DriveApiHelper
                 Parents = [folderId.Value],
             };
 
-            var request = driveService.Files.Create(fileMetadata,
+            var request = driveService.Files.Create(
+                fileMetadata,
                 inputFile,
                 "application/octet-stream");
             request.Fields = "id";
@@ -252,7 +253,8 @@ public static class DriveApiHelper
 
         async Task Impl()
         {
-            var request = driveService.Files.Update(null,
+            var request = driveService.Files.Update(
+                null,
                 fileId: fileId.Value,
                 inputFile,
                 contentType: "application/octet-stream");

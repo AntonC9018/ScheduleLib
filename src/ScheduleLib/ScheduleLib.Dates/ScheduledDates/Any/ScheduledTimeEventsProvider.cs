@@ -19,7 +19,8 @@ public sealed partial class ScheduledTimeEventsProvider
         {
             foreach (var ev in _eventsProvider.GetProgrammedEvents(x.Params))
             {
-                yield return new(x.LessonId,
+                yield return new(
+                    x.LessonId,
                     ev,
                     x.TimeInterval);
             }

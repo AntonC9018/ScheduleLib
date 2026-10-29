@@ -25,7 +25,8 @@ public sealed class StorageTests
             Console.SetOut(text);
             Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", option, path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -45,10 +46,12 @@ public sealed class StorageTests
         try
         {
             Console.SetOut(text);
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: await CliHost.Run(["export", "teachers-excel", "--output", path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -79,13 +82,16 @@ public sealed class StorageTests
         try
         {
             Console.SetOut(text);
-            Assert.Equal(expected: 3,
+            Assert.Equal(
+                expected: 3,
                 actual: await CliHost.Run(["query", "lessons", "--data-dir", temp.Path, "--json"]));
             using var json = JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 3,
+            Assert.Equal(
+                expected: 3,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
-            Assert.Contains(expectedSubstring: "Invalid attendance mode",
+            Assert.Contains(
+                expectedSubstring: "Invalid attendance mode",
                 actualString: json.RootElement.GetProperty("errors")[0]
                     .GetString());
         }
@@ -164,7 +170,8 @@ public sealed class StorageTests
         {
             Assert.Equal(expected: 0, actual: result.Exit);
             using var json = JsonDocument.Parse(result.Output);
-            Assert.Equal(expected: "succeeded",
+            Assert.Equal(
+                expected: "succeeded",
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
             Assert.True(json.RootElement.GetProperty("data")
@@ -350,7 +357,8 @@ public sealed class StorageTests
                 .WaitAsync(CalculateTimeout());
             Assert.NotEqual(expected: 0, actual: query.ExitCode);
             using var json = JsonDocument.Parse(await stdout);
-            Assert.Equal(expected: "failed",
+            Assert.Equal(
+                expected: "failed",
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
             await stderr;
@@ -374,7 +382,8 @@ public sealed class StorageTests
                 return timeout;
             }
 
-            Assert.Equal(expected: "staged",
+            Assert.Equal(
+                expected: "staged",
                 actual: await writer.StandardOutput.ReadLineAsync()
                     .WaitAsync(CalculateTimeout()));
             Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
@@ -394,7 +403,8 @@ public sealed class StorageTests
             return timeout2;
         }
 
-        Assert.Equal(expected: "locked",
+        Assert.Equal(
+            expected: "locked",
             actual: await owner.StandardOutput.ReadLineAsync()
                 .WaitAsync(CalculateTimeout2()));
         try
@@ -490,7 +500,8 @@ public sealed class StorageTests
 
         await process.WaitForExitAsync()
             .WaitAsync(CalculateTimeout());
-        var result = new ProcessResult(Exit: process.ExitCode,
+        var result = new ProcessResult(
+            Exit: process.ExitCode,
             Output: await stdout,
             Error: await stderr);
         Assert.True(result.Exit == 0, result.Error);

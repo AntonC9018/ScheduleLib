@@ -12,7 +12,8 @@ public static partial class ScheduleBuilderHelper
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
     {
-        AssignImplicitSplits(s,
+        AssignImplicitSplits(
+            s,
             s.ImplicitSplitConfig,
             firstWeeklyLesson: 0,
             firstOneTimeLesson: 0);
@@ -64,7 +65,8 @@ public static partial class ScheduleBuilderHelper
         s.Preprocess();
         s.Validate();
         s.ClassifySubGroups();
-        AssignImplicitSplits(s,
+        AssignImplicitSplits(
+            s,
             config,
             firstWeeklyLesson: firstWeeklyLesson,
             firstOneTimeLesson: firstOneTimeLesson);
@@ -128,7 +130,8 @@ public static partial class ScheduleBuilderHelper
                 Debug.Assert(false, "ValidateLessons guarantees a course on every lesson.");
                 throw new InvalidOperationException("The lesson course must be initialized.");
             }
-            Debug.Assert(courseId.Id >= 0 && courseId.Id < s.Courses.Count,
+            Debug.Assert(
+                courseId.Id >= 0 && courseId.Id < s.Courses.Count,
                 "ValidateLessons guarantees a known course.");
             var groups = lesson.Base.Group.Groups;
             if (groups.IsEmpty)
@@ -160,11 +163,13 @@ public static partial class ScheduleBuilderHelper
                     {
                         continue;
                     }
-                    ResolveSpecialization(scope,
+                    ResolveSpecialization(
+                        scope,
                         names,
                         courseName,
                         ref spec);
-                    ResolveAlternative(scope,
+                    ResolveAlternative(
+                        scope,
                         names,
                         courseName,
                         ref alt);
@@ -203,7 +208,8 @@ public static partial class ScheduleBuilderHelper
                 {
                     accumulator.NoteAlt(resolvedAlt, courseName);
                 }
-                accumulator.AddCovered(groupId,
+                accumulator.AddCovered(
+                    groupId,
                     spec,
                     alt);
             }
@@ -241,7 +247,8 @@ public static partial class ScheduleBuilderHelper
                         {
                             Data = new()
                             {
-                                Base = CopiedBase(w.Data.Base,
+                                Base = CopiedBase(
+                                    w.Data.Base,
                                     part,
                                     courseName),
                                 Date = w.Data.Date,
@@ -254,7 +261,8 @@ public static partial class ScheduleBuilderHelper
                         {
                             Data = new()
                             {
-                                Base = CopiedBase(o.Data.Base,
+                                Base = CopiedBase(
+                                    o.Data.Base,
                                     part,
                                     courseName),
                                 Date = o.Data.Date,
@@ -276,7 +284,8 @@ public static partial class ScheduleBuilderHelper
                 {
                     group.Groups = part.Groups;
                 }
-                Stamp(ref group,
+                Stamp(
+                    ref group,
                     part,
                     courseName);
             }
@@ -318,7 +327,8 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "specialization",
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                        dimension: "specialization",
                         prev: prev.Value,
                         next: value.Value,
                         courseName: courseName);
@@ -341,7 +351,8 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "alternative",
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                        dimension: "alternative",
                         prev: prev.Value,
                         next: value.Value,
                         courseName: courseName);
@@ -372,7 +383,8 @@ public static partial class ScheduleBuilderHelper
                 if (group.Alternative != Alternative.All
                     && group.Alternative != alt)
                 {
-                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(courseName: courseName,
+                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(
+                        courseName: courseName,
                         explicitValue: group.Alternative.Value,
                         assignedValue: alt.Value);
                 }
@@ -388,7 +400,8 @@ public static partial class ScheduleBuilderHelper
             var copy = src;
             copy.General.Teachers = new(src.General.Teachers);
             copy.Group.Groups = part.Groups;
-            Stamp(ref copy.Group,
+            Stamp(
+                ref copy.Group,
                 part,
                 courseName);
             return copy;
@@ -418,7 +431,8 @@ file sealed class SplitAccumulator
     {
         if (SeenSpec is { } prev && prev != spec)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "specialization",
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                dimension: "specialization",
                 prev: prev.Value,
                 next: spec.Value,
                 courseName: courseName);
@@ -430,7 +444,8 @@ file sealed class SplitAccumulator
     {
         if (SeenAlt is { } prev && prev != alt)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(dimension: "alternative",
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                dimension: "alternative",
                 prev: prev.Value,
                 next: alt.Value,
                 courseName: courseName);

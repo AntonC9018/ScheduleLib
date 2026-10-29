@@ -303,7 +303,8 @@ public sealed class SizedItemArrayTests
 
         array.Add(CalculateIt3());
 
-        var result = array.ReplaceAtRange(3,
+        var result = array.ReplaceAtRange(
+        3,
         [
             new("D", 1),
             new("E", 2),

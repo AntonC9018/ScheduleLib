@@ -29,7 +29,8 @@ internal static class WordConverterProtocol
             return toString2;
         }
 
-        return string.Join("|",
+        return string.Join(
+            "|",
             "WORD1",
             nonce,
             CalculateToString(),
@@ -60,7 +61,8 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!int.TryParse(fields[2],
+        if (!int.TryParse(
+                fields[2],
                 NumberStyles.None,
                 CultureInfo.InvariantCulture,
                 out pid))
@@ -73,7 +75,8 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!long.TryParse(fields[3],
+        if (!long.TryParse(
+                fields[3],
                 NumberStyles.None,
                 CultureInfo.InvariantCulture,
                 out startTicks))
@@ -126,7 +129,8 @@ internal static class WordConverterProtocol
                 return false;
             }
 
-            if (string.Equals(processName,
+            if (string.Equals(
+                    processName,
                     "WINWORD",
                     StringComparison.OrdinalIgnoreCase))
             {

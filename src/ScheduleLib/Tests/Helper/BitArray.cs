@@ -102,7 +102,8 @@ public sealed class BitArray
             .ShiftedLeft(5)
             .WithFixedSize(10);
         bitArray.SetArray(setArr);
-        Assert.Collection(bitArray.SetBitIndicesLowToHigh,
+        Assert.Collection(
+            bitArray.SetBitIndicesLowToHigh,
             f1 => Assert.Equal(expected: 5, actual: f1),
             f2 => Assert.Equal(expected: 6, actual: f2),
             f3 => Assert.Equal(expected: 7, actual: f3));
@@ -116,7 +117,8 @@ public sealed class BitArray
             .ShiftedLeft(1)
             .WithFixedSize(10);
         bitArray.ClearArray(clearArr);
-        Assert.Collection(bitArray.SetBitIndicesLowToHigh,
+        Assert.Collection(
+            bitArray.SetBitIndicesLowToHigh,
             f1 => Assert.Equal(expected: 0, actual: f1),
             f2 => Assert.Equal(expected: 9, actual: f2));
     }

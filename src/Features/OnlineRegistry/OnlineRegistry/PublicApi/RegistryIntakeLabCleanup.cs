@@ -52,7 +52,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
             }
 
-            var routed = RegistryLessonRouting.Prioritize(_schedule,
+            var routed = RegistryLessonRouting.Prioritize(
+                _schedule,
                 destinations,
                 diagnostics);
             foreach (var destination in destinations)
@@ -140,7 +141,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var hasUnresolvedLabRouting = destination.Selection.Lessons.Any(IsUnresolvedLabLesson);
                 if (hasUnresolvedLabRouting)
                 {
-                    diagnostics.Add(kind: "registry-lab-routing-unresolved",
+                    diagnostics.Add(
+                        kind: "registry-lab-routing-unresolved",
                         course: _schedule.Get(course.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail: "Unresolved lab routing prevents intake cleanup.");
@@ -148,7 +150,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 if (routed[group.Uri].Keys.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
                 {
-                    diagnostics.Add(kind: "registry-lab-fallback-preserved",
+                    diagnostics.Add(
+                        kind: "registry-lab-fallback-preserved",
                         course: _schedule.Get(course.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail:
@@ -168,7 +171,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     course: courseName,
                     @group: groupNames,
                     detail: detail);
-                var actions = unwanted.Select(lesson => new RegistrySyncAction(kind: RegistrySyncActionKind.Delete,
+                var actions = unwanted.Select(lesson => new RegistrySyncAction(
+                        kind: RegistrySyncActionKind.Delete,
                         destination: group.Uri.ToString(),
                         course: courseName,
                         groups: groupNames,
@@ -198,7 +202,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 Exception? submissionError = null;
                                 try
                                 {
-                                    await navigator.SubmitDelete(document,
+                                    await navigator.SubmitDelete(
+                                        document,
                                         () =>
                                         {
                                             submissionStarted = true;

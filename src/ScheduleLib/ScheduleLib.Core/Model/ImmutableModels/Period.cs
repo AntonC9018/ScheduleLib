@@ -65,7 +65,8 @@ public static class PeriodHelper
         {
             year++;
         }
-        var ret = new DateOnly(year: year,
+        var ret = new DateOnly(
+            year: year,
             month: 8,
             day: 31);
         return ret;

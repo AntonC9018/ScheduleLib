@@ -17,16 +17,19 @@ public sealed class RegistryConfigTests
         using var provider = services.BuildServiceProvider();
         var merger = provider.GetRequiredService<IMerger<List<RegistryGroupMatchRule>>>();
 
-        var existingRule = Rule(faculty: "DJ",
+        var existingRule = Rule(
+            faculty: "DJ",
             subGroup: "eng",
             Language.En,
             matchByLanguage: true,
             allowParentGroup: true);
-        var unrelatedRule = Rule(faculty: "IA",
+        var unrelatedRule = Rule(
+            faculty: "IA",
             subGroup: "eng",
             Language.En,
             matchByLanguage: true);
-        var replacementRule = Rule(faculty: "DJ",
+        var replacementRule = Rule(
+            faculty: "DJ",
             subGroup: "eng",
             Language.Ro,
             matchByLanguage: false);
@@ -34,7 +37,8 @@ public sealed class RegistryConfigTests
         var result = merger.Merge(@from: [replacementRule], @into: [existingRule, unrelatedRule]);
 
         Assert.Equal(expected: 2, actual: result.Count);
-        Assert.Contains(result,
+        Assert.Contains(
+            result,
             rule =>
             {
                 bool CheckCondition()
@@ -69,7 +73,8 @@ public sealed class RegistryConfigTests
 
                 return CheckCondition();
             });
-        Assert.Contains(result,
+        Assert.Contains(
+            result,
             rule =>
             {
                 if (rule.Faculty != "IA")
@@ -84,7 +89,13 @@ public sealed class RegistryConfigTests
                 {
                     return false;
                 }
-                return rule.MatchByLanguage;
+
+                if (rule.MatchByLanguage)
+                {
+                    return true;
+                }
+
+                return false;
             });
     }
 
@@ -185,7 +196,8 @@ public sealed class RegistryConfigTests
             return login2;
         }
 
-        using var guard = new RegistryHistoryRequestHandler(inner,
+        using var guard = new RegistryHistoryRequestHandler(
+            inner,
             index: index,
             login: CalculateLogin(),
             TimeSpan.Zero);
@@ -204,7 +216,8 @@ public sealed class RegistryConfigTests
             var index2 = index;
             Uri login2 = new(index, "../Account/Login");
             var spacing = TimeSpan.FromSeconds(-1);
-            var registryHistoryRequestHandler = new RegistryHistoryRequestHandler(inner2,
+            var registryHistoryRequestHandler = new RegistryHistoryRequestHandler(
+                inner2,
                 index: index2,
                 login: login2,
                 spacing);

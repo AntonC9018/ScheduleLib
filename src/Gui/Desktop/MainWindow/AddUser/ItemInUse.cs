@@ -46,7 +46,8 @@ public struct ItemOwner<T>
     public T Borrow()
     {
         bool conditionResult;
-        bool conditionValue = Interlocked.CompareExchange(location1: ref _isInUse,
+        bool conditionValue = Interlocked.CompareExchange(
+            location1: ref _isInUse,
             value: true,
             comparand: false);
         conditionResult = conditionValue != false;
@@ -61,7 +62,8 @@ public struct ItemOwner<T>
     public void Return()
     {
         bool conditionResult;
-        bool conditionValue = Interlocked.CompareExchange(location1: ref _isInUse,
+        bool conditionValue = Interlocked.CompareExchange(
+            location1: ref _isInUse,
             value: false,
             comparand: true);
         conditionResult = conditionValue != true;

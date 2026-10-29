@@ -320,31 +320,36 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             // dimension fans out into three combination axes; the other two
             // dimensions map one-to-one onto PartitionDimension.
             var combinations = new List<GroupCombination> { default };
-            combinations = Expand(combinations,
+            combinations = Expand(
+                combinations,
                 altValues,
                 (c, v) => c with
                 {
                     Alternative = v,
                 });
-            combinations = Expand(combinations,
+            combinations = Expand(
+                combinations,
                 specValues,
                 (c, v) => c with
                 {
                     Specialization = v,
                 });
-            combinations = Expand(combinations,
+            combinations = Expand(
+                combinations,
                 nums,
                 (c, v) => c with
                 {
                     Numeric = v,
                 });
-            combinations = Expand(combinations,
+            combinations = Expand(
+                combinations,
                 profValues,
                 (c, v) => c with
                 {
                     Proficiency = v,
                 });
-            combinations = Expand(combinations,
+            combinations = Expand(
+                combinations,
                 langs,
                 (c, v) => c with
                 {

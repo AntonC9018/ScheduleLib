@@ -29,7 +29,8 @@ public sealed class ScheduleSerializationTests
         await builder.ExecuteAsync();
         var bytes = usePath ? await File.ReadAllBytesAsync(temp.FilePath) : stream.ToArray();
         using var json = JsonDocument.Parse(bytes);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 "Hash",
                 "OneTimeLessons",
@@ -58,7 +59,8 @@ public sealed class ScheduleSerializationTests
         Assert.True(stream.CanWrite);
         if (usePath)
         {
-            using var exclusive = File.Open(temp.FilePath,
+            using var exclusive = File.Open(
+                temp.FilePath,
                 FileMode.Open,
                 FileAccess.ReadWrite,
                 FileShare.None);
@@ -169,7 +171,8 @@ public sealed class ScheduleSerializationTests
         Assert.Throws<ArgumentNullException>(() => builder.Hash(null!));
         await builder.ExecuteAsync();
         stream.Position = 0;
-        Assert.Equal(expected: "identity",
+        Assert.Equal(
+            expected: "identity",
             actual: (await ScheduleSerializer.Deserialize(stream, CancellationToken.None)).Hash);
     }
 
@@ -283,7 +286,8 @@ public sealed class ScheduleSerializationTests
             .Input(Schedule.Empty)
             .Output(stream);
         await builder.ExecuteAsync();
-        Assert.Equal(expected: prefix.Concat(expected.ToArray())
+        Assert.Equal(
+            expected: prefix.Concat(expected.ToArray())
                 .Concat(suffix)
                 .ToArray(),
             actual: stream.ToArray());
@@ -310,7 +314,8 @@ public sealed class ScheduleSerializationTests
         File.Delete(sentinel);
         Directory.Delete(temp.FilePath);
         await builder.ExecuteAsync();
-        using var exclusive = File.Open(temp.FilePath,
+        using var exclusive = File.Open(
+            temp.FilePath,
             FileMode.Open,
             FileAccess.ReadWrite,
             FileShare.None);

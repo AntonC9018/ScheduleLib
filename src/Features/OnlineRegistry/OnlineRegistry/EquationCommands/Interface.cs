@@ -120,7 +120,8 @@ public readonly struct LessonEquationCommand
 
     public static LessonEquationCommand Update(RemoteLessonInstance remote, LessonInstance local)
     {
-        return new(LessonEquationCommandType.Update,
+        return new(
+            LessonEquationCommandType.Update,
             remote: remote,
             local: local);
     }

@@ -28,16 +28,17 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         IRegistrySyncNavigator navigator,
         CancellationToken cancellationToken)
     {
-        return await _handler.Plan(new()
-        {
-            Navigator = navigator,
-            Diagnostics = _diagnostics,
-            Attendance = _attendanceLoader.Load(),
-            HasAttendanceSources = _attendanceLoader.HasSources,
-            LessonTopics = await _topicsLoader.Load(cancellationToken),
-            Semester = _studyYear.Value.Semester,
-            LessonFilter = _lessonFilterProvider.Get(),
-        },
+        return await _handler.Plan(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
             cancellationToken,
             explicitApply: true);
     }
@@ -47,16 +48,17 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
         CancellationToken cancellationToken)
     {
-        await _handler.PlanGroups(new()
-        {
-            Navigator = navigator,
-            Diagnostics = _diagnostics,
-            Attendance = _attendanceLoader.Load(),
-            HasAttendanceSources = _attendanceLoader.HasSources,
-            LessonTopics = await _topicsLoader.Load(cancellationToken),
-            Semester = _studyYear.Value.Semester,
-            LessonFilter = _lessonFilterProvider.Get(),
-        },
+        await _handler.PlanGroups(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
             onGroupPlanned,
             cancellationToken,
             explicitApply: true);
@@ -90,7 +92,8 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
         CancellationToken cancellationToken)
     {
-        return _handler.PlanIntakeLabCleanup(navigator,
+        return _handler.PlanIntakeLabCleanup(
+            navigator,
             _studyYear.Value.Semester,
             _lessonFilterProvider.Get(),
             _diagnostics,

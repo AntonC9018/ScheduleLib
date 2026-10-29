@@ -35,11 +35,13 @@ public sealed class AttendanceCompositionTests
         var first = new GroupId(0);
         var second = new GroupId(1);
         var partition = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        Add(first,
+        Add(
+            first,
             "Synthetic Alpha",
             2,
             Attendance.NotPresent);
-        Add(second,
+        Add(
+            second,
             "Synthetic Beta",
             9,
             Attendance.Present);
@@ -52,7 +54,8 @@ public sealed class AttendanceCompositionTests
 
         StudentsLookupKey CalculateKey()
         {
-            StudentsLookupKey key = new(groups,
+            StudentsLookupKey key = new(
+                groups,
                 partition,
                 course,
                 LessonType.Lab);
@@ -98,17 +101,19 @@ public sealed class AttendanceCompositionTests
 
         DateTime CalculateDateTime()
         {
-            var dateTime = new DateTime(year: 2026,
+            var dateTime = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 2);
             return dateTime;
         }
 
-        var inactive = list.Get(new AttendanceLookupKey(new FoundGroups
-        {
-            Value = groups,
-            IsWildcard = true,
-        },
+        var inactive = list.Get(new AttendanceLookupKey(
+            new FoundGroups
+            {
+                Value = groups,
+                IsWildcard = true,
+            },
             partition,
             course,
             LessonType.Lab,
@@ -123,17 +128,19 @@ public sealed class AttendanceCompositionTests
         {
             DateTime CalculateDateTime()
             {
-                var dateTime = new DateTime(year: 2026,
+                var dateTime = new DateTime(
+                    year: 2026,
                     month: 9,
                     day: day);
                 return dateTime;
             }
 
-            return list.Get(new(new FoundGroups
-            {
-                Value = groups,
-                IsWildcard = true,
-            },
+            return list.Get(new(
+                    new FoundGroups
+                    {
+                        Value = groups,
+                        IsWildcard = true,
+                    },
                     partition,
                     course,
                     LessonType.Lab,
@@ -151,7 +158,8 @@ public sealed class AttendanceCompositionTests
         {
             StudentsLookupKey CalculateKey()
             {
-                StudentsLookupKey key = new(new LessonGroups { parent },
+                StudentsLookupKey key = new(
+                    new LessonGroups { parent },
                     partition,
                     course,
                     LessonType.Lab);

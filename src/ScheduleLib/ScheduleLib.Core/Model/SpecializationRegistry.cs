@@ -105,7 +105,8 @@ public sealed class SpecializationRegistry
             {
                 foreach (var candidate in values)
                 {
-                    if (string.Equals(candidate.Value,
+                    if (string.Equals(
+                            candidate.Value,
                             value,
                             StringComparison.Ordinal))
                     {
@@ -202,7 +203,8 @@ public sealed class SpecializationRegistryBuilder()
 
     private ImmutableArray<Specialization> Intern(ReadOnlySpan<Specialization> values)
     {
-        var key = string.Join("|",
+        var key = string.Join(
+            "|",
             values.ToArray()
                 .Select(x => x.Value));
         if (_sets.TryGetValue(key, out var set))

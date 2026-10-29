@@ -134,7 +134,8 @@ public sealed class WebsiteExportTests
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ThesisKey1] = "mapped-teacher";
-        fixture.WebsiteTeachers.Add(new(FirstName: teachers.ApiFirst1,
+        fixture.WebsiteTeachers.Add(new(
+            FirstName: teachers.ApiFirst1,
             LastName: teachers.ApiLast1,
             Slug: "mapped-teacher"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -242,7 +243,8 @@ public sealed class WebsiteExportTests
     {
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
-        fixture.WebsiteTeachers.Add(new(FirstName: teachers.ApiFirst1,
+        fixture.WebsiteTeachers.Add(new(
+            FirstName: teachers.ApiFirst1,
             LastName: teachers.ApiLast1,
             Slug: "../../schedulelib-traversal-sentinel-theses"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -434,10 +436,12 @@ public sealed class WebsiteExportTests
     {
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
-        fixture.WebsiteTeachers.Add(new(FirstName: "Ion",
+        fixture.WebsiteTeachers.Add(new(
+            FirstName: "Ion",
             LastName: "Popescu",
             Slug: "Case-Teacher"));
-        fixture.WebsiteTeachers.Add(new(FirstName: "Maria",
+        fixture.WebsiteTeachers.Add(new(
+            FirstName: "Maria",
             LastName: "Ionescu",
             Slug: "case-teacher"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -511,7 +515,8 @@ public sealed class WebsiteExportTests
     {
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
-        fixture.WebsiteTeachers.Add(new(FirstName: teachers.ApiFirst1,
+        fixture.WebsiteTeachers.Add(new(
+            FirstName: teachers.ApiFirst1,
             LastName: teachers.ApiLast1,
             Slug: "SCHEDULELIB-MANIFEST"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -656,10 +661,12 @@ public sealed class WebsiteExportTests
             workbook,
             "An",
             [
-                new(Mentor: mappedMentor,
+                new(
+                    Mentor: mappedMentor,
                     Student: "Popescu Ion",
                     Group: "I2301"),
-                new(Mentor: unmappedMentor,
+                new(
+                    Mentor: unmappedMentor,
                     Student: "Ionescu Maria",
                     Group: "I2302"),
             ]);

@@ -25,7 +25,8 @@ public static class CommissionParser
 {
     public static CommissionSchedule ParseCommissions(string filePath)
     {
-        using var excel = SpreadsheetDocument.Open(filePath,
+        using var excel = SpreadsheetDocument.Open(
+            filePath,
             isEditable: false,
             new()
             {
@@ -106,7 +107,8 @@ public static class CommissionParser
                         {
                             DateOnly DateFromString(string s)
                             {
-                                var excelEpoch = new DateOnly(year: 1899,
+                                var excelEpoch = new DateOnly(
+                                    year: 1899,
                                     month: 12,
                                     day: 30);
 

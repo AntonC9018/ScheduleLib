@@ -14,13 +14,15 @@ public sealed class RegistryHistoryTopicsTests
         string name = " Systems, ";
         int semester = 1;
         var uri = new Uri("https://registry.test/first");
-        var first = new RegistryHistoryCourse(name,
+        var first = new RegistryHistoryCourse(
+            name,
             semester,
             uri);
         string name2 = "systems";
         int semester2 = 1;
         var uri2 = new Uri("https://registry.test/other");
-        var same = new RegistryHistoryCourse(name2,
+        var same = new RegistryHistoryCourse(
+            name2,
             semester2,
             uri2);
         var otherSemester = same with
@@ -34,7 +36,8 @@ public sealed class RegistryHistoryTopicsTests
         Assert.Equal(expected: expected, actual: actual);
         bool condition2 = comparer.Equals(first, otherSemester);
         Assert.False(condition2);
-        Assert.Equal(expected: 2,
+        Assert.Equal(
+            expected: 2,
             actual: new[]
                 {
                     first,
@@ -323,18 +326,21 @@ public sealed class RegistryHistoryTopicsTests
                         @group: "raw ambiguous group"),
                 ]);
             var first = await new RegistryHistoryTopicDirectory(directory).Save(
-                new RegistryHistoryTopicsAnalysis([],
+                new RegistryHistoryTopicsAnalysis(
+                    [],
                     [],
                     selection),
                 default);
             var original = await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile));
             var second = await new RegistryHistoryTopicDirectory(directory).Save(
-                new RegistryHistoryTopicsAnalysis([],
+                new RegistryHistoryTopicsAnalysis(
+                    [],
                     [],
                     selection),
                 default);
             Assert.NotEqual(expected: first.InventoryFile, actual: second.InventoryFile);
-            Assert.Equal(expected: original,
+            Assert.Equal(
+                expected: original,
                 actual: await File.ReadAllTextAsync(Path.Combine(directory, first.InventoryFile)));
             var csv = await File.ReadAllTextAsync(Path.Combine(directory, first.CsvFiles[0]));
             Assert.StartsWith(expectedStartString: "name,lessonType", actualString: csv);
@@ -380,7 +386,8 @@ public sealed class RegistryHistoryTopicsTests
                 inventory.RootElement.GetProperty("sources")
                     .EnumerateArray(),
                 source =>
-                    Assert.Equal(expected: "requires-group-mapping",
+                    Assert.Equal(
+                        expected: "requires-group-mapping",
                         actual: source.GetProperty("courseMapping")
                             .GetString()));
             string path = Path.Combine(directory, "manifest.json");
@@ -624,10 +631,12 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Equal(expected: 2, actual: result.CsvFiles.Count);
             using var inventory =
                 JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(directory, result.InventoryFile)));
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: inventory.RootElement.GetProperty("unresolved")
                     .GetArrayLength());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: inventory.RootElement.GetProperty("historical")
                     .GetArrayLength());
             var sources = inventory.RootElement.GetProperty("sources");
@@ -636,10 +645,12 @@ public sealed class RegistryHistoryTopicsTests
                 sources.EnumerateArray(),
                 source =>
                 {
-                    Assert.Equal(expected: "ambiguous-course",
+                    Assert.Equal(
+                        expected: "ambiguous-course",
                         actual: source.GetProperty("courseMapping")
                             .GetString());
-                    Assert.Equal(expected: "2024/25",
+                    Assert.Equal(
+                        expected: "2024/25",
                         actual: source.GetProperty("year")
                             .GetString());
                 });
@@ -685,10 +696,12 @@ public sealed class RegistryHistoryTopicsTests
             Assert.Equal(expected: 4, actual: sources.GetArrayLength());
             Assert.All(
                 sources.EnumerateArray(),
-                source => Assert.Equal(expected: "ambiguous-course",
+                source => Assert.Equal(
+                    expected: "ambiguous-course",
                     actual: source.GetProperty("courseMapping")
                         .GetString()));
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: inventory.RootElement.GetProperty("unresolved")
                     .GetArrayLength());
         }
@@ -981,7 +994,8 @@ public sealed class RegistryHistoryTopicsTests
                 [new(course, historical)],
                 []);
             var result = await new RegistryHistoryTopicDirectory(directory).Save(
-                new RegistryHistoryTopicsAnalysis([],
+                new RegistryHistoryTopicsAnalysis(
+                    [],
                     [],
                     selection),
                 default);

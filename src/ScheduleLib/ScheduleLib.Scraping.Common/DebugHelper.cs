@@ -18,7 +18,8 @@ public static class DebugHelper
 
         FileStream Open(string fileName)
         {
-            return new FileStream(fileName,
+            return new FileStream(
+                fileName,
                 FileMode.Create,
                 FileAccess.Write);
         }

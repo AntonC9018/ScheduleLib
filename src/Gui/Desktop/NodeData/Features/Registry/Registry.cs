@@ -65,7 +65,8 @@ public static class ThingRegistryHelper
             Action<ThingRegistryOptions<T>>? configure = null)
         {
             var keyStr = key == default ? null : key.ToString();
-            services.AddKeyedSingleton<Registry<T>>(keyStr,
+            services.AddKeyedSingleton<Registry<T>>(
+                keyStr,
                 static (sp, keyStr) =>
                 {
                     var opts = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();

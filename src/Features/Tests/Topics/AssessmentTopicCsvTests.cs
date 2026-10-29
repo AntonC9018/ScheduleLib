@@ -11,14 +11,16 @@ public sealed class AssessmentTopicCsvTests
             new StringReader(
                 "name,lessonType\nSynthetic first,Curs\nAtestare 1,Curs\nSynthetic second,Curs\nAtestări,Curs\n");
         var names = new List<string>();
-        await foreach (var topic in LessonTopicCsvSerializer.Deserialize(input,
+        await foreach (var topic in LessonTopicCsvSerializer.Deserialize(
+                           input,
                            new(),
                            CancellationToken.None))
         {
             names.Add(topic.Name);
         }
 
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 "Synthetic first",
                 "Synthetic second",

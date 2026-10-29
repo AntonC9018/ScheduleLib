@@ -56,7 +56,8 @@ internal static class RegistryTopicScope
             var get2 = schedule.Get(b);
             string strB2 = get2.Name;
             var comparisonType = StringComparison.Ordinal;
-            int comparison = string.Compare(strA: strA2,
+            int comparison = string.Compare(
+                strA: strA2,
                 strB: strB2,
                 comparisonType);
             if (comparison != 0)
@@ -132,7 +133,8 @@ internal static class RegistryTopicScope
 
     private static string FormatSubGroupToken(string value)
     {
-        if (string.Equals(value,
+        if (string.Equals(
+                value,
                 SpecialSubGroups.Eng.Value,
                 StringComparison.OrdinalIgnoreCase))
         {
@@ -183,7 +185,8 @@ internal static class RegistryTopicScope
         {
             return topic;
         }
-        if (!TrySplit(topic: topic,
+        if (!TrySplit(
+                topic: topic,
                 knownScopes,
                 baseTopic: out var baseTopic,
                 scope: out _))
@@ -270,7 +273,8 @@ internal static class RegistryTopicScope
             {
                 continue;
             }
-            if (string.Equals(inner,
+            if (string.Equals(
+                    inner,
                     known,
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -290,7 +294,8 @@ internal static class RegistryTopicScope
             string a = normalizedInner;
             string b = NormalizeAlias(known);
             var comparisonType = StringComparison.OrdinalIgnoreCase;
-            if (string.Equals(a,
+            if (string.Equals(
+                    a,
                     b,
                     comparisonType))
             {
@@ -313,19 +318,23 @@ internal static class RegistryTopicScope
     private static string NormalizeAlias(string value)
     {
         var result = value.Trim();
-        result = result.Replace(" (",
+        result = result.Replace(
+            " (",
             "(",
             StringComparison.Ordinal);
         while (result.Contains(" /", StringComparison.Ordinal))
         {
-            result = result.Replace(" /",
+            result = result.Replace(
+                " /",
                 "/",
                 StringComparison.Ordinal);
         }
-        result = result.Replace("(eng)",
+        result = result.Replace(
+            "(eng)",
             "(en)",
             StringComparison.OrdinalIgnoreCase);
-        result = ReplaceToken(value: result,
+        result = ReplaceToken(
+            value: result,
             oldToken: "/eng",
             newToken: "/en");
         for (int number = 10; number >= 1; number--)
@@ -335,7 +344,8 @@ internal static class RegistryTopicScope
             string toRoman = NumberHelper.ToRoman(number);
             string text = $"/{toRoman}";
             string newToken2 = text;
-            string replaceToken = ReplaceToken(value: value2,
+            string replaceToken = ReplaceToken(
+                value: value2,
                 oldToken: oldToken2,
                 newToken: newToken2);
             result = replaceToken;

@@ -16,7 +16,8 @@ public sealed class RegistryHistoryTopicDirectory
     public Task<RegistryHistoryTopicFilesResult>
         Save(RegistryHistoryTopicsAnalysis analysis, CancellationToken token)
     {
-        return RegistryHistoryTopicFiles.Save(this,
+        return RegistryHistoryTopicFiles.Save(
+            this,
             analysis,
             token);
     }

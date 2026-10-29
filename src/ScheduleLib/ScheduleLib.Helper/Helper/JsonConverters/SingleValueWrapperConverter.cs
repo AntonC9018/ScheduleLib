@@ -30,7 +30,8 @@ public sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
         var writer2 = writer;
         var value2 = _accessor.Extractor(value);
         var options2 = options;
-        JsonSerializer.Serialize(writer2,
+        JsonSerializer.Serialize(
+            writer2,
             value2,
             options2);
     }
@@ -50,7 +51,13 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
             {
                 return true;
             }
-            return typeToConvert.IsEnum;
+
+            if (typeToConvert.IsEnum)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -184,7 +191,8 @@ file static class Accessors
             {
                 return default;
             }
-            wholeMatch = new(ctor,
+            wholeMatch = new(
+                ctor,
                 match,
                 paramType);
         }

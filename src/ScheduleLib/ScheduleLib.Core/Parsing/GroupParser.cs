@@ -224,7 +224,8 @@ public static class GroupHelper
         {
             // Skip until the label is ending.
             var skip = new SkipLabelUntilFR();
-            bparser.SkipWindow(ref skip,
+            bparser.SkipWindow(
+                ref skip,
                 minWindowSize: 1,
                 maxWindowSize: 2);
             isFr = skip.IsFr;
@@ -269,7 +270,8 @@ public static class GroupHelper
         }
 
         reader.MoveTo(bparser.Position);
-        return new(label.ToString(),
+        return new(
+            label.ToString(),
             IsFR: isFr,
             IsMaster: isCertainlyMaster);
     }

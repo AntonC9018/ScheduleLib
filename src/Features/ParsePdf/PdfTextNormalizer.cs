@@ -17,13 +17,15 @@ public static class PdfTextNormalizer
     {
         char separator = '\n';
         string[] split = text.Split('\n');
-        Func<string, string> selector = l => Regex.Replace(l,
+        Func<string, string> selector = l => Regex.Replace(
+                l,
                 @"[ \t]+",
                 " ")
             .Trim();
         var values = split.Select(selector);
         text = string.Join(separator, values);
-        text = Regex.Replace(text,
+        text = Regex.Replace(
+            text,
             @"S\s*e\s*c\s*u\s*r\s*i\s*t\s*a\s*t\s*e\s*a\s+c\s*i\s*b\s*e\s*r\s*n\s*e\s*t\s*i\s*c\s*ă",
             "Securitatea cibernetică");
         text = text.Replace("UI/U X", "UI/UX")
@@ -32,16 +34,20 @@ public static class PdfTextNormalizer
             .Replace("cal cul.", "calcul.")
             .Replace("Tehnol.progr.v", "Tehnol.progr.")
             .Replace(" (IȘE)", "");
-        text = Regex.Replace(text,
+        text = Regex.Replace(
+            text,
             @",\s*\)",
             ")");
-        text = Regex.Replace(text,
+        text = Regex.Replace(
+            text,
             @"(?m)(\([^()]*\))\)+(?=$|\s)",
             "$1");
-        text = Regex.Replace(text,
+        text = Regex.Replace(
+            text,
             @",\s*",
             ", ");
-        return Regex.Replace(text,
+        return Regex.Replace(
+            text,
             @"(?<=[^\s.)])\n(?=[a-zăâîșț]+(?: |\())",
             " ");
     }
@@ -113,19 +119,22 @@ public static class PdfTextNormalizer
         // Source decisions in docs/wayfinder/2026-sem1-clash-fixes.md on the domain-model branch.
         ParityRepairRule[] rules =
         [
-            new(Group: "IA2603(ru)",
+            new(
+                Group: "IA2603(ru)",
                 Day: "Joi",
                 Start: "13:15",
                 Course: "Limba straina",
                 Teacher: "G.Ciudin",
                 Parity: "par"),
-            new(Group: "IA2604(ru)",
+            new(
+                Group: "IA2604(ru)",
                 Day: "Joi",
                 Start: "13:15",
                 Course: "Limba straina",
                 Teacher: "O.Basirov",
                 Parity: "imp"),
-            new(Group: "I2502(ru)",
+            new(
+                Group: "I2502(ru)",
                 Day: "Vineri",
                 Start: "11:30",
                 Course: "Baze de date",

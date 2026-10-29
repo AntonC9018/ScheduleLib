@@ -311,7 +311,8 @@ public sealed class DriveSyncTests
                 return "preview";
             }
 
-            Assert.Equal(expected: CalculateExpected(),
+            Assert.Equal(
+                expected: CalculateExpected(),
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
             var actions = json.RootElement.GetProperty("data")
@@ -350,7 +351,8 @@ public sealed class DriveSyncTests
                 return path3;
             }
 
-            Assert.Contains(expectedSubstring: "BEGIN:VEVENT",
+            Assert.Contains(
+                expectedSubstring: "BEGIN:VEVENT",
                 actualString: await File.ReadAllTextAsync(CalculatePath2()));
             if (apply)
             {
@@ -422,7 +424,8 @@ public sealed class DriveSyncTests
                     },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
-            Assert.Equal(expected: 4,
+            Assert.Equal(
+                expected: 4,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
             Assert.Empty(json.RootElement.GetProperty("outputs")

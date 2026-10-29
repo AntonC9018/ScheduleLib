@@ -21,13 +21,15 @@ public sealed class IcsCalendarWriterTests
             Summary = summary ?? "Programare orientată obiect (Curs)",
             Description = "Curmanschii A.  B407",
             Location = "B407",
-            Start = new DateTime(year: 2026,
+            Start = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 8,
                 minute: 0,
                 second: 0),
-            End = new DateTime(year: 2026,
+            End = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 9,
@@ -171,13 +173,15 @@ public sealed class IcsCalendarWriterTests
         var calendar = Calendar(new IcsEvent()
         {
             Summary = "x",
-            Start = new DateTime(year: 2026,
+            Start = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 8,
                 minute: 0,
                 second: 0),
-            End = new DateTime(year: 2026,
+            End = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 9,
@@ -198,13 +202,15 @@ public sealed class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = @"Back\slash, comma; semi",
-            Start = new DateTime(year: 2026,
+            Start = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 8,
                 minute: 0,
                 second: 0),
-            End = new DateTime(year: 2026,
+            End = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 9,
@@ -221,13 +227,15 @@ public sealed class IcsCalendarWriterTests
         var lines = PhysicalLines(Calendar(new IcsEvent()
         {
             Summary = "line1\r\nline2\nline3",
-            Start = new DateTime(year: 2026,
+            Start = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 8,
                 minute: 0,
                 second: 0),
-            End = new DateTime(year: 2026,
+            End = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 9,
@@ -247,13 +255,15 @@ public sealed class IcsCalendarWriterTests
         var calendar = Calendar(new IcsEvent()
         {
             Summary = longText,
-            Start = new DateTime(year: 2026,
+            Start = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 8,
                 minute: 0,
                 second: 0),
-            End = new DateTime(year: 2026,
+            End = new DateTime(
+                year: 2026,
                 month: 9,
                 day: 7,
                 hour: 9,
@@ -299,7 +309,8 @@ public sealed class IcsCalendarWriterTests
             Assert.True(condition, userMessage);
         }
 
-        var unfolded = string.Join("",
+        var unfolded = string.Join(
+            "",
             summaryLines
                 .Select((l, i) => i == 0 ? l : l[1..]));
         string text = $"SUMMARY:{longText}";

@@ -107,7 +107,8 @@ public sealed class TreeSerializer
                 }
 
                 writer.WritePropertyName(config.Key.Value);
-                JsonSerializer.Serialize(writer,
+                JsonSerializer.Serialize(
+                    writer,
                     value,
                     _jsonSerializerOptions);
             }
@@ -177,7 +178,8 @@ public sealed class TreeSerializer
                     throw new InvalidConfigKeyException(key.Value);
                 }
 
-                var value = JsonSerializer.Deserialize(ref reader,
+                var value = JsonSerializer.Deserialize(
+                    ref reader,
                     type,
                     _jsonSerializerOptions);
                 if (value == null)
@@ -197,7 +199,8 @@ public sealed class TreeSerializer
                 var method = _setValueGenericMethod.MakeGenericMethod(type);
                 var deleg = method.CreateDelegate<Action<SetValueArgs>>();
                 var action = deleg;
-                SetValueArgs obj = new(layer,
+                SetValueArgs obj = new(
+                    layer,
                     key,
                     value);
                 action(obj);

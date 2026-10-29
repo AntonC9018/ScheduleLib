@@ -156,13 +156,15 @@ public static class RegistryHistoryHtml
                 continue;
             }
 
-            result.Add(new(option.Value,
+            result.Add(new(
+                option.Value,
                 option.IsSelected,
                 new($"{action.AbsoluteUri}?AnUniv={Uri.EscapeDataString(option.Value)}")));
         }
         if (result.Count == 0 || result.Count(x => x.Selected) != 1)
         {
-            throw new RegistryHistoryException("Academic-year selection is empty or ambiguous.",
+            throw new RegistryHistoryException(
+                "Academic-year selection is empty or ambiguous.",
                 phase: RegistryHistoryPhase.Index,
                 diagnostic: RegistryHistoryDiagnostic.YearSelection);
         }
@@ -203,10 +205,12 @@ public static class RegistryHistoryHtml
                 var address2 = address;
                 string? href = anchor.GetAttribute("href");
                 var uri = SafeUri(address2, href);
-                if (!uri.AbsolutePath.StartsWith($"{Root(address)}LessonAttendance/groups/",
+                if (!uri.AbsolutePath.StartsWith(
+                        $"{Root(address)}LessonAttendance/groups/",
                         StringComparison.Ordinal))
                 {
-                    throw new RegistryHistoryException("Course link route is unsupported.",
+                    throw new RegistryHistoryException(
+                        "Course link route is unsupported.",
                         phase: RegistryHistoryPhase.Index,
                         diagnostic: RegistryHistoryDiagnostic.CourseLink);
                 }
@@ -214,7 +218,8 @@ public static class RegistryHistoryHtml
                 var name = anchor.TextContent.Trim();
                 if (name.Length == 0)
                 {
-                    throw new RegistryHistoryException("Course link has no name.",
+                    throw new RegistryHistoryException(
+                        "Course link has no name.",
                         phase: RegistryHistoryPhase.Index,
                         diagnostic: RegistryHistoryDiagnostic.CourseName);
                 }
@@ -223,7 +228,8 @@ public static class RegistryHistoryHtml
                 {
                     var
                         list = result;
-                    RegistryHistoryCourse item = new(name,
+                    RegistryHistoryCourse item = new(
+                        name,
                         semester,
                         uri);
                     list.Add(item);
@@ -243,7 +249,8 @@ public static class RegistryHistoryHtml
                 return [];
             }
 
-            throw new RegistryHistoryException("Group container is missing; historical markup requires inspection.",
+            throw new RegistryHistoryException(
+                "Group container is missing; historical markup requires inspection.",
                 phase: RegistryHistoryPhase.Groups,
                 diagnostic: RegistryHistoryDiagnostic.GroupContainer);
         }
@@ -262,7 +269,8 @@ public static class RegistryHistoryHtml
             var anchors = row.QuerySelectorAll("a");
             if (anchors.Length != 2)
             {
-                throw new RegistryHistoryException("Group row has an unsupported link layout.",
+                throw new RegistryHistoryException(
+                    "Group row has an unsupported link layout.",
                     phase: RegistryHistoryPhase.Groups,
                     diagnostic: RegistryHistoryDiagnostic.GroupRowLinks);
             }
@@ -270,10 +278,12 @@ public static class RegistryHistoryHtml
             var address2 = address;
             string? href = anchors[0].GetAttribute("href");
             var uri = SafeUri(address2, href);
-            if (!uri.AbsolutePath.StartsWith($"{Root(address)}LessonAttendance/LessonsList/",
+            if (!uri.AbsolutePath.StartsWith(
+                    $"{Root(address)}LessonAttendance/LessonsList/",
                     StringComparison.Ordinal))
             {
-                throw new RegistryHistoryException("Group link route is unsupported.",
+                throw new RegistryHistoryException(
+                    "Group link route is unsupported.",
                     phase: RegistryHistoryPhase.Groups,
                     diagnostic: RegistryHistoryDiagnostic.GroupLink);
             }
@@ -281,7 +291,8 @@ public static class RegistryHistoryHtml
             var name = anchors[0].TextContent.Trim();
             if (name.Length == 0)
             {
-                throw new RegistryHistoryException("Group link has no name.",
+                throw new RegistryHistoryException(
+                    "Group link has no name.",
                     phase: RegistryHistoryPhase.Groups,
                     diagnostic: RegistryHistoryDiagnostic.GroupName);
             }
@@ -364,7 +375,8 @@ public static class RegistryHistoryHtml
         var index = address.AbsolutePath.IndexOf("/LessonAttendance", StringComparison.Ordinal);
         if (index < 0)
         {
-            throw new RegistryHistoryException("Registry page address is unsupported.",
+            throw new RegistryHistoryException(
+                "Registry page address is unsupported.",
                 diagnostic: RegistryHistoryDiagnostic.RequestPolicy);
         }
 
@@ -384,7 +396,8 @@ public static class RegistryHistoryHtml
         {
             throw InvalidNavigation();
         }
-        if (!Uri.TryCreate(baseUri: address,
+        if (!Uri.TryCreate(
+                baseUri: address,
                 href,
                 result: out var uri))
         {
@@ -640,7 +653,8 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
 
             if (conditionResult)
             {
-                throw new RegistryHistoryException("History session stopped or disallowed a request.",
+                throw new RegistryHistoryException(
+                    "History session stopped or disallowed a request.",
                     RegistryHistoryFailure.TransportStopped,
                     phase,
                     diagnostic: RegistryHistoryDiagnostic.RequestPolicy);
@@ -676,7 +690,8 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                 {
                     response?.Dispose();
                     _stopped = true;
-                    throw new RegistryHistoryException("History transport failed; session stopped without replay.",
+                    throw new RegistryHistoryException(
+                        "History transport failed; session stopped without replay.",
                         RegistryHistoryFailure.TransportStopped,
                         phase,
                         diagnostic: RegistryHistoryDiagnostic.Transport);
@@ -749,7 +764,8 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
             return true;
         }
 
-        if (IsNumericRoute(uri,
+        if (IsNumericRoute(
+                uri,
                 "groups",
                 allowGroupQuery: false))
         {
@@ -831,7 +847,8 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
 
     private bool IsLessonList(Uri uri)
     {
-        return IsNumericRoute(uri,
+        return IsNumericRoute(
+            uri,
             "LessonsList",
             allowGroupQuery: true);
     }
@@ -911,7 +928,8 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
 
         if (year is not null && !years.Any(x => x.Value == year))
         {
-            throw new RegistryHistoryException("Requested academic year is not offered by the registry selector.",
+            throw new RegistryHistoryException(
+                "Requested academic year is not offered by the registry selector.",
                 RegistryHistoryFailure.RequestedYearUnavailable);
         }
 
@@ -965,7 +983,8 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
                     x.Name;
                 var select = groups2.Select(selector);
                 IReadOnlyList<string> groups3 = select.ToArray();
-                RegistryHistoryCourseSummary item = new(name,
+                RegistryHistoryCourseSummary item = new(
+                    name,
                     semester,
                     groups3);
                 list.Add(item);
@@ -989,7 +1008,8 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
             int? statusCode = (int) response.StatusCode;
             var diagnostic2 =
                 RegistryHistoryDiagnostic.HttpRejected;
-            throw new RegistryHistoryException(message,
+            throw new RegistryHistoryException(
+                message,
                 failure,
                 phase,
                 statusCode,
@@ -1011,7 +1031,8 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
             var phase2 = Phase(uri);
             var diagnostic3 =
                 RegistryHistoryDiagnostic.AuthenticationPage;
-            throw new RegistryHistoryException(message2,
+            throw new RegistryHistoryException(
+                message2,
                 failure2,
                 phase2,
                 diagnostic: diagnostic3);

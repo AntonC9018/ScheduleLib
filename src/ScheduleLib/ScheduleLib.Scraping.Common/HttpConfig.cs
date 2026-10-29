@@ -54,7 +54,8 @@ public sealed class HttpClientContext : IDisposable
 
             var httpClient = new HttpClient(handler);
 
-            httpClient.DefaultRequestHeaders.Add(name: "User-Agent",
+            httpClient.DefaultRequestHeaders.Add(
+                name: "User-Agent",
                 value:
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36");
             httpClient.DefaultRequestHeaders.Add(name: "Accept-Language", value: "en-US,en;q=0.9");
@@ -112,7 +113,8 @@ public sealed class ScrapingContext : IDisposable
         config = config.With<ICookieProvider>(_ => http.CookieProvider);
 
         var browsingContext = BrowsingContext.New(config);
-        return new(http,
+        return new(
+            http,
             browsingContext,
             requester);
     }
@@ -279,7 +281,8 @@ internal sealed class HttpClientRequester : BaseRequester
                 httpResponse.Dispose();
                 throw new FormSubmissionRedirectException(location, statusCode);
             }
-            var response = await ToResponse(request.Address,
+            var response = await ToResponse(
+                request.Address,
                 httpResponse,
                 cancel);
             return response;

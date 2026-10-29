@@ -57,7 +57,8 @@ public sealed class SerializationTests
         await serializer.SerializeValues([t1a.Node], output);
 
         output.Seek(0, SeekOrigin.Begin);
-        await serializer.DeserializeValues(output,
+        await serializer.DeserializeValues(
+            output,
             (layer, configs) =>
             {
                 if (layer is { } l)
@@ -66,7 +67,8 @@ public sealed class SerializationTests
                 }
                 var config = Assert.Single(configs);
                 Assert.Equal(expected: RegistryConfig.Key.Value, actual: config.Key);
-                Assert.Equal(expected: value,
+                Assert.Equal(
+                    expected: value,
                     actual: (RegistryConfig?) config.Value,
                     Comparer.Instance);
                 var treeBuilder = t2;
@@ -78,7 +80,8 @@ public sealed class SerializationTests
         var child0 = t2.BaseNode.ChildNodes[0];
         var config = child0.Get(RegistryConfig.Key).Value
             .GetValue();
-        Assert.Equal(expected: value,
+        Assert.Equal(
+            expected: value,
             actual: config,
             Comparer.Instance);
     }
@@ -91,7 +94,8 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
     public bool Equals(RegistryConfig? x, RegistryConfig? y)
     {
         {
-            if (ComparisonHelper.AtLeastOneIsNull(x: x,
+            if (ComparisonHelper.AtLeastOneIsNull(
+                    x: x,
                     y: y,
                     out bool bothNull))
             {
@@ -102,7 +106,8 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
         {
             return false;
         }
-        if (!x.Credentials.ValueEquals(y.Credentials,
+        if (!x.Credentials.ValueEquals(
+                y.Credentials,
                 (a, b) =>
                 {
                     if (a.GetType() != b.GetType())
@@ -119,7 +124,8 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
                         return true;
                     }
 
-                    if (va.Value.ValueEquals(vb.Value,
+                    if (va.Value.ValueEquals(
+                            vb.Value,
                             (ca, cb) =>
                             {
                                 if (ca.Login != cb.Login)

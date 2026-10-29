@@ -7,7 +7,8 @@ public sealed class CliExceptionContextTests
     {
         string[] missing = ["first.json"];
         string[] extra = ["unexpected.json"];
-        var error = ExportCommands.WebsiteZipContentMismatch.CreateException("site.zip",
+        var error = ExportCommands.WebsiteZipContentMismatch.CreateException(
+            "site.zip",
             missing: missing,
             extra: extra);
 

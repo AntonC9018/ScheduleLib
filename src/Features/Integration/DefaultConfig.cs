@@ -88,7 +88,8 @@ public static class DefaultConfig
                 });
         });
 
-        b.Defaults.TeacherLayer("Curmanschii Anton",
+        b.Defaults.TeacherLayer(
+            "Curmanschii Anton",
             t =>
             {
                 t.LessonTopics()
@@ -130,7 +131,8 @@ public static class DefaultConfig
                     });
             });
 
-        b.Defaults.TeacherLayer("Iatasina Tamara",
+        b.Defaults.TeacherLayer(
+            "Iatasina Tamara",
             t =>
             {
                 t.Moodle()
@@ -149,7 +151,8 @@ public static class DefaultConfig
                     });
             });
 
-        b.Defaults.TeacherLayer("Nartea Nichita",
+        b.Defaults.TeacherLayer(
+            "Nartea Nichita",
             t =>
             {
                 t.Moodle()
@@ -175,7 +178,8 @@ public static class DefaultConfig
                      "Plesca Natalia",
                  })
         {
-            b.Defaults.TeacherLayer(teacher,
+            b.Defaults.TeacherLayer(
+                teacher,
                 t =>
                     t.Registry()
                         .ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone));

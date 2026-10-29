@@ -64,7 +64,8 @@ public sealed class IntegrationTest
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        await using var outputFile = outputDirectory.OpenFile(outputPath,
+        await using var outputFile = outputDirectory.OpenFile(
+            outputPath,
             FileMode.Create,
             FileAccess.ReadWrite);
 

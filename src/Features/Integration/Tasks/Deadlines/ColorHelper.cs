@@ -9,7 +9,8 @@ internal static class ColorHelper
         Color b,
         float t)
     {
-        t = Math.Clamp(value: t,
+        t = Math.Clamp(
+            value: t,
             min: 0,
             max: 1);
         float byteValue = a.R;
@@ -27,7 +28,8 @@ internal static class ColorHelper
         float single5 = int323 * t;
         float single6 = byteValue3 + single5;
         int b2 = (int) single6;
-        return Color.FromArgb(red: r,
+        return Color.FromArgb(
+            red: r,
             green: g,
             blue: b2);
     }

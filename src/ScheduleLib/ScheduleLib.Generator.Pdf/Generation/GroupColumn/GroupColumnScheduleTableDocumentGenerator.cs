@@ -59,7 +59,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             {
                 var groups = Columns();
                 var count = int.Min(x: groups.Length - i, y: _sizesConfig.MaxAdditionalColumnsPerPage);
-                return new(groups,
+                return new(
+                    groups,
                     offset: i,
                     count: count);
             }
@@ -184,7 +185,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                         x = x.Centered();
                         x.Text(text =>
                         {
-                            LessonText(text,
+                            LessonText(
+                                text,
                                 lesson,
                                 columnWidth: 1);
                         });
@@ -213,7 +215,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                             x = x.Centered();
                             x.Text(text =>
                             {
-                                LessonText(text,
+                                LessonText(
+                                    text,
                                     t.Lesson,
                                     columnWidth: size);
                             });
@@ -267,7 +270,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
                             var order = layout.LessonVerticalOrder[lesson.Id];
                             var rowSpan = sizeComputer.ComputeRowSpan((int) order);
-                            yield return new(lesson,
+                            yield return new(
+                                lesson,
                                 LessonOrder: order,
                                 RowSpan: rowSpan);
                         }
@@ -445,7 +449,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             bottom = 2;
         }
 
-        var ret = descriptor.Border(bottom: bottom,
+        var ret = descriptor.Border(
+            bottom: bottom,
             top: top,
             left: 1,
             right: 1);
@@ -524,7 +529,8 @@ public static class PdfHelper
         float left,
         float right)
     {
-        return ReflectedBorder(element,
+        return ReflectedBorder(
+            element,
             top: top,
             bottom: bottom,
             left: left,

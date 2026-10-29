@@ -34,7 +34,8 @@ public struct StringTableBuilder
     public SharedStringItemId GetOrAddString(string s)
     {
         var id = NextId;
-        ref var ret = ref CollectionsMarshal.GetValueRefOrAddDefault(_strings,
+        ref var ret = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _strings,
             s,
             out var exists);
         if (!exists)

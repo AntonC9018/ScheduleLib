@@ -142,7 +142,9 @@ public sealed class GoogleCalendarProviderTests
             await auth.Login("fixture", services)
                 .WithCredentials(config)
                 .Execute(default);
-            var credential = await auth.Resolve(new GoogleCredentialRequest(config,
+            var credential = await auth.Resolve(
+                new GoogleCredentialRequest(
+                    config,
                     [CalendarService.Scope.Calendar],
                     "fixture",
                     services),
@@ -158,7 +160,9 @@ public sealed class GoogleCalendarProviderTests
                     "www.googleapis.com",
                 },
                 actual: transport.Requests.Select(x => x.Host));
-            var second = await auth.Resolve(new GoogleCredentialRequest(config,
+            var second = await auth.Resolve(
+                new GoogleCredentialRequest(
+                    config,
                     [CalendarService.Scope.Calendar],
                     "fixture",
                     services),
@@ -1101,7 +1105,9 @@ public sealed class GoogleCalendarProviderTests
             await auth.Login("fixture", services)
                 .WithCredentials(config)
                 .Execute(default);
-            credential = await auth.Resolve(new GoogleCredentialRequest(config,
+            credential = await auth.Resolve(
+                new GoogleCredentialRequest(
+                    config,
                     [CalendarService.Scope.Calendar],
                     "fixture",
                     services),
@@ -1265,12 +1271,15 @@ public sealed class GoogleCalendarProviderTests
                 Assert.Equal(
                     expected: expected2,
                     actual: actual2);
-                Assert.Equal(expected: expectedState,
+                Assert.Equal(
+                    expected: expectedState,
                     actual: outcomes.Last()
                         .GetProperty("state")
                         .GetString());
-                Assert.All(outcomes.SkipLast(1),
-                    x => Assert.Equal(expected: "completed",
+                Assert.All(
+                    outcomes.SkipLast(1),
+                    x => Assert.Equal(
+                        expected: "completed",
                         actual: x.GetProperty("state")
                             .GetString()));
                 if (outcomes.Last()
@@ -1278,7 +1287,8 @@ public sealed class GoogleCalendarProviderTests
                         .GetString()
                     == "create event")
                 {
-                    Assert.Equal(expected: "new-calendar",
+                    Assert.Equal(
+                        expected: "new-calendar",
                         actual: data.GetProperty("createdCalendarId")
                             .GetString());
 
@@ -1299,7 +1309,8 @@ public sealed class GoogleCalendarProviderTests
                             .GetInt32());
                     if (scenario == "event-second-cancel")
                     {
-                        Assert.Equal(expected: "new-event",
+                        Assert.Equal(
+                            expected: "new-event",
                             actual: outcomes[1].GetProperty("eventId")
                                 .GetString());
                     }
@@ -1326,18 +1337,21 @@ public sealed class GoogleCalendarProviderTests
                 Assert.Contains(expectedSubstring: "auth login google", actualString: stderr.ToString());
             }
 
-            Assert.DoesNotContain(expectedSubstring: "synthetic-private-detail",
+            Assert.DoesNotContain(
+                expectedSubstring: "synthetic-private-detail",
                 actualString: stdout.ToString() + stderr);
             if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
             {
                 Assert.DoesNotContain(expectedSubstring: "auth login google", actualString: stdout.ToString() + stderr);
                 Assert.Equal(expected: "fixture", actual: credential.Token.RefreshToken);
-                Assert.Contains(expectedSubstring: CalendarService.Scope.Calendar,
+                Assert.Contains(
+                    expectedSubstring: CalendarService.Scope.Calendar,
                     actualString: credential.Token.Scope);
             }
             if (scenario == "preview-pagination")
             {
-                Assert.Equal(expected: 2,
+                Assert.Equal(
+                    expected: 2,
                     actual: data.GetProperty("deletedEvents")
                         .GetArrayLength());
                 Assert.Empty(data.GetProperty("outcomes")
@@ -1416,7 +1430,8 @@ public sealed class GoogleCalendarProviderTests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
-            Requests.Add(new(Method: request.Method.Method,
+            Requests.Add(new(
+                Method: request.Method.Method,
                 Host: request.RequestUri!.Host,
                 Path: request.RequestUri.AbsolutePath));
             return respond(request, token);

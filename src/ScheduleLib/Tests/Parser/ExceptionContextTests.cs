@@ -18,7 +18,8 @@ public sealed class ExceptionContextTests
 
         Assert.Equal(expected: 2, actual: error.ErrorCount);
         Assert.Equal(expected: ["first overlap", "second overlap"], actual: error.Errors);
-        Assert.Equal(expected: "The schedule has 2 overlapping lesson pairs:\nfirst overlap\nsecond overlap",
+        Assert.Equal(
+            expected: "The schedule has 2 overlapping lesson pairs:\nfirst overlap\nsecond overlap",
             actual: error.Message);
     }
 

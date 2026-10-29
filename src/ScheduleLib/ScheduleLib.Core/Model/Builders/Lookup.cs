@@ -89,7 +89,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
             }
             return new Word(part);
         });
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s,
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            s,
             ids,
             firstNameParts);
         return new(ids[i]);
@@ -103,7 +104,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         }
 
         var firstNameParts = ParseTeacherFirstName(firstName);
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s,
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            s,
             ids,
             firstNameParts);
         return new(ids[i]);

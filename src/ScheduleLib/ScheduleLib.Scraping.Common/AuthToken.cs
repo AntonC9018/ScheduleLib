@@ -420,7 +420,8 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         var token = _fields.CookieContainer.FindCookie(_fields.Names);
         Debug.Assert(token != null, "Must be set by token retriever");
 
-        await using var stream = File.Open(_fields.StorageConfig.TokensFile,
+        await using var stream = File.Open(
+            _fields.StorageConfig.TokensFile,
             FileMode.OpenOrCreate,
             FileAccess.ReadWrite);
         if (await TryUpdateExisting())

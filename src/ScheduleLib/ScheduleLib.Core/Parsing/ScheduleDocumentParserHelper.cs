@@ -55,7 +55,8 @@ public static class ScheduleDocumentParserHelper
             DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
             {
                 var culture = CultureInfo.CurrentCulture;
-                Debug.Assert(culture.Calendar.TwoDigitYearMax == 2049,
+                Debug.Assert(
+                    culture.Calendar.TwoDigitYearMax == 2049,
                     "Fix this if you want to parse older docs");
 
                 if (!DateTime.TryParseExact(
@@ -133,7 +134,8 @@ public static class ScheduleDocumentParserHelper
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            bool parsed = DateOnly.TryParseExact(s: dateSpan,
+            bool parsed = DateOnly.TryParseExact(
+                s: dateSpan,
                 format: format,
                 out var date);
             if (!parsed)

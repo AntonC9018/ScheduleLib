@@ -54,7 +54,8 @@ internal static class RegistryHistoryTopicFiles
                     }
 
                     var name = $"topics-{runId}-{files.Count + 1}.csv";
-                    await WriteTopics(directory,
+                    await WriteTopics(
+                        directory,
                         name,
                         ordered,
                         token);
@@ -78,7 +79,8 @@ internal static class RegistryHistoryTopicFiles
         }
 
         var inventory = $"topics-candidates-{runId}.json";
-        await WriteInventory(directory,
+        await WriteInventory(
+            directory,
             inventory,
             analysis,
             sources,
@@ -89,7 +91,8 @@ internal static class RegistryHistoryTopicFiles
     private static List<TopicExport> SelectExports(RegistryHistoryTopicsAnalysis analysis)
     {
         var exports = analysis.Selection.Candidates
-            .Select(candidate => new TopicExport(candidate.CurrentCourse,
+            .Select(candidate => new TopicExport(
+                candidate.CurrentCourse,
                 candidate.Historical,
                 "requires-group-mapping"))
             .ToList();
@@ -118,7 +121,8 @@ internal static class RegistryHistoryTopicFiles
 
             var latestExports = matches
                 .Where(snapshot => snapshot.Year == latest)
-                .Select(snapshot => new TopicExport(item.CurrentCourse,
+                .Select(snapshot => new TopicExport(
+                    item.CurrentCourse,
                     snapshot,
                     "ambiguous-course"));
             exports.AddRange(latestExports);
@@ -193,7 +197,8 @@ internal static class RegistryHistoryTopicFiles
             sources,
             unresolved = analysis.Selection.Unresolved,
         };
-        await JsonSerializer.SerializeAsync(stream,
+        await JsonSerializer.SerializeAsync(
+            stream,
             inventory,
             options,
             token);

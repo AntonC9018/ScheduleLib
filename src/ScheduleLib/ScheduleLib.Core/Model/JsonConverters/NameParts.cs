@@ -64,7 +64,8 @@ public sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
         {
             if (lastNullStart == -1 || i < lastNullStart)
             {
-                JsonSerializer.Serialize(writer,
+                JsonSerializer.Serialize(
+                    writer,
                     value[i],
                     options);
             }

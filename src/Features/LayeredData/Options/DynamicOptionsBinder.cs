@@ -60,7 +60,8 @@ public sealed class DynamicOptionsBinder<T>
         }
         if (failures.Count > 0)
         {
-            throw new OptionsValidationException(optionsName: "dynamic",
+            throw new OptionsValidationException(
+                optionsName: "dynamic",
                 typeof(T),
                 failures);
         }

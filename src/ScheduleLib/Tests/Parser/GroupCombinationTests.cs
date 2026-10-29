@@ -119,30 +119,38 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 courseName: "C1");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "ro");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "ru");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "începători",
                 courseName: "C2");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "C2");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "GA2D");
         });
@@ -186,13 +194,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "Spring");
         });
@@ -203,7 +214,8 @@ public sealed class GroupCombinationTests
 
         Assert.False(info.SpecializationActive);
         Assert.Equal(expected: ["I", "II"], actual: info.Combinations.Select(NameOf));
-        Assert.All(info.Combinations,
+        Assert.All(
+            info.Combinations,
             c =>
             {
                 bool condition = info.IncludesLesson(c, springLesson.Lesson);
@@ -218,25 +230,32 @@ public sealed class GroupCombinationTests
         var iGroup = builder.Group("I2401").Id;
         var iaGroup = builder.Group("IA2401").Id;
 
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "I2401",
             subGroup: "I");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "I2401",
             subGroup: "II");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             subGroup: "I");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             subGroup: "II");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             specialization: "React");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             specialization: "GA3D");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             specialization: "DJ");
 
@@ -258,7 +277,8 @@ public sealed class GroupCombinationTests
             .Single(x => x.Lesson.Course == sharedCourse);
 
         Assert.False(iInfo.SpecializationActive);
-        Assert.All(iInfo.Combinations,
+        Assert.All(
+            iInfo.Combinations,
             c =>
             {
                 bool condition = iInfo.IncludesLesson(c, sharedLesson.Lesson);
@@ -312,13 +332,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ");
         });
@@ -341,7 +364,8 @@ public sealed class GroupCombinationTests
 
         // The numeric lesson matches both combinations.
         var numericLesson = GetLessonBySubGroup(schedule, "I");
-        Assert.All(info.Combinations,
+        Assert.All(
+            info.Combinations,
             c =>
             {
                 bool condition = info.IncludesLesson(c, numericLesson.Lesson);
@@ -354,12 +378,14 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 alternative: "A1",
                 courseName: "C1");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II",
                 alternative: "A2",
@@ -378,13 +404,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "Psihologie",
                 courseName: "Elective");
@@ -397,7 +426,8 @@ public sealed class GroupCombinationTests
 
         Assert.False(info.AlternativeActive);
         Assert.Equal(expected: ["I", "II"], actual: info.Combinations.Select(NameOf));
-        Assert.All(info.Combinations,
+        Assert.All(
+            info.Combinations,
             c =>
             {
                 bool condition = info.IncludesLesson(c, elective.Lesson);
@@ -410,15 +440,18 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 courseName: "Numeric");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "A1",
                 courseName: "Elective A1");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "A2",
                 courseName: "Elective A2");
@@ -444,7 +477,8 @@ public sealed class GroupCombinationTests
         Assert.True(condition3);
 
         // The numeric lesson matches both combinations.
-        Assert.All(info.Combinations,
+        Assert.All(
+            info.Combinations,
             c =>
             {
                 bool condition = info.IncludesLesson(c, numericLesson.Lesson);
@@ -457,14 +491,17 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "Shared");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "A1",
                 courseName: "Elective A1");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "A2",
                 courseName: "Elective A2");
@@ -497,7 +534,8 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 alternative: "Psihologie",
                 courseName: "Elective");
@@ -534,13 +572,15 @@ public sealed class GroupCombinationTests
         // made it brittle); it is not restored here.
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 specialization: "GA2D",
                 alternative: "Psihologie",
                 courseName: "Elective");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "Shared");
         });
@@ -556,7 +596,8 @@ public sealed class GroupCombinationTests
             json = Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        Assert.DoesNotContain(expectedSubstring: "GroupPartitionKey",
+        Assert.DoesNotContain(
+            expectedSubstring: "GroupPartitionKey",
             actualString: json,
             StringComparison.Ordinal);
 
@@ -566,13 +607,16 @@ public sealed class GroupCombinationTests
 
         var elective = lessons.EnumerateArray()
             .Single(e => e.GetProperty("Alternative").ValueKind == JsonValueKind.String);
-        Assert.Equal(expected: "I",
+        Assert.Equal(
+            expected: "I",
             actual: elective.GetProperty("SubGroup")
                 .GetString());
-        Assert.Equal(expected: "GA2D",
+        Assert.Equal(
+            expected: "GA2D",
             actual: elective.GetProperty("Specialization")
                 .GetString());
-        Assert.Equal(expected: "Psihologie",
+        Assert.Equal(
+            expected: "Psihologie",
             actual: elective.GetProperty("Alternative")
                 .GetString());
 
@@ -634,10 +678,12 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "S21");
         });
@@ -656,13 +702,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ");
         });
@@ -700,13 +749,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ");
         });
@@ -740,16 +792,20 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "React");
         });
@@ -781,7 +837,8 @@ public sealed class GroupCombinationTests
         Assert.True(condition);
         bool condition2 = info.IncludesLesson(cvCombination, reactLesson.Lesson);
         Assert.False(condition2);
-        Assert.All(info.Combinations,
+        Assert.All(
+            info.Combinations,
             c =>
             {
                 bool condition = info.IncludesLesson(c, reactLesson.Lesson);
@@ -794,13 +851,16 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ");
         });
@@ -943,13 +1003,16 @@ public sealed class GroupCombinationTests
     {
         var builder = CreateBuilder();
         Config.ConfigureRemappings(builder.Remappings);
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             subGroup: "AG");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             subGroup: "GR");
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2401",
             subGroup: "Node");
 
@@ -974,22 +1037,27 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "Shared");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 courseName: "Numeric I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II",
                 courseName: "Numeric II");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV",
                 courseName: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ",
                 courseName: "DJ");
@@ -1024,37 +1092,46 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "Shared");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "I",
                 courseName: "Numeric I");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "II",
                 courseName: "Numeric II");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "ro",
                 courseName: "Romanian");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "ru",
                 courseName: "Russian");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 subGroup: "începători",
                 courseName: "Language");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 courseName: "Language");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "CV",
                 courseName: "CV");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2401",
                 specialization: "DJ",
                 courseName: "DJ");
@@ -1210,10 +1287,12 @@ public sealed class GroupCombinationTests
     public void NumericSubGroupsMustFormAContiguousPrefix()
     {
         var s = CreateBuilder();
-        AddLesson(s,
+        AddLesson(
+            s,
             groupName: "IA2401",
             subGroup: "I");
-        AddLesson(s,
+        AddLesson(
+            s,
             groupName: "IA2401",
             subGroup: "III");
 
@@ -1229,7 +1308,8 @@ public sealed class GroupCombinationTests
     public void SingleLanguageSubGroupFails()
     {
         var s = CreateBuilder();
-        AddLesson(s,
+        AddLesson(
+            s,
             groupName: "IA2401",
             subGroup: "ru");
 

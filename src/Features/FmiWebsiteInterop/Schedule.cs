@@ -90,7 +90,8 @@ public static class WebsiteJsonScheduleHelper
                 {
                     var lessons = lessonGroup.ToList();
                     var weekType = DetermineWeekType(lessons);
-                    var pairInfo = BuildPairInfo(schedule.Source,
+                    var pairInfo = BuildPairInfo(
+                        schedule.Source,
                         lessons,
                         services);
 

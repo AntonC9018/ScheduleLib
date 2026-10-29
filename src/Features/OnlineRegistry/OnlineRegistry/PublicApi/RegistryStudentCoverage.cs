@@ -94,7 +94,8 @@ internal sealed class RegistryStudentCoverage(
             }
         }
         var list = _rosters;
-        RosterCoverage item = new(students,
+        RosterCoverage item = new(
+            students,
             sources,
             complete);
         list.Add(item);
@@ -116,7 +117,8 @@ internal sealed class RegistryStudentCoverage(
             var names = NamesInDb.Create([.. source.Names]);
             foreach (var roster in source.Rosters)
             {
-                _ = StudentNameRemapHelper.Create(roster,
+                _ = StudentNameRemapHelper.Create(
+                    roster,
                     names,
                     [],
                     aliases,
@@ -135,7 +137,8 @@ internal sealed class RegistryStudentCoverage(
                 return group2;
             }
 
-            diagnostics.Add(kind: "attendance-students-not-in-registry",
+            diagnostics.Add(
+                kind: "attendance-students-not-in-registry",
                 course: schedule.Get(course).FullName,
                 @group: CalculateGroup(),
                 detail:
@@ -194,7 +197,8 @@ internal sealed class RegistryStudentCoverage(
                         })
                         .Distinct(NameComparer),
                 ]);
-                _ = StudentNameRemapHelper.Create(roster.Students,
+                _ = StudentNameRemapHelper.Create(
+                    roster.Students,
                     names,
                     unknown,
                     aliases);
@@ -206,20 +210,24 @@ internal sealed class RegistryStudentCoverage(
                 continue;
             }
 
-            var groups = string.Join(", ",
+            var groups = string.Join(
+                ", ",
                 sources.Keys.SelectMany(key => key.Groups)
                     .Distinct()
                     .Select(parent => schedule.Get(parent).Name)
                     .Order(StringComparer.Ordinal));
-            var partitions = string.Join("; ",
+            var partitions = string.Join(
+                "; ",
                 sources.Keys.Select(key => RegistrySyncDiagnostics.DescribePartition(key.GroupPartition))
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal));
-            var types = string.Join(", ",
+            var types = string.Join(
+                ", ",
                 sources.Keys.Select(key => key.LessonType)
                     .Distinct()
                     .Order());
-            diagnostics.Add(kind: "unmatched-attendance-students",
+            diagnostics.Add(
+                kind: "unmatched-attendance-students",
                 course: schedule.Get(course).FullName,
                 @group: groups,
                 detail:

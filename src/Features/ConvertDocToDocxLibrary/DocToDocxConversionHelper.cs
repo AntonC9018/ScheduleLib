@@ -54,7 +54,8 @@ public static class DocToDocxConversionHelper
         }
 
         using var process = Process.Start(processInfo) ?? throw Unreachable();
-        return await WaitForConverter(process,
+        return await WaitForConverter(
+            process,
             nonce: nonce,
             existingWord,
             cancellationPath: cancellationPath,
@@ -70,7 +71,8 @@ public static class DocToDocxConversionHelper
     {
         using var ownershipReadCancellation = new CancellationTokenSource();
         // Read immediately, pinning the process handle while Word is still alive.
-        var ownership = ReadOwnedWord(process,
+        var ownership = ReadOwnedWord(
+            process,
             nonce,
             existingWord,
             ownershipReadCancellation.Token);
@@ -147,7 +149,8 @@ public static class DocToDocxConversionHelper
         try
         {
             var message = await converter.StandardOutput.ReadLineAsync(cancellationToken);
-            if (!WordConverterProtocol.TryReadOwnership(message: message,
+            if (!WordConverterProtocol.TryReadOwnership(
+                    message: message,
                     nonce: nonce,
                     out var pid,
                     out var ticks))
@@ -167,7 +170,8 @@ public static class DocToDocxConversionHelper
             int converterSession2 = converter.SessionId;
             string processName = word.ProcessName;
             bool existedBeforeConversion = existingWord.Contains(pid);
-            if (WordConverterProtocol.IsOwnedProcess(pid: pid2,
+            if (WordConverterProtocol.IsOwnedProcess(
+                    pid: pid2,
                     reportedTicks: reportedTicks2,
                     actualTicks: actualTicks2,
                     converterTicks: converterTicks2,

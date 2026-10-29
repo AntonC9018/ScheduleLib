@@ -129,7 +129,8 @@ public sealed class RegistryHistoryTests
             },
             actual: years.Select(x => x.Value));
         Assert.True(years[0].Selected);
-        Assert.Equal(expected: "https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F25",
+        Assert.Equal(
+            expected: "https://registry.test/studregistry/LessonAttendance?AnUniv=2024%2F25",
             actual: years[1].Uri.AbsoluteUri);
     }
 

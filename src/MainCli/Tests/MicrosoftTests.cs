@@ -39,7 +39,8 @@ public sealed class MicrosoftTests
                 Config,
                 Teacher,
                 default));
-        Assert.Equal(expected: "schedulelib auth login microsoft --profile \"Curmanschii Anton\"",
+        Assert.Equal(
+            expected: "schedulelib auth login microsoft --profile \"Curmanschii Anton\"",
             actual: error.LoginCommand);
         Assert.Equal(expected: 0, actual: tokens.Consents);
         Assert.Equal(expected: 0, actual: tokens.SilentCalls);
@@ -171,7 +172,8 @@ public sealed class MicrosoftTests
                     Json = true,
                 }));
         var result = capture.Result();
-        Assert.Equal(expected: "auth login microsoft",
+        Assert.Equal(
+            expected: "auth login microsoft",
             actual: result.GetProperty("command")
                 .GetString());
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: result.GetRawText());
@@ -266,7 +268,8 @@ public sealed class MicrosoftTests
                 .GetProperty("source")
                 .GetProperty("owner")
                 .GetString());
-        Assert.Equal(expected: 1,
+        Assert.Equal(
+            expected: 1,
             actual: result.GetProperty("data")
                 .GetProperty("documentCount")
                 .GetInt32());
@@ -398,7 +401,8 @@ public sealed class MicrosoftTests
                 {
                     Json = true,
                 }));
-        Assert.Contains(expectedSubstring: "2024-2025",
+        Assert.Contains(
+            expectedSubstring: "2024-2025",
             actualString: capture.Result()
                 .GetProperty("errors")[0]
                 .GetString());
@@ -657,7 +661,8 @@ public sealed class MicrosoftTests
                     Json = true,
                 }));
         var result = capture.Result();
-        Assert.Equal(expected: "partial",
+        Assert.Equal(
+            expected: "partial",
             actual: result.GetProperty("status")
                 .GetString());
 
@@ -689,7 +694,8 @@ public sealed class MicrosoftTests
 
         using var manifest = JsonDocument.Parse(
             await File.ReadAllTextAsync(CalculatePath2()));
-        Assert.Equal(expected: "partial",
+        Assert.Equal(
+            expected: "partial",
             actual: manifest.RootElement.GetProperty("Status")
                 .GetString());
         Assert.Single(manifest.RootElement.GetProperty("Artifacts")
@@ -737,10 +743,12 @@ public sealed class MicrosoftTests
 
         Assert.Empty(CalculateCollection2());
         var result = capture.Result();
-        Assert.Equal(expected: "cancelled",
+        Assert.Equal(
+            expected: "cancelled",
             actual: result.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: 2,
+        Assert.Equal(
+            expected: 2,
             actual: result.GetProperty("outputs")
                 .GetArrayLength());
 
@@ -752,7 +760,8 @@ public sealed class MicrosoftTests
 
         using var manifest = JsonDocument.Parse(
             await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "partial",
+        Assert.Equal(
+            expected: "partial",
             actual: manifest.RootElement.GetProperty("Status")
                 .GetString());
     }
@@ -885,7 +894,8 @@ public sealed class MicrosoftTests
                     Json = true,
                 }));
         var result = capture.Result();
-        Assert.Equal(expected: expected,
+        Assert.Equal(
+            expected: expected,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
 
@@ -899,7 +909,8 @@ public sealed class MicrosoftTests
             return "failed";
         }
 
-        Assert.Equal(expected: CalculateExpected(),
+        Assert.Equal(
+            expected: CalculateExpected(),
             actual: result.GetProperty("status")
                 .GetString());
         var error = result.GetProperty("errors")[0]
@@ -981,7 +992,8 @@ public sealed class MicrosoftTests
 
             using var manifest = JsonDocument.Parse(
                 await File.ReadAllTextAsync(CalculatePath()));
-            Assert.Equal(expected: "partial",
+            Assert.Equal(
+                expected: "partial",
                 actual: manifest.RootElement.GetProperty("Status")
                     .GetString());
             Assert.Single(manifest.RootElement.GetProperty("Artifacts")
@@ -1030,7 +1042,8 @@ public sealed class MicrosoftTests
                     Json = true,
                 }));
         var result = capture.Result();
-        Assert.Equal(expected: "Curricula download or local publication failed.",
+        Assert.Equal(
+            expected: "Curricula download or local publication failed.",
             actual: result.GetProperty("errors")[0]
                 .GetString());
 

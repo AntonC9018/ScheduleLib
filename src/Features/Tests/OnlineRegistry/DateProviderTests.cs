@@ -7,7 +7,8 @@ public sealed class DateProviderTests
     [Fact]
     public void TestHoliday()
     {
-        var monday = new DateOnly(year: 2025,
+        var monday = new DateOnly(
+            year: 2025,
             month: 4,
             day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
 
@@ -39,7 +40,8 @@ public sealed class DateProviderTests
     [Fact]
     public void TestNoHoliday()
     {
-        var monday = new DateOnly(year: 2025,
+        var monday = new DateOnly(
+            year: 2025,
             month: 4,
             day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
         var provider = new ManualWeeklyScheduledDateProvider(

@@ -145,7 +145,8 @@ public sealed class LessonParserTests
             Assert.Equal(expected: "433/3", actual: lesson.RoomName.Span);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 CheckCommon(lesson1);
@@ -170,7 +171,8 @@ public sealed class LessonParserTests
             "I.Cucu  404/4",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson =>
             {
                 var teacherName = Assert.Single(lesson.TeacherNames);
@@ -189,7 +191,8 @@ public sealed class LessonParserTests
             "A.Dabija  ____",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson =>
             {
                 var teacherName = Assert.Single(lesson.TeacherNames);
@@ -209,7 +212,8 @@ public sealed class LessonParserTests
         IEnumerable<ParsedLesson> collection2 = collection;
         var lesson = Assert.Single(collection2);
 
-        Assert.Equal(expected: "Disciplină umanistică opțională: Antreprenoriat inovativ",
+        Assert.Equal(
+            expected: "Disciplină umanistică opțională: Antreprenoriat inovativ",
             actual: lesson.LessonName.Span);
         Assert.Equal(expected: LessonType.Curs, actual: lesson.LessonType);
         string expected2 = "I. Dobrovolschi";
@@ -249,7 +253,8 @@ public sealed class LessonParserTests
             return TimeOnly.FromTimeSpan(span);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 var expected2 = Time(8);
@@ -296,7 +301,8 @@ public sealed class LessonParserTests
             Assert.Equal(expected: "Dezvoltare de aplicații WEB cu React", actual: lesson.LessonName.Span);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 CheckCommon(lesson1);
@@ -326,7 +332,8 @@ public sealed class LessonParserTests
             "II:V.Vișnevschi  219/4a",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             first =>
             {
                 Assert.Equal(expected: "HTML", actual: first.LessonName.Span);
@@ -388,23 +395,31 @@ public sealed class LessonParserTests
             return false;
         }
 
-        Assert.Contains(lessons,
-            x => Check(x,
+        Assert.Contains(
+            lessons,
+            x => Check(
+                x,
                 lessonName: "LessonA",
                 groupName: "A",
                 teacherName: "TeacherA"));
-        Assert.Contains(lessons,
-            x => Check(x,
+        Assert.Contains(
+            lessons,
+            x => Check(
+                x,
                 lessonName: "LessonB",
                 groupName: "A",
                 teacherName: "TeacherA"));
-        Assert.Contains(lessons,
-            x => Check(x,
+        Assert.Contains(
+            lessons,
+            x => Check(
+                x,
                 lessonName: "LessonA",
                 groupName: "B",
                 teacherName: "TeacherB"));
-        Assert.Contains(lessons,
-            x => Check(x,
+        Assert.Contains(
+            lessons,
+            x => Check(
+                x,
                 lessonName: "LessonB",
                 groupName: "B",
                 teacherName: "TeacherB"));
@@ -427,7 +442,8 @@ public sealed class LessonParserTests
             Assert.Equal(expected: LessonType.Curs, actual: lesson.LessonType);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Lesson(lesson1);
@@ -455,7 +471,8 @@ public sealed class LessonParserTests
             "B: TeacherB",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
@@ -484,7 +501,8 @@ public sealed class LessonParserTests
             "B: TeacherA",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
@@ -519,7 +537,8 @@ public sealed class LessonParserTests
             AssertEqualName(expected2, actual2);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Common(lesson1);
@@ -544,7 +563,8 @@ public sealed class LessonParserTests
             AssertEqualName(expected2, actual2);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Common(lesson1);
@@ -577,7 +597,8 @@ public sealed class LessonParserTests
             Assert.Equal(expected: "251/4", actual: lesson.RoomName.Span);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Common(lesson1);
@@ -599,7 +620,8 @@ public sealed class LessonParserTests
             "Lesson",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson.LessonName.Span);
@@ -626,7 +648,8 @@ public sealed class LessonParserTests
             "Teacher",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson.LessonName.Span);
@@ -646,7 +669,8 @@ public sealed class LessonParserTests
 
         bool ShortNameEqual()
         {
-            return expectedName.FirstName.EachEquals(actual.FirstName,
+            return expectedName.FirstName.EachEquals(
+                actual.FirstName,
                 (e, a) =>
                 {
                     if (e.IsNull)
@@ -677,7 +701,8 @@ public sealed class LessonParserTests
                 return false;
             }
 
-            return expectedName.LastName.Parts.EachEquals(actual.LastName,
+            return expectedName.LastName.Parts.EachEquals(
+                actual.LastName,
                 (a, b) =>
                 {
                     var a1 = a.AsSpan();
@@ -724,7 +749,8 @@ public sealed class LessonParserTests
             "Teacher",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
@@ -820,7 +846,8 @@ public sealed class LessonParserTests
             "15:00 Lesson Two 123R",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             lesson1 =>
             {
                 Assert.Equal(expected: "Lesson One", actual: lesson1.LessonName.Span);
@@ -840,7 +867,8 @@ public sealed class LessonParserTests
     [Fact]
     public void LessonName_DontInsertSpaceInBetweenWords()
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "Lesson One",
             ],
             spaces: c =>
@@ -867,7 +895,8 @@ public sealed class LessonParserTests
     [InlineData(false)]
     public void LessonName_InclusiveDontInsert(bool inclusive)
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "Lesson One Two",
             ],
             spaces: c =>
@@ -905,7 +934,8 @@ public sealed class LessonParserTests
     [InlineData("Node. JS")]
     public void LessonName_NodeJsFromConfig(string nodejs)
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 $"Lesson {nodejs}",
             ],
             spaces: Config.WhiteSpaceActionCourseName);
@@ -917,7 +947,8 @@ public sealed class LessonParserTests
     [Fact]
     public void LessonName_NodeJsFromConfig_FullExample()
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "9:45 Dezv. apl. server-side cu Node.js (opț)",
                 "N.Nartea  145/4",
             ],
@@ -951,7 +982,8 @@ public sealed class LessonParserTests
             "S1 NameTwo (lab), T.Teacher, 143/4",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "NameOne", actual: l1.LessonName.Span);
@@ -972,7 +1004,8 @@ public sealed class LessonParserTests
             "M. Pavel, 404/4",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "Fund. Progr.", actual: l1.LessonName.Span);
@@ -988,12 +1021,14 @@ public sealed class LessonParserTests
     [Fact]
     public void TestBreakingInFr()
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "Elab. aplic. graf. (lab),\n M.Marin, 145a/4",
             ],
             Config.WhiteSpaceActionCourseName);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "Elab. aplic. graf.", actual: l1.LessonName.Span);
@@ -1009,13 +1044,15 @@ public sealed class LessonParserTests
     [Fact]
     public void TestSubGroupSeparatedNames()
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "Matematica  discretă  (Algoritmica Grafurilor, curs, imp)",
                 "A.Niculiță   213a/4",
             ],
             Config.WhiteSpaceActionCourseName);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "Matematica discretă", actual: l1.LessonName.Span);
@@ -1033,13 +1070,15 @@ public sealed class LessonParserTests
     [Fact]
     public void TestSubGroupWithMultipleWords()
     {
-        var lessons = ParseLessons([
+        var lessons = ParseLessons(
+            [
                 "Matematica  discretă  (Algoritmica Grafurilor, curs, imp)",
                 "A.Niculiță   213a/4",
             ],
             Config.WhiteSpaceActionCourseName);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "Matematica discretă", actual: l1.LessonName.Span);
@@ -1061,7 +1100,8 @@ public sealed class LessonParserTests
             "test (curs), Spring: Spring (lab)",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "test", actual: l1.LessonName.Span);
@@ -1086,7 +1126,8 @@ public sealed class LessonParserTests
             "9:45  Dezvoltare de aplicații enterprise (lab),  Spring:  M.Dodi  326/4",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "Dezvoltare de aplicații enterprise", actual: l1.LessonName.Span);
@@ -1140,7 +1181,8 @@ public sealed class LessonParserTests
                   """;
 
         var lessons = ParseLessons([str], Config.WhiteSpaceActionCourseName);
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Assert.Equal(expected: "I", actual: l1.PartitionHint.Span);
@@ -1228,7 +1270,8 @@ public sealed class LessonParserTests
             "O.Bașirov   419/4",
         ]);
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             first =>
             {
                 var expected2 = new TimeOnly(hour: 8, minute: 0);
@@ -1346,7 +1389,8 @@ public sealed class LessonParserTests
             Assert.Equal(expected: "239/4", actual: l.RoomName.Span);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Common(l1);
@@ -1382,7 +1426,8 @@ public sealed class LessonParserTests
             AssertEqualName(expected2, actual2);
         }
 
-        Assert.Collection(lessons,
+        Assert.Collection(
+            lessons,
             l1 =>
             {
                 Common(l1);

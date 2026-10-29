@@ -75,7 +75,8 @@ public sealed class SettingsWriteTests
                 "RegistryConfig.courseNames",
                 "--profile",
                 "Visnevschi Vlada"));
-        Assert.Equal(expected: "Schedule course",
+        Assert.Equal(
+            expected: "Schedule course",
             actual: configured.RootElement.GetProperty("Registry course")
                 .GetString());
         Assert.Empty(
@@ -173,13 +174,16 @@ public sealed class SettingsWriteTests
         var result = await files.Get("LessonAttendanceConfig.sources");
         using var document = JsonDocument.Parse(result);
         var source = document.RootElement[0];
-        Assert.Equal(expected: 2,
+        Assert.Equal(
+            expected: 2,
             actual: source.GetProperty("studentNameColumn")
                 .GetInt32());
-        Assert.Equal(expected: "Date",
+        Assert.Equal(
+            expected: "Date",
             actual: source.GetProperty("headerFormat")
                 .GetString());
-        Assert.Equal(expected: "ValidateAndBind",
+        Assert.Equal(
+            expected: "ValidateAndBind",
             actual: source.GetProperty("dateMode")
                 .GetString());
         Assert.Equal(
@@ -454,7 +458,8 @@ public sealed class SettingsWriteTests
 
             using var timeout = new CancellationTokenSource(CalculateDelay());
             await process.WaitForExitAsync(timeout.Token);
-            return new(process.ExitCode,
+            return new(
+                process.ExitCode,
                 Output: await output,
                 Error: await error);
         }
@@ -473,7 +478,8 @@ public sealed class SettingsWriteTests
             Assert.True(result.Exit == 0, CalculateUserMessage());
             Assert.Empty(result.Error);
             using var document = JsonDocument.Parse(result.Output);
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: document.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
         }

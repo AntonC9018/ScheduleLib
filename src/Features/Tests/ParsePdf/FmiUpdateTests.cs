@@ -18,7 +18,8 @@ public sealed class FmiUpdateTests : IDisposable
         {
             calls++;
             Assert.Equal(expected: 3, actual: update.Downloads.Count);
-            var expected2 = new DateOnly(year: 2026,
+            var expected2 = new DateOnly(
+                year: 2026,
                 month: 9,
                 day: 25);
             var actual2 = update.PeriodStart;
@@ -71,27 +72,31 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public async Task UsesLatestChangedUploadDateAndTodayForMissingDates()
     {
-        var downloads = Downloads(new(year: 2026,
+        var downloads = Downloads(new(
+            year: 2026,
             month: 9,
             day: 17));
         var updater = Create(() => downloads);
 
         DateOnly CalculateExpected()
         {
-            var expected2 = new DateOnly(year: 2026,
+            var expected2 = new DateOnly(
+                year: 2026,
                 month: 9,
                 day: 17);
             return expected2;
         }
 
-        Assert.Equal(expected: CalculateExpected(),
+        Assert.Equal(
+            expected: CalculateExpected(),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
         downloads[0] = downloads[0] with
         {
             Content = [42],
             Link = downloads[0].Link with
             {
-                UploadDate = new(year: 2026,
+                UploadDate = new(
+                    year: 2026,
                     month: 9,
                     day: 23),
             },
@@ -99,13 +104,15 @@ public sealed class FmiUpdateTests : IDisposable
 
         DateOnly CalculateExpected2()
         {
-            var expected3 = new DateOnly(year: 2026,
+            var expected3 = new DateOnly(
+                year: 2026,
                 month: 9,
                 day: 23);
             return expected3;
         }
 
-        Assert.Equal(expected: CalculateExpected2(),
+        Assert.Equal(
+            expected: CalculateExpected2(),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
         downloads[1] = downloads[1] with
         {
@@ -118,13 +125,15 @@ public sealed class FmiUpdateTests : IDisposable
 
         DateOnly CalculateExpected3()
         {
-            var expected4 = new DateOnly(year: 2026,
+            var expected4 = new DateOnly(
+                year: 2026,
                 month: 9,
                 day: 25);
             return expected4;
         }
 
-        Assert.Equal(expected: CalculateExpected3(),
+        Assert.Equal(
+            expected: CalculateExpected3(),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
     }
 
@@ -133,7 +142,8 @@ public sealed class FmiUpdateTests : IDisposable
     {
         using var cancellation = new CancellationTokenSource();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Create(() => Downloads())
-            .RunAsync(State,
+            .RunAsync(
+                State,
                 (_, _) =>
                 {
                     cancellation.Cancel();
@@ -151,7 +161,8 @@ public sealed class FmiUpdateTests : IDisposable
         const string invalid = "{\"Version\":1,\"PeriodStart\":\"2026-09-17\",\"Sources\":[]}";
         await File.WriteAllTextAsync(path: State, contents: invalid);
         await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads())
-            .RunAsync(State,
+            .RunAsync(
+                State,
                 (_, _) => throw new Exception("Consumer must not be called")));
         Assert.Equal(expected: invalid, actual: await File.ReadAllTextAsync(State));
     }
@@ -160,10 +171,12 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task FutureUploadDateDoesNotCreateCheckpoint()
     {
         await Assert.ThrowsAsync<FutureScheduleUploadDateException>(() =>
-            Create(() => Downloads(new(year: 2026,
+            Create(() => Downloads(new(
+                    year: 2026,
                     month: 9,
                     day: 26)))
-                .RunAsync(State,
+                .RunAsync(
+                    State,
                     (_, _) => throw new Exception("Consumer must not be called")));
         bool condition = File.Exists(State);
         Assert.False(condition);
@@ -172,7 +185,8 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public void DiscoversRelativeLinksAndExplicitUploadDatesButNotSemesterDates()
     {
-        var links = FmiScheduleClient.Discover("""
+        var links = FmiScheduleClient.Discover(
+            """
                                                <p>Anul I Licenţă: <a href="/one.pdf" data-upload-date="2026-09-17">01.09.2026 - 14.12.2026</a></p>
                                                <p>Anul II Licență: <a href="/two.pdf"><time datetime="2026-09-18T10:00:00">upload</time></a></p>
                                                <p>Anul III Licenţă: <a href="/three.pdf">01.09.2026 - 14.12.2026</a></p>
@@ -183,13 +197,15 @@ public sealed class FmiUpdateTests : IDisposable
         var expected2 = new Uri("https://fmi.usm.md/one.pdf");
         var actual2 = links[0].Url;
         Assert.Equal(expected: expected2, actual: actual2);
-        var expected3 = new DateOnly(year: 2026,
+        var expected3 = new DateOnly(
+            year: 2026,
             month: 9,
             day: 17);
         DateOnly? expected4 = expected3;
         var actual3 = links[0].UploadDate;
         Assert.Equal(expected: expected4, actual: actual3);
-        var expected5 = new DateOnly(year: 2026,
+        var expected5 = new DateOnly(
+            year: 2026,
             month: 9,
             day: 18);
         DateOnly? expected6 = expected5;
@@ -221,7 +237,8 @@ public sealed class FmiUpdateTests : IDisposable
                 string uriString = $"https://fmi.usm.md/orar{year}.pdf";
                 var url = new Uri(uriString);
                 var uploadDate = date;
-                FmiScheduleLink link = new(year2,
+                FmiScheduleLink link = new(
+                    year2,
                     url,
                     uploadDate);
                 byte[] content = [(byte) year];
@@ -236,7 +253,8 @@ public sealed class FmiUpdateTests : IDisposable
     {
         public override DateTimeOffset GetUtcNow()
         {
-            return new(year: 2026,
+            return new(
+                year: 2026,
                 month: 9,
                 day: 25,
                 hour: 12,

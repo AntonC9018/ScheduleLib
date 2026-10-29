@@ -117,7 +117,8 @@ public static class RegistryHistoryTopicsHtml
             }
 
             var anchor = anchors[0];
-            if (!DateTime.TryParseExact(s: anchor.TextContent.Trim(),
+            if (!DateTime.TryParseExact(
+                    s: anchor.TextContent.Trim(),
                     format: "dd.MM.yyyy HH:mm",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
@@ -149,7 +150,8 @@ public static class RegistryHistoryTopicsHtml
                 raw = raw[numberLength..].TrimStart();
             }
 
-            result.Add(new(date,
+            result.Add(new(
+                date,
                 type,
                 raw.TrimEnd()
                     .ToString()));
@@ -176,7 +178,8 @@ public static class RegistryHistoryTopicsHtml
 
     private static RegistryHistoryException InvalidMarkup()
     {
-        return new("Lesson topic table layout is unsupported; inspection is required.",
+        return new(
+            "Lesson topic table layout is unsupported; inspection is required.",
             phase: RegistryHistoryPhase.Lessons,
             diagnostic: RegistryHistoryDiagnostic.TopicTable);
     }
@@ -207,7 +210,8 @@ public static class RegistryHistoryTopicSelection
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         }
 
-        bool conditionValue = int.TryParse(year.AsSpan(start: 0, length: 4),
+        bool conditionValue = int.TryParse(
+            year.AsSpan(start: 0, length: 4),
             NumberStyles.None,
             CultureInfo.InvariantCulture,
             out var start);
@@ -216,7 +220,8 @@ public static class RegistryHistoryTopicSelection
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         }
 
-        bool conditionValue2 = int.TryParse(year.AsSpan(start: 5, length: 2),
+        bool conditionValue2 = int.TryParse(
+            year.AsSpan(start: 5, length: 2),
             NumberStyles.None,
             CultureInfo.InvariantCulture,
             out var end);
@@ -261,7 +266,8 @@ public static class RegistryHistoryTopicSelection
             if (currentCourses.Count(x => Matches(current: course, historical: x)) != 1)
             {
                 var list = unresolved;
-                RegistryHistoryUnresolvedCourse item = new(course,
+                RegistryHistoryUnresolvedCourse item = new(
+                    course,
                     RegistryHistoryTopicMappingFailure.AmbiguousCourse);
                 list.Add(item);
                 continue;
@@ -282,7 +288,8 @@ public static class RegistryHistoryTopicSelection
                 if (matches.Length > 1)
                 {
                     var list2 = unresolved;
-                    RegistryHistoryUnresolvedCourse item2 = new(course,
+                    RegistryHistoryUnresolvedCourse item2 = new(
+                        course,
                         RegistryHistoryTopicMappingFailure.AmbiguousCourse);
                     list2.Add(item2);
                     resolved = true;
@@ -328,7 +335,8 @@ public static class RegistryHistoryTopicSelection
                 list4.Add(item4);
             }
         }
-        return new(currentYear,
+        return new(
+            currentYear,
             candidates,
             unresolved);
     }
@@ -412,10 +420,21 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 
             var yearCourses = RegistryHistoryHtml.Courses(document, index);
             var matching = yearCourses.Where(course =>
-                    pending.Any(currentCourse =>
-                        RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course))
-                    || ambiguousPending.Any(currentCourse =>
-                        RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
+                    {
+                        if (pending.Any(currentCourse =>
+                                                RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
+                        {
+                            return true;
+                        }
+
+                        if (ambiguousPending.Any(currentCourse =>
+                                                RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    })
                 .ToArray();
             var snapshots = new List<RegistryHistoryCourseTopics>();
             foreach (var course in matching)
@@ -446,21 +465,33 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
                     })));
             });
             ambiguousPending.RemoveAll(course => snapshots.Any(snapshot =>
-                RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)
-                && snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
                 {
-                    if (string.IsNullOrWhiteSpace(lesson.Topic))
+                    if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
                     {
                         return false;
                     }
 
-                    if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+                    if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
+                                    {
+                                        if (string.IsNullOrWhiteSpace(lesson.Topic))
+                                        {
+                                            return false;
+                                        }
+
+                                        if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+                                        {
+                                            return true;
+                                        }
+
+                                        return false;
+                                    }
+                    ))))
                     {
-                        return true;
+                        return false;
                     }
 
-                    return false;
-                }))));
+                    return true;
+                }));
         }
         var offered = years.Select(x => x.Value)
             .ToArray();
@@ -468,14 +499,16 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
         IReadOnlyList<RegistryHistoryCourseTopics>
             current2 = current;
         var selection =
-            RegistryHistoryTopicSelection.Select(currentYear,
+            RegistryHistoryTopicSelection.Select(
+                currentYear,
                 offered,
                 currentCourses,
                 historical);
         IReadOnlyList<RegistryHistoryCourseTopics>
             historical2 = historical;
         RegistryHistoryTopicsAnalysis registryHistoryTopicsAnalysis =
-            new(offeredYears,
+            new(
+                offeredYears,
                 Current: current2,
                 selection,
                 Historical: historical2);
@@ -494,12 +527,14 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
                 var uri = group.Uri;
                 var lessons2 =
                     RegistryHistoryTopicsHtml.Lessons(lessons);
-                RegistryHistoryGroupTopics item = new(name,
+                RegistryHistoryGroupTopics item = new(
+                    name,
                     uri,
                     lessons2);
                 list.Add(item);
             }
-            return new(year,
+            return new(
+                year,
                 course,
                 groups);
         }

@@ -47,12 +47,14 @@ public static class RegistryCourseNameLookup
         }
 
         var parsed = Parse(registryName);
-        if (TryAlias(courseNames,
+        if (TryAlias(
+                courseNames,
                 registryName: registryName,
                 parsedName: parsed.Name,
                 mappedName: out var mappedName))
         {
-            var result = lookup.Course(mappedName.AsMemory(),
+            var result = lookup.Course(
+                mappedName.AsMemory(),
                 new()
                 {
                     IgnorePunctuation = true,
@@ -65,7 +67,8 @@ public static class RegistryCourseNameLookup
             return result;
         }
 
-        if (lookup.Course(parsed.Name.AsMemory(),
+        if (lookup.Course(
+                parsed.Name.AsMemory(),
                 new()
                 {
                     IgnorePunctuation = true,

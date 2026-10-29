@@ -87,7 +87,8 @@ public sealed class RegistryGradeTests
                         Json = true,
                     },
                     new()));
-            Assert.Equal(expected: "preview",
+            Assert.Equal(
+                expected: "preview",
                 actual: capture.Result()
                     .GetProperty("status")
                     .GetString());
@@ -137,7 +138,8 @@ public sealed class RegistryGradeTests
                     .GetProperty("data")
                     .GetProperty("outcomes")
                     .EnumerateArray(),
-                x => Assert.Equal(expected: "completed",
+                x => Assert.Equal(
+                    expected: "completed",
                     actual: x.GetProperty("status")
                         .GetString()));
             Assert.True(fake.Disposed);
@@ -221,10 +223,12 @@ public sealed class RegistryGradeTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
-        Assert.Equal(expected: status,
+        Assert.Equal(
+            expected: status,
             actual: outcomes[0].GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: "not-attempted",
+        Assert.Equal(
+            expected: "not-attempted",
             actual: outcomes[1].GetProperty("status")
                 .GetString());
     }
@@ -263,13 +267,16 @@ public sealed class RegistryGradeTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
-        Assert.Equal(expected: "completed",
+        Assert.Equal(
+            expected: "completed",
             actual: outcomes[0].GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: status,
+        Assert.Equal(
+            expected: status,
             actual: outcomes[1].GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: "not-attempted",
+        Assert.Equal(
+            expected: "not-attempted",
             actual: outcomes[2].GetProperty("status")
                 .GetString());
         Assert.Equal(expected: 2, actual: fake.Executions);
@@ -342,7 +349,8 @@ public sealed class RegistryGradeTests
             Assert.Equal(expected: 0, actual: fake.Plans);
         }
 
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: capture.Result()
                 .GetProperty("status")
                 .GetString());
@@ -376,7 +384,8 @@ public sealed class RegistryGradeTests
                 {
                     Apply = true,
                 }));
-        Assert.Equal(expected: "partial",
+        Assert.Equal(
+            expected: "partial",
             actual: capture.Result()
                 .GetProperty("status")
                 .GetString());
@@ -514,7 +523,8 @@ public sealed class RegistryGradeTests
         var collection = navigator.Form!.QuerySelectorAll<IHtmlInputElement>("input");
         Action<IHtmlInputElement> action2 = x => Assert.Equal(expected: "5", actual: x.Value);
         Assert.All(collection, action2);
-        Assert.Contains(plan.Notices,
+        Assert.Contains(
+            plan.Notices,
             x =>
             {
                 bool CheckCondition()
@@ -534,7 +544,8 @@ public sealed class RegistryGradeTests
 
                 return CheckCondition();
             });
-        Assert.Contains(plan.Notices,
+        Assert.Contains(
+            plan.Notices,
             x =>
             {
                 if (x.Kind != "omitted")
@@ -549,7 +560,8 @@ public sealed class RegistryGradeTests
 
                 return false;
             });
-        Assert.Contains(plan.Notices,
+        Assert.Contains(
+            plan.Notices,
             x =>
             {
                 if (x.Kind != "omitted")
@@ -564,7 +576,8 @@ public sealed class RegistryGradeTests
 
                 return false;
             });
-        Assert.Contains(plan.Notices,
+        Assert.Contains(
+            plan.Notices,
             x =>
             {
                 if (x.Kind != "unmatched")
@@ -579,7 +592,8 @@ public sealed class RegistryGradeTests
 
                 return false;
             });
-        Assert.Contains(plan.Notices,
+        Assert.Contains(
+            plan.Notices,
             x =>
             {
                 if (x.Kind != "unmatched")
@@ -631,7 +645,8 @@ public sealed class RegistryGradeTests
             CancellationToken = default,
         });
         Assert.Empty(empty.Actions);
-        Assert.Contains(empty.Notices,
+        Assert.Contains(
+            empty.Notices,
             x =>
             {
                 if (x.Kind != "omitted")

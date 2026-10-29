@@ -15,7 +15,8 @@ public sealed class FmiWebsiteInteropTests
             name.LastName[0] = "Capcelea";
         }
         var schedule = await ScheduleTestHelper.CreateScheduleForTeacher(name);
-        var model = WebsiteJsonScheduleHelper.CreateSerializationModel(schedule,
+        var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
+            schedule,
             new()
             {
                 ParityDisplay = new(),

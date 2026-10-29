@@ -36,7 +36,8 @@ public static class BaseExtensions
         public NodeDataBuilder<T> Builder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder,
+            return new(
+                builder,
                 key,
                 isReadOnly: false);
         }
@@ -44,7 +45,8 @@ public static class BaseExtensions
         public NodeDataBuilder<T> ReadOnlyBuilder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder,
+            return new(
+                builder,
                 key,
                 isReadOnly: true);
         }

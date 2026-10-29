@@ -37,7 +37,8 @@ internal static class CliAuthenticationExecution
             JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
             DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
             IOException => new(CliExit.IoFailure, ["Could not read or update local Microsoft authorization state."]),
-            UnauthorizedAccessException => new(CliExit.IoFailure,
+            UnauthorizedAccessException => new(
+                CliExit.IoFailure,
                 ["Local Microsoft authorization state is inaccessible."]),
             _ => new(CliExit.Unexpected, ["Microsoft authentication operation failed unexpectedly."]),
         };

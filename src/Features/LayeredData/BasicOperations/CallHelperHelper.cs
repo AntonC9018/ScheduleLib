@@ -19,7 +19,8 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
 
     public TDelegate Get(Type implType)
     {
-        var deleg = _copyDelegateCache.GetOrAdd(implType,
+        var deleg = _copyDelegateCache.GetOrAdd(
+            implType,
             type =>
             {
                 var inter = type.GetInterfaces()
@@ -27,7 +28,8 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
                         && i.GetGenericTypeDefinition() == _interfaceType);
                 if (inter == null)
                 {
-                    throw new TypeDoesNotImplementGenericInterfaceException(implementationType: type,
+                    throw new TypeDoesNotImplementGenericInterfaceException(
+                        implementationType: type,
                         interfaceType: _interfaceType);
                 }
                 var types = inter.GetGenericArguments();

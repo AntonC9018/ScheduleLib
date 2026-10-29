@@ -112,7 +112,12 @@ public sealed class CliCommandContext : IDisposable
                 return false;
             }
 
-            return Output.Jsonl;
+            if (Output.Jsonl)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

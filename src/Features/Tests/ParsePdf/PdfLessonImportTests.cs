@@ -16,7 +16,8 @@ public sealed class PdfLessonImportTests
     public void DefaultAndCallbackPathsPreserveLessonCoordinatesAndAlternative(bool useCallback, string? alternative)
     {
         var context = CreateContext();
-        var cell = new PdfScheduleCell(Source: "test.pdf",
+        var cell = new PdfScheduleCell(
+            Source: "test.pdf",
             1,
             ["IA2601(ro)", "IA2602(ro)"],
             Day: "Marți",
@@ -39,7 +40,8 @@ public sealed class PdfLessonImportTests
             addLesson = null;
         }
 
-        PdfScheduleImporter.Import(context2,
+        PdfScheduleImporter.Import(
+            context2,
             cells,
             addLesson);
 
@@ -93,7 +95,8 @@ public sealed class PdfLessonImportTests
         var context = CreateContext();
         var calls = 0;
 
-        PdfScheduleImporter.Import(context,
+        PdfScheduleImporter.Import(
+            context,
             [Cell()],
             _ =>
             {
@@ -120,7 +123,8 @@ public sealed class PdfLessonImportTests
         var failure = new FormatException("Callback failure");
         var calls = 0;
 
-        var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(context,
+        var error = Assert.Throws<AggregateException>(() => PdfScheduleImporter.Import(
+            context,
             [first, next],
             Add));
 
@@ -154,7 +158,8 @@ public sealed class PdfLessonImportTests
         var failure = new InvalidOperationException("Unexpected callback failure");
 
         var error = Assert.Throws<InvalidOperationException>(() =>
-            PdfScheduleImporter.Import(context,
+            PdfScheduleImporter.Import(
+                context,
                 [Cell()],
                 _ => throw failure));
 
@@ -181,7 +186,8 @@ public sealed class PdfLessonImportTests
 
     private static PdfScheduleCell Cell()
     {
-        return new(Source: "test.pdf",
+        return new(
+            Source: "test.pdf",
             1,
             ["IA2601(ro)"],
             Day: "Luni",
@@ -204,7 +210,8 @@ public sealed class PdfLessonImportTests
         });
         context.SetPeriod(new()
         {
-            StartDate = new(year: 2026,
+            StartDate = new(
+                year: 2026,
                 month: 9,
                 day: 14),
         });

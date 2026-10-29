@@ -18,13 +18,15 @@ public sealed class ScheduleCellParserTests
         var second = context.Schedule.Group("IA2602(ro)").Id;
         var lesson = Parse(context, "15:00 HTML (lab, imp)\nG.Marin 326/4");
         var scheduleImportContext = context;
-        ImportedLessonInput input = new(lesson,
+        ImportedLessonInput input = new(
+            lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
             [first]);
         scheduleImportContext.AddOrMergeLesson(input);
         var scheduleImportContext2 = context;
-        ImportedLessonInput input2 = new(lesson,
+        ImportedLessonInput input2 = new(
+            lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
             [second]);
@@ -50,7 +52,8 @@ public sealed class ScheduleCellParserTests
         var timeSlot = TimeSlot.First;
         IReadOnlyList<GroupId> groups = [group];
         Alternative alternative = new("Gr.1");
-        ImportedLessonInput input = new(lesson2,
+        ImportedLessonInput input = new(
+            lesson2,
             day,
             timeSlot,
             groups,
@@ -62,7 +65,8 @@ public sealed class ScheduleCellParserTests
         var timeSlot2 = TimeSlot.First;
         IReadOnlyList<GroupId> groups2 = [group];
         Alternative alternative2 = new("Gr.2");
-        ImportedLessonInput input2 = new(lesson3,
+        ImportedLessonInput input2 = new(
+            lesson3,
             day2,
             timeSlot2,
             groups2,
@@ -70,7 +74,8 @@ public sealed class ScheduleCellParserTests
         scheduleImportContext2.AddOrMergeLesson(input2);
 
         Assert.Equal(expected: 2, actual: context.Schedule.WeeklyLessons.Count);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 "Gr.1",
                 "Gr.2",
@@ -89,7 +94,8 @@ public sealed class ScheduleCellParserTests
         lesson.GroupName = "IA2602(ro)".AsMemory();
 
         var scheduleImportContext = context;
-        ImportedLessonInput input = new(lesson,
+        ImportedLessonInput input = new(
+            lesson,
             DayOfWeek.Tuesday,
             TimeSlot.First,
             [cellGroup]);
@@ -113,7 +119,8 @@ public sealed class ScheduleCellParserTests
         Assert.Throws<InvalidScheduleDocumentException.UnknownTimeSlotException>(() =>
         {
             var scheduleImportContext = context;
-            ImportedLessonInput input = new(lesson,
+            ImportedLessonInput input = new(
+                lesson,
                 DayOfWeek.Monday,
                 TimeSlot.First,
                 [group]);
@@ -137,7 +144,8 @@ public sealed class ScheduleCellParserTests
         });
         context.SetPeriod(new()
         {
-            StartDate = new(year: 2026,
+            StartDate = new(
+                year: 2026,
                 month: 9,
                 day: 14),
         });

@@ -126,7 +126,8 @@ public sealed class SettingsTests
         settings.ConfigureServices(services);
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        Assert.Equal(expected: teacher,
+        Assert.Equal(
+            expected: teacher,
             actual: scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName
                 .ToString());
     }
@@ -174,10 +175,11 @@ public sealed class SettingsTests
         var get3 = teacher.Get(GoogleCalendarConfig.Key);
         string? actual5 = get3!.CalendarName;
         Assert.Equal(expected: expected6, actual: actual5);
-        using var cli = await files.Load(new()
-        {
-            Profile = "Curmanschii Anton",
-        },
+        using var cli = await files.Load(
+            new()
+            {
+                Profile = "Curmanschii Anton",
+            },
             new()
             {
                 CalendarName = "CLI",
@@ -319,7 +321,8 @@ public sealed class SettingsTests
             "nested");
         string path2 = Path.Combine(nested, "child");
         Directory.CreateDirectory(path2);
-        await File.WriteAllTextAsync(path: Path.Combine(nested, CliSettings.FileName),
+        await File.WriteAllTextAsync(
+            path: Path.Combine(nested, CliSettings.FileName),
             contents: """{"schemaVersion":1}""");
         var cwd = Environment.CurrentDirectory;
         using var nearest = await CliSettings.Load(
@@ -392,14 +395,16 @@ public sealed class SettingsTests
         await files.Project(
             """{"schemaVersion":1,"defaults":{"RegistryLessonFilterConfig":{"skipAttendance":"Zi"}}}""");
         using var global = await files.Load(new());
-        Assert.Equal(expected: "Zi",
+        Assert.Equal(
+            expected: "Zi",
             actual: global.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance
                 .ToString());
         using var teacher = await files.Load(new()
         {
             Profile = "Iatasina Tamara",
         });
-        Assert.Equal(expected: "FrecventaRedusa",
+        Assert.Equal(
+            expected: "FrecventaRedusa",
             actual: teacher.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance
                 .ToString());
     }
@@ -437,7 +442,8 @@ public sealed class SettingsTests
         var json = provider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>()
             .Get(TreeSerializer.ServiceKey);
         Assert.Null(json.PropertyNamingPolicy);
-        Assert.Equal(expected: System.Text.Json.Serialization.JsonUnmappedMemberHandling.Skip,
+        Assert.Equal(
+            expected: System.Text.Json.Serialization.JsonUnmappedMemberHandling.Skip,
             actual: json.UnmappedMemberHandling);
         var tree = provider.GetRequiredService<TreeBuilder>();
         tree.Defaults.GoogleCalendar()
@@ -495,11 +501,13 @@ public sealed class SettingsTests
         Assert.Equal(expected: 0, actual: process.ExitCode);
         Assert.Equal(expected: "", actual: await stderr);
         using var document = JsonDocument.Parse(await stdout);
-        Assert.Equal(expected: "CLI-process",
+        Assert.Equal(
+            expected: "CLI-process",
             actual: document.RootElement.GetProperty("data")
                 .GetProperty("value")
                 .GetString());
-        Assert.Equal(expected: "config get",
+        Assert.Equal(
+            expected: "config get",
             actual: document.RootElement.GetProperty("command")
                 .GetString());
 
@@ -548,7 +556,8 @@ public sealed class SettingsTests
             Console.SetOut(output);
             Assert.Equal(expected: expected, actual: await CliHost.Run(arguments));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: document.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -575,7 +584,8 @@ public sealed class SettingsTests
                             (_, _) => throw new InvalidOperationException("startup failure"),
                             CommandDotNet.Execution.MiddlewareSteps.InvokeCommand - 2))));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: document.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }

@@ -18,7 +18,8 @@ internal static class RegistryScopeReconciliation
         var legacy = new List<RemoteLessonInstance>();
         foreach (var row in remote)
         {
-            if (RegistryTopicScope.TrySplit(topic: row.Topic,
+            if (RegistryTopicScope.TrySplit(
+                    topic: row.Topic,
                     knownScopes,
                     baseTopic: out _,
                     scope: out var scope))
@@ -94,7 +95,8 @@ internal static class RegistryScopeReconciliation
             .ToArray();
         foreach (var type in legacy.GroupBy(row => row.LessonType))
         {
-            foreach (var command in derivation.DeriveCommands(new(schedule,
+            foreach (var command in derivation.DeriveCommands(new(
+                         schedule,
                          type,
                          legacyLocal.Where(lesson =>
                              type.Key == LessonType.Unspecified || lesson.RegistryLessonType == type.Key))))
@@ -182,7 +184,8 @@ internal static class RegistryScopeReconciliation
                 consumed.Add(row.ViewUri);
             }
 
-            foreach (var command in derivation.DeriveCommands(new(schedule,
+            foreach (var command in derivation.DeriveCommands(new(
+                         schedule,
                          matching,
                          audience)))
             {

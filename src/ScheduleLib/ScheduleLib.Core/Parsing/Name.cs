@@ -29,7 +29,8 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
 
     public bool Equals(Name? x, Name? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+        if (ComparisonHelper.AtLeastOneIsNull(
+                x: x,
                 y: y,
                 out bool b))
         {
@@ -259,13 +260,15 @@ public static class NameHelper
     {
         var ret = new NameFields();
 
-        ret.LastName = ParseRequiredNamePart(ref lexer,
+        ret.LastName = ParseRequiredNamePart(
+            ref lexer,
             requiredError: "Last name required",
             incompleteError: "Last name incomplete");
         IgnoreParenthesizedTextAndWhitespace(ref lexer);
         ErrorOnInvalidToken(ref lexer);
 
-        ret.FirstName = ParseRequiredNamePart(ref lexer,
+        ret.FirstName = ParseRequiredNamePart(
+            ref lexer,
             requiredError: "First name required",
             incompleteError: "First name incomplete");
         if (lexer.IsEmpty)
@@ -485,7 +488,8 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
     public int Compare(Name? x, Name? y)
     {
         {
-            if (ComparisonHelper.NullGuardCompare(x: x,
+            if (ComparisonHelper.NullGuardCompare(
+                    x: x,
                     y: y,
                     out int score))
             {
@@ -501,7 +505,8 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
             {
                 var ap = a[i];
                 var bp = b[i];
-                if (ComparisonHelper.NullGuardCompare(x: ap,
+                if (ComparisonHelper.NullGuardCompare(
+                        x: ap,
                         y: bp,
                         out int score))
                 {

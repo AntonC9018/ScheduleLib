@@ -9,14 +9,16 @@ public sealed class EventEnumeratorTests
     [Fact]
     public void SingleEvent_YieldsOnlyItsDate()
     {
-        DateOnly date = new(year: 2026,
+        DateOnly date = new(
+            year: 2026,
             month: 9,
             day: 7);
         var e = Event.CreateSingle(date);
 
         DateOnly[] expected =
         [
-            new(year: 2026,
+            new(
+                year: 2026,
                 month: 9,
                 day: 7),
         ];
@@ -28,10 +30,12 @@ public sealed class EventEnumeratorTests
     [Fact]
     public void RecurringEvent_YieldsEveryOccurrenceUpToLast()
     {
-        var first = new DateOnly(year: 2026,
+        var first = new DateOnly(
+            year: 2026,
             month: 9,
             day: 7);
-        var e = Event.CreateRecurring(first,
+        var e = Event.CreateRecurring(
+            first,
             count: 3,
             interval: 7);
 

@@ -368,7 +368,8 @@ public static class Config
                 return false;
             }
 
-            if (EqualFirstPart(ref x,
+            if (EqualFirstPart(
+                    ref x,
                     first: "Maria",
                     last: "Cristei"))
             {
@@ -378,7 +379,8 @@ public static class Config
                 x.LastName[0] = "Marin";
                 return true;
             }
-            if (EqualFirstPart(ref x,
+            if (EqualFirstPart(
+                    ref x,
                     first: "Gabriel",
                     last: "Stănescu"))
             {
@@ -390,10 +392,12 @@ public static class Config
                 x.LastName[0] = "Stănescu";
                 return true;
             }
-            if (EqualFirstPart(ref x,
+            if (EqualFirstPart(
+                    ref x,
                     first: "Eva",
                     last: "Arseni")
-                || EqualFirstPart(ref x,
+                || EqualFirstPart(
+                    ref x,
                     first: "Mădălina",
                     last: "Arseni"))
             {
@@ -405,7 +409,8 @@ public static class Config
                 x.LastName[0] = "Arseni";
                 return true;
             }
-            if (EqualFirstPart(ref x,
+            if (EqualFirstPart(
+                    ref x,
                     first: "Anatol",
                     last: "Gladei"))
             {
@@ -521,7 +526,8 @@ public static class Config
             // this single-range model. Keep the academic-year envelope until the model supports them.
             DateOnly CalculateStart()
             {
-                var start = new DateOnly(year: 2026,
+                var start = new DateOnly(
+                    year: 2026,
                     month: 9,
                     day: 1);
                 return start;
@@ -529,7 +535,8 @@ public static class Config
 
             x.LessonsStart(CalculateStart());
             var yearDateRangeBuilderScope = x;
-            var end = new DateOnly(year: 2027,
+            var end = new DateOnly(
+                year: 2027,
                 month: 8,
                 day: 31);
             yearDateRangeBuilderScope.LessonsEndInclusive(end);
@@ -563,7 +570,8 @@ public static class Config
         {
             DateOnly CalculateMonday()
             {
-                DateOnly monday2 = new(year: 2026,
+                DateOnly monday2 = new(
+                    year: 2026,
                     month: 8,
                     day: 31);
                 return monday2;
@@ -571,7 +579,8 @@ public static class Config
 
             DateOnly CalculateMonday2()
             {
-                DateOnly monday3 = new(year: 2026,
+                DateOnly monday3 = new(
+                    year: 2026,
                     month: 9,
                     day: 7);
                 return monday3;
@@ -579,7 +588,8 @@ public static class Config
 
             DateOnly CalculateMonday3()
             {
-                DateOnly monday4 = new(year: 2026,
+                DateOnly monday4 = new(
+                    year: 2026,
                     month: 9,
                     day: 14);
                 return monday4;
@@ -587,7 +597,8 @@ public static class Config
 
             DateOnly CalculateMonday4()
             {
-                DateOnly monday5 = new(year: 2026,
+                DateOnly monday5 = new(
+                    year: 2026,
                     month: 9,
                     day: 21);
                 return monday5;
@@ -595,7 +606,8 @@ public static class Config
 
             DateOnly CalculateMonday5()
             {
-                DateOnly monday6 = new(year: 2026,
+                DateOnly monday6 = new(
+                    year: 2026,
                     month: 9,
                     day: 28);
                 return monday6;
@@ -603,7 +615,8 @@ public static class Config
 
             DateOnly CalculateMonday6()
             {
-                DateOnly monday7 = new(year: 2026,
+                DateOnly monday7 = new(
+                    year: 2026,
                     month: 10,
                     day: 5);
                 return monday7;
@@ -611,7 +624,8 @@ public static class Config
 
             DateOnly CalculateMonday7()
             {
-                DateOnly monday8 = new(year: 2026,
+                DateOnly monday8 = new(
+                    year: 2026,
                     month: 10,
                     day: 12);
                 return monday8;
@@ -619,7 +633,8 @@ public static class Config
 
             DateOnly CalculateMonday8()
             {
-                DateOnly monday9 = new(year: 2026,
+                DateOnly monday9 = new(
+                    year: 2026,
                     month: 10,
                     day: 19);
                 return monday9;
@@ -627,7 +642,8 @@ public static class Config
 
             DateOnly CalculateMonday9()
             {
-                DateOnly monday10 = new(year: 2026,
+                DateOnly monday10 = new(
+                    year: 2026,
                     month: 10,
                     day: 26);
                 return monday10;
@@ -635,7 +651,8 @@ public static class Config
 
             DateOnly CalculateMonday10()
             {
-                DateOnly monday11 = new(year: 2026,
+                DateOnly monday11 = new(
+                    year: 2026,
                     month: 11,
                     day: 2);
                 return monday11;
@@ -643,7 +660,8 @@ public static class Config
 
             DateOnly CalculateMonday11()
             {
-                DateOnly monday12 = new(year: 2026,
+                DateOnly monday12 = new(
+                    year: 2026,
                     month: 11,
                     day: 9);
                 return monday12;
@@ -651,7 +669,8 @@ public static class Config
 
             DateOnly CalculateMonday12()
             {
-                DateOnly monday13 = new(year: 2026,
+                DateOnly monday13 = new(
+                    year: 2026,
                     month: 11,
                     day: 16);
                 return monday13;
@@ -659,7 +678,8 @@ public static class Config
 
             DateOnly CalculateMonday13()
             {
-                DateOnly monday14 = new(year: 2026,
+                DateOnly monday14 = new(
+                    year: 2026,
                     month: 11,
                     day: 23);
                 return monday14;
@@ -667,7 +687,8 @@ public static class Config
 
             DateOnly CalculateMonday14()
             {
-                DateOnly monday15 = new(year: 2026,
+                DateOnly monday15 = new(
+                    year: 2026,
                     month: 11,
                     day: 30);
                 return monday15;
@@ -675,7 +696,8 @@ public static class Config
 
             DateOnly CalculateMonday15()
             {
-                DateOnly monday16 = new(year: 2026,
+                DateOnly monday16 = new(
+                    year: 2026,
                     month: 12,
                     day: 7);
                 return monday16;
@@ -683,7 +705,8 @@ public static class Config
 
             DateOnly CalculateMonday16()
             {
-                DateOnly monday17 = new(year: 2027,
+                DateOnly monday17 = new(
+                    year: 2027,
                     month: 2,
                     day: 1);
                 return monday17;
@@ -691,7 +714,8 @@ public static class Config
 
             DateOnly CalculateMonday17()
             {
-                DateOnly monday18 = new(year: 2027,
+                DateOnly monday18 = new(
+                    year: 2027,
                     month: 2,
                     day: 8);
                 return monday18;
@@ -699,7 +723,8 @@ public static class Config
 
             DateOnly CalculateMonday18()
             {
-                DateOnly monday19 = new(year: 2027,
+                DateOnly monday19 = new(
+                    year: 2027,
                     month: 2,
                     day: 15);
                 return monday19;
@@ -707,7 +732,8 @@ public static class Config
 
             DateOnly CalculateMonday19()
             {
-                DateOnly monday20 = new(year: 2027,
+                DateOnly monday20 = new(
+                    year: 2027,
                     month: 2,
                     day: 22);
                 return monday20;
@@ -715,7 +741,8 @@ public static class Config
 
             DateOnly CalculateMonday20()
             {
-                DateOnly monday21 = new(year: 2027,
+                DateOnly monday21 = new(
+                    year: 2027,
                     month: 3,
                     day: 1);
                 return monday21;
@@ -723,7 +750,8 @@ public static class Config
 
             DateOnly CalculateMonday21()
             {
-                DateOnly monday22 = new(year: 2027,
+                DateOnly monday22 = new(
+                    year: 2027,
                     month: 3,
                     day: 8);
                 return monday22;
@@ -731,7 +759,8 @@ public static class Config
 
             DateOnly CalculateMonday22()
             {
-                DateOnly monday23 = new(year: 2027,
+                DateOnly monday23 = new(
+                    year: 2027,
                     month: 3,
                     day: 15);
                 return monday23;
@@ -739,7 +768,8 @@ public static class Config
 
             DateOnly CalculateMonday23()
             {
-                DateOnly monday24 = new(year: 2027,
+                DateOnly monday24 = new(
+                    year: 2027,
                     month: 3,
                     day: 22);
                 return monday24;
@@ -747,7 +777,8 @@ public static class Config
 
             DateOnly CalculateMonday24()
             {
-                DateOnly monday25 = new(year: 2027,
+                DateOnly monday25 = new(
+                    year: 2027,
                     month: 3,
                     day: 29);
                 return monday25;
@@ -755,7 +786,8 @@ public static class Config
 
             DateOnly CalculateMonday25()
             {
-                DateOnly monday26 = new(year: 2027,
+                DateOnly monday26 = new(
+                    year: 2027,
                     month: 4,
                     day: 5);
                 return monday26;
@@ -763,7 +795,8 @@ public static class Config
 
             DateOnly CalculateMonday26()
             {
-                DateOnly monday27 = new(year: 2027,
+                DateOnly monday27 = new(
+                    year: 2027,
                     month: 4,
                     day: 12);
                 return monday27;
@@ -771,7 +804,8 @@ public static class Config
 
             DateOnly CalculateMonday27()
             {
-                DateOnly monday28 = new(year: 2027,
+                DateOnly monday28 = new(
+                    year: 2027,
                     month: 4,
                     day: 19);
                 return monday28;
@@ -779,7 +813,8 @@ public static class Config
 
             DateOnly CalculateMonday28()
             {
-                DateOnly monday29 = new(year: 2027,
+                DateOnly monday29 = new(
+                    year: 2027,
                     month: 4,
                     day: 26);
                 return monday29;
@@ -829,7 +864,8 @@ public static class Config
 
             DateOnly CalculateSingleDay()
             {
-                DateOnly singleDay = new(year: 2026,
+                DateOnly singleDay = new(
+                    year: 2026,
                     month: 10,
                     day: 14);
                 return singleDay;
@@ -837,7 +873,8 @@ public static class Config
 
             DateOnly CalculateStart()
             {
-                DateOnly start2 = new(year: 2027,
+                DateOnly start2 = new(
+                    year: 2027,
                     month: 1,
                     day: 1);
                 return start2;
@@ -845,7 +882,8 @@ public static class Config
 
             DateOnly CalculateEndExclusive()
             {
-                DateOnly endExclusive2 = new(year: 2027,
+                DateOnly endExclusive2 = new(
+                    year: 2027,
                     month: 1,
                     day: 25);
                 return endExclusive2;
@@ -853,7 +891,8 @@ public static class Config
 
             DateOnly CalculateSingleDay2()
             {
-                DateOnly singleDay2 = new(year: 2027,
+                DateOnly singleDay2 = new(
+                    year: 2027,
                     month: 5,
                     day: 1);
                 return singleDay2;
@@ -861,7 +900,8 @@ public static class Config
 
             DateOnly CalculateStart2()
             {
-                DateOnly start3 = new(year: 2027,
+                DateOnly start3 = new(
+                    year: 2027,
                     month: 5,
                     day: 2);
                 return start3;
@@ -869,7 +909,8 @@ public static class Config
 
             DateOnly CalculateEndExclusive2()
             {
-                DateOnly endExclusive3 = new(year: 2027,
+                DateOnly endExclusive3 = new(
+                    year: 2027,
                     month: 5,
                     day: 11);
                 return endExclusive3;

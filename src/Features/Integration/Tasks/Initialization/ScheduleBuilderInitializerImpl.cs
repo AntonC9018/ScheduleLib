@@ -76,7 +76,8 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                 .ToArray();
             if (matchingDirs.Length == 0)
             {
-                throw new ScheduleSourcesNotFoundException(studyYear.StudyYear,
+                throw new ScheduleSourcesNotFoundException(
+                    studyYear.StudyYear,
                     studyYear.Semester,
                     opts.DataDirectory);
             }
@@ -118,7 +119,8 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             return serialize2;
         }
 
-        loader.ConfigurationIdentity = string.Join("|",
+        loader.ConfigurationIdentity = string.Join(
+            "|",
             "cache-v2",
             typeof(ScheduleBuilderInitializer).Module.ModuleVersionId,
             typeof(ScheduleBuilder).Module.ModuleVersionId,
@@ -127,14 +129,16 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             studyYear.Semester,
             opts.EnrichWithFullNames,
             opts.LoadConsultations,
-            System.Text.Json.JsonSerializer.Serialize(context.TimeConfig,
+            System.Text.Json.JsonSerializer.Serialize(
+                context.TimeConfig,
                 new System.Text.Json.JsonSerializerOptions
                 {
                     IncludeFields = true,
                 }),
             CalculateSerialize(),
             CalculateSerialize2(),
-            string.Join(";",
+            string.Join(
+                ";",
                 builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
                     .Select(x => $"{x.Key}={x.Value}")));
         await loader.Load(

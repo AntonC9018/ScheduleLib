@@ -17,7 +17,8 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void DerivesSurvivorWithoutManualChoiceAndReplacesEarlierDates(string survivor)
     {
         var fixture = new Fixture();
-        fixture.Add(survivor,
+        fixture.Add(
+            survivor,
             fixture.Latest,
             DayOfWeek.Thursday,
             fixture.NewTeacher);
@@ -35,7 +36,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(expected: SubGroup.All, actual: lesson.Lesson.SubGroup);
         Assert.Equal(expected: DayOfWeek.Thursday, actual: lesson.Date.DayOfWeek);
         Assert.Equal(expected: PeriodId.Unspecified, actual: lesson.Date.Period);
-        Assert.Equal(expected: 3,
+        Assert.Equal(
+            expected: 3,
             actual: raw.EnumerateWeeklyLessons()
                 .Count());
         Assert.Equal(expected: 3, actual: merged.WeeklyLessons.Length); // Stable raw lookup IDs.
@@ -55,7 +57,8 @@ public sealed class AutomaticLabSubGroupMergeTests
             .WithLatestPeriod(merged)).Lessons);
 
         var weekly = new ManualWeeklyScheduledDateProvider(Config.StudyWeeks, Config.HolidayPeriods);
-        var helper = new ScheduleDateProviderHelper(merged,
+        var helper = new ScheduleDateProviderHelper(
+            merged,
             LessonTimeConfig.CreateDefault(),
             Config.SemesterIntervalProvider());
         var dates = new ScheduledDateTimeProvider(weekly, helper);
@@ -95,7 +98,8 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void ExplicitWholeGroupLabsReplaceTheOldSplit()
     {
         var fixture = new Fixture();
-        fixture.Add(null,
+        fixture.Add(
+            null,
             fixture.Latest,
             DayOfWeek.Friday);
         var merged = LabSubGroupMerges.Project(fixture.Build(), true);
@@ -118,49 +122,59 @@ public sealed class AutomaticLabSubGroupMergeTests
         switch (scenario)
         {
             case "missing":
-                fixture.Add(null,
+                fixture.Add(
+                    null,
                     fixture.Latest,
                     DayOfWeek.Friday,
                     type: LessonType.Curs);
                 break;
             case "new-label":
-                fixture.Add("III",
+                fixture.Add(
+                    "III",
                     fixture.Latest,
                     DayOfWeek.Friday);
                 break;
             case "partial":
-                fixture.Add("III",
+                fixture.Add(
+                    "III",
                     fixture.Older,
                     DayOfWeek.Friday);
-                fixture.Add("I",
+                fixture.Add(
+                    "I",
                     fixture.Latest,
                     DayOfWeek.Monday);
-                fixture.Add("II",
+                fixture.Add(
+                    "II",
                     fixture.Latest,
                     DayOfWeek.Wednesday);
                 break;
             case "mixed":
-                fixture.Add("I",
+                fixture.Add(
+                    "I",
                     fixture.Latest,
                     DayOfWeek.Monday);
-                fixture.Add(null,
+                fixture.Add(
+                    null,
                     fixture.Latest,
                     DayOfWeek.Friday);
                 break;
             case "overlap":
                 fixture.Older.Model.EndExclusive = fixture.Latest.Model.Start.AddDays(1);
-                fixture.Add("I",
+                fixture.Add(
+                    "I",
                     fixture.Latest,
                     DayOfWeek.Monday);
                 break;
             case "gap":
                 fixture.Older.Model.EndExclusive = fixture.Latest.Model.Start.AddDays(-1);
-                fixture.Add("I",
+                fixture.Add(
+                    "I",
                     fixture.Latest,
                     DayOfWeek.Monday);
                 break;
             case "undated":
-                fixture.Add("I",
+                fixture.Add(
+                    "I",
                     PeriodId.Unspecified,
                     DayOfWeek.Friday);
                 break;
@@ -171,7 +185,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         var merged = LabSubGroupMerges.Project(raw, true);
         Assert.Empty(merged.AutomaticLabSubGroupMerges);
         Assert.Single(merged.LabSubGroupMergeDiagnostics);
-        Assert.Equal(expected: raw.EnumerateAllLessons()
+        Assert.Equal(
+            expected: raw.EnumerateAllLessons()
                 .Select(x => x.Id),
             actual: merged.EnumerateAllLessons()
                 .Select(x => x.Id));
@@ -182,16 +197,19 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void RepeatedLatestSurvivorStillUsesEarlierSplitEvidence()
     {
         var fixture = new Fixture();
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Latest,
             DayOfWeek.Thursday);
         var scheduleBuilder = fixture.Builder;
-        DateOnly start = new(year: 2026,
+        DateOnly start = new(
+            year: 2026,
             month: 11,
             day: 1);
         var newest = scheduleBuilder.Period(start);
         fixture.Latest.Model.EndExclusive = newest.Model.Start;
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             newest,
             DayOfWeek.Friday);
         var merged = LabSubGroupMerges.Project(fixture.Build(), true);
@@ -205,53 +223,65 @@ public sealed class AutomaticLabSubGroupMergeTests
         var fixture = new Fixture();
         var specialization = Specialization.CV;
         var alternative = new Alternative("Synthetic elective");
-        fixture.Add("I",
+        fixture.Add(
+            "I",
             fixture.Latest,
             DayOfWeek.Thursday);
-        fixture.Add(null,
+        fixture.Add(
+            null,
             fixture.Older,
             DayOfWeek.Friday,
             type: LessonType.Curs);
-        fixture.Add("I",
+        fixture.Add(
+            "I",
             fixture.Older,
             DayOfWeek.Friday,
             specialization: specialization,
             alternative: alternative);
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Older,
             DayOfWeek.Saturday,
             specialization: specialization,
             alternative: alternative);
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Latest,
             DayOfWeek.Saturday,
             specialization: specialization,
             alternative: alternative);
-        fixture.Add(SpecialSubGroups.Beginners.Value,
+        fixture.Add(
+            SpecialSubGroups.Beginners.Value,
             fixture.Older,
             DayOfWeek.Sunday);
-        fixture.Add(SpecialSubGroups.NonBeginners.Value,
+        fixture.Add(
+            SpecialSubGroups.NonBeginners.Value,
             fixture.Latest,
             DayOfWeek.Sunday);
         var otherGroup = fixture.Builder.Group("IA2602").Id;
-        fixture.Add("I",
+        fixture.Add(
+            "I",
             fixture.Older,
             DayOfWeek.Monday,
             group: otherGroup);
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Older,
             DayOfWeek.Wednesday,
             group: otherGroup);
-        fixture.Add("I",
+        fixture.Add(
+            "I",
             fixture.Latest,
             DayOfWeek.Monday,
             group: otherGroup);
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Latest,
             DayOfWeek.Wednesday,
             group: otherGroup);
         var otherCourse = fixture.Builder.Course("Other course");
-        fixture.Add(null,
+        fixture.Add(
+            null,
             fixture.Older,
             DayOfWeek.Tuesday,
             course: otherCourse);
@@ -260,12 +290,14 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(expected: 2, actual: merged.AutomaticLabSubGroupMerges.Length);
         var partitioned = Assert.Single(merged.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Specialization == specialization));
-        var expected2 = new GroupPartitionKey(SubGroup.All,
+        var expected2 = new GroupPartitionKey(
+            SubGroup.All,
             specialization,
             alternative);
         var actual2 = partitioned.Lesson.GroupPartitionKey;
         Assert.Equal(expected: expected2, actual: actual2);
-        Assert.Equal(expected: raw.EnumerateAllLessons()
+        Assert.Equal(
+            expected: raw.EnumerateAllLessons()
                 .Count(x => x.Lesson.Group == otherGroup),
             actual: merged.EnumerateAllLessons()
                 .Count(x => x.Lesson.Group == otherGroup));
@@ -279,18 +311,21 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void AutomaticProjectionMatchesOrdinaryAndCombinedRegistryGroupsAndOverridesManualSurvivor()
     {
         var fixture = new Fixture();
-        fixture.Add("II",
+        fixture.Add(
+            "II",
             fixture.Latest,
             DayOfWeek.Thursday);
         var merged = LabSubGroupMerges.Project(fixture.Build(), true);
-        var search = new LessonSearchFilter(fixture.Course,
+        var search = new LessonSearchFilter(
+            fixture.Course,
             new()
             {
                 Value = [fixture.Group],
                 IsWildcard = false,
             },
             GroupPartitionKey.All);
-        var selection = RegistryLabMerges.Select([
+        var selection = RegistryLabMerges.Select(
+            [
                 new()
                 {
                     Course = "Synthetic course",
@@ -298,7 +333,8 @@ public sealed class AutomaticLabSubGroupMergeTests
                     SourceSubGroup = "I",
                 },
             ],
-            new(search,
+            new(
+                search,
                 fixture.Builder.LookupModule!.LessonsByCourse,
                 merged));
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
@@ -309,11 +345,13 @@ public sealed class AutomaticLabSubGroupMergeTests
             return expected2;
         }
 
-        Assert.Equal(expected: CalculateExpected(),
+        Assert.Equal(
+            expected: CalculateExpected(),
             actual: Assert.Single(merged.AutomaticLabSubGroupMerges).SurvivingSubGroup);
         var id = Assert.Single(selection.Lessons);
         Assert.Equal(expected: SubGroup.All, actual: merged.Get(id).Lesson.SubGroup);
-        var combined = new LessonSearchFilter(fixture.Course,
+        var combined = new LessonSearchFilter(
+            fixture.Course,
             new()
             {
                 Value = [fixture.Group],
@@ -321,9 +359,12 @@ public sealed class AutomaticLabSubGroupMergeTests
                 IsCombined = true,
             },
             GroupPartitionKey.All);
-        Assert.Equal(expected: selection.Lessons,
-            actual: RegistryLabMerges.Select([],
-                new(combined,
+        Assert.Equal(
+            expected: selection.Lessons,
+            actual: RegistryLabMerges.Select(
+                [],
+                new(
+                    combined,
                     fixture.Builder.LookupModule.LessonsByCourse,
                     merged)).Lessons);
 
@@ -338,12 +379,14 @@ public sealed class AutomaticLabSubGroupMergeTests
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
         var specializationRegistry = SpecializationRegistry.Empty;
-        var parser = new AttendanceListsExcelParser(groupParser,
+        var parser = new AttendanceListsExcelParser(
+            groupParser,
             lookup,
             lessonTypeParser,
             subGroupRemapper,
             specializationRegistry);
-        parser.Parse(new(new(),
+        parser.Parse(new(
+            new(),
             attendance,
             merged.Filter(new()),
             workbook));
@@ -364,7 +407,8 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void CanonicalSubgroupSheetsRemainReadableAfterAutomaticMerge(string? survivor)
     {
         var fixture = new Fixture();
-        fixture.Add(survivor,
+        fixture.Add(
+            survivor,
             fixture.Latest,
             DayOfWeek.Monday);
         var schedule = LabSubGroupMerges.Project(fixture.Build(), true);
@@ -388,32 +432,37 @@ public sealed class AutomaticLabSubGroupMergeTests
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
         var specializationRegistry = SpecializationRegistry.Empty;
-        var parser = new AttendanceListsExcelParser(groupParser,
+        var parser = new AttendanceListsExcelParser(
+            groupParser,
             lookup,
             lessonTypeParser,
             subGroupRemapper,
             specializationRegistry);
-        parser.Parse(new(new()
-        {
-            WorksheetNames = new Dictionary<string, string>
+        parser.Parse(new(
+            new()
             {
-                ["IA2601 I"] = "Synthetic course IA2601 I (lab)",
-                ["IA2601 II"] = "Synthetic course IA2601 II (lab)",
+                WorksheetNames = new Dictionary<string, string>
+                {
+                    ["IA2601 I"] = "Synthetic course IA2601 I (lab)",
+                    ["IA2601 II"] = "Synthetic course IA2601 II (lab)",
+                },
             },
-        },
             builder,
             schedule.Filter(new()),
             workbook));
         var attendance = builder.Build(Attendance.Present);
         Assert.Equal(expected: 2, actual: attendance.Count());
-        Assert.All(attendance,
+        Assert.All(
+            attendance,
             entry => Assert.NotEqual(expected: SubGroup.All, actual: entry.Key.GroupPartition.SubGroup));
-        var projected = AttendanceLabMerges.Project(attendance,
+        var projected = AttendanceLabMerges.Project(
+            attendance,
             schedule,
             []);
         var merged = Assert.Single(projected.Where(entry => entry.Key.GroupPartition.SubGroup == SubGroup.All));
         Assert.Equal(expected: 2, actual: merged.Value.StudentNames.Count);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 Attendance.NotPresent,
                 Attendance.MotivatedAbsent,
@@ -428,7 +477,8 @@ public sealed class AutomaticLabSubGroupMergeTests
     public void UnprovenSubgroupsAndOtherTeacherDestinationsRemainUnmatched(string subgroup, bool selectedTeacher)
     {
         var fixture = new Fixture();
-        fixture.Add("I",
+        fixture.Add(
+            "I",
             fixture.Latest,
             DayOfWeek.Monday,
             fixture.NewTeacher);
@@ -445,7 +495,8 @@ public sealed class AutomaticLabSubGroupMergeTests
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
         var specializationRegistry = SpecializationRegistry.Empty;
-        var parser = new AttendanceListsExcelParser(groupParser,
+        var parser = new AttendanceListsExcelParser(
+            groupParser,
             lookup,
             lessonTypeParser,
             subGroupRemapper,
@@ -459,14 +510,15 @@ public sealed class AutomaticLabSubGroupMergeTests
         }
 
         var filtered = selectedTeacher ? schedule.Filter(new()) : schedule.Filter(CalculateFilter());
-        Assert.Throws<AttendanceLessonNotFoundException>(() => parser.Parse(new(new()
-        {
-            WorksheetNames =
+        Assert.Throws<AttendanceLessonNotFoundException>(() => parser.Parse(new(
+            new()
+            {
+                WorksheetNames =
                     new Dictionary<string, string>
                     {
                         [sheet.Name] = $"Synthetic course IA2601 {subgroup} (lab)",
                     },
-        },
+            },
             new AllStudentAttendanceListBuilder(),
             filtered,
             workbook)));
@@ -495,22 +547,26 @@ public sealed class AutomaticLabSubGroupMergeTests
             OldTeacher = Builder.Teacher("Synthetic Alpha").Id;
             NewTeacher = Builder.Teacher("Synthetic Beta").Id;
             var scheduleBuilder = Builder;
-            DateOnly start = new(year: 2026,
+            DateOnly start = new(
+                year: 2026,
                 month: 9,
                 day: 1);
             var period = scheduleBuilder.Period(start);
             Older = period;
             var scheduleBuilder2 = Builder;
-            DateOnly start2 = new(year: 2026,
+            DateOnly start2 = new(
+                year: 2026,
                 month: 10,
                 day: 11);
             var period2 = scheduleBuilder2.Period(start2);
             Latest = period2;
             Older.Model.EndExclusive = Latest.Model.Start;
-            Add("I",
+            Add(
+                "I",
                 Older,
                 DayOfWeek.Monday);
-            Add("II",
+            Add(
+                "II",
                 Older,
                 DayOfWeek.Wednesday);
         }

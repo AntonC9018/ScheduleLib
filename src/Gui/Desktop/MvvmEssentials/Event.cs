@@ -94,7 +94,8 @@ public sealed class EventSource<T>
         {
             var callerId = new CallerIdentity(this);
             var iDispatcher = _dispatcher;
-            PostArgs<T> args = new(callerId,
+            PostArgs<T> args = new(
+                callerId,
                 _impl,
                 val);
             iDispatcher.Post(args);

@@ -487,7 +487,8 @@ public static class LessonBuilderHelper
                     if (g0.AttendanceMode.IsZi() != ami.IsZi()
                         || g0.AttendanceMode.IsFr() != ami.IsFr())
                     {
-                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(firstMode: g0.AttendanceMode,
+                        throw InvalidLessonGroupsException.ForMixedAttendanceModes(
+                            firstMode: g0.AttendanceMode,
                             secondMode: gi.AttendanceMode,
                             firstGroup: g0.Name,
                             secondGroup: gi.Name);
@@ -537,14 +538,16 @@ public static class LessonBuilderHelper
     {
         var r = s.WeeklyLessons.New();
         r.Value = new();
-        return new(s,
+        return new(
+            s,
             s.WeeklyLessons.Ref(r.Id),
             r.Id);
     }
 
     public static LessonBuilder<WeeklyLessonBuilderModel> DetachedRegularLesson(this ScheduleBuilder s)
     {
-        var builder = new LessonBuilder<WeeklyLessonBuilderModel>(s,
+        var builder = new LessonBuilder<WeeklyLessonBuilderModel>(
+            s,
             new(),
             UninitializedId);
         return builder;
@@ -591,7 +594,8 @@ public static class LessonBuilderHelper
     {
         var r = s.OneTimeLessons.New();
         r.Value = new();
-        return new(s,
+        return new(
+            s,
             r.Value,
             r.Id);
     }
@@ -752,7 +756,8 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(a: in a.Base,
+            var other = Diff(
+                a: in a.Base,
                 b: in b.Base,
                 whatToDiff);
             ret = ret.Union(other);
@@ -878,7 +883,8 @@ public static class LessonBuilderHelper
     {
         var ret = new LessonModelDiffMask();
         {
-            var other = Diff(a: a.Lesson,
+            var other = Diff(
+                a: a.Lesson,
                 b: b.Lesson,
                 whatToDiff);
             ret = ret.Union(other);
@@ -976,7 +982,8 @@ public static class LessonBuilderHelper
         in WeeklyLessonBuilderModelData from,
         LessonModelMergeMask merge)
     {
-        Merge(to: ref to.Base,
+        Merge(
+            to: ref to.Base,
             @from: from.Base,
             merge);
     }

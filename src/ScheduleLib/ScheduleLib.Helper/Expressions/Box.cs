@@ -56,7 +56,8 @@ public sealed record class Box<T, U>(T Value1, U Value2)
         }
 
         var member2 = Expression.MakeMemberAccess(boxConstant, CalculateMember2());
-        return new(boxConstant,
+        return new(
+            boxConstant,
             Member1: member1,
             Member2: member2);
     }

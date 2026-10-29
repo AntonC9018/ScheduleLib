@@ -58,7 +58,8 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameParser;
 
-        var course1 = Parse(parserConfig,
+        var course1 = Parse(
+            parserConfig,
             "Modelare, texturare si animatie 3D p/u jocuri",
             new()
             {
@@ -73,7 +74,8 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameUnifier;
 
-        var course1 = Parse(parserConfig.ParserConfig,
+        var course1 = Parse(
+            parserConfig.ParserConfig,
             "PYTHON pentru aplicatii",
             new()
             {
@@ -89,7 +91,8 @@ public sealed class CourseNameTests
     {
         var parserConfig = Config.CourseNameUnifier;
 
-        var course1 = Parse(parserConfig.ParserConfig,
+        var course1 = Parse(
+            parserConfig.ParserConfig,
             "Dezv. web PHP",
             new()
             {

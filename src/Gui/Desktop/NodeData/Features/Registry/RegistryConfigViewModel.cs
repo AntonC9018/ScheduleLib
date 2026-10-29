@@ -34,7 +34,8 @@ public sealed class RegistryConfigViewModel(
             // })
         );
 
-        services.ConfigurePropertySet(RegistryConfig.Key,
+        services.ConfigurePropertySet(
+            RegistryConfig.Key,
             b =>
             {
                 // Can easily do a loop over each type.
@@ -104,12 +105,14 @@ public sealed class RegistryConfigViewModel(
     public ObservableCredentials<RegistryConfig> Credentials { get; } = new();
 
     public SelectionHelper<RegistryConfig, ExtraLessonInstanceAction> ExtraLesson { get; } =
-        _helper.SelectionHelper(_extraLessons,
+        _helper.SelectionHelper(
+            _extraLessons,
             c => c.ExtraLessonInstanceAction,
             allowNull: true);
 
     public SelectionHelper<RegistryConfig, IEquationCommandsDerivation> Derivation { get; } =
-        _helper.SelectionHelper(_derivations,
+        _helper.SelectionHelper(
+            _derivations,
             c => c.EquationCommandsDerivation,
             allowNull: true);
 

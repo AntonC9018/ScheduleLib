@@ -7,7 +7,8 @@ internal static class RegistryLectureAudience
         var source = schedule.Get(id);
         var scopes = new List<string>
         {
-            RegistryTopicScope.Format(schedule,
+            RegistryTopicScope.Format(
+                schedule,
                 source.Lesson.Groups,
                 source.Lesson.GroupPartitionKey),
         };
@@ -83,12 +84,14 @@ internal static class RegistryLectureAudience
             }
 
             var list = scopes;
-            string item = RegistryTopicScope.Format(schedule,
+            string item = RegistryTopicScope.Format(
+                schedule,
                 candidate.Lesson.Groups,
                 candidate.Lesson.GroupPartitionKey);
             list.Add(item);
         }
-        return string.Join(", ",
+        return string.Join(
+            ", ",
             scopes.Distinct(StringComparer.OrdinalIgnoreCase)
                 .Order(StringComparer.Ordinal));
     }

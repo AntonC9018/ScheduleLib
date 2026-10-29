@@ -401,11 +401,13 @@ public sealed class FreeHoursTests
         }
 
         var result = await Execute(CalculateGroups(), expected: 2);
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: result.GetProperty("status")
                 .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
-        Assert.Equal(expected: 2,
+        Assert.Equal(
+            expected: 2,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
         Assert.Equal(
@@ -428,7 +430,8 @@ public sealed class FreeHoursTests
         }
 
         var suggestion = await Execute(CalculateGroups2(), expected: 2);
-        Assert.Equal(expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?",
+        Assert.Equal(
+            expected: "Unknown group 'ia2301'. Did you mean 'IA2301'?",
             actual: suggestion.GetProperty("errors")[0]
                 .GetString());
     }
@@ -464,7 +467,8 @@ public sealed class FreeHoursTests
                     .EnumerateArray()
                     .Select(x => x.GetString())
                     .ToArray());
-            Assert.Equal(expected: 4,
+            Assert.Equal(
+                expected: 4,
                 actual: result.RootElement.GetProperty("data")
                     .GetProperty("sections")
                     .GetArrayLength());
@@ -646,10 +650,12 @@ public sealed class FreeHoursTests
             CalculateQuery(),
             cancellation.Token,
             expected: 130);
-        Assert.Equal(expected: 130,
+        Assert.Equal(
+            expected: 130,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
-        Assert.Equal(expected: "failed",
+        Assert.Equal(
+            expected: "failed",
             actual: result.GetProperty("status")
                 .GetString());
         Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
@@ -680,7 +686,8 @@ public sealed class FreeHoursTests
                 new()
                 {
                     NoCache = true,
-                    DataDirectory = Path.Combine(Path.GetTempPath(),
+                    DataDirectory = Path.Combine(
+                        Path.GetTempPath(),
                         Guid.NewGuid()
                             .ToString()),
                 },
@@ -690,7 +697,8 @@ public sealed class FreeHoursTests
                 });
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 3, actual: exit);
-            Assert.Equal(expected: 3,
+            Assert.Equal(
+                expected: 3,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -789,10 +797,12 @@ public sealed class FreeHoursTests
                 cancellationToken);
             Assert.Equal(expected: expected, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: document.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
-            Assert.Equal(expected: "query free-hours",
+            Assert.Equal(
+                expected: "query free-hours",
                 actual: document.RootElement.GetProperty("command")
                     .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);

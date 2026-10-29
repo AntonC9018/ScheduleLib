@@ -10,7 +10,8 @@ public sealed class SequenceReaderTests
         var reader = new SequenceReader("hello world");
         reader.Move(6);
 
-        Assert.Equal(expected: "worl",
+        Assert.Equal(
+            expected: "worl",
             actual: reader.PeekSpanMaxSize(4)
                 .ToString());
     }
@@ -21,7 +22,8 @@ public sealed class SequenceReaderTests
         var reader = new SequenceReader("hello world");
         reader.Move(6);
 
-        Assert.Equal(expected: "world",
+        Assert.Equal(
+            expected: "world",
             actual: reader.PeekSpanMaxSize(10)
                 .ToString());
     }

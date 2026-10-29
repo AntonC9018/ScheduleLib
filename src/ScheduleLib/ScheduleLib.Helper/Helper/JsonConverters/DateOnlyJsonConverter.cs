@@ -20,7 +20,8 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
         {
             return DateOnly.MinValue;
         }
-        return DateOnly.ParseExact(dateStr,
+        return DateOnly.ParseExact(
+            dateStr,
             AcceptedFormats,
             CultureInfo.InvariantCulture);
     }

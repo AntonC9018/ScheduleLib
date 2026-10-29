@@ -18,7 +18,8 @@ public readonly record struct CalendarActionMessage(CalendarActionOutcome Outcom
 {
     public string Format(IFormatProvider provider)
     {
-        return string.Create(provider,
+        return string.Create(
+            provider,
             $"{Outcome.Action}: {Outcome.State}; calendar {Outcome.CalendarId}; event {Outcome.EventId}; desired index {Outcome.DesiredEventIndex}");
     }
 }
@@ -43,7 +44,8 @@ public readonly record struct CalendarDesiredEventMessage(
 {
     public string Format(IFormatProvider provider)
     {
-        return string.Create(provider,
+        return string.Create(
+            provider,
             $"Create event [{Index}]: {Summary}; {Start}–{End}; {string.Join(", ", Recurrence)}");
     }
 }

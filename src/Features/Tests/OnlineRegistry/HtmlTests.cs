@@ -43,7 +43,8 @@ public sealed class HtmlTests
             },
         })
             .ToArray();
-        var resultWithNames = result.Zip(courseNames,
+        var resultWithNames = result.Zip(
+            courseNames,
             (a, b) => new
             {
                 Url = a.Url.ToString(),
@@ -85,7 +86,8 @@ public sealed class HtmlTests
         })
             .ToArray();
 
-        var mapped = result.Zip(groups,
+        var mapped = result.Zip(
+            groups,
             (a, b) => new
             {
                 Uri = a.Uri.ToString(),
@@ -241,7 +243,8 @@ public sealed class HtmlTests
             {
                 Attendance = attendance,
                 Topic = "My Topic",
-                DateTime = new DateTime(year: 2026,
+                DateTime = new DateTime(
+                    year: 2026,
                     day: 11,
                     month: 10),
                 LessonId = lessonId,

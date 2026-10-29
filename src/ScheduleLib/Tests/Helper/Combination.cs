@@ -20,7 +20,8 @@ public sealed class CombinationTests
             Assert.Equal(expected: a, actual: b);
         }
 
-        Assert.Collection(results,
+        Assert.Collection(
+            results,
             x => Equal(a: x, b: [1, 2]),
             x => Equal(a: x, b: [1, 3]),
             x => Equal(a: x, b: [2, 3]));

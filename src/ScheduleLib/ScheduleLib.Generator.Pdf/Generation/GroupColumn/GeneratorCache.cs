@@ -53,7 +53,8 @@ public readonly struct ColumnOrderBuilder<TKey>() where TKey : IComparable<TKey>
 
     public ref int GetRefOrAddDefault(TKey key, out bool exists)
     {
-        return ref CollectionsMarshal.GetValueRefOrAddDefault(Dict,
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Dict,
             key,
             out exists);
     }
@@ -176,7 +177,8 @@ public static class MappingsCreationHelper
                     RowKey = rowKey,
                     ColumnKey = columnKey,
                 };
-                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(ret,
+                ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                    ret,
                     cellKey,
                     out bool exists);
                 if (!exists)

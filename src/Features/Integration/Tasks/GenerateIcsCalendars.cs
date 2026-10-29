@@ -69,7 +69,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 return fileName2;
             }
 
-            await WriteGroupCalendar(fileName: CalculateFileName(),
+            await WriteGroupCalendar(
+                fileName: CalculateFileName(),
                 calendarName: calendarName,
                 new()
                 {
@@ -98,7 +99,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                     return groupFilter2;
                 }
 
-                await WriteGroupCalendar(fileName: fileName,
+                await WriteGroupCalendar(
+                    fileName: fileName,
                     calendarName: calendarName,
                     CalculateGroupFilter());
             }
@@ -112,7 +114,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             sb1.Append(".ics");
             var fileName = sb1.ToStringAndClear();
 
-            await WriteCalendar(fileName: fileName,
+            await WriteCalendar(
+                fileName: fileName,
                 calendarName: TeacherCalendarName(teacher),
                 isTeacherCalendar: true,
                 new()
@@ -130,7 +133,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             string calendarName,
             GroupFilter groupFilter)
         {
-            await WriteCalendar(fileName: fileName,
+            await WriteCalendar(
+                fileName: fileName,
                 calendarName: calendarName,
                 isTeacherCalendar: false,
                 new()
@@ -168,7 +172,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 // ScheduleDefaults.SemesterIntervalProvider to cover it.
                 var omission = $"Skipping calendar {fileName}: {e.Message}";
                 p.ReportOmission?.Invoke(omission);
-                _logger.LogWarning(e,
+                _logger.LogWarning(
+                    e,
                     "Skipping calendar {File}: {Reason}",
                     fileName,
                     e.Message);
@@ -186,13 +191,15 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             };
             if (p.PublishArtifact is { } publish)
             {
-                await publish(fileName,
+                await publish(
+                    fileName,
                     Write,
                     p.CancellationToken);
             }
             else
             {
-                using var outputFile = p.OutputDirectory!.OpenFile(fileName,
+                using var outputFile = p.OutputDirectory!.OpenFile(
+                    fileName,
                     FileMode.Create,
                     FileAccess.Write);
                 await Write(outputFile, p.CancellationToken);

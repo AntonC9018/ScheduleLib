@@ -44,14 +44,17 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TempDirectory();
         var result = await Export(temp.Path);
-        Assert.Equal(expected: 0,
+        Assert.Equal(
+            expected: 0,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
-        Assert.Equal(expected: "succeeded",
+        Assert.Equal(
+            expected: "succeeded",
             actual: result.GetProperty("status")
                 .GetString());
         var data = result.GetProperty("data");
-        Assert.Equal(expected: 127,
+        Assert.Equal(
+            expected: 127,
             actual: data.GetProperty("lessonCount")
                 .GetInt32());
         Assert.Equal(
@@ -64,7 +67,8 @@ public sealed class FreeRoomsTests
                 .EnumerateArray()
                 .Select(x => x.GetString())
                 .ToArray());
-        Assert.Equal(expected: temp.Path,
+        Assert.Equal(
+            expected: temp.Path,
             actual: data.GetProperty("outputDirectory")
                 .GetString());
         Assert.Equal(
@@ -118,7 +122,8 @@ public sealed class FreeRoomsTests
                     .Select(x => (Row: x.RowNumber(), Day: x.Cell(1)
                         .GetFormattedString()))
                     .ToArray());
-            Assert.Equal(expected: 53,
+            Assert.Equal(
+                expected: 53,
                 actual: sheet.LastRowUsed()!
                     .RowNumber());
             string[] expected2 = new[]
@@ -262,10 +267,12 @@ public sealed class FreeRoomsTests
 
         using var manifest = JsonDocument.Parse(
             await File.ReadAllTextAsync(CalculatePath()));
-        Assert.Equal(expected: "export free-rooms",
+        Assert.Equal(
+            expected: "export free-rooms",
             actual: manifest.RootElement.GetProperty("Command")
                 .GetString());
-        Assert.Equal(expected: "succeeded",
+        Assert.Equal(
+            expected: "succeeded",
             actual: manifest.RootElement.GetProperty("Status")
                 .GetString());
         Assert.Equal(
@@ -273,7 +280,8 @@ public sealed class FreeRoomsTests
             actual: manifest.RootElement.GetProperty("Artifacts")[0]
                 .GetProperty("Name")
                 .GetString());
-        Assert.Equal(expected: 64,
+        Assert.Equal(
+            expected: 64,
             actual: manifest.RootElement.GetProperty("Artifacts")[0]
                 .GetProperty("Sha256")
                 .GetString()!.Length);
@@ -283,7 +291,8 @@ public sealed class FreeRoomsTests
     public async Task DefaultOutputLivesUnderTheProjectRoot()
     {
         using var temp = new TempDirectory();
-        var result = await Export(null,
+        var result = await Export(
+            null,
             settings: new()
             {
                 Project = temp.Path,
@@ -352,10 +361,12 @@ public sealed class FreeRoomsTests
         }
         using var output = new TempDirectory();
         var result = await Export(outputDirectory: output.Path, dataDirectory: source.Path);
-        Assert.Equal(expected: 0,
+        Assert.Equal(
+            expected: 0,
             actual: result.GetProperty("exitCode")
                 .GetInt32());
-        Assert.Equal(expected: 0,
+        Assert.Equal(
+            expected: 0,
             actual: result.GetProperty("data")
                 .GetProperty("lessonCount")
                 .GetInt32());
@@ -429,7 +440,8 @@ public sealed class FreeRoomsTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = Path.Combine(Path.GetTempPath(),
+                        DataDirectory = Path.Combine(
+                            Path.GetTempPath(),
                             Guid.NewGuid()
                                 .ToString()),
                     },
@@ -442,10 +454,12 @@ public sealed class FreeRoomsTests
                         Json = true,
                     }));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 3,
+            Assert.Equal(
+                expected: 3,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
-            Assert.Equal(expected: "failed",
+            Assert.Equal(
+                expected: "failed",
                 actual: result.RootElement.GetProperty("status")
                     .GetString());
 
@@ -467,7 +481,8 @@ public sealed class FreeRoomsTests
     private static string[] Row(IXLWorksheet sheet, int row)
     {
         return sheet.Row(row)
-            .Cells(firstColumn: 1,
+            .Cells(
+                firstColumn: 1,
                 lastColumn: sheet.LastColumnUsed()!
                     .ColumnNumber())
             .Select(x => x.GetFormattedString())
@@ -503,10 +518,12 @@ public sealed class FreeRoomsTests
                 settings);
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: document.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
-            Assert.Equal(expected: "export free-rooms",
+            Assert.Equal(
+                expected: "export free-rooms",
                 actual: document.RootElement.GetProperty("command")
                     .GetString());
             return document.RootElement.Clone();

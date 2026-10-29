@@ -71,10 +71,12 @@ public sealed class QueryTests
         foreach (var lesson in filtered.GetProperty("data")
                      .EnumerateArray())
         {
-            Assert.Equal(expected: room,
+            Assert.Equal(
+                expected: room,
                 actual: lesson.GetProperty("room")
                     .GetString());
-            Assert.Equal(expected: day.ToString(),
+            Assert.Equal(
+                expected: day.ToString(),
                 actual: lesson.GetProperty("day")
                     .GetString());
             Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity")
@@ -102,7 +104,8 @@ public sealed class QueryTests
                 new(),
                 new()
                 {
-                    DataDirectory = Path.Combine(Path.GetTempPath(),
+                    DataDirectory = Path.Combine(
+                        Path.GetTempPath(),
                         Guid.NewGuid()
                             .ToString()),
                 },
@@ -217,7 +220,8 @@ public sealed class QueryTests
             Console.SetOut(output);
             Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--json", "--day", "invalid"]));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: document.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -364,10 +368,12 @@ public sealed class QueryTests
 
                 int actual2 = exit;
                 Assert.Equal(expected: expected2, actual: actual2);
-                Assert.Equal(expected: exit,
+                Assert.Equal(
+                    expected: exit,
                     actual: json.RootElement.GetProperty("exitCode")
                         .GetInt32());
-                Assert.Equal(expected: "failed",
+                Assert.Equal(
+                    expected: "failed",
                     actual: json.RootElement.GetProperty("status")
                         .GetString());
                 Assert.Empty(json.RootElement.GetProperty("outputs")
@@ -466,10 +472,12 @@ public sealed class QueryTests
                 });
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: document.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
-            Assert.Equal(expected: "query lessons",
+            Assert.Equal(
+                expected: "query lessons",
                 actual: document.RootElement.GetProperty("command")
                     .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);

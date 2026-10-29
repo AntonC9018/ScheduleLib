@@ -20,7 +20,8 @@ public static class ExplorerHelper
         filePath = Path.GetFullPath(filePath);
         ArgumentNullException.ThrowIfNull(filePath);
         nint pidl = ILCreateFromPathW(filePath);
-        SHOpenFolderAndSelectItems(pidlFolder: pidl,
+        SHOpenFolderAndSelectItems(
+            pidlFolder: pidl,
             cild: 0,
             apidl: nint.Zero,
             dwFlags: 0);

@@ -72,7 +72,8 @@ public static class UiLayerHelper
         {
             var uiLayers = configRoot.GetUiLayers()
                 .Select(x => x.Node);
-            await helper.SerializeValues(uiLayers,
+            await helper.SerializeValues(
+                    uiLayers,
                     output,
                     serializeLayerName: false)
                 .ConfigureAwait(false);

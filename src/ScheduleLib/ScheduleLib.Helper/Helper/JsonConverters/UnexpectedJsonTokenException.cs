@@ -20,7 +20,8 @@ public sealed class UnexpectedJsonTokenException(JsonTokenType actualToken, Json
         {
             JsonTokenExpectation.StartObject => $"Expected StartObject token, got {actualToken}",
             JsonTokenExpectation.PropertyName => $"Unexpected token {actualToken}",
-            _ => throw new ArgumentOutOfRangeException(nameof(expectation),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(expectation),
                 expectation,
                 null),
         };

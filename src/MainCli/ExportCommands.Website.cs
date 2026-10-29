@@ -298,7 +298,8 @@ public partial class ExportCommands
                 staging.Initialize(clear: true);
                 var handler = scope.ServiceProvider.GetRequiredService<ThesesConversionTaskHandler>();
                 await handler.Handle(cancellation.Token, staging);
-                foreach (var file in staging.FilePaths("*.json",
+                foreach (var file in staging.FilePaths(
+                                 "*.json",
                                  new()
                                  {
                                      RecurseSubdirectories = false,
@@ -547,7 +548,8 @@ public partial class ExportCommands
             var extra = actual.Except(expected, StringComparer.Ordinal)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            throw WebsiteZipContentMismatch.CreateException(zipPath,
+            throw WebsiteZipContentMismatch.CreateException(
+                zipPath,
                 missing: missing,
                 extra: extra);
         }

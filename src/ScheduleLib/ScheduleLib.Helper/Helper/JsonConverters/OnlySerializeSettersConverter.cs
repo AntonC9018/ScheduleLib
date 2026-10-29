@@ -74,7 +74,8 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             // TODO: remove reflection
             if (props.TryGetValue(propertyName, out var propInfo))
             {
-                object? value = JsonSerializer.Deserialize(ref reader,
+                object? value = JsonSerializer.Deserialize(
+                    ref reader,
                     propInfo.PropertyType,
                     options);
                 propInfo.SetValue(obj: obj, value: value);
@@ -102,14 +103,21 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
                 {
                     return false;
                 }
-                return p.CanWrite;
+
+                if (p.CanWrite)
+                {
+                    return true;
+                }
+
+                return false;
             });
 
         foreach (var prop in props)
         {
             var propValue = prop.GetValue(value);
             writer.WritePropertyName(options.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name);
-            JsonSerializer.Serialize(writer,
+            JsonSerializer.Serialize(
+                writer,
                 propValue,
                 prop.PropertyType,
                 options);

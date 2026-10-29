@@ -11,7 +11,8 @@ public static class ExcelLibExtensions
         string message,
         Exception? inner = null)
     {
-        return new(cell.ActualRange().RangeAddress
+        return new(
+            cell.ActualRange().RangeAddress
                 .ToString()!,
             message,
             inner);
@@ -22,7 +23,8 @@ public static class ExcelLibExtensions
         string message,
         Exception? inner = null)
     {
-        return new(row.RangeAddress.ToString()!,
+        return new(
+            row.RangeAddress.ToString()!,
             message,
             inner);
     }
@@ -32,7 +34,8 @@ public static class ExcelLibExtensions
         string message,
         Exception? inner = null)
     {
-        return new(sheetName: sheet.Name,
+        return new(
+            sheetName: sheet.Name,
             message: message,
             inner);
     }

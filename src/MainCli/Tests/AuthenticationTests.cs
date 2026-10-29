@@ -31,12 +31,15 @@ public sealed class AuthenticationTests
         using var fixture = new Fixture();
         using var auth = fixture.Auth;
         var missing = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
-            auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
                     Scopes,
                     Teacher,
                     fixture.Services),
                 default));
-        Assert.Equal(expected: "schedulelib auth login google --profile \"Curmanschii Anton\"",
+        Assert.Equal(
+            expected: "schedulelib auth login google --profile \"Curmanschii Anton\"",
             actual: missing.LoginCommand);
         Assert.Equal(expected: 0, actual: fixture.Tokens.Consents);
         Assert.Equal(expected: 0, actual: fixture.Tokens.Refreshes);
@@ -53,7 +56,9 @@ public sealed class AuthenticationTests
             .WithCredentials(fixture.Config)
             .Execute(default);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
-        var credential = await auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+        var credential = await auth.Resolve(
+            new GoogleCredentialRequest(
+                fixture.Config,
                 Scopes,
                 Teacher,
                 fixture.Services),
@@ -75,9 +80,12 @@ public sealed class AuthenticationTests
         var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
         stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
         await new AtomicTokenStore(file).Write(stored, default);
-        Assert.Equal(expected: "refreshable",
+        Assert.Equal(
+            expected: "refreshable",
             actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
-        var refreshed = await auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+        var refreshed = await auth.Resolve(
+            new GoogleCredentialRequest(
+                fixture.Config,
                 Scopes,
                 Teacher,
                 fixture.Services),
@@ -86,7 +94,8 @@ public sealed class AuthenticationTests
         Assert.Equal(expected: "refresh-secret", actual: refreshed.Token.RefreshToken);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Refreshes);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
-        Assert.Equal(expected: "authorized",
+        Assert.Equal(
+            expected: "authorized",
             actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
         Assert.Equal(
             expected: "refreshed-secret",
@@ -108,7 +117,9 @@ public sealed class AuthenticationTests
             .WithCredentials(fixture.Config)
             .Execute(default);
         await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
-            auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
                     ["ungranted"],
                     Teacher,
                     fixture.Services),
@@ -130,7 +141,9 @@ public sealed class AuthenticationTests
         await new AtomicTokenStore(file).Write(stored, default);
         fixture.Tokens.FailRefresh = true;
         var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
-            auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
                     Scopes,
                     Teacher,
                     fixture.Services),
@@ -138,7 +151,8 @@ public sealed class AuthenticationTests
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.ToString());
         Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.ToString());
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
-        Assert.Equal(expected: "access-secret",
+        Assert.Equal(
+            expected: "access-secret",
             actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
     }
 
@@ -172,7 +186,9 @@ public sealed class AuthenticationTests
             .Execute(default);
         Assert.Equal(expected: 2, actual: (await auth.Status(Teacher, default)).Accounts.Count);
         Assert.Single((await auth.Status("Nartea Nichita", default)).Accounts);
-        var first = await auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+        var first = await auth.Resolve(
+            new GoogleCredentialRequest(
+                fixture.Config,
                 Scopes,
                 Teacher,
                 fixture.Services),
@@ -210,7 +226,9 @@ public sealed class AuthenticationTests
         await using var lease = await LocalFileLock.Acquire(Path.Combine(directory, ".operation.lock"), default);
         await Assert.ThrowsAsync<LocalOperationBusyException>(() => auth.Logout(Teacher, default));
         await Assert.ThrowsAsync<LocalOperationBusyException>(() =>
-            auth.Resolve(new GoogleCredentialRequest(fixture.Config,
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
                     Scopes,
                     Teacher,
                     fixture.Services),
@@ -223,10 +241,11 @@ public sealed class AuthenticationTests
         using var fixture = new Fixture();
         var path = Path.Combine(fixture.Root, "token.json");
         var store = new AtomicTokenStore(path);
-        await store.Write(new TokenResponse
-        {
-            AccessToken = "old",
-        },
+        await store.Write(
+            new TokenResponse
+            {
+                AccessToken = "old",
+            },
             default);
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
@@ -288,7 +307,8 @@ public sealed class AuthenticationTests
             Console.SetOut(output);
             Assert.Equal(expected: 2, actual: await CliHost.Run(args));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: result.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -310,7 +330,8 @@ public sealed class AuthenticationTests
             Console.SetOut(output);
             Assert.Equal(expected: 3, actual: await CliHost.Run(["auth", verb, "google", "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Contains(expectedSubstring: "--profile",
+            Assert.Contains(
+                expectedSubstring: "--profile",
                 actualString: result.RootElement.GetProperty("errors")[0]
                     .GetString());
         }
@@ -334,10 +355,12 @@ public sealed class AuthenticationTests
                 actual: await CliHost.Run(
                     ["auth", "status", "google", "--profile", Teacher, "--project", fixture.Root, "--json"]));
             using var result = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "auth status google",
+            Assert.Equal(
+                expected: "auth status google",
                 actual: result.RootElement.GetProperty("command")
                     .GetString());
-            Assert.Equal(expected: Teacher,
+            Assert.Equal(
+                expected: Teacher,
                 actual: result.RootElement.GetProperty("data")
                     .GetProperty("profile")
                     .GetString());
@@ -446,10 +469,12 @@ public sealed class AuthenticationTests
                     },
                     CalculateCancellationToken()));
             using var json = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "cancelled",
+            Assert.Equal(
+                expected: "cancelled",
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
-            Assert.Equal(expected: 130,
+            Assert.Equal(
+                expected: 130,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
             Assert.Equal(expected: JsonValueKind.Null, actual: json.RootElement.GetProperty("data").ValueKind);

@@ -76,7 +76,8 @@ public sealed class DriveFileLoader : IDisposable
             var progress = await downloadRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
-        throw new UnexpectedDriveFileFormatException(uploadedFileTypeString: uploadedFileTypeString,
+        throw new UnexpectedDriveFileFormatException(
+            uploadedFileTypeString: uploadedFileTypeString,
             fileType,
             actualMimeType: meta.MimeType);
     }

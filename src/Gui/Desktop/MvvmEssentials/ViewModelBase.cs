@@ -16,7 +16,8 @@ public abstract class ViewModelBase : ObservableObject
     {
         var id = new CallerIdentity(this);
         var iDispatcher = _dispatcher;
-        PostArgs<PropertyChangedEventArgs> args = new(id,
+        PostArgs<PropertyChangedEventArgs> args = new(
+            id,
             x => base.OnPropertyChanged(x),
             e);
         iDispatcher.Post(args);
@@ -26,7 +27,8 @@ public abstract class ViewModelBase : ObservableObject
     {
         var id = new CallerIdentity(this);
         var iDispatcher = _dispatcher;
-        PostArgs<PropertyChangingEventArgs> args = new(id,
+        PostArgs<PropertyChangingEventArgs> args = new(
+            id,
             x => base.OnPropertyChanging(x),
             e);
         iDispatcher.Post(args);

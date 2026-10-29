@@ -177,7 +177,8 @@ public sealed class ScheduleImportContext
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw ConflictingSpecializationException.ForConflictingValues(first: prevSpec.Value,
+                    throw ConflictingSpecializationException.ForConflictingValues(
+                        first: prevSpec.Value,
                         second: spec.Value);
                 }
                 specialization = spec;
@@ -483,13 +484,15 @@ public static class RomanianLanguageHelper
             return null;
         }
 
-        return string.Create(name.Length,
+        return string.Create(
+            name.Length,
             middle,
             (output, middle) =>
             {
                 Debug.Assert(name.Length <= 256);
                 {
-                    middle.Replace(output[1..^1],
+                    middle.Replace(
+                        output[1..^1],
                         oldValue: 'â',
                         newValue: 'î');
                 }

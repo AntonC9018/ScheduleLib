@@ -23,7 +23,8 @@ public readonly record struct FileInDirectory
         FileAccess access,
         FileShare? share = null)
     {
-        return Directory.OpenFile(Path,
+        return Directory.OpenFile(
+            Path,
             mode,
             access,
             share);
@@ -113,7 +114,8 @@ public sealed class OutputDirectory
         FileShare? share = null)
     {
         var fullPath = NormalizePath(path);
-        var ret = new FileStream(fullPath,
+        var ret = new FileStream(
+            fullPath,
             mode,
             access,
             share ?? FileShare.Read);
@@ -161,11 +163,13 @@ public sealed class OutputDirectory
     public async Task<string> Zip()
     {
         var path = Path.ChangeExtension(path: _directory, @extension: ".zip");
-        var outputFile = new FileStream(path,
+        var outputFile = new FileStream(
+            path,
             FileMode.Create,
             FileAccess.Write);
         await using var zip = new ZipArchive(outputFile, ZipArchiveMode.Create);
-        foreach (var file in Files("*",
+        foreach (var file in Files(
+                     "*",
                      new()
                      {
                          RecurseSubdirectories = false,

@@ -124,7 +124,8 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         TCollection value,
         JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer,
+        JsonSerializer.Serialize(
+            writer,
             value,
             options);
     }

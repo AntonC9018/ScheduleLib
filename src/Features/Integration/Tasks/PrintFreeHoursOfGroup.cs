@@ -59,7 +59,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
     /// the lessons are enumerated and before the result is handed back.</summary>
     public FreeHoursSection[] Sections(string[] groups, CancellationToken cancellationToken = default)
     {
-        return Sections(groups,
+        return Sections(
+            groups,
             _schedule.EnumerateWeeklyLessons()
                 .Select(x => x),
             cancellationToken);
@@ -87,7 +88,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var list = sections;
-                    var item = Section(group,
+                    var item = Section(
+                        group,
                         parity,
                         mode,
                         lessons,
@@ -167,7 +169,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
             .Select(CreateFreeHoursDay)
             .ToArray();
         cancellationToken.ThrowIfCancellationRequested();
-        return new(group,
+        return new(
+            group,
             parity,
             mode,
             days);

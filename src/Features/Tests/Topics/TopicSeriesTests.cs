@@ -23,7 +23,8 @@ public sealed class TopicSeriesTests
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(path: Path.Combine(directory, "course.csv"),
+            await File.WriteAllTextAsync(
+                path: Path.Combine(directory, "course.csv"),
                 contents: """
                           name,lessonType,language
                           Russian lecture,Curs,Ru
@@ -86,7 +87,8 @@ public sealed class TopicSeriesTests
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
                 NullLogger<AllLessonTopicsDatabaseBuilder>.Instance;
             var builder = new AllLessonTopicsDatabaseBuilder(schedule2, logger);
-            await builder.AddFromManifest(new(manifest, directory),
+            await builder.AddFromManifest(
+                new(manifest, directory),
                 lookup,
                 default);
             var topics = builder.Build();
@@ -164,7 +166,8 @@ public sealed class TopicSeriesTests
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(path: Path.Combine(directory, "course.csv"),
+            await File.WriteAllTextAsync(
+                path: Path.Combine(directory, "course.csv"),
                 contents: """
                           name,lessonType,language,series
                           Lecture one,Curs,Ru,curs-ru
@@ -186,16 +189,19 @@ public sealed class TopicSeriesTests
             russian.Ref.Language = Language.Ru;
             var english = scheduleBuilder.Group("IA2602");
             english.Ref.Language = Language.En;
-            AddLesson(russian,
+            AddLesson(
+                russian,
                 LessonType.Curs,
                 SubGroup.All);
             GroupId group2 = russian;
             var type2 = LessonType.Lab;
             var subgroup2 = new SubGroup("I");
-            AddLesson(group2,
+            AddLesson(
+                group2,
                 type2,
                 subgroup2);
-            AddLesson(english,
+            AddLesson(
+                english,
                 LessonType.Lab,
                 SubGroup.All);
             var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
@@ -225,11 +231,13 @@ public sealed class TopicSeriesTests
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
                 NullLogger<AllLessonTopicsDatabaseBuilder>.Instance;
             var builder = new AllLessonTopicsDatabaseBuilder(schedule2, logger);
-            await builder.AddFromManifest(new(manifest, directory),
+            await builder.AddFromManifest(
+                new(manifest, directory),
                 lookup,
                 default);
             var topics = builder.Build();
-            Check(russian,
+            Check(
+                russian,
                 LessonType.Curs,
                 GroupPartitionKey.All,
                 first: "Lecture one",
@@ -241,12 +249,14 @@ public sealed class TopicSeriesTests
             GroupPartitionKey partition2 = new(subGroup, specialization);
             string first2 = "Russian lab one";
             string second2 = "Russian lab two";
-            Check(group3,
+            Check(
+                group3,
                 type3,
                 partition2,
                 first: first2,
                 second: second2);
-            Check(english,
+            Check(
+                english,
                 LessonType.Lab,
                 GroupPartitionKey.All,
                 first: "English lab one",
@@ -254,7 +264,8 @@ public sealed class TopicSeriesTests
 
             AttendanceLookupKey CalculateKey()
             {
-                var key = Key(russian,
+                var key = Key(
+                    russian,
                     LessonType.Lab,
                     GroupPartitionKey.All,
                     0);
@@ -267,7 +278,8 @@ public sealed class TopicSeriesTests
 
             AttendanceLookupKey CalculateKey2()
             {
-                var key2 = Key(english,
+                var key2 = Key(
+                    english,
                     LessonType.Curs,
                     GroupPartitionKey.All,
                     0);
@@ -284,11 +296,12 @@ public sealed class TopicSeriesTests
                 GroupPartitionKey partition,
                 int index)
             {
-                return new(new FoundGroups
-                {
-                    Value = [group],
-                    IsWildcard = false,
-                },
+                return new(
+                    new FoundGroups
+                    {
+                        Value = [group],
+                        IsWildcard = false,
+                    },
                     partition,
                     course,
                     type,
@@ -305,7 +318,8 @@ public sealed class TopicSeriesTests
             {
                 AttendanceLookupKey CalculateKey()
                 {
-                    var key = Key(group,
+                    var key = Key(
+                        group,
                         type,
                         partition,
                         0);
@@ -317,7 +331,8 @@ public sealed class TopicSeriesTests
 
                 AttendanceLookupKey CalculateKey2()
                 {
-                    var key2 = Key(group,
+                    var key2 = Key(
+                        group,
                         type,
                         partition,
                         1);
@@ -329,7 +344,8 @@ public sealed class TopicSeriesTests
 
                 AttendanceLookupKey CalculateKey3()
                 {
-                    var key3 = Key(group,
+                    var key3 = Key(
+                        group,
                         type,
                         partition,
                         2);

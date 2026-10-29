@@ -54,7 +54,8 @@ public static class IcsCalendarWriter
         streamWriter.WriteLine(value2);
         writer.WriteLine("CALSCALE:GREGORIAN");
         writer.WriteLine("METHOD:PUBLISH");
-        WriteEscapedLine(writer,
+        WriteEscapedLine(
+            writer,
             name: "X-WR-CALNAME",
             value: calendar.Name);
         var streamWriter2 = writer;
@@ -66,7 +67,8 @@ public static class IcsCalendarWriter
         var dtStamp = DateTime.UtcNow;
         foreach (var e in calendar.Events)
         {
-            WriteEvent(writer,
+            WriteEvent(
+                writer,
                 calendar,
                 e,
                 dtStamp);
@@ -83,7 +85,8 @@ public static class IcsCalendarWriter
         DateTime dtStamp)
     {
         writer.WriteLine("BEGIN:VEVENT");
-        WriteEscapedLine(writer,
+        WriteEscapedLine(
+            writer,
             name: "UID",
             value: e.Uid ?? DefaultUid(calendar, e));
         var streamWriter = writer;
@@ -92,18 +95,21 @@ public static class IcsCalendarWriter
         streamWriter.WriteLine(value2);
         writer.WriteLine($"DTSTART;TZID={calendar.TimeZoneId}:{FormatLocal(e.Start)}");
         writer.WriteLine($"DTEND;TZID={calendar.TimeZoneId}:{FormatLocal(e.End)}");
-        WriteEscapedLine(writer,
+        WriteEscapedLine(
+            writer,
             name: "SUMMARY",
             value: e.Summary);
         if (e.Description is { } description)
         {
-            WriteEscapedLine(writer,
+            WriteEscapedLine(
+                writer,
                 name: "DESCRIPTION",
                 value: description);
         }
         if (e.Location is { } location)
         {
-            WriteEscapedLine(writer,
+            WriteEscapedLine(
+                writer,
                 name: "LOCATION",
                 value: location);
         }
@@ -124,7 +130,8 @@ public static class IcsCalendarWriter
             return formatLocal2;
         }
 
-        string content = string.Join('|',
+        string content = string.Join(
+            '|',
             calendar.Name,
             e.Summary,
             e.Description,
@@ -244,7 +251,8 @@ public static class IcsCalendarWriter
             }
             if (segmentOctets + charOctets > limit)
             {
-                sb.Append(line,
+                sb.Append(
+                    line,
                     startIndex: segmentStart,
                     count: i - segmentStart);
                 sb.Append("\r\n ");
@@ -256,7 +264,8 @@ public static class IcsCalendarWriter
             segmentOctets += charOctets;
             i += charLen;
         }
-        sb.Append(line,
+        sb.Append(
+            line,
             startIndex: segmentStart,
             count: line.Length - segmentStart);
         return sb.ToString();

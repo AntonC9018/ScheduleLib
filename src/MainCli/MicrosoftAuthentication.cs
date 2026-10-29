@@ -59,7 +59,8 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
         var account = await app.GetAccountAsync(accountId);
         if (account is null)
         {
-            throw new MsalUiRequiredException(errorCode: "missing_account",
+            throw new MsalUiRequiredException(
+                errorCode: "missing_account",
                 errorMessage: "Explicit login is required.");
         }
 
@@ -453,7 +454,8 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                 return true;
             }
 
-            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes,
+            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(
+                    authorization.Scopes,
                     StringComparer.OrdinalIgnoreCase)
                 .Any())
             {

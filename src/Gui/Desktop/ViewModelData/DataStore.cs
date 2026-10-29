@@ -100,7 +100,12 @@ public sealed class TreeEventDispatcher : IDispatcher
                 return false;
             }
 
-            return _latestActions.IsEmpty;
+            if (_latestActions.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

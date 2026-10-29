@@ -23,7 +23,8 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+        if (ComparisonHelper.AtLeastOneIsNull(
+                x: x,
                 y: y,
                 out bool b))
         {
@@ -36,7 +37,8 @@ public sealed class OpenHierarchyKeyEqualityComparer<T> : IKeyEqualityComparer<T
             return false;
         }
 
-        var ret = KeyEqualityCallHelper.CompareUsingService(_serviceProvider,
+        var ret = KeyEqualityCallHelper.CompareUsingService(
+            _serviceProvider,
             x: x,
             y: y);
         return ret;
@@ -70,7 +72,8 @@ public sealed class KeyEqualityComparer<T, TProperty> : IKeyEqualityComparer<T>
 
     public bool Equals(T? x, T? y)
     {
-        if (ComparisonHelper.AtLeastOneIsDefault(x: x,
+        if (ComparisonHelper.AtLeastOneIsDefault(
+                x: x,
                 y: y,
                 out bool bothDefault))
         {
@@ -241,7 +244,8 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
         }
         // Types match.
         {
-            var ret = CallMergerHelper.MergeUsingService(_sp,
+            var ret = CallMergerHelper.MergeUsingService(
+                _sp,
                 @from: from,
                 @into: into);
             return ret;
@@ -258,7 +262,8 @@ internal static class KeyEqualityCallHelper
         object y)
     {
         var comparer = GetService(sp, x);
-        return Compare(comparer: comparer,
+        return Compare(
+            comparer: comparer,
             x: x,
             y: y);
     }
@@ -270,7 +275,8 @@ internal static class KeyEqualityCallHelper
     {
         var comparerType = comparer.GetType();
         var compareDelegate = _compareCallHelper.Get(comparerType);
-        return compareDelegate(comparer: comparer,
+        return compareDelegate(
+            comparer: comparer,
             x: x,
             y: y);
     }

@@ -54,7 +54,8 @@ public sealed class FmiScheduleUpdater(
             return path2;
         }
 
-        await using var gate = new FileStream(CalculatePath2(),
+        await using var gate = new FileStream(
+            CalculatePath2(),
             FileMode.OpenOrCreate,
             FileAccess.ReadWrite,
             FileShare.None);
@@ -62,7 +63,8 @@ public sealed class FmiScheduleUpdater(
         if (File.Exists(stateFile))
         {
             await using var input = File.OpenRead(stateFile);
-            previous = await JsonSerializer.DeserializeAsync<ScheduleUpdateState>(input,
+            previous = await JsonSerializer.DeserializeAsync<ScheduleUpdateState>(
+                    input,
                     Json,
                     cancellationToken)
                 ?? throw new FormatException("Empty schedule hash checkpoint.");
@@ -91,8 +93,20 @@ public sealed class FmiScheduleUpdater(
                     return true;
                 }
 
-                if (previous.Sources.Any(s => s.Sha256 is not { Length: 64 }
-                        || s.Sha256.Any(c => !char.IsAsciiHexDigit(c))))
+                if (previous.Sources.Any(s =>
+                {
+                    if (s.Sha256 is not { Length: 64 })
+                    {
+                        return true;
+                    }
+
+                    if (s.Sha256.Any(c => !char.IsAsciiHexDigit(c)))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }))
                 {
                     return true;
                 }
@@ -127,7 +141,8 @@ public sealed class FmiScheduleUpdater(
             string operationValue5 = Convert.ToHexStringLower(operationValue4);
             string operationValue6 = operationValue5;
             var operationValue7 = d.Link.UploadDate;
-            var operationValue8 = new ScheduleSourceHash(operationValue,
+            var operationValue8 = new ScheduleSourceHash(
+                operationValue,
                 Url: operationValue2,
                 Sha256: operationValue6,
                 operationValue7);
@@ -157,7 +172,9 @@ public sealed class FmiScheduleUpdater(
             throw new FutureScheduleUploadDateException(period);
         }
 
-        await importAndExport(new(period,
+        await importAndExport(
+            new(
+                period,
                 downloads,
                 sources),
             cancellationToken);
@@ -165,20 +182,24 @@ public sealed class FmiScheduleUpdater(
         var temporary = $"{stateFile}.{Guid.NewGuid().ToString("N")}.tmp";
         try
         {
-            await using (var output = new FileStream(temporary,
+            await using (var output = new FileStream(
+                             temporary,
                              FileMode.CreateNew,
                              FileAccess.Write,
                              FileShare.None))
             {
-                await JsonSerializer.SerializeAsync(output,
-                    new ScheduleUpdateState(1,
+                await JsonSerializer.SerializeAsync(
+                    output,
+                    new ScheduleUpdateState(
+                        1,
                         period,
                         sources),
                     Json,
                     cancellationToken);
                 output.Flush(flushToDisk: true);
             }
-            File.Move(sourceFileName: temporary,
+            File.Move(
+                sourceFileName: temporary,
                 destFileName: stateFile,
                 overwrite: true);
         }

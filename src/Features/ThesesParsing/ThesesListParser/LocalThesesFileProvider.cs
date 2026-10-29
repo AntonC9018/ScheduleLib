@@ -19,7 +19,8 @@ public sealed class LocalThesesFileProvider(
         var opts = _opts.Value;
         var filePath = opts.FilePath;
 #pragma warning disable CA2000
-        var f = new FileStream(filePath,
+        var f = new FileStream(
+            filePath,
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite);

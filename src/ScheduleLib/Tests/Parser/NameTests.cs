@@ -17,7 +17,8 @@ public sealed class NameTests
             FirstName = N("ANTON"),
             LastName = N("CURMANSCHII"),
         };
-        Assert.Equal(expected: a,
+        Assert.Equal(
+            expected: a,
             actual: b,
             Comparer);
         int expected2 = Comparer.GetHashCode(a);
@@ -39,10 +40,12 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(expected: a,
+        Assert.Equal(
+            expected: a,
             actual: b,
             Comparer);
-        Assert.Equal(expected: b,
+        Assert.Equal(
+            expected: b,
             actual: a,
             Comparer);
         int expected2 = Comparer.GetHashCode(a);
@@ -64,10 +67,12 @@ public sealed class NameTests
             FirstName = N("Stepvet"),
             LastName = N("dima"),
         };
-        Assert.Equal(expected: a,
+        Assert.Equal(
+            expected: a,
             actual: b,
             Comparer);
-        Assert.Equal(expected: b,
+        Assert.Equal(
+            expected: b,
             actual: a,
             Comparer);
         int expected2 = Comparer.GetHashCode(a);
@@ -90,10 +95,12 @@ public sealed class NameTests
             LastName = N("Curmanschii"),
             Patronymic = N("Hello"),
         };
-        Assert.Equal(expected: a,
+        Assert.Equal(
+            expected: a,
             actual: b,
             Comparer);
-        Assert.Equal(expected: b,
+        Assert.Equal(
+            expected: b,
             actual: a,
             Comparer);
         int expected2 = Comparer.GetHashCode(a);

@@ -63,7 +63,8 @@ public sealed class LessonTimeConfig
     public TimeSlot? FindTimeSlotByIncludedTime(TimeOnly time)
     {
         _includesComparer ??= new(LessonDuration);
-        var i = Array.BinarySearch(TimeSlotStarts,
+        var i = Array.BinarySearch(
+            TimeSlotStarts,
             time,
             _includesComparer);
         if (i < 0)
@@ -139,7 +140,8 @@ public sealed class LessonTimeConfig
     {
         TimeOnly New(int hour, int min)
         {
-            var t = new TimeSpan(hours: hour,
+            var t = new TimeSpan(
+                hours: hour,
                 minutes: min,
                 seconds: 0);
             var ret = TimeOnly.FromTimeSpan(t);

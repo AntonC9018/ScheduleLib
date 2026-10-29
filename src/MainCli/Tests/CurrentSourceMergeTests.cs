@@ -137,7 +137,8 @@ public sealed class CurrentSourceMergeTests
                 cacheDirectory: cacheDirectory,
                 enabled: true,
                 bypass: true);
-            Assert.Equal(expected: merged.AutomaticLabSubGroupMerges.ToArray(),
+            Assert.Equal(
+                expected: merged.AutomaticLabSubGroupMerges.ToArray(),
                 actual: fresh.AutomaticLabSubGroupMerges.ToArray());
             string[] expected3 = Describe(merged);
             string[] actual3 = Describe(fresh);
@@ -326,7 +327,8 @@ public sealed class CurrentSourceMergeTests
                 .Where(x => x.Date.Period == new PeriodId(2) && courses.Contains(x.Lesson.Course))
                 .ToArray();
             Assert.NotEmpty(later);
-            Assert.All(later,
+            Assert.All(
+                later,
                 x =>
                 {
                     Alternative CalculateExpected()

@@ -101,7 +101,8 @@ public static class WordScheduleParser
                 break;
             }
 
-            var headerParseResult = MaybeParseHeaderRow(c,
+            var headerParseResult = MaybeParseHeaderRow(
+                c,
                 ref state,
                 rowEnumerator);
             switch (headerParseResult.Status)
@@ -206,7 +207,8 @@ public static class WordScheduleParser
 
                                 SkippedHeaderColumnsInfo CalculateSkipped()
                                 {
-                                    SkippedHeaderColumnsInfo skipped = new(Count: 2,
+                                    SkippedHeaderColumnsInfo skipped = new(
+                                        Count: 2,
                                         Size: skippedSize);
                                     return skipped;
                                 }
@@ -559,7 +561,8 @@ public static class WordScheduleParser
             groups.Add(groupBucket.Item);
         }
         var scheduleImportContext = c;
-        ImportedLessonInput input = new(lesson,
+        ImportedLessonInput input = new(
+            lesson,
             state.CurrentDay!.Value,
             state.Time!.Value.TimeSlot,
             groups);

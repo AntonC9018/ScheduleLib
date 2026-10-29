@@ -237,7 +237,8 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         {
             x.Value = b.Portion(x.Key).RestoredSlice;
         }
-        JsonSerializer.Serialize(writer,
+        JsonSerializer.Serialize(
+            writer,
             model,
             options);
     }

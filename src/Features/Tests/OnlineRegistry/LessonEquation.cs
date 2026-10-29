@@ -42,7 +42,8 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
@@ -59,7 +60,8 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
@@ -77,7 +79,8 @@ public sealed class LessonEquationTests
             TimeSlot = new(1),
         });
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
@@ -137,7 +140,8 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Create, actual: c.Type);
@@ -213,7 +217,8 @@ public sealed class LessonEquationTests
         });
 
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
                 Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
@@ -304,7 +309,8 @@ file sealed class TestContext
         {
             var relativeDay = 10;
             var relativeMonth = 1;
-            var date = new DateOnly(year: Year,
+            var date = new DateOnly(
+                year: Year,
                 day: relativeDay,
                 month: relativeMonth);
             return date;
@@ -456,7 +462,8 @@ file sealed class TestContext
 
         var derivationAlgorithm = new SameDayDerivation();
         var sameDayDerivation = derivationAlgorithm;
-        GetLessonEquationCommandsParams p = new(schedule,
+        GetLessonEquationCommandsParams p = new(
+            schedule,
             existing,
             scheduled);
         var result = sameDayDerivation.DeriveCommands(p);

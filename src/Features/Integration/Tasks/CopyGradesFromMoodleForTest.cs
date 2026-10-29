@@ -142,7 +142,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         // determine course from path
         RegistryGradePlan UnsupportedPath()
         {
-            var notice = new RegistryGradeNotice(Kind: "unsupported",
+            var notice = new RegistryGradeNotice(
+                Kind: "unsupported",
                 Detail: "Moodle course/test path could not be parsed.");
             notices.Add(notice);
             return new(actions, notices);
@@ -171,7 +172,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         {
             var list6 =
                 notices;
-            RegistryGradeNotice item6 = new(Kind: "unsupported",
+            RegistryGradeNotice item6 = new(
+                Kind: "unsupported",
                 Detail: "Moodle course name does not resolve in the configured schedule.");
             list6.Add(item6);
             return new(actions, notices);
@@ -298,7 +300,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             var list9 = notices;
                             string kind7 = "omitted";
                             string detail7 = $"Expelled registry student: {registryName}";
-                            RegistryGradeNotice item9 = new(Kind: kind7,
+                            RegistryGradeNotice item9 = new(
+                                Kind: kind7,
                                 Detail: detail7);
                             list9.Add(item9);
                             continue;
@@ -311,7 +314,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             var list10 = notices;
                             string kind8 = "unsupported";
                             string detail8 = $"Registry name could not be parsed: {registryName}";
-                            RegistryGradeNotice item10 = new(Kind: kind8,
+                            RegistryGradeNotice item10 = new(
+                                Kind: kind8,
                                 Detail: detail8);
                             list10.Add(item10);
                             continue;
@@ -323,7 +327,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             var list11 = notices;
                             string kind9 = "omitted";
                             string detail9 = $"Expelled registry student: {name}";
-                            RegistryGradeNotice item11 = new(Kind: kind9,
+                            RegistryGradeNotice item11 = new(
+                                Kind: kind9,
                                 Detail: detail9);
                             list11.Add(item11);
                             continue;
@@ -333,7 +338,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             var list12 = notices;
                             string kind10 = "unsupported";
                             string detail10 = $"Registry name contains unsupported trailing text: {registryName}";
-                            RegistryGradeNotice item12 = new(Kind: kind10,
+                            RegistryGradeNotice item12 = new(
+                                Kind: kind10,
                                 Detail: detail10);
                             list12.Add(item12);
                             continue;
@@ -346,7 +352,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             list13 = notices;
                         string kind11 = "unmatched";
                         string detail11 = $"Registry student has no matching graded Moodle attempt: {name}";
-                        RegistryGradeNotice item13 = new(Kind: kind11,
+                        RegistryGradeNotice item13 = new(
+                            Kind: kind11,
                             Detail: detail11);
                         list13.Add(item13);
                         continue;
@@ -361,7 +368,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             ?? throw new InvalidOperationException("No input found in grade cell");
                         var
                             list14 = changes;
-                        RegistryGradeChange item14 = new(Student: name.ToString(),
+                        RegistryGradeChange item14 = new(
+                            Student: name.ToString(),
                             gradeInDb,
                             gradeRounded,
                             PreviousGrade: input.Value);
@@ -381,7 +389,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     continue;
                 }
                 RegistryGradeForm.Validate(test1Doc);
-                actions.Add(new(destination: testUrl.Href,
+                actions.Add(new(
+                    destination: testUrl.Href,
                     course: _schedule.Get(course.CourseId).FullName,
                     groups: string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)),
                     parsedPath.TestNumber,
@@ -399,7 +408,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             }
 
                             token.ThrowIfCancellationRequested();
-                            await registryNav.SubmitGrades(test1Doc,
+                            await registryNav.SubmitGrades(
+                                test1Doc,
                                 token,
                                 () =>
                                 {
@@ -429,7 +439,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         {
             var list16 =
                 notices;
-            RegistryGradeNotice item16 = new(Kind: "unmatched",
+            RegistryGradeNotice item16 = new(
+                Kind: "unmatched",
                 Detail: "No registry test forms with supported mapped grades were planned.");
             list16.Add(item16);
         }

@@ -15,7 +15,8 @@ public sealed class TreeIterationTests
         var states = CollectStates(e);
 
         // Assert
-        Assert.Collection(states,
+        Assert.Collection(
+            states,
             s1 =>
             {
                 var expected2 = S(DfsVisitationState.BeforeProcess);
@@ -43,7 +44,8 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root",
+        var root = CreateLayer(
+            "Root",
             child1,
             child2);
 
@@ -74,7 +76,8 @@ public sealed class TreeIterationTests
         var grandChild = CreateLayer("GrandChild");
         var child1 = CreateLayer("Child1", grandChild);
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root",
+        var root = CreateLayer(
+            "Root",
             child1,
             child2);
 
@@ -107,7 +110,8 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root",
+        var root = CreateLayer(
+            "Root",
             child1,
             child2);
 
@@ -156,8 +160,10 @@ public sealed class TreeIterationTests
     public void KeepPreventingRecursion_SkipsAllSubsequentChildren()
     {
         // Arrange
-        var root = CreateLayer("Root",
-            CreateLayer("Child1",
+        var root = CreateLayer(
+            "Root",
+            CreateLayer(
+                "Child1",
                 CreateLayer("GrandChild")),
             CreateLayer("Child2"));
 
@@ -296,7 +302,8 @@ file static class Helper
         {
             recorder = new RecorderContext();
             SingleUseItemHelper<RecorderContext> it = new(recorder);
-            c.AddContext(RecorderContext.Key,
+            c.AddContext(
+                RecorderContext.Key,
                 () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
             return c;
         }

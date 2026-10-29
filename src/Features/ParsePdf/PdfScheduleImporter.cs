@@ -38,7 +38,8 @@ public static class PdfScheduleImporter
             Read(pdf, source);
         IEnumerable<PdfScheduleCell> cells2 = cells;
         var addLesson2 = addLesson;
-        Import(context2,
+        Import(
+            context2,
             cells2,
             addLesson2);
     }
@@ -96,7 +97,8 @@ public static class PdfScheduleImporter
             {
                 if (dayParser.Map(day.Text) is null)
                 {
-                    throw new UnknownPdfScheduleDayException(source: source,
+                    throw new UnknownPdfScheduleDayException(
+                        source: source,
                         table.Page,
                         dayText: day.Text);
                 }
@@ -106,7 +108,8 @@ public static class PdfScheduleImporter
             {
                 if (!Time.IsMatch(time.Text))
                 {
-                    throw new UnknownPdfScheduleTimeException(source: source,
+                    throw new UnknownPdfScheduleTimeException(
+                        source: source,
                         table.Page,
                         timeText: time.Text);
                 }
@@ -172,7 +175,8 @@ public static class PdfScheduleImporter
 
                 if (CheckCondition2())
                 {
-                    throw new UnmappedPdfScheduleCellException(source: source,
+                    throw new UnmappedPdfScheduleCellException(
+                        source: source,
                         table.Page,
                         box,
                         text: cell.Text);
@@ -189,7 +193,8 @@ public static class PdfScheduleImporter
                 string text = PdfTextNormalizer.Normalize(cell.Text);
                 string rawText = cell.Text;
                 var bounds = box;
-                var resolved = new PdfScheduleCell(Source: source2,
+                var resolved = new PdfScheduleCell(
+                    Source: source2,
                     page,
                     groups2,
                     Day: day2,
@@ -222,7 +227,8 @@ public static class PdfScheduleImporter
             {
                 var day = context.DayNameParser.Map(cell.Day)
                     ?? throw new UnknownImportedPdfScheduleDayException(cell.Day);
-                var time = context.TimeConfig.FindTimeSlotByStartTime(TimeOnly.Parse(cell.Start,
+                var time = context.TimeConfig.FindTimeSlotByStartTime(TimeOnly.Parse(
+                        cell.Start,
                         CultureInfo.InvariantCulture))
                     ?? throw new UnknownImportedPdfScheduleStartTimeException(cell.Start);
                 foreach (var parsed in context.ParseLessons(cell.Text.Split('\n')
@@ -243,7 +249,8 @@ public static class PdfScheduleImporter
                     var timeSlot = time;
                     IReadOnlyList<GroupId> groups2 = groups;
                     Alternative alternative = new(cell.Alternative);
-                    var input = new ImportedLessonInput(lesson2,
+                    var input = new ImportedLessonInput(
+                        lesson2,
                         day2,
                         timeSlot,
                         groups2,

@@ -109,7 +109,8 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
                 _allowedNames);
         }
 
-        return Parse(typeof(T),
+        return Parse(
+            typeof(T),
             text,
             ignoreCase: true);
     }

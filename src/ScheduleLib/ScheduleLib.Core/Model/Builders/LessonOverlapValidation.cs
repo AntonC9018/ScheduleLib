@@ -25,7 +25,8 @@ public static partial class ScheduleBuilderHelper
             return;
         }
         var lessons = s.WeeklyLessons.List;
-        var errors = CollectOverlapErrors(s,
+        var errors = CollectOverlapErrors(
+            s,
             lessons,
             config);
         if (errors.Count > 0)
@@ -44,7 +45,8 @@ public static partial class ScheduleBuilderHelper
         {
             for (int j = i + 1; j < lessons.Count; j++)
             {
-                if (DescribeOverlapIfConflicting(s,
+                if (DescribeOverlapIfConflicting(
+                        s,
                         config,
                         a: lessons[i].Data,
                         b: lessons[j].Data) is { } error)
@@ -87,7 +89,8 @@ public static partial class ScheduleBuilderHelper
         {
             return null;
         }
-        if (IsAllowlisted(config.Allowlist,
+        if (IsAllowlisted(
+                config.Allowlist,
                 s,
                 a: a,
                 b: b,
@@ -95,7 +98,8 @@ public static partial class ScheduleBuilderHelper
         {
             return null;
         }
-        return Describe(s,
+        return Describe(
+            s,
             a: a,
             b: b,
             shared.Value);
@@ -139,10 +143,12 @@ public static partial class ScheduleBuilderHelper
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
     {
-        var aKey = new GroupPartitionKey(a.SubGroup,
+        var aKey = new GroupPartitionKey(
+            a.SubGroup,
             a.Specialization,
             a.Alternative);
-        var bKey = new GroupPartitionKey(b.SubGroup,
+        var bKey = new GroupPartitionKey(
+            b.SubGroup,
             b.Specialization,
             b.Alternative);
         foreach (var dimension in PartitionDimensions.All)
@@ -283,11 +289,13 @@ public static partial class ScheduleBuilderHelper
         sb.Append("  shared group '")
             .Append(s.Groups.Ref(shared.Value).Name)
             .Append("':\n    ");
-        AppendLesson(sb,
+        AppendLesson(
+            sb,
             s,
             a);
         sb.Append("\n    ");
-        AppendLesson(sb,
+        AppendLesson(
+            sb,
             s,
             b);
         return sb.ToString();

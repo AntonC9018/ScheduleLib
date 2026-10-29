@@ -120,7 +120,8 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsStart(int month, int day)
     {
-        var start = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate,
+        var start = new DateOnly(
+            year: YearDateRangeBuilderModel.MinYearInExistingDate,
             month: month,
             day: day);
         LessonsStart(start);
@@ -128,7 +129,8 @@ public sealed class YearDateRangeBuilder
 
     public void LessonsEndInclusive(int month, int day)
     {
-        var end = new DateOnly(year: YearDateRangeBuilderModel.MinYearInExistingDate,
+        var end = new DateOnly(
+            year: YearDateRangeBuilderModel.MinYearInExistingDate,
             month: month,
             day: day);
         LessonsEndInclusive(end);
@@ -346,7 +348,8 @@ file static class Helper
 {
     public static DateOnly WithYear(this DateOnly d, int year)
     {
-        return new(year: year,
+        return new(
+            year: year,
             month: d.Month,
             day: d.Day);
     }

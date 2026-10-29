@@ -93,7 +93,8 @@ public static class ExcelScheduleParser
         bool isFirstIter = true;
         while (true)
         {
-            var result = DoParsingIter(rowE,
+            var result = DoParsingIter(
+                rowE,
                 p,
                 config,
                 isFirstIter);
@@ -186,7 +187,12 @@ public static class ExcelScheduleParser
                 return false;
             }
 
-            return config.ExpectBullshitRow;
+            if (config.ExpectBullshitRow)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -423,7 +429,8 @@ public static class ExcelScheduleParser
 
             _currentDayRowSpan = range.RowCount();
             _rowsSinceLastDate = 0;
-            var newDay = ParseDay(cell,
+            var newDay = ParseDay(
+                cell,
                 text,
                 dayNameParser,
                 dayParseMode);

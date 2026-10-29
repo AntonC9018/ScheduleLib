@@ -25,7 +25,8 @@ public sealed class CombinedGroupMatchingTests
         var courseId = fixture.Course;
         var groups2 = groups;
         var groupPartition = Resolver.Resolve(parsed);
-        var filter = new LessonSearchFilter(courseId,
+        var filter = new LessonSearchFilter(
+            courseId,
             groups2,
             groupPartition);
         var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
@@ -71,7 +72,8 @@ public sealed class CombinedGroupMatchingTests
         var courseId = fixture.Course;
         var groups2 = groups;
         GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        var filter = new LessonSearchFilter(courseId,
+        var filter = new LessonSearchFilter(
+            courseId,
             groups2,
             groupPartition);
         var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
@@ -129,7 +131,8 @@ public sealed class CombinedGroupMatchingTests
         }
 
         var parameters = new LessonMatchParams(
-            new LessonSearchFilter(fixture.Course,
+            new LessonSearchFilter(
+                fixture.Course,
                 new FoundGroups
                 {
                     IsWildcard = true,
@@ -174,7 +177,8 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("I2406");
         fixture.Builder.Groups.Ref(7).QualificationType = QualificationType.Master;
         var result = Match(fixture, "I_IA24(SAWM)");
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
                 new GroupId(1),
@@ -210,7 +214,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
                 new GroupId(1),
@@ -225,7 +230,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)", specialization: Specialization.All);
         fixture.Add("IA2402(ru)", specialization: Specialization.All);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(1),
             },
@@ -250,7 +256,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402");
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
             },
@@ -274,11 +281,13 @@ public sealed class CombinedGroupMatchingTests
     {
         var fixture = new Fixture();
         fixture.Add("IA2401(ru)", specialization: Specialization.GA2D);
-        fixture.Add("IA2402(ru)",
+        fixture.Add(
+            "IA2402(ru)",
             specialization: Specialization.GA2D,
             otherCourse: true);
         fixture.Add("IA2403(ru)");
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
                 new GroupId(1),
@@ -304,11 +313,13 @@ public sealed class CombinedGroupMatchingTests
             return partition;
         }
 
-        var parents = GroupsNavigator.FindGroupMatch(schedule,
+        var parents = GroupsNavigator.FindGroupMatch(
+            schedule,
             fixture.Course,
             CalculatePartition(),
             group);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
             },
@@ -321,7 +332,8 @@ public sealed class CombinedGroupMatchingTests
         var courseId = fixture.Course;
         var groups2 = groups;
         var groupPartition = Resolver.Resolve(group);
-        var filter = new LessonSearchFilter(courseId,
+        var filter = new LessonSearchFilter(
+            courseId,
             groups2,
             groupPartition);
         var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
@@ -340,7 +352,8 @@ public sealed class CombinedGroupMatchingTests
             return expected2;
         }
 
-        Assert.Equal(expected: CalculateExpected(),
+        Assert.Equal(
+            expected: CalculateExpected(),
             actual: schedule.Get(lesson).Lesson.GroupPartitionKey);
     }
 
@@ -490,7 +503,8 @@ public sealed class CombinedGroupMatchingTests
             return partition;
         }
 
-        var parents = GroupsNavigator.FindGroupMatch(schedule,
+        var parents = GroupsNavigator.FindGroupMatch(
+            schedule,
             fixture.Course,
             CalculatePartition(),
             group);
@@ -503,7 +517,8 @@ public sealed class CombinedGroupMatchingTests
         var courseId = fixture.Course;
         var groups2 = groups;
         var groupPartition = Resolver.Resolve(group);
-        var filter = new LessonSearchFilter(courseId,
+        var filter = new LessonSearchFilter(
+            courseId,
             groups2,
             groupPartition);
         var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
@@ -542,7 +557,8 @@ public sealed class CombinedGroupMatchingTests
         var courseId = fixture.Course;
         var groups2 = groups;
         GroupPartitionKey groupPartition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        var filter = new LessonSearchFilter(courseId,
+        var filter = new LessonSearchFilter(
+            courseId,
             groups2,
             groupPartition);
         var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
@@ -630,7 +646,8 @@ public sealed class CombinedGroupMatchingTests
         }
 
         var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
-                new LessonSearchFilter(fixture.Course,
+                new LessonSearchFilter(
+                    fixture.Course,
                     new FoundGroups
                     {
                         Value = parents,
@@ -660,7 +677,8 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add(name, specialization: Specialization.All);
         var english = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
-        var partition = GroupsNavigator.NormalizePartition(fixture.Build(),
+        var partition = GroupsNavigator.NormalizePartition(
+            fixture.Build(),
             new LessonGroups { new GroupId(0) },
             english);
         GroupPartitionKey expected2;
@@ -706,7 +724,8 @@ public sealed class CombinedGroupMatchingTests
             return partition;
         }
 
-        var strict = GroupsNavigator.FindGroupMatch(schedule,
+        var strict = GroupsNavigator.FindGroupMatch(
+            schedule,
             fixture.Course,
             CalculatePartition(),
             group);
@@ -716,7 +735,8 @@ public sealed class CombinedGroupMatchingTests
         }
         else
         {
-            Assert.Equal(expected: new[]
+            Assert.Equal(
+                expected: new[]
                 {
                     new GroupId(0),
                 },
@@ -729,12 +749,14 @@ public sealed class CombinedGroupMatchingTests
             return partition2;
         }
 
-        var matched = GroupsNavigator.FindGroupMatch(schedule,
+        var matched = GroupsNavigator.FindGroupMatch(
+            schedule,
             fixture.Course,
             CalculatePartition2(),
             group,
             [EnglishRule]);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(2),
             },
@@ -747,7 +769,8 @@ public sealed class CombinedGroupMatchingTests
         }
 
         var expected2 = GroupPartitionKey.All;
-        var actual2 = GroupsNavigator.NormalizePartition(schedule,
+        var actual2 = GroupsNavigator.NormalizePartition(
+            schedule,
             matched,
             CalculatePartition3());
         Assert.Equal(expected: expected2, actual: actual2);
@@ -772,11 +795,13 @@ public sealed class CombinedGroupMatchingTests
             return partition;
         }
 
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
             },
-            actual: GroupsNavigator.FindGroupMatch(fixture.Build(),
+            actual: GroupsNavigator.FindGroupMatch(
+                    fixture.Build(),
                     fixture.Course,
                     CalculatePartition(),
                     group,
@@ -789,7 +814,8 @@ public sealed class CombinedGroupMatchingTests
     {
         var fixture = new Fixture();
         fixture.Add("DJ2501", specialization: Specialization.All);
-        fixture.Add("DJ2503(en)",
+        fixture.Add(
+            "DJ2503(en)",
             specialization: Specialization.All,
             otherCourse: true);
         var group = Parse("DJ2502(en)");
@@ -802,7 +828,8 @@ public sealed class CombinedGroupMatchingTests
 
         LessonGroups CalculateCollection()
         {
-            var collection = GroupsNavigator.FindGroupMatch(fixture.Build(),
+            var collection = GroupsNavigator.FindGroupMatch(
+                fixture.Build(),
                 fixture.Course,
                 CalculatePartition(),
                 group,
@@ -830,7 +857,8 @@ public sealed class CombinedGroupMatchingTests
 
         LessonGroups CalculateCollection2()
         {
-            var collection2 = GroupsNavigator.FindGroupMatch(other.Build(),
+            var collection2 = GroupsNavigator.FindGroupMatch(
+                other.Build(),
                 other.Course,
                 CalculatePartition2(),
                 group,
@@ -852,11 +880,13 @@ public sealed class CombinedGroupMatchingTests
             return partition3;
         }
 
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(0),
             },
-            actual: GroupsNavigator.FindGroupMatch(explicitSubgroup.Build(),
+            actual: GroupsNavigator.FindGroupMatch(
+                    explicitSubgroup.Build(),
                     explicitSubgroup.Course,
                     CalculatePartition3(),
                     group,
@@ -883,7 +913,8 @@ public sealed class CombinedGroupMatchingTests
 
         LessonGroups CalculateCollection()
         {
-            var collection = GroupsNavigator.FindGroupMatch(fixture.Build(),
+            var collection = GroupsNavigator.FindGroupMatch(
+                fixture.Build(),
                 fixture.Course,
                 CalculatePartition(),
                 group,
@@ -898,15 +929,18 @@ public sealed class CombinedGroupMatchingTests
     public void MultipleRegistryEnglishLinksDisableLanguageFallback()
     {
         var target = Parse("DJ2501(en)");
-        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2502ru")],
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience(
+            [target, Parse("DJ2502ru")],
             target,
             EnglishRule,
             Resolver));
-        Assert.False(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2503(en)")],
+        Assert.False(GroupsNavigator.HasUniqueRegistryAudience(
+            [target, Parse("DJ2503(en)")],
             target,
             EnglishRule,
             Resolver));
-        Assert.True(GroupsNavigator.HasUniqueRegistryAudience([target, Parse("DJ2403(en)")],
+        Assert.True(GroupsNavigator.HasUniqueRegistryAudience(
+            [target, Parse("DJ2403(en)")],
             target,
             EnglishRule,
             Resolver));
@@ -923,7 +957,8 @@ public sealed class CombinedGroupMatchingTests
         // Same Eng partition but different variant still counts as unique within each variant.
         bool CalculateCondition()
         {
-            bool condition3 = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition],
+            bool condition3 = GroupsNavigator.HasUniqueRegistryAudience(
+                [ordinary, additionalSamePartition],
                 ordinary,
                 EnglishRule,
                 Resolver);
@@ -931,14 +966,16 @@ public sealed class CombinedGroupMatchingTests
         }
 
         Assert.True(CalculateCondition());
-        bool condition = GroupsNavigator.HasUniqueRegistryAudience([ordinary, additionalSamePartition],
+        bool condition = GroupsNavigator.HasUniqueRegistryAudience(
+            [ordinary, additionalSamePartition],
             additionalSamePartition,
             EnglishRule,
             Resolver);
         Assert.True(condition);
         // Same-variant duplicates still disable the language fallback.
         var additionalDuplicate = Parse("DJ2504SE(en)");
-        bool condition2 = GroupsNavigator.HasUniqueRegistryAudience([additionalSamePartition, additionalDuplicate],
+        bool condition2 = GroupsNavigator.HasUniqueRegistryAudience(
+            [additionalSamePartition, additionalDuplicate],
             additionalSamePartition,
             EnglishRule,
             Resolver);
@@ -994,18 +1031,21 @@ public sealed class CombinedGroupMatchingTests
         var specialization2 = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization2);
         var schedule = fixture.Build();
-        var parents = GroupsNavigator.FindGroupMatch(schedule,
+        var parents = GroupsNavigator.FindGroupMatch(
+            schedule,
             fixture.Course,
             partition,
             group,
             [rule]);
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 new GroupId(1),
             },
             actual: parents.ToArray());
         var expected2 = GroupPartitionKey.All;
-        var actual2 = GroupsNavigator.NormalizePartition(schedule,
+        var actual2 = GroupsNavigator.NormalizePartition(
+            schedule,
             parents,
             partition,
             [rule]);
@@ -1042,7 +1082,8 @@ public sealed class CombinedGroupMatchingTests
             return partition;
         }
 
-        return GroupsNavigator.FindGroupMatch(fixture.Build(),
+        return GroupsNavigator.FindGroupMatch(
+            fixture.Build(),
             fixture.Course,
             CalculatePartition(),
             group);

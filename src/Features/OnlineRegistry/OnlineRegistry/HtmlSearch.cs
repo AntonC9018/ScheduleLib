@@ -466,7 +466,8 @@ internal static class HtmlSearch
 
             Uri viewUri = new(anchor.Href);
 
-            return new(lessonType,
+            return new(
+                lessonType,
                 dateTime,
                 viewUri);
         }

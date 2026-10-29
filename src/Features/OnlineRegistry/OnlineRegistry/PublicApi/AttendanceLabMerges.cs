@@ -75,7 +75,8 @@ public static class AttendanceLabMerges
             return false;
         });
         if (!automatic
-            && RegistryLabMerges.Find(rules,
+            && RegistryLabMerges.Find(
+                rules,
                 schedule,
                 source.CourseId,
                 source.Groups,
@@ -152,7 +153,8 @@ public static class AttendanceLabMerges
         foreach (var entry in attendance.OrderBy(entry => entry.Key.GroupPartition.SubGroup.Value,
                      StringComparer.Ordinal))
         {
-            if (!TryDestination(schedule,
+            if (!TryDestination(
+                    schedule,
                     rules,
                     entry.Key,
                     out var partition))
@@ -256,7 +258,8 @@ public static class AttendanceLabMerges
         AttendanceLists attendance = new(days.MoveToImmutable());
         var studentNames = names;
         var dates2 = dates;
-        StudentAttendanceList.BetterAttendances betterAttendances = new(attendance,
+        StudentAttendanceList.BetterAttendances betterAttendances = new(
+            attendance,
             studentNames,
             dates2);
         return betterAttendances;

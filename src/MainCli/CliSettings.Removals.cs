@@ -128,7 +128,8 @@ public static partial class CliSettings
             members.Add(member);
             type = member.PropertyType;
         }
-        return new(Block: block,
+        return new(
+            Block: block,
             members.ToArray(),
             Value: type);
     }

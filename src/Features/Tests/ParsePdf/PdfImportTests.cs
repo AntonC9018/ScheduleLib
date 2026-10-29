@@ -10,14 +10,16 @@ public sealed class PdfImportTests
     public void SourcePdfsMatchReviewedCellContentAndMembership(int year)
     {
         var source = $"orar{year}.pdf";
-        using var stream = File.OpenRead(Path.Combine(AppContext.BaseDirectory,
+        using var stream = File.OpenRead(Path.Combine(
+            AppContext.BaseDirectory,
             "Fixtures",
             source));
         var actual = PdfScheduleImporter.Read(stream, source);
 
         string CalculateJson()
         {
-            string path = Path.Combine(AppContext.BaseDirectory,
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
                 "Fixtures",
                 "expected-cells.json");
             string json = File.ReadAllText(path);
@@ -62,7 +64,8 @@ public sealed class PdfImportTests
         bool conditionResult = CalculateConditionResult();
 
 
-        Assert.True(conditionResult,
+        Assert.True(
+            conditionResult,
             $"Missing:\n{string.Join("\n---\n", missing)}\nUnexpected:\n{string.Join("\n---\n", extra)}");
         Assert.Equal(expected: expected.Length, actual: actual.Count);
     }
@@ -70,29 +73,36 @@ public sealed class PdfImportTests
     [Fact]
     public void PartialBorderSeparatesSharedLectureFromTwoLabs()
     {
-        var actual = PdfTableReader.RecoverPartialBorders([
-                new(Left: 0,
+        var actual = PdfTableReader.RecoverPartialBorders(
+            [
+                new(
+                    Left: 0,
                     Top: 0,
                     Right: 200,
                     Bottom: 100),
             ],
             [
-                new(true,
+                new(
+                    true,
                     Position: 100,
                     Start: 50,
                     End: 100),
             ]);
-        Assert.Equal(expected: new PdfBox[]
+        Assert.Equal(
+            expected: new PdfBox[]
             {
-                new(Left: 0,
+                new(
+                    Left: 0,
                     Top: 0,
                     Right: 200,
                     Bottom: 50),
-                new(Left: 0,
+                new(
+                    Left: 0,
                     Top: 50,
                     Right: 100,
                     Bottom: 100),
-                new(Left: 100,
+                new(
+                    Left: 100,
                     Top: 50,
                     Right: 200,
                     Bottom: 100),
@@ -115,7 +125,8 @@ public sealed class PdfImportTests
     [Fact]
     public void ParityRepairIsScopedAndIdempotent()
     {
-        var cell = new PdfScheduleCell(Source: "test",
+        var cell = new PdfScheduleCell(
+            Source: "test",
             1,
             ["I2502(ru)"],
             Day: "Vineri",

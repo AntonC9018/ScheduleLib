@@ -304,7 +304,8 @@ public sealed class EnumBitArrayJsonConverter<T> : JsonConverter<EnumBitArray<T>
         writer.WriteStartArray();
         foreach (var v in value.SetValues())
         {
-            JsonSerializer.Serialize(writer,
+            JsonSerializer.Serialize(
+                writer,
                 v,
                 options);
         }

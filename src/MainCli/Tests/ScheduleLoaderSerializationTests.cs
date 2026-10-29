@@ -98,14 +98,16 @@ public sealed class ScheduleLoaderSerializationTests
         if (cancel)
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                loader.Load(CreateContext(),
+                loader.Load(
+                        CreateContext(),
                         cancellation.Token,
                         bypassCache: true)
                     .AsTask());
         }
         else
         {
-            await Assert.ThrowsAsync<IOException>(() => loader.Load(CreateContext(),
+            await Assert.ThrowsAsync<IOException>(() => loader.Load(
+                    CreateContext(),
                     cancellation.Token,
                     bypassCache: true)
                 .AsTask());
@@ -123,7 +125,8 @@ public sealed class ScheduleLoaderSerializationTests
         Assert.Empty(CalculateCollection());
         // Cancellation/failure releases the loader's cache lock as well.
         component.OnApply = null;
-        await loader.Load(CreateContext(),
+        await loader.Load(
+            CreateContext(),
             CancellationToken.None,
             bypassCache: true);
     }

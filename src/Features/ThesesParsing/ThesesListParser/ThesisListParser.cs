@@ -181,7 +181,8 @@ public sealed class ThesisListParser(
                         {
                             try
                             {
-                                if (!ParseColumn(cell,
+                                if (!ParseColumn(
+                                        cell,
                                         ref state,
                                         ref thesis))
                                 {
@@ -296,7 +297,8 @@ public sealed class ThesisListParser(
         ref ThesisInParsing thesis)
     {
         var range = cell.ActualRange();
-        if (!state.ColumnMappings.TryFind(range.FirstColumn()
+        if (!state.ColumnMappings.TryFind(
+                range.FirstColumn()
                     .ColumnNumber(),
                 out var column))
         {
@@ -537,37 +539,44 @@ public sealed class ThesisListParser(
     private static readonly ImmutableArray<SearchFilter> _headerKeys =
         StringSearchHelper.SetupSearchArray<Column, SearchFilter>(b =>
         {
-            b.Set(Column.Number,
+            b.Set(
+                Column.Number,
                 new()
                 {
                     OrderedKeywords = ["nr."],
                 });
-            b.Set(Column.Group,
+            b.Set(
+                Column.Group,
                 new()
                 {
                     OrderedKeywords = ["grupa"],
                 });
-            b.Set(Column.StudentName,
+            b.Set(
+                Column.StudentName,
                 new()
                 {
                     OrderedKeywords = ["student"],
                 });
-            b.Set(Column.Mentor,
+            b.Set(
+                Column.Mentor,
                 new()
                 {
                     OrderedKeywords = ["conducatorului", "stiintific"],
                 });
-            b.Set(Column.ThesisNameRu,
+            b.Set(
+                Column.ThesisNameRu,
                 new()
                 {
                     OrderedKeywords = ["rusa"],
                 });
-            b.Set(Column.ThesisNameRo,
+            b.Set(
+                Column.ThesisNameRo,
                 new()
                 {
                     OrderedKeywords = ["romana"],
                 });
-            b.Set(Column.ThesisNameEn,
+            b.Set(
+                Column.ThesisNameEn,
                 new()
                 {
                     OrderedKeywords = ["engleza"],

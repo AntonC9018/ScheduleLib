@@ -53,7 +53,8 @@ public sealed class ScheduleProvider
 
         if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
         {
-            _logger.LogInformation("Derived {Count} automatic lab subgroup merges for the semester",
+            _logger.LogInformation(
+                "Derived {Count} automatic lab subgroup merges for the semester",
                 schedule.AutomaticLabSubGroupMerges.Length);
         }
 

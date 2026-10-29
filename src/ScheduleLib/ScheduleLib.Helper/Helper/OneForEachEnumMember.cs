@@ -281,7 +281,8 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
 
     public ref TValue? GetOrAdd(TKey key, out bool existed)
     {
-        return ref CollectionsMarshal.GetValueRefOrAddDefault(_items,
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _items,
             key,
             out existed);
     }
@@ -437,7 +438,8 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             }
 
             writer.WritePropertyName(CalculatePropertyName());
-            JsonSerializer.Serialize(writer,
+            JsonSerializer.Serialize(
+                writer,
                 val,
                 options);
         }

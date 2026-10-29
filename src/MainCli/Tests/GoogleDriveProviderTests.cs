@@ -892,9 +892,11 @@ public sealed class GoogleDriveProviderTests
                     name: "a.pdf",
                     input,
                     default));
-            Assert.Equal(expected: driveRequests,
+            Assert.Equal(
+                expected: driveRequests,
                 actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
-            Assert.Equal(expected: tokenRequests,
+            Assert.Equal(
+                expected: tokenRequests,
                 actual: handler.Requests.Count(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
             Directory.Delete(directory, true);
             return;
@@ -929,7 +931,8 @@ public sealed class GoogleDriveProviderTests
                 cancellation.Token);
             Assert.Equal(expected: exit, actual: actual);
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: status,
+            Assert.Equal(
+                expected: status,
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
             if (scenario.StartsWith("apply", StringComparison.Ordinal)
@@ -942,7 +945,8 @@ public sealed class GoogleDriveProviderTests
                 var completed = scenario.StartsWith("apply-after-create-expired", StringComparison.Ordinal) ? 1 : 0;
                 Assert.All(
                     outcomes.Take(completed),
-                    x => Assert.Equal(expected: "completed",
+                    x => Assert.Equal(
+                        expected: "completed",
                         actual: x.GetProperty("state")
                             .GetString()));
 
@@ -982,7 +986,8 @@ public sealed class GoogleDriveProviderTests
                         .GetString());
                 Assert.All(
                     outcomes.Skip(completed + 1),
-                    x => Assert.Equal(expected: "not-attempted",
+                    x => Assert.Equal(
+                        expected: "not-attempted",
                         actual: x.GetProperty("state")
                             .GetString()));
             }
@@ -996,9 +1001,11 @@ public sealed class GoogleDriveProviderTests
                 Assert.Contains(expectedSubstring: "auth login google", actualString: stderr.ToString());
             }
 
-            Assert.DoesNotContain(expectedSubstring: "private-provider-diagnostic",
+            Assert.DoesNotContain(
+                expectedSubstring: "private-provider-diagnostic",
                 actualString: stdout.ToString() + stderr);
-            Assert.Equal(expected: driveRequests,
+            Assert.Equal(
+                expected: driveRequests,
                 actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
             if (scenario.Contains("real-", StringComparison.Ordinal))
             {
@@ -1138,7 +1145,8 @@ public sealed class GoogleDriveProviderTests
                 .WithCredentials(AuthConfig)
                 .Execute(default);
             var credential = await auth.Resolve(
-                new GoogleCredentialRequest(AuthConfig,
+                new GoogleCredentialRequest(
+                    AuthConfig,
                     GoogleAuthentication.LoginScopes,
                     "fixture",
                     services),
@@ -1169,7 +1177,8 @@ public sealed class GoogleDriveProviderTests
             if (responseScope is null)
             {
                 var second = await auth.Resolve(
-                    new GoogleCredentialRequest(AuthConfig,
+                    new GoogleCredentialRequest(
+                        AuthConfig,
                         GoogleAuthentication.LoginScopes,
                         "fixture",
                         services),
@@ -1190,7 +1199,9 @@ public sealed class GoogleDriveProviderTests
             else
             {
                 await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
-                    auth.Resolve(new GoogleCredentialRequest(AuthConfig,
+                    auth.Resolve(
+                        new GoogleCredentialRequest(
+                            AuthConfig,
                             GoogleAuthentication.LoginScopes,
                             "fixture",
                             services),
@@ -1344,7 +1355,9 @@ public sealed class GoogleDriveProviderTests
             await auth.Login("fixture", services)
                 .WithCredentials(AuthConfig)
                 .Execute(default);
-            credential = await auth.Resolve(new GoogleCredentialRequest(AuthConfig,
+            credential = await auth.Resolve(
+                new GoogleCredentialRequest(
+                    AuthConfig,
                     GoogleAuthentication.LoginScopes,
                     "fixture",
                     services),
@@ -1383,7 +1396,8 @@ public sealed class GoogleDriveProviderTests
                         Apply = stage != "planning",
                     }));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: exit,
+            Assert.Equal(
+                expected: exit,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
             if (stage != "planning")
@@ -1395,17 +1409,20 @@ public sealed class GoogleDriveProviderTests
                 var failedIndex = stage == "after-completed" ? 1 : 0;
                 if (failedIndex == 1)
                 {
-                    Assert.Equal(expected: "completed",
+                    Assert.Equal(
+                        expected: "completed",
                         actual: outcomes[0].GetProperty("state")
                             .GetString());
                 }
 
-                Assert.Equal(expected: "failed",
+                Assert.Equal(
+                    expected: "failed",
                     actual: outcomes[failedIndex].GetProperty("state")
                         .GetString());
                 Assert.All(
                     outcomes.Skip(failedIndex + 1),
-                    x => Assert.Equal(expected: "not-attempted",
+                    x => Assert.Equal(
+                        expected: "not-attempted",
                         actual: x.GetProperty("state")
                             .GetString()));
             }
@@ -1540,7 +1557,8 @@ public sealed class GoogleDriveProviderTests
                     },
                     new()));
             using var json = System.Text.Json.JsonDocument.Parse(stdout.ToString());
-            Assert.Equal(expected: 2,
+            Assert.Equal(
+                expected: 2,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
             Assert.Empty(json.RootElement.GetProperty("outputs")
@@ -1593,7 +1611,8 @@ public sealed class GoogleDriveProviderTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            Requests.Add(new(Method: request.Method.Method,
+            Requests.Add(new(
+                Method: request.Method.Method,
                 Uri: request.RequestUri!.ToString(),
                 Body: request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken)));
             return await respond(request, cancellationToken);

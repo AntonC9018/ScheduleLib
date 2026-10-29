@@ -56,7 +56,8 @@ public sealed partial class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = RegistryCourseNameLookup.Find(_lookup,
+                var maybeCourseId = RegistryCourseNameLookup.Find(
+                    _lookup,
                     courseName,
                     courseNames,
                     _registryConfig.Get()?.CourseNameMaxDistance ?? 2);
@@ -137,12 +138,14 @@ public sealed class GroupsNavigator
 
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
                 var target = group;
-                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(registryGroups,
+                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(
+                        registryGroups,
                         target,
                         rule,
                         partitionResolver))
                     .ToArray();
-                var ids = FindGroupMatch(_schedule,
+                var ids = FindGroupMatch(
+                    _schedule,
                     courseLink.CourseId,
                     partitionResolver.Resolve(group),
                     group,
@@ -151,11 +154,13 @@ public sealed class GroupsNavigator
                 if (ids.Count == 0)
                 {
                     // TODO: Do this better
-                    _navigator.ErrorHandler.GroupNotFound(_schedule.Get(courseLink.CourseId).FullName,
+                    _navigator.ErrorHandler.GroupNotFound(
+                        _schedule.Get(courseLink.CourseId).FullName,
                         group.UnparsedName.Trim());
                 }
                 if (!group.SubGroupName.IsEmpty
-                    && NormalizePartition(_schedule,
+                    && NormalizePartition(
+                        _schedule,
                         ids,
                         partitionResolver.Resolve(group),
                         applicableRules)
@@ -321,7 +326,8 @@ public sealed class GroupsNavigator
         {
             if (rules is not null)
             {
-                var relaxed = FindLanguageMatch(schedule,
+                var relaxed = FindLanguageMatch(
+                    schedule,
                     course,
                     partition,
                     group,
@@ -562,7 +568,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var form = HtmlSearch.GetLessonForm(document);
         try
         {
-            await SubmitMutation(form,
+            await SubmitMutation(
+                form,
                 "lesson submission",
                 onSubmissionStarted);
         }
@@ -571,7 +578,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         {
             // POST/redirect/GET is normal registry behavior. Confirm persisted values
             // through reads, without allowing AngleSharp to replay the mutation.
-            await ConfirmSavedLesson(document,
+            await ConfirmSavedLesson(
+                document,
                 form,
                 error);
         }
@@ -608,7 +616,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
         var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
         var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
-        bool conditionValue = DateTime.TryParse(expectedDate,
+        bool conditionValue = DateTime.TryParse(
+            expectedDate,
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
             out var date);
@@ -667,7 +676,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
             bool CalculateConditionResult()
             {
-                if (!DateTime.TryParse(savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
+                if (!DateTime.TryParse(
+                        savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
                         System.Globalization.CultureInfo.InvariantCulture,
                         System.Globalization.DateTimeStyles.None,
                         out var savedDate))
@@ -693,9 +703,20 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 }
 
                 if (expectedAttendance.All(input =>
-                        savedInputs.Count(actual => actual.Name == input.Name) == 1
-                        && savedInputs.Any(actual =>
-                            actual.Name == input.Name && actual.Value == input.Value)))
+                        {
+                            if (!(savedInputs.Count(actual => actual.Name == input.Name) == 1))
+                            {
+                                return false;
+                            }
+
+                            if (!(savedInputs.Any(actual =>
+                                                        actual.Name == input.Name && actual.Value == input.Value)))
+                            {
+                                return false;
+                            }
+
+                            return true;
+                        }))
                 {
                     return true;
                 }
@@ -780,7 +801,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         {
             try
             {
-                await SubmitMutation(form,
+                await SubmitMutation(
+                    form,
                     "deletion",
                     onSubmissionStarted);
             }
@@ -930,7 +952,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         Action? onSubmissionStarted)
     {
         CancellationToken.ThrowIfCancellationRequested();
-        var response = await SubmitOnce(form,
+        var response = await SubmitOnce(
+            form,
             CancellationToken,
             onSubmissionStarted);
         RejectResponse(response, operation);
@@ -968,7 +991,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
         try
         {
-            var result = await Context.ScrapingContext.SubmitFormOnce(form,
+            var result = await Context.ScrapingContext.SubmitFormOnce(
+                form,
                 token,
                 onSubmissionStarted);
             if (result is null)
@@ -1020,7 +1044,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             .ToArray();
         try
         {
-            var response = await SubmitOnce(form,
+            var response = await SubmitOnce(
+                form,
                 token,
                 onSubmissionStarted);
             RejectResponse(response, "grade submission");
@@ -1051,8 +1076,20 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 return true;
             }
 
-            if (expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
-                    || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+            if (expected.Any(input =>
+            {
+                if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
+                {
+                    return true;
+                }
+
+                if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
+                {
+                    return false;
+                }
+
+                return true;
+            }))
             {
                 return true;
             }
@@ -1174,13 +1211,15 @@ public static partial class RegistryScraping
             Uri index2 = new(BaseUrl + "LessonAttendance");
             var login2 = DefaultTokenNames.LoginUrl;
             var spacing2 = spacing;
-            var guard = new RegistryHistoryRequestHandler(inner,
+            var guard = new RegistryHistoryRequestHandler(
+                inner,
                 index: index2,
                 login: login2,
                 spacing2);
             handler = guard;
             client = new HttpClient(guard);
-            transport = new HttpClientContext(cookieProvider,
+            transport = new HttpClientContext(
+                cookieProvider,
                 client,
                 guard);
             var builder = new ScrapingContextBuilder();

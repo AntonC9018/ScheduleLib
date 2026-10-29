@@ -16,7 +16,8 @@ public static class CurriculaDownloadTasks
         ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
 
     // Existing source configuration is intentionally retained; this slice does not discover newer academic years.
-    public static CurriculaSource ConfiguredSource { get; } = new(Owner: "titu.capcelea@usm.md",
+    public static CurriculaSource ConfiguredSource { get; } = new(
+        Owner: "titu.capcelea@usm.md",
         Path: "Curricula DI anul universitar 2024-2025/Curricula per program studii");
 
     public static Task PullCurriculaToDisk(MicrosoftAuthConfig config, CancellationToken cancellationToken)
@@ -91,7 +92,8 @@ public sealed class GraphCurriculaProvider(GraphServiceClient graph, IDisposable
                     foreach (var document in documents.Where(x => x.File is not null))
                     {
                         var list = files;
-                        CurriculaFile item = new(Group: group.Name,
+                        CurriculaFile item = new(
+                            Group: group.Name,
                             Name: document.Name,
                             Id: document.Id,
                             DriveId: driveId);

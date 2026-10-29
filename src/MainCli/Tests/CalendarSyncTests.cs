@@ -16,7 +16,8 @@ public sealed class CalendarSyncTests
     public async Task HumanFormattingFailurePreservesCompletedMutationAndStopsApply()
     {
         using var provider = new Fake();
-        using var context = new CliCommandContext("calendar sync",
+        using var context = new CliCommandContext(
+            "calendar sync",
             new(),
             default);
         var failure = await Assert.ThrowsAsync<CalendarStreamingException>(() => CalendarSync.Run(
@@ -85,7 +86,8 @@ public sealed class CalendarSyncTests
 
             DateTimeOffset? start = missingDates
                 ? null
-                : new(year: 2026,
+                : new(
+                    year: 2026,
                     month: 10,
                     day: 18,
                     hour: 9,
@@ -178,7 +180,8 @@ public sealed class CalendarSyncTests
             }
 
             Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
-            Assert.Equal(expected: ["0", "1", "2"],
+            Assert.Equal(
+                expected: ["0", "1", "2"],
                 actual: reports.Where(x => x.Status == "planned")
                     .Select(x => x.Id));
             string expected4 = "create event: planned; calendar ; event ; desired index 0";
@@ -187,7 +190,8 @@ public sealed class CalendarSyncTests
             Assert.Equal(
                 expected: expected4,
                 actual: actual5);
-            Assert.Equal(expected: ["index", "summary", "start", "end", "recurrence"],
+            Assert.Equal(
+                expected: ["index", "summary", "start", "end", "recurrence"],
                 actual: item.EnumerateObject()
                     .Select(x => x.Name));
             string? expectedStartTimestamp = ExpectedCalendarTimestamp(start);
@@ -211,7 +215,8 @@ public sealed class CalendarSyncTests
                 return JsonValueKind.Array;
             }
 
-            Assert.Equal(expected: CalculateExpected(),
+            Assert.Equal(
+                expected: CalculateExpected(),
                 actual: item.GetProperty("recurrence").ValueKind);
             object expected5 = desired;
             var actual6 = Assert.Single(result.DesiredEvents);
@@ -485,10 +490,12 @@ public sealed class CalendarSyncTests
                     },
                     new()));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: "calendar sync",
+            Assert.Equal(
+                expected: "calendar sync",
                 actual: document.RootElement.GetProperty("command")
                     .GetString());
-            Assert.Equal(expected: 3,
+            Assert.Equal(
+                expected: 3,
                 actual: document.RootElement.GetProperty("exitCode")
                     .GetInt32());
         }
@@ -527,7 +534,8 @@ public sealed class CalendarSyncTests
                     new()));
             using var document = JsonDocument.Parse(output.ToString());
             var data = document.RootElement.GetProperty("data");
-            Assert.Equal(expected: "preview",
+            Assert.Equal(
+                expected: "preview",
                 actual: document.RootElement.GetProperty("status")
                     .GetString());
             Assert.NotEmpty(data.GetProperty("desiredEvents")

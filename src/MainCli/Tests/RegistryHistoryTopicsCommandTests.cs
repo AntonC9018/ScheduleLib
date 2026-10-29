@@ -56,13 +56,15 @@ public sealed class RegistryHistoryTopicsCommandTests
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: output.ToString());
             Assert.DoesNotContain(expectedSubstring: "private.test", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(expected: 1,
+            Assert.Equal(
+                expected: 1,
                 actual: result.RootElement.GetProperty("schemaVersion")
                     .GetInt32());
             string[] collection = Directory.GetFiles(path: directory, searchPattern: "*.json");
             IEnumerable<string> collection2 = collection;
             var inventory = Assert.Single(collection2);
-            Assert.Contains(expectedSubstring: "canary-current-topic",
+            Assert.Contains(
+                expectedSubstring: "canary-current-topic",
                 actualString: await File.ReadAllTextAsync(inventory));
             Assert.Contains(
                 expectedSubstring: "canary-historical-topic",
@@ -200,7 +202,8 @@ public sealed class RegistryHistoryTopicsCommandTests
                         {
                             Json = true,
                         }));
-            Assert.Contains(expectedSubstring: "MarkupContract; phase Lessons; diagnostic TopicTable; HTTP unknown",
+            Assert.Contains(
+                expectedSubstring: "MarkupContract; phase Lessons; diagnostic TopicTable; HTTP unknown",
                 actualString: error.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             var errors = result.RootElement.GetProperty("errors");

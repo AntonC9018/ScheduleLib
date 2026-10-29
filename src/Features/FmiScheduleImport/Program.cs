@@ -37,7 +37,8 @@ http.DefaultRequestHeaders.UserAgent.ParseAdd("ScheduleLib/1.0");
 var client = new FmiScheduleClient(http);
 var updater = new FmiScheduleUpdater(client.DownloadAsync);
 string? generated = null;
-var result = await updater.RunAsync(args[0],
+var result = await updater.RunAsync(
+    args[0],
     async (update, token) =>
     {
         var root = Path.GetFullPath(args[1]);
@@ -55,7 +56,8 @@ var result = await updater.RunAsync(args[0],
             return strict;
         }
 
-        await FmiPdfImport.GenerateAsync(update,
+        await FmiPdfImport.GenerateAsync(
+            update,
             staging,
             CalculateStrict(),
             token);

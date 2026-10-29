@@ -118,10 +118,12 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2403",
                 courseName: "RVA");
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2403",
                 courseName: "Cloud");
         });
@@ -143,7 +145,8 @@ public sealed class ImplicitSplitAssignmentTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s,
+            AddLesson(
+                s,
                 groupName: "IA2403",
                 courseName: "Antreprenoriat inovativ");
         });
@@ -159,7 +162,8 @@ public sealed class ImplicitSplitAssignmentTests
     public void SplitsSharedLessonsWhenOnlySomeGroupsAreCovered()
     {
         var builder = CreateBuilder();
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2403",
             courseName: "RVA");
         var shared = builder.RegularLesson();
@@ -262,7 +266,8 @@ public sealed class ImplicitSplitAssignmentTests
             x.Specialization("RVA", Specialization.DJ);
         });
         builder.ImplicitSplitConfig = scopeBuilder.Build();
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2403",
             courseName: "RVA");
 
@@ -294,7 +299,8 @@ public sealed class ImplicitSplitAssignmentTests
             ImplicitSplitConfig = scopeBuilder.Build(),
         };
         builder.EnableLookupModule();
-        AddLesson(builder,
+        AddLesson(
+            builder,
             groupName: "IA2403",
             courseName: "RVA");
 

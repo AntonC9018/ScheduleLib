@@ -28,7 +28,12 @@ public sealed record class UiNode
                 return false;
             }
 
-            return IsUiLayer;
+            if (IsUiLayer)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 

@@ -27,7 +27,8 @@ public readonly struct AccessExpression
     {
         if (expression.Parameters.Count != 1)
         {
-            throw new ArgumentException(message: "Expression must have exactly one parameter.",
+            throw new ArgumentException(
+                message: "Expression must have exactly one parameter.",
                 paramName: nameof(expression));
         }
 

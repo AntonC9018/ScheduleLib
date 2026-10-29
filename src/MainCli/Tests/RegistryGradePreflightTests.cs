@@ -386,7 +386,8 @@ public sealed class RegistryGradePreflightTests
             Assert.True(session.Disposed);
             using var result = JsonDocument.Parse(output.ToString());
             var root = result.RootElement;
-            Assert.Equal(expected: exit,
+            Assert.Equal(
+                expected: exit,
                 actual: root.GetProperty("exitCode")
                     .GetInt32());
 

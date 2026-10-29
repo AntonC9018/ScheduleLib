@@ -209,11 +209,13 @@ public sealed class RegistryTests
         Assert.Contains(plan, action => action.Kind == RegistrySyncActionKind.Create);
         Assert.Equal(expected: 0, actual: navigator.Submissions);
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
-        Assert.Equal(expected: hasAttendanceSources,
+        Assert.Equal(
+            expected: hasAttendanceSources,
             actual: diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
         Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
         Assert.NotEmpty(topics.Keys);
-        Assert.All(topics.Keys,
+        Assert.All(
+            topics.Keys,
             key =>
             {
                 bool CalculateCondition()
@@ -418,7 +420,8 @@ public sealed class RegistryTests
             return "failed";
         }
 
-        Assert.Equal(expected: CalculateExpected(),
+        Assert.Equal(
+            expected: CalculateExpected(),
             actual: result.GetProperty("status")
                 .GetString());
         var outcomes = result.GetProperty("data")
@@ -531,10 +534,12 @@ public sealed class RegistryTests
             var outcomes = capture.Result()
                 .GetProperty("data")
                 .GetProperty("outcomes");
-            Assert.Equal(expected: "failed",
+            Assert.Equal(
+                expected: "failed",
                 actual: outcomes[0].GetProperty("status")
                     .GetString());
-            Assert.Equal(expected: "not-attempted",
+            Assert.Equal(
+                expected: "not-attempted",
                 actual: outcomes[1].GetProperty("status")
                     .GetString());
             Assert.Equal(expected: 0, actual: navigator.Submissions);
@@ -657,7 +662,8 @@ public sealed class RegistryTests
         Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);
         Assert.Equal(expected: 1, actual: fake.Plans);
         var result = capture.Result();
-        Assert.Equal(expected: "preview",
+        Assert.Equal(
+            expected: "preview",
             actual: result.GetProperty("status")
                 .GetString());
         Assert.Equal(
@@ -666,7 +672,8 @@ public sealed class RegistryTests
                 .GetProperty("target")
                 .GetProperty("account")
                 .GetString());
-        Assert.Equal(expected: 3,
+        Assert.Equal(
+            expected: 3,
             actual: result.GetProperty("data")
                 .GetProperty("outcomes")
                 .GetArrayLength());
@@ -716,7 +723,8 @@ public sealed class RegistryTests
                 .GetProperty("data")
                 .GetProperty("outcomes")
                 .EnumerateArray(),
-            x => Assert.Equal(expected: "completed",
+            x => Assert.Equal(
+                expected: "completed",
                 actual: x.GetProperty("status")
                     .GetString()));
     }
@@ -749,7 +757,8 @@ public sealed class RegistryTests
         var outcome = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes")[0];
-        Assert.Equal(expected: "uncertain",
+        Assert.Equal(
+            expected: "uncertain",
             actual: outcome.GetProperty("status")
                 .GetString());
     }
@@ -781,10 +790,12 @@ public sealed class RegistryTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
-        Assert.Equal(expected: "completed",
+        Assert.Equal(
+            expected: "completed",
             actual: outcomes[0].GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: "uncertain",
+        Assert.Equal(
+            expected: "uncertain",
             actual: outcomes[1].GetProperty("status")
                 .GetString());
     }
@@ -839,10 +850,12 @@ public sealed class RegistryTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
-        Assert.Equal(expected: status,
+        Assert.Equal(
+            expected: status,
             actual: outcomes[0].GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: "not-attempted",
+        Assert.Equal(
+            expected: "not-attempted",
             actual: outcomes[1].GetProperty("status")
                 .GetString());
     }
@@ -871,7 +884,8 @@ public sealed class RegistryTests
                 {
                     Apply = true,
                 }));
-        Assert.Equal(expected: "partial",
+        Assert.Equal(
+            expected: "partial",
             actual: capture.Result()
                 .GetProperty("status")
                 .GetString());
@@ -950,11 +964,13 @@ public sealed class RegistryTests
                 new()));
         var final = jsonl ? capture.FinalRecord() : capture.Result();
         var data = final.GetProperty("data");
-        Assert.Equal(expected: "IA2502",
+        Assert.Equal(
+            expected: "IA2502",
             actual: data.GetProperty("diagnostics")[0]
                 .GetProperty("group")
                 .GetString());
-        Assert.Contains(expectedSubstring: "English subgroup",
+        Assert.Contains(
+            expectedSubstring: "English subgroup",
             actualString: final.GetProperty("warnings")[1]
                 .GetString());
         Assert.Equal(expected: 0, actual: fake.Navigator.Submissions);

@@ -163,17 +163,21 @@ public sealed class RegistryDiagnosticsTests
         var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup2, specialization);
         var schedule = builder.Build();
-        var coverage = new RegistryTargetCoverage(schedule,
+        var coverage = new RegistryTargetCoverage(
+            schedule,
             [
-                new(course,
+                new(
+                    course,
                     parent,
                     GroupPartitionKey.All),
-                new(course,
+                new(
+                    course,
                     english,
                     partition),
             ],
             diagnostics);
-        coverage.CoverLesson(new WeeklyLessonId(0).AsAny(),
+        coverage.CoverLesson(
+            new WeeklyLessonId(0).AsAny(),
             parent,
             GroupPartitionKey.All,
             enableRule
@@ -223,19 +227,23 @@ public sealed class RegistryDiagnosticsTests
         var second = builder.Group("IA2502");
         var diagnostics = new RegistrySyncDiagnostics();
         var partition = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
-        var coverage = new RegistryTargetCoverage(builder.Build(),
+        var coverage = new RegistryTargetCoverage(
+            builder.Build(),
             [
-                new(course,
+                new(
+                    course,
                     first,
                     partition),
-                new(course,
+                new(
+                    course,
                     second,
                     partition),
             ],
             diagnostics);
         coverage.ReportMissingCourses(new HashSet<CourseId> { course });
         var registryTargetCoverage = coverage;
-        RegistryExpectedTarget target = new(course,
+        RegistryExpectedTarget target = new(
+            course,
             first,
             partition);
         registryTargetCoverage.Cover(target);
@@ -255,9 +263,11 @@ public sealed class RegistryDiagnosticsTests
         var course = builder.Course("Synthetic course");
         var parent = builder.Group("IA2501");
         var diagnostics = new RegistrySyncDiagnostics();
-        var coverage = new RegistryTargetCoverage(builder.Build(),
+        var coverage = new RegistryTargetCoverage(
+            builder.Build(),
             [
-                new(course,
+                new(
+                    course,
                     parent,
                     GroupPartitionKey.All),
             ],

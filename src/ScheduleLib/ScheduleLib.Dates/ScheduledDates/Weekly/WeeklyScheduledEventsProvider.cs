@@ -52,7 +52,8 @@ public readonly record struct Event
         int interval)
     {
         var first2 = first;
-        var last2 = FirstToLast(first,
+        var last2 = FirstToLast(
+            first,
             count: count,
             interval: interval);
         int count2 = count;
@@ -76,7 +77,8 @@ public readonly record struct Event
         {
             Debug.Assert(interval >= 1);
             Debug.Assert(last > first);
-            var expectedLast = FirstToLast(first,
+            var expectedLast = FirstToLast(
+                first,
                 count: count,
                 interval: interval);
             Debug.Assert(expectedLast == last);

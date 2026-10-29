@@ -709,7 +709,8 @@ public sealed class CurriculumCache
                     list.Add(
                         item);
                 }
-                var facultyParsed = CourseNameParsing.Parse(new(new()),
+                var facultyParsed = CourseNameParsing.Parse(
+                    new(new()),
                     group.Key.Name.Value.AsMemory(),
                     new()
                     {
@@ -843,7 +844,8 @@ internal static class ThesisName
     internal static async Task<Curriculum> ReadFile(CurriculumFile file)
     {
         await using var fileStream = File.OpenRead(file.FilePath);
-        using var word = WordprocessingDocument.Open(fileStream,
+        using var word = WordprocessingDocument.Open(
+            fileStream,
             isEditable: false,
             new() { });
 
@@ -1023,7 +1025,8 @@ internal static class ThesisName
             return SectionParseResult.CreateNotHeading();
         }
 
-        var ret = StringSearchHelper.Search(para,
+        var ret = StringSearchHelper.Search(
+            para,
             new PreprocessIgnoreRomanOnce(),
             SectionStrings);
         StringSearchHelper.DefaultHandleError(ret);
@@ -1579,7 +1582,8 @@ internal static class SectionTypeHelper
             case SectionType.Bibliography:
                 return ref item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p),
+                throw new ArgumentOutOfRangeException(
+                    nameof(p),
                     p,
                     "Unknown section type");
         }
@@ -1606,7 +1610,8 @@ internal static class SectionTypeHelper
             case SectionType.Bibliography:
                 return item.Bibliography;
             default:
-                throw new ArgumentOutOfRangeException(nameof(p),
+                throw new ArgumentOutOfRangeException(
+                    nameof(p),
                     p,
                     "Unknown section type");
         }
@@ -1769,7 +1774,8 @@ internal static class PreliminarySectionProcessing
                 return SectionParseResult.CreateNotHeading();
             }
 
-            var ret = StringSearchHelper.Search(para,
+            var ret = StringSearchHelper.Search(
+                para,
                 new PreprocessDoNothing(),
                 PreliminaryFieldStrings);
             StringSearchHelper.DefaultHandleError(ret);
@@ -1820,7 +1826,8 @@ internal static class PreliminarySectionProcessing
         return StringSearchHelper.SetupSearchArray<PreliminaryField>(b =>
         {
             b.Set(PreliminaryField.Overview, "Prezentarea generală a cursului");
-            b.Set(PreliminaryField.Importance,
+            b.Set(
+                PreliminaryField.Importance,
                 "Locul și rolul cursului în formarea rezultatelor învățării ale specialității și misiunea curriculumului în formarea profesională");
             b.Set(PreliminaryField.Languages, "Limba de predare a cursului");
             b.Set(PreliminaryField.Beneficiaries, "Beneficiarii");
@@ -2002,7 +2009,8 @@ internal static class DisciplineProvisionsProcessing
                         {
                             var para = x.Cell.Descendants<Paragraph>()
                                 .Single();
-                            var attendanceResult = StringSearchHelper.Search(para,
+                            var attendanceResult = StringSearchHelper.Search(
+                                para,
                                 new PreprocessDoNothing(),
                                 AttendanceModeStrings);
                             StringSearchHelper.DefaultHandleError(attendanceResult);
@@ -2087,7 +2095,8 @@ internal static class DisciplineProvisionsProcessing
                 {
                     continue;
                 }
-                var sectionResult = StringSearchHelper.Search(para,
+                var sectionResult = StringSearchHelper.Search(
+                    para,
                     new PreprocessDoNothing(),
                     strings);
                 if (sectionResult.IsEmpty)

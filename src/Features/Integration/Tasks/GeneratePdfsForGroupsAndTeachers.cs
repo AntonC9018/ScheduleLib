@@ -54,7 +54,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 var g2 = g;
                 string fileName2 = $"{g.Item.Name}.pdf";
                 var groupFilter2 = groupFilter;
-                GenerateGroupPdf(g2,
+                GenerateGroupPdf(
+                    g2,
                     fileName2,
                     groupFilter2);
 
@@ -75,7 +76,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                     var fileName = sb.ToStringAndClear();
 
                     var combinationFilter = combination.ToGroupFilter(g.Id);
-                    GenerateGroupPdf(g,
+                    GenerateGroupPdf(
+                        g,
                         fileName,
                         combinationFilter);
                 }
@@ -86,7 +88,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 string fileName,
                 GroupFilter groupFilter)
             {
-                artifacts.Add(new(fileName,
+                artifacts.Add(new(
+                    fileName,
                     textDisplayHandler,
                     new()
                     {
@@ -96,7 +99,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
         }
 
         {
-            var textDisplayHandler = new LessonTextDisplayHandler(_lessonTextDisplayServices,
+            var textDisplayHandler = new LessonTextDisplayHandler(
+                _lessonTextDisplayServices,
                 new()
                 {
                     PrintsTeacherName = false,
@@ -113,7 +117,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
 
                 var fileName = sb.ToStringAndClear();
 
-                artifacts.Add(new(fileName,
+                artifacts.Add(new(
+                    fileName,
                     textDisplayHandler,
                     new()
                     {
@@ -127,7 +132,8 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
         foreach (var artifact in artifacts)
         {
             p.CancellationToken.ThrowIfCancellationRequested();
-            await GenerateWithFilter(artifact.Name,
+            await GenerateWithFilter(
+                artifact.Name,
                 artifact.Display,
                 artifact.Filter);
         }
@@ -146,25 +152,28 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 return;
             }
 
-            var generator = new Generator(new()
-            {
-                StringBuilder = new(),
-                DayNameProvider = _dayNameProvider,
-                LessonTextDisplayHandler = textDisplayHandler,
-                LessonTimeConfig = _lessonTimeConfig,
-                TimeSlotDisplay = _timeSlotDisplay,
-            },
+            var generator = new Generator(
+                new()
+                {
+                    StringBuilder = new(),
+                    DayNameProvider = _dayNameProvider,
+                    LessonTextDisplayHandler = textDisplayHandler,
+                    LessonTimeConfig = _lessonTimeConfig,
+                    TimeSlotDisplay = _timeSlotDisplay,
+                },
                 filteredSchedule);
 
             if (p.PublishArtifact is { } publish)
             {
-                await publish(name,
+                await publish(
+                    name,
                     Generate,
                     p.CancellationToken);
             }
             else
             {
-                using var outputFile = p.OutputDirectory!.OpenFile(name,
+                using var outputFile = p.OutputDirectory!.OpenFile(
+                    name,
                     FileMode.Create,
                     FileAccess.Write);
                 await Generate(outputFile, p.CancellationToken);

@@ -47,7 +47,8 @@ public static class CallMergerHelper
     {
         var mergerType = merger.GetType();
         var mergeDelegate = _callHelper.Get(mergerType);
-        return mergeDelegate(merger: merger,
+        return mergeDelegate(
+            merger: merger,
             @from: from,
             @into: into);
     }
@@ -60,7 +61,8 @@ public static class CallMergerHelper
         var t = from!.GetType();
         var mergerType = typeof(IMerger<>).MakeGenericType(t);
         var merger = sp.GetRequiredService(mergerType);
-        var ret = Merge(merger: merger,
+        var ret = Merge(
+            merger: merger,
             @from: from,
             @into: into);
         return (T) ret;

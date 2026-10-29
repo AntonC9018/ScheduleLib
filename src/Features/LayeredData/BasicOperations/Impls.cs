@@ -92,7 +92,13 @@ public sealed class ReflectionMerger<T> : IMerger<T>
                 {
                     return false;
                 }
-                return p.CanRead;
+
+                if (p.CanRead)
+                {
+                    return true;
+                }
+
+                return false;
             })
             .ToArray();
 
@@ -161,7 +167,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             var merger = iServiceProvider.GetService(serviceType);
             if (merger != null)
             {
-                targetValue = CallMergerHelper.Merge(merger: merger,
+                targetValue = CallMergerHelper.Merge(
+                    merger: merger,
                     @from: sourceValue,
                     @into: targetValue);
                 property.SetValue(obj: to, value: targetValue);

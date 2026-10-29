@@ -40,7 +40,8 @@ public static class PdfTableReader
                         double doubleValue2 = page.Height;
                         double min = Math.Min(line.From.Y, line.To.Y);
                         double end = doubleValue2 - min;
-                        PdfBorder item = new(vertical,
+                        PdfBorder item = new(
+                            vertical,
                             Position: position,
                             Start: start,
                             End: end);
@@ -53,7 +54,8 @@ public static class PdfTableReader
                         double position2 = page.Height - line.From.Y;
                         double start2 = Math.Min(line.From.X, line.To.X);
                         double end2 = Math.Max(line.From.X, line.To.X);
-                        PdfBorder item2 = new(vertical2,
+                        PdfBorder item2 = new(
+                            vertical2,
                             Position: position2,
                             Start: start2,
                             End: end2);
@@ -84,7 +86,8 @@ public static class PdfTableReader
             return operationValue4;
         }
 
-        return new(page.Number,
+        return new(
+            page.Number,
             borders,
             boxes.Select(ProjectValue)
                 .ToArray());
@@ -164,7 +167,8 @@ public static class PdfTableReader
             bool found = false;
             foreach (var bottom in below)
             {
-                if (!Connects(vertical,
+                if (!Connects(
+                        vertical,
                         position: point.X,
                         start: point.Y,
                         end: bottom.Y))
@@ -176,7 +180,8 @@ public static class PdfTableReader
                 {
                     bool CheckCondition()
                     {
-                        if (!Connects(horizontal,
+                        if (!Connects(
+                                horizontal,
                                 position: point.Y,
                                 start: point.X,
                                 end: end.X))
@@ -184,7 +189,8 @@ public static class PdfTableReader
                             return true;
                         }
 
-                        if (!Connects(vertical,
+                        if (!Connects(
+                                vertical,
                                 position: end.X,
                                 start: point.Y,
                                 end: bottom.Y))
@@ -192,7 +198,8 @@ public static class PdfTableReader
                             return true;
                         }
 
-                        if (!Connects(horizontal,
+                        if (!Connects(
+                                horizontal,
                                 position: bottom.Y,
                                 start: point.X,
                                 end: end.X))
@@ -209,7 +216,8 @@ public static class PdfTableReader
                     }
 
                     var list = result;
-                    PdfBox item = new(Left: point.X,
+                    PdfBox item = new(
+                        Left: point.X,
                         Top: point.Y,
                         Right: end.X,
                         Bottom: bottom.Y);
@@ -322,7 +330,8 @@ public static class PdfTableReader
                     double top = value2[int322];
                     double right = xs[column];
                     double bottom = ys[row];
-                    PdfBox item = new(Left: left,
+                    PdfBox item = new(
+                        Left: left,
                         Top: top,
                         Right: right,
                         Bottom: bottom);
@@ -383,7 +392,8 @@ public static class PdfTableReader
 
             rows[^1].Add(letter);
         }
-        return string.Join('\n',
+        return string.Join(
+                '\n',
                 rows.Select(row =>
                     {
                         var text = new StringBuilder();

@@ -192,7 +192,8 @@ public static partial class ScheduleBuilderHelper
             }
 
             var registryContext = text2;
-            throw UnknownSubGroupException.ForInvalid(subGroupValue: subGroup.Value,
+            throw UnknownSubGroupException.ForInvalid(
+                subGroupValue: subGroup.Value,
                 groupContext: groupContext,
                 registryContext: registryContext);
         }

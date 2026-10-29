@@ -168,7 +168,8 @@ public sealed class IntegrationTestHelper : IDisposable
     {
         var scheduleBuilder = new ScheduleBuilder();
         scheduleBuilder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
-        await AddScheduleToBuilder(scheduleBuilder,
+        await AddScheduleToBuilder(
+            scheduleBuilder,
             jsonPath,
             cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
@@ -273,7 +274,8 @@ public sealed class IntegrationTestHelper : IDisposable
 
         using var stream = new MemoryStream();
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        JsonSerializer.Serialize(stream,
+        JsonSerializer.Serialize(
+            stream,
             readableSchedule,
             options);
         stream.Position = 0;

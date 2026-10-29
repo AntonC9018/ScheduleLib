@@ -44,7 +44,8 @@ internal static class RegistryLabMerges
             return false;
         }
 
-        if (ShouldSkipMerge(in groups,
+        if (ShouldSkipMerge(
+                in groups,
                 course,
                 partition))
         {
@@ -88,14 +89,16 @@ internal static class RegistryLabMerges
         RegistryLabMergeRule? found = null;
         foreach (var rule in rules)
         {
-            if (!string.Equals(rule.Course,
+            if (!string.Equals(
+                    rule.Course,
                     schedule.Get(course).FullName,
                     StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
             var groupName = schedule.Get(groups[0]).Name;
-            if (!string.Equals(rule.Group,
+            if (!string.Equals(
+                    rule.Group,
                     groupName,
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -137,7 +140,8 @@ internal static class RegistryLabMerges
 
         var rule = conditionResult
             ? null
-            : Find(rules,
+            : Find(
+                rules,
                 parameters.Schedule,
                 filter.CourseId,
                 filter.Groups.Value,
@@ -146,7 +150,8 @@ internal static class RegistryLabMerges
         {
             var ordinary = MatchLessonHelper.MatchLessonsInSchedule(parameters)
                 .ToList();
-            return new(ordinary,
+            return new(
+                ordinary,
                 ordinary.Count == 0
                     ? filter.GroupPartition
                     : parameters.Schedule.Get(ordinary[0]).Lesson.GroupPartitionKey);
@@ -202,7 +207,8 @@ internal static class RegistryLabMerges
         // A registry course can contain lectures as well as the merged labs.
         lessons.AddRange(MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .Where(id => parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab));
-        return new(lessons,
+        return new(
+            lessons,
             GroupPartitionKey.All,
             IsLabMerge: true);
     }

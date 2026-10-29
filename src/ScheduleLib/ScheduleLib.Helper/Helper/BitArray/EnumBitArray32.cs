@@ -293,7 +293,8 @@ public sealed class EnumBitArray32JsonConverter<T> : JsonConverter<EnumBitArray3
         writer.WriteStartArray();
         foreach (var v in value.SetValues())
         {
-            JsonSerializer.Serialize(writer,
+            JsonSerializer.Serialize(
+                writer,
                 v,
                 options);
         }

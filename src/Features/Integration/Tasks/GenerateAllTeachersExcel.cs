@@ -387,7 +387,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         Course = true,
                         Room = true,
                     };
-                    var diff = LessonBuilderHelper.Diff(a: l0,
+                    var diff = LessonBuilderHelper.Diff(
+                        a: l0,
                         b: l1,
                         diffMask);
                     if (diff.TheyDiffer)
@@ -477,7 +478,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 var l1 = lessons[1];
                 var checkGroups = l0.Lesson.Groups.IsSingleGroup
                     && l0.Lesson.Groups.IsSingleGroup;
-                var diff = LessonBuilderHelper.Diff(a: l0,
+                var diff = LessonBuilderHelper.Diff(
+                    a: l0,
                     b: l1,
                     new()
                     {
@@ -511,7 +513,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 if (!diff.OneGroup)
                 {
                     bool subgroupsDiffer = diff.SubGroup;
-                    AppendGroup(listBuilder,
+                    AppendGroup(
+                        listBuilder,
                         l0.Ref,
                         appendSubgroup: !subgroupsDiffer);
                 }

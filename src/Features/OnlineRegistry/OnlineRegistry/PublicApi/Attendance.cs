@@ -327,7 +327,8 @@ public sealed class StudentAttendanceListBuilder()
         {
             var n = names.MoveToImmutable();
             var a = new AttendanceLists(attendance.MoveToImmutable());
-            var ret = new Result(n,
+            var ret = new Result(
+                n,
                 a,
                 lessonTypes,
                 dates);
@@ -345,7 +346,8 @@ public readonly struct AllStudentAttendanceListBuilder()
 
     public AttendanceListEntry TryList(StudentsLookupKey key)
     {
-        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(_values,
+        ref var x = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _values,
             key,
             out bool exists);
         if (!exists)
@@ -491,7 +493,13 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            return key.Groups.IsEmpty;
+
+            if (key.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -524,7 +532,13 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            return key.Groups.IsEmpty;
+
+            if (key.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();
@@ -570,7 +584,13 @@ public readonly struct StudentAttendanceList
             {
                 return true;
             }
-            return attendanceKey.Groups.IsEmpty;
+
+            if (attendanceKey.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

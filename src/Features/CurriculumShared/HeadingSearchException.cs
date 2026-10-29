@@ -18,7 +18,8 @@ public sealed class HeadingSearchException(HeadingSearchFailure failure, string 
         {
             HeadingSearchFailure.Unrecognized => $"Unrecognized heading '{text}'.",
             HeadingSearchFailure.PartiallyMatched => $"Partially matched heading '{text}'.",
-            _ => throw new ArgumentOutOfRangeException(nameof(failure),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(failure),
                 failure,
                 null),
         };

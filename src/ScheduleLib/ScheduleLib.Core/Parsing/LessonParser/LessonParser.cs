@@ -50,7 +50,8 @@ public struct WhiteSpaceContext
         var action = WhiteSpaceAction.Default;
         var start2 = StartPosition;
         var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(action,
+        var create = WhiteSpaceResult.Create(
+            action,
             start: start2,
             end: end2);
         return create;
@@ -58,7 +59,8 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult DefaultAll()
     {
-        return WhiteSpaceResult.Create(WhiteSpaceAction.Default,
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.Default,
             start: Lexer.Position,
             end: Lexer.Position);
     }
@@ -68,7 +70,8 @@ public struct WhiteSpaceContext
         var action = WhiteSpaceAction.Insert;
         var start2 = StartPosition;
         var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(action,
+        var create = WhiteSpaceResult.Create(
+            action,
             start: start2,
             end: end2);
         return create;
@@ -76,7 +79,8 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult InsertAll()
     {
-        return WhiteSpaceResult.Create(WhiteSpaceAction.Insert,
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.Insert,
             start: Lexer.Position,
             end: Lexer.Position);
     }
@@ -86,7 +90,8 @@ public struct WhiteSpaceContext
         var action = WhiteSpaceAction.DontInsert;
         var start2 = StartPosition;
         var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(action,
+        var create = WhiteSpaceResult.Create(
+            action,
             start: start2,
             end: end2);
         return create;
@@ -94,7 +99,8 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
     {
-        return WhiteSpaceResult.Create(WhiteSpaceAction.DontInsert,
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.DontInsert,
             start: Lexer.Position,
             end: Lexer.Position,
             inclusive);
@@ -299,7 +305,8 @@ public static class LessonParsingHelper
         {
             return false;
         }
-        if (!TryGetExactDashedLegacySubGroup(word: word.Value.Span,
+        if (!TryGetExactDashedLegacySubGroup(
+                word: word.Value.Span,
                 number: number.Value.Span,
                 out subGroup))
         {
@@ -443,7 +450,8 @@ public static class LessonParsingHelper
                             }
                         }
 
-                        yield return Output(subGroup: mod.Key.SubGroup,
+                        yield return Output(
+                            subGroup: mod.Key.SubGroup,
                             v,
                             lessonName: lessonsE.Current.LessonName);
                     }
@@ -480,7 +488,8 @@ public static class LessonParsingHelper
                     v.General.UpdateIfNotDefault(defaultMod.General);
                     v.Specific.UpdateIfNotDefault(defaultMod.Specific);
 
-                    yield return Output(subGroup: defaultMod.SubGroup,
+                    yield return Output(
+                        subGroup: defaultMod.SubGroup,
                         v,
                         lessonName: lesson1.LessonName);
                 }
@@ -753,7 +762,8 @@ public static class LessonParsingHelper
                         ref var modifiers = ref GetCurrentModifiers(c, key);
                         lexer.TryConsume(TokenType.Whitespace);
                         // The sb1 form without a modifier has been handled already.
-                        var modifierValue = ParseOutModifier(c,
+                        var modifierValue = ParseOutModifier(
+                            c,
                             ref lexer,
                             c.Params.StringBuilder);
                         bool somethingSet = modifiers.Set(modifierValue);
@@ -1805,7 +1815,8 @@ public static class LessonParsingHelper
             {
                 return null;
             }
-            if (uint.TryParse(span,
+            if (uint.TryParse(
+                    span,
                     NumberStyles.None,
                     provider: null,
                     out uint result))

@@ -37,7 +37,8 @@ public sealed class LessonDiffTests
                 Course = new(2),
             },
         };
-        var diff = LessonBuilderHelper.Diff(a: lesson1,
+        var diff = LessonBuilderHelper.Diff(
+            a: lesson1,
             b: lesson2,
             new()
             {
@@ -65,7 +66,8 @@ public sealed class LessonDiffTests
                 Teachers = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(to: ref lesson1,
+        LessonBuilderHelper.Merge(
+            to: ref lesson1,
             @from: lesson2,
             new()
             {
@@ -91,7 +93,8 @@ public sealed class LessonDiffTests
                 Groups = [new(2), new(3)],
             },
         };
-        LessonBuilderHelper.Merge(to: ref lesson1,
+        LessonBuilderHelper.Merge(
+            to: ref lesson1,
             @from: lesson2,
             new()
             {

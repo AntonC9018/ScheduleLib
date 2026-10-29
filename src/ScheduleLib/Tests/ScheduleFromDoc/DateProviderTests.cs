@@ -110,97 +110,119 @@ public sealed class DateProviderTests
         var semesterIntervals = ScheduleLib.ScheduleDefaults.Config.SemesterIntervalProvider();
         int grade2 = 1;
         var semester2 = Semester.Sem1;
-        DateOnly start2 = new(year: 2026,
+        DateOnly start2 = new(
+            year: 2026,
             month: 9,
             day: 1);
-        DateOnly endInclusive2 = new(year: 2026,
+        DateOnly endInclusive2 = new(
+            year: 2026,
             month: 12,
             day: 13);
-        AssertRange(grade: grade2,
+        AssertRange(
+            grade: grade2,
             semester2,
             start: start2,
             endInclusive: endInclusive2);
         int grade3 = 2;
         var semester3 = Semester.Sem1;
-        DateOnly start3 = new(year: 2026,
+        DateOnly start3 = new(
+            year: 2026,
             month: 9,
             day: 1);
-        DateOnly endInclusive3 = new(year: 2026,
+        DateOnly endInclusive3 = new(
+            year: 2026,
             month: 12,
             day: 13);
-        AssertRange(grade: grade3,
+        AssertRange(
+            grade: grade3,
             semester3,
             start: start3,
             endInclusive: endInclusive3);
         int grade4 = 3;
         var semester4 = Semester.Sem1;
-        DateOnly start4 = new(year: 2026,
+        DateOnly start4 = new(
+            year: 2026,
             month: 9,
             day: 1);
-        DateOnly endInclusive4 = new(year: 2026,
+        DateOnly endInclusive4 = new(
+            year: 2026,
             month: 12,
             day: 13);
-        AssertRange(grade: grade4,
+        AssertRange(
+            grade: grade4,
             semester4,
             start: start4,
             endInclusive: endInclusive4);
         int grade5 = 1;
         var semester5 = Semester.Sem2;
-        DateOnly start5 = new(year: 2027,
+        DateOnly start5 = new(
+            year: 2027,
             month: 2,
             day: 1);
-        DateOnly endInclusive5 = new(year: 2027,
+        DateOnly endInclusive5 = new(
+            year: 2027,
             month: 5,
             day: 1);
-        AssertRange(grade: grade5,
+        AssertRange(
+            grade: grade5,
             semester5,
             start: start5,
             endInclusive: endInclusive5);
         int grade6 = 2;
         var semester6 = Semester.Sem2;
-        DateOnly start6 = new(year: 2027,
+        DateOnly start6 = new(
+            year: 2027,
             month: 2,
             day: 1);
-        DateOnly endInclusive6 = new(year: 2027,
+        DateOnly endInclusive6 = new(
+            year: 2027,
             month: 5,
             day: 1);
-        AssertRange(grade: grade6,
+        AssertRange(
+            grade: grade6,
             semester6,
             start: start6,
             endInclusive: endInclusive6);
         int grade7 = 3;
         var semester7 = Semester.Sem2;
-        DateOnly start7 = new(year: 2027,
+        DateOnly start7 = new(
+            year: 2027,
             month: 2,
             day: 22);
-        DateOnly endInclusive7 = new(year: 2027,
+        DateOnly endInclusive7 = new(
+            year: 2027,
             month: 4,
             day: 11);
-        AssertRange(grade: grade7,
+        AssertRange(
+            grade: grade7,
             semester7,
             start: start7,
             endInclusive: endInclusive7);
 
         var weeks = ScheduleLib.ScheduleDefaults.Config.StudyWeeks;
         Assert.Equal(expected: 28, actual: weeks.Length);
-        var expected2 = new DateOnly(year: 2026,
+        var expected2 = new DateOnly(
+            year: 2026,
             month: 8,
             day: 31);
         var actual2 = weeks[0].MondayDate;
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.False(weeks[0].IsOddWeek);
-        var expected3 = new DateOnly(year: 2026,
+        var expected3 = new DateOnly(
+            year: 2026,
             month: 12,
             day: 7);
         var actual3 = weeks[14].MondayDate;
         Assert.Equal(expected: expected3, actual: actual3);
-        var expected4 = new DateOnly(year: 2027,
+        var expected4 = new DateOnly(
+            year: 2027,
             month: 2,
             day: 1);
         var actual4 = weeks[15].MondayDate;
         Assert.Equal(expected: expected4, actual: actual4);
         Assert.True(weeks[15].IsOddWeek);
-        var expected5 = new DateOnly(year: 2027,
+        var expected5 = new DateOnly(
+            year: 2027,
             month: 4,
             day: 26);
         var actual5 = weeks[^1].MondayDate;
@@ -216,52 +238,64 @@ public sealed class DateProviderTests
             period =>
             {
                 var period2 = period;
-                DateOnly start2 = new(year: 2026,
+                DateOnly start2 = new(
+                    year: 2026,
                     month: 10,
                     day: 14);
-                DateOnly endExclusive2 = new(year: 2026,
+                DateOnly endExclusive2 = new(
+                    year: 2026,
                     month: 10,
                     day: 15);
-                AssertPeriod(period2,
+                AssertPeriod(
+                    period2,
                     start: start2,
                     endExclusive: endExclusive2);
             },
             period =>
             {
                 var period2 = period;
-                DateOnly start2 = new(year: 2027,
+                DateOnly start2 = new(
+                    year: 2027,
                     month: 1,
                     day: 1);
-                DateOnly endExclusive2 = new(year: 2027,
+                DateOnly endExclusive2 = new(
+                    year: 2027,
                     month: 1,
                     day: 25);
-                AssertPeriod(period2,
+                AssertPeriod(
+                    period2,
                     start: start2,
                     endExclusive: endExclusive2);
             },
             period =>
             {
                 var period2 = period;
-                DateOnly start2 = new(year: 2027,
+                DateOnly start2 = new(
+                    year: 2027,
                     month: 5,
                     day: 1);
-                DateOnly endExclusive2 = new(year: 2027,
+                DateOnly endExclusive2 = new(
+                    year: 2027,
                     month: 5,
                     day: 2);
-                AssertPeriod(period2,
+                AssertPeriod(
+                    period2,
                     start: start2,
                     endExclusive: endExclusive2);
             },
             period =>
             {
                 var period2 = period;
-                DateOnly start2 = new(year: 2027,
+                DateOnly start2 = new(
+                    year: 2027,
                     month: 5,
                     day: 2);
-                DateOnly endExclusive2 = new(year: 2027,
+                DateOnly endExclusive2 = new(
+                    year: 2027,
                     month: 5,
                     day: 11);
-                AssertPeriod(period2,
+                AssertPeriod(
+                    period2,
                     start: start2,
                     endExclusive: endExclusive2);
             });
@@ -311,7 +345,8 @@ public sealed class DateProviderTests
     {
         DateOnly Date(int day)
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 9,
                 day: day);
         }
@@ -329,13 +364,15 @@ public sealed class DateProviderTests
                 ],
                 interval: 3)
             .ToArray();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             e1 =>
             {
                 var first = Date(1);
                 int count2 = 4;
                 int interval2 = 3;
-                var ev = Event.CreateRecurring(first,
+                var ev = Event.CreateRecurring(
+                    first,
                     count: count2,
                     interval: interval2);
                 Assert.Equal(expected: ev, actual: e1);
@@ -351,7 +388,8 @@ public sealed class DateProviderTests
                 var first = Date(12);
                 int count2 = 3;
                 int interval2 = 3;
-                var ev = Event.CreateRecurring(first,
+                var ev = Event.CreateRecurring(
+                    first,
                     count: count2,
                     interval: interval2);
                 Assert.Equal(expected: ev, actual: e2);

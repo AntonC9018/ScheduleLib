@@ -146,7 +146,8 @@ public static class TeacherLookupHelper
                                 return false;
                             }
 
-                            if (teacherName.EachEquals(name,
+                            if (teacherName.EachEquals(
+                                    name,
                                     (existingPart, newPart) =>
                                     {
                                         if (existingPart.Full is not { } full)
@@ -175,7 +176,8 @@ public static class TeacherLookupHelper
                                 return false;
                             }
 
-                            return teacherName.EachEquals(name,
+                            return teacherName.EachEquals(
+                                name,
                                 (existingPart, newPart) =>
                                 {
                                     if (existingPart.Short is not { } teacherShort)
@@ -199,7 +201,8 @@ public static class TeacherLookupHelper
                         }
                     case FirstNameComparison.MatchFullAgainstShort:
                         {
-                            if (teacherName.EachEquals(name,
+                            if (teacherName.EachEquals(
+                                    name,
                                     (existingPart, newPart) =>
                                     {
                                         if (existingPart.IsNull)
@@ -248,7 +251,8 @@ public static class TeacherLookupHelper
                     NameParts<OptionalNamePart> a,
                     NameParts<Word> b)
                 {
-                    return a.EachEquals(b,
+                    return a.EachEquals(
+                        b,
                         (apart, bpart) =>
                         {
                             if (apart.IsNull)
@@ -393,7 +397,8 @@ public static class TeacherBuilderHelper
 
                 return lookup[0];
             }
-            int i = TeacherLookupHelper.FindIndexOfBestMatch(s,
+            int i = TeacherLookupHelper.FindIndexOfBestMatch(
+                s,
                 lookup,
                 longer);
             if (i == -1)
@@ -455,7 +460,8 @@ public readonly struct TeacherBuilder
     public void FullName(TeacherBuilderModel.NameModel name, bool updateLookup = true)
     {
         var newName = name.FirstName;
-        newName.Update(Model.Name.FirstName,
+        newName.Update(
+            Model.Name.FirstName,
             (a, b) => new()
             {
                 Full = a.Full ?? b.Full,
@@ -472,7 +478,8 @@ public readonly struct TeacherBuilder
         Debug.Assert(initials.Any(x => x != Word.Empty));
 
         var firstName = Model.Name.FirstName;
-        firstName.Update(initials,
+        firstName.Update(
+            initials,
             (f, i) => new()
             {
                 Full = f.Full,
@@ -486,7 +493,8 @@ public readonly struct TeacherBuilder
     public void FirstName(NameParts<OptionalNamePart> newName)
     {
         var firstName = Model.Name.FirstName;
-        firstName.Update(newName,
+        firstName.Update(
+            newName,
             (old, new_) =>
             {
                 var full = new_.Full ?? old.Full;
@@ -565,7 +573,8 @@ public static class TeacherNameHelper
         var name = ParseName(ref parser);
         if (!parser.IsEmpty)
         {
-            throw new ArgumentException(message: "The full name must contain a correct name syntax.",
+            throw new ArgumentException(
+                message: "The full name must contain a correct name syntax.",
                 paramName: nameof(fullName));
         }
         if (name.LastName == default)

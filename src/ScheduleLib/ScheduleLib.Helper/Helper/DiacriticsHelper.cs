@@ -60,7 +60,8 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public bool Equals(string? x, string? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x: x,
+        if (ComparisonHelper.AtLeastOneIsNull(
+                x: x,
                 y: y,
                 out bool b))
         {
@@ -138,7 +139,8 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
         var x1 = DiacriticsHelper.RemoveDiacritics(a);
         var y1 = DiacriticsHelper.RemoveDiacritics(b);
-        return string.Compare(strA: x1,
+        return string.Compare(
+            strA: x1,
             strB: y1,
             StringComparison.OrdinalIgnoreCase);
     }

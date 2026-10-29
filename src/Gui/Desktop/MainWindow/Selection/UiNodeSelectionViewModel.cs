@@ -80,7 +80,8 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
     private void ResetModel(UiNode n)
     {
         var allNodes = GetUserNodes();
-        Model = new(_dispatcher,
+        Model = new(
+            _dispatcher,
             allNodes,
             n);
     }

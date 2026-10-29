@@ -337,7 +337,8 @@ public sealed class GroupPdfTests
                 .Select(x => x.Path)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            Assert.All(files,
+            Assert.All(
+                files,
                 file =>
                 {
                     string fileName = output.BuildPath(file);

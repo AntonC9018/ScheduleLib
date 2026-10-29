@@ -112,7 +112,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 new Commission<Name>
                 {
                     Members = x.Members.Select((y, index) =>
-                            ParseCommissionMember(commissionNumber: x.Number,
+                            ParseCommissionMember(
+                                commissionNumber: x.Number,
                                 memberNumber: index + 1,
                                 y.Name))
                         .ToArray(),
@@ -150,7 +151,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
         CancellationToken cancellationToken)
     {
         var data = await BuildWorkbooks(thesisType, cancellationToken);
-        await WriteAllAsync(data,
+        await WriteAllAsync(
+            data,
             outputDirectory,
             cancellationToken);
     }
@@ -194,7 +196,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
             var list2 = list;
-            ThesisRecord item2 = new(studentName,
+            ThesisRecord item2 = new(
+                studentName,
                 Group: group,
                 ThesisName: thesisName);
             list2.Add(item2);
@@ -261,7 +264,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
         Stream output,
         CancellationToken cancellationToken)
     {
-        await using var spreadsheet = await Spreadsheet.CreateNewAsync(output,
+        await using var spreadsheet = await Spreadsheet.CreateNewAsync(
+            output,
             options: null,
             cancellationToken);
         const string font = "Times New Roman";
@@ -294,7 +298,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             return name;
         }
 
-        await spreadsheet.StartWorksheetAsync(CalculateName(),
+        await spreadsheet.StartWorksheetAsync(
+            CalculateName(),
             options: null,
             cancellationToken);
 
@@ -359,7 +364,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 return path;
             }
 
-            await using var outputFile = output.OpenFile(CalculatePath(),
+            await using var outputFile = output.OpenFile(
+                CalculatePath(),
                 FileMode.Create,
                 FileAccess.Write);
             await WriteAsync(

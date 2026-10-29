@@ -17,7 +17,8 @@ internal static class RegistryLessonRouting
             {
                 bool CalculateConditionResult()
                 {
-                    if (!IsCurrentLab(config,
+                    if (!IsCurrentLab(
+                            config,
                             parameters.Schedule,
                             parameters.Schedule.Get(id).Lesson))
                     {
@@ -29,8 +30,10 @@ internal static class RegistryLessonRouting
                         return true;
                     }
 
-                    if (ContainsPartition(destination: filter.GroupPartition,
-                            source: ProjectPartition(config,
+                    if (ContainsPartition(
+                            destination: filter.GroupPartition,
+                            source: ProjectPartition(
+                                config,
                                 parameters.Schedule,
                                 parameters.Schedule.Get(id).Lesson)))
                     {
@@ -57,7 +60,8 @@ internal static class RegistryLessonRouting
                 continue;
             }
 
-            if (!IsCurrentLab(config,
+            if (!IsCurrentLab(
+                    config,
                     parameters.Schedule,
                     lesson))
             {
@@ -99,7 +103,8 @@ internal static class RegistryLessonRouting
                 continue;
             }
             // A parent list can contain sessions of its subgroups; the topic identifies the audience.
-            var partition = ProjectPartition(config,
+            var partition = ProjectPartition(
+                config,
                 parameters.Schedule,
                 lesson);
             if (ContainsPartition(destination: filter.GroupPartition, source: partition))
@@ -115,7 +120,8 @@ internal static class RegistryLessonRouting
         Schedule schedule,
         LessonData lesson)
     {
-        if (ManualMerge(config,
+        if (ManualMerge(
+                config,
                 schedule,
                 lesson) is not null)
         {
@@ -133,7 +139,8 @@ internal static class RegistryLessonRouting
         Schedule schedule,
         LessonData lesson)
     {
-        return ManualMerge(config,
+        return ManualMerge(
+                config,
                 schedule,
                 lesson) is not { } merge
             || lesson.SubGroup == new SubGroup(merge.SourceSubGroup);
@@ -153,7 +160,8 @@ internal static class RegistryLessonRouting
             return null;
         }
 
-        var result = RegistryLabMerges.Find(config.LabMerges,
+        var result = RegistryLabMerges.Find(
+            config.LabMerges,
             schedule,
             lesson.Course,
             lesson.Groups,
@@ -266,7 +274,8 @@ internal static class RegistryLessonRouting
         IReadOnlyList<RegistryLessonDestination> destinations,
         RegistrySyncDiagnostics? diagnostics)
     {
-        return Prioritize(schedule,
+        return Prioritize(
+            schedule,
             destinations,
             diagnostics,
             out _);
@@ -299,7 +308,8 @@ internal static class RegistryLessonRouting
                 {
                     foreach (var destination in eligible)
                     {
-                        AddAudience(result,
+                        AddAudience(
+                            result,
                             destination,
                             id,
                             parent);
@@ -327,7 +337,8 @@ internal static class RegistryLessonRouting
                             return group2;
                         }
 
-                        diagnostics?.Add(kind: "ambiguous-registry-destination",
+                        diagnostics?.Add(
+                            kind: "ambiguous-registry-destination",
                             course: schedule.Get(lesson.Course).FullName,
                             @group: CalculateGroup(),
                             detail:
@@ -336,7 +347,8 @@ internal static class RegistryLessonRouting
                     }
                     foreach (var destination in winners)
                     {
-                        AddAudience(result,
+                        AddAudience(
+                            result,
                             destination,
                             id,
                             parent);
@@ -376,7 +388,12 @@ internal static class RegistryLessonRouting
                 return false;
             }
 
-            return group.Groups.Value.IsSingleGroup;
+            if (group.Groups.Value.IsSingleGroup)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool conditionResult = CalculateConditionResult();

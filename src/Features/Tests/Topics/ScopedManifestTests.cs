@@ -47,7 +47,8 @@ public sealed class ScopedManifestTests
         Directory.CreateDirectory(directory);
         try
         {
-            await File.WriteAllTextAsync(path: Path.Combine(directory, "topics.csv"),
+            await File.WriteAllTextAsync(
+                path: Path.Combine(directory, "topics.csv"),
                 contents: "name\nSynthetic topic\n");
             var scheduleBuilder = new ScheduleBuilder();
             scheduleBuilder.GroupParseContext = GroupParseContext.Create(new()
@@ -109,12 +110,14 @@ public sealed class ScopedManifestTests
             }
 
             var builder =
-                new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()),
+                new AllLessonTopicsDatabaseBuilder(
+                    schedule.Filter(new()),
                     NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
                 {
                     Semester = semester,
                 };
-            await builder.AddFromManifest(new(manifest, directory),
+            await builder.AddFromManifest(
+                new(manifest, directory),
                 lookup,
                 default);
             var topics = builder.Build();
@@ -124,11 +127,12 @@ public sealed class ScopedManifestTests
                 GroupId groupId,
                 GroupPartitionKey partition)
             {
-                return new(new FoundGroups
-                {
-                    Value = [groupId],
-                    IsWildcard = false,
-                },
+                return new(
+                    new FoundGroups
+                    {
+                        Value = [groupId],
+                        IsWildcard = false,
+                    },
                     partition,
                     courseId,
                     LessonType.Lab,
@@ -138,7 +142,8 @@ public sealed class ScopedManifestTests
 
             AttendanceLookupKey CalculateKey()
             {
-                var key = Key(course,
+                var key = Key(
+                    course,
                     group,
                     GroupPartitionKey.All);
                 return key;
@@ -162,7 +167,8 @@ public sealed class ScopedManifestTests
             string? expected3 = CalculateExpected();
             string? actual2 = topics.Get(CalculateKey());
             Assert.Equal(expected: expected3, actual: actual2);
-            Assert.Null(topics.Get(Key(course,
+            Assert.Null(topics.Get(Key(
+                    course,
                     group,
                     GroupPartitionKey.All) with
             {
@@ -171,7 +177,8 @@ public sealed class ScopedManifestTests
 
             AttendanceLookupKey CalculateKey2()
             {
-                var key2 = Key(course,
+                var key2 = Key(
+                    course,
                     otherGroup,
                     GroupPartitionKey.All);
                 return key2;
@@ -183,7 +190,8 @@ public sealed class ScopedManifestTests
 
             AttendanceLookupKey CalculateKey3()
             {
-                var key3 = Key(otherCourse,
+                var key3 = Key(
+                    otherCourse,
                     group,
                     GroupPartitionKey.All);
                 return key3;
@@ -200,7 +208,8 @@ public sealed class ScopedManifestTests
                 var subGroup = new SubGroup("I");
                 var specialization = Specialization.All;
                 GroupPartitionKey partition2 = new(subGroup, specialization);
-                var key4 = Key(courseId2,
+                var key4 = Key(
+                    courseId2,
                     groupId2,
                     partition2);
                 return key4;

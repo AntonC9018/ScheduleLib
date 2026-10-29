@@ -8,7 +8,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 1);
         }
@@ -18,7 +19,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 2);
         }
@@ -28,7 +30,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 3);
         }
@@ -38,7 +41,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 4);
         }
@@ -48,7 +52,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 5);
         }
@@ -58,7 +63,8 @@ public sealed class MatchingContextTests
     {
         get
         {
-            return new(year: 2025,
+            return new(
+                year: 2025,
                 month: 1,
                 day: 6);
         }

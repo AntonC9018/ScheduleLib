@@ -24,7 +24,8 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
     {
         foreach (var dir in _manifestDirectories)
         {
-            await ProcessDirectory(dir,
+            await ProcessDirectory(
+                dir,
                 builder,
                 cancellationToken);
         }
@@ -44,14 +45,16 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
             Manifest manifest;
             try
             {
-                using var stream = new FileStream(manifestPath,
+                using var stream = new FileStream(
+                    manifestPath,
                     FileMode.Open,
                     FileAccess.Read);
                 manifest = await ManifestSerializer.Deserialize(stream, cancellationToken);
             }
             catch (CsvHelperException e)
             {
-                _logger.LogError(e,
+                _logger.LogError(
+                    e,
                     "Error while reading manifest {ManifestPath}",
                     manifestPath);
                 continue;
@@ -119,7 +122,8 @@ public static class ManifestFileSourceHelper
             string path,
             Name teacherName)
         {
-            return ActivatorUtilities.CreateInstance<ManifestFileSource>(sp,
+            return ActivatorUtilities.CreateInstance<ManifestFileSource>(
+            sp,
             [
                 path,
                 teacherName,
@@ -135,7 +139,8 @@ public static class ManifestFileSourceHelper
             Name teacherName,
             List<string> directories)
         {
-            return ActivatorUtilities.CreateInstance<ManifestDirectoryTeacherSource>(sp,
+            return ActivatorUtilities.CreateInstance<ManifestDirectoryTeacherSource>(
+            sp,
             [
                 teacherName,
                 directories,

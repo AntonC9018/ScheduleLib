@@ -49,7 +49,8 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
             context.Scopes,
             null);
         var credential =
-            await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver()).AuthorizeAsync(context.Teacher,
+            await new AuthorizationCodeInstalledApp(flow, new LocalServerCodeReceiver()).AuthorizeAsync(
+                context.Teacher,
                 token);
         return credential.Token;
     }
@@ -193,7 +194,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
     public GoogleLoginBuilder Login(string teacher, IServiceProvider services)
     {
-        return new(this,
+        return new(
+            this,
             teacher,
             services);
     }
@@ -233,7 +235,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
             {
                 throw new InvalidOperationException("Configure Google login credentials before execution.");
             }
-            return _authentication.LoginConfigured(_configurations,
+            return _authentication.LoginConfigured(
+                _configurations,
                 _teacher,
                 _services,
                 token);
@@ -281,7 +284,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         TokenResponse result;
         try
         {
-            result = await _tokens.Consent(new GoogleTokenContext(secrets,
+            result = await _tokens.Consent(
+                new GoogleTokenContext(
+                    secrets,
                     teacher,
                     scopes),
                 token);
@@ -336,7 +341,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
             try
             {
-                var refreshed = await _tokens.Refresh(new GoogleTokenContext(secrets,
+                var refreshed = await _tokens.Refresh(
+                    new GoogleTokenContext(
+                        secrets,
                         teacher,
                         scopes),
                     authorization,

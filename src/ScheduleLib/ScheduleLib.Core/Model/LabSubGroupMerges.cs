@@ -69,7 +69,8 @@ public static class LabSubGroupMerges
 
                 return false;
             })
-            .GroupBy(x => new Key(x.Lesson.Course,
+            .GroupBy(x => new Key(
+                x.Lesson.Course,
                 x.Lesson.Group,
                 x.Lesson.Specialization,
                 x.Lesson.Alternative));
@@ -348,7 +349,8 @@ public static class LabSubGroupMerges
             var retained = labels.Length == 1 ? currentNumeric : whole;
             var survivor = labels.Length == 1 ? labels[0] : SubGroup.All;
             var builder = merges;
-            DetectedLabSubGroupMerge item2 = new(key.Course,
+            DetectedLabSubGroupMerge item2 = new(
+                key.Course,
                 key.Group,
                 key.Specialization,
                 key.Alternative,

@@ -136,7 +136,8 @@ public sealed class IgnoreDiacriticsAndCase_Name_Comparer :
 
     public bool Equals(NameParts<string?> x, NameParts<string?> y)
     {
-        return x.EachEquals(y,
+        return x.EachEquals(
+            y,
             (x1, y1) =>
             {
                 if (x1 is null)
@@ -359,7 +360,8 @@ public static class NamePartHelper
         Func<T, U, bool> pred)
     {
         // Pass the predicate itself as state.
-        return a.EachEquals(b,
+        return a.EachEquals(
+            b,
             pred,
             static (
                 pred, a,
@@ -378,7 +380,8 @@ public static class NamePartHelper
         {
             var fa = i.GetRef(ref a);
             var fb = i.GetRef(ref b);
-            if (!pred(state,
+            if (!pred(
+                    state,
                     fa,
                     fb))
             {

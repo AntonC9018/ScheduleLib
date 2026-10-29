@@ -25,7 +25,8 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
             token.ThrowIfCancellationRequested();
             try
             {
-                var stream = new FileStream(path,
+                var stream = new FileStream(
+                    path,
                     FileMode.OpenOrCreate,
                     FileAccess.ReadWrite,
                     FileShare.None);
@@ -68,7 +69,8 @@ public sealed class LocalOperationBusyException : IOException
 
     public static LocalOperationBusyException ForOwnedPath(string path, Exception? inner = null)
     {
-        return new LocalOperationBusyException(path,
+        return new LocalOperationBusyException(
+            path,
             inner,
             new OwnedPathFailure());
     }
@@ -83,7 +85,8 @@ public static class AtomicFile
         Func<Stream, CancellationToken, Task> write,
         CancellationToken token)
     {
-        return ScheduleLib.Helper.AtomicFilePublisher.Publish(destination,
+        return ScheduleLib.Helper.AtomicFilePublisher.Publish(
+            destination,
             write,
             token);
     }

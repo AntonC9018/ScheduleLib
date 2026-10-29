@@ -144,7 +144,9 @@ public sealed class GoogleCredentialResolver : IDisposable
     {
         if (_sp.GetService<IGoogleCredentialAuthorization>() is { } authorization)
         {
-            return await authorization.Resolve(new GoogleCredentialRequest(config,
+            return await authorization.Resolve(
+                new GoogleCredentialRequest(
+                    config,
                     requiredScopes,
                     _userNameProvider.Get(),
                     _sp),
@@ -204,7 +206,8 @@ public sealed class GoogleCredentialResolver : IDisposable
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }
 
-        var credential = new UserCredential(flow,
+        var credential = new UserCredential(
+            flow,
             user,
             token);
         try
@@ -252,7 +255,8 @@ public sealed class GoogleTaskRunnerProvider
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<GoogleTaskRunnerProvider>();
-        services.AddKeyedSingleton(Key,
+        services.AddKeyedSingleton(
+            Key,
             (sp, key) =>
             {
                 _ = sp;

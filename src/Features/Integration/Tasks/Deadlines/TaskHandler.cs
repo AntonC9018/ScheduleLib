@@ -53,8 +53,20 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                 .ToArray();
 
             if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
-                .Any(course => course.Count() > 1
-                    && course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
+                .Any(course =>
+                {
+                    if (!(course.Count() > 1))
+                    {
+                        return false;
+                    }
+
+                    if (!(course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }))
             {
                 throw new NotImplementedException("Shared labs not implemented");
             }

@@ -64,7 +64,8 @@ public sealed class Test
 
         var builder =
             ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
-        await builder.AddFromManifest(manifest,
+        await builder.AddFromManifest(
+            manifest,
             lookup,
             helper.CancellationToken);
         var result = builder.Build();

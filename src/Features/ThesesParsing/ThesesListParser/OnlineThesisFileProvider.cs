@@ -32,7 +32,8 @@ public sealed class OnlineThesesFileProvider : IThesesFileProvider
 
     public async ValueTask<Stream> Open(CancellationToken cancellationToken)
     {
-        var outputFile = new FileStream(_opts.OutputFilePath,
+        var outputFile = new FileStream(
+            _opts.OutputFilePath,
             FileMode.Create,
             FileAccess.ReadWrite);
         try

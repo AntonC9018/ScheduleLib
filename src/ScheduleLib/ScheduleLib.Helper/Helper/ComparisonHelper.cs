@@ -156,7 +156,8 @@ public static class ComparisonHelper
         Func<T, T, bool> comparer)
         where T : class
     {
-        if (AtLeastOneIsNull(x: x,
+        if (AtLeastOneIsNull(
+                x: x,
                 y: y,
                 out bool bothNull))
         {

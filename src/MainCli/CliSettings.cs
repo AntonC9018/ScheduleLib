@@ -863,7 +863,8 @@ public static partial class CliSettings
                                               or NotSupportedException
                                               or InvalidOperationException)
                 {
-                    throw new InvalidSettingsBlockValueException(location: location,
+                    throw new InvalidSettingsBlockValueException(
+                        location: location,
                         settingKey: setting.Key,
                         settingsPath: path,
                         errorMessage: e.Message);

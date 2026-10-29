@@ -112,7 +112,8 @@ public static partial class BitArrayExtensions
         int offset,
         int len)
     {
-        return SizedOffsetBitArray32Ref.Create(ref arr,
+        return SizedOffsetBitArray32Ref.Create(
+            ref arr,
             offset: offset,
             len: len);
     }
@@ -122,7 +123,8 @@ public static partial class BitArrayExtensions
         int offset,
         int len)
     {
-        return new(ref arr,
+        return new(
+            ref arr,
             offset: offset,
             length: len);
     }

@@ -27,7 +27,8 @@ public sealed class RegistryTopicScopeTests
     public void Format_ListsOrderedParentsWithTeachingLanguages()
     {
         var (schedule, groups) = ScheduleWith("DJ2602(en)", "DJ2601(ru)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         Assert.Equal(expected: "DJ2601 (ru), DJ2602 (en)", actual: scope);
@@ -37,7 +38,8 @@ public sealed class RegistryTopicScopeTests
     public void Format_DefaultGroupLanguageUsesRoTag()
     {
         var (schedule, groups) = ScheduleWith("IA2501");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         Assert.Equal(expected: "IA2501 (ro)", actual: scope);
@@ -55,7 +57,8 @@ public sealed class RegistryTopicScopeTests
         group.Ref.Language = Language.None;
         var groups = new LessonGroups();
         groups.Add(group.Id);
-        var scope = RegistryTopicScope.Format(builder.Build(),
+        var scope = RegistryTopicScope.Format(
+            builder.Build(),
             groups,
             GroupPartitionKey.All);
         Assert.Equal(expected: "IA2501", actual: scope);
@@ -70,7 +73,8 @@ public sealed class RegistryTopicScopeTests
         var subGroup = SubGroup.CreateNumeric(number);
         var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             partition);
         string expected2 = $"DJ2601 (ru) {suffix}";
@@ -83,7 +87,8 @@ public sealed class RegistryTopicScopeTests
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var partition = new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All);
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             partition);
         Assert.Equal(expected: "DJ2601 (ru) /en", actual: scope);
@@ -100,7 +105,8 @@ public sealed class RegistryTopicScopeTests
             subGroup,
             specialization,
             alternative);
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             partition);
         Assert.Equal(expected: "DJ2601 (ru) /alt:Antreprenoriat /spec:DJ /I", actual: scope);
@@ -111,7 +117,8 @@ public sealed class RegistryTopicScopeTests
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
         var partition = new GroupPartitionKey(SpecialSubGroups.Beginners, Specialization.All);
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             partition);
         Assert.StartsWith(expectedStartString: "DJ2601 (ru) /sub:", actualString: scope);
@@ -121,17 +128,20 @@ public sealed class RegistryTopicScopeTests
     public void AppendAndTrySplit_RoundTripNestedLanguageParentheses()
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
-        var appended = RegistryTopicScope.Append(topic: "Curs introductiv",
+        var appended = RegistryTopicScope.Append(
+            topic: "Curs introductiv",
             scope: scope,
             known);
         string expected2 = $"Curs introductiv ({scope})";
         string? actual2 = appended;
         Assert.Equal(expected: expected2, actual: actual2);
-        bool condition = RegistryTopicScope.TrySplit(topic: appended,
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: appended,
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);
@@ -144,14 +154,17 @@ public sealed class RegistryTopicScopeTests
     public void AppendAndTrySplit_RoundTripMultipleGroups()
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)", "DJ2602(en)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
-        var appended = RegistryTopicScope.Append(topic: "Laborator",
+        var appended = RegistryTopicScope.Append(
+            topic: "Laborator",
             scope: scope,
             known);
-        bool condition = RegistryTopicScope.TrySplit(topic: appended,
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: appended,
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);
@@ -164,7 +177,8 @@ public sealed class RegistryTopicScopeTests
     public void Append_ReplacesRecognizedSuffixAndIsIdempotent()
     {
         var (schedule, oldGroups) = ScheduleWith("DJ2601(ru)");
-        var oldScope = RegistryTopicScope.Format(schedule,
+        var oldScope = RegistryTopicScope.Format(
+            schedule,
             oldGroups,
             GroupPartitionKey.All);
         var schedule2 = schedule;
@@ -172,7 +186,8 @@ public sealed class RegistryTopicScopeTests
         var subGroup = SubGroup.CreateNumeric(1);
         var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
-        var newScope = RegistryTopicScope.Format(schedule2,
+        var newScope = RegistryTopicScope.Format(
+            schedule2,
             groups,
             partition);
         var known = (IReadOnlyCollection<string>) [oldScope, newScope];
@@ -180,17 +195,20 @@ public sealed class RegistryTopicScopeTests
         string topic2 = $"Baza ({oldScope})";
         string scope2 = newScope;
         var knownScopes = known;
-        var replaced = RegistryTopicScope.Append(topic: topic2,
+        var replaced = RegistryTopicScope.Append(
+            topic: topic2,
             scope: scope2,
             knownScopes);
         string expected2 = $"Baza ({newScope})";
         string? actual2 = replaced;
         Assert.Equal(expected: expected2, actual: actual2);
 
-        var first = RegistryTopicScope.Append(topic: "Baza",
+        var first = RegistryTopicScope.Append(
+            topic: "Baza",
             scope: newScope,
             known);
-        var second = RegistryTopicScope.Append(topic: first,
+        var second = RegistryTopicScope.Append(
+            topic: first,
             scope: newScope,
             known);
         Assert.Equal(expected: first, actual: second);
@@ -200,12 +218,14 @@ public sealed class RegistryTopicScopeTests
     public void TrySplit_PreservesUnknownTrailingParentheses()
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
 
-        bool condition = RegistryTopicScope.TrySplit(topic: "Feature (optional)",
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: "Feature (optional)",
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);
@@ -213,13 +233,15 @@ public sealed class RegistryTopicScopeTests
         Assert.Null(baseTopic);
         Assert.Null(splitScope);
 
-        bool condition2 = RegistryTopicScope.TrySplit(topic: "Topic (unrelated audience)",
+        bool condition2 = RegistryTopicScope.TrySplit(
+            topic: "Topic (unrelated audience)",
             known,
             baseTopic: out _,
             scope: out _);
         Assert.False(condition2);
 
-        var appended = RegistryTopicScope.Append(topic: "Feature (optional)",
+        var appended = RegistryTopicScope.Append(
+            topic: "Feature (optional)",
             scope: scope,
             known);
         string expected2 = $"Feature (optional) ({scope})";
@@ -231,24 +253,28 @@ public sealed class RegistryTopicScopeTests
     public void TrySplit_KeepsInternalParenthesesWhileRecognizingTerminalScope()
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
 
-        bool condition = RegistryTopicScope.TrySplit(topic: "Intro (part 1) rest",
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: "Intro (part 1) rest",
             known,
             baseTopic: out _,
             scope: out _);
         Assert.False(condition);
 
-        var appended = RegistryTopicScope.Append(topic: "Intro (part 1)",
+        var appended = RegistryTopicScope.Append(
+            topic: "Intro (part 1)",
             scope: scope,
             known);
         string expected2 = $"Intro (part 1) ({scope})";
         string? actual2 = appended;
         Assert.Equal(expected: expected2, actual: actual2);
-        bool condition2 = RegistryTopicScope.TrySplit(topic: appended,
+        bool condition2 = RegistryTopicScope.TrySplit(
+            topic: appended,
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);
@@ -266,16 +292,19 @@ public sealed class RegistryTopicScopeTests
         var subGroup = SubGroup.CreateNumeric(1);
         var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
-        var full = RegistryTopicScope.Format(schedule2,
+        var full = RegistryTopicScope.Format(
+            schedule2,
             groups2,
             partition);
         var known = (IReadOnlyCollection<string>) [full];
-        bool condition = RegistryTopicScope.TrySplit(topic: "Baza (DJ2601)",
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: "Baza (DJ2601)",
             known,
             baseTopic: out _,
             scope: out _);
         Assert.False(condition);
-        bool condition2 = RegistryTopicScope.TrySplit(topic: "Baza (DJ2601 (ru))",
+        bool condition2 = RegistryTopicScope.TrySplit(
+            topic: "Baza (DJ2601 (ru))",
             known,
             baseTopic: out _,
             scope: out _);
@@ -289,16 +318,19 @@ public sealed class RegistryTopicScopeTests
     public void Append_ReturnsBlankTopicsUnchanged(string? topic)
     {
         var (schedule, groups) = ScheduleWith("DJ2601(ru)");
-        var scope = RegistryTopicScope.Format(schedule,
+        var scope = RegistryTopicScope.Format(
+            schedule,
             groups,
             GroupPartitionKey.All);
         var known = (IReadOnlyCollection<string>) [scope];
         string? expected2 = topic;
-        string? actual2 = RegistryTopicScope.Append(topic: topic,
+        string? actual2 = RegistryTopicScope.Append(
+            topic: topic,
             scope: scope,
             known);
         Assert.Equal(expected: expected2, actual: actual2);
-        bool condition = RegistryTopicScope.TrySplit(topic: topic,
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: topic,
             known,
             baseTopic: out _,
             scope: out _);
@@ -313,7 +345,8 @@ public sealed class RegistryTopicScopeTests
     {
         var known = (IReadOnlyCollection<string>) [canonical];
         var topic = $"Baza ({alias})";
-        bool condition = RegistryTopicScope.TrySplit(topic: topic,
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: topic,
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);
@@ -321,7 +354,8 @@ public sealed class RegistryTopicScopeTests
         Assert.Equal(expected: "Baza", actual: baseTopic);
         Assert.Equal(expected: canonical, actual: splitScope);
 
-        var replaced = RegistryTopicScope.Append(topic: topic,
+        var replaced = RegistryTopicScope.Append(
+            topic: topic,
             scope: canonical,
             known);
         string expected2 = $"Baza ({canonical})";
@@ -338,12 +372,14 @@ public sealed class RegistryTopicScopeTests
         var subGroup = SubGroup.CreateNumeric(1);
         var specialization = Specialization.All;
         var partition = new GroupPartitionKey(subGroup, specialization);
-        var scope = RegistryTopicScope.Format(schedule2,
+        var scope = RegistryTopicScope.Format(
+            schedule2,
             groups2,
             partition);
         var known = (IReadOnlyCollection<string>) [scope];
         var lower = $"Baza ({scope.ToLowerInvariant()})";
-        bool condition = RegistryTopicScope.TrySplit(topic: lower,
+        bool condition = RegistryTopicScope.TrySplit(
+            topic: lower,
             known,
             baseTopic: out var baseTopic,
             scope: out var splitScope);

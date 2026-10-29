@@ -17,7 +17,8 @@ public sealed class ScheduleSourceSanityTests
             .EnumerateGroups()
             .Where(group => group.Item.AttendanceMode.IsDual())
             .ToArray();
-        Assert.Equal(expected: new[]
+        Assert.Equal(
+            expected: new[]
             {
                 "DU-IA2501",
                 "DU-IA2601",

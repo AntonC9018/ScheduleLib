@@ -143,7 +143,12 @@ internal static class MatchLessonHelper
                 return true;
             }
 
-            return lesson.Groups.IsEmpty;
+            if (lesson.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         if (CheckCondition())
@@ -192,7 +197,8 @@ internal static class MatchLessonHelper
             }
             else
             {
-                bool matchesPartition = MatchesPartition(p.Schedule,
+                bool matchesPartition = MatchesPartition(
+                    p.Schedule,
                     lesson.Lesson,
                     groupPartition);
                 condition = !matchesPartition;

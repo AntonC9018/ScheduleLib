@@ -142,7 +142,8 @@ public static class ColumnArrangementHelper
 
             var day = lesson.Date.DefaultRowKey();
 
-            ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(groupings,
+            ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                groupings,
                 day,
                 out bool exists);
             if (!exists)
@@ -412,7 +413,8 @@ file readonly struct Dict<TKey, TValue>()
 
     public ref TValue? Add(TKey key, out bool added)
     {
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict,
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _dict,
             key,
             out bool exists);
         added = !exists;
