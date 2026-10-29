@@ -280,20 +280,20 @@ public sealed class AuthenticationTests
         "auth",
         "login",
         "google",
+        "--json",
         "--output",
-        "bad",
-        "--json")]
+        "bad")]
     [InlineData(
         "auth",
         "status",
         "google",
-        "--no-cache",
-        "--json")]
+        "--json",
+        "--no-cache")]
     [InlineData(
         "auth",
         "logout",
-        "unknown",
-        "--json")]
+        "--json",
+        "unknown")]
     [InlineData(
         "auth",
         "status",

@@ -14,7 +14,7 @@ public sealed class ScheduleExportTests
     {
         Assert.Equal(expected: 0, actual: await CliHost.Run(["export", format, "--help"]));
         using var capture = new Capture();
-        Assert.Equal(expected: 2, actual: await CliHost.Run(["export", format, "--unknown", "--json"]));
+        Assert.Equal(expected: 2, actual: await CliHost.Run(["export", format, "--json", "--unknown"]));
         Assert.Equal(
             expected: 2,
             actual: capture.Result()
