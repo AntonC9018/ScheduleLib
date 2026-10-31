@@ -31,11 +31,8 @@ CR0300 total was correct. The counts below come from the refreshed inventory.
 fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Ana"]));
 ```
 
-This is now accepted. Explicit construction and target-typed `new(...)` share
-one allowance per containing call, alongside other nonconstructed arguments.
-Simple collection inputs remain accepted. Nested constructors, producer calls,
-conditional values and numeric calculations inside construction inputs remain
-subject to the existing rules.
+This is now accepted; see the
+[single-construction allowance](../decisions/analyzer-single-construction-allowance.md).
 
 Credential requests in [AuthenticationTests.cs:34][authentication] and website
 teacher records in [WebsiteExportTests.cs:137][website-teachers] also benefit.
@@ -136,35 +133,35 @@ explicitly unverified. No machine configuration changes are included here.
 [review]: https://github.com/AntonC9018/CodingRules/issues/36
 [baseline]: https://github.com/AntonC9018/ScheduleLib/issues/248
 [coverage]:
-  ../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L15
+  ../../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L15
 [observe]:
-  ../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L22
-[authentication]: ../src/MainCli/Tests/AuthenticationTests.cs#L34
-[website-teachers]: ../src/MainCli/Tests/WebsiteExportTests.cs#L137
-[assertion]: ../src/Features/LayeredData/BasicOperations/CallHelper.cs#L26
-[hierarchy-assertion]: ../src/Features/LayeredData/BasicOperations/OpenHierarchy.cs#L312
+  ../../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L22
+[authentication]: ../../src/MainCli/Tests/AuthenticationTests.cs#L34
+[website-teachers]: ../../src/MainCli/Tests/WebsiteExportTests.cs#L137
+[assertion]: ../../src/Features/LayeredData/BasicOperations/CallHelper.cs#L26
+[hierarchy-assertion]: ../../src/Features/LayeredData/BasicOperations/OpenHierarchy.cs#L312
 [destination]:
-  ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L51
-[date-match]: ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/Attendance.cs#L40
-[partition]: ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/PublicApi.cs#L231
-[punctuation]: ../src/ScheduleLib/ScheduleLib.Core/Parsing/StringCleanHelper.cs#L72
-[course-words]: ../src/ScheduleLib/ScheduleLib.Core/Parsing/CourseNameParser.cs#L412
+  ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L51
+[date-match]: ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/Attendance.cs#L40
+[partition]: ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/PublicApi.cs#L231
+[punctuation]: ../../src/ScheduleLib/ScheduleLib.Core/Parsing/StringCleanHelper.cs#L72
+[course-words]: ../../src/ScheduleLib/ScheduleLib.Core/Parsing/CourseNameParser.cs#L412
 [lesson-parser]:
-  ../src/ScheduleLib/ScheduleLib.Core/Parsing/LessonParser/LessonParser.cs#L345
-[free-hours-stage]: ../src/Features/Integration/Tasks/PrintFreeHoursOfGroup.cs#L154
-[google-context]: ../src/MainCli/GoogleAuthentication.cs#L378
-[json-options]: ../src/MainCli/CliHost.cs#L396
-[schedule-files]: ../src/MainCli/Tests/WebsiteExportTests.cs#L99
-[file-count]: ../src/MainCli/Tests/WebsiteExportTests.cs#L74
+  ../../src/ScheduleLib/ScheduleLib.Core/Parsing/LessonParser/LessonParser.cs#L345
+[free-hours-stage]: ../../src/Features/Integration/Tasks/PrintFreeHoursOfGroup.cs#L154
+[google-context]: ../../src/MainCli/GoogleAuthentication.cs#L378
+[json-options]: ../../src/MainCli/CliHost.cs#L396
+[schedule-files]: ../../src/MainCli/Tests/WebsiteExportTests.cs#L99
+[file-count]: ../../src/MainCli/Tests/WebsiteExportTests.cs#L74
 [diagnostic]:
-  ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L124
-[excel-radix]: ../src/ScheduleLib/ScheduleLib.Helper.Excel/ExcelRangeHelper.cs#L110
+  ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L124
+[excel-radix]: ../../src/ScheduleLib/ScheduleLib.Helper.Excel/ExcelRangeHelper.cs#L110
 [routing-predicate]:
-  ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L91
+  ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L91
 [action-kind]:
-  ../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L129
+  ../../src/Features/OnlineRegistry/OnlineRegistry/PublicApi/RegistryIntakeLabCleanup.cs#L129
 
 [cli-host]: https://github.com/AntonC9018/ScheduleLib/issues/250
 
 [multiple-constructions]:
-  ../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L117
+  ../../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L117

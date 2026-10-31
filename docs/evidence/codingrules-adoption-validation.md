@@ -1,6 +1,9 @@
-# Ticket 18 validation
+# CodingRules adoption validation (ticket 18)
 
-Latest follow-up: [2026-10-25 rollout and grouped remaining cases](analyzer-review-2026-10-25.md). The dated results below describe earlier candidates.
+Validation record for the `070dbf9` candidate, which is **superseded**; later candidates and
+rollouts are in [candidates](codingrules-candidates.md) and the
+[rollout record](analyzer-rollout.md). Test baselines are summarized in
+[baseline failures](analyzer-baseline-test-failures.md).
 
 Status: **consumer adoption complete**. Manual/unresolved policy in the ledger,
 known test baselines and package publication remain separate.
@@ -31,7 +34,8 @@ the upstream formatting fixer and CodingRules' guarded RCS1016 fixer are present
 From ScheduleLib:
 
 ```sh
-WarningsNotAsErrors='NU1902;NU1903' python3 build/use-codingrules-candidate.py /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
+WarningsNotAsErrors='NU1902;NU1903' python3 build/use-codingrules-candidate.py \
+    /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
 ```
 
 Exit 0. An initially empty hash-specific cache and exact-ID source mapping
@@ -41,7 +45,8 @@ fresh archive. After the broad solution restore/build, the same byte verifier
 confirmed the exact candidate and assets in **all 39 solution projects**.
 Explicit guidance export matches the archive; AGENTS.md directs
 agents to read the committed export, which was read during this task. Ordinary
-build/restore does not export instructions. See [candidate setup](codingrules-candidate.md).
+build/restore does not export instructions.
+See [candidate adoption](../decisions/codingrules-candidate-adoption.md).
 
 The old contract-consumer failure was a **gate defect**, not an analyzer defect:
 csc skips all analyzers on declaration errors. CodingRules `070dbf9` expects
@@ -54,10 +59,14 @@ consumer gate does not claim to execute an analyzer on declaration errors.
 These commands each ran **once**, sequentially, against that exact archive:
 
 ```sh
-python3 build/verify-contract-consumer.py /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
-python3 build/verify-formatting-consumer.py /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
-python3 build/verify-computation-consumer.py /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
-python3 build/verify-tuple-consumer.py /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
+python3 build/verify-contract-consumer.py \
+    /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
+python3 build/verify-formatting-consumer.py \
+    /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
+python3 build/verify-computation-consumer.py \
+    /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
+python3 build/verify-tuple-consumer.py \
+    /tmp/schedulelib-ticket18-070dbf9/Anton.CodingRules.0.1.0.nupkg
 ```
 
 All four passed (exit 0), using SDK **10.0.113**:
@@ -97,7 +106,7 @@ a compact body, wrap a three-argument call, or wrap a long two-argument call.
 The combined `Expected.cs.txt` proves all those retained capabilities. Therefore
 CleanupCode and its syntax-only solution host are deliberately retained.
 Package fixes use the real consumer project/reference context in a separate
-snapshot, not that synthetic project. See [workflow](formatting.md).
+snapshot, not that synthetic project. See [workflow](../formatting.md).
 
 The opt-in `--style` pass allows only CR0800/CR0801/CR0802/RCS0042/RCS1016.
 The standard CLI filtered out IDs in the legacy `WarningsNotAsErrors` list;
@@ -121,9 +130,12 @@ Commands use `WarningsNotAsErrors='NU1902;NU1903'`; tests additionally use
 ```sh
 python3 -m unittest discover -s build/tests -v
 python3 build/verify-formatting.py
-build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs --path src/MainCli/AppTasks.cs
-build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs --path src/MainCli/AppTasks.cs --check
-build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs --path src/MainCli/AppTasks.cs
+build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs \
+    --path src/MainCli/AppTasks.cs
+build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs \
+    --path src/MainCli/AppTasks.cs --check
+build/format.sh --style --project src/MainCli/MainCli.csproj --path src/MainCli/Commands.Auth.cs \
+    --path src/MainCli/AppTasks.cs
 ```
 
 All final commands passed. Unit checks: **5 passed**. The executable fixture
@@ -148,8 +160,14 @@ advisory/workspace-load warnings remain visible.
 Focused tests ran first:
 
 ```sh
-dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-restore -m:1 --filter 'FullyQualifiedName~AuthenticationTests|FullyQualifiedName~CalendarReportingTests|FullyQualifiedName~ScheduleLoaderSerializationTests' --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/focused-maincli
-dotnet test src/ScheduleLib/Tests/Parser/Parser.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~LexerTest --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/focused-lexer
+FILTER='FullyQualifiedName~AuthenticationTests|FullyQualifiedName~CalendarReportingTests'
+FILTER="$FILTER|FullyQualifiedName~ScheduleLoaderSerializationTests"
+dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-restore -m:1 \
+    --filter "$FILTER" --logger trx \
+    --results-directory /tmp/schedulelib-ticket18-070dbf9/results/focused-maincli
+dotnet test src/ScheduleLib/Tests/Parser/Parser.Tests.csproj -c Release -m:1 --filter \
+    FullyQualifiedName~LexerTest --logger trx --results-directory \
+    /tmp/schedulelib-ticket18-070dbf9/results/focused-lexer
 ```
 
 Passed: **27/27 MainCli tests**, **1/1 lexer test**, no failures or skips.
@@ -171,8 +189,10 @@ All heavy checks ran sequentially. The same command-scoped audit exception and
 
 ```sh
 dotnet build All.sln -c Release -m:1
-dotnet test All.sln -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/full
-dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-full
+dotnet test All.sln -c Release --no-build --no-restore -m:1 --logger trx --results-directory \
+    /tmp/schedulelib-ticket18-070dbf9/results/full
+dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 \
+    --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-full
 ```
 
 - Solution build: **passed**, exit 0, **5,139 warnings, 0 errors**, 1:43.74.
@@ -197,9 +217,15 @@ visible without breaking the baseline build. No rule family is disabled.
 From that snapshot, these commands each reproduced the same failures (exit 1):
 
 ```sh
-dotnet test src/Features/Tests/Curriculum/Curriculum.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~ThesisNameTests --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-curriculum
-dotnet test src/Features/Tests/WebsiteJsonSchedule/WebsiteJsonSchedule.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~FmiWebsiteInteropTests.CountTest --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-website
-dotnet test src/Gui/Tests/Desktop/Desktop.Tests.csproj -c Release -m:1 --filter FullyQualifiedName~Desktop.Tests.EventTests --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-desktop
+dotnet test src/Features/Tests/Curriculum/Curriculum.Tests.csproj -c Release -m:1 --filter \
+    FullyQualifiedName~ThesisNameTests --logger trx --results-directory \
+    /tmp/schedulelib-ticket18-070dbf9/results/baseline-curriculum
+dotnet test src/Features/Tests/WebsiteJsonSchedule/WebsiteJsonSchedule.Tests.csproj -c Release \
+    -m:1 --filter FullyQualifiedName~FmiWebsiteInteropTests.CountTest --logger trx \
+    --results-directory /tmp/schedulelib-ticket18-070dbf9/results/baseline-website
+dotnet test src/Gui/Tests/Desktop/Desktop.Tests.csproj -c Release -m:1 --filter \
+    FullyQualifiedName~Desktop.Tests.EventTests --logger trx --results-directory \
+    /tmp/schedulelib-ticket18-070dbf9/results/baseline-desktop
 ```
 
 - `Curriculum.Tests.ThesisNameTests.FileNameParsedCorrectly` and
@@ -219,16 +245,16 @@ passing results.
 Final regression checks exclude **only these seven exact baseline names**:
 
 ```sh
-BASELINE_FILTER='FullyQualifiedName!=Curriculum.Tests.ThesisNameTests.FileNameParsedCorrectly'
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Curriculum.Tests.ThesisNameTests.CurriculumParsedCorrectly"
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=FmiWebsiteInterop.Tests.FmiWebsiteInteropTests.CountTest"
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.LayerChangedTest"
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.NodeChangedTest"
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=Desktop.Tests.EventTests.ReloadWorks"
-BASELINE_FILTER="$BASELINE_FILTER&FullyQualifiedName!=RegistryHistoryTests.ErrorLoggerNeverEnumeratesOrLogsPrivateStudentValuesOrContext"
-dotnet test All.sln -c Release --no-build --no-restore -m:1 --filter "$BASELINE_FILTER" --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/solution-filtered
-dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 --filter "$BASELINE_FILTER" --logger trx --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-filtered
+dotnet test All.sln -c Release --no-build --no-restore -m:1 \
+    --filter "$BASELINE_FILTER" --logger trx \
+    --results-directory /tmp/schedulelib-ticket18-070dbf9/results/solution-filtered
+dotnet test src/MainCli/Tests/MainCli.Tests.csproj -c Release --no-build --no-restore -m:1 \
+    --filter "$BASELINE_FILTER" --logger trx \
+    --results-directory /tmp/schedulelib-ticket18-070dbf9/results/maincli-filtered
 ```
+
+`BASELINE_FILTER` joins `FullyQualifiedName!=<name>` terms with `&` for the seven names listed in
+[baseline test failures](analyzer-baseline-test-failures.md).
 
 Both pass (exit **0**): solution **696 passed, 7 skipped, 0 failed** (**703 total**);
 MainCli **766 passed, 0 skipped, 0 failed** (**766 total**). Combined:
