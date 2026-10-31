@@ -96,6 +96,12 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         return new(ids[i]);
     }
 
+    /// <summary>Applies the schedule's teacher name remappings, as imported names are resolved.</summary>
+    public TeacherNameRemapStatus RemapTeacherName(ref TeacherBuilderModel.NameModel name)
+    {
+        return s.RemapTeacherName(ref name);
+    }
+
     public TeacherId? Teacher(string firstName, string lastName)
     {
         if (LookupModule.TeachersByLastName.Get(lastName) is not { } ids)

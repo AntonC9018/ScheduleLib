@@ -9,6 +9,7 @@ public sealed class TeacherProfileScheduleLookupTests
     {
         var schedule = new ScheduleBuilder();
         schedule.EnableLookupModule();
+        schedule.Remappings.TeacherLastNameRemappings.Add(a: "Vișnevschi", b: "Vișnevschii");
         var other = schedule.Teacher("Victor Vișnevschii");
         var vlada = schedule.Teacher("Vlada Vișnevschii");
         schedule.RefreshLookup();

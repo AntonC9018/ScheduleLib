@@ -101,27 +101,18 @@ public static class TeacherProfileScheduleLookup
 {
     public static TeacherId? Find(LookupFacade lookup, Name profileName)
     {
-        if (lookup.Teacher(profileName.ToNameModel()) is { } found)
+        var name = profileName.ToNameModel();
+        if (lookup.Teacher(name) is { } found)
         {
             return found;
         }
 
-        // The registry credential profile predates the spelling in the current schedule.
-        if (profileName.ToString() == "Visnevschi Vlada")
+        // A profile may predate the spelling used by the current schedule.
+        if (lookup.RemapTeacherName(ref name) == TeacherNameRemapStatus.None)
         {
-            var lookupFacade = lookup;
-            var parse = NameHelper.Parse("Vișnevschii Vlada");
-            var name = parse.ToNameModel();
-            var result = lookupFacade.Teacher(name);
-            if (result is null)
-            {
-                return null;
-            }
-
-            return result;
+            return null;
         }
-
-        return null;
+        return lookup.Teacher(name);
     }
 }
 
