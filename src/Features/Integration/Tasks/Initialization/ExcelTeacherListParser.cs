@@ -102,12 +102,7 @@ public static class ExcelTeacherListParser
                     {
                         case 0:
                             {
-                                if (!(cell.CellValue is null))
-                                {
-                                    return true;
-                                }
-
-                                return false;
+                                return cell.CellValue is not null;
                             }
                         // Nume, prenume
                         case 1:

@@ -76,44 +76,46 @@ public sealed class FmiScheduleClient(HttpClient http)
 
                 if (element.LocalName == "a")
                 {
-                    if (element.GetAttribute("href") is { } href)
-                    {
-                        if (Uri.TryCreate(
-                                baseUri: page,
-                                href,
-                                result: out var uri))
-                        {
-                            if (uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                            {
-                                var match = Regex.Match(
-                                    input: prefix.ToString(),
-                                    pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
-                                if (match.Success)
-                                {
-                                    var year = match.Groups[1].Value.Length;
-                                    var dictionary = links;
-                                    int key = year;
-                                    int year2 = year;
-                                    var url = uri;
-                                    var uploadDate = ReadUploadDate(element);
-                                    FmiScheduleLink value = new(
-                                        year2,
-                                        url,
-                                        uploadDate);
-                                    bool tryAdd = dictionary.TryAdd(key, value);
-                                    if (!tryAdd)
-                                    {
-                                        throw new AmbiguousFmiScheduleLinksException(year);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    TryAddLink(element);
                 }
             }
+
             foreach (var child in node.ChildNodes)
             {
                 Visit(child);
+            }
+        }
+
+        void TryAddLink(IElement element)
+        {
+            if (element.GetAttribute("href") is not { } href)
+            {
+                return;
+            }
+
+            if (!Uri.TryCreate(page, href, out var uri))
+            {
+                return;
+            }
+
+            if (!uri.AbsolutePath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var match = Regex.Match(
+                input: prefix.ToString(),
+                pattern: @"Anul\s+(III|II|I)\s+Licen[ţț][ăa]:?\s*$");
+            if (!match.Success)
+            {
+                return;
+            }
+
+            var year = match.Groups[1].Value.Length;
+            FmiScheduleLink link = new(year, uri, ReadUploadDate(element));
+            if (!links.TryAdd(year, link))
+            {
+                throw new AmbiguousFmiScheduleLinksException(year);
             }
         }
     }

@@ -7,7 +7,6 @@ using ScheduleLib.Builders;
 
 namespace ScheduleLib.Application.Core;
 
-using LabTasksDatabaseConfig = LabTasksDatabaseConfig;
 using T = Dictionary<CourseId, List<LabsMappingProvider.LabMapping>>;
 
 [AutoConstructor]

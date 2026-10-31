@@ -8,7 +8,6 @@ using ScheduleLib.Dates;
 
 namespace ScheduleLib.Application.Core;
 
-using Option = Option;
 
 [AutoConstructor]
 public sealed partial class GenerateDeadlinesExcelTaskHandler
