@@ -170,13 +170,7 @@ public sealed class RegistryLabDestinationTests
         Assert.All(fallback, action => Assert.Equal(expected: DayOfWeek.Friday, actual: action.Date.DayOfWeek));
         Assert.Contains(navigator.Group.Uri, navigator.ReadUris);
 
-        Uri CalculateExpected()
-        {
-            var expected2 = new Uri("https://registry.test/explicit-group");
-            return expected2;
-        }
-
-        Assert.Contains(CalculateExpected(), navigator.ReadUris);
+        Assert.Contains(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
         Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
     }
 
@@ -285,18 +279,7 @@ public sealed class RegistryLabDestinationTests
                 {
                     Apply = apply,
                 });
-            int expected3;
-            if (failDelete)
-            {
-                expected3 = 6;
-            }
-            else
-            {
-                expected3 = 0;
-            }
-
-            int actual2 = exit;
-            Assert.Equal(expected: expected3, actual: actual2);
+            Assert.Equal(expected: failDelete ? 6 : 0, actual: exit);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             var outcomes = result.RootElement.GetProperty("data")
                 .GetProperty("outcomes")
@@ -320,7 +303,7 @@ public sealed class RegistryLabDestinationTests
                 actual: outcomes[0].GetProperty("attendanceCount")
                     .GetInt32());
 
-            string CalculateExpected2()
+            string ExpectedFirstOutcomeStatus()
             {
                 if (!apply)
                 {
@@ -336,11 +319,11 @@ public sealed class RegistryLabDestinationTests
             }
 
             Assert.Equal(
-                expected: CalculateExpected2(),
+                expected: ExpectedFirstOutcomeStatus(),
                 actual: outcomes[0].GetProperty("status")
                     .GetString());
 
-            string CalculateExpected3()
+            string ExpectedSecondOutcomeStatus()
             {
                 if (failDelete)
                 {
@@ -356,70 +339,29 @@ public sealed class RegistryLabDestinationTests
             }
 
             Assert.Equal(
-                expected: CalculateExpected3(),
+                expected: ExpectedSecondOutcomeStatus(),
                 actual: outcomes[1].GetProperty("status")
                     .GetString());
-            int expected4;
-            if (apply)
-            {
-                int int32;
-                if (failDelete)
-                {
-                    int32 = 1;
-                }
-                else
-                {
-                    int32 = 2;
-                }
 
-                expected4 = int32;
-            }
-            else
-            {
-                expected4 = 0;
-            }
-
-            int actual3 = navigator.DeleteCalls;
-            Assert.Equal(expected: expected4, actual: actual3);
-
-            bool CalculateCondition()
+            int ExpectedDeleteCalls()
             {
                 if (!apply)
                 {
-                    return false;
+                    return 0;
                 }
 
-                if (!failDelete)
+                if (failDelete)
                 {
-                    return true;
+                    return 1;
                 }
 
-                return false;
+                return 2;
             }
 
-            bool condition = CalculateCondition();
+            Assert.Equal(expected: ExpectedDeleteCalls(), actual: navigator.DeleteCalls);
+            Assert.Equal(expected: apply && !failDelete ? 2 : 4, actual: navigator.Lessons.Count);
 
-
-            int expected5;
-            if (condition)
-            {
-                expected5 = 2;
-            }
-            else
-            {
-                expected5 = 4;
-            }
-
-            int actual4 = navigator.Lessons.Count;
-            Assert.Equal(expected: expected5, actual: actual4);
-
-            Uri CalculateExpected()
-            {
-                var expected2 = new Uri("https://registry.test/explicit-group");
-                return expected2;
-            }
-
-            Assert.DoesNotContain(CalculateExpected(), navigator.ReadUris);
+            Assert.DoesNotContain(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
         }
         finally
         {
@@ -566,21 +508,9 @@ public sealed class RegistryLabDestinationTests
             action => Assert.Equal(expected: RegistrySyncActionKind.Create, actual: action.Kind));
         Assert.All(
             plan,
-            action =>
-            {
-                string expected2;
-                if (combined)
-                {
-                    expected2 = "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)";
-                }
-                else
-                {
-                    expected2 = "lab";
-                }
-
-                string? actual2 = action.Topic;
-                Assert.Equal(expected: expected2, actual: actual2);
-            });
+            action => Assert.Equal(
+                expected: combined ? "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)" : "lab",
+                actual: action.Topic));
         Assert.All(plan, action => Assert.Equal(expected: "IA2403", actual: action.Groups));
         Assert.All(plan, action => Assert.Equal(expected: DayOfWeek.Tuesday, actual: action.Date.DayOfWeek));
         Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
@@ -665,25 +595,13 @@ public sealed class RegistryLabDestinationTests
         Assert.StartsWith(expectedStartString: "Topic 2 (", actualString: secondParent[1].Topic);
         await secondParent[0].Execute(default);
 
-        string CalculateText()
-        {
-            if (existingOtherMark)
-            {
-                return "9";
-            }
-
-            return "";
-        }
-
-        string[] expected2 = new[]
-        {
-            CalculateText(),
-            "am",
-        };
-        string[] actual2 = Assert.Single(navigator.SubmittedMarks);
         Assert.Equal(
-            expected: expected2,
-            actual: actual2);
+            expected: new[]
+            {
+                existingOtherMark ? "9" : "",
+                "am",
+            },
+            actual: Assert.Single(navigator.SubmittedMarks));
         Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unmatched-attendance-students");
     }
 
@@ -713,30 +631,12 @@ public sealed class RegistryLabDestinationTests
         var firstWednesday = plan.Where(action => action.Date.DayOfWeek == DayOfWeek.Wednesday)
             .OrderBy(action => action.Date)
             .First();
-        string expectedStartString2;
-        if (assessments)
-        {
-            expectedStartString2 = "Atestare 1 (";
-        }
-        else
-        {
-            expectedStartString2 = "Topic 1 (";
-        }
-
-        string? actualString2 = firstTuesday.Topic;
-        Assert.StartsWith(expectedStartString: expectedStartString2, actualString: actualString2);
-        string expectedStartString3;
-        if (assessments)
-        {
-            expectedStartString3 = "Atestare 2 (";
-        }
-        else
-        {
-            expectedStartString3 = "Topic 2 (";
-        }
-
-        string? actualString3 = firstWednesday.Topic;
-        Assert.StartsWith(expectedStartString: expectedStartString3, actualString: actualString3);
+        Assert.StartsWith(
+            expectedStartString: assessments ? "Atestare 1 (" : "Topic 1 (",
+            actualString: firstTuesday.Topic);
+        Assert.StartsWith(
+            expectedStartString: assessments ? "Atestare 2 (" : "Topic 2 (",
+            actualString: firstWednesday.Topic);
         Assert.Contains(expectedSubstring: "IA2403", actualString: firstTuesday.Topic);
         Assert.Contains(expectedSubstring: "IA2404", actualString: firstTuesday.Topic);
         Assert.DoesNotContain(expectedSubstring: "IA2404", actualString: firstWednesday.Topic);
@@ -800,17 +700,11 @@ public sealed class RegistryLabDestinationTests
             overlap ? ["Synthetic Alpha", "Synthetic Beta"] : ["Synthetic Beta"];
         var diagnostics = new RegistrySyncDiagnostics();
 
-        StudentAttendanceList CalculateAttendance()
-        {
-            var attendance = fixture.Attendance(sameAudience: true);
-            return attendance;
-        }
-
         var plan = await fixture.Plan(
             navigator,
             diagnostics,
             true,
-            CalculateAttendance());
+            fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
             item => item.Kind is "ambiguous-registry-destination"
@@ -826,48 +720,12 @@ public sealed class RegistryLabDestinationTests
         Assert.Equal(expected: first.Topic, actual: se.Topic);
         await first.Execute(default);
         await se.Execute(default);
-        string[] expected2;
-        if (overlap)
-        {
-            expected2 = new[]
-            {
-                "a",
-                "am",
-            };
-        }
-        else
-        {
-            expected2 = new[]
-            {
-                "a",
-            };
-        }
-
-        string[] actual2 = navigator.SubmittedMarks[0];
         Assert.Equal(
-            expected: expected2,
-            actual: actual2);
-        string[] expected3;
-        if (overlap)
-        {
-            expected3 = new[]
-            {
-                "a",
-                "am",
-            };
-        }
-        else
-        {
-            expected3 = new[]
-            {
-                "am",
-            };
-        }
-
-        string[] actual3 = navigator.SubmittedMarks[1];
+            expected: overlap ? new[] { "a", "am" } : new[] { "a" },
+            actual: navigator.SubmittedMarks[0]);
         Assert.Equal(
-            expected: expected3,
-            actual: actual3);
+            expected: overlap ? new[] { "a", "am" } : new[] { "am" },
+            actual: navigator.SubmittedMarks[1]);
     }
 
     [Theory]
@@ -889,16 +747,10 @@ public sealed class RegistryLabDestinationTests
 
         var diagnostics = new RegistrySyncDiagnostics();
 
-        StudentAttendanceList CalculateAttendance()
-        {
-            var attendance = fixture.Attendance(sameAudience: true);
-            return attendance;
-        }
-
         var task = fixture.PlanIncrementally(
             navigator,
             diagnostics,
-            CalculateAttendance(),
+            fixture.Attendance(sameAudience: true),
             _ => Task.FromResult(failRead));
         if (failRead)
         {
@@ -914,13 +766,7 @@ public sealed class RegistryLabDestinationTests
             item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
         if (!failRead)
         {
-            Uri CalculateExpected()
-            {
-                var expected = new Uri("https://registry.test/se-group");
-                return expected;
-            }
-
-            Assert.DoesNotContain(CalculateExpected(), navigator.ReadUris);
+            Assert.DoesNotContain(new Uri("https://registry.test/se-group"), navigator.ReadUris);
         }
     }
 
@@ -934,35 +780,16 @@ public sealed class RegistryLabDestinationTests
             includeAllExplicitDestinations: true);
         var broad = fixture.Navigator(wildcard: true, combined: false).Group;
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/se-fallback");
-            return uri2;
-        }
-
-        GroupLink CalculateItem()
-        {
-            GroupLink item2 = new(
-                broad.Groups,
-                broad.GroupPartition,
-                uri: CalculateUri(),
-                evaluationUri: broad.EvaluationUri,
-                isAdditionalCourses: true);
-            return item2;
-        }
-
-        navigator.ExtraGroups.Add(CalculateItem());
+        navigator.ExtraGroups.Add(new GroupLink(
+            broad.Groups,
+            broad.GroupPartition,
+            uri: new Uri("https://registry.test/se-fallback"),
+            evaluationUri: broad.EvaluationUri,
+            isAdditionalCourses: true));
         for (var parentIndex = 0; parentIndex < broad.Groups.Value.Count; parentIndex++)
         {
             for (var duplicate = 0; duplicate < 2; duplicate++)
             {
-                Uri CalculateUri2()
-                {
-                    string uriString = $"https://registry.test/se-{parentIndex}-{duplicate}";
-                    Uri uri3 = new(uriString);
-                    return uri3;
-                }
-
                 navigator.ExtraGroups.Add(new(
                     new FoundGroups
                     {
@@ -970,7 +797,7 @@ public sealed class RegistryLabDestinationTests
                         IsWildcard = false,
                     },
                     broad.GroupPartition,
-                    uri: CalculateUri2(),
+                    uri: new Uri($"https://registry.test/se-{parentIndex}-{duplicate}"),
                     evaluationUri: broad.EvaluationUri,
                     isAdditionalCourses: true));
             }
@@ -996,37 +823,19 @@ public sealed class RegistryLabDestinationTests
             includeAdditionalCourses: true);
         var ordinary = navigator.Group;
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/ordinary-duplicate");
-            return uri2;
-        }
-
-        GroupLink CalculateItem()
-        {
-            GroupLink item2 = new(
-                ordinary.Groups,
-                ordinary.GroupPartition,
-                uri: CalculateUri(),
-                evaluationUri: ordinary.EvaluationUri);
-            return item2;
-        }
-
-        navigator.ExtraGroups.Add(CalculateItem());
+        navigator.ExtraGroups.Add(new GroupLink(
+            ordinary.Groups,
+            ordinary.GroupPartition,
+            uri: new Uri("https://registry.test/ordinary-duplicate"),
+            evaluationUri: ordinary.EvaluationUri));
         navigator.Rosters[new("https://registry.test/se-group")] = ["Synthetic Alpha"];
         var diagnostics = new RegistrySyncDiagnostics();
-
-        StudentAttendanceList CalculateAttendance()
-        {
-            var attendance = fixture.Attendance(sameAudience: true);
-            return attendance;
-        }
 
         var plan = await fixture.Plan(
             navigator,
             diagnostics,
             true,
-            CalculateAttendance());
+            fixture.Attendance(sameAudience: true));
         Assert.NotEmpty(plan);
         Assert.Contains(diagnostics.Items, item => item.Kind == "ambiguous-registry-destination");
         Assert.DoesNotContain(
@@ -1035,17 +844,11 @@ public sealed class RegistryLabDestinationTests
         Assert.DoesNotContain(ordinary.Uri, navigator.ReadUris);
 
         // Reusing a diagnostic collector must not make a repeated unresolved route look complete.
-        StudentAttendanceList CalculateAttendance2()
-        {
-            var attendance2 = fixture.Attendance(sameAudience: true);
-            return attendance2;
-        }
-
         _ = await fixture.Plan(
             navigator,
             diagnostics,
             true,
-            CalculateAttendance2());
+            fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
             item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
@@ -1091,19 +894,7 @@ public sealed class RegistryLabDestinationTests
                 lesson.Type(LessonType.Curs);
                 lesson.DayOfWeek(DayOfWeek.Tuesday);
                 lesson.TimeSlot(TimeSlot.First);
-                var lessonBuilder = lesson;
-                TeacherBuilder teacher2;
-                if (ownLecture)
-                {
-                    teacher2 = teacher;
-                }
-                else
-                {
-                    teacher2 = other;
-                }
-
-                TeacherId teacher3 = teacher2;
-                lessonBuilder.Teacher(teacher3);
+                lesson.Teacher(ownLecture ? teacher : other);
             });
             foreach (var group in _parents)
             {
@@ -1113,76 +904,9 @@ public sealed class RegistryLabDestinationTests
                     lesson.Group(group);
                     lesson.Specialization(_partition.Specialization);
                     lesson.Type(LessonType.Lab);
-                    var lessonBuilder = lesson;
-
-                    bool CalculateCondition()
-                    {
-                        if (group == _parents[0])
-                        {
-                            return true;
-                        }
-                        return sameDayLabs;
-                    }
-
-                    bool condition = CalculateCondition();
-
-
-                    DayOfWeek dayOfWeek;
-                    if (condition)
-                    {
-                        dayOfWeek = DayOfWeek.Tuesday;
-                    }
-                    else
-                    {
-                        dayOfWeek = DayOfWeek.Friday;
-                    }
-
-                    lessonBuilder.DayOfWeek(dayOfWeek);
-                    var lessonBuilder2 = lesson;
-
-                    bool CalculateCondition2()
-                    {
-                        if (!sameDayLabs)
-                        {
-                            return false;
-                        }
-
-                        if (group == _parents[1])
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    bool condition2 = CalculateCondition2();
-
-
-                    int index;
-                    if (condition2)
-                    {
-                        index = 2;
-                    }
-                    else
-                    {
-                        index = 1;
-                    }
-
-                    TimeSlot timeSlot = new(index);
-                    lessonBuilder2.TimeSlot(timeSlot);
-                    var lessonBuilder3 = lesson;
-                    TeacherBuilder teacher2;
-                    if (ownLabs)
-                    {
-                        teacher2 = teacher;
-                    }
-                    else
-                    {
-                        teacher2 = other;
-                    }
-
-                    TeacherId teacher3 = teacher2;
-                    lessonBuilder3.Teacher(teacher3);
+                    lesson.DayOfWeek(group == _parents[0] || sameDayLabs ? DayOfWeek.Tuesday : DayOfWeek.Friday);
+                    lesson.TimeSlot(new TimeSlot(sameDayLabs && group == _parents[1] ? 2 : 1));
+                    lesson.Teacher(ownLabs ? teacher : other);
                 });
             }
             if (separateLectureSources)
@@ -1213,12 +937,8 @@ public sealed class RegistryLabDestinationTests
             services.AddSingleton(schedule);
             _provider = AppConfiguration.BuildServiceProvider(services);
             AppConfiguration.ConfigureLayeredConfig(_provider);
-            _scope = _provider.CreateMarkerScope(marker =>
-            {
-                var teacherLayerConfig = marker;
-                var parse = NameHelper.Parse("Curmanschii Anton");
-                teacherLayerConfig.TeacherName = parse;
-            });
+            _scope = _provider.CreateMarkerScope(
+                marker => marker.TeacherName = NameHelper.Parse("Curmanschii Anton"));
         }
 
         public Navigator Navigator(
@@ -1228,17 +948,7 @@ public sealed class RegistryLabDestinationTests
             bool includeAllExplicitDestinations = false,
             bool includeAdditionalCourses = false)
         {
-            Uri CalculateUri()
-            {
-                Uri uri2 = new("https://registry.test/group");
-                return uri2;
-            }
-
-            Uri CalculateEvaluationUri()
-            {
-                Uri evaluationUri2 = new("https://registry.test/evaluation");
-                return evaluationUri2;
-            }
+            var groupEvaluationUri = new Uri("https://registry.test/evaluation");
 
             var group = new GroupLink(
                 new FoundGroups
@@ -1248,20 +958,10 @@ public sealed class RegistryLabDestinationTests
                     IsCombined = combined,
                 },
                 _partition,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri());
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: groupEvaluationUri);
 
-            Uri CalculateUri2()
-            {
-                Uri uri3 = new("https://registry.test/explicit-group");
-                return uri3;
-            }
-
-            Uri CalculateEvaluationUri2()
-            {
-                Uri evaluationUri3 = new("https://registry.test/explicit-evaluation");
-                return evaluationUri3;
-            }
+            var explicitEvaluationUri = new Uri("https://registry.test/explicit-evaluation");
 
             GroupLink[] additional = includeExplicitDestination
                 ?
@@ -1273,23 +973,13 @@ public sealed class RegistryLabDestinationTests
                             IsWildcard = false,
                         },
                         _partition,
-                        uri: CalculateUri2(),
-                        evaluationUri: CalculateEvaluationUri2()),
+                        uri: new Uri("https://registry.test/explicit-group"),
+                        evaluationUri: explicitEvaluationUri),
                 ]
                 : [];
             if (includeAllExplicitDestinations)
             {
-                Uri CalculateUri3()
-                {
-                    Uri uri4 = new("https://registry.test/other-explicit-group");
-                    return uri4;
-                }
-
-                Uri CalculateEvaluationUri3()
-                {
-                    Uri evaluationUri4 = new("https://registry.test/other-explicit-evaluation");
-                    return evaluationUri4;
-                }
+                var otherExplicitEvaluationUri = new Uri("https://registry.test/other-explicit-evaluation");
 
                 additional =
                 [
@@ -1300,32 +990,22 @@ public sealed class RegistryLabDestinationTests
                             IsWildcard = false,
                         },
                         _partition,
-                        uri: CalculateUri3(),
-                        evaluationUri: CalculateEvaluationUri3()),
+                        uri: new Uri("https://registry.test/other-explicit-group"),
+                        evaluationUri: otherExplicitEvaluationUri),
                 ];
             }
 
             if (includeAdditionalCourses)
             {
-                Uri CalculateUri4()
-                {
-                    Uri uri5 = new("https://registry.test/se-group");
-                    return uri5;
-                }
-
-                Uri CalculateEvaluationUri4()
-                {
-                    Uri evaluationUri5 = new("https://registry.test/se-evaluation");
-                    return evaluationUri5;
-                }
+                var additionalCoursesEvaluationUri = new Uri("https://registry.test/se-evaluation");
 
                 additional =
                 [
                     .. additional, new(
                         group.Groups,
                         group.GroupPartition,
-                        uri: CalculateUri4(),
-                        evaluationUri: CalculateEvaluationUri4(),
+                        uri: new Uri("https://registry.test/se-group"),
+                        evaluationUri: additionalCoursesEvaluationUri,
                         isAdditionalCourses: true),
                 ];
             }
@@ -1387,11 +1067,7 @@ public sealed class RegistryLabDestinationTests
         {
             _provider.GetRequiredService<TreeBuilder>().Defaults
                 .Builder<RegistryConfig>()
-                .ConfigureValue(config =>
-                {
-                    var registryConfig = config;
-                    registryConfig.ExtraLessonInstanceAction = ExtraLessonInstanceAction.Delete;
-                });
+                .ConfigureValue(config => config.ExtraLessonInstanceAction = ExtraLessonInstanceAction.Delete);
             Assert.Equal(
                 expected: ExtraLessonInstanceAction.Delete,
                 actual: _scope.ServiceProvider
@@ -1442,13 +1118,7 @@ public sealed class RegistryLabDestinationTests
                 _course,
                 LessonType.Lab));
 
-            Name CalculateName()
-            {
-                var name = NameHelper.Parse("Synthetic Alpha");
-                return name;
-            }
-
-            var alpha = first.Student(CalculateName());
+            var alpha = first.Student(NameHelper.Parse("Synthetic Alpha"));
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
             alpha.Day(ScheduleLib.OnlineRegistry.Attendance.Present);
             var second = sameAudience
@@ -1459,13 +1129,7 @@ public sealed class RegistryLabDestinationTests
                     _course,
                     LessonType.Lab));
 
-            Name CalculateName2()
-            {
-                var name2 = NameHelper.Parse("Synthetic Beta");
-                return name2;
-            }
-
-            var beta = second.Student(CalculateName2());
+            var beta = second.Student(NameHelper.Parse("Synthetic Beta"));
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.MotivatedAbsent);
             beta.Day(ScheduleLib.OnlineRegistry.Attendance.NotPresent);
             return builder.Build(ScheduleLib.OnlineRegistry.Attendance.None);
@@ -1579,15 +1243,7 @@ public sealed class RegistryLabDestinationTests
         public List<Uri> ReadUris { get; } = [];
 
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
-        {
-            Uri CalculateUrl()
-            {
-                Uri url = new("https://registry.test/course");
-                return url;
-            }
-
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
-        }
+            => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
             => Task.FromResult<IEnumerable<GroupLink>>([group, .. additionalGroups, .. ExtraGroups]);
@@ -1603,27 +1259,14 @@ public sealed class RegistryLabDestinationTests
 
             if (Rosters.TryGetValue(uri, out _))
             {
-                string CalculateSource()
-                {
-                    string escapeDataString = Uri.EscapeDataString(uri.ToString());
-                    string source =
-                        $"<div><a href='https://registry.test/roster-add?list={escapeDataString}'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>";
-                    return source;
-                }
-
+                var escapedListUri = Uri.EscapeDataString(uri.ToString());
                 return await new HtmlParser().ParseDocumentAsync(
-                    CalculateSource());
+                    $"<div><a href='https://registry.test/roster-add?list={escapedListUri}'>Adaugare</a></div><table><tr><th>lesson</th></tr></table>");
             }
 
             if (uri.AbsolutePath == "/roster-add")
             {
-                string CalculateUriString()
-                {
-                    string uriString = Uri.UnescapeDataString(uri.Query[6..]);
-                    return uriString;
-                }
-
-                var roster = Rosters[new Uri(CalculateUriString())];
+                var roster = Rosters[new Uri(Uri.UnescapeDataString(uri.Query[6..]))];
                 var rows = string.Join(
                     "",
                     roster.Select((name, index) =>
@@ -1632,27 +1275,7 @@ public sealed class RegistryLabDestinationTests
                     $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr>{rows}</table></form>");
             }
 
-            bool CheckCondition()
-            {
-                if (!FailDelete)
-                {
-                    return false;
-                }
-
-                if (DeleteCalls == 0)
-                {
-                    return false;
-                }
-
-                if (uri == group.Uri)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
+            if (FailDelete && DeleteCalls != 0 && uri == group.Uri)
             {
                 throw new IOException("Synthetic confirmation read failure.");
             }
@@ -1669,22 +1292,7 @@ public sealed class RegistryLabDestinationTests
                     $"<div><a href='https://registry.test/add'>Adaugare</a></div><table><tr><th>lesson</th></tr>{rows}</table><table><tr><th>NN</th><th>Name</th><th>Spec</th>{headers}</tr><tr><td>1</td><td>Synthetic Student</td><td>spec</td>{marks}</tr></table>");
             }
 
-            bool CheckCondition2()
-            {
-                if (!UseSyntheticRoster)
-                {
-                    return false;
-                }
-
-                if (uri.AbsolutePath == "/add")
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition2())
+            if (UseSyntheticRoster && uri.AbsolutePath == "/add")
             {
                 return await new HtmlParser().ParseDocumentAsync(
                     $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option><option value='curs'>Curs</option></select><textarea id='LessonTopic'></textarea><table><tr><th>NN</th><th>Name</th><th>Spec</th><th>frecvența/nota</th></tr><tr><td>1</td><td>Synthetic Alpha</td><td>spec</td><td><input name='alpha' value='{OtherAudienceMark}'></td></tr><tr><td>2</td><td>Synthetic Beta</td><td>spec</td><td><input name='beta'></td></tr></table></form>");
@@ -1692,13 +1300,7 @@ public sealed class RegistryLabDestinationTests
 
             if (uri.AbsolutePath.StartsWith("/details/", StringComparison.Ordinal))
             {
-                string CalculateSource2()
-                {
-                    string source2 = $"<input name='id' value='{uri.Segments[^1]}'>";
-                    return source2;
-                }
-
-                return await new HtmlParser().ParseDocumentAsync(CalculateSource2());
+                return await new HtmlParser().ParseDocumentAsync($"<input name='id' value='{uri.Segments[^1]}'>");
             }
 
             return await new HtmlParser().ParseDocumentAsync(
@@ -1716,13 +1318,10 @@ public sealed class RegistryLabDestinationTests
 
             if (document.QuerySelector("input[name^=student-]") is not null)
             {
-                var list = SubmittedMarks;
-                var querySelectorAll = document.QuerySelectorAll<IHtmlInputElement>("input[name^=student-]");
-                Func<IHtmlInputElement, string> selector = input => input.Value;
-                var select = querySelectorAll.Select(selector);
-                string[] item = select.ToArray();
-                list.Add(
-                    item);
+                SubmittedMarks.Add(
+                    document.QuerySelectorAll<IHtmlInputElement>("input[name^=student-]")
+                        .Select(input => input.Value)
+                        .ToArray());
                 return Task.CompletedTask;
             }
             SubmittedMarks.Add(

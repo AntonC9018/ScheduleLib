@@ -113,32 +113,17 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
 
-        bool CheckCondition()
-        {
-            if (pa == Parity.EveryWeek)
-            {
-                return true;
-            }
-
-            if (pb == Parity.EveryWeek)
-            {
-                return true;
-            }
-
-            if (pa == pb)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        if (CheckCondition())
+        if (pa == Parity.EveryWeek)
         {
             return true;
         }
 
-        return false;
+        if (pb == Parity.EveryWeek)
+        {
+            return true;
+        }
+
+        return pa == pb;
     }
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
@@ -175,12 +160,7 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
 
-        if (a == b)
-        {
-            return true;
-        }
-
-        return false;
+        return a == b;
     }
 
     private static bool Intersects(SubGroup a, SubGroup b)
@@ -223,42 +203,10 @@ public static partial class ScheduleBuilderHelper
         var groupName = s.Groups.Ref(shared.Value).Name;
         foreach (var entry in allowlist)
         {
-            bool CalculateConditionResult()
-            {
-                if (aName != entry.CourseA)
-                {
-                    return false;
-                }
-
-                if (bName == entry.CourseB)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                if (aName == entry.CourseB)
-                {
-                    conditionResult = bName == entry.CourseA;
-                }
-                else
-                {
-                    conditionResult = false;
-                }
-            }
-
-            bool coursesMatch = conditionResult;
-            if (!coursesMatch)
+            if (!CoursesMatchEntry(
+                    aName,
+                    bName,
+                    entry))
             {
                 continue;
             }
@@ -277,6 +225,19 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
         return false;
+    }
+
+    private static bool CoursesMatchEntry(
+        string aName,
+        string bName,
+        LessonOverlapAllowlistEntry entry)
+    {
+        if (aName == entry.CourseA && bName == entry.CourseB)
+        {
+            return true;
+        }
+
+        return aName == entry.CourseB && bName == entry.CourseA;
     }
 
     private static string Describe(
@@ -306,44 +267,21 @@ public static partial class ScheduleBuilderHelper
             in WeeklyLessonBuilderModelData lesson)
         {
             var course = s.Courses.Ref(lesson.Base.General.Course!.Value.Id);
-            var append = sb.Append('\'');
-            string value = course.FullName;
-            var append2 = append.Append(value);
-            char value2 = '\'';
-            var append3 = append2.Append(value2);
-            string value3 = " on ";
-            var append4 = append3.Append(value3);
-            object? value4 = lesson.Date.DayOfWeek;
-            var append5 = append4.Append(value4);
-            string value5 = " slot ";
-            var append6 = append5.Append(value5);
-            int value6 = lesson.Date.TimeSlot!.Value.Index;
-            var append7 = append6.Append(value6);
-            string value7 = ", ";
-            var append8 = append7.Append(value7);
-            string value8;
-            if (lesson.Date.Parity is { } parity)
-            {
-                value8 = parity.ToString();
-            }
-            else
-            {
-                value8 = "no parity";
-            }
-
-            var append9 = append8.Append(value8);
-            string value9 = ", subgroup: ";
-            var append10 = append9.Append(value9);
-            string value10 = lesson.Base.Group.SubGroup.Value ?? "all";
-            var append11 = append10.Append(value10);
-            string value11 = ", specialization: ";
-            var append12 = append11.Append(value11);
-            string value12 = lesson.Base.Group.Specialization.Value ?? "all";
-            var append13 = append12.Append(value12);
-            string value13 = ", alternative: ";
-            var append14 = append13.Append(value13);
-            string value14 = lesson.Base.Group.Alternative.Value ?? "all";
-            append14.Append(value14);
+            sb.Append('\'')
+                .Append(course.FullName)
+                .Append('\'')
+                .Append(" on ")
+                .Append(lesson.Date.DayOfWeek)
+                .Append(" slot ")
+                .Append(lesson.Date.TimeSlot!.Value.Index)
+                .Append(", ")
+                .Append(lesson.Date.Parity is { } parity ? parity.ToString() : "no parity")
+                .Append(", subgroup: ")
+                .Append(lesson.Base.Group.SubGroup.Value ?? "all")
+                .Append(", specialization: ")
+                .Append(lesson.Base.Group.Specialization.Value ?? "all")
+                .Append(", alternative: ")
+                .Append(lesson.Base.Group.Alternative.Value ?? "all");
         }
     }
 }

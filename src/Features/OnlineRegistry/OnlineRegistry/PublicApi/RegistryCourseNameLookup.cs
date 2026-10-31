@@ -53,18 +53,12 @@ public static class RegistryCourseNameLookup
                 parsedName: parsed.Name,
                 mappedName: out var mappedName))
         {
-            var result = lookup.Course(
+            return lookup.Course(
                 mappedName.AsMemory(),
                 new()
                 {
                     IgnorePunctuation = true,
                 });
-            if (result is null)
-            {
-                return null;
-            }
-
-            return result;
         }
 
         if (lookup.Course(
@@ -84,11 +78,7 @@ public static class RegistryCourseNameLookup
 
         var normalized = Normalize(parsed.Name);
         var candidates = lookup.LookupModule.Courses
-            .Select(course =>
-            {
-                var normalizedCourseName = Normalize(course.Key);
-                return new NormalizedCourseName(normalizedCourseName, course.Value);
-            })
+            .Select(course => new NormalizedCourseName(Normalize(course.Key), course.Value))
             .ToArray();
         var normalizedMatches = candidates.Where(course => course.Name == normalized)
             .Select(course => course.Id)
@@ -99,25 +89,12 @@ public static class RegistryCourseNameLookup
             return normalizedMatches.Length == 1 ? normalizedMatches[0] : null;
         }
 
-        bool CalculateConditionResult()
+        if (normalized.Length < 12)
         {
-            if (normalized.Length < 12)
-            {
-                return true;
-            }
-
-            if (maxDistance == 0)
-            {
-                return true;
-            }
-
-            return false;
+            return null;
         }
 
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (maxDistance == 0)
         {
             return null;
         }
@@ -125,27 +102,17 @@ public static class RegistryCourseNameLookup
         var tolerance = Math.Min(maxDistance, normalized.Length / 10);
         var approximate = candidates.Where(course =>
             {
-                bool CheckCondition()
+                if (course.Name.Length < 12)
                 {
-                    if (!(course.Name.Length >= 12))
-                    {
-                        return false;
-                    }
-
-                    if (!(Math.Abs(course.Name.Length - normalized.Length) <= tolerance))
-                    {
-                        return false;
-                    }
-
-                    if (Distance(first: normalized, second: course.Name) <= tolerance)
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                return CheckCondition();
+                if (Math.Abs(course.Name.Length - normalized.Length) > tolerance)
+                {
+                    return false;
+                }
+
+                return Distance(first: normalized, second: course.Name) <= tolerance;
             })
             .Select(course => course.Id)
             .Distinct()
@@ -165,14 +132,10 @@ public static class RegistryCourseNameLookup
 
     private static string Normalize(string name)
     {
-        string normalize = name.Normalize(NormalizationForm.FormD);
-        Func<char, bool> predicate = char.IsLetterOrDigit;
-        var where = normalize.Where(predicate);
-        Func<char, char> selector = char.ToLowerInvariant;
-        var select = where.Select(selector);
-        char[] value = select.ToArray();
-        string text = new(value);
-        return text;
+        return new(name.Normalize(NormalizationForm.FormD)
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant)
+            .ToArray());
     }
 
     private static int Distance(string first, string second)
@@ -185,34 +148,12 @@ public static class RegistryCourseNameLookup
             current[0] = i;
             for (var j = 1; j <= second.Length; j++)
             {
-                int[] value = current;
-                int int32 = j;
-                int[] value2 = current;
-                int int322 = j - 1;
-                int val1 = value2[int322] + 1;
-                int val2 = previous[j] + 1;
-                int val12 = Math.Min(val1, val2);
-                int[] value3 = previous;
-                int int323 = j - 1;
-                int int324 = value3[int323];
-                string text = first;
-                int index = i - 1;
-                int charValue = text[index];
-                string text2 = second;
-                int index2 = j - 1;
-                int int325;
-                if (charValue == text2[index2])
-                {
-                    int325 = 0;
-                }
-                else
-                {
-                    int325 = 1;
-                }
-
-                int val22 = int324 + int325;
-                int min = Math.Min(val12, val22);
-                value[int32] = min;
+                var substitutionCost = first[i - 1] == second[j - 1] ? 0 : 1;
+                current[j] = Math.Min(
+                    Math.Min(
+                        current[j - 1] + 1,
+                        previous[j] + 1),
+                    previous[j - 1] + substitutionCost);
             }
 
             (previous, current) = (current, previous);
