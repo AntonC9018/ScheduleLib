@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using ScheduleLib.Builders;
@@ -610,7 +611,7 @@ public static class Config
     /// academic-year numbering (fall week 1 is even, so spring week 1 after the 15-week fall
     /// term is odd); the PDF fixes only the week counts and dates, not the parity.
     /// </summary>
-    public static readonly StudyWeek[] StudyWeeks =
+    public static readonly ImmutableArray<StudyWeek> StudyWeeks =
     [
         // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
         new(new DateOnly(2026, 8, 31), isOddWeek: false),

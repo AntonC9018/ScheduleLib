@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Globalization;
@@ -37,7 +38,7 @@ public static class TasksHelper
         using var stream = File.OpenRead(p.InputPath);
         using var word = WordprocessingDocument.Open(stream, isEditable: false);
         var studyWeeks = ParityExcelParser.Parse(word)
-            .ToArray();
+            .ToImmutableArray();
         var ret = new ManualWeeklyScheduledDateProvider(
             studyWeeks: studyWeeks,
             holidays: p.Holidays);

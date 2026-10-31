@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ScheduleLib.Dates;
@@ -10,11 +11,11 @@ public interface IWeeklyScheduledDateProvider
 public sealed class ManualWeeklyScheduledDateProvider
     : IWeeklyScheduledDateProvider
 {
-    private readonly StudyWeek[] _studyWeeks;
+    private readonly ImmutableArray<StudyWeek> _studyWeeks;
     private readonly HolidayPeriod[] _holidays;
 
     public ManualWeeklyScheduledDateProvider(
-        StudyWeek[] studyWeeks,
+        ImmutableArray<StudyWeek> studyWeeks,
         HolidayPeriod[] holidays)
     {
         Debug.Assert(studyWeeks.IsSorted(x => x.MondayDate));
@@ -146,10 +147,10 @@ file struct HolidayChecker
 file struct DayEnumerator
 {
     private int _index;
-    private readonly StudyWeek[] _weeks;
+    private readonly ImmutableArray<StudyWeek> _weeks;
     private readonly DayOfWeek _day;
 
-    public DayEnumerator(StudyWeek[] weeks, DayOfWeek day)
+    public DayEnumerator(ImmutableArray<StudyWeek> weeks, DayOfWeek day)
     {
         _index = -1;
         _weeks = weeks;
