@@ -601,10 +601,7 @@ public static class CurriculumDirectoryHelper
         var dirs = Directory.EnumerateDirectories(directory.FullPath);
         foreach (var dirFullPath in dirs)
         {
-            int indexOf = dirFullPath.IndexOf(Path.DirectorySeparatorChar);
-            var lastSegmentStart = indexOf + 1;
-            var parser = new SequenceReader(dirFullPath);
-            parser.Move(lastSegmentStart);
+            var parser = ReaderAtLastSegment(dirFullPath);
             var groupKey = CurriculumNameParser.ParseGroupKey(ref parser);
             if (!parser.IsEmpty)
             {
@@ -618,13 +615,18 @@ public static class CurriculumDirectoryHelper
 
     private const string CurriculumDocumentExtension = ".docx";
 
+    private static SequenceReader ReaderAtLastSegment(string path)
+    {
+        var lastSegmentLength = Path.GetFileName(path.AsSpan()).Length;
+        var parser = new SequenceReader(path);
+        parser.Move(path.Length - lastSegmentLength);
+        return parser;
+    }
+
     internal static ParsedCurriculumKey1? ParseCurriculumFileKey(string filePath)
     {
         Debug.Assert(filePath.EndsWith(CurriculumDocumentExtension));
-        int indexOf = filePath.IndexOf(Path.DirectorySeparatorChar);
-        var lastSegmentStart = indexOf + 1;
-        var parser = new SequenceReader(filePath);
-        parser.Move(lastSegmentStart);
+        var parser = ReaderAtLastSegment(filePath);
         var key = CurriculumNameParser.TryParseCurriculumKey(ref parser);
         if (key is null)
         {
