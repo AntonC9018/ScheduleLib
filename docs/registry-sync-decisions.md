@@ -95,8 +95,8 @@ apply registry/CSV changes.
   and #236's owner-deferred triage remain separate unfinished work under #240.
 - The discussion's analyzer result (2,652 warnings, zero errors) was historical,
   not a fresh build result. Subsequent adoption and validation are documented
-  in [codingrules-validation.md](codingrules-validation.md); do not reopen
-  completed adoption based on the older result. Remaining coverage, manual
+  in [codingrules-adoption-validation.md](evidence/codingrules-adoption-validation.md);
+  do not reopen completed adoption based on the older result. Remaining coverage, manual
   fixes and policies are tracked in #229, #230 and #244. #228 tracks the
   separately known registry error-logging failure.
 

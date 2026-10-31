@@ -1,7 +1,8 @@
 # Formatting and analyzer review
 
-The [fresh local candidate](codingrules-candidate.md), [coverage ledger](codingrules-coverage.md)
-and [validation record](codingrules-validation.md) distinguish automatic layout
+The [candidate history](evidence/codingrules-candidates.md),
+[coverage ledger](evidence/codingrules-coverage-ledger.md) and
+[validation record](evidence/codingrules-adoption-validation.md) distinguish automatic layout
 from manual architectural review. CleanupCode remains necessary for capabilities
 the package-only workflow does not replace.
 
@@ -109,7 +110,8 @@ are reviewed individually. Other warnings retain the existing build policy.
 This is not a diagnostic baseline or suppression: builds continue to report the
 actual findings. Do not bulk-fix user-authored pre-June code or disable a rule to
 hide a questionable finding. Apply clear improvements; record contested findings
-and the maintainer's decision in GitHub. See [analyzer review](analyzer-review.md).
+and the maintainer's decision in GitHub. See
+[initializer assignments](decisions/analyzer-initializer-assignments.md).
 
 The style allowlist also includes required braces, cast spacing and CR0805:
 every subsequent chained invocation starts on a new line, even for a short
