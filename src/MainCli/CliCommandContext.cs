@@ -55,7 +55,7 @@ public sealed record CliFailure(int ExitCode, string[] Errors);
 /// <summary>One streamed progress update, with pre-rendered text for human output.</summary>
 public readonly record struct StreamedUpdate(
     string Id,
-    string Status,
+    ActionState Status,
     object? Item,
     string Human);
 
@@ -140,9 +140,9 @@ public sealed class CliCommandContext : IDisposable
         return true;
     }
 
-    public static string Status(
+    public static RunStatus Status(
         int exit,
-        string success = "succeeded",
+        RunStatus success = RunStatus.Succeeded,
         bool partial = false,
         bool cancellation = true)
     {
@@ -166,7 +166,7 @@ public sealed class CliCommandContext : IDisposable
 
         if (conditionResult)
         {
-            return "cancelled";
+            return RunStatus.Cancelled;
         }
         if (exit == CliExit.Success)
         {
@@ -193,10 +193,10 @@ public sealed class CliCommandContext : IDisposable
 
         if (conditionResult2)
         {
-            return "partial";
+            return RunStatus.Partial;
         }
 
-        return "failed";
+        return RunStatus.Failed;
     }
 
     public int Finish<T>(CliCompletion<T> completion)
@@ -208,13 +208,12 @@ public sealed class CliCommandContext : IDisposable
         var paths = completion.Paths;
         var actions = completion.Actions;
         var warnings = completion.Warnings;
-        var status = completion.Status;
+        var status = completion.Status ?? Status(exit);
         var jsonStatus = completion.JsonStatus;
         var human = completion.RenderHuman;
         var warningsFirst = completion.WarningsFirst;
         var shouldWriteWarning = completion.ShouldWriteWarning;
         warnings ??= Warnings.ToArray();
-        status ??= Status(exit);
         if (warningsFirst)
         {
             WriteWarnings();
@@ -259,7 +258,7 @@ public sealed class CliCommandContext : IDisposable
         }
         else
         {
-            human?.Invoke(status);
+            human?.Invoke(status.ToWire());
         }
         return exit;
 
@@ -317,7 +316,7 @@ public sealed class CliCommandContext : IDisposable
 
     public void StreamItem(
         string id,
-        string status,
+        ActionState status,
         object? item,
         Action renderHuman)
     {
@@ -350,7 +349,7 @@ public sealed class CliCommandContext : IDisposable
             var cliOutput = Output;
             string text = $"artifact:{path}";
             string id2 = text;
-            string status2 = "completed";
+            var status2 = ActionState.Completed;
             object item = new { path };
             cliOutput.EmitItem(
                 id: id2,
@@ -371,7 +370,7 @@ public sealed class CliCommandContext : IDisposable
                     {
                         try
                         {
-                            await artifacts.Complete("partial", CancellationToken.None);
+                            await artifacts.Complete(RunStatus.Partial, CancellationToken.None);
                         }
                         catch (Exception error)
                         {

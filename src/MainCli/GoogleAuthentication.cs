@@ -13,7 +13,7 @@ using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Cli;
 
-public sealed record AuthAccountStatus(string AccountId, string State, string[] Scopes);
+public sealed record AuthAccountStatus(string AccountId, AuthAccountState State, string[] Scopes);
 
 public sealed record AuthStatus(string Provider, string Profile, IReadOnlyList<AuthAccountStatus> Accounts);
 
@@ -469,8 +469,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
             accounts.Add(new(
                 AccountId: Path.GetFileNameWithoutExtension(path),
                 State: authorization.IsStale
-                    ? string.IsNullOrEmpty(authorization.RefreshToken) ? "expired" : "refreshable"
-                    : "authorized",
+                    ? string.IsNullOrEmpty(authorization.RefreshToken) ? AuthAccountState.Expired : AuthAccountState.Refreshable
+                    : AuthAccountState.Authorized,
                 authorization.Scope?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? []));
         }
         return new(

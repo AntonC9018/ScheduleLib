@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using ScheduleLib.Application.Config;
@@ -16,7 +15,7 @@ public sealed record CalendarActionOutcome(
     string Action,
     string? CalendarId,
     string? EventId,
-    string State,
+    ActionState State,
     int? DesiredEventIndex = null);
 
 public sealed record CalendarSyncResult(
@@ -187,7 +186,7 @@ public static class CalendarSync
         {
             var list = plan;
             string id2 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string action2 = "delete calendar";
+            string action2 = CalendarActions.DeleteCalendar;
             string calendarId = existing.Id;
             int? desiredEventIndex = null;
             CalendarPlanStep item2 = new(
@@ -200,7 +199,7 @@ public static class CalendarSync
 
         var list2 = plan;
         string id3 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        string action3 = "create calendar";
+        string action3 = CalendarActions.CreateCalendar;
         string? calendarId2 = null;
         int? desiredEventIndex2 = null;
         CalendarPlanStep item3 = new(
@@ -213,7 +212,7 @@ public static class CalendarSync
         {
             var list3 = plan;
             string id4 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string action4 = "create event";
+            string action4 = CalendarActions.CreateEvent;
             string? calendarId3 = null;
             int? desiredEventIndex3 = planIndex;
             CalendarPlanStep item4 = new(
@@ -226,7 +225,7 @@ public static class CalendarSync
 
         void Report<TMessage>(
             string id,
-            string status,
+            ActionState status,
             object? item,
             TMessage human) where TMessage : struct, ICliMessage
         {
@@ -259,16 +258,7 @@ public static class CalendarSync
 
         CalendarStreamingException StreamingFailure(Exception inner)
         {
-            int exit;
-            if (outcomes.Any(x => x.State == "completed"))
-            {
-                exit = 6;
-            }
-            else
-            {
-                exit = 1;
-            }
-
+            int exit = RemoteSyncOutcomes.StreamingFailureExit(outcomes.Select(x => x.State));
             string[] errors =
             [
                 "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
@@ -291,10 +281,10 @@ public static class CalendarSync
                 Action: step.Action,
                 CalendarId: step.CalendarId,
                 EventId: null,
-                State: "planned",
+                State: ActionState.Planned,
                 step.DesiredEventIndex);
             string id2 = step.Id;
-            string status2 = outcome.State;
+            var status2 = outcome.State;
             object item = outcome;
             var human = new CalendarActionMessage(outcome);
             Report(
@@ -310,7 +300,7 @@ public static class CalendarSync
             // rendering failure cannot change it or trigger another mutation.
             outcomes.Add(outcome);
             string id2 = PlanId(outcome);
-            string status2 = outcome.State;
+            var status2 = outcome.State;
             object item = outcome;
             var human = new CalendarActionMessage(outcome);
             Report(
@@ -348,7 +338,7 @@ public static class CalendarSync
             string toString = deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string text = $"deleted-{toString}";
             string id5 = text;
-            string status3 = "completed";
+            var status3 = ActionState.Completed;
             object item5 = identity;
             var human2 =
                 new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary);
@@ -372,7 +362,7 @@ public static class CalendarSync
 
             Report(
                 id: CalculateId(),
-                status: "completed",
+                status: ActionState.Completed,
                 new
                 {
                     index,
@@ -390,41 +380,13 @@ public static class CalendarSync
         }
         if (!apply)
         {
-            return Result(0, []);
+            return Result(CliExit.Success, []);
         }
 
-        var action = "delete calendar";
+        var action = CalendarActions.DeleteCalendar;
         string? eventId = null;
         var attempted = false;
         int? desiredIndex = null;
-
-        static bool IsCancellationTransportError(CancellationToken cancellationToken, Exception error)
-        {
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                return false;
-            }
-
-            if (error is (OperationCanceledException or GooglePreSendTransportException))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        static bool IsUnauthorizedGoogleApiError(Google.GoogleApiException error)
-            => error.HttpStatusCode == HttpStatusCode.Unauthorized;
-
-        static bool IsHandledGoogleApiError(Google.GoogleApiException error)
-        {
-            return error.HttpStatusCode is (HttpStatusCode.BadRequest
-                or HttpStatusCode.Forbidden
-                or HttpStatusCode.NotFound
-                or HttpStatusCode.Conflict
-                or HttpStatusCode.PreconditionFailed
-                or HttpStatusCode.UnprocessableEntity);
-        }
 
         try
         {
@@ -433,14 +395,13 @@ public static class CalendarSync
                 token.ThrowIfCancellationRequested();
                 attempted = true;
                 await provider.DeleteCalendar(existing.Id, token);
-                CalendarActionOutcome outcome2 = new(
+                AddOutcome(new CalendarActionOutcome(
                     Action: action,
                     CalendarId: existing.Id,
                     EventId: null,
-                    State: "completed");
-                AddOutcome(outcome2);
+                    State: ActionState.Completed));
             }
-            action = "create calendar";
+            action = CalendarActions.CreateCalendar;
             attempted = false;
             token.ThrowIfCancellationRequested();
             attempted = true;
@@ -450,17 +411,16 @@ public static class CalendarSync
                 throw new IOException("Calendar create returned no identity.");
             }
 
-            CalendarActionOutcome outcome3 = new(
+            AddOutcome(new CalendarActionOutcome(
                 Action: action,
                 CalendarId: created,
                 EventId: null,
-                State: "completed");
-            AddOutcome(outcome3);
+                State: ActionState.Completed));
             for (var index = 0; index < desired.Count; index++)
             {
                 var ev = desired[index];
                 desiredIndex = index;
-                action = "create event";
+                action = CalendarActions.CreateEvent;
                 eventId = null;
                 attempted = false;
                 token.ThrowIfCancellationRequested();
@@ -474,15 +434,14 @@ public static class CalendarSync
                     throw new IOException("Event create returned no identity.");
                 }
 
-                CalendarActionOutcome outcome4 = new(
+                AddOutcome(new CalendarActionOutcome(
                     Action: action,
                     CalendarId: created,
                     EventId: eventId,
-                    State: "completed",
-                    desiredIndex);
-                AddOutcome(outcome4);
+                    State: ActionState.Completed,
+                    desiredIndex));
             }
-            return Result(0, []);
+            return Result(CliExit.Success, []);
         }
         catch (CliOutputStreamingException)
         {
@@ -490,81 +449,28 @@ public static class CalendarSync
             // must not be reclassified as uncertain/failed or retried.
             throw;
         }
-        catch (Exception error) when (IsCancellationTransportError(token, error))
+        catch (Exception error) when (RemoteSyncOutcomes.IsCancellationTransportError(token, error))
         {
+            // Calendar records only an attempted interrupted action; the remaining
+            // plan, including an unattempted current action, is reported by Result.
             if (attempted)
             {
-                string action5 = action;
-                string? calendarId4;
-                if (action == "delete calendar")
-                {
-                    calendarId4 = existing?.Id;
-                }
-                else
-                {
-                    calendarId4 = created;
-                }
-
-                string? eventId2 = eventId;
-                string state = "uncertain";
-                int? desiredEventIndex4 = desiredIndex;
-                CalendarActionOutcome outcome5 = new(
-                    Action: action5,
-                    CalendarId: calendarId4,
-                    EventId: eventId2,
-                    State: state,
-                    desiredEventIndex4);
-                AddOutcome(outcome5);
+                AddCurrentOutcome(ActionState.Uncertain);
             }
 
             return Result(
-                130,
+                CliExit.Cancelled,
                 [
                     "Cancelled. Any uncertain action may have completed remotely; inspect the destination before another apply.",
                 ]);
         }
         catch (GooglePreSendTransportException)
         {
-            var partial = outcomes.Any(x => x.State == "completed");
-            string action6 = action;
-            string? calendarId5;
-            if (action == "delete calendar")
-            {
-                calendarId5 = existing?.Id;
-            }
-            else
-            {
-                calendarId5 = created;
-            }
-
-            string? eventId3 = eventId;
-            string state2 = "failed";
-            int? desiredEventIndex5 = desiredIndex;
-            CalendarActionOutcome outcome6 = new(
-                Action: action6,
-                CalendarId: calendarId5,
-                EventId: eventId3,
-                State: state2,
-                desiredEventIndex5);
-            AddOutcome(outcome6);
-            int exit2;
-            if (partial)
-            {
-                exit2 = 6;
-            }
-            else
-            {
-                exit2 = 5;
-            }
-
-            string[] errors2 =
-            [
-                "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
-            ];
-            var result = Result(
-                exit2,
-                errors2);
-            return result;
+            var effects = AnyCompleted();
+            AddCurrentOutcome(ActionState.Failed);
+            return Result(
+                CliExit.AfterEffects(CliExit.IoFailure, effects),
+                [RemoteSyncOutcomes.CredentialRefreshTransportError]);
         }
         catch (AuthenticationRequiredException)
         {
@@ -574,140 +480,53 @@ public static class CalendarSync
         {
             return AuthenticationFailure();
         }
-        catch (Google.GoogleApiException e) when (IsUnauthorizedGoogleApiError(e))
+        catch (Google.GoogleApiException e) when (RemoteSyncOutcomes.IsUnauthorized(e))
         {
             return AuthenticationFailure();
         }
-        catch (Google.GoogleApiException e) when (IsHandledGoogleApiError(e))
+        catch (Google.GoogleApiException e) when (RemoteSyncOutcomes.IsRejected(e))
         {
-            var partial = outcomes.Any(x => x.State == "completed");
-            string action7 = action;
-            string? calendarId6;
-            if (action == "delete calendar")
-            {
-                calendarId6 = existing?.Id;
-            }
-            else
-            {
-                calendarId6 = created;
-            }
-
-            string? eventId4 = eventId;
-            string state3 = "failed";
-            int? desiredEventIndex6 = desiredIndex;
-            CalendarActionOutcome outcome7 = new(
-                Action: action7,
-                CalendarId: calendarId6,
-                EventId: eventId4,
-                State: state3,
-                desiredEventIndex6);
-            AddOutcome(outcome7);
-            int exit3;
-            if (partial)
-            {
-                exit3 = 6;
-            }
-            else
-            {
-                exit3 = 5;
-            }
-
-            string[] errors3 =
-                ["Google Calendar rejected the action; it was not retried. Completed actions remain applied."];
-            var result2 = Result(
-                exit3,
-                errors3);
-            return result2;
+            var effects = AnyCompleted();
+            AddCurrentOutcome(ActionState.Failed);
+            return Result(
+                CliExit.AfterEffects(CliExit.IoFailure, effects),
+                ["Google Calendar rejected the action; it was not retried. Completed actions remain applied."]);
         }
         catch (Exception)
         {
+            // Calendar records nothing for an unattempted action here, and any
+            // recorded outcome (including uncertain) makes the exit partial.
             if (attempted)
             {
-                string action8 = action;
-                string? calendarId7;
-                if (action == "delete calendar")
-                {
-                    calendarId7 = existing?.Id;
-                }
-                else
-                {
-                    calendarId7 = created;
-                }
-
-                string? eventId5 = eventId;
-                string state4 = "uncertain";
-                int? desiredEventIndex7 = desiredIndex;
-                CalendarActionOutcome outcome8 = new(
-                    Action: action8,
-                    CalendarId: calendarId7,
-                    EventId: eventId5,
-                    State: state4,
-                    desiredEventIndex7);
-                AddOutcome(outcome8);
+                AddCurrentOutcome(ActionState.Uncertain);
             }
 
-            int exit4;
-            if (outcomes.Count > 0)
-            {
-                exit4 = 6;
-            }
-            else
-            {
-                exit4 = 5;
-            }
+            return Result(
+                CliExit.AfterEffects(CliExit.IoFailure, effects: outcomes.Count > 0),
+                [
+                    "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
+                ]);
+        }
 
-            string[] errors4 =
-            [
-                "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
-            ];
-            var result3 = Result(
-                exit4,
-                errors4);
-            return result3;
+        bool AnyCompleted() => RemoteSyncOutcomes.AnyCompleted(outcomes.Select(x => x.State));
+
+        void AddCurrentOutcome(ActionState state)
+        {
+            string? calendarId = action == CalendarActions.DeleteCalendar ? existing?.Id : created;
+            AddOutcome(new CalendarActionOutcome(
+                Action: action,
+                CalendarId: calendarId,
+                EventId: eventId,
+                State: state,
+                desiredIndex));
         }
 
         CalendarSyncResult AuthenticationFailure()
         {
-            var partial = outcomes.Any(x => x.State == "completed");
-            string action2 = action;
-            string? calendarId;
-            if (action == "delete calendar")
-            {
-                calendarId = existing?.Id;
-            }
-            else
-            {
-                calendarId = created;
-            }
-
-            string? eventId2 = eventId;
-            string state = "failed";
-            int? desiredEventIndex = desiredIndex;
-            CalendarActionOutcome outcome = new(
-                Action: action2,
-                CalendarId: calendarId,
-                EventId: eventId2,
-                State: state,
-                desiredEventIndex);
-            AddOutcome(outcome);
-
-            int CalculateExit()
-            {
-                int exit;
-                if (partial)
-                {
-                    exit = 6;
-                }
-                else
-                {
-                    exit = 4;
-                }
-
-                return exit;
-            }
-
+            var effects = AnyCompleted();
+            AddCurrentOutcome(ActionState.Failed);
             return Result(
-                CalculateExit(),
+                CliExit.AfterEffects(CliExit.AuthenticationRequired, effects),
                 [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
         }
 
@@ -716,25 +535,7 @@ public static class CalendarSync
             string[] errors,
             bool reportRemaining = true)
         {
-            bool CalculateConditionResult()
-            {
-                if (!apply)
-                {
-                    return false;
-                }
-
-                if (exit == 0)
-                {
-                    return false;
-                }
-
-                return reportRemaining;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (apply && exit != CliExit.Success && reportRemaining)
             {
                 var finished = outcomes.Select(PlanId)
                     .ToHashSet(StringComparer.Ordinal);
@@ -744,18 +545,13 @@ public static class CalendarSync
                         Action: step.Action,
                         CalendarId: step.CalendarId,
                         EventId: null,
-                        State: "not-attempted",
+                        State: ActionState.NotAttempted,
                         step.DesiredEventIndex);
-                    string id2 = step.Id;
-                    string status2 = skipped.State;
-                    object item = skipped;
-                    var human =
-                        new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex);
                     Report(
-                        id: id2,
-                        status: status2,
-                        item,
-                        human);
+                        id: step.Id,
+                        status: skipped.State,
+                        skipped,
+                        new CalendarNotAttemptedMessage(step.Action, step.DesiredEventIndex));
                 }
             }
             return new(
@@ -771,4 +567,12 @@ public static class CalendarSync
                 Warnings: warnings.ToArray());
         }
     }
+}
+
+/// <summary>The wire names of the calendar replacement actions.</summary>
+public static class CalendarActions
+{
+    public const string DeleteCalendar = "delete calendar";
+    public const string CreateCalendar = "create calendar";
+    public const string CreateEvent = "create event";
 }

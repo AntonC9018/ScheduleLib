@@ -43,7 +43,7 @@ public sealed record RegistryGradeOutcome(
     string Groups,
     int TestNumber,
     IReadOnlyList<RegistryGradeChange> Grades,
-    string Status,
+    ActionState Status,
     string? Detail);
 
 public sealed record RegistryGradeResult(
@@ -132,14 +132,14 @@ public partial class RegistryCommands
             {
                 actionIndexes.Add(action, outcomes.Count);
                 var action2 = action;
-                string status3;
+                ActionState status3;
                 if (apply.Apply)
                 {
-                    status3 = "not-attempted";
+                    status3 = ActionState.NotAttempted;
                 }
                 else
                 {
-                    status3 = "planned";
+                    status3 = ActionState.Planned;
                 }
 
                 string? detail2 = null;
@@ -200,7 +200,7 @@ public partial class RegistryCommands
 
         static RegistryGradeOutcome ToOutcome(
             RegistryGradeAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             return new(
@@ -215,7 +215,7 @@ public partial class RegistryCommands
 
         void Record(
             RegistryGradeAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             var index = actionIndexes[action];
@@ -231,14 +231,14 @@ public partial class RegistryCommands
         {
             var cliCommandContext = context;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string status2 = outcome.Status;
+            var status2 = outcome.Status;
             object item = outcome;
             Action renderHuman2 = () =>
             {
                 string CalculateLine()
                 {
                     string line =
-                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}";
+                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
                     return line;
                 }
 
@@ -271,10 +271,10 @@ public partial class RegistryCommands
         {
             var exit = finalExit;
             var errors = finalErrors;
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(
                 exit,
@@ -290,7 +290,7 @@ public partial class RegistryCommands
                 counts,
                 notices,
             };
-            var actions = outcomes.Select(x => $"grades: {x.Status}")
+            var actions = outcomes.Select(x => $"grades: {x.Status.ToWire()}")
                 .ToArray();
             var data = new RegistryGradeResult(
                 target,

@@ -147,13 +147,13 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         _owned[name] = await Fingerprint(destination, CancellationToken.None);
     }
 
-    public async Task Complete(string status, CancellationToken token)
+    public async Task Complete(RunStatus status, CancellationToken token)
     {
         var manifest = new OutputManifest(
             1,
             Command: _command,
             RunId: _runId,
-            Status: status,
+            Status: status.ToWire(),
             _owned.Select(x => new OwnedArtifact(Name: x.Key, Sha256: x.Value))
                 .ToArray());
         await AtomicFile.Publish(

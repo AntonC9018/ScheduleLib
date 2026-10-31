@@ -72,7 +72,7 @@ internal static class CliAuthenticationExecution
             var account = data.Accounts[index];
             var cliOutput = cli;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string status2 = "completed";
+            var status2 = ActionState.Completed;
             object item = account;
             cliOutput.EmitItem(
                 id: id2,
@@ -99,7 +99,7 @@ internal static class CliAuthenticationExecution
                 foreach (var account in data.Accounts)
                 {
                     var cliOutput = cli;
-                    string line = $"{account.AccountId}: {account.State}";
+                    string line = $"{account.AccountId}: {account.State.ToWire()}";
                     cliOutput.WriteHuman(line);
                 }
 

@@ -146,7 +146,7 @@ public partial class ExportCommands
                 },
                 cancellation.Token);
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }

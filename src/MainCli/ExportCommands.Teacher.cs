@@ -310,7 +310,7 @@ public partial class ExportCommands
                 StreamNew();
             }
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(CliExit.Success, []);

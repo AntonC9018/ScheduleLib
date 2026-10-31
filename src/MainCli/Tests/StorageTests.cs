@@ -125,7 +125,7 @@ public sealed class StorageTests
                         t)
                     .AsTask(),
                 CancellationToken.None);
-            await output.Complete("succeeded", CancellationToken.None);
+            await output.Complete(RunStatus.Succeeded, CancellationToken.None);
         }
 
         string CalculatePath()

@@ -100,7 +100,7 @@ public sealed class CliOutput
 
     public void EmitItem(
         string id,
-        string status,
+        ActionState status,
         object? item)
     {
         if (!Jsonl)
@@ -124,7 +124,7 @@ public sealed class CliOutput
     }
 
     public void EmitFinal(
-        string status,
+        RunStatus status,
         int exitCode,
         string[] warnings,
         string[] errors,

@@ -112,7 +112,7 @@ public partial class RegistryCommands
                 string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text = $"year-{toString}";
                 string id2 = text;
-                string status2 = "completed";
+                var status2 = ActionState.Completed;
                 object item = new { year = offeredYear };
                 cliOutput2.EmitItem(
                     id: id2,
@@ -133,7 +133,7 @@ public partial class RegistryCommands
                 string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text2 = $"candidate-{toString2}";
                 string id3 = text2;
-                string status3 = "completed";
+                var status3 = ActionState.Completed;
                 object item2 = new
                 {
                     historicalYear = candidate.Historical.Year,
@@ -155,7 +155,7 @@ public partial class RegistryCommands
                 string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text3 = $"unresolved-{toString3}";
                 string id4 = text3;
-                string status4 = "completed";
+                var status4 = ActionState.Completed;
                 object item3 = new { reason = unresolved.Reason.ToString() };
                 cliOutput6.EmitItem(
                     id: id4,
@@ -224,10 +224,10 @@ public partial class RegistryCommands
                 unresolved,
                 files,
             };
-            var status = CliCommandContext.Status(exit, success: "downloaded");
+            var status = CliCommandContext.Status(exit, success: RunStatus.Downloaded);
             var jsonStatus = CliCommandContext.Status(
                 exit,
-                success: "downloaded",
+                success: RunStatus.Downloaded,
                 cancellation: false);
             return context.Finish(new CliCompletion<object>(
                 exit,

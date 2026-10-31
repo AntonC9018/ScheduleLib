@@ -11,7 +11,7 @@ internal sealed record RegistryMutationRequest(Func<CancellationToken, Task> Sub
 
 internal sealed record RegistryMutationOutcome
 {
-    public required string Status { get; init; }
+    public required ActionState Status { get; init; }
 
     public string? Detail { get; init; }
 
@@ -69,17 +69,17 @@ internal static class RegistryMutation
             await request.Submit(request.Token);
             return new()
             {
-                Status = "completed",
+                Status = ActionState.Completed,
                 SubmissionStarted = true,
             };
         }
         catch (RegistryActionCancelledException error)
         {
-            var status = "cancelled";
+            var status = ActionState.Cancelled;
             var detail = "Cancelled before form submission.";
             if (error.SubmissionStarted)
             {
-                status = "uncertain";
+                status = ActionState.Uncertain;
                 detail =
                     $"Cancelled during submission; inspect the registry before retrying. {request.CancellationPolicy} are never automatically retried.";
             }
@@ -95,7 +95,7 @@ internal static class RegistryMutation
         {
             return new()
             {
-                Status = "uncertain",
+                Status = ActionState.Uncertain,
                 Detail =
                     $"Cancelled during execution; inspect the registry before retrying. {request.CancellationPolicy} are never automatically retried.",
                 SubmissionStarted = true,
@@ -106,7 +106,7 @@ internal static class RegistryMutation
         {
             return new()
             {
-                Status = "omitted",
+                Status = ActionState.Omitted,
                 Detail = "Registry refused deletion; the lesson remains unchanged. Skipped without retrying.",
                 SubmissionStarted = error.SubmissionStarted,
                 DeletionRefused = true,
@@ -114,17 +114,17 @@ internal static class RegistryMutation
         }
         catch (RegistryActionExecutionException error)
         {
-            var status = "uncertain";
+            var status = ActionState.Uncertain;
             var detail =
                 "Submission result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.";
             if (error.InnerException is RegistrySubmissionRejectedException)
             {
-                status = "failed";
+                status = ActionState.Failed;
                 detail = "Registry rejected the submission; no automatic retry was performed.";
             }
             else if (!error.SubmissionStarted)
             {
-                status = "failed";
+                status = ActionState.Failed;
                 detail = "Action failed before form submission.";
             }
             return new()
@@ -139,7 +139,7 @@ internal static class RegistryMutation
         {
             return new()
             {
-                Status = "uncertain",
+                Status = ActionState.Uncertain,
                 Detail =
                     "Submission failed or its result could not be confirmed. Inspect the registry before retrying; no automatic retry was performed.",
                 SubmissionStarted = true,

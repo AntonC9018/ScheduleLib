@@ -405,7 +405,7 @@ public sealed class MicrosoftAuthentication(
                 [
                     new(
                         AccountId: binding.AccountId,
-                        State: cached.ExpiresOn > DateTimeOffset.UtcNow ? "authorized" : "refreshable",
+                        State: cached.ExpiresOn > DateTimeOffset.UtcNow ? AuthAccountState.Authorized : AuthAccountState.Refreshable,
                         cached.Scopes),
                 ]);
     }

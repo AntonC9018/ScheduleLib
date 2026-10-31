@@ -891,7 +891,7 @@ public sealed class CliJsonlTests
 
                         output.EmitItem(
                             id: CalculateId(),
-                            status: "completed",
+                            status: ActionState.Completed,
                             new
                             {
                                 worker,
@@ -910,7 +910,7 @@ public sealed class CliJsonlTests
                 .ToArray();
             await Task.WhenAll(writers);
             output.EmitFinal(
-                "succeeded",
+                RunStatus.Succeeded,
                 0,
                 warnings: [],
                 errors: [],
@@ -1259,7 +1259,7 @@ public sealed class CliJsonlTests
                         return false;
                     }
 
-                    if (update.Status == "completed")
+                    if (update.Status.ToWire() == "completed")
                     {
                         return true;
                     }
@@ -1277,11 +1277,11 @@ public sealed class CliJsonlTests
             });
         Assert.Equal(expected: 130, actual: result.ExitCode);
         Assert.Single(result.Outcomes);
-        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
+        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State.ToWire());
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(
             expected: ["1", "2"],
-            actual: updates.Where(update => update.Status == "not-attempted")
+            actual: updates.Where(update => update.Status.ToWire() == "not-attempted")
                 .Select(update => update.Id));
     }
 
@@ -1316,9 +1316,9 @@ public sealed class CliJsonlTests
         // streams as items with the deleted/desired payloads.
         Assert.Equal(
             expected: ["0", "1", "2", "3"],
-            actual: previewUpdates.Where((update) => update.Status == "planned")
+            actual: previewUpdates.Where((update) => update.Status.ToWire() == "planned")
                 .Select((update) => update.Id));
-        Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status);
+        Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status.ToWire());
         var deleted = previewUpdates.Single((update) => update.Id == "deleted-0");
 
         string CalculateJson()
@@ -1363,7 +1363,7 @@ public sealed class CliJsonlTests
             onOutcome: (update) => applyUpdates.Add(update));
         Assert.Equal(expected: 0, actual: applied.ExitCode);
         Assert.Equal(expected: ["delete old", "calendar", "event new", "event new"], actual: applyProvider.Writes);
-        Assert.All(applied.Outcomes, (outcome) => Assert.Equal(expected: "completed", actual: outcome.State));
+        Assert.All(applied.Outcomes, (outcome) => Assert.Equal(expected: "completed", actual: outcome.State.ToWire()));
         // Each action id transitions from planned to completed with the same id.
         foreach (var id in new[]
                  {
@@ -1376,7 +1376,7 @@ public sealed class CliJsonlTests
             Assert.Equal(
                 expected: ["planned", "completed"],
                 actual: applyUpdates.Where((update) => update.Id == id)
-                    .Select((update) => update.Status));
+                    .Select((update) => update.Status.ToWire()));
         }
 
         Assert.Equal(expected: "new", actual: applied.Outcomes[1].CalendarId);
@@ -1420,7 +1420,7 @@ public sealed class CliJsonlTests
         // Rendering stopped further mutations without retrying or reclassifying.
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         var outcome = Assert.Single(failure.PartialResult.Outcomes);
-        Assert.Equal(expected: "completed", actual: outcome.State);
+        Assert.Equal(expected: "completed", actual: outcome.State.ToWire());
         Assert.Equal(expected: "old", actual: outcome.CalendarId);
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
     }
@@ -1453,9 +1453,9 @@ public sealed class CliJsonlTests
         Assert.Empty(preview.Outcomes);
         Assert.Empty(previewProvider.Writes);
         Assert.Equal(expected: ["0", "1"], actual: previewUpdates.Select((update) => update.Id));
-        Assert.All(previewUpdates, (update) => Assert.Equal(expected: "planned", actual: update.Status));
-        Assert.Equal(expected: "delete", actual: ((DriveOutcome) previewUpdates[0].Item!).Action.Action);
-        Assert.Equal(expected: "create", actual: ((DriveOutcome) previewUpdates[1].Item!).Action.Action);
+        Assert.All(previewUpdates, (update) => Assert.Equal(expected: "planned", actual: update.Status.ToWire()));
+        Assert.Equal(expected: "delete", actual: ((DriveOutcome) previewUpdates[0].Item!).Action.Action.ToWire());
+        Assert.Equal(expected: "create", actual: ((DriveOutcome) previewUpdates[1].Item!).Action.Action.ToWire());
 
         var applyUpdates = new List<StreamedUpdate>();
         using var applyProvider = new DriveFake();
@@ -1483,7 +1483,7 @@ public sealed class CliJsonlTests
             Assert.Equal(
                 expected: ["planned", "completed"],
                 actual: applyUpdates.Where((update) => update.Id == id)
-                    .Select((update) => update.Status));
+                    .Select((update) => update.Status.ToWire()));
         }
     }
 
@@ -1526,7 +1526,7 @@ public sealed class CliJsonlTests
         Assert.IsAssignableFrom<CliOutputStreamingException>(failure);
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         var outcome = Assert.Single(failure.PartialResult.Outcomes);
-        Assert.Equal(expected: "completed", actual: outcome.State);
+        Assert.Equal(expected: "completed", actual: outcome.State.ToWire());
         Assert.Equal(expected: "old", actual: outcome.ResultFileId);
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
     }

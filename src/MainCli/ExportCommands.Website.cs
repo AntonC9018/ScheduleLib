@@ -157,7 +157,7 @@ public partial class ExportCommands
             }
 
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }
@@ -359,7 +359,7 @@ public partial class ExportCommands
             }
 
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }

@@ -12,13 +12,105 @@ public sealed record DriveRemoteFile(string Id, string Name);
 
 public sealed record DriveArtifact(string Name, string Path);
 
-public sealed record DriveAction(
-    string Action,
-    string Name,
-    string? FileId,
-    string? LocalPath);
+[System.Text.Json.Serialization.JsonConverter(typeof(DriveActionKindJsonConverter))]
+public enum DriveActionKind
+{
+    Delete,
+    Create,
+    Update,
+}
 
-public sealed record DriveOutcome(DriveAction Action, string State, string? ResultFileId);
+public static class DriveActionKindWireNames
+{
+    public static string ToWire(this DriveActionKind kind)
+    {
+        return kind switch
+        {
+            DriveActionKind.Delete => "delete",
+            DriveActionKind.Create => "create",
+            DriveActionKind.Update => "update",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+}
+
+public sealed class DriveActionKindJsonConverter : WireNameJsonConverter<DriveActionKind>
+{
+    protected override string ToWire(DriveActionKind value) => value.ToWire();
+}
+
+/// <summary>
+/// One planned Drive mutation: a closed set of <see cref="DriveDeleteAction"/>,
+/// <see cref="DriveCreateAction"/> and <see cref="DriveUpdateAction"/>. The nullable
+/// <see cref="FileId"/>/<see cref="LocalPath"/> members keep the existing wire shape;
+/// mutations use the non-nullable members of the concrete action.
+/// </summary>
+public abstract record DriveAction
+{
+    private protected DriveAction(string name)
+        => Name = name;
+
+    public abstract DriveActionKind Action { get; }
+
+    public string Name { get; }
+
+    public abstract string? FileId { get; }
+
+    public abstract string? LocalPath { get; }
+}
+
+public sealed record DriveDeleteAction : DriveAction
+{
+    public DriveDeleteAction(string name, string remoteFileId) : base(name)
+        => RemoteFileId = remoteFileId;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string RemoteFileId { get; }
+
+    public override DriveActionKind Action => DriveActionKind.Delete;
+
+    public override string? FileId => RemoteFileId;
+
+    public override string? LocalPath => null;
+}
+
+public sealed record DriveCreateAction : DriveAction
+{
+    public DriveCreateAction(string name, string sourcePath) : base(name)
+        => SourcePath = sourcePath;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string SourcePath { get; }
+
+    public override DriveActionKind Action => DriveActionKind.Create;
+
+    public override string? FileId => null;
+
+    public override string? LocalPath => SourcePath;
+}
+
+public sealed record DriveUpdateAction : DriveAction
+{
+    public DriveUpdateAction(string name, string remoteFileId, string sourcePath) : base(name)
+    {
+        RemoteFileId = remoteFileId;
+        SourcePath = sourcePath;
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string RemoteFileId { get; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string SourcePath { get; }
+
+    public override DriveActionKind Action => DriveActionKind.Update;
+
+    public override string? FileId => RemoteFileId;
+
+    public override string? LocalPath => SourcePath;
+}
+
+public sealed record DriveOutcome(DriveAction Action, ActionState State, string? ResultFileId);
 
 public sealed record DriveSyncResult(
     string Account,
@@ -92,39 +184,13 @@ public static class DriveSync
         string? lockRoot = null,
         Action<StreamedUpdate>? onOutcome = null)
     {
-        static bool IsCancellationTransportError(CancellationToken cancellationToken, Exception error)
-        {
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                return false;
-            }
-
-            if (error is (OperationCanceledException or GooglePreSendTransportException))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         var account = await provider.GetAccount(token);
         var folder = await provider.FindFolder(folderName, token);
-
-        string CalculatePath1()
-        {
-            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return path1;
-        }
 
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
-                    root: lockRoot
-                    ?? Path.Combine(
-                        CalculatePath1(),
-                        "ScheduleLib",
-                        "remote-locks",
-                        "drive"),
+                    root: lockRoot ?? DefaultLockRoot(),
                     account: account.Id,
                     folderId: folder.Id),
                 token)
@@ -137,37 +203,7 @@ public static class DriveSync
         }
 
         var remote = await provider.ListFiles(folder.Id, token);
-        var local = new Dictionary<string, DriveArtifact>(StringComparer.OrdinalIgnoreCase);
-        foreach (var artifact in artifacts.Where(x => IsScheduleArtifact(x.Name)))
-        {
-            local.TryAdd(artifact.Name, artifact);
-        }
-
-        var cloudNames = remote.Select(x => x.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var actions = new List<DriveAction>();
-        // Preserve legacy matching: every duplicate remote name is updated, unmatched remote files are deleted.
-        actions.AddRange(
-            remote.Where(x => !local.ContainsKey(x.Name))
-                .Select(x => new DriveAction(
-                    Action: "delete",
-                    Name: x.Name,
-                    FileId: x.Id,
-                    LocalPath: null)));
-        actions.AddRange(
-            local.Values.Where(x => !cloudNames.Contains(x.Name))
-                .Select(x => new DriveAction(
-                    Action: "create",
-                    Name: x.Name,
-                    FileId: null,
-                    LocalPath: x.Path)));
-        actions.AddRange(
-            remote.Where(x => local.ContainsKey(x.Name))
-                .Select(x => new DriveAction(
-                    Action: "update",
-                    Name: x.Name,
-                    FileId: x.Id,
-                    LocalPath: local[x.Name].Path)));
+        var actions = PlanActions(remote, artifacts);
         var warnings = new[]
         {
             "All unmatched remote files are deleted, including unrelated files in the configured folder. Matching is case-insensitive; every matching remote file is updated. No rollback is provided. Local locks coordinate only this machine.",
@@ -201,52 +237,31 @@ public static class DriveSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                var inner =
-                    new GeneralCliOutputStreamingException("Drive output streaming failed.", ex);
-                Exception inner2 = inner;
-                throw StreamingFailure(inner2);
+                throw StreamingFailure(
+                    new GeneralCliOutputStreamingException("Drive output streaming failed.", ex));
             }
         }
 
         DriveStreamingException StreamingFailure(Exception inner)
         {
-            int exit;
-            if (outcomes.Any(x => x.State == "completed"))
-            {
-                exit = 6;
-            }
-            else
-            {
-                exit = 1;
-            }
-
-            string[] errors =
-            [
-                "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
-            ];
             var partialResult = Result(
-                exit,
-                errors);
-            var inner2 = inner;
-            DriveStreamingException driveStreamingException = new(
-                partialResult,
-                inner2);
-            return driveStreamingException;
+                RemoteSyncOutcomes.StreamingFailureExit(outcomes.Select(x => x.State)),
+                [
+                    "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
+                ]);
+            return new DriveStreamingException(partialResult, inner);
         }
 
         void ReportPlanned(int index, DriveAction action)
         {
             var planned = new DriveOutcome(
                 action,
-                State: "planned",
+                State: ActionState.Planned,
                 ResultFileId: null);
-            string id2 = PlanId(index);
-            var outcome = planned;
-            string human2 = $"{action.Action} {action.Name}: {planned.State}";
             Report(
-                id: id2,
-                outcome,
-                human: human2);
+                id: PlanId(index),
+                planned,
+                human: $"{action.Action.ToWire()} {action.Name}: {planned.State.ToWire()}");
         }
 
         void AddOutcome(DriveOutcome outcome)
@@ -257,16 +272,23 @@ public static class DriveSync
             // catch blocks, which never re-catch their own throws), so a
             // rendering failure is never misclassified as provider uncertainty.
             outcomes.Add(outcome);
-            var index = outcomes.Count - 1;
-            string id2 = PlanId(index);
-            var outcome2 = outcome;
-            string human2 =
-                $"{outcome.Action.Action} {outcome.Action.Name}: {outcome.State}; id {outcome.ResultFileId}";
             Report(
-                id: id2,
-                outcome2,
-                human: human2);
+                id: PlanId(outcomes.Count - 1),
+                outcome,
+                human:
+                $"{outcome.Action.Action.ToWire()} {outcome.Action.Name}: {outcome.State.ToWire()}; id {outcome.ResultFileId}");
         }
+
+        void AddTerminal(DriveAction action, ActionState state)
+        {
+            AddOutcome(new DriveOutcome(action, state, ResultFileId: null));
+            foreach (var remaining in actions.Skip(outcomes.Count))
+            {
+                AddOutcome(new DriveOutcome(remaining, ActionState.NotAttempted, ResultFileId: null));
+            }
+        }
+
+        bool AnyCompleted() => RemoteSyncOutcomes.AnyCompleted(outcomes.Select(x => x.State));
 
         token.ThrowIfCancellationRequested();
         // The full plan streams before any mutation in both modes; the final
@@ -278,7 +300,7 @@ public static class DriveSync
 
         if (!apply)
         {
-            return Result(0, []);
+            return Result(CliExit.Success, []);
         }
 
         foreach (var action in actions)
@@ -287,37 +309,44 @@ public static class DriveSync
             try
             {
                 token.ThrowIfCancellationRequested();
-                if (action.Action == "delete")
+                string resultFileId;
+                switch (action)
                 {
-                    attempted = true;
-                    await provider.Delete(action.FileId!, token);
-                    DriveOutcome outcome3 = new(
-                        action,
-                        State: "completed",
-                        ResultFileId: action.FileId);
-                    AddOutcome(outcome3);
-                }
-                else
-                {
-                    await using var input = File.OpenRead(action.LocalPath!);
-                    token.ThrowIfCancellationRequested();
-                    attempted = true;
-                    var id = action.Action == "create"
-                        ? await provider.Create(
+                    case DriveDeleteAction delete:
+                    {
+                        attempted = true;
+                        await provider.Delete(delete.RemoteFileId, token);
+                        resultFileId = delete.RemoteFileId;
+                        break;
+                    }
+                    case DriveCreateAction create:
+                    {
+                        await using var input = File.OpenRead(create.SourcePath);
+                        token.ThrowIfCancellationRequested();
+                        attempted = true;
+                        resultFileId = await provider.Create(
                             folderId: folder.Id,
-                            name: action.Name,
-                            input,
-                            token)
-                        : await provider.Update(
-                            action.FileId!,
+                            name: create.Name,
                             input,
                             token);
-                    DriveOutcome outcome4 = new(
-                        action,
-                        State: "completed",
-                        ResultFileId: id);
-                    AddOutcome(outcome4);
+                        break;
+                    }
+                    case DriveUpdateAction update:
+                    {
+                        await using var input = File.OpenRead(update.SourcePath);
+                        token.ThrowIfCancellationRequested();
+                        attempted = true;
+                        resultFileId = await provider.Update(
+                            update.RemoteFileId,
+                            input,
+                            token);
+                        break;
+                    }
+                    default:
+                        throw new InvalidOperationException($"Unknown Drive action {action.GetType().Name}.");
                 }
+
+                AddOutcome(new DriveOutcome(action, ActionState.Completed, resultFileId));
             }
             catch (CliOutputStreamingException)
             {
@@ -325,177 +354,51 @@ public static class DriveSync
                 // it must not be reclassified as uncertain/failed or retried.
                 throw;
             }
-            catch (Exception error) when (IsCancellationTransportError(token, error))
+            catch (Exception error) when (RemoteSyncOutcomes.IsCancellationTransportError(token, error))
             {
-                var action2 = action;
-                string state;
-                if (attempted)
-                {
-                    state = "uncertain";
-                }
-                else
-                {
-                    state = "not-attempted";
-                }
-
-                string? resultFileId = null;
-                DriveOutcome outcome7 = new(
-                    action2,
-                    State: state,
-                    ResultFileId: resultFileId);
-                AddOutcome(outcome7);
-                AddRemaining();
+                AddTerminal(action, RemoteSyncOutcomes.InterruptedState(attempted, ActionState.NotAttempted));
                 return Result(
-                    130,
+                    CliExit.Cancelled,
                     [
                         "Cancelled. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
                     ]);
             }
             catch (GooglePreSendTransportException)
             {
-                DriveOutcome outcome5 = new(
-                    action,
-                    State: "failed",
-                    ResultFileId: null);
-                AddOutcome(outcome5);
-                AddRemaining();
-                int exit2;
-                if (outcomes.Any(x => x.State == "completed"))
-                {
-                    exit2 = 6;
-                }
-                else
-                {
-                    exit2 = 5;
-                }
-
-                string[] errors2 =
-                [
-                    "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.",
-                ];
-                var result = Result(
-                    exit2,
-                    errors2);
-                return result;
+                AddTerminal(action, ActionState.Failed);
+                return Result(
+                    CliExit.AfterEffects(CliExit.IoFailure, effects: AnyCompleted()),
+                    [RemoteSyncOutcomes.CredentialRefreshTransportError]);
             }
-            catch (Google.GoogleApiException e) when ((int) e.HttpStatusCode is 400
-                                                      or 401
-                                                      or 403
-                                                      or 404
-                                                      or 409
-                                                      or 412
-                                                      or 422)
+            catch (Google.GoogleApiException e)
+                when (RemoteSyncOutcomes.IsUnauthorized(e) || RemoteSyncOutcomes.IsRejected(e))
             {
-                DriveOutcome outcome6 = new(
-                    action,
-                    State: "failed",
-                    ResultFileId: null);
-                AddOutcome(outcome6);
-                AddRemaining();
-                int exit3;
-                if (outcomes.Any(x => x.State == "completed"))
-                {
-                    exit3 = 6;
-                }
-                else
-                {
-                    int int32 = (int) e.HttpStatusCode;
-                    int int322;
-                    if (int32 == 401)
-                    {
-                        int322 = 4;
-                    }
-                    else
-                    {
-                        int322 = 5;
-                    }
-
-                    exit3 = int322;
-                }
-
-                string[] errors3 =
-                    ["Drive rejected the action. Completed actions remain applied; no action was retried."];
-                var result2 = Result(
-                    exit3,
-                    errors3);
-                return result2;
+                AddTerminal(action, ActionState.Failed);
+                var failureExit = RemoteSyncOutcomes.IsUnauthorized(e)
+                    ? CliExit.AuthenticationRequired
+                    : CliExit.IoFailure;
+                return Result(
+                    CliExit.AfterEffects(failureExit, effects: AnyCompleted()),
+                    ["Drive rejected the action. Completed actions remain applied; no action was retried."]);
             }
             catch (Exception)
             {
-                var action3 = action;
-                string state2;
-                if (attempted)
-                {
-                    state2 = "uncertain";
-                }
-                else
-                {
-                    state2 = "failed";
-                }
-
-                string? resultFileId2 = null;
-                DriveOutcome outcome8 = new(
-                    action3,
-                    State: state2,
-                    ResultFileId: resultFileId2);
-                AddOutcome(outcome8);
-                AddRemaining();
-                int exit4;
-                if (outcomes.Any(x => x.State is "completed" or "uncertain"))
-                {
-                    exit4 = 6;
-                }
-                else
-                {
-                    exit4 = 5;
-                }
-
-                string[] errors4 =
-                [
-                    "Drive application failed. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
-                ];
-                var result3 = Result(
-                    exit4,
-                    errors4);
-                return result3;
+                AddTerminal(action, RemoteSyncOutcomes.InterruptedState(attempted, ActionState.Failed));
+                var effects = outcomes.Any(x => x.State is ActionState.Completed or ActionState.Uncertain);
+                return Result(
+                    CliExit.AfterEffects(CliExit.IoFailure, effects),
+                    [
+                        "Drive application failed. An uncertain action may have completed remotely; inspect Drive before another apply. No action was retried.",
+                    ]);
             }
         }
-        int exit5;
+
         if (token.IsCancellationRequested)
         {
-            exit5 = 130;
-        }
-        else
-        {
-            exit5 = 0;
+            return Result(CliExit.Cancelled, ["Cancelled after the reported actions completed."]);
         }
 
-        string[] errors5;
-        if (token.IsCancellationRequested)
-        {
-            errors5 = ["Cancelled after the reported actions completed."];
-        }
-        else
-        {
-            errors5 = [];
-        }
-
-        var result4 = Result(
-            exit5,
-            errors5);
-        return result4;
-
-        void AddRemaining()
-        {
-            foreach (var action in actions.Skip(outcomes.Count))
-            {
-                DriveOutcome outcome = new(
-                    action,
-                    State: "not-attempted",
-                    ResultFileId: null);
-                AddOutcome(outcome);
-            }
-        }
+        return Result(CliExit.Success, []);
 
         DriveSyncResult Result(int exit, string[] errors)
         {
@@ -509,6 +412,47 @@ public static class DriveSync
                 Errors: errors,
                 Warnings: warnings);
         }
+    }
+
+    private static string DefaultLockRoot()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ScheduleLib",
+            "remote-locks",
+            "drive");
+    }
+
+    /// <summary>
+    /// Preserves legacy matching: every duplicate remote name is updated and unmatched
+    /// remote files are deleted. Deletes come first, then creates, then updates.
+    /// </summary>
+    private static List<DriveAction> PlanActions(
+        IReadOnlyList<DriveRemoteFile> remote,
+        IReadOnlyList<DriveArtifact> artifacts)
+    {
+        var local = new Dictionary<string, DriveArtifact>(StringComparer.OrdinalIgnoreCase);
+        foreach (var artifact in artifacts.Where(x => IsScheduleArtifact(x.Name)))
+        {
+            local.TryAdd(artifact.Name, artifact);
+        }
+
+        var cloudNames = remote.Select(x => x.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var actions = new List<DriveAction>();
+        actions.AddRange(
+            remote.Where(x => !local.ContainsKey(x.Name))
+                .Select(x => new DriveDeleteAction(name: x.Name, remoteFileId: x.Id)));
+        actions.AddRange(
+            local.Values.Where(x => !cloudNames.Contains(x.Name))
+                .Select(x => new DriveCreateAction(name: x.Name, sourcePath: x.Path)));
+        actions.AddRange(
+            remote.Where(x => local.ContainsKey(x.Name))
+                .Select(x => new DriveUpdateAction(
+                    name: x.Name,
+                    remoteFileId: x.Id,
+                    sourcePath: local[x.Name].Path)));
+        return actions;
     }
 
     public static bool IsScheduleArtifact(string name)

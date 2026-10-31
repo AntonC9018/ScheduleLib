@@ -179,7 +179,7 @@ public static class CliHost
                     output.WriteError(detail);
                 }
 
-                output.EmitFinal("failed", exit, [], [error], null);
+                output.EmitFinal(RunStatus.Failed, exit, [], [error], null);
                 return;
             }
 
@@ -189,7 +189,7 @@ public static class CliHost
                     1,
                     "cli",
                     Guid.NewGuid().ToString("N"),
-                    "failed",
+                    RunStatus.Failed,
                     exit,
                     [],
                     [],
@@ -554,7 +554,7 @@ public partial class QueryCommands
                 };
                 context.StreamItem(
                     id,
-                    status: "completed",
+                    status: ActionState.Completed,
                     item,
                     renderHuman: renderHuman);
                 streamed++;

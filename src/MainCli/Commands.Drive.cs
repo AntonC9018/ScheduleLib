@@ -138,7 +138,7 @@ public class DriveCommands
                 warnings,
                 cancellation.Token);
             StreamNewArtifacts();
-            await output.Complete("generated", cancellation.Token);
+            await output.Complete(RunStatus.Generated, cancellation.Token);
             StreamNewArtifacts();
             bundleGenerated = true;
             data = await DriveSync.Run(
@@ -202,7 +202,7 @@ public class DriveCommands
                     var cliOutput = cli;
                     string text = $"artifact:{path}";
                     string id2 = text;
-                    string status2 = "completed";
+                    var status2 = ActionState.Completed;
                     object item = new { path };
                     cliOutput.EmitItem(
                         id: id2,
@@ -223,7 +223,7 @@ public class DriveCommands
                     {
                         try
                         {
-                            await output.Complete("partial", CancellationToken.None);
+                            await output.Complete(RunStatus.Partial, CancellationToken.None);
                         }
                         catch (Exception)
                         {
@@ -238,10 +238,10 @@ public class DriveCommands
             var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}")
                     .ToArray()
                 ?? [];
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(exit, success);
             object summary = new

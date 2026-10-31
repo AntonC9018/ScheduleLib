@@ -42,7 +42,7 @@ public sealed class DriveSyncTests
                 "update",
                 "update",
             },
-            actual: preview.Actions.Select(x => x.Action));
+            actual: preview.Actions.Select(x => x.Action.ToWire()));
         Assert.Empty(fake.Writes);
         Assert.Empty(preview.Outcomes);
         fake.Remote = [new(Id: "changed", Name: "obsolete.xlsx"), new(Id: "one", Name: "SCHEDULE.PDF")];
@@ -62,7 +62,7 @@ public sealed class DriveSyncTests
                 "update one",
             },
             actual: fake.Writes);
-        Assert.All(applied.Outcomes, x => Assert.Equal(expected: "completed", actual: x.State));
+        Assert.All(applied.Outcomes, x => Assert.Equal(expected: "completed", actual: x.State.ToWire()));
         Assert.Equal(expected: 2, actual: fake.ListCalls);
     }
 
@@ -98,8 +98,8 @@ public sealed class DriveSyncTests
             default,
             lockRoot: temp.Path);
         Assert.Equal(expected: exit, actual: result.ExitCode);
-        Assert.Equal(expected: state, actual: result.Outcomes[0].State);
-        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State);
+        Assert.Equal(expected: state, actual: result.Outcomes[0].State.ToWire());
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State.ToWire());
         Assert.Single(fake.Writes);
     }
 
@@ -120,8 +120,8 @@ public sealed class DriveSyncTests
             default,
             lockRoot: temp.Path);
         Assert.Equal(expected: 5, actual: deletion.ExitCode);
-        Assert.Equal(expected: "failed", actual: deletion.Outcomes[0].State);
-        Assert.Equal(expected: "not-attempted", actual: deletion.Outcomes[1].State);
+        Assert.Equal(expected: "failed", actual: deletion.Outcomes[0].State.ToWire());
+        Assert.Equal(expected: "not-attempted", actual: deletion.Outcomes[1].State.ToWire());
         Assert.Single(rejectedDelete.Writes);
         using var unauthorized = new Fake
         {
@@ -137,7 +137,7 @@ public sealed class DriveSyncTests
         Assert.Equal(expected: 4, actual: creation.ExitCode);
         string expected2 = "failed";
         var single = Assert.Single(creation.Outcomes);
-        string actual2 = single.State;
+        string actual2 = single.State.ToWire();
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.Single(unauthorized.Writes);
     }
@@ -160,9 +160,9 @@ public sealed class DriveSyncTests
             lockRoot: temp.Path);
         Assert.Equal(expected: 6, actual: result.ExitCode);
         Assert.Equal(expected: "removed", actual: result.Outcomes[0].ResultFileId);
-        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes[1].State);
-        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[2].State);
+        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State.ToWire());
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes[1].State.ToWire());
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[2].State.ToWire());
         Assert.Equal(expected: 2, actual: fake.Writes.Count);
     }
 
@@ -183,8 +183,8 @@ public sealed class DriveSyncTests
             cancellation.Token,
             lockRoot: temp.Path);
         Assert.Equal(expected: 130, actual: result.ExitCode);
-        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State);
-        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State);
+        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State.ToWire());
+        Assert.Equal(expected: "not-attempted", actual: result.Outcomes[1].State.ToWire());
         Assert.Single(fake.Writes);
     }
 

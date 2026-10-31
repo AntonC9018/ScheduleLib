@@ -228,7 +228,7 @@ public partial class RegistryCommands
                 cliOutput.WriteHuman(line);
                 var cliOutput2 = output;
                 string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string status2 = "completed";
+                var status2 = ActionState.Completed;
                 object item = new
                 {
                     year = year.Year,
@@ -301,10 +301,10 @@ public partial class RegistryCommands
                 courses,
                 groups,
             };
-            var status = CliCommandContext.Status(exit, success: "downloaded");
+            var status = CliCommandContext.Status(exit, success: RunStatus.Downloaded);
             var jsonStatus = CliCommandContext.Status(
                 exit,
-                success: "downloaded",
+                success: RunStatus.Downloaded,
                 cancellation: false);
             return context.Finish(new CliCompletion<object>(
                 exit,

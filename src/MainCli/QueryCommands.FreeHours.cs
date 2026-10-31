@@ -145,7 +145,7 @@ public partial class QueryCommands
                 var section = data.Sections[i];
                 var cliCommandContext = context;
                 string id2 = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string status2 = "completed";
+                var status2 = ActionState.Completed;
                 object item = section;
                 Action renderHuman2 = () =>
                 {

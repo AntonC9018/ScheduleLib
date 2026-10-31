@@ -82,7 +82,7 @@ public sealed class AuthenticationTests
         await new AtomicTokenStore(file).Write(stored, default);
         Assert.Equal(
             expected: "refreshable",
-            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
+            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State.ToWire());
         var refreshed = await auth.Resolve(
             new GoogleCredentialRequest(
                 fixture.Config,
@@ -96,7 +96,7 @@ public sealed class AuthenticationTests
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         Assert.Equal(
             expected: "authorized",
-            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State);
+            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State.ToWire());
         Assert.Equal(
             expected: "refreshed-secret",
             actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);

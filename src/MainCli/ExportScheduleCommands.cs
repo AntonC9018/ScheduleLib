@@ -180,7 +180,7 @@ public partial class ExportCommands
                 warnings.Add("No artifacts were generated for the latest period.");
             }
 
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }

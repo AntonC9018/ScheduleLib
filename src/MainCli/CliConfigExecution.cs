@@ -69,7 +69,7 @@ internal static class CliConfigExecution
                     {
                         var cliOutput = cli;
                         string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        string status2 = "completed";
+                        var status2 = ActionState.Completed;
                         object item = new { profile = profiles[index] };
                         cliOutput.EmitItem(
                             id: id2,

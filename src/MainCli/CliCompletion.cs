@@ -13,9 +13,9 @@ public sealed record CliCompletion<T>(int ExitCode, string[] Errors, T Data)
 
     public string[]? Warnings { get; init; }
 
-    public string? Status { get; init; }
+    public RunStatus? Status { get; init; }
 
-    public string? JsonStatus { get; init; }
+    public RunStatus? JsonStatus { get; init; }
 
     public Action<string>? RenderHuman { get; init; }
 

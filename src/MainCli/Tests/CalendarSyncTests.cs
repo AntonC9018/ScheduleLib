@@ -35,7 +35,7 @@ public sealed class CalendarSyncTests
                         return false;
                     }
 
-                    if (report.Status == "completed")
+                    if (report.Status.ToWire() == "completed")
                     {
                         return true;
                     }
@@ -55,7 +55,7 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
         string expected2 = "completed";
         var single = Assert.Single(failure.PartialResult.Outcomes);
-        string actual2 = single.State;
+        string actual2 = single.State.ToWire();
         Assert.Equal(expected: expected2, actual: actual2);
         Assert.IsType<InvalidOperationException>(failure.InnerException!.InnerException);
     }
@@ -182,7 +182,7 @@ public sealed class CalendarSyncTests
             Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
             Assert.Equal(
                 expected: ["0", "1", "2"],
-                actual: reports.Where(x => x.Status == "planned")
+                actual: reports.Where(x => x.Status.ToWire() == "planned")
                     .Select(x => x.Id));
             string expected4 = "create event: planned; calendar ; event ; desired index 0";
             string actual5 = reports.Single(x => x.Id == "2").Human
@@ -307,8 +307,8 @@ public sealed class CalendarSyncTests
             default);
         Assert.Equal(expected: 6, actual: result.ExitCode);
         Assert.Equal(expected: writes, actual: provider.Writes.Count);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State);
-        Assert.Equal(expected: "completed", actual: result.Outcomes.First().State);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State.ToWire());
+        Assert.Equal(expected: "completed", actual: result.Outcomes.First().State.ToWire());
         string? expected2;
         if (fail == "calendar")
         {
@@ -340,7 +340,7 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: 5, actual: result.ExitCode);
         string expected2 = "failed";
         var single = Assert.Single(result.Outcomes);
-        string actual3 = single.State;
+        string actual3 = single.State.ToWire();
         Assert.Equal(expected: expected2, actual: actual3);
 
         string CalculateActual()
@@ -371,7 +371,7 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: "event-1", actual: result.Outcomes[2].EventId);
         Assert.Equal(expected: 0, actual: result.Outcomes[2].DesiredEventIndex);
         Assert.Equal(expected: 1, actual: result.Outcomes[3].DesiredEventIndex);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes[3].State);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes[3].State.ToWire());
     }
 
     [Fact]
@@ -392,7 +392,7 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: 130, actual: result.ExitCode);
         Assert.Equal(expected: "new", actual: result.CreatedCalendarId);
         Assert.Equal(expected: 3, actual: result.Outcomes.Count);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State);
+        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State.ToWire());
         Assert.Equal(expected: 3, actual: provider.Writes.Count);
     }
 

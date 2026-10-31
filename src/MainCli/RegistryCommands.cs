@@ -20,7 +20,7 @@ public sealed record RegistryActionOutcome(
     DateTime Date,
     string? Topic,
     int? AttendanceCount,
-    string Status,
+    ActionState Status,
     string? Detail);
 
 public sealed record RegistrySyncResult(
@@ -185,21 +185,21 @@ public partial class RegistryCommands
                 {
                     actionIndexes.Add(action, outcomes.Count);
                     var action2 = action;
-                    string status2;
+                    ActionState status2;
                     if (!action.Enabled)
                     {
-                        status2 = "omitted";
+                        status2 = ActionState.Omitted;
                     }
                     else
                     {
-                        string text;
+                        ActionState text;
                         if (apply.Apply)
                         {
-                            text = "not-attempted";
+                            text = ActionState.NotAttempted;
                         }
                         else
                         {
-                            text = "planned";
+                            text = ActionState.Planned;
                         }
 
                         status2 = text;
@@ -283,7 +283,7 @@ public partial class RegistryCommands
 
         static RegistryActionOutcome ToOutcome(
             RegistrySyncAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             return new(
@@ -300,7 +300,7 @@ public partial class RegistryCommands
 
         void Record(
             RegistrySyncAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             var index = actionIndexes[action];
@@ -316,14 +316,14 @@ public partial class RegistryCommands
         {
             var cliCommandContext = context;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string status2 = outcome.Status;
+            var status2 = outcome.Status;
             object item = outcome;
             Action renderHuman2 = () =>
             {
                 string CalculateLine()
                 {
                     string line =
-                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}";
+                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
                     return line;
                 }
 
@@ -376,10 +376,10 @@ public partial class RegistryCommands
                 var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
                 warnings.Add(text);
             }
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(
                 exit,
@@ -394,7 +394,7 @@ public partial class RegistryCommands
                 total = outcomes.Count,
                 counts,
             };
-            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status}")
+            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status.ToWire()}")
                 .ToArray();
             var data = new RegistrySyncResult(
                 target,

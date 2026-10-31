@@ -28,7 +28,7 @@ public sealed class CalendarReportingTests
             CalendarReport CalculateUpdate()
             {
                 string id = "desired-0";
-                string status = "completed";
+                var status = ActionState.Completed;
                 object item = new { index = 0 };
                 var human = new ProbeMessage(probe);
                 ICliMessage human2 = human;

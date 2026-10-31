@@ -157,10 +157,10 @@ public class CalendarCommands
         {
             var warnings = data?.Warnings ?? [];
             var actions = PlannedActions(data);
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(exit, success);
             object? summary = null;
