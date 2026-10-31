@@ -16,28 +16,41 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             .ToArray();
 
     private record struct Key(JsonNamingPolicy? Policy);
+
     // Cache property name -> PropertyInfo mapping per naming policy
     private static readonly ConcurrentDictionary<Key, Dictionary<string, PropertyInfo>> _propertyCache = new();
 
     private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
-        return _propertyCache.GetOrAdd(new(namingPolicy), np =>
-        {
-            var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-            foreach (var prop in _writableProperties)
+        var
+            concurrentDictionary = _propertyCache;
+        Key key = new(namingPolicy);
+        Func<Key,
+                Dictionary<string, PropertyInfo>>
+            valueFactory = np =>
             {
-                string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
-                dict[name] = prop;
-            }
-            return dict;
-        });
+                var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+                foreach (var prop in _writableProperties)
+                {
+                    string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
+                    dict[name] = prop;
+                }
+
+                return dict;
+            };
+        var orAdd =
+            concurrentDictionary.GetOrAdd(key, valueFactory);
+        return orAdd;
     }
 
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override T Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
-            throw new JsonException($"Expected StartObject token, got {reader.TokenType}");
+            throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.StartObject);
         }
 
         object obj = new T();
@@ -52,7 +65,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
             if (reader.TokenType != JsonTokenType.PropertyName)
             {
-                throw new JsonException($"Unexpected token {reader.TokenType}");
+                throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.PropertyName);
             }
 
             string propertyName = reader.GetString()!;
@@ -61,8 +74,11 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             // TODO: remove reflection
             if (props.TryGetValue(propertyName, out var propInfo))
             {
-                object? value = JsonSerializer.Deserialize(ref reader, propInfo.PropertyType, options);
-                propInfo.SetValue(obj, value);
+                object? value = JsonSerializer.Deserialize(
+                    ref reader,
+                    propInfo.PropertyType,
+                    options);
+                propInfo.SetValue(obj: obj, value: value);
             }
             else
             {
@@ -73,18 +89,38 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         throw new JsonException("Incomplete JSON object");
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        T value,
+        JsonSerializerOptions options)
     {
         writer.WriteStartObject();
 
         var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite);
+            .Where(p =>
+            {
+                if (!p.CanRead)
+                {
+                    return false;
+                }
+
+                if (p.CanWrite)
+                {
+                    return true;
+                }
+
+                return false;
+            });
 
         foreach (var prop in props)
         {
             var propValue = prop.GetValue(value);
             writer.WritePropertyName(options.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name);
-            JsonSerializer.Serialize(writer, propValue, prop.PropertyType, options);
+            JsonSerializer.Serialize(
+                writer,
+                propValue,
+                prop.PropertyType,
+                options);
         }
 
         writer.WriteEndObject();
@@ -96,11 +132,37 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
     public override bool CanConvert(Type typeToConvert)
     {
         // Check if the type is a user-defined type (not a primitive, enum, string, or built-in collection)
-        return !typeToConvert.IsPrimitive &&
-               !typeToConvert.IsEnum &&
-               typeToConvert != typeof(string) &&
-               !typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert) &&
-               !typeToConvert.IsGenericType;
+        bool CheckCondition()
+        {
+            if (typeToConvert.IsPrimitive)
+            {
+                return false;
+            }
+
+            if (typeToConvert.IsEnum)
+            {
+                return false;
+            }
+
+            if (!(typeToConvert != typeof(string)))
+            {
+                return false;
+            }
+
+            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
+            {
+                return false;
+            }
+
+            if (!typeToConvert.IsGenericType)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        return CheckCondition();
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)

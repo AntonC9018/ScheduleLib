@@ -7,16 +7,39 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
     private readonly FileStream _stream;
     private LocalFileLock(FileStream stream) => _stream = stream;
 
-    public static async Task<LocalFileLock> Acquire(string path, CancellationToken token, bool wait = false)
+    public static async Task<LocalFileLock> Acquire(
+        string path,
+        CancellationToken token,
+        bool wait = false)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        string CalculatePath()
+        {
+            string path2 = Path.GetFullPath(path);
+            string path3 = Path.GetDirectoryName(path2)!;
+            return path3;
+        }
+
+        Directory.CreateDirectory(CalculatePath());
         while (true)
         {
             token.ThrowIfCancellationRequested();
-            try { return new(new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)); }
-            catch (IOException e) when (e.HResult == unchecked((int)0x80070020) || (e.HResult & 0xffff) == 11)
+            try
             {
-                if (!wait) throw new LocalOperationBusyException($"Another operation owns {path}", e);
+                var stream = new FileStream(
+                    path,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
+                LocalFileLock localFileLock = new(stream);
+                return localFileLock;
+            }
+            catch (IOException e) when (e.HResult == unchecked((int) 0x80070020) || (e.HResult & 0xffff) == 11)
+            {
+                if (!wait)
+                {
+                    throw LocalOperationBusyException.ForOwnedPath(path, e);
+                }
+
                 await Task.Delay(100, token);
             }
         }
@@ -26,27 +49,45 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
     public void Dispose() => _stream.Dispose();
 }
 
-public sealed class LocalOperationBusyException(string message, Exception? inner = null) : IOException(message, inner);
+public sealed class LocalOperationBusyException : IOException
+{
+    private sealed class OwnedPathFailure;
 
-/// <summary>Stages in the destination filesystem, flushes complete contents, then
-/// atomically replaces the live file. Callers coordinate writers with LocalFileLock.</summary>
+    public string? OwnedPath { get; }
+
+    public LocalOperationBusyException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
+
+    private LocalOperationBusyException(
+        string path,
+        Exception? inner,
+        OwnedPathFailure _) : base($"Another operation owns {path}", inner)
+    {
+        OwnedPath = path;
+    }
+
+    public static LocalOperationBusyException ForOwnedPath(string path, Exception? inner = null)
+    {
+        return new LocalOperationBusyException(
+            path,
+            inner,
+            new OwnedPathFailure());
+    }
+}
+
+/// <summary>Publishes files atomically using the shared filesystem helper.
+/// Callers coordinate writers with <see cref="LocalFileLock"/>.</summary>
 public static class AtomicFile
 {
-    public static async Task Publish(string destination, Func<Stream, CancellationToken, Task> write, CancellationToken token)
+    public static Task Publish(
+        string destination,
+        Func<Stream, CancellationToken, Task> write,
+        CancellationToken token)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
-        var staged = destination + $".{Guid.NewGuid():N}.tmp";
-        try
-        {
-            await using (var stream = new FileStream(staged, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
-            {
-                await write(stream, token);
-                await stream.FlushAsync(token);
-                stream.Flush(flushToDisk: true);
-            }
-            token.ThrowIfCancellationRequested();
-            File.Move(staged, destination, overwrite: true);
-        }
-        finally { File.Delete(staged); }
+        return ScheduleLib.Helper.AtomicFilePublisher.Publish(
+            destination,
+            write,
+            token);
     }
 }

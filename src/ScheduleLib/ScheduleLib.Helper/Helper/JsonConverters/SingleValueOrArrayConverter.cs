@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 // Claude
 /// <summary>
 /// Converts JSON that can be either a single item or an array into T[], ImmutableArray&lt;T&gt;, List&lt;T&gt;, or IEnumerable&lt;T&gt;.
@@ -20,13 +21,53 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         if (typeToConvert.IsGenericType)
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
-            return genericTypeDef == typeof(ImmutableArray<>) ||
-                   genericTypeDef == typeof(List<>) ||
-                   genericTypeDef == typeof(IEnumerable<>) ||
-                   genericTypeDef == typeof(ICollection<>) ||
-                   genericTypeDef == typeof(IList<>) ||
-                   genericTypeDef == typeof(IReadOnlyCollection<>) ||
-                   genericTypeDef == typeof(IReadOnlyList<>);
+
+            bool CheckCondition()
+            {
+                if (genericTypeDef == typeof(ImmutableArray<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(List<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IEnumerable<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(ICollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IList<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyCollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyList<>))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
+            {
+                return true;
+            }
+
+            return false;
         }
 
         return false;
@@ -52,7 +93,10 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
 
 public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonConverter<TCollection>
 {
-    public override TCollection? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override TCollection? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -75,9 +119,15 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         return ConvertToCollectionType(items, typeToConvert);
     }
 
-    public override void Write(Utf8JsonWriter writer, TCollection value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        TCollection value,
+        JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, value, options);
+        JsonSerializer.Serialize(
+            writer,
+            value,
+            options);
     }
 
     private static TCollection ConvertToCollectionType(TElement[] items, Type targetType)
@@ -99,18 +149,47 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             }
             if (genericTypeDef == typeof(List<>))
             {
-                return (TCollection) (object) new List<TElement>(items);
+                var list = new List<TElement>(items);
+                var tCollection = (TCollection) (object) list;
+                return tCollection;
             }
-            if (genericTypeDef == typeof(IEnumerable<>) ||
-                genericTypeDef == typeof(ICollection<>) ||
-                genericTypeDef == typeof(IList<>) ||
-                genericTypeDef == typeof(IReadOnlyCollection<>) ||
-                genericTypeDef == typeof(IReadOnlyList<>))
+
+            bool CalculateConditionResult()
+            {
+                if (genericTypeDef == typeof(IEnumerable<>))
+                {
+                    return true;
+                }
+                if (genericTypeDef == typeof(ICollection<>))
+                {
+                    return true;
+                }
+                if (genericTypeDef == typeof(IList<>))
+                {
+                    return true;
+                }
+                if (genericTypeDef == typeof(IReadOnlyCollection<>))
+                {
+                    return true;
+                }
+
+                if (genericTypeDef == typeof(IReadOnlyList<>))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 return (TCollection) (object) items;
             }
         }
 
-        throw new NotSupportedException($"Collection type {targetType} is not supported.");
+        throw new ScheduleLib.Helper.JsonConverters.UnsupportedCollectionTypeException(targetType);
     }
 }

@@ -62,7 +62,7 @@ changes the process working directory. Both files are optional.
 Block names are registered type names: `GoogleCalendarConfig`,
 `GoogleDriveConfig`, `MoodleConfig`, `RegistryConfig`,
 `RegistryLessonFilterConfig`, `DeadlinesExcelConfig`, `LessonAttendanceConfig`,
-`LessonTopicsConfig`, and `LabTasksDatabaseConfig`. Members use camelCase,
+`LessonTopicsConfig`, `LabTasksDatabaseConfig`, and `ScheduleDerivationConfig`. Members use camelCase,
 except custom representations retained by existing converters (for example
 `RegistryConfig.commandProcessingConfig` uses `Process`, `DryRun`, and `Log`).
 Colors use known names or `#AARRGGBB`. Enums use names. Polymorphic values retain
@@ -78,6 +78,27 @@ credential/password/OAuth/API secret values are rejected; existing code
 credential sources and user-secrets configuration remain supported at runtime.
 For example, an `AppConfigCredentialsSource` reference is allowed, while
 `ValueCredentialsSource` and `ManualGoogleApiKeysSource` are rejected.
+
+`ScheduleDerivationConfig.autoMergeLabSubGroups` is a global opt-in setting
+(default `false`). Configure it in `defaults`, without `--profile`:
+
+```sh
+schedulelib config set ScheduleDerivationConfig.autoMergeLabSubGroups true --scope user
+```
+
+With at least two applicable dated schedule periods, a newer lab timetable
+containing one surviving numeric subgroup (I, II, etc.), or explicit whole-group
+labs replacing an earlier split, becomes the whole group's timetable for the
+entire semester. Earlier split labs are excluded from dates, calendar events,
+registry matching. Canonical attendance subgroup sheets remain readable and
+compose student rows for the merged lab in memory; no merged workbook is required.
+Specializations, alternatives, and
+other subgroup categories retain their restrictions. Uncertain evidence leaves
+the course partition unchanged and logs a diagnostic. Existing registry
+`labMerges` remain a compatibility fallback; conclusive automatic merges take
+precedence. Raw history stays in the cache, so disabling the setting restores
+ordinary period behavior. Profile values and profile operations for this block
+are rejected.
 
 Missing/null blocks or members inherit. Later non-null scalars override;
 nested objects merge; lists use the registered key comparers and preserve

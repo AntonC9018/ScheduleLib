@@ -21,7 +21,13 @@ public readonly struct ParsedCourseName() : IEquatable<ParsedCourseName>
         {
             return false;
         }
-        return Equals(other);
+
+        if (Equals(other))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public override int GetHashCode()
@@ -61,6 +67,9 @@ public struct CourseNameSegmentFlags()
     public bool CanBeIgnored = false;
 }
 
+/// <summary>A course name the unifier maps to its canonical name.</summary>
+public readonly record struct CourseNameMapping(string From, string To);
+
 public sealed class CourseNameParserConfig
 {
     public readonly int MinUsefulWordLength;
@@ -89,7 +98,9 @@ public sealed class CourseNameParserConfig
             var b = ImmutableArray.CreateBuilder<ShortenedWord>(p.IgnoredShortenedWords.Length);
             foreach (var x in p.IgnoredShortenedWords)
             {
-                b.Add(new(x));
+                var builder = b;
+                ShortenedWord item = new(x);
+                builder.Add(item);
             }
             IgnoredShortenedWords = b.MoveToImmutable();
         }
@@ -102,7 +113,7 @@ public sealed class CourseNameParserConfig
         public ReadOnlySpan<string> ProgrammingLanguages = [];
         public ReadOnlySpan<string> IgnoredShortenedWords = [];
         public ReadOnlySpan<string> IgnoredProgrammingRelatedWords = [];
-        public ReadOnlySpan<(string From, string To)> FullyMappedNames = [];
+        public ReadOnlySpan<CourseNameMapping> FullyMappedNames = [];
     }
 }
 
@@ -245,7 +256,13 @@ public static class CourseNameParsing
             {
                 return false;
             }
-            return config.ProgrammingLanguages.Contains(word.Value);
+
+            if (config.ProgrammingLanguages.Contains(word.Value))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         bool IsInitials(ReadOnlySpan<char> s)
@@ -263,10 +280,12 @@ public static class CourseNameParsing
                     {
                         return true;
                     }
+
                     if (char.IsNumber(c))
                     {
                         return true;
                     }
+
                     return false;
                 }
             }
@@ -278,7 +297,24 @@ public static class CourseNameParsing
         CourseIter a,
         CourseIter b)
     {
-        if (a.IsDone && b.IsDone)
+        bool CalculateConditionResult2()
+        {
+            if (!a.IsDone)
+            {
+                return false;
+            }
+
+            if (b.IsDone)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult2();
+
+
+        if (conditionResult)
         {
             return true;
         }
@@ -287,14 +323,31 @@ public static class CourseNameParsing
             CourseIter a,
             CourseIter b)
         {
-            if (!a.IsDone && a.CanIgnoreCurrent)
+            bool CalculateConditionResult()
+            {
+                if (a.IsDone)
+                {
+                    return false;
+                }
+
+                if (a.CanIgnoreCurrent)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 foreach (var w in a.GetPossibleWords())
                 {
                     var copy = a;
                     copy.Move(w.Type);
 
-                    if (IsEqualRecursion(copy, b))
+                    if (IsEqualRecursion(a: copy, b: b))
                     {
                         return true;
                     }
@@ -303,11 +356,11 @@ public static class CourseNameParsing
             return false;
         }
 
-        if (TryIngore(a, b))
+        if (TryIngore(a: a, b: b))
         {
             return true;
         }
-        if (TryIngore(b, a))
+        if (TryIngore(a: b, b: a))
         {
             return true;
         }
@@ -326,9 +379,11 @@ public static class CourseNameParsing
             foreach (var wb in b.GetPossibleWords())
             {
                 var equal = wa.Word.Shortened.Compare(wb.Word.Shortened);
-                if (wa.Type == WordType.Plain
-                    && wb.Type == WordType.Plain
-                    && (a.MightBeInitials || b.MightBeInitials))
+                if (RequiresExactWordMatch(
+                        leftType: wa.Type,
+                        rightType: wb.Type,
+                        left: a,
+                        right: b))
                 {
                     if (equal != CompareShortenedWordsResult.Equal_Exactly)
                     {
@@ -344,7 +399,7 @@ public static class CourseNameParsing
                 var bcopy = b;
                 acopy.Move(wa.Type);
                 bcopy.Move(wb.Type);
-                if (IsEqualRecursion(acopy, bcopy))
+                if (IsEqualRecursion(a: acopy, b: bcopy))
                 {
                     return true;
                 }
@@ -354,11 +409,36 @@ public static class CourseNameParsing
         return false;
     }
 
+    private static bool RequiresExactWordMatch(
+        WordType leftType,
+        WordType rightType,
+        CourseIter left,
+        CourseIter right)
+    {
+        if (leftType != WordType.Plain)
+        {
+            return false;
+        }
+        if (rightType != WordType.Plain)
+        {
+            return false;
+        }
+        if (left.MightBeInitials)
+        {
+            return true;
+        }
+        if (right.MightBeInitials)
+        {
+            return true;
+        }
+        return false;
+    }
+
     public static bool IsEqual(this ParsedCourseName self, ParsedCourseName other)
     {
         var iself = new CourseIter(self);
         var iother = new CourseIter(other);
-        return IsEqualRecursion(iself, iother);
+        return IsEqualRecursion(a: iself, b: iother);
     }
 
     private struct CourseIter(ParsedCourseName c)
@@ -377,28 +457,28 @@ public static class CourseNameParsing
             switch (wordType)
             {
                 case WordType.Plain:
-                {
-                    if (InitialsIndex != 0)
                     {
-                        return default;
+                        if (InitialsIndex != 0)
+                        {
+                            return default;
+                        }
+                        return CurrentSegment.Word;
                     }
-                    return CurrentSegment.Word;
-                }
                 case WordType.Letter:
-                {
-                    var s = CurrentSegment;
-                    if (!s.Flags.IsInitials)
                     {
-                        return default;
+                        var s = CurrentSegment;
+                        if (!s.Flags.IsInitials)
+                        {
+                            return default;
+                        }
+                        var all = s.GetInitials();
+                        var singleLetterSlice = all.Slice(start: InitialsIndex, length: 1);
+                        return new(singleLetterSlice);
                     }
-                    var all = s.GetInitials();
-                    var singleLetterSlice = all.Slice(InitialsIndex, 1);
-                    return new(singleLetterSlice);
-                }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
 
@@ -408,36 +488,38 @@ public static class CourseNameParsing
             switch (t)
             {
                 case WordType.Plain:
-                {
-                    Debug.Assert(InitialsIndex == 0);
-                    Index++;
-                    break;
-                }
-                case WordType.Letter:
-                {
-                    Debug.Assert(s.Flags.IsInitials);
-                    InitialsIndex++;
-                    if (InitialsIndex < s.GetInitials().Length)
                     {
-                        return;
+                        Debug.Assert(InitialsIndex == 0);
+                        Index++;
+                        break;
                     }
-                    InitialsIndex = 0;
-                    Index++;
-                    break;
-                }
+                case WordType.Letter:
+                    {
+                        Debug.Assert(s.Flags.IsInitials);
+                        InitialsIndex++;
+                        if (InitialsIndex < s.GetInitials().Length)
+                        {
+                            return;
+                        }
+                        InitialsIndex = 0;
+                        Index++;
+                        break;
+                    }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
 
         public WordEnumerable GetPossibleWords() => new(this);
+
         public readonly struct WordEnumerable
         {
             private readonly CourseIter _i;
             public WordEnumerable(CourseIter i) => _i = i;
             public Enumerator GetEnumerator() => new(_i);
+
             public struct Enumerator
             {
                 private EnumMembers<WordType>.Enumerator _e;
@@ -547,10 +629,12 @@ internal readonly ref struct WordEnumerable
             {
                 return false;
             }
+
             if (ch is ',' or ';' or ':' or '!' or '?' or '&')
             {
                 return true;
             }
+
             return false;
         }
 
@@ -651,7 +735,7 @@ internal readonly ref struct WordEnumerable
         {
             get
             {
-                return _e._str.Slice(_startIndex, length: _count);
+                return _e._str.Slice(start: _startIndex, length: _count);
             }
         }
     }
@@ -662,4 +746,3 @@ internal enum WordType
     Plain,
     Letter,
 }
-

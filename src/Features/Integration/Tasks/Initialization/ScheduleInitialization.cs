@@ -2,23 +2,62 @@ using System.Diagnostics;
 using AutoConstructor.Attributes;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Core;
 
 public sealed class ScheduleProvider
 {
     private readonly ScheduleBuilder _builder;
+    private readonly IOptions<ScheduleDerivationOptions> _options;
+    private readonly ILogger<ScheduleProvider> _logger;
+    private readonly Lazy<Schedule> _schedule;
 
-    public ScheduleProvider(ScheduleBuilder builder)
+    public ScheduleProvider(
+        ScheduleBuilder builder,
+        IOptions<ScheduleDerivationOptions> options,
+        ILogger<ScheduleProvider> logger)
     {
         _builder = builder;
+        _options = options;
+        _logger = logger;
+        _schedule = new(Build);
     }
 
     public Schedule Get()
     {
-        var schedule = _builder.Build();
+        return _schedule.Value;
+    }
+
+    private Schedule Build()
+    {
+        var raw = _builder.Build();
+        // Implicit partition assignments can append lessons during Build. Refresh
+        // their raw IDs before any registry consumer uses the course lookup.
+        _builder.RefreshLookup();
+        var schedule = LabSubGroupMerges.Project(raw, _options.Value.AutoMergeLabSubGroups);
+        foreach (var diagnostic in schedule.LabSubGroupMergeDiagnostics)
+        {
+            _logger.LogWarning(
+                "Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
+                schedule.Get(diagnostic.Course).FullName,
+                schedule.Get(diagnostic.Group).Name,
+                diagnostic.Specialization.Value,
+                diagnostic.Alternative.Value,
+                diagnostic.Reason);
+        }
+
+        if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
+        {
+            _logger.LogInformation(
+                "Derived {Count} automatic lab subgroup merges for the semester",
+                schedule.AutomaticLabSubGroupMerges.Length);
+        }
+
         return schedule;
     }
 }
@@ -52,8 +91,28 @@ public sealed partial class CurrentTeacherIdProvider
         var teacherConfig = _configProvider.Get();
         Debug.Assert(teacherConfig != null);
         var teacherName = teacherConfig.TeacherName;
-        var ret = _lookup.Teacher(teacherName.ToNameModel())!.Value;
-        return ret;
+        return TeacherProfileScheduleLookup.Find(_lookup, teacherName)
+            ?? throw new SelectedTeacherAbsentFromScheduleException(teacherName);
+    }
+}
+
+/// <summary>Resolves a profile marker to its schedule teacher without changing the profile identity.</summary>
+public static class TeacherProfileScheduleLookup
+{
+    public static TeacherId? Find(LookupFacade lookup, Name profileName)
+    {
+        var name = profileName.ToNameModel();
+        if (lookup.Teacher(name) is { } found)
+        {
+            return found;
+        }
+
+        // A profile may predate the spelling used by the current schedule.
+        if (lookup.RemapTeacherName(ref name) == TeacherNameRemapStatus.None)
+        {
+            return null;
+        }
+        return lookup.Teacher(name);
     }
 }
 

@@ -38,6 +38,8 @@ public interface IRegistryErrorHandler : IRegistryLessonParserErrorHandler
     void CourseNotFound(string courseName);
     void StudentsNotInDbButInRegistry(StudentsInGroup students);
     void GroupNotFound(string groupName);
+    void GroupNotFound(string courseName, string groupName) => GroupNotFound(groupName);
+    void GroupParsingError(string courseName, GroupParseErrorContext context) => GroupParsingError(context);
     void LessonWithoutName();
     void LessonsDecidedErroneous(ErroneousLesson lessons);
     void GroupParsingError(GroupParseErrorContext context);
@@ -55,36 +57,32 @@ public enum ExtraLessonInstanceAction
     DeleteWithoutDataLoss,
 }
 
-[AutoConstructor]
 public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 {
     public ExtraLessonInstanceAction ExtraLessonAction { get; set; } = ExtraLessonInstanceAction.LeaveAlone;
     private readonly ILogger _logger;
+    private readonly RegistrySyncDiagnostics? _diagnostics;
 
-    public void CourseNotFound(string courseName) => LogCourseNotFound(courseName);
+    public RegistryErrorLogger(ILogger<RegistryErrorLogger> logger, RegistrySyncDiagnostics? diagnostics = null)
+    {
+        _logger = logger;
+        _diagnostics = diagnostics;
+    }
+
+    public void CourseNotFound(string courseName)
+    {
+        _diagnostics?.Add(
+            kind: "unmatched-registry-course",
+            course: courseName,
+            @group: null,
+            detail: "Add or correct the course mapping in the schedule configuration.");
+        LogCourseNotFound(courseName);
+    }
 
     public void StudentsNotInDbButInRegistry(StudentsInGroup students)
     {
-        using var loggerScope = LoggerScope();
-        foreach (var student in students.Students)
-        {
-            LogStudentNotInDbButInRegistry(student);
-        }
-
-        IDisposable? LoggerScope()
-        {
-            var groupName = students.Groups.Value.ToString(students.Schedule);
-            var lesson = students.Schedule.Get(students.LessonId);
-            var lessonType = lesson.Lesson.Type;
-            var course = students.Schedule.Get(lesson.Lesson.Course).FullName;
-            var groupPartition = lesson.Lesson.GroupPartitionKey.ToDisplayString() ?? "all subgroups";
-            return _logger.BeginScope(new{
-                groupName,
-                groupPartition,
-                course,
-                lessonType,
-            });
-        }
+        // Do not enumerate students or attach schedule/student context to structured logs.
+        _logger.LogWarning("Students in registry could not be matched to the local database");
     }
 
     private static KeyValuePair<string, object?>[] KVA(
@@ -104,19 +102,12 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
 
     public void LessonsDecidedErroneous(ErroneousLesson lesson)
     {
-        using var scope = _logger.BeginScope(new
-        {
-            ErrorContext = lesson.Context,
-        });
         _logger.LogError("Found lesson that should not be in the registry of the current person");
     }
 
     public void GroupParsingError(GroupParseErrorContext context)
     {
-        _logger.LogError(
-            context.Exception,
-            "Could not parse group {Group}",
-            context.String.Trim());
+        _logger.LogError("Could not parse registry group");
     }
 
     public void CustomLessonType(ReadOnlySpan<char> ch) => LogCustomLessonType(ch.ToString());
@@ -127,7 +118,30 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
         return ExtraLessonAction;
     }
 
-    public void GroupNotFound(string groupName) => LogGroupNotFound(groupName);
+    public void GroupNotFound(string groupName) => GroupNotFound("", groupName);
+
+    public void GroupNotFound(string courseName, string groupName)
+    {
+        _diagnostics?.Add(
+            kind: "unmatched-registry-group",
+            course: courseName,
+            @group: groupName,
+            detail: "Check the parent group, language, and subgroup mapping in the schedule configuration.");
+        LogGroupNotFound(CourseName: courseName, GroupName: groupName);
+    }
+
+    public void GroupParsingError(string courseName, GroupParseErrorContext context)
+    {
+        _diagnostics?.Add(
+            kind: "unrecognized-registry-group",
+            course: courseName,
+            @group: context.String,
+            detail: "Correct the registry group label or add support for its format.");
+        _logger.LogWarning(
+            "Could not parse registry group {Group} for {Course}",
+            context.String,
+            courseName);
+    }
 
     [LoggerMessage(LogLevel.Warning, "Course not found: {CourseName}")]
     partial void LogCourseNotFound(string CourseName);
@@ -141,9 +155,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     [LoggerMessage(LogLevel.Information, "Extra lesson instance found: {Date}")]
     partial void LogExtraLessonInstanceFound(DateTime Date);
 
-    [LoggerMessage(LogLevel.Warning, "Group not found: {GroupName}")]
-    partial void LogGroupNotFound(string GroupName);
-
-    [LoggerMessage(LogLevel.Warning, "Student not in DB but in registry: {Student}")]
-    partial void LogStudentNotInDbButInRegistry(Name Student);
+    [LoggerMessage(LogLevel.Warning,
+        "Registry group {GroupName} for {CourseName} could not be matched to the local schedule")]
+    partial void LogGroupNotFound(string CourseName, string GroupName);
 }

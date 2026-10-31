@@ -29,16 +29,40 @@ public readonly struct ParsedStringTable(List<string> strings)
     {
         if (cell.DataType is not { } dt)
         {
-            if (cell.CellValue is { } cv)
+            if (!(cell.CellValue is { } cv))
             {
-                return cv.InnerText;
+                return null;
             }
-            return null;
+
+            return cv.InnerText;
         }
-        if (dt == CellValues.Boolean
-            || dt == CellValues.Date
-            || dt == CellValues.Error
-            || dt == CellValues.Number)
+
+        bool CheckCondition()
+        {
+            if (dt == CellValues.Boolean)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Date)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Error)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Number)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
         {
             throw new InvalidOperationException("Expected a string");
         }

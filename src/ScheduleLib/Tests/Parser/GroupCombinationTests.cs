@@ -39,21 +39,40 @@ public sealed class GroupCombinationTests
         string courseName = "Course")
     {
         var lesson = s.RegularLesson();
-        lesson.Course(s.Course(courseName));
-        lesson.Group(s.Group(groupName));
-        lesson.TimeSlot(new(0));
+        var
+            lessonBuilder = lesson;
+        var course = s.Course(courseName);
+        lessonBuilder.Course(course);
+        var
+            lessonBuilder2 = lesson;
+        var group = s.Group(groupName);
+        GroupId group2 = group;
+        lessonBuilder2.Group(group2);
+        var
+            lessonBuilder3 = lesson;
+        TimeSlot timeSlot = new(0);
+        lessonBuilder3.TimeSlot(timeSlot);
         lesson.DayOfWeek(DayOfWeek.Monday);
         if (subGroup is { } sub)
         {
-            lesson.SubGroup(new(sub));
+            var
+                lessonBuilder4 = lesson;
+            SubGroup subGroup2 = new(sub);
+            lessonBuilder4.SubGroup(subGroup2);
         }
         if (specialization is { } spec)
         {
-            lesson.Specialization(new(spec));
+            var
+                lessonBuilder5 = lesson;
+            Specialization specialization2 = new(spec);
+            lessonBuilder5.Specialization(specialization2);
         }
         if (alternative is { } alt)
         {
-            lesson.Alternative(new(alt));
+            var
+                lessonBuilder6 = lesson;
+            Alternative alternative2 = new(alt);
+            lessonBuilder6.Alternative(alternative2);
         }
     }
 
@@ -61,7 +80,8 @@ public sealed class GroupCombinationTests
         Schedule schedule,
         string groupName)
     {
-        return schedule.EnumerateGroups().Single(x => x.Item.Name == groupName);
+        return schedule.EnumerateGroups()
+            .Single(x => x.Item.Name == groupName);
     }
 
     private static AnyLessonAccessor GetLessonBySpecialization(
@@ -83,7 +103,14 @@ public sealed class GroupCombinationTests
     private static string NameOf(GroupCombination c)
     {
         var sb = new StringBuilder();
-        c.AppendFileNamePart(new ListStringBuilder(sb, "-"));
+
+        ListStringBuilder CalculateLb()
+        {
+            var lb = new ListStringBuilder(sb, "-");
+            return lb;
+        }
+
+        c.AppendFileNamePart(CalculateLb());
         return sb.ToString();
     }
 
@@ -92,24 +119,59 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I", courseName: "C1");
-            AddLesson(s, "IA2401", subGroup: "II");
-            AddLesson(s, "IA2401", subGroup: "ro");
-            AddLesson(s, "IA2401", subGroup: "ru");
-            AddLesson(s, "IA2401", subGroup: "începători", courseName: "C2");
-            AddLesson(s, "IA2401", courseName: "C2");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "GA2D");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                courseName: "C1");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "ro");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "ru");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "începători",
+                courseName: "C2");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "C2");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "GA2D");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
 
         Assert.True(info.SpecializationActive);
-        Assert.Equal(16, info.Combinations.Length);
-        Assert.Equal("CV-începători-ro-I", NameOf(info.Combinations[0]));
-        Assert.Equal("CV-începători-ru-I", NameOf(info.Combinations[1]));
-        Assert.Equal("CV-nuîncepători-ro-I", NameOf(info.Combinations[2]));
-        Assert.Equal("GA2D-nuîncepători-ru-II", NameOf(info.Combinations[^1]));
+        Assert.Equal(expected: 16, actual: info.Combinations.Length);
+        string expected2 = "CV-începători-ro-I";
+        string actual2 = NameOf(info.Combinations[0]);
+        Assert.Equal(expected: expected2, actual: actual2);
+        string expected3 = "CV-începători-ru-I";
+        string actual3 = NameOf(info.Combinations[1]);
+        Assert.Equal(expected: expected3, actual: actual3);
+        string expected4 = "CV-nuîncepători-ro-I";
+        string actual4 = NameOf(info.Combinations[2]);
+        Assert.Equal(expected: expected4, actual: actual4);
+        string expected5 = "GA2D-nuîncepători-ru-II";
+        string actual5 = NameOf(info.Combinations[^1]);
+        Assert.Equal(expected: expected5, actual: actual5);
     }
 
     [Fact]
@@ -120,7 +182,8 @@ public sealed class GroupCombinationTests
             AddLesson(s, "IA2401");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
 
         Assert.Empty(info.Combinations);
         Assert.False(info.SpecializationActive);
@@ -131,17 +194,33 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", subGroup: "II");
-            AddLesson(s, "IA2401", specialization: "Spring");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "Spring");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
         var springLesson = GetLessonBySpecialization(schedule, "Spring");
 
         Assert.False(info.SpecializationActive);
-        Assert.Equal(["I", "II"], info.Combinations.Select(NameOf));
-        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, springLesson.Lesson)));
+        Assert.Equal(expected: ["I", "II"], actual: info.Combinations.Select(NameOf));
+        Assert.All(
+            info.Combinations,
+            c =>
+            {
+                bool condition = info.IncludesLesson(c, springLesson.Lesson);
+                Assert.True(condition);
+            });
     }
 
     [Fact]
@@ -151,19 +230,43 @@ public sealed class GroupCombinationTests
         var iGroup = builder.Group("I2401").Id;
         var iaGroup = builder.Group("IA2401").Id;
 
-        AddLesson(builder, "I2401", subGroup: "I");
-        AddLesson(builder, "I2401", subGroup: "II");
-        AddLesson(builder, "IA2401", subGroup: "I");
-        AddLesson(builder, "IA2401", subGroup: "II");
-        AddLesson(builder, "IA2401", specialization: "React");
-        AddLesson(builder, "IA2401", specialization: "GA3D");
-        AddLesson(builder, "IA2401", specialization: "DJ");
+        AddLesson(
+            builder,
+            groupName: "I2401",
+            subGroup: "I");
+        AddLesson(
+            builder,
+            groupName: "I2401",
+            subGroup: "II");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            subGroup: "I");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            subGroup: "II");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            specialization: "React");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            specialization: "GA3D");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            specialization: "DJ");
 
         var sharedCourse = builder.Course("Development of Enterprise Applications");
         var sharedSpring = builder.RegularLesson();
         sharedSpring.Course(sharedCourse);
         sharedSpring.Groups([iGroup, iaGroup]);
-        sharedSpring.TimeSlot(new(0));
+        var
+            lessonBuilder = sharedSpring;
+        TimeSlot timeSlot = new(0);
+        lessonBuilder.TimeSlot(timeSlot);
         sharedSpring.DayOfWeek(DayOfWeek.Monday);
         sharedSpring.Specialization(Specialization.Spring);
 
@@ -174,14 +277,22 @@ public sealed class GroupCombinationTests
             .Single(x => x.Lesson.Course == sharedCourse);
 
         Assert.False(iInfo.SpecializationActive);
-        Assert.All(iInfo.Combinations, c => Assert.True(iInfo.IncludesLesson(c, sharedLesson.Lesson)));
+        Assert.All(
+            iInfo.Combinations,
+            c =>
+            {
+                bool condition = iInfo.IncludesLesson(c, sharedLesson.Lesson);
+                Assert.True(condition);
+            });
 
         var spring = iaInfo.Combinations.Single(c => c.Specialization == Specialization.Spring
             && c.Numeric == SubGroup.CreateNumeric(1));
         var react = iaInfo.Combinations.Single(c => c.Specialization == Specialization.React
             && c.Numeric == SubGroup.CreateNumeric(1));
-        Assert.True(iaInfo.IncludesLesson(spring, sharedLesson.Lesson));
-        Assert.False(iaInfo.IncludesLesson(react, sharedLesson.Lesson));
+        bool condition2 = iaInfo.IncludesLesson(spring, sharedLesson.Lesson);
+        Assert.True(condition2);
+        bool condition3 = iaInfo.IncludesLesson(react, sharedLesson.Lesson);
+        Assert.False(condition3);
 
         var iFiltered = schedule.Filter(new()
         {
@@ -221,26 +332,45 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
-        Assert.Equal(["CV-I", "DJ-I"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["CV-I", "DJ-I"], actual: info.Combinations.Select(NameOf));
 
         var cvCombination = info.Combinations.Single(x => x.Specialization == new Specialization("CV"));
         var djCombination = info.Combinations.Single(x => x.Specialization == new Specialization("DJ"));
-        Assert.True(info.IncludesLesson(cvCombination, cvLesson.Lesson));
-        Assert.False(info.IncludesLesson(djCombination, cvLesson.Lesson));
-        Assert.True(info.IncludesLesson(djCombination, djLesson.Lesson));
+        bool condition = info.IncludesLesson(cvCombination, cvLesson.Lesson);
+        Assert.True(condition);
+        bool condition2 = info.IncludesLesson(djCombination, cvLesson.Lesson);
+        Assert.False(condition2);
+        bool condition3 = info.IncludesLesson(djCombination, djLesson.Lesson);
+        Assert.True(condition3);
 
         // The numeric lesson matches both combinations.
         var numericLesson = GetLessonBySubGroup(schedule, "I");
-        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, numericLesson.Lesson)));
+        Assert.All(
+            info.Combinations,
+            c =>
+            {
+                bool condition = info.IncludesLesson(c, numericLesson.Lesson);
+                Assert.True(condition);
+            });
     }
 
     [Fact]
@@ -248,14 +378,25 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I", alternative: "A1", courseName: "C1");
-            AddLesson(s, "IA2401", subGroup: "II", alternative: "A2", courseName: "C2");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                alternative: "A1",
+                courseName: "C1");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II",
+                alternative: "A2",
+                courseName: "C2");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
 
         Assert.True(info.AlternativeActive);
-        Assert.Equal(["A1-I", "A1-II", "A2-I", "A2-II"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["A1-I", "A1-II", "A2-I", "A2-II"], actual: info.Combinations.Select(NameOf));
     }
 
     [Fact]
@@ -263,18 +404,35 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", subGroup: "II");
-            AddLesson(s, "IA2401", alternative: "Psihologie", courseName: "Elective");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "Psihologie",
+                courseName: "Elective");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
         var elective = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Alternative == new Alternative("Psihologie"));
 
         Assert.False(info.AlternativeActive);
-        Assert.Equal(["I", "II"], info.Combinations.Select(NameOf));
-        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, elective.Lesson)));
+        Assert.Equal(expected: ["I", "II"], actual: info.Combinations.Select(NameOf));
+        Assert.All(
+            info.Combinations,
+            c =>
+            {
+                bool condition = info.IncludesLesson(c, elective.Lesson);
+                Assert.True(condition);
+            });
     }
 
     [Fact]
@@ -282,28 +440,50 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric");
-            AddLesson(s, "IA2401", alternative: "A1", courseName: "Elective A1");
-            AddLesson(s, "IA2401", alternative: "A2", courseName: "Elective A2");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                courseName: "Numeric");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "A1",
+                courseName: "Elective A1");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "A2",
+                courseName: "Elective A2");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
         var a1Lesson = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Alternative == new Alternative("A1"));
         var a2Lesson = schedule.EnumerateAllLessons()
             .Single(x => x.Lesson.Alternative == new Alternative("A2"));
         var numericLesson = GetLessonBySubGroup(schedule, "I");
 
-        Assert.Equal(["A1-I", "A2-I"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["A1-I", "A2-I"], actual: info.Combinations.Select(NameOf));
 
         var a1Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A1"));
         var a2Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A2"));
-        Assert.True(info.IncludesLesson(a1Combination, a1Lesson.Lesson));
-        Assert.False(info.IncludesLesson(a2Combination, a1Lesson.Lesson));
-        Assert.True(info.IncludesLesson(a2Combination, a2Lesson.Lesson));
+        bool condition = info.IncludesLesson(a1Combination, a1Lesson.Lesson);
+        Assert.True(condition);
+        bool condition2 = info.IncludesLesson(a2Combination, a1Lesson.Lesson);
+        Assert.False(condition2);
+        bool condition3 = info.IncludesLesson(a2Combination, a2Lesson.Lesson);
+        Assert.True(condition3);
 
         // The numeric lesson matches both combinations.
-        Assert.All(info.Combinations, c => Assert.True(info.IncludesLesson(c, numericLesson.Lesson)));
+        Assert.All(
+            info.Combinations,
+            c =>
+            {
+                bool condition = info.IncludesLesson(c, numericLesson.Lesson);
+                Assert.True(condition);
+            });
     }
 
     [Fact]
@@ -311,9 +491,20 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", courseName: "Shared");
-            AddLesson(s, "IA2401", alternative: "A1", courseName: "Elective A1");
-            AddLesson(s, "IA2401", alternative: "A2", courseName: "Elective A2");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "Shared");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "A1",
+                courseName: "Elective A1");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "A2",
+                courseName: "Elective A2");
         });
         var group = AddAndReturnGroup(schedule, "IA2401");
 
@@ -330,7 +521,12 @@ public sealed class GroupCombinationTests
             .Select(x => schedule.Get(x.Lesson.Course).FullName)
             .OrderBy(x => x)
             .ToArray();
-        Assert.True(new[] { "Elective A1", "Shared" }.SequenceEqual(courseNames));
+        bool condition = new[]
+        {
+            "Elective A1",
+            "Shared",
+        }.SequenceEqual(courseNames);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -338,11 +534,19 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", alternative: "Psihologie", courseName: "Elective");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                alternative: "Psihologie",
+                courseName: "Elective");
         });
 
         using var stream = new MemoryStream();
-        await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+        await ScheduleSerializer.Serialize()
+            .Input(schedule)
+            .Output(stream)
+            .Hash("hash")
+            .ExecuteAsync(CancellationToken.None);
         stream.Position = 0;
         var model = await ScheduleSerializer.Deserialize(stream, CancellationToken.None);
 
@@ -351,7 +555,9 @@ public sealed class GroupCombinationTests
         var rebuilt = builder.Build();
 
         var lesson = Assert.Single(rebuilt.EnumerateAllLessons());
-        Assert.Equal(new Alternative("Psihologie"), lesson.Lesson.Alternative);
+        var expected2 = new Alternative("Psihologie");
+        var actual2 = lesson.Lesson.Alternative;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -366,39 +572,65 @@ public sealed class GroupCombinationTests
         // made it brittle); it is not restored here.
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I", specialization: "GA2D", alternative: "Psihologie", courseName: "Elective");
-            AddLesson(s, "IA2401", courseName: "Shared");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                specialization: "GA2D",
+                alternative: "Psihologie",
+                courseName: "Elective");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "Shared");
         });
 
         string json;
         using (var stream = new MemoryStream())
         {
-            await ScheduleSerializer.Serialize(schedule, stream, "hash", CancellationToken.None);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(stream)
+                .Hash("hash")
+                .ExecuteAsync(CancellationToken.None);
             json = Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        Assert.DoesNotContain("GroupPartitionKey", json, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            expectedSubstring: "GroupPartitionKey",
+            actualString: json,
+            StringComparison.Ordinal);
 
         using var doc = JsonDocument.Parse(json);
         var lessons = doc.RootElement.GetProperty("RegularLessons");
-        Assert.Equal(2, lessons.GetArrayLength());
+        Assert.Equal(expected: 2, actual: lessons.GetArrayLength());
 
         var elective = lessons.EnumerateArray()
             .Single(e => e.GetProperty("Alternative").ValueKind == JsonValueKind.String);
-        Assert.Equal("I", elective.GetProperty("SubGroup").GetString());
-        Assert.Equal("GA2D", elective.GetProperty("Specialization").GetString());
-        Assert.Equal("Psihologie", elective.GetProperty("Alternative").GetString());
+        Assert.Equal(
+            expected: "I",
+            actual: elective.GetProperty("SubGroup")
+                .GetString());
+        Assert.Equal(
+            expected: "GA2D",
+            actual: elective.GetProperty("Specialization")
+                .GetString());
+        Assert.Equal(
+            expected: "Psihologie",
+            actual: elective.GetProperty("Alternative")
+                .GetString());
 
         var shared = lessons.EnumerateArray()
             .Single(e => e.GetProperty("Alternative").ValueKind == JsonValueKind.Null);
-        Assert.Equal(JsonValueKind.Null, shared.GetProperty("SubGroup").ValueKind);
-        Assert.Equal(JsonValueKind.Null, shared.GetProperty("Specialization").ValueKind);
+        Assert.Equal(expected: JsonValueKind.Null, actual: shared.GetProperty("SubGroup").ValueKind);
+        Assert.Equal(expected: JsonValueKind.Null, actual: shared.GetProperty("Specialization").ValueKind);
 
         // Legacy caches omit Alternative entirely; they still load as All.
         var node = JsonNode.Parse(json)!;
         foreach (var lessonNode in node["RegularLessons"]!.AsArray())
         {
-            lessonNode!.AsObject().Remove("Alternative");
+            lessonNode!.AsObject()
+                .Remove("Alternative");
         }
         using var legacyStream = new MemoryStream(Encoding.UTF8.GetBytes(node.ToJsonString()));
         var legacyModel = await ScheduleSerializer.Deserialize(legacyStream, CancellationToken.None);
@@ -407,26 +639,37 @@ public sealed class GroupCombinationTests
         var rebuiltLegacy = legacyBuilder.Build();
         Assert.All(
             rebuiltLegacy.EnumerateAllLessons(),
-            l => Assert.Equal(Alternative.All, l.Lesson.Alternative));
+            l => Assert.Equal(expected: Alternative.All, actual: l.Lesson.Alternative));
 
         // Fresh serialize→deserialize preserves Alternative (and siblings).
-        using var freshStream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        byte[] CalculateBuffer()
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            return buffer;
+        }
+
+        using var freshStream = new MemoryStream(CalculateBuffer());
         var freshModel = await ScheduleSerializer.Deserialize(freshStream, CancellationToken.None);
         var freshBuilder = CreateBuilder();
         ScheduleSerializer.AddToBuilder(freshBuilder, freshModel);
         var rebuiltFresh = freshBuilder.Build();
-        var freshLessons = rebuiltFresh.EnumerateAllLessons().ToList();
-        Assert.Equal(2, freshLessons.Count);
+        var freshLessons = rebuiltFresh.EnumerateAllLessons()
+            .ToList();
+        Assert.Equal(expected: 2, actual: freshLessons.Count);
         var freshElective = Assert.Single(
             freshLessons.Where(l => l.Lesson.Alternative == new Alternative("Psihologie")));
-        Assert.Equal(new SubGroup("I"), freshElective.Lesson.SubGroup);
-        Assert.Equal(new Specialization("GA2D"), freshElective.Lesson.Specialization);
+        var expected2 = new SubGroup("I");
+        var actual2 = freshElective.Lesson.SubGroup;
+        Assert.Equal(expected: expected2, actual: actual2);
+        var expected3 = new Specialization("GA2D");
+        var actual3 = freshElective.Lesson.Specialization;
+        Assert.Equal(expected: expected3, actual: actual3);
         Assert.All(
             freshLessons.Where(l => l.Lesson.Alternative == Alternative.All),
             l =>
             {
-                Assert.Equal(SubGroup.All, l.Lesson.SubGroup);
-                Assert.Equal(Specialization.All, l.Lesson.Specialization);
+                Assert.Equal(expected: SubGroup.All, actual: l.Lesson.SubGroup);
+                Assert.Equal(expected: Specialization.All, actual: l.Lesson.Specialization);
             });
     }
 
@@ -435,15 +678,23 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", subGroup: "S21");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "S21");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
         var opaqueLesson = GetLessonBySubGroup(schedule, "S21");
 
-        Assert.Equal(["I"], info.Combinations.Select(NameOf));
-        Assert.False(info.IncludesLesson(info.Combinations[0], opaqueLesson.Lesson));
+        Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
+        bool condition = info.IncludesLesson(info.Combinations[0], opaqueLesson.Lesson);
+        Assert.False(condition);
     }
 
     [Fact]
@@ -451,22 +702,33 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ");
         });
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specialization.CV]).ApplyTo(x =>
-        {
-            x.Grade = group.Grade;
-            x.Faculty = group.Faculty;
-            x.AttendanceMode = group.AttendanceMode;
-            x.Qualification = group.QualificationType;
-        });
+        b.Set([Specialization.CV])
+            .ApplyTo(x =>
+            {
+                x.Grade = group.Grade;
+                x.Faculty = group.Faculty;
+                x.AttendanceMode = group.AttendanceMode;
+                x.Qualification = group.QualificationType;
+            });
 
-        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build())
+            .Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
@@ -474,10 +736,12 @@ public sealed class GroupCombinationTests
         // dimension, and both the permitted and the filtered-out values behave
         // as shared for the group instead of vanishing from every combination.
         Assert.False(info.SpecializationActive);
-        Assert.Equal(["I"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
         Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
-        Assert.True(info.IncludesLesson(info.Combinations[0], cvLesson.Lesson));
-        Assert.True(info.IncludesLesson(info.Combinations[0], djLesson.Lesson));
+        bool condition = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
+        Assert.True(condition);
+        bool condition2 = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -485,29 +749,42 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ");
         });
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specialization.CV]).ApplyTo(x =>
-        {
-            x.Grade = new(group.Grade.Value + 1);
-        });
+        b.Set([Specialization.CV])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(group.Grade.Value + 1);
+            });
 
-        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build())
+            .Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var djLesson = GetLessonBySpecialization(schedule, "DJ");
 
         // Nothing is permitted, so the partition is inactive and both observed
         // values behave as shared for the group.
         Assert.False(info.SpecializationActive);
-        Assert.Equal(["I"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
         Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
-        Assert.True(info.IncludesLesson(info.Combinations[0], cvLesson.Lesson));
-        Assert.True(info.IncludesLesson(info.Combinations[0], djLesson.Lesson));
+        bool condition = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
+        Assert.True(condition);
+        bool condition2 = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -515,36 +792,58 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ");
-            AddLesson(s, "IA2401", specialization: "React");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "React");
         });
         var group = AddAndReturnGroup(schedule, "IA2401").Item;
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specialization.CV, Specialization.DJ]).ApplyTo(x =>
-        {
-            x.Grade = group.Grade;
-            x.Faculty = group.Faculty;
-            x.AttendanceMode = group.AttendanceMode;
-            x.Qualification = group.QualificationType;
-        });
+        b.Set([Specialization.CV, Specialization.DJ])
+            .ApplyTo(x =>
+            {
+                x.Grade = group.Grade;
+                x.Faculty = group.Faculty;
+                x.AttendanceMode = group.AttendanceMode;
+                x.Qualification = group.QualificationType;
+            });
 
-        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build())
+            .Single().Value;
         var cvLesson = GetLessonBySpecialization(schedule, "CV");
         var reactLesson = GetLessonBySpecialization(schedule, "React");
 
         // Two permitted values keep the partition active on the permitted
         // subset only; the filtered-out value has no combination.
         Assert.True(info.SpecializationActive);
-        Assert.Equal(["CV", "DJ"], info.PermittedSpecializations.Select(x => x.Value));
-        Assert.Equal(["CV-I", "DJ-I"], info.Combinations.Select(NameOf));
+        Assert.Equal(expected: ["CV", "DJ"], actual: info.PermittedSpecializations.Select(x => x.Value));
+        Assert.Equal(expected: ["CV-I", "DJ-I"], actual: info.Combinations.Select(NameOf));
 
         var cvCombination = info.Combinations.Single(x => x.Specialization == Specialization.CV);
-        Assert.True(info.IncludesLesson(cvCombination, cvLesson.Lesson));
-        Assert.False(info.IncludesLesson(cvCombination, reactLesson.Lesson));
-        Assert.All(info.Combinations, c => Assert.False(info.IncludesLesson(c, reactLesson.Lesson)));
+        bool condition = info.IncludesLesson(cvCombination, cvLesson.Lesson);
+        Assert.True(condition);
+        bool condition2 = info.IncludesLesson(cvCombination, reactLesson.Lesson);
+        Assert.False(condition2);
+        Assert.All(
+            info.Combinations,
+            c =>
+            {
+                bool condition = info.IncludesLesson(c, reactLesson.Lesson);
+                Assert.False(condition);
+            });
     }
 
     [Fact]
@@ -552,22 +851,33 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", subGroup: "I");
-            AddLesson(s, "IA2401", specialization: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ");
         });
         var group = AddAndReturnGroup(schedule, "IA2401");
 
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specialization.CV]).ApplyTo(x =>
-        {
-            x.Grade = group.Item.Grade;
-            x.Faculty = group.Item.Faculty;
-            x.AttendanceMode = group.Item.AttendanceMode;
-            x.Qualification = group.Item.QualificationType;
-        });
+        b.Set([Specialization.CV])
+            .ApplyTo(x =>
+            {
+                x.Grade = group.Item.Grade;
+                x.Faculty = group.Item.Faculty;
+                x.AttendanceMode = group.Item.AttendanceMode;
+                x.Qualification = group.Item.QualificationType;
+            });
 
-        var info = schedule.GetGroupPartitionInfo(b.Build()).Single().Value;
+        var info = schedule.GetGroupPartitionInfo(b.Build())
+            .Single().Value;
         Assert.False(info.SpecializationActive);
         var combination = Assert.Single(info.Combinations);
 
@@ -591,14 +901,16 @@ public sealed class GroupCombinationTests
     public void RegistrySelectorsOmitFieldsToMatchEveryValueAndUnionOverlaps()
     {
         var b = new SpecializationRegistryBuilder();
-        b.Set([Specialization.CV]).ApplyTo(x =>
-        {
-            x.Grade = new(2);
-        });
-        b.Set([Specialization.DJ]).ApplyTo(x =>
-        {
-            x.Faculty = new("IA");
-        });
+        b.Set([Specialization.CV])
+            .ApplyTo(x =>
+            {
+                x.Grade = new(2);
+            });
+        b.Set([Specialization.DJ])
+            .ApplyTo(x =>
+            {
+                x.Faculty = new("IA");
+            });
         var registry = b.Build();
 
         var both = new Group
@@ -632,12 +944,34 @@ public sealed class GroupCombinationTests
             Language = Language.Ro,
         };
 
-        Assert.True(new[] { Specialization.CV, Specialization.DJ }
-            .SequenceEqual(registry.PermittedFor(in both)));
-        Assert.True(new[] { Specialization.CV }
-            .SequenceEqual(registry.PermittedFor(in otherFaculty)));
-        Assert.True(new[] { Specialization.DJ }
-            .SequenceEqual(registry.PermittedFor(in otherGrade)));
+        var value = new[]
+        {
+            Specialization.CV,
+            Specialization.DJ,
+        };
+        var second =
+            registry.PermittedFor(in both);
+        IEnumerable<Specialization> second2 = second;
+        bool condition = value.SequenceEqual(second2);
+        Assert.True(condition);
+        var value2 = new[]
+        {
+            Specialization.CV,
+        };
+        var second3 =
+            registry.PermittedFor(in otherFaculty);
+        IEnumerable<Specialization> second4 = second3;
+        bool condition2 = value2.SequenceEqual(second4);
+        Assert.True(condition2);
+        var value3 = new[]
+        {
+            Specialization.DJ,
+        };
+        var second5 =
+            registry.PermittedFor(in otherGrade);
+        IEnumerable<Specialization> second6 = second5;
+        bool condition3 = value3.SequenceEqual(second6);
+        Assert.True(condition3);
     }
 
     [Fact]
@@ -650,13 +984,17 @@ public sealed class GroupCombinationTests
             GroupNumber = 1,
             QualificationType = QualificationType.Licenta,
             Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Dual,
+            AttendanceMode = AttendanceMode.DualZi,
             Language = Language.Ro,
         };
 
         var permitted = Config.SpecializationRegistry.PermittedFor(in dual);
 
-        Assert.True(new[] { Specialization.AlgoritmicaGrafurilor, Specialization.Logica }
+        Assert.True(new[]
+            {
+                Specialization.AlgoritmicaGrafurilor,
+                Specialization.Logica,
+            }
             .SequenceEqual(permitted));
     }
 
@@ -665,22 +1003,32 @@ public sealed class GroupCombinationTests
     {
         var builder = CreateBuilder();
         Config.ConfigureRemappings(builder.Remappings);
-        AddLesson(builder, "IA2401", subGroup: "AG");
-        AddLesson(builder, "IA2401", subGroup: "GR");
-        AddLesson(builder, "IA2401", subGroup: "Node");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            subGroup: "AG");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            subGroup: "GR");
+        AddLesson(
+            builder,
+            groupName: "IA2401",
+            subGroup: "Node");
 
         var schedule = builder.Build();
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
 
         Assert.True(info.SpecializationActive);
         Assert.Equal(
-            ["Algoritmica Grafurilor", "GA2D", "UI"],
-            info.PermittedSpecializations
+            expected: ["Algoritmica Grafurilor", "GA2D", "UI"],
+            actual: info.PermittedSpecializations
                 .Select(x => x.Value)
                 .OrderBy(x => x, StringComparer.Ordinal));
         Assert.Equal(
-            ["Algoritmica Grafurilor", "GA2D", "UI"],
-            info.Combinations
+            expected: ["Algoritmica Grafurilor", "GA2D", "UI"],
+            actual: info.Combinations
                 .Select(NameOf));
     }
 
@@ -689,11 +1037,30 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", courseName: "Shared");
-            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric I");
-            AddLesson(s, "IA2401", subGroup: "II", courseName: "Numeric II");
-            AddLesson(s, "IA2401", specialization: "CV", courseName: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ", courseName: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "Shared");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                courseName: "Numeric I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II",
+                courseName: "Numeric II");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV",
+                courseName: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ",
+                courseName: "DJ");
         });
         var group = AddAndReturnGroup(schedule, "IA2401");
 
@@ -711,7 +1078,13 @@ public sealed class GroupCombinationTests
             .Select(x => schedule.Get(x.Lesson.Course).FullName)
             .OrderBy(x => x)
             .ToArray();
-        Assert.True(new[] { "CV", "Numeric I", "Shared" }.SequenceEqual(courseNames));
+        bool condition = new[]
+        {
+            "CV",
+            "Numeric I",
+            "Shared",
+        }.SequenceEqual(courseNames);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -719,39 +1092,193 @@ public sealed class GroupCombinationTests
     {
         var schedule = Build(s =>
         {
-            AddLesson(s, "IA2401", courseName: "Shared");
-            AddLesson(s, "IA2401", subGroup: "I", courseName: "Numeric I");
-            AddLesson(s, "IA2401", subGroup: "II", courseName: "Numeric II");
-            AddLesson(s, "IA2401", subGroup: "ro", courseName: "Romanian");
-            AddLesson(s, "IA2401", subGroup: "ru", courseName: "Russian");
-            AddLesson(s, "IA2401", subGroup: "începători", courseName: "Language");
-            AddLesson(s, "IA2401", courseName: "Language");
-            AddLesson(s, "IA2401", specialization: "CV", courseName: "CV");
-            AddLesson(s, "IA2401", specialization: "DJ", courseName: "DJ");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "Shared");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "I",
+                courseName: "Numeric I");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "II",
+                courseName: "Numeric II");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "ro",
+                courseName: "Romanian");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "ru",
+                courseName: "Russian");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                subGroup: "începători",
+                courseName: "Language");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                courseName: "Language");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "CV",
+                courseName: "CV");
+            AddLesson(
+                s,
+                groupName: "IA2401",
+                specialization: "DJ",
+                courseName: "DJ");
         });
 
-        var info = schedule.GetGroupPartitionInfo().Single().Value;
-        var combination = info.Combinations.Single(c => c.Specialization == Specialization.CV
-            && c.Proficiency == SpecialSubGroups.Beginners
-            && c.Language == SpecialSubGroups.Ro
-            && c.Numeric == SubGroup.CreateNumeric(1));
+        var info = schedule.GetGroupPartitionInfo()
+            .Single().Value;
+        var combination = info.Combinations.Single(c =>
+        {
+            bool CheckCondition()
+            {
+                if (!(c.Specialization == Specialization.CV))
+                {
+                    return false;
+                }
 
-        Assert.True(info.IncludesLesson(combination, Lesson("Shared")));
-        Assert.True(info.IncludesLesson(combination, Lesson("Numeric I")));
-        Assert.True(info.IncludesLesson(combination, Lesson("Romanian")));
-        Assert.True(info.IncludesLesson(combination, Lesson("Language", SpecialSubGroups.Beginners)));
-        Assert.True(info.IncludesLesson(combination, Lesson("CV")));
+                if (!(c.Proficiency == SpecialSubGroups.Beginners))
+                {
+                    return false;
+                }
 
-        Assert.False(info.IncludesLesson(combination, Lesson("Numeric II")));
-        Assert.False(info.IncludesLesson(combination, Lesson("Russian")));
-        Assert.False(info.IncludesLesson(combination, Lesson("Language", SpecialSubGroups.NonBeginners)));
-        Assert.False(info.IncludesLesson(combination, Lesson("DJ")));
+                if (!(c.Language == SpecialSubGroups.Ro))
+                {
+                    return false;
+                }
+
+                if (c.Numeric == SubGroup.CreateNumeric(1))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            return CheckCondition();
+        });
+
+        LessonData CalculateLesson()
+        {
+            var lesson = Lesson("Shared");
+            return lesson;
+        }
+
+        bool condition = info.IncludesLesson(combination, CalculateLesson());
+        Assert.True(condition);
+
+        LessonData CalculateLesson2()
+        {
+            var lesson2 = Lesson("Numeric I");
+            return lesson2;
+        }
+
+        bool condition2 = info.IncludesLesson(combination, CalculateLesson2());
+        Assert.True(condition2);
+
+        LessonData CalculateLesson3()
+        {
+            var lesson3 = Lesson("Romanian");
+            return lesson3;
+        }
+
+        bool condition3 = info.IncludesLesson(combination, CalculateLesson3());
+        Assert.True(condition3);
+
+        LessonData CalculateLesson4()
+        {
+            var lesson4 = Lesson("Language", SpecialSubGroups.Beginners);
+            return lesson4;
+        }
+
+        bool condition4 = info.IncludesLesson(combination, CalculateLesson4());
+        Assert.True(condition4);
+
+        LessonData CalculateLesson5()
+        {
+            var lesson5 = Lesson("CV");
+            return lesson5;
+        }
+
+        bool condition5 = info.IncludesLesson(combination, CalculateLesson5());
+        Assert.True(condition5);
+
+        LessonData CalculateLesson6()
+        {
+            var lesson6 = Lesson("Numeric II");
+            return lesson6;
+        }
+
+        bool condition6 = info.IncludesLesson(combination, CalculateLesson6());
+        Assert.False(condition6);
+
+        LessonData CalculateLesson7()
+        {
+            var lesson7 = Lesson("Russian");
+            return lesson7;
+        }
+
+        bool condition7 = info.IncludesLesson(combination, CalculateLesson7());
+        Assert.False(condition7);
+
+        LessonData CalculateLesson8()
+        {
+            var lesson8 = Lesson("Language", SpecialSubGroups.NonBeginners);
+            return lesson8;
+        }
+
+        bool condition8 = info.IncludesLesson(combination, CalculateLesson8());
+        Assert.False(condition8);
+
+        LessonData CalculateLesson9()
+        {
+            var lesson9 = Lesson("DJ");
+            return lesson9;
+        }
+
+        bool condition9 = info.IncludesLesson(combination, CalculateLesson9());
+        Assert.False(condition9);
 
         LessonData Lesson(string courseName, SubGroup? subGroup = null)
         {
             return schedule.EnumerateAllLessons()
-                .Single(x => schedule.Get(x.Lesson.Course).FullName == courseName
-                    && (subGroup is null || x.Lesson.SubGroup == subGroup))
+                .Single(x =>
+                {
+                    bool CalculateConditionResult()
+                    {
+                        if (schedule.Get(x.Lesson.Course).FullName != courseName)
+                        {
+                            return false;
+                        }
+
+                        if (subGroup is null)
+                        {
+                            return true;
+                        }
+
+                        if (x.Lesson.SubGroup == subGroup)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
+                    return conditionResult;
+                })
                 .Lesson;
         }
     }
@@ -760,23 +1287,34 @@ public sealed class GroupCombinationTests
     public void NumericSubGroupsMustFormAContiguousPrefix()
     {
         var s = CreateBuilder();
-        AddLesson(s, "IA2401", subGroup: "I");
-        AddLesson(s, "IA2401", subGroup: "III");
+        AddLesson(
+            s,
+            groupName: "IA2401",
+            subGroup: "I");
+        AddLesson(
+            s,
+            groupName: "IA2401",
+            subGroup: "III");
 
-        var error = Assert.Throws<InvalidSubGroupPartitionException>(() => s.Build());
+        var error = Assert.Throws<InvalidSubGroupPartitionException.NonContiguousPrefixException>(() => s.Build());
 
-        Assert.Contains("contiguous", error.Message);
-        Assert.Contains("II", error.Message);
+        Assert.Equal(expected: 2, actual: error.Missing);
+        Assert.Equal(expected: 3, actual: error.Occurring);
+        Assert.Contains(expectedSubstring: "contiguous", actualString: error.Message);
+        Assert.Contains(expectedSubstring: "II", actualString: error.Message);
     }
 
     [Fact]
     public void SingleLanguageSubGroupFails()
     {
         var s = CreateBuilder();
-        AddLesson(s, "IA2401", subGroup: "ru");
+        AddLesson(
+            s,
+            groupName: "IA2401",
+            subGroup: "ru");
 
-        var error = Assert.Throws<InvalidSubGroupPartitionException>(() => s.Build());
+        var error = Assert.Throws<InvalidSubGroupPartitionException.SingleLanguageSubgroupException>(() => s.Build());
 
-        Assert.Contains("language subgroup", error.Message);
+        Assert.Contains(expectedSubstring: "language subgroup", actualString: error.Message);
     }
 }

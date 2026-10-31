@@ -42,11 +42,19 @@ public sealed class Test
             .Distinct();
 
         var teacherId = teachers.First();
-        var teacherName = schedule.Get(teacherId).PersonName.AsNameFields();
+        var teacherName = schedule.Get(teacherId).PersonName
+            .AsNameFields();
+
+        Name CalculateName()
+        {
+            var name = new Name(teacherName);
+            return name;
+        }
+
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
             helper.ServiceProvider,
             path,
-            new Name(teacherName));
+            CalculateName());
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
         var filteredSchedule = schedule.Filter(
@@ -54,8 +62,12 @@ public sealed class Test
                 .WithCourse(courseId)
                 .WithTeacher(teacherId));
 
-        var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
-        await builder.AddFromManifest(manifest, lookup, helper.CancellationToken);
+        var builder =
+            ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
+        await builder.AddFromManifest(
+            manifest,
+            lookup,
+            helper.CancellationToken);
         var result = builder.Build();
 
         var list = new List<string>();
@@ -67,13 +79,19 @@ public sealed class Test
         };
         while (true)
         {
-            var topic = result.Get(new(
-                courseId: courseId,
-                groups: groups,
-                groupPartition: GroupPartitionKey.All,
-                lessonType: LessonType.Lab,
-                dayIndex: dayIndex,
-                dateTime: default));
+            AttendanceLookupKey CalculateKey()
+            {
+                AttendanceLookupKey key = new(
+                    courseId: courseId,
+                    groups: groups,
+                    groupPartition: GroupPartitionKey.All,
+                    lessonType: LessonType.Lab,
+                    dayIndex: dayIndex,
+                    dateTime: default);
+                return key;
+            }
+
+            var topic = result.Get(CalculateKey());
             if (topic == null)
             {
                 break;
@@ -84,5 +102,4 @@ public sealed class Test
 
         await Verify(list);
     }
-
 }

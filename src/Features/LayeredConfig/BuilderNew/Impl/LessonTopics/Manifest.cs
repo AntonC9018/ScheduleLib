@@ -24,7 +24,10 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
     {
         foreach (var dir in _manifestDirectories)
         {
-            await ProcessDirectory(dir, builder, cancellationToken);
+            await ProcessDirectory(
+                dir,
+                builder,
+                cancellationToken);
         }
     }
 
@@ -34,7 +37,7 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
         CancellationToken cancellationToken)
     {
         var manifests = Directory.GetFiles(
-            manifestDirector,
+            path: manifestDirector,
             searchOption: SearchOption.AllDirectories,
             searchPattern: "*.json");
         foreach (var manifestPath in manifests)
@@ -42,12 +45,18 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
             Manifest manifest;
             try
             {
-                using var stream = new FileStream(manifestPath, FileMode.Open, FileAccess.Read);
+                using var stream = new FileStream(
+                    manifestPath,
+                    FileMode.Open,
+                    FileAccess.Read);
                 manifest = await ManifestSerializer.Deserialize(stream, cancellationToken);
             }
             catch (CsvHelperException e)
             {
-                _logger.LogError(e, "Error while reading manifest {ManifestPath}", manifestPath);
+                _logger.LogError(
+                    e,
+                    "Error while reading manifest {ManifestPath}",
+                    manifestPath);
                 continue;
             }
 
@@ -61,9 +70,16 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
             }
 
             var manifestDir = Path.GetDirectoryName(manifestPath);
+
             // Might want another layer here that just gathers the manifests.
+            ManifestAtLocation CalculateM()
+            {
+                ManifestAtLocation m = new(manifest, manifestDir);
+                return m;
+            }
+
             await builder.AddFromManifest(
-                new(manifest, manifestDir),
+                CalculateM(),
                 _lookup,
                 cancellationToken);
         }
@@ -106,7 +122,9 @@ public static class ManifestFileSourceHelper
             string path,
             Name teacherName)
         {
-            return ActivatorUtilities.CreateInstance<ManifestFileSource>(sp, [
+            return ActivatorUtilities.CreateInstance<ManifestFileSource>(
+            sp,
+            [
                 path,
                 teacherName,
             ]);
@@ -114,14 +132,16 @@ public static class ManifestFileSourceHelper
 
         public ManifestSource CreateManifestSource(IManifestFileSource s)
         {
-            return ActivatorUtilities.CreateInstance<ManifestSource>(sp, [ s ]);
+            return ActivatorUtilities.CreateInstance<ManifestSource>(sp, [s]);
         }
 
         public ManifestDirectoryTeacherSource CreateManifestDirectoryTeacherSource(
             Name teacherName,
             List<string> directories)
         {
-            return ActivatorUtilities.CreateInstance<ManifestDirectoryTeacherSource>(sp, [
+            return ActivatorUtilities.CreateInstance<ManifestDirectoryTeacherSource>(
+            sp,
+            [
                 teacherName,
                 directories,
             ]);
@@ -157,13 +177,17 @@ public sealed partial class ManifestFileSource : IManifestFileSource
             }
             else if (!manifest.Teacher.Equals(_teacherName))
             {
-                TeacherNameMismatchLog(_teacherName, manifest.Teacher);
+                TeacherNameMismatchLog(Expected: _teacherName, Found: manifest.Teacher);
             }
         }
-        return new(manifest, Path.GetDirectoryName(_path));
+        var manifest2 = manifest;
+        string? directoryPath = Path.GetDirectoryName(_path);
+        ManifestAtLocation manifestAtLocation = new(manifest2, directoryPath);
+        return manifestAtLocation;
     }
 
-    [LoggerMessage(LogLevel.Warning, "Teacher name in the specified file doesn't match the expected one: {Expected}, {Found}")]
+    [LoggerMessage(LogLevel.Warning,
+        "Teacher name in the specified file doesn't match the expected one: {Expected}, {Found}")]
     partial void TeacherNameMismatchLog(Name Expected, Name Found);
 }
 
@@ -186,7 +210,6 @@ public sealed class ManifestLessonTopicSourceDefinition : LessonTopicSourceDefin
             var ret = sp.CreateManifestDirectoryTeacherSource(teacherName, manifestDirectoriesConfig.Directories);
             return ret;
         }
-        else
         {
             var fileSource = sp.CreateManifestFileSource(Path, teacherName);
             var ret = sp.CreateManifestSource(fileSource);

@@ -9,26 +9,79 @@ public static class CliRuntime
 {
     public static string ResolvePath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Directory paths must not be empty.");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new EmptyDirectoryPathException(path);
+        }
+
         return Path.GetFullPath(path);
     }
 
-    public static IServiceCollection CreateServices(SourceArguments source, Action<IServiceCollection> configure, string? projectDirectory = null)
+    public static IServiceCollection CreateServices(
+        SourceArguments source,
+        Action<IServiceCollection> configure,
+        string? projectDirectory = null)
     {
-        var dataDirectory = source.DataDirectory is { } path ? ResolvePath(path) : Path.Combine(AppContext.BaseDirectory, "data");
-        if (source.CacheDirectory is { } selectedCache) ResolvePath(selectedCache);
+        var dataDirectory = source.DataDirectory is { } path
+            ? ResolvePath(path)
+            : Path.Combine(AppContext.BaseDirectory, "data");
+        if (source.CacheDirectory is { } selectedCache)
+        {
+            ResolvePath(selectedCache);
+        }
+
         if (!Directory.Exists(dataDirectory))
-            throw new DirectoryNotFoundException($"Schedule source directory does not exist: {dataDirectory}");
+        {
+            throw new ScheduleSourceDirectoryNotFoundException(dataDirectory);
+        }
+
         var services = new ServiceCollection();
         configure(services);
         GoogleAuthentication.Register(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;
-            x.CacheDirectory = source.CacheDirectory is { } cache ? ResolvePath(cache)
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScheduleLib", "cache");
+            var
+                scheduleBuilderInitializerOptions = x;
+            string text;
+            if (source.CacheDirectory is { } cache)
+            {
+                string resolvePath = ResolvePath(cache);
+                text = resolvePath;
+            }
+            else
+            {
+                string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string path2 = "ScheduleLib";
+                string path3 = "cache";
+                string combine = Path.Combine(
+                    path1,
+                    path2,
+                    path3);
+                text = combine;
+            }
+
+            scheduleBuilderInitializerOptions.CacheDirectory = text;
             x.UseCache = !source.NoCache;
         });
         return services;
+    }
+
+    internal sealed class EmptyDirectoryPathException : ArgumentException
+    {
+        internal EmptyDirectoryPathException(string? directoryPath)
+            : base("Directory paths must not be empty.")
+            => DirectoryPath = directoryPath;
+
+        public string? DirectoryPath { get; }
+    }
+
+    internal sealed class ScheduleSourceDirectoryNotFoundException : DirectoryNotFoundException
+    {
+        internal ScheduleSourceDirectoryNotFoundException(string sourcePath)
+            : base($"Schedule source directory does not exist: {sourcePath}")
+            => SourcePath = sourcePath;
+
+        public string SourcePath { get; }
     }
 }

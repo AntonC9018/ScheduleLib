@@ -19,6 +19,7 @@ public sealed partial class LessonTextDisplayHandler
         public readonly ParityDisplayHandler ParityDisplay;
         public readonly LessonTypeDisplayHandler LessonTypeDisplay;
     }
+
     public struct Config()
     {
         public bool PrintsTeacherName = true;
@@ -114,13 +115,59 @@ public sealed partial class LessonTextDisplayHandler
                 var oneTime = p.Lesson.OneTime!.Value;
                 date = oneTime.Date.Date.ToString("dd.MM.yy");
             }
-            bool appendGroups = _config.PrintsGroupNames && p.Lesson.Lesson.Groups.Count > 0;
-            bool appendAny = lessonType != null || parity != null || appendGroups || date != null;
+
+            bool CalculateConditionResult()
+            {
+                if (!_config.PrintsGroupNames)
+                {
+                    return false;
+                }
+
+                if (p.Lesson.Lesson.Groups.Count > 0)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            bool appendGroups = conditionResult;
+
+            bool CheckCondition()
+            {
+                if (lessonType != null)
+                {
+                    return true;
+                }
+
+                if (parity != null)
+                {
+                    return true;
+                }
+
+                if (appendGroups)
+                {
+                    return true;
+                }
+
+                if (date != null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool appendAny = CheckCondition();
             if (appendAny)
             {
                 sb.Append(" (");
 
                 bool written = false;
+
                 void Write(string? str)
                 {
                     if (str is not { } notNullS)

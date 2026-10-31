@@ -67,14 +67,17 @@ public sealed class InvalidSemesterDateRangeException : ScheduleBuildException
 /// </summary>
 public sealed class DuplicateSemesterDateRangeException : ScheduleBuildException
 {
-    private DuplicateSemesterDateRangeException(string message)
-        : base(message)
+    private DuplicateSemesterDateRangeException(string key)
+        : base($"Two range configurations found for the same key: {key}")
     {
+        Key = key;
     }
+
+    public string Key { get; }
 
     public static DuplicateSemesterDateRangeException ForDuplicate(string key)
     {
-        return new($"Two range configurations found for the same key: {key}");
+        return new(key);
     }
 }
 
@@ -85,14 +88,17 @@ public sealed class DuplicateSemesterDateRangeException : ScheduleBuildException
 /// </summary>
 public sealed class MissingSemesterDateRangeException : ScheduleBuildException
 {
-    private MissingSemesterDateRangeException(string message)
-        : base(message)
+    private MissingSemesterDateRangeException(string key)
+        : base($"No semester date range found for: {key}")
     {
+        Key = key;
     }
+
+    public string Key { get; }
 
     public static MissingSemesterDateRangeException ForMissingRange(string key)
     {
-        return new($"No semester date range found for: {key}");
+        return new(key);
     }
 }
 

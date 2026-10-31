@@ -41,13 +41,16 @@ public sealed class HtmlTests
                 courseNames.Add(courseName);
                 return new(courseNames.Count);
             },
-        }).ToArray();
-        var resultWithNames = result.Zip(courseNames, (a, b) => new
-        {
-            Url = a.Url.ToString(),
-            Id = a.CourseId.Id,
-            CourseName = b,
-        });
+        })
+            .ToArray();
+        var resultWithNames = result.Zip(
+            courseNames,
+            (a, b) => new
+            {
+                Url = a.Url.ToString(),
+                a.CourseId.Id,
+                CourseName = b,
+            });
         await Verify(resultWithNames);
     }
 
@@ -80,15 +83,18 @@ public sealed class HtmlTests
                 return [new(groups.Count)];
             },
             ParseErrorHandler = c => throw new Exception("Wrapped parse error", c.Exception),
-        }).ToArray();
+        })
+            .ToArray();
 
-        var mapped = result.Zip(groups, (a, b) => new
-        {
-            Uri = a.Uri.ToString(),
-            b.GroupNumber,
-            SubGroup = b.SubGroupName.ToString(),
-            FacultyName = b.FacultyName.ToString(),
-        });
+        var mapped = result.Zip(
+            groups,
+            (a, b) => new
+            {
+                Uri = a.Uri.ToString(),
+                b.GroupNumber,
+                SubGroup = b.SubGroupName.ToString(),
+                FacultyName = b.FacultyName.ToString(),
+            });
         await Verify(mapped);
     }
 
@@ -97,17 +103,40 @@ public sealed class HtmlTests
     {
         // Explicit null: no custom registry; only built-in specializations apply.
         var resolver = new GroupPartitionResolver(null);
-        var specialization = resolver.Resolve(MakeGroupForSearch("Spring"));
-        var numeric = resolver.Resolve(MakeGroupForSearch("I"));
+
+        GroupForSearch CalculateGroupForSearch()
+        {
+            var groupForSearch = MakeGroupForSearch("Spring");
+            return groupForSearch;
+        }
+
+        var specialization = resolver.Resolve(CalculateGroupForSearch());
+
+        GroupForSearch CalculateGroupForSearch2()
+        {
+            var groupForSearch2 = MakeGroupForSearch("I");
+            return groupForSearch2;
+        }
+
+        var numeric = resolver.Resolve(CalculateGroupForSearch2());
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
-        registryBuilder.Set([futureSpecialization]).ApplyTo(_ => { });
+        registryBuilder.Set([futureSpecialization])
+            .ApplyTo(_ => { });
         var future = new GroupPartitionResolver(registryBuilder.Build()).Resolve(
             MakeGroupForSearch(futureSpecialization.Value!));
 
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.Spring), specialization);
-        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), numeric);
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, futureSpecialization), future);
+        var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.Spring);
+        var actual2 = specialization;
+        Assert.Equal(expected: expected2, actual: actual2);
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        var specialization2 = Specialization.All;
+        var expected3 = new GroupPartitionKey(subGroup2, specialization2);
+        var actual3 = numeric;
+        Assert.Equal(expected: expected3, actual: actual3);
+        var expected4 = new GroupPartitionKey(SubGroup.All, futureSpecialization);
+        var actual4 = future;
+        Assert.Equal(expected: expected4, actual: actual4);
 
         static GroupForSearch MakeGroupForSearch(string subGroup)
         {
@@ -174,11 +203,14 @@ public sealed class HtmlTests
             await using var stream = File.OpenRead(CreateLessonHtmlPath);
             using var reader1 = new StreamReader(stream);
             var str = await reader1.ReadToEndAsync();
-            addDoc = await browser.OpenAsync(req => req.Content(str).Address("https://test.com"));
+            addDoc = await browser.OpenAsync(req => req.Content(str)
+                .Address("https://test.com"));
         }
 
-        var students = HtmlSearch.FindStudents(HtmlSearch.FindAttendanceTable(addDoc));
-        var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present).ToArray();
+        var table = HtmlSearch.FindAttendanceTable(addDoc);
+        var students = HtmlSearch.FindStudents(table);
+        var attendance = students.Select(x => x.IsExpelled ? Attendance.None : Attendance.Present)
+            .ToArray();
         attendance[0] = Attendance.MotivatedAbsent;
         attendance[1] = Attendance.NotPresent;
         attendance[10] = Attendance.NotPresent;
@@ -199,7 +231,9 @@ public sealed class HtmlTests
             });
         });
 
-        var lessonId = schedule.EnumerateWeeklyLessons().First().Id.AsAny();
+        var lessonId = schedule.EnumerateWeeklyLessons()
+            .First().Id
+            .AsAny();
         HtmlSearch.UpdateForm(new()
         {
             Schedule = schedule,
@@ -209,7 +243,10 @@ public sealed class HtmlTests
             {
                 Attendance = attendance,
                 Topic = "My Topic",
-                DateTime = new DateTime(year: 2026, day: 11, month: 10),
+                DateTime = new DateTime(
+                    year: 2026,
+                    day: 11,
+                    month: 10),
                 LessonId = lessonId,
                 RegistryLessonType = schedule.Get(lessonId).Lesson.Type,
             },

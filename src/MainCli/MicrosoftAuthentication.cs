@@ -2,102 +2,338 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Identity.Client;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Curriculum.Download;
 
 namespace ScheduleLib.Cli;
 
-public sealed record MicrosoftToken(string AccountId, string AccessToken, DateTimeOffset ExpiresOn, string[] Scopes, byte[] Cache);
+public sealed record MicrosoftToken(
+    string AccountId,
+    string AccessToken,
+    DateTimeOffset ExpiresOn,
+    string[] Scopes,
+    byte[] Cache);
+
+public static class MicrosoftScopes
+{
+    public static readonly string[] Required =
+        ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
+}
+
 public interface IMicrosoftTokenProvider
 {
     Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token);
-    Task<MicrosoftToken> Silent(MicrosoftAuthConfig config, string accountId, byte[] cache, CancellationToken token);
+
+    Task<MicrosoftToken> Silent(
+        MicrosoftAuthConfig config,
+        string accountId,
+        byte[] cache,
+        CancellationToken token);
 }
 
 /// <summary>Uses only supported MSAL APIs. Silent acquisition has no interactive fallback.</summary>
 public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
 {
-    private static IPublicClientApplication Application(MicrosoftAuthConfig config) => PublicClientApplicationBuilder
-        .Create(config.ClientId).WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
-        .WithRedirectUri("http://localhost").Build();
+    private static IPublicClientApplication Application(MicrosoftAuthConfig config)
+    {
+        return PublicClientApplicationBuilder
+            .Create(config.ClientId)
+            .WithAuthority(AzureCloudInstance.AzurePublic, config.TenantId)
+            .WithRedirectUri("http://localhost")
+            .Build();
+    }
+
     public async Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)
     {
         var app = Application(config);
         var cache = new SupportedCache(app, []);
-        var result = await app.AcquireTokenInteractive(CurriculaDownloadTasks.ApiRequiredScopes)
-            .WithUseEmbeddedWebView(false).ExecuteAsync(token);
+        var result = await app.AcquireTokenInteractive(MicrosoftScopes.Required)
+            .WithUseEmbeddedWebView(false)
+            .ExecuteAsync(token);
         return ToToken(cache, result);
     }
-    public async Task<MicrosoftToken> Silent(MicrosoftAuthConfig config, string accountId, byte[] cache, CancellationToken token)
+
+    public async Task<MicrosoftToken> Silent(
+        MicrosoftAuthConfig config,
+        string accountId,
+        byte[] cache,
+        CancellationToken token)
     {
         var app = Application(config);
         var serialized = new SupportedCache(app, cache);
         var account = await app.GetAccountAsync(accountId);
-        if (account is null) throw new MsalUiRequiredException("missing_account", "Explicit login is required.");
-        var result = await app.AcquireTokenSilent(CurriculaDownloadTasks.ApiRequiredScopes, account).ExecuteAsync(token);
+        if (account is null)
+        {
+            throw new MsalUiRequiredException(
+                errorCode: "missing_account",
+                errorMessage: "Explicit login is required.");
+        }
+
+        var result = await app.AcquireTokenSilent(MicrosoftScopes.Required, account)
+            .ExecuteAsync(token);
         return ToToken(serialized, result);
     }
-    private static MicrosoftToken ToToken(SupportedCache cache, AuthenticationResult result) =>
-        new(result.Account.HomeAccountId.Identifier, result.AccessToken, result.ExpiresOn, result.Scopes.ToArray(), cache.Bytes);
+
+    private static MicrosoftToken ToToken(SupportedCache cache, AuthenticationResult result)
+    {
+        return new(
+            AccountId: result.Account.HomeAccountId.Identifier,
+            AccessToken: result.AccessToken,
+            result.ExpiresOn,
+            result.Scopes.ToArray(),
+            cache.Bytes);
+    }
+
     private sealed class SupportedCache
     {
         public byte[] Bytes { get; private set; }
+
         public SupportedCache(IPublicClientApplication app, byte[] initial)
         {
             Bytes = initial;
-            app.UserTokenCache.SetBeforeAccess(args => { if (Bytes.Length > 0) args.TokenCache.DeserializeMsalV3(Bytes); });
-            app.UserTokenCache.SetAfterAccess(args => { if (args.HasStateChanged) Bytes = args.TokenCache.SerializeMsalV3(); });
+            app.UserTokenCache.SetBeforeAccess(args =>
+            {
+                if (Bytes.Length > 0)
+                {
+                    args.TokenCache.DeserializeMsalV3(Bytes);
+                }
+            });
+            app.UserTokenCache.SetAfterAccess(args =>
+            {
+                if (args.HasStateChanged)
+                {
+                    Bytes = args.TokenCache.SerializeMsalV3();
+                }
+            });
         }
     }
 }
 
 /// <summary>Teacher, tenant/client and actual MSAL account partitions live in user state.
 /// Hold the profile lease through acquisition and atomic publication, including refresh.</summary>
-public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicrosoftTokenProvider? tokens = null)
+public sealed class MicrosoftAuthentication(
+    string? stateDirectory = null,
+    IMicrosoftTokenProvider? tokens = null,
+    ILogger? logger = null)
 {
-    private readonly string _root = stateDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScheduleLib", "auth", "microsoft");
-    private readonly IMicrosoftTokenProvider _tokens = tokens ?? new MicrosoftTokenProvider();
-    private sealed record Binding(int SchemaVersion, string TenantId, string ClientId, string AccountId);
-    private sealed record CachedAuthorization(int SchemaVersion, byte[] Cache, DateTimeOffset ExpiresOn, string[] Scopes);
-    private static string Key(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
-    private string ProfileDirectory(string profile) => Path.Combine(_root, Key(profile));
-    private string BindingFile(string profile) => Path.Combine(ProfileDirectory(profile), "account.json");
-    private string TokenFile(string profile, Binding binding) => Path.Combine(ProfileDirectory(profile), Key(binding.TenantId + "\n" + binding.ClientId), Key(binding.AccountId) + ".json");
-    private Task<LocalFileLock> Lease(string profile, CancellationToken token) => LocalFileLock.Acquire(Path.Combine(ProfileDirectory(profile), ".operation.lock"), token);
+    private readonly ILogger _logger = logger ?? NullLogger.Instance;
 
-    public async Task Login(MicrosoftAuthConfig config, string profile, CancellationToken token)
+    private readonly string _root = stateDirectory
+        ?? Path.Combine(
+            CalculatePath1(),
+            "ScheduleLib",
+            "auth",
+            "microsoft");
+
+    private readonly IMicrosoftTokenProvider _tokens = tokens ?? new MicrosoftTokenProvider();
+
+    private sealed record Binding(
+        int SchemaVersion,
+        string TenantId,
+        string ClientId,
+        string AccountId);
+
+    private sealed record CachedAuthorization(
+        int SchemaVersion,
+        byte[] Cache,
+        DateTimeOffset ExpiresOn,
+        string[] Scopes);
+
+    private static string Key(string value)
+    {
+        byte[] source = Encoding.UTF8.GetBytes(value);
+        byte[] inArray = SHA256.HashData(source);
+        string toHexStringLower = Convert.ToHexStringLower(inArray);
+        return toHexStringLower;
+    }
+
+    private string ProfileDirectory(string profile)
+    {
+        string path1 = _root;
+        string path2 = Key(profile);
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
+
+    private string BindingFile(string profile)
+    {
+        string path1 = ProfileDirectory(profile);
+        string path2 = "account.json";
+        string combine = Path.Combine(path1, path2);
+        return combine;
+    }
+
+    private string TokenFile(string profile, Binding binding)
+    {
+        string path1 = ProfileDirectory(profile);
+        string text = $"{binding.TenantId}\n{binding.ClientId}";
+        string value = text;
+        string path2 = Key(value);
+        string key = Key(binding.AccountId);
+        string text2 = $"{key}.json";
+        string path3 = text2;
+        string combine = Path.Combine(
+            path1,
+            path2,
+            path3);
+        return combine;
+    }
+
+    // Consent failures (declined, cancelled in the browser, rejected grant) need a new login.
+    // Service outages and client misconfiguration keep their own classification.
+    private static bool RequiresLogin(MsalException error) =>
+        error is MsalUiRequiredException
+        || error.ErrorCode is MsalError.AuthenticationCanceledError
+            or MsalError.AccessDenied
+            or MsalError.InvalidGrantError;
+
+    private Task<LocalFileLock> Lease(string profile, CancellationToken token)
+    {
+        string path1 = ProfileDirectory(profile);
+        string path2 = ".operation.lock";
+        string path = Path.Combine(path1, path2);
+        var token2 = token;
+        var acquire =
+            LocalFileLock.Acquire(
+                path,
+                token2);
+        return acquire;
+    }
+
+    public async Task Login(
+        MicrosoftAuthConfig config,
+        string profile,
+        CancellationToken token)
     {
         Validate(config, profile);
         await using var lease = await Lease(profile, token);
         MicrosoftToken authorization;
-        try { authorization = await _tokens.Consent(config, token); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception) { throw new AuthenticationRequiredException("microsoft", profile); }
+        try
+        {
+            authorization = await _tokens.Consent(config, token);
+        }
+        catch (MsalException error) when (RequiresLogin(error))
+        {
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "microsoft",
+                    teacher: profile,
+                    innerException: error),
+                error.ErrorCode);
+        }
         EnsureUsable(authorization, profile);
-        var binding = new Binding(1, config.TenantId, config.ClientId, authorization.AccountId);
-        await Write(TokenFile(profile, binding), new CachedAuthorization(1, authorization.Cache, authorization.ExpiresOn, authorization.Scopes), token);
+        var binding = new Binding(
+            1,
+            TenantId: config.TenantId,
+            ClientId: config.ClientId,
+            AccountId: authorization.AccountId);
+
+        CachedAuthorization CalculateValue()
+        {
+            var value = new CachedAuthorization(
+                1,
+                authorization.Cache,
+                authorization.ExpiresOn,
+                authorization.Scopes);
+            return value;
+        }
+
+        await Write(
+            TokenFile(profile, binding),
+            CalculateValue(),
+            token);
         // Publish the binding last: cancelled login leaves the previous authorization selected.
-        await Write(BindingFile(profile), binding, token);
+        await Write(
+            BindingFile(profile),
+            binding,
+            token);
     }
 
-    public async Task<string> Resolve(MicrosoftAuthConfig config, string profile, CancellationToken token)
+    public async Task<string> Resolve(
+        MicrosoftAuthConfig config,
+        string profile,
+        CancellationToken token)
     {
         Validate(config, profile);
         await using var lease = await Lease(profile, token);
         var binding = await Read<Binding>(BindingFile(profile), token);
-        if (binding is null || binding.SchemaVersion != 1 || binding.TenantId != config.TenantId || binding.ClientId != config.ClientId || string.IsNullOrWhiteSpace(binding.AccountId))
-            throw new AuthenticationRequiredException("microsoft", profile);
+        if (binding is null)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.SchemaVersion != 1)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.TenantId != config.TenantId)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (binding.ClientId != config.ClientId)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (string.IsNullOrWhiteSpace(binding.AccountId))
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
-        if (cached is null || cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 })
-            throw new AuthenticationRequiredException("microsoft", profile);
+        if (cached is null)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (cached.SchemaVersion != 1)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+        if (cached.Cache is not { Length: > 0 })
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+
         MicrosoftToken authorization;
-        try { authorization = await _tokens.Silent(config, binding.AccountId, cached.Cache, token); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception) { throw new AuthenticationRequiredException("microsoft", profile); }
+        try
+        {
+            authorization = await _tokens.Silent(
+                config,
+                binding.AccountId,
+                cached.Cache,
+                token);
+        }
+        catch (MsalUiRequiredException error)
+        {
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "microsoft",
+                    teacher: profile,
+                    innerException: error),
+                error.ErrorCode);
+        }
         EnsureUsable(authorization, profile);
-        if (authorization.AccountId != binding.AccountId) throw new AuthenticationRequiredException("microsoft", profile);
-        await Write(TokenFile(profile, binding), new CachedAuthorization(1, authorization.Cache, authorization.ExpiresOn, authorization.Scopes), token);
+        if (authorization.AccountId != binding.AccountId)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+
+        CachedAuthorization CalculateValue()
+        {
+            var value = new CachedAuthorization(
+                1,
+                authorization.Cache,
+                authorization.ExpiresOn,
+                authorization.Scopes);
+            return value;
+        }
+
+        await Write(
+            TokenFile(profile, binding),
+            CalculateValue(),
+            token);
         return authorization.AccessToken;
     }
 
@@ -105,15 +341,80 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
     {
         await using var lease = await Lease(profile, token);
         var binding = await Read<Binding>(BindingFile(profile), token);
-        if (binding is null) return new("microsoft", profile, []);
-        if (binding.SchemaVersion != 1 || string.IsNullOrWhiteSpace(binding.TenantId)
-            || string.IsNullOrWhiteSpace(binding.ClientId) || string.IsNullOrWhiteSpace(binding.AccountId))
+        if (binding is null)
+        {
+            return new(
+                Provider: "microsoft",
+                Profile: profile,
+                []);
+        }
+
+        bool CheckCondition()
+        {
+            if (binding.SchemaVersion != 1)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.TenantId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.ClientId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(binding.AccountId))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
+        {
             throw new IOException("Microsoft authorization binding is invalid; log in explicitly to reprovision it.");
+        }
+
         var cached = await Read<CachedAuthorization>(TokenFile(profile, binding), token);
-        if (cached is not null && (cached.SchemaVersion != 1 || cached.Cache is not { Length: > 0 } || cached.Scopes is null))
-            throw new IOException("Microsoft authorization cache is invalid; log in explicitly to reprovision it.");
-        return new("microsoft", profile, cached is null ? [] : [new(binding.AccountId,
-            cached.ExpiresOn > DateTimeOffset.UtcNow ? "authorized" : "refreshable", cached.Scopes)]);
+
+        static IOException InvalidCache()
+        {
+            return new(
+                "Microsoft authorization cache is invalid; log in explicitly to reprovision it.");
+        }
+
+        if (cached is not null)
+        {
+            if (cached.SchemaVersion != 1)
+            {
+                throw InvalidCache();
+            }
+            if (cached.Cache is not { Length: > 0 })
+            {
+                throw InvalidCache();
+            }
+            if (cached.Scopes is null)
+            {
+                throw InvalidCache();
+            }
+        }
+
+        return new(
+            Provider: "microsoft",
+            Profile: profile,
+            cached is null
+                ? []
+                :
+                [
+                    new(
+                        AccountId: binding.AccountId,
+                        State: cached.ExpiresOn > DateTimeOffset.UtcNow ? AuthAccountState.Authorized : AuthAccountState.Refreshable,
+                        cached.Scopes),
+                ]);
     }
 
     public async Task Logout(string profile, CancellationToken token)
@@ -121,34 +422,125 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         await using var lease = await Lease(profile, token);
         token.ThrowIfCancellationRequested();
         // Delete only this provider/profile's owned state; keep lock files and other teachers.
-        foreach (var file in Directory.EnumerateFiles(ProfileDirectory(profile), "*.json", SearchOption.AllDirectories)) File.Delete(file);
+        foreach (var file in Directory.EnumerateFiles(
+                     path: ProfileDirectory(profile),
+                     searchPattern: "*.json",
+                     SearchOption.AllDirectories))
+        {
+            File.Delete(file);
+        }
     }
 
     private static void Validate(MicrosoftAuthConfig config, string profile)
     {
-        if (string.IsNullOrWhiteSpace(config.TenantId) || string.IsNullOrWhiteSpace(config.ClientId))
-            throw new AuthenticationRequiredException("microsoft", profile);
+        bool CalculateConditionResult()
+        {
+            if (string.IsNullOrWhiteSpace(config.TenantId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(config.ClientId))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
     }
+
     private static void EnsureUsable(MicrosoftToken authorization, string profile)
     {
-        if (string.IsNullOrWhiteSpace(authorization.AccessToken) || string.IsNullOrWhiteSpace(authorization.AccountId)
-            || authorization.Cache.Length == 0 || authorization.ExpiresOn <= DateTimeOffset.UtcNow
-            || CurriculaDownloadTasks.ApiRequiredScopes.Except(authorization.Scopes, StringComparer.OrdinalIgnoreCase).Any())
-            throw new AuthenticationRequiredException("microsoft", profile);
+        bool CalculateConditionResult()
+        {
+            if (string.IsNullOrWhiteSpace(authorization.AccessToken))
+            {
+                return true;
+            }
+            if (string.IsNullOrWhiteSpace(authorization.AccountId))
+            {
+                return true;
+            }
+            if (authorization.Cache.Length == 0)
+            {
+                return true;
+            }
+            if (authorization.ExpiresOn <= DateTimeOffset.UtcNow)
+            {
+                return true;
+            }
+
+            if (MicrosoftScopes.Required.Except(
+                    authorization.Scopes,
+                    StringComparer.OrdinalIgnoreCase)
+                .Any())
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
     }
+
     private static async Task<T?> Read<T>(string path, CancellationToken token)
     {
-        if (!File.Exists(path)) return default;
+        if (!File.Exists(path))
+        {
+            return default;
+        }
+
         try
         {
             await using var stream = File.OpenRead(path);
             return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: token);
         }
-        catch (JsonException) { throw new IOException("Microsoft authorization state is invalid; log in explicitly to reprovision it."); }
+        catch (JsonException)
+        {
+            throw new IOException("Microsoft authorization state is invalid; log in explicitly to reprovision it.");
+        }
     }
-    private static Task Write<T>(string path, T value, CancellationToken token) => AtomicFile.Publish(path, async (stream, ct) =>
+
+    private static Task Write<T>(
+        string path,
+        T value,
+        CancellationToken token)
     {
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(((FileStream)stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        await JsonSerializer.SerializeAsync(stream, value, cancellationToken: ct);
-    }, token);
+        return AtomicFile.Publish(
+            path,
+            async (stream, ct) =>
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(((FileStream) stream).Name, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
+
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    value,
+                    cancellationToken: ct);
+            },
+            token);
+    }
+
+    private static string CalculatePath1()
+    {
+        string path12 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return path12;
+    }
 }

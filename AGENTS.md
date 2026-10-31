@@ -1,5 +1,9 @@
 # Agent Instructions
 
+Read and follow `.codingrules/agent-coding-rules.md` before changing C# code,
+reviewing duplication, messages or exceptions, or configuring builders.
+
+- The default location for local ScheduleLib data is `~/.local/share/ScheduleLib`. Check there for user data such as topic CSVs and manifests when a task refers to local data; keep its contents private and out of repository commits.
 - **Tasks:** use [GitHub Issues](https://github.com/AntonC9018/ScheduleLib/issues) for all shared project work. See [docs/task-management.md](docs/task-management.md) for the `gh` workflow, dependencies, and agent coordination.
 - **Code style:** see [.agents/coding-standards.md](.agents/coding-standards.md).
 - **Project knowledge:** see [docs/development-notes.md](docs/development-notes.md) for durable technical findings.

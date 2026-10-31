@@ -70,11 +70,7 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
 
         public bool MoveNext()
         {
-            if (!_e.MoveNext())
-            {
-                return false;
-            }
-            return true;
+            return _e.MoveNext();
         }
     }
 
@@ -82,6 +78,7 @@ public ref struct OneForEachEnumMemberSpan<TEnum, TValue>
     public void Clear() => Storage.Clear();
 
     public EnumMembers<TEnum> Keys => new();
+
     public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
     {
         Storage.CopyTo(other.Storage);
@@ -158,11 +155,7 @@ public readonly struct OneForEachEnumMemberMemory<TEnum, TValue>
 
         public bool MoveNext()
         {
-            if (!_e.MoveNext())
-            {
-                return false;
-            }
-            return true;
+            return _e.MoveNext();
         }
     }
 
@@ -189,24 +182,26 @@ public readonly struct OneForEachEnumMemberArrayBuilder<TEnum, TValue>()
     where TEnum : struct, Enum
 {
     private readonly OneForEachEnumMemberArray<TEnum, TValue> _arr = new();
+
     public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Set(TEnum e, TValue value)
     {
         _arr[e] = value;
         return this;
     }
+
     public OneForEachEnumMemberArray<TEnum, TValue> Build()
     {
         var notSet = new EnumBitArray<TEnum>();
         foreach (var x in _arr)
         {
-            if (EqualityComparer<TValue>.Default.Equals(x.Value, default))
+            if (EqualityComparer<TValue>.Default.Equals(x: x.Value, y: default))
             {
                 notSet.Set(x.Key);
             }
         }
         if (!notSet.IsEmpty)
         {
-            throw new InvalidOperationException($"Some members not set: {notSet}");
+            throw new EnumMembersNotSetException<TEnum>(notSet);
         }
         return _arr;
     }
@@ -226,18 +221,22 @@ public readonly struct OneForEachEnumMemberArray<TEnum, TValue> : IEnumerable<Me
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     IEnumerator<MemoryItem<TEnum, TValue>> IEnumerable<MemoryItem<TEnum, TValue>>.GetEnumerator() => GetEnumerator();
     public ref TValue this[TEnum e] => ref Span[e];
+
     public void CopyTo(OneForEachEnumMemberSpan<TEnum, TValue> other)
     {
         Storage.CopyTo(other.Storage);
     }
 
     [Pure]
-    public TEnum FindKeyOrDefault(TValue value, TEnum defaultKey, IEqualityComparer<TValue>? comparer = null)
+    public TEnum FindKeyOrDefault(
+        TValue value,
+        TEnum defaultKey,
+        IEqualityComparer<TValue>? comparer = null)
     {
         comparer ??= EqualityComparer<TValue>.Default;
         foreach (var x in this)
         {
-            if (comparer.Equals(value, x.Value))
+            if (comparer.Equals(x: value, y: x.Value))
             {
                 return x.Key;
             }
@@ -257,6 +256,7 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
     public SparseArray() : this(0)
     {
     }
+
     public SparseArray(int count)
     {
         _items = new(count);
@@ -281,7 +281,10 @@ public readonly struct SparseArray<TKey, TValue> : IEnumerable<KeyValuePair<TKey
 
     public ref TValue? GetOrAdd(TKey key, out bool existed)
     {
-        return ref CollectionsMarshal.GetValueRefOrAddDefault(_items, key, out existed);
+        return ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _items,
+            key,
+            out existed);
     }
 
     public bool TryGet(TKey key, [NotNullWhen(true)] out TValue? value)
@@ -329,6 +332,7 @@ public static class OneForEach
 
         public OneForEachEnumMemberArrayBuilder<TEnum, TValue> Builder<TValue>() => new();
     }
+
     public static Helper<TEnum> Enum<TEnum>() where TEnum : struct, Enum
     {
         return new();
@@ -353,7 +357,8 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             throw new JsonException("Expected an object");
         }
 
-        var ret = OneForEach.Enum<TEnum>().RentArray<TValue>();
+        var ret = OneForEach.Enum<TEnum>()
+            .RentArray<TValue>();
         try
         {
             while (reader.Read())
@@ -375,9 +380,28 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             // May still leak if it's a property inside another object,
             // but it's undetectable from here and literally cannot be prevented.
             ret.Dispose();
-            if (typeof(TValue).IsClass
-                && !typeof(TValue).IsSealed
-                && !typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+
+            bool CheckCondition()
+            {
+                if (!typeof(TValue).IsClass)
+                {
+                    return false;
+                }
+
+                if (typeof(TValue).IsSealed)
+                {
+                    return false;
+                }
+
+                if (!typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 foreach (var x in ret)
                 {
@@ -407,8 +431,17 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         writer.WriteStartObject();
         foreach (var (key, val) in value)
         {
-            writer.WritePropertyName(Enum.GetName(key)!);
-            JsonSerializer.Serialize(writer, val, options);
+            string CalculatePropertyName()
+            {
+                string propertyName = Enum.GetName(key)!;
+                return propertyName;
+            }
+
+            writer.WritePropertyName(CalculatePropertyName());
+            JsonSerializer.Serialize(
+                writer,
+                val,
+                options);
         }
         writer.WriteEndObject();
     }
@@ -430,7 +463,7 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         TEnum e;
         if (len != -1)
         {
-            var name = buf[.. len];
+            var name = buf[..len];
             e = Enum.Parse<TEnum>(name);
         }
         else

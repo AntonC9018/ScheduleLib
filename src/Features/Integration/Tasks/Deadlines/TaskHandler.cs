@@ -8,8 +8,7 @@ using ScheduleLib.Dates;
 
 namespace ScheduleLib.Application.Core;
 
-using Option = Config.Option;
-
+using Option = Option;
 
 [AutoConstructor]
 public sealed partial class GenerateDeadlinesExcelTaskHandler
@@ -50,11 +49,24 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             var lessonsBySubgroup = schedule
                 .EnumerateLessons()
                 .Where(x => x.Lesson.Group == group)
-                .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course))
+                .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, x.Lesson.Course))
                 .ToArray();
 
-            if (lessonsBySubgroup.Length > 1
-                && lessonsBySubgroup.Any(x => x.Key.Partition == GroupPartitionKey.All))
+            if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
+                .Any(course =>
+                {
+                    if (!(course.Count() > 1))
+                    {
+                        return false;
+                    }
+
+                    if (!(course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
+                    {
+                        return false;
+                    }
+
+                    return true;
+                }))
             {
                 throw new NotImplementedException("Shared labs not implemented");
             }
@@ -67,7 +79,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                 {
                     Lessons = l.Select(x => x.Id),
                     Semester = _studyYear.Value.Semester,
-                }).ToArray();
+                })
+                    .ToArray();
                 if (scheduledLessons.Length == 0)
                 {
                     continue;
@@ -151,19 +164,25 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     int maxCols = scheduledLessons.Length;
 
-                    var dataRange = worksheet.Range(
-                        firstCellRow: secondRowPos,
-                        firstCellColumn: firstColPos,
-                        lastCellRow: secondRowPos + maxRows - 1,
-                        lastCellColumn: maxCols);
+                    var iXLWorksheet = worksheet;
+                    int firstCellRow2 = secondRowPos;
+                    int firstCellColumn2 = firstColPos;
+                    int int32 = secondRowPos + maxRows;
+                    int lastCellRow2 = int32 - 1;
+                    int lastCellColumn2 = maxCols;
+                    var dataRange = iXLWorksheet.Range(
+                        firstCellRow: firstCellRow2,
+                        firstCellColumn: firstCellColumn2,
+                        lastCellRow: lastCellRow2,
+                        lastCellColumn: lastCellColumn2);
 
                     worksheet.ConditionalFormats.RemoveAll();
                     for (int i = 0; i <= deadlinesExcelConfig.LessonDelayLimit; i++)
                     {
                         var gradientPos = (float) i / deadlinesExcelConfig.LessonDelayLimit;
                         var color = ColorHelper.Lerp(
-                            deadlinesExcelConfig.GoodColor,
-                            deadlinesExcelConfig.BadColor,
+                            a: deadlinesExcelConfig.GoodColor,
+                            b: deadlinesExcelConfig.BadColor,
                             gradientPos);
                         var xlColor = XLColor.FromColor(color);
                         var conditionalFormat = worksheet.AddConditionalFormat();
@@ -178,30 +197,40 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                     {
                         p.CancellationToken.ThrowIfCancellationRequested();
                         string leftCellRef = worksheet
-                            .Cell(cell.Address.RowNumber, cell.Address.ColumnNumber - 1)
+                            .Cell(row: cell.Address.RowNumber, column: cell.Address.ColumnNumber - 1)
                             .Address
                             .ToStringRelative();
                         if (cell.Value.IsBlank)
                         {
-                            string formula = $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
+                            string formula =
+                                $"""=IF(AND({leftCellRef}<>"",{leftCellRef}<=0,{leftCellRef}>{-deadlinesExcelConfig.LessonDelayLimit}),{leftCellRef}-1,"")""";
                             cell.FormulaA1 = formula;
                         }
                     }
 
                     if (tasks != null)
                     {
-                        var labsRange = worksheet.Range(
-                            firstCellRow: secondRowPos,
-                            firstCellColumn: labCols,
-                            lastCellRow: secondRowPos + maxRows - 1,
-                            lastCellColumn: labCols);
-                        foreach (var x in labsRange.Cells().WithIndex())
+                        var iXLWorksheet2 = worksheet;
+                        int firstCellRow3 = secondRowPos;
+                        int firstCellColumn3 = labCols;
+                        int int322 = secondRowPos + maxRows;
+                        int lastCellRow3 = int322 - 1;
+                        int lastCellColumn3 = labCols;
+                        var labsRange = iXLWorksheet2.Range(
+                            firstCellRow: firstCellRow3,
+                            firstCellColumn: firstCellColumn3,
+                            lastCellRow: lastCellRow3,
+                            lastCellColumn: lastCellColumn3);
+                        foreach (var x in labsRange.Cells()
+                                     .WithIndex())
                         {
                             var t = tasks[x.Index];
                             x.Item.SetValue(t.Name);
                             if (t.Url is { } url)
                             {
-                                x.Item.SetHyperlink(new XLHyperlink(url));
+                                var iXLCell = x.Item;
+                                var hyperlink = new XLHyperlink(url);
+                                iXLCell.SetHyperlink(hyperlink);
                             }
                         }
                     }

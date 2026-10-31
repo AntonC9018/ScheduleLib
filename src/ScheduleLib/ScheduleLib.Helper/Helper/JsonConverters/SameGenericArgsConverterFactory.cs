@@ -24,11 +24,12 @@ public sealed class SameGenericArgsConverterFactory : JsonConverterFactory
             return false;
         }
         var t = typeToConvert.GetGenericTypeDefinition();
-        if (t != _genericType)
+        if (!(t != _genericType))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)

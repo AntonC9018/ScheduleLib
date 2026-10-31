@@ -1,6 +1,7 @@
 using System.Net;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.ScheduleDefaults;
 using ScheduleLib.Scraping.Common;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
@@ -12,7 +13,7 @@ public sealed class TokenTests
     {
         var credentials = CredentialsHelper.GetCredentials(
             Assembly.GetExecutingAssembly(),
-            RegistryScraping.CredentialsConfigKey);
+            Config.RegistryCredentialsConfigKey);
         var cancellationToken = CancellationToken.None;
 
         var builder = new ScrapingContextBuilder();

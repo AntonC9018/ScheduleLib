@@ -24,7 +24,7 @@ public sealed class ListMerger<T> : IMerger<List<T>>
         var containedInFrom = from.ToHashSet(_equalityComparer);
         foreach (var targetItem in into!)
         {
-            if (containedInFrom.TryGetValue(targetItem, out var sourceItem))
+            if (containedInFrom.TryGetValue(equalValue: targetItem, actualValue: out var sourceItem))
             {
                 containedInFrom.Remove(sourceItem);
                 _merger.Merge(from: sourceItem, into: targetItem);
@@ -67,6 +67,7 @@ public sealed class ListBasicOperations<T> : IBasicOperations<List<T>>
 {
     public List<T>? Empty() => new();
     public List<T> Copy(List<T> from) => [.. from];
+
     public List<T> Reset(List<T>? item)
     {
         item!.Clear();
@@ -85,13 +86,27 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         // Get all writable properties
         _writableProperties = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite && p.CanRead)
+            .Where(p =>
+            {
+                if (!p.CanWrite)
+                {
+                    return false;
+                }
+
+                if (p.CanRead)
+                {
+                    return true;
+                }
+
+                return false;
+            })
             .ToArray();
 
         // error if there are public fields
-        if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance).Any())
+        if (typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance)
+            .Any())
         {
-            throw new InvalidOperationException($"Type `{typeof(T).Name}` should only have properties");
+            throw new TypeHasPublicInstanceFieldsException(typeof(T));
         }
     }
 
@@ -109,9 +124,33 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         {
             to = _basicOperations.Empty();
         }
-        if (from == null || to == null)
+        if (from == null)
         {
-            throw new ArgumentNullException(from == null ? nameof(from) : nameof(to));
+            string paramName;
+            if (from == null)
+            {
+                paramName = nameof(from);
+            }
+            else
+            {
+                paramName = nameof(to);
+            }
+
+            throw new ArgumentNullException(paramName);
+        }
+        if (to == null)
+        {
+            string paramName2;
+            if (from == null)
+            {
+                paramName2 = nameof(from);
+            }
+            else
+            {
+                paramName2 = nameof(to);
+            }
+
+            throw new ArgumentNullException(paramName2);
         }
 
         foreach (var property in _writableProperties)
@@ -123,23 +162,30 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             }
 
             var targetValue = property.GetValue(to);
-            var merger = _serviceProvider.GetService(typeof(IMerger<>).MakeGenericType(property.PropertyType));
+            var iServiceProvider = _serviceProvider;
+            var serviceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
+            var merger = iServiceProvider.GetService(serviceType);
             if (merger != null)
             {
-                targetValue = CallMergerHelper.Merge(merger, sourceValue, targetValue);
-                property.SetValue(to, targetValue);
+                targetValue = CallMergerHelper.Merge(
+                    merger: merger,
+                    @from: sourceValue,
+                    @into: targetValue);
+                property.SetValue(obj: to, value: targetValue);
                 continue;
             }
 
-            var copier = _serviceProvider.GetService(typeof(IBasicOperations<>).MakeGenericType(property.PropertyType));
+            var iServiceProvider2 = _serviceProvider;
+            var serviceType2 = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
+            var copier = iServiceProvider2.GetService(serviceType2);
             if (copier != null)
             {
-                targetValue = CallCopyHelper.Copy(copier, sourceValue);
-                property.SetValue(to, targetValue);
+                targetValue = CallCopyHelper.Copy(operations: copier, @from: sourceValue);
+                property.SetValue(obj: to, value: targetValue);
                 continue;
             }
 
-            property.SetValue(to, sourceValue);
+            property.SetValue(obj: to, value: sourceValue);
         }
         return to;
     }
@@ -172,10 +218,9 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         }
         if (typeof(T).IsValueType)
         {
-            return default(T)!;
+            return default!;
         }
-        throw new InvalidOperationException(
-            $"Type {typeof(T).Name} does not have a parameterless constructor and is not a value type.");
+        throw new TypeMissingParameterlessConstructorException(typeof(T));
     }
 
     public T Copy(T from)
@@ -185,10 +230,10 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
             throw new ArgumentNullException(nameof(from));
         }
 
-        T newInstance = Empty();
+        var newInstance = Empty();
         // can't inject, because then it's going to be circular.
         var merger = _serviceProvider.GetRequiredService<IMerger<T>>();
-        return merger.Merge(from, newInstance);
+        return merger.Merge(@from: from, @into: newInstance);
     }
 
     public T Reset(T? item)
@@ -197,4 +242,3 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
         return Empty();
     }
 }
-

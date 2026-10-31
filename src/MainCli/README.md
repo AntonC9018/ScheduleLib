@@ -34,6 +34,61 @@ unexpected failures, 2 for invalid arguments, 3 for missing/invalid input, 4 for
 destination, 8 for unsupported capabilities and 130 for cancellation.
 Ctrl+C cancels initialization and query enumeration.
 
+`--jsonl` streams newline-delimited JSON on stdout and is mutually exclusive
+with `--json` (both together exit 2). Human output remains the default; result
+items and action outcomes stream as they become available, followed by a final
+summary that does not repeat them. `--json` keeps its single complete envelope.
+`--jsonl` stdout records each carry `schemaVersion: 1`, `command`, `runId`,
+per-stdout-stream `seq` (starting at 0) and `event`:
+
+```sh
+schedulelib query lessons --jsonl | head -n 3
+```
+
+```json
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":0,"event":"start"}
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":1,"event":"item","id":"0","status":"completed","item":{"day":"Tuesday"}}
+{"schemaVersion":1,"command":"query lessons","runId":"synthetic-run","seq":2,"event":"final","status":"succeeded","exitCode":0,"warnings":[],"errors":[],"data":{"count":1}}
+```
+
+- `start` is always first when `--jsonl` is recognized, including early
+  argument/configuration failures.
+- `item` carries a stable string `id` (plan-order index for registry,
+  calendar, drive and query results; artifact path for exports) and its current
+  `status`, so `planned`/`not-attempted` to
+  `completed`/`failed`/`uncertain`/`cancelled` transitions correlate by `id`.
+- `final` is last on success, failure and normal cancellation (`cancelled`,
+  exit 130 when possible). A missing `final` means the process crashed or was
+  killed and the run is incomplete. It carries `status`, `exitCode`,
+  `warnings`, `errors` and scalar command data (target, counts, directories)
+  without repeating the full array of previously emitted items. Collection
+  commands (`config profiles`, auth accounts, history years/candidates,
+  query sections, export artifacts, registry/calendar/drive plans and
+  outcomes) stream one `item` per element; scalar commands (`config
+  show`/`get`/`validate`/`set`/`unset`, empty auth/history results) emit
+  `start` then `final` with the full data, since there is nothing to stream
+  incrementally.
+- Calendar and drive stream their read selection as items too: deleted remote
+  identities (`deleted-N`) and desired payloads (`desired-N`) for calendar,
+  and every planned drive action. Planned action ids are the same plan-order
+  indexes in preview and apply, so each id transitions from
+  `planned`/`not-attempted` to its terminal state.
+- `seq` orders records within each stream only: stdout `seq` and stderr `seq`
+  are independent counters starting at 0. Both streams share `command` and
+  `runId`.
+- When `--jsonl` is selected, every stderr warning/error/log is also JSONL
+  (`event: "log"` with `level` and `message`, same `command`/`runId`, stderr
+  `seq`), including errors before the command starts. Plain `--json` keeps the
+  existing stderr text. Explicit `--help` stays ordinary text in all modes.
+- Existing Serilog information logs keep their content and levels; registry
+  per-action logs now appear under both preview and `--apply` when the
+  configured processing flags select log/dry-run. History readers keep their
+  `NullLoggerFactory` silence for privacy. No new progress logging or
+  verbosity flag was added.
+- Registry sync applies each completed course/group plan before scanning the
+  next group; later planning failures can leave partial writes. Other commands
+  retain their complete-plan behavior. Failed submissions are never retried.
+
 DOCX/XLSX parsing is portable. Legacy `.doc` conversion requires Windows and
 Microsoft Word; Linux returns the capability error. Conversion operates on
 staged copies and preserves original sources. Windows Word conversion is not
@@ -190,6 +245,79 @@ artifact through the same owned-output contract and never launch Explorer or an
 editor. Ctrl+C cancels between PDFs and during ICS date expansion; an individual
 synchronous PDF render finishes before cancellation is observed.
 
+`registry sync --profile TEACHER` previews reconciliation without writes. With
+`--apply`, it first discovers all assignments for the canonical course, including
+repeated course-title links, then reconciles and submits each group's actions
+before reading the next group's lessons. The account lock covers the entire run. A later
+scan, planning or submission failure leaves earlier writes applied and returns a
+partial result (exit 6). Outcomes cover scanned groups only; unscanned groups are
+not counted as planned actions. A normal lesson 302/303 redirect is confirmed by
+reading the saved lesson values, without replaying the POST. An `uncertain`
+outcome means the write may have succeeded: inspect the registry before retrying.
+
+Sync reports missing registry courses/partitions, unmapped registry labels,
+assignment mismatches, missing lesson topics, and missing attendance rows as
+they are detected and retains them in the final report. JSON and JSONL include
+these in `data.diagnostics`; human output gives the course/group and the
+correction needed. Assignment mismatches name the teachers assigned in the
+schedule and skip that destination before fetching its roster or lessons;
+other matched groups continue. Streamed warnings are not printed again at the
+end. Whole-group destinations include lessons restricted
+to the parent group's teaching language, while other language subgroups retain
+separate destinations. Attendance is looked up by each lesson's actual partition;
+explicit lab merges retain their configured whole-group attendance projection.
+Topic text is copied as configured, so Romanian topics can be explicitly scoped
+to an English subgroup without translation.
+
+Labs use the most specific available destination for their scheduled audience:
+subgroup, parent group, then combined/intake list. Each audience falls back
+independently, so one subgroup's separate list does not hide another subgroup's
+labs. The `SE` marker identifies an additional-course roster for the same scheduled
+audience. Ordinary and SE destinations are prioritized independently, and both
+receive lessons when available; a separate ordinary subgroup list does not
+suppress an SE parent list. Equally specific competing assignments within the
+same variant produce a diagnostic. Whole-parent lists can contain numeric or
+language lab partitions without changing the schedule.
+
+Attendance is mapped separately to each roster from the common source, including
+students present in both lists. Student mismatch diagnostics are finalized only
+after all relevant lists for the course have been considered. They separately
+report registry students with no attendance row and attendance students absent
+from every relevant registry roster, using counts without student names.
+Lecture and lab enrollment warnings remain separate; ordinary and SE rosters
+are considered together for each lesson type and scheduled audience. An
+interrupted course scan defers these reports; unrelated audiences do not hide
+missing enrollment.
+
+Fallback topics receive a readable audience suffix, for example
+`Tema (DJ2502 (ru) /I)` or `Tema (DJ2503 (en))`. Shared lectures in these lists
+name their participating groups. Scope format v1 uses `/I` and `/II` for numeric
+subgroups, `/ro`, `/ru`, `/en` for language subgroups, and `/spec:VALUE` and
+`/alt:VALUE` for specialization and alternative restrictions. The parser accepts
+earlier spacing, `eng`, and numeric spellings, and only recognizes known scheduled
+audiences. It preserves ordinary topic parentheses; repeated synchronization
+replaces a recognized suffix rather than appending another.
+
+Topic and attendance sequences stay independent by actual scheduled audience,
+partition, and lesson type. Reconciliation respects the scope and type of existing
+entries; ordinary duplicates retain the configured reconciliation and extra-entry
+policy. Students from other audiences stay blank on new entries, while their
+existing marks remain unchanged. Assessments without enough audience evidence
+produce a diagnostic and preserve the affected sequence.
+
+`registry cleanup-intake-labs` preserves any list still needed for fallback labs,
+and refuses cleanup when audience routing is unresolved. Only a list whose labs
+are all covered by more specific destinations remains eligible for its explicit
+preview/apply deletion workflow.
+
+Topic CSVs can combine lecture, lab, and language sequences in one file using
+`name,lessonType,language,series` columns. Manifest `lessonType` and `language`
+select matching rows when the CSV contains those columns; otherwise they supply
+defaults. Set a manifest document's `series` to select a distinct variant while
+retaining its group and partition scope. Rows can be interleaved; each selected
+sequence keeps its own row order. Documents without `series` read all rows
+matching their manifest type and language.
+
 `registry import-grades --quiz-id ID --profile TEACHER` previews mapped Moodle
 quiz grades. `--apply` rereads under the registry account lock and submits each
 planned form once. See [grade-import behavior and exits](REGISTRY-GRADES.md).
@@ -218,3 +346,28 @@ owned-output/manifests and cancellation contracts as the other exports.
 
 Synthetic teacher/commission tests inspect workbook contents and preserve real
 source data; they do not establish that operational commission data is present.
+
+Registry group aliases can be configured globally in `RegistryConfig.groupMatchRules`:
+
+```json
+{
+  "faculty": "DJ",
+  "subGroup": "eng",
+  "language": "En",
+  "matchByLanguage": true,
+  "allowParentGroup": true
+}
+```
+
+The default DJ English rule matches across parent numbers within the same intake,
+attendance mode, and qualification. It requires one matching registry subgroup,
+one course audience, and at most one schedule parent per language in that intake.
+`allowParentGroup` includes whole-group lessons in an English-language parent.
+If these checks fail, matching uses the strict parent identity. Other faculties and
+partitions retain strict matching. Set `matchByLanguage` to `false` in a higher
+configuration layer to disable a rule; rules merge by faculty and subgroup.
+Topic text is copied from configured sources without translation.
+
+Attendance workbooks accept lesson-type headers and date headers (text day/month
+or native Excel dates). Date columns retain their workbook order. Empty sheets
+are reported as missing attendance without stopping other worksheet imports.

@@ -5,10 +5,12 @@ using ClosedXML.Excel;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
-using Xunit;
 
 public sealed class StorageTests
 {
+    /// <summary>The exit code and captured output of a finished CLI process.</summary>
+    private readonly record struct ProcessResult(int Exit, string Output, string Error);
+
     [Theory]
     [InlineData("--data-dir", "")]
     [InlineData("--cache-dir", "")]
@@ -21,11 +23,17 @@ public sealed class StorageTests
         try
         {
             Console.SetOut(text);
-            Assert.Equal(2, await CliHost.Run(["query", "lessons", option, path, "--json"]));
+            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", option, path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(2, result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(
+                expected: 2,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
-        finally { Console.SetOut(original); }
+        finally
+        {
+            Console.SetOut(original);
+        }
     }
 
     [Theory]
@@ -38,140 +46,324 @@ public sealed class StorageTests
         try
         {
             Console.SetOut(text);
-            Assert.Equal(2, await CliHost.Run(["export", "teachers-excel", "--output", path, "--json"]));
+            Assert.Equal(
+                expected: 2,
+                actual: await CliHost.Run(["export", "teachers-excel", "--output", path, "--json"]));
             using var result = JsonDocument.Parse(text.ToString());
-            Assert.Equal(2, result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(
+                expected: 2,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
-        finally { Console.SetOut(original); }
+        finally
+        {
+            Console.SetOut(original);
+        }
     }
 
     [Fact]
     public async Task InvalidAttendanceSourceReturnsInputError()
     {
-        using var temp = new TempDirectory();
-        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(temp.Path, "2026_sem1", "bad"));
+        using var temp = new TestTempDirectory("schedulelib-tests");
+
+        string CalculatePath()
+        {
+            string path = Path.Combine(
+                temp.Path,
+                "2026_sem1",
+                "bad");
+            return path;
+        }
+
+        Directory.CreateDirectory(
+            CalculatePath());
         var original = Console.Out;
         using var text = new StringWriter();
         try
         {
             Console.SetOut(text);
-            Assert.Equal(3, await CliHost.Run(["query", "lessons", "--data-dir", temp.Path, "--json"]));
+            Assert.Equal(
+                expected: 3,
+                actual: await CliHost.Run(["query", "lessons", "--data-dir", temp.Path, "--json"]));
             using var json = JsonDocument.Parse(text.ToString());
-            Assert.Equal(3, json.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Contains("Invalid attendance mode", json.RootElement.GetProperty("errors")[0].GetString());
+            Assert.Equal(
+                expected: 3,
+                actual: json.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+            Assert.Contains(
+                expectedSubstring: "Invalid attendance mode",
+                actualString: json.RootElement.GetProperty("errors")[0]
+                    .GetString());
         }
-        finally { Console.SetOut(original); }
+        finally
+        {
+            Console.SetOut(original);
+        }
     }
 
     [Fact]
     public async Task OwnershipPreservesUnrelatedFilesAndRejectsModifiedArtifacts()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var unrelated = Path.Combine(temp.Path, "notes.txt");
-        await File.WriteAllTextAsync(unrelated, "user file");
-        await using (var output = await RunOutput.Create(temp.Path, "test", "one", CancellationToken.None))
+        await File.WriteAllTextAsync(path: unrelated, contents: "user file");
+        await using (var output = await RunOutput.Create(
+                         output: temp.Path,
+                         command: "test",
+                         runId: "one",
+                         CancellationToken.None))
         {
-            await output.Publish("book.xlsx", (s, t) => s.WriteAsync(new byte[] { 1, 2, 3 }, t).AsTask(), CancellationToken.None);
-            await output.Complete("succeeded", CancellationToken.None);
+            await output.Publish(
+                "book.xlsx",
+                (s, t) => s.WriteAsync(
+                        new byte[]
+                        {
+                            1,
+                            2,
+                            3,
+                        },
+                        t)
+                    .AsTask(),
+                CancellationToken.None);
+            await output.Complete(RunStatus.Succeeded, CancellationToken.None);
         }
-        await File.WriteAllTextAsync(Path.Combine(temp.Path, "book.xlsx"), "user changed it");
-        await using var next = await RunOutput.Create(temp.Path, "test", "two", CancellationToken.None);
-        await Assert.ThrowsAsync<IOException>(() => next.Publish("book.xlsx", (s, t) => Task.CompletedTask, CancellationToken.None));
-        Assert.Equal("user file", await File.ReadAllTextAsync(unrelated));
+
+        string CalculatePath()
+        {
+            string path2 = Path.Combine(temp.Path, "book.xlsx");
+            return path2;
+        }
+
+        await File.WriteAllTextAsync(path: CalculatePath(), contents: "user changed it");
+        await using var next = await RunOutput.Create(
+            output: temp.Path,
+            command: "test",
+            runId: "two",
+            CancellationToken.None);
+        await Assert.ThrowsAsync<RunOutput.OutputArtifactOwnershipConflictException>(() => next.Publish(
+            "book.xlsx",
+            (s, t) => Task.CompletedTask,
+            CancellationToken.None));
+        Assert.Equal(expected: "user file", actual: await File.ReadAllTextAsync(unrelated));
     }
 
     [Fact]
     public async Task TwoProcessesShareCompleteCacheAndGenerateRepresentativeWorkbooks()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var cache = Path.Combine(temp.Path, "cache");
         var firstOutput = Path.Combine(temp.Path, "first");
         var secondOutput = Path.Combine(temp.Path, "second");
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
-        using var first = Start("export", fixtures, cache, firstOutput);
-        using var second = Start("export", fixtures, cache, secondOutput);
+        using var first = Start(
+            "export",
+            fixtures,
+            cache,
+            firstOutput);
+        using var second = Start(
+            "export",
+            fixtures,
+            cache,
+            secondOutput);
         var results = await Task.WhenAll(Finish(first), Finish(second));
         foreach (var result in results)
         {
-            Assert.Equal(0, result.Exit);
+            Assert.Equal(expected: 0, actual: result.Exit);
             using var json = JsonDocument.Parse(result.Output);
-            Assert.Equal("succeeded", json.RootElement.GetProperty("status").GetString());
-            Assert.True(json.RootElement.GetProperty("data").GetProperty("teacherCount").GetInt32() > 0);
+            Assert.Equal(
+                expected: "succeeded",
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
+            Assert.True(json.RootElement.GetProperty("data")
+                    .GetProperty("teacherCount")
+                    .GetInt32()
+                > 0);
         }
-        foreach (var output in new[] { firstOutput, secondOutput })
+        foreach (var output in new[]
+                 {
+                     firstOutput,
+                     secondOutput,
+                 })
         {
             using var workbook = new XLWorkbook(Path.Combine(output, "all-teachers.xlsx"));
-            Assert.Equal("main", workbook.Worksheet(1).Name);
-            var content = string.Join(" ", workbook.Worksheet(1).CellsUsed().Select(x => x.GetFormattedString()));
-            Assert.Contains("423/4", content);
-            Assert.Contains("IA", content);
-            Assert.True(workbook.Worksheet(1).RowsUsed().Count() > 20);
-            Assert.True(File.Exists(Path.Combine(output, "schedulelib-manifest.json")));
+
+            string CalculateActual()
+            {
+                var worksheet = workbook.Worksheet(1);
+                string actual2 = worksheet.Name;
+                return actual2;
+            }
+
+            Assert.Equal(expected: "main", actual: CalculateActual());
+            string separator = " ";
+            var worksheet3 = workbook.Worksheet(1);
+            var cellsUsed = worksheet3.CellsUsed();
+            Func<IXLCell, string> selector = x => x.GetFormattedString();
+            var values = cellsUsed.Select(selector);
+            var content = string.Join(separator, values);
+            Assert.Contains(expectedSubstring: "423/4", actualString: content);
+            Assert.Contains(expectedSubstring: "IA", actualString: content);
+
+            bool CalculateCondition()
+            {
+                var worksheet2 = workbook.Worksheet(1);
+                var rowsUsed = worksheet2.RowsUsed();
+                bool condition = rowsUsed.Count() > 20;
+                return condition;
+            }
+
+            Assert.True(CalculateCondition());
+            string path2 = Path.Combine(output, "schedulelib-manifest.json");
+            bool condition2 = File.Exists(path2);
+            Assert.True(condition2);
         }
-        var cached = Assert.Single(Directory.EnumerateFiles(cache, "*.json"));
+        var collection =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        var cached = Assert.Single(collection);
         var publishedAt = File.GetLastWriteTimeUtc(cached);
-        using (var query = Start("query", fixtures, cache)) await Finish(query);
-        Assert.Equal(publishedAt, File.GetLastWriteTimeUtc(cached));
+        using (var query = Start(
+                   "query",
+                   fixtures,
+                   cache))
+        {
+            await Finish(query);
+        }
+
+        var expected2 = publishedAt;
+        var actual3 = File.GetLastWriteTimeUtc(cached);
+        Assert.Equal(expected: expected2, actual: actual3);
         var bypass = Path.Combine(temp.Path, "bypassed");
-        using (var query = Start("query", fixtures, bypass, "no-cache")) await Finish(query);
-        Assert.False(Directory.Exists(bypass));
+        using (var query = Start(
+                   "query",
+                   fixtures,
+                   bypass,
+                   "no-cache"))
+        {
+            await Finish(query);
+        }
+
+        bool condition3 = Directory.Exists(bypass);
+        Assert.False(condition3);
         await using var input = File.OpenRead(cached);
         var model = await ScheduleSerializer.Deserialize(input, CancellationToken.None);
         Assert.NotNull(model);
-        Assert.Empty(Directory.EnumerateFiles(cache, "*.tmp"));
+        var collection2 =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.tmp");
+        System.Collections.IEnumerable collection3 = collection2;
+        Assert.Empty(collection3);
     }
 
     [Fact]
     public async Task DefaultExportsOwnDistinctRunDirectories()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
         var cache = Path.Combine(temp.Path, "cache");
-        using var first = Start("export", fixtures, cache, "-", temp.Path);
-        using var second = Start("export", fixtures, cache, "-", temp.Path);
+        using var first = Start(
+            "export",
+            fixtures,
+            cache,
+            "-",
+            temp.Path);
+        using var second = Start(
+            "export",
+            fixtures,
+            cache,
+            "-",
+            temp.Path);
         var results = await Task.WhenAll(Finish(first), Finish(second));
         var directories = results.Select(x =>
-        {
-            using var json = JsonDocument.Parse(x.Output);
-            return json.RootElement.GetProperty("data").GetProperty("outputDirectory").GetString()!;
-        }).ToArray();
-        Assert.NotEqual(directories[0], directories[1]);
+            {
+                using var json = JsonDocument.Parse(x.Output);
+                return json.RootElement.GetProperty("data")
+                    .GetProperty("outputDirectory")
+                    .GetString()!;
+            })
+            .ToArray();
+        Assert.NotEqual(expected: directories[0], actual: directories[1]);
         foreach (var directory in directories)
         {
-            Assert.Equal(Path.Combine(temp.Path, "output"), Path.GetDirectoryName(directory));
-            Assert.True(File.Exists(Path.Combine(directory, "all-teachers.xlsx")));
-            Assert.True(File.Exists(Path.Combine(directory, "schedulelib-manifest.json")));
+            string CalculateExpected()
+            {
+                string expected2 = Path.Combine(temp.Path, "output");
+                return expected2;
+            }
+
+            string expected3 = CalculateExpected();
+            string? actual2 = Path.GetDirectoryName(directory);
+            Assert.Equal(expected: expected3, actual: actual2);
+            string path = Path.Combine(directory, "all-teachers.xlsx");
+            bool condition = File.Exists(path);
+            Assert.True(condition);
+            string path2 = Path.Combine(directory, "schedulelib-manifest.json");
+            bool condition2 = File.Exists(path2);
+            Assert.True(condition2);
         }
     }
 
     [Fact]
     public async Task FailedScheduleRebuildKeepsPreviouslyDeserializableCache()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var source = Path.Combine(temp.Path, "sources");
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
-        foreach (var file in Directory.EnumerateFiles(fixtures, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(
+                     path: fixtures,
+                     searchPattern: "*",
+                     SearchOption.AllDirectories))
         {
-            var destination = Path.Combine(source, Path.GetRelativePath(fixtures, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(file, destination);
+            string path1 = source;
+            string path2 = Path.GetRelativePath(relativeTo: fixtures, path: file);
+            var destination = Path.Combine(path1, path2);
+            var destinationDirectory = Path.GetDirectoryName(destination)!;
+            Directory.CreateDirectory(destinationDirectory);
+            File.Copy(sourceFileName: file, destFileName: destination);
         }
         var cache = Path.Combine(temp.Path, "cache");
-        using (var query = Start("query", source, cache)) await Finish(query);
-        var cacheFile = Assert.Single(Directory.EnumerateFiles(cache, "*.json"));
+        using (var query = Start(
+                   "query",
+                   source,
+                   cache))
+        {
+            await Finish(query);
+        }
+
+        var collection =
+            Directory.EnumerateFiles(path: cache, searchPattern: "*.json");
+        var cacheFile = Assert.Single(collection);
         var previous = await File.ReadAllBytesAsync(cacheFile);
-        await File.WriteAllTextAsync(Path.Combine(source, "2025_sem2", "zi", "master.xlsx"), "damaged source");
-        using (var query = Start("query", source, cache))
+        await File.WriteAllTextAsync(
+            path: Path.Combine(
+                source,
+                "2025_sem2",
+                "zi",
+                "master.xlsx"),
+            contents: "damaged source");
+        using (var query = Start(
+                   "query",
+                   source,
+                   cache))
         {
             var stdout = query.StandardOutput.ReadToEndAsync();
             var stderr = query.StandardError.ReadToEndAsync();
-            await query.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(60));
-            Assert.NotEqual(0, query.ExitCode);
+
+            TimeSpan CalculateTimeout()
+            {
+                var timeout = TimeSpan.FromSeconds(60);
+                return timeout;
+            }
+
+            await query.WaitForExitAsync()
+                .WaitAsync(CalculateTimeout());
+            Assert.NotEqual(expected: 0, actual: query.ExitCode);
             using var json = JsonDocument.Parse(await stdout);
-            Assert.Equal("failed", json.RootElement.GetProperty("status").GetString());
+            Assert.Equal(
+                expected: "failed",
+                actual: json.RootElement.GetProperty("status")
+                    .GetString());
             await stderr;
         }
-        Assert.Equal(previous, await File.ReadAllBytesAsync(cacheFile));
+        Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(cacheFile));
         await using var input = File.OpenRead(cacheFile);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
     }
@@ -179,74 +371,142 @@ public sealed class StorageTests
     [Fact]
     public async Task SeparateProcessOwnsDestinationAndInterruptedPublicationPreservesPreviousCache()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var cacheFile = Path.Combine(temp.Path, "schedule.json");
-        await File.WriteAllTextAsync(cacheFile, "previous complete cache");
+        await File.WriteAllTextAsync(path: cacheFile, contents: "previous complete cache");
         using (var writer = Start("interrupt", cacheFile))
         {
-            Assert.Equal("staged", await writer.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(30)));
-            Assert.Equal("previous complete cache", await File.ReadAllTextAsync(cacheFile));
+            TimeSpan CalculateTimeout()
+            {
+                var timeout = TimeSpan.FromSeconds(30);
+                return timeout;
+            }
+
+            Assert.Equal(
+                expected: "staged",
+                actual: await writer.StandardOutput.ReadLineAsync()
+                    .WaitAsync(CalculateTimeout()));
+            Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
             writer.Kill(entireProcessTree: true);
             await writer.WaitForExitAsync();
         }
-        Assert.Equal("previous complete cache", await File.ReadAllTextAsync(cacheFile));
-        await using (var lease = await LocalFileLock.Acquire(cacheFile + ".lock", CancellationToken.None)) { }
+        Assert.Equal(expected: "previous complete cache", actual: await File.ReadAllTextAsync(cacheFile));
+        await using (var lease = await LocalFileLock.Acquire($"{cacheFile}.lock", CancellationToken.None))
+        {
+        }
         var lockPath = Path.Combine(temp.Path, ".schedulelib-output.lock");
         using var owner = Start("lock", lockPath);
-        Assert.Equal("locked", await owner.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(30)));
+
+        TimeSpan CalculateTimeout2()
+        {
+            var timeout2 = TimeSpan.FromSeconds(30);
+            return timeout2;
+        }
+
+        Assert.Equal(
+            expected: "locked",
+            actual: await owner.StandardOutput.ReadLineAsync()
+                .WaitAsync(CalculateTimeout2()));
         try
         {
-            await Assert.ThrowsAsync<LocalOperationBusyException>(() => RunOutput.Create(temp.Path, "test", "two", CancellationToken.None));
-            Assert.Equal(7, await CliHost.Run(["export", "teachers-excel", "--data-dir", Path.Combine(AppContext.BaseDirectory, "fixtures"), "--output", temp.Path, "--json"]));
+            await Assert.ThrowsAsync<LocalOperationBusyException>(() => RunOutput.Create(
+                output: temp.Path,
+                command: "test",
+                runId: "two",
+                CancellationToken.None));
+            Assert.Equal(
+                expected: 7,
+                actual: await CliHost.Run(
+                [
+                    "export", "teachers-excel", "--data-dir", Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    "--output", temp.Path, "--json",
+                ]));
         }
-        finally { owner.Kill(entireProcessTree: true); await owner.WaitForExitAsync(); }
+        finally
+        {
+            owner.Kill(entireProcessTree: true);
+            await owner.WaitForExitAsync();
+        }
     }
 
     [Fact]
     public async Task FailedAndCancelledWritesKeepPreviousFile()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var path = Path.Combine(temp.Path, "cache.json");
-        await File.WriteAllTextAsync(path, "previous");
-        await Assert.ThrowsAsync<IOException>(() => AtomicFile.Publish(path, async (s, t) =>
-        {
-            await s.WriteAsync(new byte[10], t);
-            throw new IOException("write failed");
-        }, CancellationToken.None));
-        Assert.Equal("previous", await File.ReadAllTextAsync(path));
+        await File.WriteAllTextAsync(path: path, contents: "previous");
+        await Assert.ThrowsAsync<IOException>(() => AtomicFile.Publish(
+            path,
+            async (s, t) =>
+            {
+                await s.WriteAsync(new byte[10], t);
+                throw new IOException("write failed");
+            },
+            CancellationToken.None));
+        Assert.Equal(expected: "previous", actual: await File.ReadAllTextAsync(path));
         using var cancellation = new CancellationTokenSource();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => AtomicFile.Publish(path, async (s, t) =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => AtomicFile.Publish(
+            path,
+            async (s, t) =>
+            {
+                await s.WriteAsync(new byte[10], t);
+                cancellation.Cancel();
+            },
+            cancellation.Token));
+        Assert.Equal(expected: "previous", actual: await File.ReadAllTextAsync(path));
+
+        IEnumerable<string> CalculateCollection()
         {
-            await s.WriteAsync(new byte[10], t);
-            cancellation.Cancel();
-        }, cancellation.Token));
-        Assert.Equal("previous", await File.ReadAllTextAsync(path));
-        Assert.Empty(Directory.EnumerateFiles(temp.Path, "*.tmp"));
+            var collection =
+                Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+            return collection;
+        }
+
+        Assert.Empty(CalculateCollection());
     }
 
     private static Process Start(params string[] args)
     {
-        var info = new ProcessStartInfo("dotnet") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        if (args.Length > 4) info.WorkingDirectory = args[4];
+        var info = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        if (args.Length > 4)
+        {
+            info.WorkingDirectory = args[4];
+        }
+
         info.ArgumentList.Add(Assembly.GetExecutingAssembly().Location);
-        foreach (var argument in args) info.ArgumentList.Add(argument);
+        foreach (var argument in args)
+        {
+            info.ArgumentList.Add(argument);
+        }
+
         return Process.Start(info)!;
     }
 
-    private static async Task<(int Exit, string Output, string Error)> Finish(Process process)
+    private static async Task<ProcessResult> Finish(Process process)
     {
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(60));
-        var result = (Exit: process.ExitCode, Output: await stdout, Error: await stderr);
+
+        TimeSpan CalculateTimeout()
+        {
+            var timeout = TimeSpan.FromSeconds(60);
+            return timeout;
+        }
+
+        await process.WaitForExitAsync()
+            .WaitAsync(CalculateTimeout());
+        var result = new ProcessResult(
+            Exit: process.ExitCode,
+            Output: await stdout,
+            Error: await stderr);
         Assert.True(result.Exit == 0, result.Error);
         return result;
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"schedulelib-storage-{Guid.NewGuid():N}");
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-    }
+
 }

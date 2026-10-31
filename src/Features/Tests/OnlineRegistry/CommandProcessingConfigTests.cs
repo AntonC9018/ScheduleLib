@@ -10,15 +10,23 @@ public sealed class CommandProcessingConfigTests
             .WithDryRun(LessonEquationCommandTypes.Delete)
             .Normalized;
 
-        Assert.True(config.HasProcess(LessonEquationCommandType.Update));
-        Assert.False(config.HasProcess(LessonEquationCommandType.Delete));
-        Assert.True(config.HasAnyProcess(LessonEquationCommandTypes.All));
-        Assert.False(config.HasAnyProcess(LessonEquationCommandTypes.Delete | LessonEquationCommandTypes.Create));
+        bool condition = config.HasProcess(LessonEquationCommandType.Update);
+        Assert.True(condition);
+        bool condition2 = config.HasProcess(LessonEquationCommandType.Delete);
+        Assert.False(condition2);
+        bool condition3 = config.HasAnyProcess(LessonEquationCommandTypes.All);
+        Assert.True(condition3);
+        bool condition4 = config.HasAnyProcess(LessonEquationCommandTypes.Delete | LessonEquationCommandTypes.Create);
+        Assert.False(condition4);
 
-        Assert.True(config.HasDryRun(LessonEquationCommandType.Delete));
-        Assert.False(config.HasDryRun(LessonEquationCommandType.Update));
-        Assert.True(config.HasAnyDryRun(LessonEquationCommandTypes.All));
-        Assert.False(config.HasAnyDryRun(LessonEquationCommandTypes.Update | LessonEquationCommandTypes.Create));
+        bool condition5 = config.HasDryRun(LessonEquationCommandType.Delete);
+        Assert.True(condition5);
+        bool condition6 = config.HasDryRun(LessonEquationCommandType.Update);
+        Assert.False(condition6);
+        bool condition7 = config.HasAnyDryRun(LessonEquationCommandTypes.All);
+        Assert.True(condition7);
+        bool condition8 = config.HasAnyDryRun(LessonEquationCommandTypes.Update | LessonEquationCommandTypes.Create);
+        Assert.False(condition8);
     }
 
     [Fact]
@@ -29,8 +37,10 @@ public sealed class CommandProcessingConfigTests
             .WithDryRun(LessonEquationCommandTypes.All)
             .Normalized;
 
-        Assert.False(config.HasAnyProcess(LessonEquationCommandTypes.All));
-        Assert.True(config.HasAnyDryRun(LessonEquationCommandTypes.All));
+        bool condition = config.HasAnyProcess(LessonEquationCommandTypes.All);
+        Assert.False(condition);
+        bool condition2 = config.HasAnyDryRun(LessonEquationCommandTypes.All);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -40,7 +50,9 @@ public sealed class CommandProcessingConfigTests
             .WithDryRun(LessonEquationCommandTypes.All)
             .Normalized;
 
-        Assert.False(config.HasAnyProcess(LessonEquationCommandTypes.All));
-        Assert.True(config.HasAnyDryRun(LessonEquationCommandTypes.All));
+        bool condition = config.HasAnyProcess(LessonEquationCommandTypes.All);
+        Assert.False(condition);
+        bool condition2 = config.HasAnyDryRun(LessonEquationCommandTypes.All);
+        Assert.True(condition2);
     }
 }

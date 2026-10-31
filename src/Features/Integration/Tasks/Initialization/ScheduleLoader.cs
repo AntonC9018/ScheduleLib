@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Teachers;
+using FmiScheduleImport;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
@@ -25,14 +26,17 @@ public sealed class ScheduleLoader
     public List<IScheduleLoaderComponent> Components { get; set; } = new();
 
     public async ValueTask Load(
-        DocParseContext context,
+        ScheduleImportContext context,
         CancellationToken cancellationToken,
         bool bypassCache = false)
     {
         // One local writer owns a cache key through the entire rebuild. Readers wait
         // and reopen after publication; the live file is never truncated in place.
         await using var cacheLock = CachedPath is { } cachePath
-            ? await LocalFileLock.Acquire(cachePath + ".lock", cancellationToken, wait: true)
+            ? await LocalFileLock.Acquire(
+                $"{cachePath}.lock",
+                cancellationToken,
+                wait: true)
             : null;
         string? hashHex = null;
         {
@@ -54,31 +58,63 @@ public sealed class ScheduleLoader
             }
         }
 
-        if (!bypassCache && CachedPath is { } existingPath && File.Exists(existingPath))
+        if (!bypassCache)
         {
-            SerializationModels.ScheduleModel? model = null;
-            try
+            if (CachedPath is { } existingPath)
             {
-                await using var input = new FileStream(existingPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
-                model = await ScheduleSerializer.Deserialize(input, cancellationToken);
-            }
-            catch (System.Text.Json.JsonException) { }
-            catch (InvalidDataException) { }
-            if (model is not null && model.Hash == hashHex)
-            {
-                ScheduleSerializer.AddToBuilder(context.Schedule, model, context.CourseNameUnifierModule);
-                return;
+                if (File.Exists(existingPath))
+                {
+                    SerializationModels.ScheduleModel? model = null;
+                    try
+                    {
+                        await using var input = new FileStream(
+                            existingPath,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read | FileShare.Delete);
+                        model = await ScheduleSerializer.Deserialize(input, cancellationToken);
+                    }
+                    catch (System.Text.Json.JsonException) { }
+                    catch (InvalidDataException) { }
+                    if (model is not null && model.Hash == hashHex)
+                    {
+                        ScheduleSerializer.AddToBuilder(
+                            context.Schedule,
+                            model,
+                            context.CourseNameUnifierModule);
+                        // Cache models already contain the explicit PDF cohort assignments;
+                        // reuse the same import policy before the builder validates them.
+                        if (Components.OfType<DirectoryScheduleLoaderComponent>()
+                            .Any(component =>
+                                Directory.EnumerateFiles(
+                                        path: component.DirectoryPath.Value,
+                                        searchPattern: "*.pdf",
+                                        SearchOption.AllDirectories)
+                                    .Any()))
+                        {
+                            context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
+                                context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
+                        }
+
+                        return;
+                    }
+                }
             }
         }
 
         foreach (var loader in Components)
+        {
             await loader.Apply(context, cancellationToken);
+        }
 
         if (CachedPath is { } destination)
         {
             var schedule = context.Schedule.Build();
-            await AtomicFile.Publish(destination, async (stream, token) =>
-                await ScheduleSerializer.Serialize(schedule, stream, hashHex!, token), cancellationToken);
+            await ScheduleSerializer.Serialize()
+                .Input(schedule)
+                .Output(destination)
+                .Hash(hashHex!)
+                .ExecuteAsync(cancellationToken);
         }
     }
 }
@@ -86,16 +122,12 @@ public sealed class ScheduleLoader
 public interface IScheduleLoaderComponent
 {
     public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken);
-    public ValueTask Apply(DocParseContext context, CancellationToken cancellationToken);
+    public ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken);
 }
 
 public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
 {
-    public required AbsolutePath DirectoryPath
-    {
-        get;
-        init;
-    }
+    public required AbsolutePath DirectoryPath { get; init; }
 
     public async ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
     {
@@ -103,7 +135,7 @@ public sealed class DirectoryScheduleLoaderComponent : IScheduleLoaderComponent
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         await TasksHelper.ParseDocumentDirIntoSchedule(
             context,
@@ -127,7 +159,7 @@ public sealed class EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent : 
             cancellationToken: cancellationToken);
     }
 
-    public ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         TasksHelper.OptionallyEnrichContextWithTeacherFullNames(context.Schedule, FilePath);
         return ValueTask.CompletedTask;
@@ -148,7 +180,7 @@ public sealed class EnrichWithTeacherFullNamesFromWebsite(
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         var teachers = await _provider.Get(cancellationToken);
         foreach (var t in teachers)
@@ -189,9 +221,12 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
         await hasher.AppendDirectory(DirectoryPath.Value, cancellationToken);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
-        foreach (var filePath in Directory.EnumerateFiles(DirectoryPath.Value, "*.xlsx", SearchOption.AllDirectories))
+        foreach (var filePath in Directory.EnumerateFiles(
+                     path: DirectoryPath.Value,
+                     searchPattern: "*.xlsx",
+                     SearchOption.AllDirectories))
         {
             await using var inputFile = new FileStream(
                 filePath,
@@ -200,16 +235,18 @@ public sealed class ScheduleDirectoryExcelLoaderComponent : IScheduleLoaderCompo
                 FileShare.ReadWrite);
             try
             {
-                await ExcelScheduleParser.ParseIntoSchedule(Config, new()
-                {
-                    Context = context,
-                    InputFile = inputFile,
-                    StringBuilder = new(),
-                });
+                await ExcelScheduleParser.ParseIntoSchedule(
+                    Config,
+                    new()
+                    {
+                        Context = context,
+                        InputFile = inputFile,
+                        StringBuilder = new(),
+                    });
             }
             catch (Exception e)
             {
-                throw new InvalidOperationException($"Error while reading {filePath}", e);
+                throw new ScheduleFileReadException(filePath, e);
             }
         }
     }
@@ -222,6 +259,7 @@ public sealed class ConsultationsLoaderComponent(
     const string fileId = "1SKqhQjIesic_23haSKSwjDZc8-lLYcIA";
 
     private MemoryStream? _docStream;
+
     private async ValueTask<MemoryStream> LazyFile(CancellationToken cancellationToken)
     {
         if (_docStream is null)
@@ -246,7 +284,7 @@ public sealed class ConsultationsLoaderComponent(
         hasher.AppendMemoryStream(file);
     }
 
-    public async ValueTask Apply(DocParseContext context, CancellationToken cancellationToken)
+    public async ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
     {
         var file = await LazyFile(cancellationToken);
         ProcessExcel(context, file);
@@ -267,10 +305,14 @@ public sealed class ConsultationsLoaderComponent(
 
     private static readonly ColumnSearchRules<Column> ColumnNames = ColumnSearchRules.Create<Column>(b =>
     {
-        b.Column(Column.Name).ExactMatch("Numele/Prenumele");
-        b.Column(Column.Day).ExactMatch("Ziua");
-        b.Column(Column.Time).ExactMatch("Ora");
-        b.Column(Column.Room).ExactMatch("Sala");
+        b.Column(Column.Name)
+            .ExactMatch("Numele/Prenumele");
+        b.Column(Column.Day)
+            .ExactMatch("Ziua");
+        b.Column(Column.Time)
+            .ExactMatch("Ora");
+        b.Column(Column.Room)
+            .ExactMatch("Sala");
     });
 
     private struct RowData()
@@ -313,65 +355,91 @@ public sealed class ConsultationsLoaderComponent(
             switch (column)
             {
                 case Column.Name:
-                {
-                    var parser = new SequenceReader(t);
-                    var name = NameHelper.TryParseName(ref parser);
-                    if (!parser.IsEmpty || name is null)
-                    {
-                        throw cell.Exception($"'{t}' did not parser as a name");
-                    }
-                    Data.Name = name;
-                    return true;
-                }
-                case Column.Time:
-                {
-                    TimeInterval interval;
-                    if (cell.TryGetValue(out TimeSpan time))
-                    {
-                        var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
-                        var consultationDuration = _timeConfig.LessonDuration;
-                        interval = new(startTime, startTime.Add(consultationDuration));
-                    }
-                    else
                     {
                         var parser = new SequenceReader(t);
-                        interval = parser.ParseTimeInterval(allowOpenInterval: true);
-                        if (!parser.IsEmpty)
-                        {
-                            throw cell.Exception("Not consumed the interval fully.");
-                        }
-                    }
+                        var name = NameHelper.TryParseName(ref parser);
 
-                    _timeConfig.GetTimeSlotsThatInclude(interval, Data.Time);
-                    if (Data.Time.Count == 0)
-                    {
-                        throw cell.Exception("The given time doesn't match a single time slot");
+                        bool CalculateConditionResult()
+                        {
+                            if (!parser.IsEmpty)
+                            {
+                                return true;
+                            }
+
+                            if (name is null)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        bool conditionResult = CalculateConditionResult();
+
+
+                        if (conditionResult)
+                        {
+                            var iXLCell = cell;
+                            string message = $"'{t}' did not parser as a name";
+                            throw iXLCell.Exception(message);
+                        }
+                        Data.Name = name;
+                        return true;
                     }
-                    return true;
-                }
+                case Column.Time:
+                    {
+                        TimeInterval interval;
+                        if (cell.TryGetValue(out TimeSpan time))
+                        {
+                            var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
+                            var consultationDuration = _timeConfig.LessonDuration;
+                            var start = startTime;
+                            var end = startTime.Add(consultationDuration);
+                            TimeInterval timeInterval = new(Start: start, End: end);
+                            interval = timeInterval;
+                        }
+                        else
+                        {
+                            var parser = new SequenceReader(t);
+                            interval = parser.ParseTimeInterval(allowOpenInterval: true);
+                            if (!parser.IsEmpty)
+                            {
+                                throw cell.Exception("Not consumed the interval fully.");
+                            }
+                        }
+
+                        _timeConfig.GetTimeSlotsThatInclude(interval, Data.Time);
+                        if (Data.Time.Count == 0)
+                        {
+                            throw cell.Exception("The given time doesn't match a single time slot");
+                        }
+                        return true;
+                    }
                 case Column.Day:
-                {
-                    if (_dayParser.Map(t) is not { } day)
                     {
-                        throw cell.Exception($"Unknown day of week '{t}'");
+                        if (_dayParser.Map(t) is not { } day)
+                        {
+                            var iXLCell2 = cell;
+                            string message2 = $"Unknown day of week '{t}'";
+                            throw iXLCell2.Exception(message2);
+                        }
+                        Data.Day = day;
+                        return true;
                     }
-                    Data.Day = day;
-                    return true;
-                }
                 case Column.Room:
-                {
-                    Data.Room = t;
-                    return true;
-                }
+                    {
+                        Data.Room = t;
+                        return true;
+                    }
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
     }
 
-    private static void ProcessExcel(DocParseContext context, MemoryStream file)
+    private static void ProcessExcel(ScheduleImportContext context, MemoryStream file)
     {
         var consultationCourseId = context.Schedule.Course("Consultație");
 
@@ -384,13 +452,15 @@ public sealed class ConsultationsLoaderComponent(
         using var mappings = headerRow.FindMappings(ColumnNames);
 
         const int dataRowStart = headerRowNumber + 1;
-        int potentialDataRowEnd = worksheet.LastRowUsed()!.RowNumber();
-        var dataRows = worksheet.Rows(dataRowStart, potentialDataRowEnd);
+        int potentialDataRowEnd = worksheet.LastRowUsed()!
+            .RowNumber();
+        var dataRows = worksheet.Rows(firstRow: dataRowStart, lastRow: potentialDataRowEnd);
         var processor = new Processor(context.TimeConfig, context.DayNameParser);
         foreach (var dataRow in dataRows)
         {
             processor.Clear();
-            var setRows = dataRow.Cells().ProcessRow(ref processor, mappings);
+            var setRows = dataRow.Cells()
+                .ProcessRow(ref processor, mappings);
             if (setRows.AreNoneSet)
             {
                 break;
@@ -399,7 +469,9 @@ public sealed class ConsultationsLoaderComponent(
             var notSetRows = setRows.Flipped;
             if (!notSetRows.IsEmpty)
             {
-                throw dataRow.Exception($"The following rows were not set: '{notSetRows}'");
+                var iXLRow = dataRow;
+                string message = $"The following rows were not set: '{notSetRows}'";
+                throw iXLRow.Exception(message);
             }
 
             ref var data = ref processor.Data;
@@ -456,8 +528,28 @@ public static class HashHelper
                 AppendNullableInt(scope.StudyYear?.Value);
                 AppendNullableInt(scope.Grade?.Value);
                 AppendString(scope.Faculty?.Name);
-                AppendNullableInt(scope.AttendanceMode is { } mode ? (int)mode : null);
-                AppendNullableInt(scope.Qualification is { } qualification ? (int)qualification : null);
+                int? value3;
+                if (scope.AttendanceMode is { } mode)
+                {
+                    value3 = (int) mode;
+                }
+                else
+                {
+                    value3 = null;
+                }
+
+                AppendNullableInt(value3);
+                int? value4;
+                if (scope.Qualification is { } qualification)
+                {
+                    value4 = (int) qualification;
+                }
+                else
+                {
+                    value4 = null;
+                }
+
+                AppendNullableInt(value4);
                 AppendCourses(scope.SpecializationCourses, static s => s.Value);
                 AppendCourses(scope.AlternativeCourses, static a => a.Value);
             }
@@ -507,40 +599,66 @@ public static class HashHelper
                 foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
                 {
                     AppendString(name);
-                    AppendString(value(v));
+                    string? value2 = value(v);
+                    AppendString(value2);
                 }
             }
 
             static int CompareScopes(ImplicitSplitScope x, ImplicitSplitScope y)
             {
                 int c;
-                if ((c = Nullable.Compare(x.StudyYear?.Value, y.StudyYear?.Value)) != 0)
+                bool conditionResult;
+                int conditionValue = c = Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value);
+                conditionResult = conditionValue != 0;
+                if (conditionResult)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.Grade?.Value, y.Grade?.Value)) != 0)
+                bool conditionResult2;
+                int conditionValue2 = c = Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value);
+                conditionResult2 = conditionValue2 != 0;
+                if (conditionResult2)
                 {
                     return c;
                 }
-                if ((c = string.Compare(x.Faculty?.Name, y.Faculty?.Name, StringComparison.Ordinal)) != 0)
+                bool conditionResult3;
+                int conditionValue3 = c = string.Compare(
+                    strA: x.Faculty?.Name,
+                    strB: y.Faculty?.Name,
+                    StringComparison.Ordinal);
+                conditionResult3 = conditionValue3 != 0;
+                if (conditionResult3)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.AttendanceMode, y.AttendanceMode)) != 0)
+                bool conditionResult4;
+                int conditionValue4 = c = Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode);
+                conditionResult4 = conditionValue4 != 0;
+                if (conditionResult4)
                 {
                     return c;
                 }
-                if ((c = Nullable.Compare(x.Qualification, y.Qualification)) != 0)
+                bool conditionResult5;
+                int conditionValue5 = c = Nullable.Compare(n1: x.Qualification, n2: y.Qualification);
+                conditionResult5 = conditionValue5 != 0;
+                if (conditionResult5)
                 {
                     return c;
                 }
-                if ((c = CompareCourses(
-                        x.SpecializationCourses, y.SpecializationCourses, static s => s.Value)) != 0)
+                bool conditionResult6;
+                int conditionValue6 = c = CompareCourses(
+                    xs: x.SpecializationCourses,
+                    ys: y.SpecializationCourses,
+                    static s => s.Value);
+                conditionResult6 = conditionValue6 != 0;
+                if (conditionResult6)
                 {
                     return c;
                 }
                 return CompareCourses(
-                    x.AlternativeCourses, y.AlternativeCourses, static a => a.Value);
+                    xs: x.AlternativeCourses,
+                    ys: y.AlternativeCourses,
+                    static a => a.Value);
             }
 
             static int CompareCourses<T>(
@@ -553,17 +671,28 @@ public static class HashHelper
                 {
                     return xs.Count.CompareTo(ys.Count);
                 }
-                using var xe = xs.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
-                using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal).GetEnumerator();
+                using var xe = xs.OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .GetEnumerator();
+                using var ye = ys.OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .GetEnumerator();
                 while (xe.MoveNext() && ye.MoveNext())
                 {
-                    int c = string.Compare(xe.Current.Key, ye.Current.Key, StringComparison.Ordinal);
+                    int c = string.Compare(
+                        strA: xe.Current.Key,
+                        strB: ye.Current.Key,
+                        StringComparison.Ordinal);
                     if (c != 0)
                     {
                         return c;
                     }
-                    c = string.Compare(
-                        value(xe.Current.Value), value(ye.Current.Value), StringComparison.Ordinal);
+                    string? strA2 = value(xe.Current.Value);
+                    string? strB2 = value(ye.Current.Value);
+                    var comparisonType = StringComparison.Ordinal;
+                    int compare = string.Compare(
+                        strA: strA2,
+                        strB: strB2,
+                        comparisonType);
+                    c = compare;
                     if (c != 0)
                     {
                         return c;
@@ -583,7 +712,7 @@ public static class HashHelper
             Debug.Assert(srcFullPath == Path.GetFullPath(srcFullPath));
 
             var filePaths = Directory.GetFiles(
-                    srcFullPath,
+                    path: srcFullPath,
                     searchPattern: searchPattern,
                     SearchOption.AllDirectories)
                 .OrderBy(p => p)
@@ -610,7 +739,7 @@ public static class HashHelper
             using var pathBuffer = new RentedBuffer<byte>(maxPathBytes);
 
             int byteCount = Encoding.UTF8.GetBytes(relativePath, pathBuffer.Span);
-            hasher.AppendData(pathBuffer.Span[.. byteCount]);
+            hasher.AppendData(pathBuffer.Span[..byteCount]);
         }
 
         public async ValueTask TryAppendFileContents(
@@ -626,7 +755,7 @@ public static class HashHelper
                 int read;
                 while ((read = await fs.ReadAsync(readBuffer.Memory, cancellationToken)) > 0)
                 {
-                    hasher.AppendData(readBuffer.Span[.. read]);
+                    hasher.AppendData(readBuffer.Span[..read]);
                 }
             }
             catch (FileNotFoundException)

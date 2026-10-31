@@ -89,7 +89,7 @@ public static partial class ScheduleBuilderHelper
 
     public static Schedule Build(this ScheduleBuilder s)
     {
-        var ret = Build(s, CreateDefaultModel);
+        var ret = s.Build(CreateDefaultModel);
         return ret;
     }
 
@@ -104,7 +104,8 @@ public static partial class ScheduleBuilderHelper
             .GroupBy(x => x.Value)
             .Select(x =>
             {
-                var names = x.Select(x1 => x1.Key).OrderByDescending(static a => a.Length);
+                var names = x.Select(x1 => x1.Key)
+                    .OrderByDescending(static a => a.Length);
                 return (x.Key, Names: names.ToImmutableArray());
             });
 
@@ -144,20 +145,57 @@ public static partial class ScheduleBuilderHelper
 
         void ValidateSubGroup(SubGroup subGroup, in LessonGroups groups)
         {
-            if (subGroup == SubGroup.All
-                || SpecialSubGroups.AllSpecial.Contains(subGroup)
-                || NumberHelper.FromRoman(subGroup.Value) is not null)
+            bool CheckCondition()
+            {
+                if (subGroup == SubGroup.All)
+                {
+                    return true;
+                }
+
+                if (SpecialSubGroups.AllSpecial.Contains(subGroup))
+                {
+                    return true;
+                }
+
+                if (NumberHelper.FromRoman(subGroup.Value) is not null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 return;
             }
 
-            var groupContext = groups.Count == 0
-                ? "no group"
-                : string.Join("; ", groups.Select(DescribeGroup));
-            var registryContext = s.SpecializationRegistry is { } registry
-                ? string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)))
-                : "no specialization registry configured";
-            throw UnknownSubGroupException.ForInvalid(subGroup.Value, groupContext, registryContext);
+            string text;
+            if (groups.Count == 0)
+            {
+                text = "no group";
+            }
+            else
+            {
+                text = string.Join("; ", groups.Select(DescribeGroup));
+            }
+
+            var groupContext = text;
+            string text2;
+            if (s.SpecializationRegistry is { } registry)
+            {
+                text2 = string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)));
+            }
+            else
+            {
+                text2 = "no specialization registry configured";
+            }
+
+            var registryContext = text2;
+            throw UnknownSubGroupException.ForInvalid(
+                subGroupValue: subGroup.Value,
+                groupContext: groupContext,
+                registryContext: registryContext);
         }
 
         string DescribeGroup(GroupId id)
@@ -167,8 +205,8 @@ public static partial class ScheduleBuilderHelper
                 return id.Value.ToString();
             }
             var group = s.Groups.List[id.Value];
-            return $"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "
-                + $"attendance {group.AttendanceMode}, qualification {group.QualificationType})";
+            return
+                $"{$"{group.Name} (grade {group.Grade.Value}, faculty {group.Faculty.Name}, "}{$"attendance {group.AttendanceMode}, qualification {group.QualificationType})"}";
         }
 
         string DescribeRegistryContext(SpecializationRegistry registry, GroupId id)
@@ -252,18 +290,19 @@ public static partial class ScheduleBuilderHelper
                 {
                     return shortf;
                 }
-                if (x.Full is { } fullf)
+                if (!(x.Full is { } fullf))
                 {
-                    return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
+                    return null;
                 }
-                return null;
+
+                return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
             }
         });
         var courses = s.Courses.Build();
 
         var periods = s.Periods.Build(x =>
         {
-            var ret = new Period(x.Start, x.EndExclusive);
+            var ret = new Period(start: x.Start, end: x.EndExclusive);
             return ret;
         });
 
@@ -329,7 +368,9 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static TeacherNameRemapStatus RemapTeacherName(this ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
+    public static TeacherNameRemapStatus RemapTeacherName(
+        this ScheduleBuilder s,
+        ref TeacherBuilderModel.NameModel name)
     {
         var status = Impl(s, ref name);
         if (status != TeacherNameRemapStatus.None)
@@ -346,11 +387,13 @@ public static partial class ScheduleBuilderHelper
         static TeacherNameRemapStatus Impl(ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
         {
             var status = TeacherNameRemapStatus.None;
-            if (!name.LastName.IsNull
-                && s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+            if (!name.LastName.IsNull)
             {
-                name.LastName = t;
-                status = TeacherNameRemapStatus.LastName;
+                if (s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+                {
+                    name.LastName = t;
+                    status = TeacherNameRemapStatus.LastName;
+                }
             }
 
             var copy = name;
@@ -378,7 +421,7 @@ public static partial class ScheduleBuilderHelper
 
         var val = subGroup.Value;
         Debug.Assert(val != null);
-        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(val, val);
+        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(key: val, defaultValue: val);
         return new(remapped);
     }
 

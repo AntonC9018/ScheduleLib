@@ -15,15 +15,48 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
     {
         bool isOtherDefault = other.Array == default;
         bool isSelfDefault = Array == default;
-        if (isSelfDefault && isOtherDefault)
+
+        bool CalculateConditionResult()
+        {
+            if (!isSelfDefault)
+            {
+                return false;
+            }
+
+            return isOtherDefault;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return true;
         }
-        if (isSelfDefault || isOtherDefault)
+
+        bool CalculateConditionResult2()
+        {
+            if (isSelfDefault)
+            {
+                return true;
+            }
+            return isOtherDefault;
+        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
+
+        if (conditionResult2)
         {
             return false;
         }
-        return Array.SequenceEqual(other.Array);
+
+        if (Array.SequenceEqual(other.Array))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public override bool Equals(object? other)
@@ -32,9 +65,20 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
         {
             return false;
         }
-        return this == arr;
+
+        if (this == arr)
+        {
+            return true;
+        }
+
+        return false;
     }
-    public static bool operator!=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => !(a == b);
-    public static bool operator==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) => Equals(a, b);
+
+    public static bool operator !=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
+        !(a == b);
+
+    public static bool operator ==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
+        Equals(objA: a, objB: b);
+
     public override int GetHashCode() => Array.GetHashCode();
 }

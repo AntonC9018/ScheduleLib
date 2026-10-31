@@ -54,7 +54,7 @@ public ref struct SizedBitArray32Ref
     public readonly int GetUnsetAfter(int index)
     {
         Debug.Assert(index <= _length);
-        return _array.GetUnsetAfter(index, _length);
+        return _array.GetUnsetAfter(index: index, length: _length);
     }
 
     public readonly int GetUnsetAtOrAfter(int index)
@@ -83,7 +83,7 @@ public ref struct SizedBitArray32Ref
     public readonly BitArray32 Slice(int offset, int length)
     {
         Debug.Assert(CanSlice(offset, length));
-        var ret = _array.Slice(offset, length);
+        var ret = _array.Slice(offset: offset, length: length);
         return ret;
     }
 
@@ -112,7 +112,7 @@ public ref struct SizedBitArray32Ref
         {
             var firstSetBit = SetBitIndicesLowToHigh.First();
             var lastSetBit = SetBitIndicesHighToLow.First();
-            return new Interval(firstSetBit, lastSetBit);
+            return new Interval(start: firstSetBit, endInclusive: lastSetBit);
         }
     }
 

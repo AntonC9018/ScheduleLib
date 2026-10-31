@@ -31,32 +31,41 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
         //     callerId,
         //     x => PropertyChanged?.Invoke(this, x),
         //     new(nameof(Count))));
-        _dispatcher.Post<NotifyCollectionChangedEventArgs>(new(
+        NotifyCollectionChangedEventArgs CalculateArg()
+        {
+            NotifyCollectionChangedEventArgs arg = new(NotifyCollectionChangedAction.Reset);
+            return arg;
+        }
+
+        var iDispatcher = _dispatcher;
+        PostArgs<NotifyCollectionChangedEventArgs> args = new(
             callerId,
             x => CollectionChanged?.Invoke(this, x),
-            new(NotifyCollectionChangedAction.Reset)));
+            CalculateArg());
+        iDispatcher.Post(args);
     }
 
     public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public void Add(T item) => _items.Add(item);
-    public int Add(object? value) => throw new NotSupportedException();
+    int IList.Add(object? value) => throw new NotSupportedException();
 
     public void Clear() => _items.Clear();
-    public bool Contains(object? value) => throw new NotSupportedException();
-    public int IndexOf(object? value) => throw new NotSupportedException();
-    public void Insert(int index, object? value) => throw new NotSupportedException();
-    public void Remove(object? value) => throw new NotSupportedException();
+    bool IList.Contains(object? value) => throw new NotSupportedException();
+    int IList.IndexOf(object? value) => throw new NotSupportedException();
+    void IList.Insert(int index, object? value) => throw new NotSupportedException();
+    void IList.Remove(object? value) => throw new NotSupportedException();
     public bool Contains(T item) => _items.Contains(item);
     public void CopyTo(T[] array, int arrayIndex) => throw new NotSupportedException();
     public bool Remove(T item) => throw new NotSupportedException();
-    public void CopyTo(Array array, int index) => throw new NotSupportedException();
+    void ICollection.CopyTo(Array array, int index) => throw new NotSupportedException();
 
     public int Count => _items.Count;
-    public bool IsSynchronized => false;
-    public object SyncRoot => this;
+    bool ICollection.IsSynchronized => false;
+    object ICollection.SyncRoot => this;
     public bool IsReadOnly => false;
+
     object? IList.this[int index]
     {
         get => this[index];
@@ -66,7 +75,7 @@ public sealed class ManualObservableList<T> : IList<T>, IList, INotifyCollection
     public int IndexOf(T item) => _items.IndexOf(item);
     public void Insert(int index, T item) => throw new NotSupportedException();
     public void RemoveAt(int index) => throw new NotSupportedException();
-    public bool IsFixedSize => false;
+    bool IList.IsFixedSize => false;
 
     public T this[int index]
     {

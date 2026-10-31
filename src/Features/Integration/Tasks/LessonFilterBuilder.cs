@@ -27,11 +27,12 @@ public readonly struct LessonFilterBuilder
 
 public static class LessonFilterBuilderExtensions
 {
-    extension (IServiceProvider sp)
+    extension(IServiceProvider sp)
     {
         public LessonFilterBuilder LessonFilterBuilder() => new(sp);
     }
-    extension (LessonFilterBuilder builder)
+
+    extension(LessonFilterBuilder builder)
     {
         public ILessonFilter Create() => builder.Current;
 
@@ -46,7 +47,13 @@ public static class LessonFilterBuilderExtensions
 
         public LessonFilterBuilder SkipAttendance(AttendanceMode attendance)
         {
-            return builder.Wrap(new SkipAttendanceLessonFilter(attendance));
+            SkipAttendanceLessonFilter CalculateValue()
+            {
+                var value = new SkipAttendanceLessonFilter(attendance);
+                return value;
+            }
+
+            return builder.Wrap(CalculateValue());
         }
 
         public LessonFilterBuilder CurrentTeacher()
@@ -116,15 +123,22 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
                 {
                     Id = c.Lessons[0],
                     Course = c.Schedule.Get(lesson.Course).FullName,
-                    Teachers = string.Join(",", lesson.Teachers.Select(x => s.Get(x).PersonName.ToString())),
-                    Groups = string.Join(",", lesson.Groups.Select(x => s.Get(x).Name.ToString())),
-                    Type = lesson.Type,
+                    Teachers = string.Join(
+                        ",",
+                        lesson.Teachers.Select(x => s.Get(x).PersonName
+                            .ToString())),
+                    Groups = string.Join(
+                        ",",
+                        lesson.Groups.Select(x => s.Get(x).Name
+                            .ToString())),
+                    lesson.Type,
                 },
             });
         }
         {
             // Remove lessons for other teachers.
-            c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers.Contains(teacherId));
+            c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers
+                .Contains(teacherId));
         }
         return LessonValidity.None;
 
@@ -145,12 +159,14 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
 
 public sealed class RegistryLessonFilterConfig : INodeData<RegistryLessonFilterConfig>
 {
-    public static NodeDataKey<RegistryLessonFilterConfig> Key { get; } = NodeDataKey.Registry.Register<RegistryLessonFilterConfig>();
+    public static NodeDataKey<RegistryLessonFilterConfig> Key { get; } =
+        NodeDataKey.Registry.Register<RegistryLessonFilterConfig>();
+
     public AttendanceMode? SkipAttendance { get; set; }
 
     public static void Register(IServiceCollection services)
     {
         services.RegisterBasicOperationsAndMergers<RegistryLessonFilterConfig>();
-        services.AddConfigProvider(RegistryLessonFilterConfig.Key);
+        services.AddConfigProvider(Key);
     }
 }

@@ -35,26 +35,43 @@ public static class IcsCalendarWriter
     public static void Write(Stream output, IcsCalendar calendar)
     {
         // No BOM: some importers treat one as part of the first property name.
+        UTF8Encoding CalculateEncoding()
+        {
+            var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            return encoding;
+        }
+
         using var writer = new StreamWriter(
             output,
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            CalculateEncoding(),
             leaveOpen: true);
         writer.NewLine = "\r\n";
 
         writer.WriteLine("BEGIN:VCALENDAR");
         writer.WriteLine("VERSION:2.0");
-        writer.WriteLine($"PRODID:{ProdId}");
+        var streamWriter = writer;
+        string value2 = $"PRODID:{ProdId}";
+        streamWriter.WriteLine(value2);
         writer.WriteLine("CALSCALE:GREGORIAN");
         writer.WriteLine("METHOD:PUBLISH");
-        WriteEscapedLine(writer, "X-WR-CALNAME", calendar.Name);
-        writer.WriteLine($"X-WR-TIMEZONE:{calendar.TimeZoneId}");
+        WriteEscapedLine(
+            writer,
+            name: "X-WR-CALNAME",
+            value: calendar.Name);
+        var streamWriter2 = writer;
+        string value3 = $"X-WR-TIMEZONE:{calendar.TimeZoneId}";
+        streamWriter2.WriteLine(value3);
 
         WriteVTimeZone(writer, calendar.TimeZoneId);
 
         var dtStamp = DateTime.UtcNow;
         foreach (var e in calendar.Events)
         {
-            WriteEvent(writer, calendar, e, dtStamp);
+            WriteEvent(
+                writer,
+                calendar,
+                e,
+                dtStamp);
         }
 
         writer.WriteLine("END:VCALENDAR");
@@ -68,36 +85,71 @@ public static class IcsCalendarWriter
         DateTime dtStamp)
     {
         writer.WriteLine("BEGIN:VEVENT");
-        WriteEscapedLine(writer, "UID", e.Uid ?? DefaultUid(calendar, e));
-        writer.WriteLine($"DTSTAMP:{FormatUtc(dtStamp)}");
+        WriteEscapedLine(
+            writer,
+            name: "UID",
+            value: e.Uid ?? DefaultUid(calendar, e));
+        var streamWriter = writer;
+        string formatUtc = FormatUtc(dtStamp);
+        string value2 = $"DTSTAMP:{formatUtc}";
+        streamWriter.WriteLine(value2);
         writer.WriteLine($"DTSTART;TZID={calendar.TimeZoneId}:{FormatLocal(e.Start)}");
         writer.WriteLine($"DTEND;TZID={calendar.TimeZoneId}:{FormatLocal(e.End)}");
-        WriteEscapedLine(writer, "SUMMARY", e.Summary);
+        WriteEscapedLine(
+            writer,
+            name: "SUMMARY",
+            value: e.Summary);
         if (e.Description is { } description)
         {
-            WriteEscapedLine(writer, "DESCRIPTION", description);
+            WriteEscapedLine(
+                writer,
+                name: "DESCRIPTION",
+                value: description);
         }
         if (e.Location is { } location)
         {
-            WriteEscapedLine(writer, "LOCATION", location);
+            WriteEscapedLine(
+                writer,
+                name: "LOCATION",
+                value: location);
         }
         writer.WriteLine("END:VEVENT");
     }
 
     private static string DefaultUid(IcsCalendar calendar, IcsEvent e)
     {
-        string content = string.Join('|',
+        string CalculateFormatLocal()
+        {
+            string formatLocal = FormatLocal(e.Start);
+            return formatLocal;
+        }
+
+        string CalculateFormatLocal2()
+        {
+            string formatLocal2 = FormatLocal(e.End);
+            return formatLocal2;
+        }
+
+        string content = string.Join(
+            '|',
             calendar.Name,
             e.Summary,
             e.Description,
             e.Location,
-            FormatLocal(e.Start),
-            FormatLocal(e.End));
-        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
-        return Convert.ToHexString(hash) + "@schedulelib";
+            CalculateFormatLocal(),
+            CalculateFormatLocal2());
+        byte[] source = Encoding.UTF8.GetBytes(content);
+        byte[] hash = SHA256.HashData(source);
+        string toHexString = Convert.ToHexString(hash);
+        string text = $"{toHexString}@schedulelib";
+        string text2 = text;
+        return text2;
     }
 
-    private static void WriteEscapedLine(StreamWriter writer, string name, string value)
+    private static void WriteEscapedLine(
+        StreamWriter writer,
+        string name,
+        string value)
     {
         writer.WriteLine(Fold($"{name}:{EscapeText(value)}"));
     }
@@ -154,7 +206,12 @@ public static class IcsCalendarWriter
             return line;
         }
 
-        var sb = new StringBuilder(line.Length + line.Length / 75 * 2 + 2);
+        int int32 = line.Length;
+        int int322 = line.Length / 75;
+        int int323 = int322 * 2;
+        int int324 = int32 + int323;
+        int capacity = int324 + 2;
+        var sb = new StringBuilder(capacity);
         int segmentStart = 0;
         int segmentOctets = 0;
         int limit = 75;
@@ -162,9 +219,28 @@ public static class IcsCalendarWriter
         {
             int charLen = 1;
             int charOctets;
-            if (char.IsHighSurrogate(line[i])
-                && i + 1 < line.Length
-                && char.IsLowSurrogate(line[i + 1]))
+
+            bool CheckCondition()
+            {
+                if (!char.IsHighSurrogate(line[i]))
+                {
+                    return false;
+                }
+
+                if (!(i + 1 < line.Length))
+                {
+                    return false;
+                }
+
+                if (char.IsLowSurrogate(line[i + 1]))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 charLen = 2;
                 charOctets = 4;
@@ -175,7 +251,10 @@ public static class IcsCalendarWriter
             }
             if (segmentOctets + charOctets > limit)
             {
-                sb.Append(line, segmentStart, i - segmentStart);
+                sb.Append(
+                    line,
+                    startIndex: segmentStart,
+                    count: i - segmentStart);
                 sb.Append("\r\n ");
                 segmentStart = i;
                 segmentOctets = 0;
@@ -185,16 +264,37 @@ public static class IcsCalendarWriter
             segmentOctets += charOctets;
             i += charLen;
         }
-        sb.Append(line, segmentStart, line.Length - segmentStart);
+        sb.Append(
+            line,
+            startIndex: segmentStart,
+            count: line.Length - segmentStart);
         return sb.ToString();
 
         static int Octets(char c)
         {
             // UTF-16 BMP characters encode to 1 octet up to U+007F, 2 up to
             // U+07FF and 3 beyond; surrogate pairs are handled by the caller.
-            return c <= '\x7F' ? 1
-                : c <= '\x7FF' ? 2
-                : 3;
+            int int32;
+            if (c <= '\x7F')
+            {
+                int32 = 1;
+            }
+            else
+            {
+                int int322;
+                if (c <= '\x7FF')
+                {
+                    int322 = 2;
+                }
+                else
+                {
+                    int322 = 3;
+                }
+
+                int32 = int322;
+            }
+
+            return int32;
         }
     }
 
@@ -202,12 +302,13 @@ public static class IcsCalendarWriter
     {
         if (timeZoneId != "Europe/Chisinau")
         {
-            throw new NotSupportedException(
-                $"No VTIMEZONE definition for '{timeZoneId}'.");
+            throw new MissingVTimeZoneDefinitionException(timeZoneId);
         }
 
         writer.WriteLine("BEGIN:VTIMEZONE");
-        writer.WriteLine($"TZID:{timeZoneId}");
+        var streamWriter = writer;
+        string value = $"TZID:{timeZoneId}";
+        streamWriter.WriteLine(value);
         writer.WriteLine("BEGIN:STANDARD");
         writer.WriteLine("DTSTART:19701025T040000");
         writer.WriteLine("RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU");

@@ -7,10 +7,9 @@ namespace QuizModels;
 // ============================================================================
 
 [XmlRoot("quiz")]
-public class Quiz
+public sealed class Quiz
 {
-    [XmlElement("question")]
-    public List<QuestionBase> Questions { get; set; } = new();
+    [XmlElement("question")] public List<QuestionBase> Questions { get; set; } = new();
 }
 
 [XmlInclude(typeof(CategoryQuestion))]
@@ -18,167 +17,123 @@ public class Quiz
 [XmlInclude(typeof(MultiChoiceQuestion))]
 public abstract class QuestionBase
 {
-    [XmlAttribute("type")]
-    public string Type { get; set; } = string.Empty;
+    [XmlAttribute("type")] public string Type { get; set; } = string.Empty;
 }
 
-public class CategoryQuestion : QuestionBase
+public sealed class CategoryQuestion : QuestionBase
 {
-    [XmlElement("category")]
-    public Category Category { get; set; } = new();
+    [XmlElement("category")] public Category Category { get; set; } = new();
 
-    [XmlElement("info")]
-    public FormattedText Info { get; set; } = new();
+    [XmlElement("info")] public FormattedText Info { get; set; } = new();
 
-    [XmlElement("idnumber")]
-    public string IdNumber { get; set; } = string.Empty;
+    [XmlElement("idnumber")] public string IdNumber { get; set; } = string.Empty;
 }
 
-public class EssayQuestion : QuestionBase
+public sealed class EssayQuestion : QuestionBase
 {
-    [XmlElement("name")]
-    public TextElement Name { get; set; } = new();
+    [XmlElement("name")] public TextElement Name { get; set; } = new();
 
-    [XmlElement("questiontext")]
-    public FormattedText QuestionText { get; set; } = new();
+    [XmlElement("questiontext")] public FormattedText QuestionText { get; set; } = new();
 
-    [XmlElement("generalfeedback")]
-    public FormattedText GeneralFeedback { get; set; } = new();
+    [XmlElement("generalfeedback")] public FormattedText GeneralFeedback { get; set; } = new();
 
-    [XmlElement("defaultgrade")]
-    public decimal DefaultGrade { get; set; }
+    [XmlElement("defaultgrade")] public decimal DefaultGrade { get; set; }
 
-    [XmlElement("penalty")]
-    public decimal Penalty { get; set; }
+    [XmlElement("penalty")] public decimal Penalty { get; set; }
 
-    [XmlElement("hidden")]
-    public int Hidden { get; set; }
+    [XmlElement("hidden")] public int Hidden { get; set; }
 
-    [XmlElement("idnumber")]
-    public string IdNumber { get; set; } = string.Empty;
+    [XmlElement("idnumber")] public string IdNumber { get; set; } = string.Empty;
 
-    [XmlElement("responseformat")]
-    public string ResponseFormat { get; set; } = string.Empty;
+    [XmlElement("responseformat")] public string ResponseFormat { get; set; } = string.Empty;
 
-    [XmlElement("responserequired")]
-    public int ResponseRequired { get; set; }
+    [XmlElement("responserequired")] public int ResponseRequired { get; set; }
 
-    [XmlElement("responsefieldlines")]
-    public int ResponseFieldLines { get; set; }
+    [XmlElement("responsefieldlines")] public int ResponseFieldLines { get; set; }
 
-    [XmlElement("minwordlimit")]
-    public string MinWordLimit { get; set; } = string.Empty;
+    [XmlElement("minwordlimit")] public string MinWordLimit { get; set; } = string.Empty;
 
-    [XmlElement("maxwordlimit")]
-    public string MaxWordLimit { get; set; } = string.Empty;
+    [XmlElement("maxwordlimit")] public string MaxWordLimit { get; set; } = string.Empty;
 
-    [XmlElement("attachments")]
-    public int Attachments { get; set; }
+    [XmlElement("attachments")] public int Attachments { get; set; }
 
-    [XmlElement("attachmentsrequired")]
-    public int AttachmentsRequired { get; set; }
+    [XmlElement("attachmentsrequired")] public int AttachmentsRequired { get; set; }
 
-    [XmlElement("maxbytes")]
-    public int MaxBytes { get; set; }
+    [XmlElement("maxbytes")] public int MaxBytes { get; set; }
 
-    [XmlElement("filetypeslist")]
-    public string FileTypesList { get; set; } = string.Empty;
+    [XmlElement("filetypeslist")] public string FileTypesList { get; set; } = string.Empty;
 
-    [XmlElement("graderinfo")]
-    public FormattedText GraderInfo { get; set; } = new();
+    [XmlElement("graderinfo")] public FormattedText GraderInfo { get; set; } = new();
 
-    [XmlElement("responsetemplate")]
-    public FormattedText ResponseTemplate { get; set; } = new();
+    [XmlElement("responsetemplate")] public FormattedText ResponseTemplate { get; set; } = new();
 }
 
-public class MultiChoiceQuestion : QuestionBase
+public sealed class MultiChoiceQuestion : QuestionBase
 {
-    [XmlElement("name")]
-    public TextElement Name { get; set; } = new();
+    [XmlElement("name")] public TextElement Name { get; set; } = new();
 
-    [XmlElement("questiontext")]
-    public FormattedText QuestionText { get; set; } = new();
+    [XmlElement("questiontext")] public FormattedText QuestionText { get; set; } = new();
 
-    [XmlElement("generalfeedback")]
-    public FormattedText GeneralFeedback { get; set; } = new();
+    [XmlElement("generalfeedback")] public FormattedText GeneralFeedback { get; set; } = new();
 
-    [XmlElement("defaultgrade")]
-    public decimal DefaultGrade { get; set; }
+    [XmlElement("defaultgrade")] public decimal DefaultGrade { get; set; }
 
-    [XmlElement("penalty")]
-    public decimal Penalty { get; set; }
+    [XmlElement("penalty")] public decimal Penalty { get; set; }
 
-    [XmlElement("hidden")]
-    public int Hidden { get; set; }
+    [XmlElement("hidden")] public int Hidden { get; set; }
 
-    [XmlElement("idnumber")]
-    public string IdNumber { get; set; } = string.Empty;
+    [XmlElement("idnumber")] public string IdNumber { get; set; } = string.Empty;
 
-    [XmlElement("single")]
-    public bool Single { get; set; }
+    [XmlElement("single")] public bool Single { get; set; }
 
-    [XmlElement("shuffleanswers")]
-    public bool ShuffleAnswers { get; set; }
+    [XmlElement("shuffleanswers")] public bool ShuffleAnswers { get; set; }
 
-    [XmlElement("answernumbering")]
-    public string AnswerNumbering { get; set; } = string.Empty;
+    [XmlElement("answernumbering")] public string AnswerNumbering { get; set; } = string.Empty;
 
     [XmlElement("showstandardinstruction")]
     public int ShowStandardInstruction { get; set; }
 
-    [XmlElement("correctfeedback")]
-    public FormattedText CorrectFeedback { get; set; } = new();
+    [XmlElement("correctfeedback")] public FormattedText CorrectFeedback { get; set; } = new();
 
     [XmlElement("partiallycorrectfeedback")]
     public FormattedText PartiallyCorrectFeedback { get; set; } = new();
 
-    [XmlElement("incorrectfeedback")]
-    public FormattedText IncorrectFeedback { get; set; } = new();
+    [XmlElement("incorrectfeedback")] public FormattedText IncorrectFeedback { get; set; } = new();
 
-    [XmlElement("shownumcorrect")]
-    public ShownumCorrect? ShowNumCorrect { get; set; }
+    [XmlElement("shownumcorrect")] public ShownumCorrect? ShowNumCorrect { get; set; }
 
-    [XmlElement("answer")]
-    public List<Answer> Answers { get; set; } = new();
+    [XmlElement("answer")] public List<Answer> Answers { get; set; } = new();
 }
 
-public class Category
+public sealed class Category
 {
-    [XmlElement("text")]
-    public string Text { get; set; } = string.Empty;
+    [XmlElement("text")] public string Text { get; set; } = string.Empty;
 }
 
-public class TextElement
+public sealed class TextElement
 {
-    [XmlElement("text")]
-    public string Text { get; set; } = string.Empty;
+    [XmlElement("text")] public string Text { get; set; } = string.Empty;
 }
 
-public class FormattedText
+public sealed class FormattedText
 {
-    [XmlAttribute("format")]
-    public string Format { get; set; } = string.Empty;
+    [XmlAttribute("format")] public string Format { get; set; } = string.Empty;
 
-    [XmlElement("text")]
-    public string Text { get; set; } = string.Empty;
+    [XmlElement("text")] public string Text { get; set; } = string.Empty;
 }
 
-public class Answer
+public sealed class Answer
 {
-    [XmlAttribute("fraction")]
-    public decimal Fraction { get; set; }
+    [XmlAttribute("fraction")] public decimal Fraction { get; set; }
 
-    [XmlAttribute("format")]
-    public string Format { get; set; } = string.Empty;
+    [XmlAttribute("format")] public string Format { get; set; } = string.Empty;
 
-    [XmlElement("text")]
-    public string Text { get; set; } = string.Empty;
+    [XmlElement("text")] public string Text { get; set; } = string.Empty;
 
-    [XmlElement("feedback")]
-    public FormattedText Feedback { get; set; } = new();
+    [XmlElement("feedback")] public FormattedText Feedback { get; set; } = new();
 }
 
-public class ShownumCorrect
+public sealed class ShownumCorrect
 {
 }
 
@@ -186,14 +141,14 @@ public class ShownumCorrect
 // Mutable Builder Models
 // ============================================================================
 
-public class MutableEssayQuestion
+public sealed class MutableEssayQuestion
 {
     public string Name { get; set; } = string.Empty;
     public string QuestionText { get; set; } = string.Empty;
     public decimal DefaultGrade { get; set; } = 1.0m;
 }
 
-public class MutableMultiChoiceQuestion
+public sealed class MutableMultiChoiceQuestion
 {
     public string Name { get; set; } = string.Empty;
     public string QuestionText { get; set; } = string.Empty;
@@ -201,13 +156,13 @@ public class MutableMultiChoiceQuestion
     public List<MutableAnswer> Answers { get; set; } = new();
 }
 
-public class MutableAnswer
+public sealed class MutableAnswer
 {
     public string Text { get; set; } = string.Empty;
     public decimal Fraction { get; set; }
 }
 
-public class AnswerBuilder
+public sealed class AnswerBuilder
 {
     private string _text = string.Empty;
     private decimal _fraction = 0m;
@@ -244,7 +199,7 @@ public class AnswerBuilder
 // Builders
 // ============================================================================
 
-public class QuizBuilder
+public sealed class QuizBuilder
 {
     private readonly List<object> _questionBuilders = new();
     private string _categoryText = "$module$/top/Implicit pentru Atestare 1";
@@ -286,7 +241,10 @@ public class QuizBuilder
         questions.Add(new CategoryQuestion
         {
             Type = "category",
-            Category = new Category { Text = _categoryText },
+            Category = new Category
+            {
+                Text = _categoryText,
+            },
             Info = new FormattedText
             {
                 Format = "moodle_auto_format",
@@ -308,11 +266,14 @@ public class QuizBuilder
             }
         }
 
-        return new Quiz { Questions = questions };
+        return new Quiz
+        {
+            Questions = questions,
+        };
     }
 }
 
-public class EssayQuestionBuilder
+public sealed class EssayQuestionBuilder
 {
     private readonly MutableEssayQuestion _question = new();
 
@@ -339,13 +300,20 @@ public class EssayQuestionBuilder
         return new EssayQuestion
         {
             Type = "essay",
-            Name = new TextElement { Text = _question.Name },
+            Name = new TextElement
+            {
+                Text = _question.Name,
+            },
             QuestionText = new FormattedText
             {
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText { Format = "html", Text = string.Empty },
+            GeneralFeedback = new FormattedText
+            {
+                Format = "html",
+                Text = string.Empty,
+            },
             DefaultGrade = _question.DefaultGrade,
             Penalty = 0.0m,
             Hidden = 0,
@@ -359,13 +327,21 @@ public class EssayQuestionBuilder
             AttachmentsRequired = 0,
             MaxBytes = 0,
             FileTypesList = string.Empty,
-            GraderInfo = new FormattedText { Format = "html", Text = string.Empty },
-            ResponseTemplate = new FormattedText { Format = "html", Text = string.Empty },
+            GraderInfo = new FormattedText
+            {
+                Format = "html",
+                Text = string.Empty,
+            },
+            ResponseTemplate = new FormattedText
+            {
+                Format = "html",
+                Text = string.Empty,
+            },
         };
     }
 }
 
-public class MultiChoiceQuestionBuilder
+public sealed class MultiChoiceQuestionBuilder
 {
     private readonly MutableMultiChoiceQuestion _question = new();
 
@@ -425,12 +401,30 @@ public class MultiChoiceQuestionBuilder
             // Define standard percentage values
             var standards = new[]
             {
-                100m, 90m, 83.3333333m, 80m, 75m, 70m, 66.6666667m, 60m, 50m, 40m,
-                33.3333333m, 30m, 25m, 20m, 16.6666667m, 14.285714m, 12.5m, 11.1111111m, 10m,
+                100m,
+                90m,
+                83.3333333m,
+                80m,
+                75m,
+                70m,
+                66.6666667m,
+                60m,
+                50m,
+                40m,
+                33.3333333m,
+                30m,
+                25m,
+                20m,
+                16.6666667m,
+                14.285714m,
+                12.5m,
+                11.1111111m,
+                10m,
             };
 
             // Find closest standard percentage
-            var closest = standards.OrderBy(s => Math.Abs(s - absValue)).First();
+            var closest = standards.OrderBy(s => Math.Abs(s - absValue))
+                .First();
             return closest * sign;
         }
 
@@ -448,7 +442,10 @@ public class MultiChoiceQuestionBuilder
             {
                 // Scale negative fractions by the same factor, capped at -100
                 var scaledNegative = answer.Fraction * scale;
-                fraction = Math.Max(-100, RoundToStandardPercentage(scaledNegative));
+                decimal val1 = -100;
+                decimal val2 = RoundToStandardPercentage(scaledNegative);
+                decimal max = Math.Max(val1, val2);
+                fraction = max;
             }
             else
             {
@@ -460,20 +457,31 @@ public class MultiChoiceQuestionBuilder
                 Fraction = fraction,
                 Format = "html",
                 Text = answer.Text,
-                Feedback = new FormattedText { Format = "html", Text = string.Empty },
+                Feedback = new FormattedText
+                {
+                    Format = "html",
+                    Text = string.Empty,
+                },
             });
         }
 
         return new MultiChoiceQuestion
         {
             Type = "multichoice",
-            Name = new TextElement { Text = _question.Name },
+            Name = new TextElement
+            {
+                Text = _question.Name,
+            },
             QuestionText = new FormattedText
             {
                 Format = "html",
                 Text = $"<p>{_question.QuestionText}</p>",
             },
-            GeneralFeedback = new FormattedText { Format = "html", Text = string.Empty },
+            GeneralFeedback = new FormattedText
+            {
+                Format = "html",
+                Text = string.Empty,
+            },
             DefaultGrade = _question.DefaultGrade,
             Penalty = 0.3333333m,
             Hidden = 0,
@@ -507,7 +515,7 @@ public class MultiChoiceQuestionBuilder
 // Example Usage
 // ============================================================================
 
-public class Example
+public sealed class Example
 {
     public static void Demo()
     {
@@ -522,10 +530,16 @@ public class Example
                 .Name("magic_1")
                 .QuestionText("Что из следующего является примером использования одного или нескольких magic значений?")
                 .DefaultGrade(1.0m)
-                .Answer(a => a.Code("var v = get_value(1, 2, true);").Fraction(1.0m))
-                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar has_parents = false;\nvar v = get_value(age, child_count, has_parents);").Fraction(0.0m))
-                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);").Fraction(1.0m))
-                .Answer(a => a.Code("var v = get_value(age: 1, child_count: 2, has_parents: true);").Fraction(0.0m)))
+                .Answer(a => a.Code("var v = get_value(1, 2, true);")
+                    .Fraction(1.0m))
+                .Answer(a => a
+                    .Code(
+                        "var age = 1;\nvar child_count = 2;\nvar has_parents = false;\nvar v = get_value(age, child_count, has_parents);")
+                    .Fraction(0.0m))
+                .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);")
+                    .Fraction(1.0m))
+                .Answer(a => a.Code("var v = get_value(age: 1, child_count: 2, has_parents: true);")
+                    .Fraction(0.0m)))
             .Build();
 
         // Serialize to XML

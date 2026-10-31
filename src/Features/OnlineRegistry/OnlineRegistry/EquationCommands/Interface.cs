@@ -5,6 +5,7 @@ namespace ScheduleLib.OnlineRegistry;
 public readonly struct GetLessonEquationCommandsParams
 {
     public readonly Schedule Schedule;
+
     // TODO: Must never be enumerated more than once, that breaks counters.
     public readonly IEnumerable<RemoteLessonInstance> RemoteLessons;
     public readonly IEnumerable<LessonInstance> LocalLessons;
@@ -27,7 +28,6 @@ public readonly struct GetLessonEquationCommandsParams
         LocalLessons = localLessons;
     }
 }
-
 
 public readonly record struct LessonInstance : IDateTime
 {
@@ -55,9 +55,9 @@ public enum LessonEquationCommandType
 public enum LessonEquationCommandTypes
 {
     None = 0,
-    Create = 1 << (int) LessonEquationCommandType.Create,
-    Update = 1 << (int) LessonEquationCommandType.Update,
-    Delete = 1 << (int) LessonEquationCommandType.Delete,
+    Create = 1 << LessonEquationCommandType.Create,
+    Update = 1 << LessonEquationCommandType.Update,
+    Delete = 1 << LessonEquationCommandType.Delete,
     All = Create | Update | Delete,
 }
 
@@ -91,6 +91,7 @@ public readonly struct LessonEquationCommand
     }
 
     public bool HasAll => Type.HasAll();
+
     public LessonInstance Local
     {
         get
@@ -101,6 +102,7 @@ public readonly struct LessonEquationCommand
     }
 
     public bool HasExisting => Type.HasExisting();
+
     public RemoteLessonInstance Remote
     {
         get
@@ -118,7 +120,10 @@ public readonly struct LessonEquationCommand
 
     public static LessonEquationCommand Update(RemoteLessonInstance remote, LessonInstance local)
     {
-        return new(LessonEquationCommandType.Update, remote: remote, local: local);
+        return new(
+            LessonEquationCommandType.Update,
+            remote: remote,
+            local: local);
     }
 
     public static LessonEquationCommand Delete(RemoteLessonInstance remote)

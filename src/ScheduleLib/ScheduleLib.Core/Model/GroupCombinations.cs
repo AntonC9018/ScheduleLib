@@ -114,7 +114,9 @@ public sealed class GroupPartitionInfo
     // This stores the permitted subset only, not the raw observed set, so it
     // diverges from FilteredSchedule raw observed counts by design.
     public required ImmutableArray<Specialization> PermittedSpecializations { get; init; }
+
     public bool SpecializationActive => PermittedSpecializations.Length >= 2;
+
     // Same activation rule for the alternative partition.
     public required ImmutableArray<Alternative> ObservedAlternatives { get; init; }
     public bool AlternativeActive => ObservedAlternatives.Length >= 2;
@@ -130,7 +132,13 @@ public sealed class GroupPartitionInfo
         {
             return false;
         }
-        return IncludesSubGroup(in combination, in lesson);
+
+        if (IncludesSubGroup(in combination, in lesson))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool IncludesAlternative(in GroupCombination combination, in LessonData lesson)
@@ -144,8 +152,14 @@ public sealed class GroupPartitionInfo
             // Inactive: the annotation behaves as shared for this group.
             return true;
         }
-        return combination.Alternative is { } selected
-            && selected == lesson.Alternative;
+
+        if (combination.Alternative is { } selected
+            && selected == lesson.Alternative)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool IncludesSpecialization(in GroupCombination combination, in LessonData lesson)
@@ -159,8 +173,14 @@ public sealed class GroupPartitionInfo
             // Inactive: the annotation behaves as shared for this group.
             return true;
         }
-        return combination.Specialization is { } selected
-            && selected == lesson.Specialization;
+
+        if (combination.Specialization is { } selected
+            && selected == lesson.Specialization)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IncludesSubGroup(in GroupCombination combination, in LessonData lesson)
@@ -250,7 +270,7 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 numeric[groupId].Add(number);
             }
-            else if (SpecialSubGroups.IsLanguageSubGroup(subGroup))
+            else if (subGroup.IsLanguageSubGroup())
             {
                 languages[groupId].Add(subGroup);
             }
@@ -300,11 +320,41 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             // dimension fans out into three combination axes; the other two
             // dimensions map one-to-one onto PartitionDimension.
             var combinations = new List<GroupCombination> { default };
-            combinations = Expand(combinations, altValues, (c, v) => c with { Alternative = v });
-            combinations = Expand(combinations, specValues, (c, v) => c with { Specialization = v });
-            combinations = Expand(combinations, nums, (c, v) => c with { Numeric = v });
-            combinations = Expand(combinations, profValues, (c, v) => c with { Proficiency = v });
-            combinations = Expand(combinations, langs, (c, v) => c with { Language = v });
+            combinations = Expand(
+                combinations,
+                altValues,
+                (c, v) => c with
+                {
+                    Alternative = v,
+                });
+            combinations = Expand(
+                combinations,
+                specValues,
+                (c, v) => c with
+                {
+                    Specialization = v,
+                });
+            combinations = Expand(
+                combinations,
+                nums,
+                (c, v) => c with
+                {
+                    Numeric = v,
+                });
+            combinations = Expand(
+                combinations,
+                profValues,
+                (c, v) => c with
+                {
+                    Proficiency = v,
+                });
+            combinations = Expand(
+                combinations,
+                langs,
+                (c, v) => c with
+                {
+                    Language = v,
+                });
 
             // A group with no active partition has no suffixed combinations at all;
             // it only gets its whole-group schedule.
@@ -328,9 +378,18 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
         // alternative dimensions.
         static T[] ActiveValues<T>(IReadOnlyCollection<T> observed, Func<T, string?> name)
         {
-            return observed.Count < 2
-                ? []
-                : observed.OrderBy(name, StringComparer.Ordinal).ToArray();
+            T[] value;
+            if (observed.Count < 2)
+            {
+                value = [];
+            }
+            else
+            {
+                value = observed.OrderBy(name, StringComparer.Ordinal)
+                    .ToArray();
+            }
+
+            return value;
         }
 
         static List<GroupCombination> Expand<T>(
@@ -348,7 +407,9 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             {
                 foreach (var value in values)
                 {
-                    next.Add(apply(seed, value));
+                    var list = next;
+                    var item = apply(seed, value);
+                    list.Add(item);
                 }
             }
             return next;

@@ -20,21 +20,24 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
     public readonly CommandProcessingConfig WithProcess(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.Process().Set(types);
+        b.Process()
+            .Set(types);
         return b.Build();
     }
 
     public readonly CommandProcessingConfig WithDryRun(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.DryRun().Set(types);
+        b.DryRun()
+            .Set(types);
         return b.Build();
     }
 
     public readonly CommandProcessingConfig WithLog(LessonEquationCommandTypes types)
     {
         var b = Builder();
-        b.Log().Set(types);
+        b.Log()
+            .Set(types);
         return b.Build();
     }
 
@@ -54,7 +57,8 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
             var b = Builder();
             var dryRun = b.DryRun().RestoredSlice;
             var doNotProcess = dryRun;
-            b.Process().ClearArray(doNotProcess);
+            b.Process()
+                .ClearArray(doNotProcess);
             return b.Build();
         }
     }
@@ -73,20 +77,29 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         var other = types.AsBitArray();
         return p.Intersect(other).AreAnySet;
     }
+
     private readonly bool CheckOne(CommandProcessingConfigPortion offset, LessonEquationCommandType type)
     {
         var p = CreatePortion(offset);
         return p.IsSet(type);
     }
 
-    public readonly bool HasProcess(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.Process, type);
-    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.Process, types);
+    public readonly bool HasProcess(LessonEquationCommandType type) =>
+        CheckOne(CommandProcessingConfigPortion.Process, type);
 
-    public readonly bool HasDryRun(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.DryRun, type);
-    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.DryRun, types);
+    public readonly bool HasAnyProcess(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.Process, types);
+
+    public readonly bool HasDryRun(LessonEquationCommandType type) =>
+        CheckOne(CommandProcessingConfigPortion.DryRun, type);
+
+    public readonly bool HasAnyDryRun(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.DryRun, types);
 
     public readonly bool HasLog(LessonEquationCommandType type) => CheckOne(CommandProcessingConfigPortion.Log, type);
-    public readonly bool HasAnyLog(LessonEquationCommandTypes types) => CheckAny(CommandProcessingConfigPortion.Log, types);
+
+    public readonly bool HasAnyLog(LessonEquationCommandTypes types) =>
+        CheckAny(CommandProcessingConfigPortion.Log, types);
 
     public override string ToString()
     {
@@ -96,7 +109,9 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         {
             var portion = value.CreatePortion(t);
 
-            sb.Append(Enum.GetName(t));
+            var stringBuilder = sb;
+            string? value2 = Enum.GetName(t);
+            stringBuilder.Append(value2);
             sb.Append('{');
 
             if (portion.AreAllSet)
@@ -141,7 +156,7 @@ public enum CommandProcessingConfigPortion
 
 public static class CommandProcessingConfigBuilderExtensions
 {
-    extension (ref CommandProcessingConfigBuilder b)
+    extension(ref CommandProcessingConfigBuilder b)
     {
         public OffsetBitArrayForEnumRef<LessonEquationCommandType> Portion(CommandProcessingConfigPortion portion)
         {
@@ -155,12 +170,17 @@ public static class CommandProcessingConfigBuilderExtensions
             return b._impl.EnumPortionRef<LessonEquationCommandType>(offset: offset);
         }
 
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Process() => b.Portion(CommandProcessingConfigPortion.Process);
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> DryRun() => b.Portion(CommandProcessingConfigPortion.DryRun);
-        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Log() => b.Portion(CommandProcessingConfigPortion.Log);
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Process() =>
+            b.Portion(CommandProcessingConfigPortion.Process);
+
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> DryRun() =>
+            b.Portion(CommandProcessingConfigPortion.DryRun);
+
+        public OffsetBitArrayForEnumRef<LessonEquationCommandType> Log() =>
+            b.Portion(CommandProcessingConfigPortion.Log);
     }
 
-    extension (OffsetBitArrayForEnumRef<LessonEquationCommandType> b)
+    extension(OffsetBitArrayForEnumRef<LessonEquationCommandType> b)
     {
         public void Set(LessonEquationCommandTypes mask)
         {
@@ -168,7 +188,7 @@ public static class CommandProcessingConfigBuilderExtensions
         }
     }
 
-    extension (LessonEquationCommandTypes mask)
+    extension(LessonEquationCommandTypes mask)
     {
         public EnumBitArray<LessonEquationCommandType> AsBitArray()
         {
@@ -199,7 +219,8 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         var b = new CommandProcessingConfigBuilder();
         foreach (var x in model)
         {
-            b.Portion(x.Key).ResetArray(x.Value);
+            b.Portion(x.Key)
+                .ResetArray(x.Value);
         }
         return b.Build();
     }
@@ -209,12 +230,16 @@ public sealed class CommandProcessingConfigJsonConverter : JsonConverter<Command
         CommandProcessingConfig value,
         JsonSerializerOptions options)
     {
-        using var model = OneForEach.Enum<CommandProcessingConfigPortion>().RentArray<EnumBitArray<LessonEquationCommandType>>();
+        using var model = OneForEach.Enum<CommandProcessingConfigPortion>()
+            .RentArray<EnumBitArray<LessonEquationCommandType>>();
         var b = value.Builder();
         foreach (var x in model)
         {
             x.Value = b.Portion(x.Key).RestoredSlice;
         }
-        JsonSerializer.Serialize(writer, model, options);
+        JsonSerializer.Serialize(
+            writer,
+            model,
+            options);
     }
 }

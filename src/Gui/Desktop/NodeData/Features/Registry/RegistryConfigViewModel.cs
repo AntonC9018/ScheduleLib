@@ -12,13 +12,18 @@ public sealed class RegistryConfigViewModel(
     NodeDataAccessor<RegistryConfig> _helper,
     Registry<IEquationCommandsDerivation> _derivations,
     Registry<ExtraLessonInstanceAction> _extraLessons)
-
     : NodeDataViewModelBase<RegistryConfig>
 {
     public static void Register(IServiceCollection services)
     {
+        PropertySetId CalculateKey()
+        {
+            PropertySetId key = new("Online Registry");
+            return key;
+        }
+
         services.AddPropertySetDisplayFactory(
-            new("Online Registry"),
+            CalculateKey(),
             b => b.SourceFrom(RegistryConfig.Key)
             // b => b.SourceFrom(RegistryConfig.Key, c =>
             // {
@@ -27,46 +32,52 @@ public sealed class RegistryConfigViewModel(
             //     var viewId = new ViewId(typeof(UserControl));
             //     c.IncludeProperty(x => x.CommandProcessingConfig).UseView(viewId);
             // })
-            );
+        );
 
-        services.ConfigurePropertySet(RegistryConfig.Key, b =>
-        {
-            // Can easily do a loop over each type.
-            b.Property<bool>("DryRun")
-                .Uses(x => x.CommandProcessingConfig)
-                // .GetUnwrap(c => c.HasAnyDryRun(LessonEquationCommandTypes.All))
-                .Get(c => c?.HasAnyDryRun(LessonEquationCommandTypes.All) ?? false)
-                .Set((commandProcessingConfigValue, value) =>
-                {
-                    CommandProcessingConfigBuilder b1;
-                    if (commandProcessingConfigValue is { } c)
+        services.ConfigurePropertySet(
+            RegistryConfig.Key,
+            b =>
+            {
+                // Can easily do a loop over each type.
+                b.Property<bool>("DryRun")
+                    .Uses(x => x.CommandProcessingConfig)
+                    // .GetUnwrap(c => c.HasAnyDryRun(LessonEquationCommandTypes.All))
+                    .Get(c => c?.HasAnyDryRun(LessonEquationCommandTypes.All) ?? false)
+                    .Set((commandProcessingConfigValue, value) =>
                     {
-                        b1 = c.Builder();
-                    }
-                    else
-                    {
-                        b1 = new();
-                        b1.Log().SetAll();
-                        b1.Process().SetAll();
-                    }
+                        CommandProcessingConfigBuilder b1;
+                        if (commandProcessingConfigValue is { } c)
+                        {
+                            b1 = c.Builder();
+                        }
+                        else
+                        {
+                            b1 = new();
+                            b1.Log()
+                                .SetAll();
+                            b1.Process()
+                                .SetAll();
+                        }
 
-                    b1.DryRun().SetAll(value);
-                    return b1.Build();
-                });
+                        b1.DryRun()
+                            .SetAll(value);
+                        return b1.Build();
+                    });
 
-            b.Property(x => x.ExtraLessonInstanceAction)
-                .Rename("ExtraLesson")
-                .UseDefaultRegistry();
+                b.Property(x => x.ExtraLessonInstanceAction)
+                    .Rename("ExtraLesson")
+                    .UseDefaultRegistry();
 
-            b.Property(x => x.EquationCommandsDerivation)
-                .Rename("Derivation")
-                .UseDefaultRegistry();
-        });
+                b.Property(x => x.EquationCommandsDerivation)
+                    .Rename("Derivation")
+                    .UseDefaultRegistry();
+            });
 
         services.ConfigurePropertySetDefaults(b =>
         {
             b.PropertiesWithType<CredentialsSource>(p => p.UseVm(ObservableCredentials.Id));
-            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials).UseVm(ObservableCredentials.Id));
+            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials)
+                .UseVm(ObservableCredentials.Id));
         });
 
         services.AddRegistry<IEquationCommandsDerivation>(opts =>
@@ -94,10 +105,16 @@ public sealed class RegistryConfigViewModel(
     public ObservableCredentials<RegistryConfig> Credentials { get; } = new();
 
     public SelectionHelper<RegistryConfig, ExtraLessonInstanceAction> ExtraLesson { get; } =
-        _helper.SelectionHelper(_extraLessons, c => c.ExtraLessonInstanceAction, allowNull: true);
+        _helper.SelectionHelper(
+            _extraLessons,
+            c => c.ExtraLessonInstanceAction,
+            allowNull: true);
 
     public SelectionHelper<RegistryConfig, IEquationCommandsDerivation> Derivation { get; } =
-        _helper.SelectionHelper(_derivations, c => c.EquationCommandsDerivation, allowNull: true);
+        _helper.SelectionHelper(
+            _derivations,
+            c => c.EquationCommandsDerivation,
+            allowNull: true);
 
     public bool? DryRun
     {
@@ -131,11 +148,14 @@ public sealed class RegistryConfigViewModel(
             else
             {
                 b = new();
-                b.Log().SetAll();
-                b.Process().SetAll();
+                b.Log()
+                    .SetAll();
+                b.Process()
+                    .SetAll();
             }
 
-            b.DryRun().SetAll(value ?? false);
+            b.DryRun()
+                .SetAll(value ?? false);
             v.CommandProcessingConfig = b.Build();
         }
     }

@@ -1,4 +1,5 @@
 using System.Net;
+using Anton.LayeredData.Retrieval;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -24,6 +25,7 @@ public sealed class NoLessonTopics : ILessonTopics
     }
 
     public static readonly NoLessonTopics Instance = new();
+
     public string? Get(in AttendanceLookupKey key)
     {
         return null;
@@ -35,11 +37,14 @@ public sealed partial class CoursesNavigator
 {
     private readonly OnlineRegistryNavigator _navigator;
     private readonly LookupFacade _lookup;
+    private readonly DataProvider<BuiltRegistryConfig> _registryConfig;
 
     public async Task<IEnumerable<CourseLink>> Get(Semester semester)
     {
-        var lessonAttendanceUrl = new Uri($"{RegistryScraping.BaseUrl}LessonAttendance");
+        string uriString = $"{RegistryScraping.BaseUrl}LessonAttendance";
+        var lessonAttendanceUrl = new Uri(uriString);
         var doc = await _navigator.GetHtml(lessonAttendanceUrl);
+        var courseNames = _registryConfig.Get()?.CourseNames ?? new Dictionary<string, string>();
         var ret = HtmlSearch.ScanCoursesDocumentForLinks(new()
         {
             Document = doc,
@@ -51,10 +56,11 @@ public sealed partial class CoursesNavigator
                     _navigator.ErrorHandler.LessonWithoutName();
                     return null;
                 }
-                var maybeCourseId = _lookup.Course(courseName.AsMemory(), new()
-                {
-                    IgnorePunctuation = true,
-                });
+                var maybeCourseId = RegistryCourseNameLookup.Find(
+                    _lookup,
+                    courseName,
+                    courseNames,
+                    _registryConfig.Get()?.CourseNameMaxDistance ?? 2);
                 if (maybeCourseId is not { } courseId)
                 {
                     _navigator.ErrorHandler.CourseNotFound(courseName);
@@ -74,43 +80,299 @@ public sealed class GroupsNavigator
     private readonly GroupParseContext _groupParseContext;
     private readonly SubGroupNameRemapper _remapper;
     private readonly SpecializationRegistry _specializationRegistry;
+    private readonly DataProvider<BuiltRegistryConfig> _registryConfig;
 
     public GroupsNavigator(
         OnlineRegistryNavigator navigator,
         Schedule schedule,
         GroupParseContext groupParseContext,
         SubGroupNameRemapper remapper,
-        SpecializationRegistry specializationRegistry)
+        SpecializationRegistry specializationRegistry,
+        DataProvider<BuiltRegistryConfig> registryConfig)
     {
         _navigator = navigator;
         _schedule = schedule;
         _groupParseContext = groupParseContext;
         _remapper = remapper;
         _specializationRegistry = specializationRegistry;
+        _registryConfig = registryConfig;
     }
 
     public async Task<IEnumerable<GroupLink>> Get(CourseLink courseLink)
     {
         var doc = await _navigator.GetHtml(courseLink.Url);
+        var config = _registryConfig.Get();
+        var partitionResolver = new GroupPartitionResolver(_specializationRegistry);
+        var registryGroups = new List<GroupForSearch>();
+        _ = HtmlSearch.ScanGroupsDocumentForLinks(new()
+        {
+            Document = doc,
+            GroupParseContext = _groupParseContext,
+            GroupPartitionResolver = partitionResolver,
+            SearchGroupId = (ref group) =>
+            {
+                if (config?.SkipAttendance == group.AttendanceMode)
+                {
+                    return new LessonGroups();
+                }
+
+                group.SubGroupName = _remapper.RemapName(group.SubGroupName);
+                registryGroups.Add(group);
+                return new LessonGroups();
+            },
+            ParseErrorHandler = _ => { },
+        })
+            .ToArray();
+        var rules = config?.GroupMatchRules ?? [];
         var ret = HtmlSearch.ScanGroupsDocumentForLinks(new()
         {
             Document = doc,
             GroupParseContext = _groupParseContext,
-            GroupPartitionResolver = new GroupPartitionResolver(_specializationRegistry),
-            SearchGroupId = (ref GroupForSearch group) =>
+            GroupPartitionResolver = partitionResolver,
+            SearchGroupId = (ref group) =>
             {
+                if (config?.SkipAttendance == group.AttendanceMode)
+                {
+                    return new LessonGroups();
+                }
+
                 group.SubGroupName = _remapper.RemapName(group.SubGroupName);
-                var ids = FindGroupMatch(_schedule, group);
+                var target = group;
+                var applicableRules = rules.Where(rule => HasUniqueRegistryAudience(
+                        registryGroups,
+                        target,
+                        rule,
+                        partitionResolver))
+                    .ToArray();
+                var ids = FindGroupMatch(
+                    _schedule,
+                    courseLink.CourseId,
+                    partitionResolver.Resolve(group),
+                    group,
+                    applicableRules);
                 // ReSharper disable once PossibleMultipleEnumeration
                 if (ids.Count == 0)
                 {
                     // TODO: Do this better
-                    _navigator.ErrorHandler.GroupNotFound(group.UnparsedName.Trim());
+                    _navigator.ErrorHandler.GroupNotFound(
+                        _schedule.Get(courseLink.CourseId).FullName,
+                        group.UnparsedName.Trim());
+                }
+                if (!group.SubGroupName.IsEmpty
+                    && NormalizePartition(
+                        _schedule,
+                        ids,
+                        partitionResolver.Resolve(group),
+                        applicableRules)
+                    == GroupPartitionKey.All)
+                {
+                    // The selected parent already represents this language audience as a whole group.
+                    group.SubGroupName = ReadOnlyMemory<char>.Empty;
                 }
                 return ids;
             },
-            ParseErrorHandler = c => _navigator.ErrorHandler.GroupParsingError(c),
+            ParseErrorHandler = c =>
+                _navigator.ErrorHandler.GroupParsingError(_schedule.Get(courseLink.CourseId).FullName, c),
         });
+        return ret;
+    }
+
+    internal static bool HasUniqueRegistryAudience(
+        IReadOnlyList<GroupForSearch> groups,
+        GroupForSearch target,
+        RegistryGroupMatchRule rule,
+        GroupPartitionResolver resolver)
+    {
+        var subGroup = new SubGroup(rule.SubGroup);
+        var specialization = Specialization.All;
+        var partition = new GroupPartitionKey(subGroup, specialization);
+        return groups.Count(group =>
+            {
+                bool CheckCondition()
+                {
+                    if (!group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+
+                    if (!(group.Grade == target.Grade))
+                    {
+                        return false;
+                    }
+
+                    if (group.AttendanceMode != target.AttendanceMode)
+                    {
+                        return false;
+                    }
+
+                    if (group.QualificationType != target.QualificationType)
+                    {
+                        return false;
+                    }
+
+                    if (group.IsDual != target.IsDual)
+                    {
+                        return false;
+                    }
+
+                    if (group.IsAdditionalCourses != target.IsAdditionalCourses)
+                    {
+                        return false;
+                    }
+
+                    if (resolver.Resolve(group) == partition)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                return CheckCondition();
+            })
+            == 1;
+    }
+
+    internal static GroupPartitionKey NormalizePartition(
+        Schedule schedule,
+        in LessonGroups parents,
+        GroupPartitionKey partition,
+        IReadOnlyList<RegistryGroupMatchRule>? rules = null)
+    {
+        if (partition == new GroupPartitionKey(SpecialSubGroups.Eng, Specialization.All))
+        {
+            if (AreEnglishParents(schedule, parents))
+            {
+                return GroupPartitionKey.All;
+            }
+        }
+        if (rules is null)
+        {
+            return partition;
+        }
+        if (parents.Count == 0)
+        {
+            return partition;
+        }
+        foreach (var rule in rules)
+        {
+            if (!rule.MatchByLanguage)
+            {
+                continue;
+            }
+            if (!rule.AllowParentGroup)
+            {
+                continue;
+            }
+            var subGroup = new SubGroup(rule.SubGroup);
+            var rulePartition = new GroupPartitionKey(subGroup, Specialization.All);
+            if (partition != rulePartition)
+            {
+                continue;
+            }
+            if (MatchParentLanguageRule(schedule, parents, rule))
+            {
+                return GroupPartitionKey.All;
+            }
+        }
+        return partition;
+
+        static bool AreEnglishParents(Schedule schedule, in LessonGroups parents)
+        {
+            if (parents.Count == 0)
+            {
+                return false;
+            }
+            foreach (var id in parents)
+            {
+                if (schedule.Get(id).Language != Language.En)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static bool MatchParentLanguageRule(
+            Schedule schedule,
+            in LessonGroups parents,
+            RegistryGroupMatchRule rule)
+        {
+            foreach (var id in parents)
+            {
+                var parent = schedule.Get(id);
+                if (parent.Language != rule.Language)
+                {
+                    return false;
+                }
+                if (!parent.Faculty.Name.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    internal static LessonGroups FindGroupMatch(
+        Schedule schedule,
+        CourseId course,
+        GroupPartitionKey partition,
+        in GroupForSearch group,
+        IReadOnlyList<RegistryGroupMatchRule>? rules = null)
+    {
+        bool combined = RegistryFacultyLabels.IsCombined(group.FacultyName);
+        if (!combined)
+        {
+            if (rules is not null)
+            {
+                var relaxed = FindLanguageMatch(
+                    schedule,
+                    course,
+                    partition,
+                    group,
+                    rules);
+                if (relaxed.Count != 0)
+                {
+                    return relaxed;
+                }
+            }
+            return FindGroupMatch(schedule, group);
+        }
+
+        // Combined registry labels need actual course/partition lessons as evidence
+        // for their parents. Ordinary groups retain their elective fallback behavior.
+        var eligibleParents = new HashSet<GroupId>();
+        foreach (var lesson in schedule.EnumerateAllLessons())
+        {
+            if (lesson.Lesson.Course != course || lesson.Lesson.GroupPartitionKey != partition)
+            {
+                continue;
+            }
+            foreach (var parent in lesson.Lesson.Groups)
+            {
+                eligibleParents.Add(parent);
+            }
+        }
+
+        var ret = new LessonGroups();
+        var languages = new HashSet<Language>();
+        foreach (var candidate in schedule.EnumerateGroups())
+        {
+            if (eligibleParents.Contains(candidate.Id) && IsMatch(candidate.Item, group))
+            {
+                ret.Add(candidate.Id);
+                languages.Add(candidate.Item.Language);
+            }
+        }
+        if (group.Language is not null)
+        {
+            return ret;
+        }
+        if (languages.Count != 1)
+        {
+            return new LessonGroups();
+        }
         return ret;
     }
 
@@ -119,6 +381,11 @@ public sealed class GroupsNavigator
         in GroupForSearch g)
     {
         var ret = new LessonGroups();
+        // Combined labels require course and partition evidence from the scoped overload.
+        if (RegistryFacultyLabels.IsCombined(g.FacultyName))
+        {
+            return ret;
+        }
         // TODO: reuse
         // var subGroup = HtmlSearch.SubGroupFromString(g);
         foreach (var g1 in schedule.EnumerateGroups())
@@ -131,17 +398,109 @@ public sealed class GroupsNavigator
         return ret;
     }
 
+    private static LessonGroups FindLanguageMatch(
+        Schedule schedule,
+        CourseId course,
+        GroupPartitionKey partition,
+        in GroupForSearch group,
+        IReadOnlyList<RegistryGroupMatchRule> rules)
+    {
+        foreach (var rule in rules)
+        {
+            if (!rule.MatchByLanguage)
+            {
+                continue;
+            }
+            if (!group.FacultyName.Span.Equals(rule.Faculty, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            var subGroup = new SubGroup(rule.SubGroup);
+            var rulePartition = new GroupPartitionKey(subGroup, Specialization.All);
+            if (partition != rulePartition)
+            {
+                continue;
+            }
+
+            var cohortSearch = group;
+            cohortSearch.GroupNumber = null;
+            cohortSearch.Language = null;
+            var cohort = schedule.EnumerateGroups()
+                .Where(candidate => IsMatch(candidate.Item, cohortSearch))
+                .ToArray();
+            // Do not infer shared audiences when an intake has multiple parents of one language.
+            if (cohort.Any(candidate => candidate.Item.Language == Language.None)
+                || cohort.GroupBy(candidate => candidate.Item.Language)
+                    .Any(parents => parents.Count() > 1))
+            {
+                continue;
+            }
+
+            var eligible = new HashSet<GroupId>();
+            foreach (var lesson in schedule.EnumerateAllLessons())
+            {
+                if (lesson.Lesson.Course != course)
+                {
+                    continue;
+                }
+
+                foreach (var parent in cohort)
+                {
+                    if (!lesson.Lesson.Groups.Contains(parent.Id))
+                    {
+                        continue;
+                    }
+
+                    bool CalculateConditionResult()
+                    {
+                        if (lesson.Lesson.GroupPartitionKey == partition)
+                        {
+                            return true;
+                        }
+                        if (!rule.AllowParentGroup)
+                        {
+                            return false;
+                        }
+
+                        if (parent.Item.Language != rule.Language)
+                        {
+                            return false;
+                        }
+
+                        if (lesson.Lesson.GroupPartitionKey == GroupPartitionKey.All)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
+
+                    if (conditionResult)
+                    {
+                        eligible.Add(parent.Id);
+                    }
+                }
+            }
+            if (eligible.Count == 1)
+            {
+                return new LessonGroups { eligible.Single() };
+            }
+        }
+        return new LessonGroups();
+    }
+
     private static bool IsMatch(Group a, in GroupForSearch b)
     {
-        bool facultyMatches = a.Faculty.Name.AsSpan().Equals(
-            b.FacultyName.Span,
-            StringComparison.OrdinalIgnoreCase);
+        bool facultyMatches = RegistryFacultyLabels.Matches(b.FacultyName, a.Faculty.Name);
         if (!facultyMatches)
         {
             return false;
         }
 
-        if (b.IsDual != (a.AttendanceMode == AttendanceMode.Dual))
+        if (b.IsDual != a.AttendanceMode.IsDual())
         {
             return false;
         }
@@ -177,49 +536,473 @@ public sealed class GroupsNavigator
 
         return true;
     }
-
 }
 
 [AutoConstructor]
 public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IRegistryGradeNavigator
 {
+    /// <summary>A form field name and the value the registry is expected to keep for it.</summary>
+    private readonly record struct ExpectedFormValue(string? Name, string? Value);
+
     public readonly IRegistryErrorHandler ErrorHandler;
     public readonly RegistryScrapingContext Context;
     public readonly IServiceProvider ServiceProvider;
     public readonly CancellationToken CancellationToken;
 
-    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Courses().Get(semester);
-    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) => Groups().Get(course);
+    public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
+    {
+        return Courses()
+            .Get(semester);
+    }
+
+    public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course)
+    {
+        return Groups()
+            .Get(course);
+    }
+
     public Task SubmitLesson(IDocument document) => SubmitLesson(document, null);
-    public Task SubmitLesson(IDocument document, Action? onSubmissionStarted) =>
-        SubmitMutation(HtmlSearch.GetLessonForm(document), "lesson submission", onSubmissionStarted);
+
+    public async Task SubmitLesson(IDocument document, Action? onSubmissionStarted)
+    {
+        var form = HtmlSearch.GetLessonForm(document);
+        try
+        {
+            await SubmitMutation(
+                form,
+                "lesson submission",
+                onSubmissionStarted);
+        }
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                or HttpStatusCode.SeeOther)
+        {
+            // POST/redirect/GET is normal registry behavior. Confirm persisted values
+            // through reads, without allowing AngleSharp to replay the mutation.
+            await ConfirmSavedLesson(
+                document,
+                form,
+                error);
+        }
+    }
+
+    private async Task ConfirmSavedLesson(
+        IDocument document,
+        IHtmlFormElement form,
+        FormSubmissionRedirectException redirect)
+    {
+        var origin = new Uri(document.Url);
+        var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+            .Select(anchor => new Uri(anchor.Href))
+            .Where(uri =>
+                SameOrigin(first: origin, second: uri)
+                && uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+        if (redirect.Location is null)
+        {
+            throw new IOException("Registry lesson confirmation destination is unavailable.");
+        }
+        if (listLinks.Length != 1)
+        {
+            throw new IOException("Registry lesson confirmation destination is unavailable.");
+        }
+
+        var destination = new Uri(baseUri: origin, relativeUri: redirect.Location);
+        if (destination != listLinks[0])
+        {
+            throw new IOException("Registry lesson confirmation destination is unexpected.");
+        }
+
+        var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
+        var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
+        var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
+        bool conditionValue = DateTime.TryParse(
+            expectedDate,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out var date);
+        if (!conditionValue)
+        {
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        }
+
+        if (expectedMode is null)
+        {
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        }
+        if (expectedTopic is null)
+        {
+            throw new IOException("Registry lesson confirmation fields are unavailable.");
+        }
+
+        var expectedAttendance = form.QuerySelectorAll<IHtmlInputElement>("input[name]")
+            .Where(input => input.Name?.EndsWith(".NotaStr", StringComparison.Ordinal) == true)
+            .Select(input => new ExpectedFormValue(Name: input.Name, Value: input.Value))
+            .ToArray();
+
+        var list = await GetHtml(destination);
+        RequireConfirmationPage(list);
+        var table = list.QuerySelector<IHtmlTableElement>("table")
+            ?? throw new IOException("Registry lesson confirmation table is missing.");
+        var dateText = date.ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        var editLinks = table.Rows.Where(row =>
+            {
+                if (!(row.Cells.Length >= 3))
+                {
+                    return false;
+                }
+
+                if (row.Cells[0].TextContent.Contains(dateText, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                return false;
+            })
+            .SelectMany(row => row.Cells[2].QuerySelectorAll<IHtmlAnchorElement>("a[href]"))
+            .Select(anchor => new Uri(anchor.Href))
+            .Where(uri =>
+                SameOrigin(first: origin, second: uri)
+                && uri.AbsolutePath.Contains("/LessonAttendance/Edit/", StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+        var matches = 0;
+        foreach (var edit in editLinks)
+        {
+            var saved = await GetHtml(edit);
+            RequireConfirmationPage(saved);
+            var savedForm = HtmlSearch.GetLessonForm(saved);
+            var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
+
+            bool CalculateConditionResult()
+            {
+                if (!DateTime.TryParse(
+                        savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.None,
+                        out var savedDate))
+                {
+                    return false;
+                }
+
+                if (!(savedDate == date))
+                {
+                    return false;
+                }
+
+                if (savedForm.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value != expectedMode)
+                {
+                    return false;
+                }
+
+                if (savedForm.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value
+                        .ReplaceLineEndings("\n")
+                    != expectedTopic.ReplaceLineEndings("\n"))
+                {
+                    return false;
+                }
+
+                if (expectedAttendance.All(input =>
+                        {
+                            if (!(savedInputs.Count(actual => actual.Name == input.Name) == 1))
+                            {
+                                return false;
+                            }
+
+                            if (!(savedInputs.Any(actual =>
+                                                        actual.Name == input.Name && actual.Value == input.Value)))
+                            {
+                                return false;
+                            }
+
+                            return true;
+                        }))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
+            {
+                matches++;
+            }
+        }
+        if (matches != 1)
+        {
+            throw new IOException("Registry saved lesson values could not be uniquely confirmed.");
+        }
+
+        static bool SameOrigin(Uri first, Uri second)
+        {
+            if (first.Scheme != second.Scheme)
+            {
+                return false;
+            }
+
+            if (first.Host != second.Host)
+            {
+                return false;
+            }
+
+            if (first.Port == second.Port)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        static void RequireConfirmationPage(IDocument page)
+        {
+            // A failed read cannot prove rejection of the already-attempted POST.
+            bool CalculateConditionResult()
+            {
+                if (page.StatusCode != HttpStatusCode.OK)
+                {
+                    return true;
+                }
+                if (IsLoginAddress(page.Url))
+                {
+                    return true;
+                }
+
+                if (page.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
+            {
+                throw new IOException("Registry lesson confirmation read failed.");
+            }
+        }
+    }
 
     public Task SubmitDelete(IDocument document) => SubmitDelete(document, null);
+
     public Task SubmitDelete(IDocument document, Action? onSubmissionStarted)
     {
         var form = document.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")
             ?? throw new InvalidOperationException("Registry delete form is missing.");
-        return SubmitMutation(form, "deletion", onSubmissionStarted);
+        return SubmitDeletion();
+
+        async Task SubmitDeletion()
+        {
+            try
+            {
+                await SubmitMutation(
+                    form,
+                    "deletion",
+                    onSubmissionStarted);
+            }
+            catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                    or HttpStatusCode.SeeOther)
+            {
+                var origin = new Uri(document.Url);
+                var listLinks = document.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Select(anchor => new Uri(anchor.Href))
+                    .Where(uri =>
+                    {
+                        if (uri.Scheme != origin.Scheme)
+                        {
+                            return false;
+                        }
+                        if (uri.Host != origin.Host)
+                        {
+                            return false;
+                        }
+                        if (uri.Port != origin.Port)
+                        {
+                            return false;
+                        }
+
+                        if (uri.AbsolutePath.Contains("/LessonAttendance/LessonsList/", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    .Distinct()
+                    .ToArray();
+                var lessonId = form.QuerySelector<IHtmlInputElement>("input[name=lessonId]")?.Value;
+
+                static IOException InvalidConfirmation() =>
+                    new("Registry deletion confirmation identity is unavailable.");
+
+                if (error.Location is null)
+                {
+                    throw InvalidConfirmation();
+                }
+                if (listLinks.Length != 1)
+                {
+                    throw InvalidConfirmation();
+                }
+                if (string.IsNullOrWhiteSpace(lessonId))
+                {
+                    throw InvalidConfirmation();
+                }
+                if (!lessonId.All(char.IsAsciiDigit))
+                {
+                    throw InvalidConfirmation();
+                }
+                var expectedPath = $"/LessonAttendance/LessonDetail/{lessonId}";
+                if (!origin.AbsolutePath.EndsWith(expectedPath, StringComparison.Ordinal))
+                {
+                    throw InvalidConfirmation();
+                }
+
+                var destination = new Uri(baseUri: origin, relativeUri: error.Location);
+                if (destination != listLinks[0])
+                {
+                    throw new IOException("Registry deletion confirmation destination is unexpected.");
+                }
+
+                var list = await GetHtml(destination);
+
+                bool CalculateConditionResult2()
+                {
+                    if (list.StatusCode != HttpStatusCode.OK)
+                    {
+                        return true;
+                    }
+                    if (IsLoginAddress(list.Url))
+                    {
+                        return true;
+                    }
+
+                    if (list.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                bool conditionResult2 = CalculateConditionResult2();
+
+
+                if (conditionResult2)
+                {
+                    throw new IOException("Registry deletion confirmation read failed.");
+                }
+
+                var table = list.QuerySelector<IHtmlTableElement>("table")
+                    ?? throw new IOException("Registry deletion confirmation table is missing.");
+                if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                        .All(anchor =>
+                            !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
+                    || table.Rows.Length == 0)
+                {
+                    throw new IOException("Registry deletion confirmation page is unrecognized.");
+                }
+
+                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Any(anchor =>
+                    {
+                        bool conditionResult;
+                        if (new Uri(anchor.Href).AbsolutePath is var path)
+                        {
+                            string text = path;
+                            string text2 = $"/LessonDetail/{lessonId}";
+                            string value = text2;
+                            var comparisonType = StringComparison.Ordinal;
+                            if (text.EndsWith(value, comparisonType))
+                            {
+                                conditionResult = true;
+                            }
+                            else
+                            {
+                                string text3 = path;
+                                string text4 = $"/Edit/{lessonId}";
+                                string value2 = text4;
+                                var comparisonType2 = StringComparison.Ordinal;
+                                bool endsWith = text3.EndsWith(value2, comparisonType2);
+                                conditionResult = endsWith;
+                            }
+                        }
+                        else
+                        {
+                            conditionResult = false;
+                        }
+
+                        return conditionResult;
+                    }))
+                {
+                    throw new RegistryDeletionRefusedException();
+                }
+            }
+        }
     }
 
-    private async Task SubmitMutation(IHtmlFormElement form, string operation, Action? onSubmissionStarted)
+    private async Task SubmitMutation(
+        IHtmlFormElement form,
+        string operation,
+        Action? onSubmissionStarted)
     {
         CancellationToken.ThrowIfCancellationRequested();
-        var response = await SubmitOnce(form, CancellationToken, onSubmissionStarted);
+        var response = await SubmitOnce(
+            form,
+            CancellationToken,
+            onSubmissionStarted);
         RejectResponse(response, operation);
     }
 
-    private async Task<IDocument> SubmitOnce(IHtmlFormElement form, CancellationToken token, Action? onSubmissionStarted)
+    private async Task<IDocument> SubmitOnce(
+        IHtmlFormElement form,
+        CancellationToken token,
+        Action? onSubmissionStarted)
     {
+        static bool IsLoginRedirect(FormSubmissionRedirectException error)
+        {
+            if (error.StatusCode is not (HttpStatusCode.Redirect or HttpStatusCode.SeeOther))
+            {
+                return false;
+            }
+
+            if (error.Location is not { } location)
+            {
+                return false;
+            }
+
+            if (IsLoginAddress(location.ToString()))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         if (!form.Method.Equals("post", StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidOperationException("Registry mutation form must use POST.");
+        }
+
         try
         {
-            return await Context.ScrapingContext.SubmitFormOnce(form, token, onSubmissionStarted)
-                ?? throw new IOException("Registry returned no submission response.");
+            var result = await Context.ScrapingContext.SubmitFormOnce(
+                form,
+                token,
+                onSubmissionStarted);
+            if (result is null)
+            {
+                throw new IOException("Registry returned no submission response.");
+            }
+
+            return result;
         }
-        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther
-            && error.Location is { } location && IsLoginAddress(location.ToString()))
+        catch (FormSubmissionRedirectException error) when (IsLoginRedirect(error))
         {
             throw new RegistrySubmissionRejectedException("Registry submission redirected to login.");
         }
@@ -227,7 +1010,8 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
     private static bool IsLoginAddress(string address)
     {
-        var path = address.Split('?', '#')[0].TrimEnd('/');
+        var path = address.Split('?', '#')[0]
+            .TrimEnd('/');
         return path.EndsWith("/login", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -236,39 +1020,90 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         if ((int) response.StatusCode is >= 400 and < 500
             || response.QuerySelector("input[type=password]") is not null
             || IsLoginAddress(response.Url)
-            || response.QuerySelectorAll(".validation-summary-errors").Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
-            throw new RegistrySubmissionRejectedException($"Registry rejected {operation}.");
+            || response.QuerySelectorAll(".validation-summary-errors")
+                .Any(errors => !string.IsNullOrWhiteSpace(errors.TextContent)))
+        {
+            throw new RegistryOperationRejectedException(operation);
+        }
+
         if (response.StatusCode != HttpStatusCode.OK)
-            throw new IOException($"Registry {operation} response could not be confirmed.");
+        {
+            throw new RegistryOperationResponseUnconfirmedException(operation);
+        }
     }
 
-    public async Task SubmitGrades(IDocument document, CancellationToken token, Action? onSubmissionStarted = null)
+    public async Task SubmitGrades(
+        IDocument document,
+        CancellationToken token,
+        Action? onSubmissionStarted = null)
     {
         var form = RegistryGradeForm.Validate(document);
         token.ThrowIfCancellationRequested();
         var expected = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
-            .Select(input => (Name: input.Name, Value: input.Value)).ToArray();
+            .Select(input => new ExpectedFormValue(Name: input.Name, Value: input.Value))
+            .ToArray();
         try
         {
-            var response = await SubmitOnce(form, token, onSubmissionStarted);
+            var response = await SubmitOnce(
+                form,
+                token,
+                onSubmissionStarted);
             RejectResponse(response, "grade submission");
             // An ordinary form response or navigation away from the edit page must still be
             // confirmed by reading the saved values. A blank/unrecognized page proves nothing.
             if (response.QuerySelector<IHtmlFormElement>("form") is null && response.Url == document.Url)
+            {
                 throw new IOException("Registry grade submission response could not be confirmed.");
+            }
         }
-        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.SeeOther)
+        catch (FormSubmissionRedirectException error) when (error.StatusCode is HttpStatusCode.Redirect
+                                                                or HttpStatusCode.SeeOther)
         {
             // Confirm at the known edit URL below. A failed confirmation read cannot
             // establish rejection of the already-attempted POST.
         }
         var saved = await Context.Browser.OpenAsync(document.Url, token);
         var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
-        if (saved.StatusCode != HttpStatusCode.OK
-            || saved.QuerySelector("input[type=password], .validation-summary-errors") is not null
-            || expected.Any(input => savedInputs.Count(actual => actual.Name == input.Name) != 1
-                || !savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value)))
+
+        bool CalculateConditionResult()
+        {
+            if (saved.StatusCode != HttpStatusCode.OK)
+            {
+                return true;
+            }
+            if (saved.QuerySelector("input[type=password], .validation-summary-errors") is not null)
+            {
+                return true;
+            }
+
+            if (expected.Any(input =>
+            {
+                if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
+                {
+                    return true;
+                }
+
+                if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
+                {
+                    return false;
+                }
+
+                return true;
+            }))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
+        {
             throw new IOException("Registry saved grades could not be confirmed.");
+        }
     }
 
     public CoursesNavigator Courses()
@@ -310,7 +1145,9 @@ public readonly record struct RegistryScrapingContext(
         CancellationToken cancellationToken)
     {
         var builder = new ScrapingContextBuilder();
-        RegistryScraping.AddDefaultConfigWithoutHandlers(builder);
+        var b = builder;
+        var delay = ResolveHttpCallDelay(sp);
+        RegistryScraping.AddDefaultConfigWithoutHandlers(b, delay);
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         builder.TokenAuth(x =>
         {
@@ -320,11 +1157,88 @@ public readonly record struct RegistryScrapingContext(
         var ret = await builder.Build(cancellationToken);
         return new(ret);
     }
+
+    private static TimeSpan ResolveHttpCallDelay(IServiceProvider sp)
+    {
+        var provider = sp.GetService(typeof(DataProvider<BuiltRegistryConfig>)) as DataProvider<BuiltRegistryConfig>;
+        if (provider is null)
+        {
+            return BuiltRegistryConfig.DefaultHttpCallDelay;
+        }
+        // Null means registry not enabled at this path; mapping errors (e.g. negative delay) propagate.
+        var result = provider.Get()?.HttpCallDelay;
+        if (result.HasValue)
+        {
+            return result.Value;
+        }
+
+        return BuiltRegistryConfig.DefaultHttpCallDelay;
+    }
 }
 
 public static partial class RegistryScraping
 {
-    public const string CredentialsConfigKey = "Curmanschii Anton:Registry";
+    internal static readonly TimeSpan RegistryRequestSpacing = BuiltRegistryConfig.DefaultHttpCallDelay;
+
+    /// <summary>Dedicated read-only history transport; authentication uses the application's existing login builder.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(category: "Reliability",
+        checkId: "CA2000:Dispose objects before losing scope",
+        Justification =
+            "The returned context owns the transport; construction failures dispose all allocated objects.")]
+    public static async Task<ScrapingContext> CreateHistoryContext(
+        Credentials credentials,
+        CancellationToken token,
+        TimeSpan? delay = null)
+    {
+        var spacing = delay ?? RegistryRequestSpacing;
+        if (spacing < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay));
+        }
+
+        HttpMessageHandler? handler = null;
+        HttpClient? client = null;
+        HttpClientContext? transport = null;
+        try
+        {
+            var cookieProvider = new AngleSharp.Io.MemoryCookieProvider();
+            handler = new HttpClientHandler
+            {
+                CookieContainer = cookieProvider.Container,
+                AllowAutoRedirect = false,
+            };
+            var inner = handler;
+            Uri index2 = new(BaseUrl + "LessonAttendance");
+            var login2 = DefaultTokenNames.LoginUrl;
+            var spacing2 = spacing;
+            var guard = new RegistryHistoryRequestHandler(
+                inner,
+                index: index2,
+                login: login2,
+                spacing2);
+            handler = guard;
+            client = new HttpClient(guard);
+            transport = new HttpClientContext(
+                cookieProvider,
+                client,
+                guard);
+            var builder = new ScrapingContextBuilder();
+            // The history transport applies spacing to every request, including login.
+            AddDefaultConfigWithoutHandlers(builder, TimeSpan.Zero);
+            builder.AddLogging(Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+            builder.TokenAuth(x => x.PasswordLoginCall(credentials));
+            var context = await builder.Build(token, transport);
+            guard.CompleteAuthentication();
+            return context;
+        }
+        catch
+        {
+            transport?.Dispose();
+            client?.Dispose();
+            handler?.Dispose();
+            throw;
+        }
+    }
 
     public static OnlineRegistryNavigator Navigator(
         this RegistryScrapingContext context,
@@ -340,30 +1254,42 @@ public static partial class RegistryScraping
 
     internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b)
     {
-        b.Delay(TimeSpan.FromSeconds(1.0));
+        AddDefaultConfigWithoutHandlers(b, RegistryRequestSpacing);
+    }
+
+    internal static void AddDefaultConfigWithoutHandlers(ScrapingContextBuilder b, TimeSpan delay)
+    {
+        if (delay < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(delay));
+        }
+
+        b.Delay(delay);
         b.AddConfig(DefaultTokensStorageConfig);
         b.AddConfig(DefaultPasswordLoginFieldNames);
         b.AddConfig(DefaultTokenNames);
     }
 
     public const string BaseUrl = "http://crd.usm.md/studregistry/";
+
     private static readonly TokenNamesConfig DefaultTokenNames = new()
     {
         BaseUrl = new Uri(BaseUrl),
         LoginUrl = new Uri("http://crd.usm.md/studregistry/Account/Login"),
         TokenCookieName = "ForDecanat",
     };
+
     private static readonly TokensStorageConfig DefaultTokensStorageConfig = new()
     {
         TokensFile = "tokens.json",
     };
+
     private static readonly PasswordLoginFieldNames DefaultPasswordLoginFieldNames = new()
     {
         Login = "UserLogin",
         Password = "UserPassword",
     };
 }
-
 
 public record struct StudentsLookupKey
 {
@@ -402,6 +1328,7 @@ public readonly record struct AttendanceLookupKey
 
     // The program may use any of this info to get the right data.
     public int DayIndex { get; init; }
+    public LessonGroups? ActiveGroups { get; init; }
     public readonly DateTime DateTime;
 
     public AttendanceLookupKey(
@@ -423,6 +1350,9 @@ public readonly record struct AttendanceLookupKey
 
 public record struct FoundGroups
 {
+    /// <summary>Confirmed registry-only combination of existing faculty cohorts.</summary>
+    public bool IsCombined;
+
     public required bool IsWildcard;
     public required LessonGroups Value;
 }

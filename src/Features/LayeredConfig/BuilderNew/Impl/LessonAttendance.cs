@@ -9,28 +9,35 @@ namespace ScheduleLib.Application.Config;
 public sealed class LessonAttendanceSource
 {
     public string? FilePath { get; set; }
+    public int? StudentNameColumn { get; set; }
+    public Dictionary<string, string>? WorksheetNames { get; set; }
     public RepeatedCourseBehavior? RepeatedCourseBehavior { get; set; }
     public CellValueFormat? CellValueFormat { get; set; }
+    public HeaderFormatType? HeaderFormat { get; set; }
+    public AttendanceDateMode? DateMode { get; set; }
 }
 
 public sealed class LessonAttendanceConfig : INodeData<LessonAttendanceConfig>
 {
-    public static NodeDataKey<LessonAttendanceConfig> Key { get; } = NodeDataKey.Registry.Register<LessonAttendanceConfig>();
+    public static NodeDataKey<LessonAttendanceConfig> Key { get; } =
+        NodeDataKey.Registry.Register<LessonAttendanceConfig>();
+
     // Need a way to allow to remove an item by key.
     public List<LessonAttendanceSource> Sources { get; set; } = new();
     public Attendance? MissingDaysFiller { get; set; }
 
     public static void Register(IServiceCollection services)
     {
+        services.SetImmutable<Dictionary<string, string>>();
         services.AddKeyEqualityComparer((LessonAttendanceSource s) => s.FilePath);
         services.RegisterBasicOperationsAndMergers<LessonAttendanceConfig>();
-        services.AddConfigProvider(LessonAttendanceConfig.Key);
+        services.AddConfigProvider(Key);
     }
 }
 
 public partial class Extensions
 {
-    extension (NodeDataBuilder<LessonAttendanceConfig> builder)
+    extension(NodeDataBuilder<LessonAttendanceConfig> builder)
     {
         public void Source(Action<LessonAttendanceSource> configure)
         {

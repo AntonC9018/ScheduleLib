@@ -7,7 +7,9 @@ public sealed class SharedLayout
 {
     // For cell size
     public required HashSet<(WeeklyLessonId Lesson, int Order)> SharedCellStart;
+
     public required Dictionary<CellKey<DefaultRowKey, GroupId>, int> SharedMaxOrder;
+
     // For position
     public required Dictionary<WeeklyLessonId, uint> LessonVerticalOrder;
 
@@ -90,12 +92,14 @@ public sealed class SharedLayout
     }
 }
 
-
 public static class ColumnArrangementHelper
 {
+    /// <summary>The chosen column order and the layout computed for it, when one was searched for.</summary>
+    public readonly record struct OptimizedColumnArrangement(ColumnOrder<GroupId> ColumnOrder, SharedLayout? Layout);
+
     // TODO: Integrate the max columns per page feature.
     // TODO: Doesn't work actually, make tests for this thing.
-    public static (ColumnOrder<GroupId> ColumnOrder, SharedLayout? Layout) OptimizeColumnOrder(FilteredSchedule schedule)
+    public static OptimizedColumnArrangement OptimizeColumnOrder(FilteredSchedule schedule)
     {
         ColumnOrderBuilder<GroupId> columnOrder = new();
 
@@ -105,13 +109,13 @@ public static class ColumnArrangementHelper
         {
             Debug.Assert(columnOrder.Count == 0);
             DoDefaultOrder(schedule, columnOrder);
-            return (columnOrder.Build(), null);
+            return new(columnOrder.Build(), null);
         }
 
         {
             var columnOrder1 = columnOrder.Build();
             var ret = SharedLayout.Create(schedule.EnumerateWeeklyLessons(), columnOrder1);
-            return (columnOrder1, ret);
+            return new(columnOrder1, ret);
         }
     }
 
@@ -138,7 +142,10 @@ public static class ColumnArrangementHelper
 
             var day = lesson.Date.DefaultRowKey();
 
-            ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(groupings, day, out bool exists);
+            ref var ids = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                groupings,
+                day,
+                out bool exists);
             if (!exists)
             {
                 ids = new();
@@ -156,7 +163,8 @@ public static class ColumnArrangementHelper
             Groups = schedule.Groups,
             AllGroupingSets = groupingsValues,
             OccupiedGroupPositions = BitArray32.Empty(schedule.Groups.Length),
-            AllGroupingArrays = groupingsValues.Select(x => x.ToArray()).ToArray(),
+            AllGroupingArrays = groupingsValues.Select(x => x.ToArray())
+                .ToArray(),
             ColumnOrder = columnOrder,
         };
 
@@ -177,6 +185,7 @@ public static class ColumnArrangementHelper
 
         public readonly (HashSet<GroupId> Set, GroupId[] Array) Current
             => (AllGroupingSets[Index], AllGroupingArrays[Index]);
+
         public readonly bool IsDone => Index == AllGroupingSets.Length;
         public readonly int GroupCount => OccupiedGroupPositions.Len;
     }
@@ -231,7 +240,8 @@ public static class ColumnArrangementHelper
 
             // These are almost free anyway
             var maskOfIncludedGroups = MaskOfPositionsOfIncludedGroups(ref context);
-            var occupiedPositionsWithoutIncludedGroups = context.OccupiedGroupPositions.Intersect(maskOfIncludedGroups.Flipped);
+            var occupiedPositionsWithoutIncludedGroups =
+                context.OccupiedGroupPositions.Intersect(maskOfIncludedGroups.Flipped);
 
             var context1 = new ArrangementGenerationContext
             {
@@ -337,10 +347,7 @@ public static class ColumnArrangementHelper
             {
                 return NoIncludedGroupsBasePositions();
             }
-            else
-            {
-                return SomeIncludedGroupsBasePositions();
-            }
+            return SomeIncludedGroupsBasePositions();
         }
 
         private IEnumerable<int[]> SomeIncludedGroupsBasePositions()
@@ -357,7 +364,7 @@ public static class ColumnArrangementHelper
             int startIndex = Math.Max(interval.Start - wiggleRoom, 0);
             for (int i = startIndex; i < startIndex + interval.Length; i++)
             {
-                var slice = OccupiedPositionsWithoutIncludedGroups.Slice(i, length);
+                var slice = OccupiedPositionsWithoutIncludedGroups.Slice(offset: i, length: length);
                 if (!slice.AreNoneSet)
                 {
                     continue;
@@ -406,7 +413,10 @@ file readonly struct Dict<TKey, TValue>()
 
     public ref TValue? Add(TKey key, out bool added)
     {
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_dict, key, out bool exists);
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            _dict,
+            key,
+            out bool exists);
         added = !exists;
         return ref value;
     }

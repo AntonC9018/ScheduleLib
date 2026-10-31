@@ -5,7 +5,10 @@ namespace ScheduleLib.JsonConverters;
 
 public sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
 {
-    public override NameParts<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override NameParts<T> Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType != JsonTokenType.StartArray)
         {
@@ -38,13 +41,16 @@ public sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
         return nameParts;
     }
 
-    public override void Write(Utf8JsonWriter writer, NameParts<T> value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        NameParts<T> value,
+        JsonSerializerOptions options)
     {
         writer.WriteStartArray();
         int lastNullStart = -1;
         for (int i = 0; i < value.Length; i++)
         {
-            if (!EqualityComparer<T>.Default.Equals(value[i], default))
+            if (!EqualityComparer<T>.Default.Equals(x: value[i], y: default))
             {
                 lastNullStart = -1;
                 continue;
@@ -58,7 +64,10 @@ public sealed class NamePartsJsonConverter<T> : JsonConverter<NameParts<T>>
         {
             if (lastNullStart == -1 || i < lastNullStart)
             {
-                JsonSerializer.Serialize(writer, value[i], options);
+                JsonSerializer.Serialize(
+                    writer,
+                    value[i],
+                    options);
             }
         }
         writer.WriteEndArray();

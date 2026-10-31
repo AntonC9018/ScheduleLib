@@ -12,34 +12,106 @@ public static partial class ScheduleBuilderHelper
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
     {
-        if (s.ImplicitSplitConfig is not { } config
-            || config.Scopes.Count == 0)
+        AssignImplicitSplits(
+            s,
+            s.ImplicitSplitConfig,
+            firstWeeklyLesson: 0,
+            firstOneTimeLesson: 0);
+    }
+
+    /// <summary>
+    /// Applies a document's implicit audience policy only to its newly imported
+    /// lessons. Previously imported documents can retain a different explicit
+    /// policy, such as the website's temporary elective-cohort adaptation.
+    /// </summary>
+    public static void AssignImportedImplicitSplits(
+        this ScheduleBuilder s,
+        ImplicitSplitConfig? config,
+        int firstWeeklyLesson,
+        int firstOneTimeLesson)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(firstWeeklyLesson);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(firstWeeklyLesson, s.WeeklyLessons.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(firstOneTimeLesson);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(firstOneTimeLesson, s.OneTimeLessons.Count);
+
+        bool CalculateConditionResult()
+        {
+            if (config is null)
+            {
+                return true;
+            }
+            if (firstWeeklyLesson != s.WeeklyLessons.Count)
+            {
+                return false;
+            }
+
+            if (firstOneTimeLesson == s.OneTimeLessons.Count)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return;
         }
-        StudyYear? studyYear = s.GroupParseContext?.CurrentStudyYear;
+
+        s.Preprocess();
+        s.Validate();
+        s.ClassifySubGroups();
+        AssignImplicitSplits(
+            s,
+            config,
+            firstWeeklyLesson: firstWeeklyLesson,
+            firstOneTimeLesson: firstOneTimeLesson);
+        s.RefreshLookup();
+    }
+
+    private static void AssignImplicitSplits(
+        ScheduleBuilder s,
+        ImplicitSplitConfig? config,
+        int firstWeeklyLesson,
+        int firstOneTimeLesson)
+    {
+        if (config is null || config.Scopes.Count == 0)
+        {
+            return;
+        }
+        var studyYear = s.GroupParseContext?.CurrentStudyYear;
         if (studyYear is null && config.Scopes.Any(static scope => scope.StudyYear is not null))
         {
             throw MissingImplicitSplitStudyYearException.ForNoGroupParseContext();
         }
-        if (studyYear is { } currentYear
-            && !s.GroupParseContextIsExplicit
-            && config.Scopes.Any(static scope => scope.StudyYear is not null)
-            && !config.Scopes.Any(scope => scope.StudyYear == currentYear))
+        if (studyYear is { } currentYear)
         {
-            throw MissingImplicitSplitStudyYearException.ForNoMatchingWallClockYear(currentYear);
+            if (!s.GroupParseContextIsExplicit)
+            {
+                if (config.Scopes.Any(static scope => scope.StudyYear is not null))
+                {
+                    if (!config.Scopes.Any(scope => scope.StudyYear == currentYear))
+                    {
+                        throw MissingImplicitSplitStudyYearException.ForNoMatchingWallClockYear(currentYear);
+                    }
+                }
+            }
         }
         // A null study year matches only year-less scopes (see ImplicitSplitScope.Matches).
 
         // Splits append new lessons, so the loops cover only the original ones:
         // the counts are captured before any split runs.
         int weeklyCount = s.WeeklyLessons.Count;
-        for (int i = 0; i < weeklyCount; i++)
+        for (int i = firstWeeklyLesson; i < weeklyCount; i++)
         {
             Split(s.WeeklyLessons.Ref(i));
         }
         int oneTimeCount = s.OneTimeLessons.Count;
-        for (int i = 0; i < oneTimeCount; i++)
+        for (int i = firstOneTimeLesson; i < oneTimeCount; i++)
         {
             Split(s.OneTimeLessons.Ref(i));
         }
@@ -58,7 +130,9 @@ public static partial class ScheduleBuilderHelper
                 Debug.Assert(false, "ValidateLessons guarantees a course on every lesson.");
                 throw new InvalidOperationException("The lesson course must be initialized.");
             }
-            Debug.Assert(courseId.Id >= 0 && courseId.Id < s.Courses.Count, "ValidateLessons guarantees a known course.");
+            Debug.Assert(
+                courseId.Id >= 0 && courseId.Id < s.Courses.Count,
+                "ValidateLessons guarantees a known course.");
             var groups = lesson.Base.Group.Groups;
             if (groups.IsEmpty)
             {
@@ -89,10 +163,37 @@ public static partial class ScheduleBuilderHelper
                     {
                         continue;
                     }
-                    ResolveSpecialization(scope, names, courseName, ref spec);
-                    ResolveAlternative(scope, names, courseName, ref alt);
+                    ResolveSpecialization(
+                        scope,
+                        names,
+                        courseName,
+                        ref spec);
+                    ResolveAlternative(
+                        scope,
+                        names,
+                        courseName,
+                        ref alt);
                 }
-                if (spec is null && alt is null)
+
+                bool CalculateConditionResult()
+                {
+                    if (!(spec is null))
+                    {
+                        return false;
+                    }
+
+                    if (alt is null)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                bool conditionResult = CalculateConditionResult();
+
+
+                if (conditionResult)
                 {
                     // The group is covered by no entry: its part of the lesson keeps
                     // going out without a specialization.
@@ -107,7 +208,10 @@ public static partial class ScheduleBuilderHelper
                 {
                     accumulator.NoteAlt(resolvedAlt, courseName);
                 }
-                accumulator.AddCovered(groupId, spec, alt);
+                accumulator.AddCovered(
+                    groupId,
+                    spec,
+                    alt);
             }
             if (accumulator.Parts.Count == 0)
             {
@@ -143,7 +247,10 @@ public static partial class ScheduleBuilderHelper
                         {
                             Data = new()
                             {
-                                Base = CopiedBase(w.Data.Base, part, courseName),
+                                Base = CopiedBase(
+                                    w.Data.Base,
+                                    part,
+                                    courseName),
                                 Date = w.Data.Date,
                             },
                         };
@@ -154,7 +261,10 @@ public static partial class ScheduleBuilderHelper
                         {
                             Data = new()
                             {
-                                Base = CopiedBase(o.Data.Base, part, courseName),
+                                Base = CopiedBase(
+                                    o.Data.Base,
+                                    part,
+                                    courseName),
                                 Date = o.Data.Date,
                             },
                         };
@@ -174,7 +284,10 @@ public static partial class ScheduleBuilderHelper
                 {
                     group.Groups = part.Groups;
                 }
-                Stamp(ref group, part, courseName);
+                Stamp(
+                    ref group,
+                    part,
+                    courseName);
             }
 
             IEnumerable<Part> PartsAfterFirst()
@@ -214,7 +327,11 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                        dimension: "specialization",
+                        prev: prev.Value,
+                        next: value.Value,
+                        courseName: courseName);
                 }
                 assigned = value;
             }
@@ -234,7 +351,11 @@ public static partial class ScheduleBuilderHelper
                 }
                 if (assigned is { } prev && prev != value)
                 {
-                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, value.Value, courseName);
+                    throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                        dimension: "alternative",
+                        prev: prev.Value,
+                        next: value.Value,
+                        courseName: courseName);
                 }
                 assigned = value;
             }
@@ -250,7 +371,10 @@ public static partial class ScheduleBuilderHelper
                 if (group.Specialization != Specialization.All
                     && group.Specialization != spec)
                 {
-                    throw ConflictingImplicitAssignmentException.ForExplicitSpecializationConflict(courseName, group.Specialization.Value, spec.Value);
+                    throw ConflictingImplicitAssignmentException.ForExplicitSpecializationConflict(
+                        courseName: courseName,
+                        explicitValue: group.Specialization.Value,
+                        assignedValue: spec.Value);
                 }
                 group.Specialization = spec;
             }
@@ -259,7 +383,10 @@ public static partial class ScheduleBuilderHelper
                 if (group.Alternative != Alternative.All
                     && group.Alternative != alt)
                 {
-                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(courseName, group.Alternative.Value, alt.Value);
+                    throw ConflictingImplicitAssignmentException.ForExplicitAlternativeConflict(
+                        courseName: courseName,
+                        explicitValue: group.Alternative.Value,
+                        assignedValue: alt.Value);
                 }
                 group.Alternative = alt;
             }
@@ -273,7 +400,10 @@ public static partial class ScheduleBuilderHelper
             var copy = src;
             copy.General.Teachers = new(src.General.Teachers);
             copy.Group.Groups = part.Groups;
-            Stamp(ref copy.Group, part, courseName);
+            Stamp(
+                ref copy.Group,
+                part,
+                courseName);
             return copy;
         }
     }
@@ -301,7 +431,11 @@ file sealed class SplitAccumulator
     {
         if (SeenSpec is { } prev && prev != spec)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("specialization", prev.Value, spec.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                dimension: "specialization",
+                prev: prev.Value,
+                next: spec.Value,
+                courseName: courseName);
         }
         SeenSpec ??= spec;
     }
@@ -310,20 +444,27 @@ file sealed class SplitAccumulator
     {
         if (SeenAlt is { } prev && prev != alt)
         {
-            throw ConflictingImplicitAssignmentException.ForConflictingAssignment("alternative", prev.Value, alt.Value, courseName);
+            throw ConflictingImplicitAssignmentException.ForConflictingAssignment(
+                dimension: "alternative",
+                prev: prev.Value,
+                next: alt.Value,
+                courseName: courseName);
         }
         SeenAlt ??= alt;
     }
 
-    public void AddCovered(GroupId groupId, Specialization? spec, Alternative? alt)
+    public void AddCovered(
+        GroupId groupId,
+        Specialization? spec,
+        Alternative? alt)
     {
         // Nullable.Equals compares the wrapped values with null equal to null, so two
         // groups resolving to "no value" on a dimension share one part. An explicit
         // call states that null-handling intent; lifted == would resolve the same way
         // but hides it behind operator lifting.
         int partIndex = Parts.FindIndex(p =>
-            Nullable.Equals(p.Spec, spec)
-            && Nullable.Equals(p.Alt, alt));
+            Nullable.Equals(n1: p.Spec, n2: spec)
+            && Nullable.Equals(n1: p.Alt, n2: alt));
         if (partIndex == -1)
         {
             var partGroups = new LessonGroups();
