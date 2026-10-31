@@ -384,7 +384,7 @@ public static class DriveSync
             catch (Exception)
             {
                 AddTerminal(action, RemoteSyncOutcomes.InterruptedState(attempted, ActionState.Failed));
-                var effects = outcomes.Any(x => x.State is ActionState.Completed or ActionState.Uncertain);
+                var effects = RemoteSyncOutcomes.AnyRemoteEffect(outcomes.Select(x => x.State));
                 return Result(
                     CliExit.AfterEffects(CliExit.IoFailure, effects),
                     [

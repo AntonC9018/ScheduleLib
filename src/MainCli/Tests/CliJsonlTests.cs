@@ -1230,7 +1230,7 @@ public sealed class CliJsonlTests
     }
 
     [Fact]
-    public async Task CalendarCancellationReportsRemainingActionsWithoutChangingLegacyOutcomes()
+    public async Task CalendarCancellationBeforeAnAttemptRecordsTheCurrentActionAsNotAttempted()
     {
         using var cancellation = new CancellationTokenSource();
         using var provider = new CalendarFake();
@@ -1276,8 +1276,10 @@ public sealed class CliJsonlTests
                 }
             });
         Assert.Equal(expected: 130, actual: result.ExitCode);
-        Assert.Single(result.Outcomes);
-        Assert.Equal(expected: "completed", actual: result.Outcomes[0].State.ToWire());
+        Assert.Equal(
+            expected: [ActionState.Completed, ActionState.NotAttempted],
+            actual: result.Outcomes.Select(x => x.State));
+        Assert.Equal(expected: CalendarActions.CreateCalendar, actual: result.Outcomes[1].Action);
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(
             expected: ["1", "2"],

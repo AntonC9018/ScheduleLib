@@ -451,13 +451,7 @@ public static class CalendarSync
         }
         catch (Exception error) when (RemoteSyncOutcomes.IsCancellationTransportError(token, error))
         {
-            // Calendar records only an attempted interrupted action; the remaining
-            // plan, including an unattempted current action, is reported by Result.
-            if (attempted)
-            {
-                AddCurrentOutcome(ActionState.Uncertain);
-            }
-
+            AddCurrentOutcome(RemoteSyncOutcomes.InterruptedState(attempted, ActionState.NotAttempted));
             return Result(
                 CliExit.Cancelled,
                 [
@@ -494,15 +488,11 @@ public static class CalendarSync
         }
         catch (Exception)
         {
-            // Calendar records nothing for an unattempted action here, and any
-            // recorded outcome (including uncertain) makes the exit partial.
-            if (attempted)
-            {
-                AddCurrentOutcome(ActionState.Uncertain);
-            }
-
+            AddCurrentOutcome(RemoteSyncOutcomes.InterruptedState(attempted, ActionState.Failed));
             return Result(
-                CliExit.AfterEffects(CliExit.IoFailure, effects: outcomes.Count > 0),
+                CliExit.AfterEffects(
+                    CliExit.IoFailure,
+                    effects: RemoteSyncOutcomes.AnyRemoteEffect(outcomes.Select(x => x.State))),
                 [
                     "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
                 ]);

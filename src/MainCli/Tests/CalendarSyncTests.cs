@@ -397,6 +397,52 @@ public sealed class CalendarSyncTests
     }
 
     [Fact]
+    public async Task CancellationAfterAnAttemptRecordsUncertainAndReportsTheRestAsNotAttempted()
+    {
+        using var cancel = new CancellationTokenSource();
+        using var provider = new Fake
+        {
+            Fail = "cancel",
+            Cancellation = cancel,
+        };
+        var reports = new List<CalendarReport>();
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new(), new()],
+            true,
+            cancel.Token,
+            onOutcome: reports.Add);
+        Assert.Equal(expected: CliExit.Cancelled, actual: result.ExitCode);
+        Assert.Equal(expected: ActionState.Uncertain, actual: result.Outcomes.Last().State);
+        var lastEventReports = reports.Where(x => x.Id == "3").Select(x => x.Status);
+        Assert.Equal(expected: [ActionState.Planned, ActionState.NotAttempted], actual: lastEventReports);
+    }
+
+    [Fact]
+    public async Task UnexpectedFailureAfterAnAttemptRecordsUncertainAndReportsTheRestAsNotAttempted()
+    {
+        using var provider = new Fake
+        {
+            Fail = "calendar",
+        };
+        var reports = new List<CalendarReport>();
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new()],
+            true,
+            default,
+            onOutcome: reports.Add);
+        Assert.Equal(expected: CliExit.Partial, actual: result.ExitCode);
+        Assert.Equal(
+            expected: [ActionState.Completed, ActionState.Uncertain],
+            actual: result.Outcomes.Select(x => x.State));
+        var eventReports = reports.Where(x => x.Id == "2").Select(x => x.Status);
+        Assert.Equal(expected: [ActionState.Planned, ActionState.NotAttempted], actual: eventReports);
+    }
+
+    [Fact]
     public async Task ActualAccountAndDestinationLockBlocksAliasesBeforeRemoteStateRead()
     {
         using var temp = new TestTempDirectory("schedulelib-tests");

@@ -51,6 +51,10 @@ internal static class RemoteSyncOutcomes
     public static bool AnyCompleted(IEnumerable<ActionState> states)
         => states.Contains(ActionState.Completed);
 
+    /// <summary>Whether any action completed or may have reached the provider.</summary>
+    public static bool AnyRemoteEffect(IEnumerable<ActionState> states)
+        => states.Any(x => x is ActionState.Completed or ActionState.Uncertain);
+
     /// <summary>The exit of an output failure, which never retries or reclassifies outcomes.</summary>
     public static int StreamingFailureExit(IEnumerable<ActionState> states)
         => CliExit.AfterEffects(CliExit.Unexpected, effects: AnyCompleted(states));
