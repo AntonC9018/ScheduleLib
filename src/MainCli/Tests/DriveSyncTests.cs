@@ -115,7 +115,7 @@ public sealed class DriveSyncTests
         var deletion = await DriveSync.Run(
             rejectedDelete,
             folderName: "Configured",
-            await temp.Artifacts("a.pdf"),
+            await CreateArtifacts(temp, "a.pdf"),
             true,
             default,
             lockRoot: temp.Path);
@@ -130,7 +130,7 @@ public sealed class DriveSyncTests
         var creation = await DriveSync.Run(
             unauthorized,
             folderName: "Configured",
-            await temp.Artifacts("a.pdf"),
+            await CreateArtifacts(temp, "a.pdf"),
             true,
             default,
             lockRoot: temp.Path);
@@ -154,7 +154,7 @@ public sealed class DriveSyncTests
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
-            await temp.Artifacts("a.pdf", "b.pdf"),
+            await CreateArtifacts(temp, "a.pdf", "b.pdf"),
             true,
             default,
             lockRoot: temp.Path);
@@ -178,7 +178,7 @@ public sealed class DriveSyncTests
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
-            await temp.Artifacts("a.pdf", "b.pdf"),
+            await CreateArtifacts(temp, "a.pdf", "b.pdf"),
             true,
             cancellation.Token,
             lockRoot: temp.Path);

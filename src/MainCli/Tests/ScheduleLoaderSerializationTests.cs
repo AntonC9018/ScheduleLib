@@ -19,13 +19,13 @@ public sealed class ScheduleLoaderSerializationTests
         var component = new Component();
         var loader = new ScheduleLoader
         {
-            CachedPath = temp.FilePath,
+            CachedPath = CalculateSchedulePath(temp),
             ConfigurationIdentity = "configuration v1",
             Components = [component],
         };
         await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 1, actual: component.ApplyCount);
-        var first = await File.ReadAllBytesAsync(temp.FilePath);
+        var first = await File.ReadAllBytesAsync(CalculateSchedulePath(temp));
         using (var input = new MemoryStream(first))
         {
             Assert.False(
@@ -35,7 +35,7 @@ public sealed class ScheduleLoaderSerializationTests
         await loader.Load(cached, CancellationToken.None);
         Assert.Equal(expected: 1, actual: component.ApplyCount);
         Assert.Equal(expected: "Imported course", actual: Assert.Single(cached.Schedule.Build().Courses).FullName);
-        Assert.Equal(expected: first, actual: await File.ReadAllBytesAsync(temp.FilePath));
+        Assert.Equal(expected: first, actual: await File.ReadAllBytesAsync(CalculateSchedulePath(temp)));
 
         switch (change)
         {
@@ -48,11 +48,11 @@ public sealed class ScheduleLoaderSerializationTests
             case "empty-hash":
                 await ScheduleSerializer.Serialize()
                     .Input(Schedule.Empty)
-                    .Output(temp.FilePath)
+                    .Output(CalculateSchedulePath(temp))
                     .ExecuteAsync();
                 break;
             case "corrupt-json":
-                await File.WriteAllTextAsync(path: temp.FilePath, contents: "{corrupt");
+                await File.WriteAllTextAsync(path: CalculateSchedulePath(temp), contents: "{corrupt");
                 break;
         }
         var rebuilt = CreateContext();
@@ -64,7 +64,7 @@ public sealed class ScheduleLoaderSerializationTests
 
         IEnumerable<string> CalculateCollection()
         {
-            var collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
             return collection;
         }
 
@@ -80,11 +80,11 @@ public sealed class ScheduleLoaderSerializationTests
         var component = new Component();
         var loader = new ScheduleLoader
         {
-            CachedPath = temp.FilePath,
+            CachedPath = CalculateSchedulePath(temp),
             Components = [component],
         };
         await loader.Load(CreateContext(), CancellationToken.None);
-        var previous = await File.ReadAllBytesAsync(temp.FilePath);
+        var previous = await File.ReadAllBytesAsync(CalculateSchedulePath(temp));
         using var cancellation = new CancellationTokenSource();
         component.OnApply = () =>
         {
@@ -112,13 +112,13 @@ public sealed class ScheduleLoaderSerializationTests
                     bypassCache: true)
                 .AsTask());
         }
-        Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(temp.FilePath));
+        Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(CalculateSchedulePath(temp)));
         using var input = new MemoryStream(previous);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
 
         IEnumerable<string> CalculateCollection()
         {
-            var collection = Directory.EnumerateFiles(path: temp.DirectoryPath, searchPattern: "*.tmp");
+            var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
             return collection;
         }
 
@@ -168,5 +168,6 @@ public sealed class ScheduleLoaderSerializationTests
         }
     }
 
-
+    private static string CalculateSchedulePath(TestTempDirectory temp) =>
+        Path.Combine(temp.Path, "schedule.json");
 }

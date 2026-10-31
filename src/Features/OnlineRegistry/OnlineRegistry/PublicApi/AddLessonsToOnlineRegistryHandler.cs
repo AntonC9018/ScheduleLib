@@ -1033,7 +1033,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     captured,
                                     addLessonUri,
                                     scanResult.Students,
-                                    onSubmissionStarted));
+                                    onSubmissionStarted).AsTask());
                         }));
                 }
                 if (!(await onGroupPlanned(actions)))
