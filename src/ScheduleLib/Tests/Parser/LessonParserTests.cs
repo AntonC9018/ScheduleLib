@@ -13,8 +13,7 @@ public sealed class LessonParserTests
 {
     private void AssertEqualName(string expected, TeacherName actual)
     {
-        bool condition = CheckEqualName(expected, actual);
-        Assert.True(condition);
+        Assert.True(CheckEqualName(expected, actual));
     }
 
     private IEnumerator<ReadOnlyMemory<char>> TokenInput(params string[] values)
@@ -52,11 +51,7 @@ public sealed class LessonParserTests
         });
         await Verify(verifyModels)
             .UseStrictJson()
-            .AddExtraSettings(x =>
-            {
-                var jsonSerializerSettings = x;
-                jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
-            });
+            .AddExtraSettings(x => x.DefaultValueHandling = DefaultValueHandling.Include);
     }
 
     [Theory]
@@ -206,30 +201,26 @@ public sealed class LessonParserTests
     [Fact]
     public void ColonAllowedInCourseName()
     {
-        var collection = ParseLessons([
+        var lessons = ParseLessons([
             "Disciplină umanistică opțională: Antreprenoriat inovativ (curs), I. Dobrovolschi 528/3",
         ]);
-        IEnumerable<ParsedLesson> collection2 = collection;
-        var lesson = Assert.Single(collection2);
+        var lesson = Assert.Single(lessons);
 
         Assert.Equal(
             expected: "Disciplină umanistică opțională: Antreprenoriat inovativ",
             actual: lesson.LessonName.Span);
         Assert.Equal(expected: LessonType.Curs, actual: lesson.LessonType);
-        string expected2 = "I. Dobrovolschi";
-        var actual2 = Assert.Single(lesson.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("I. Dobrovolschi", Assert.Single(lesson.TeacherNames));
         Assert.Equal(expected: "528/3", actual: lesson.RoomName.Span);
     }
 
     [Fact]
     public void CourseWithRoomButNoTeacherDoesNotReadLastTeacher()
     {
-        var collection = ParseLessons([
+        var lessons = ParseLessons([
             "Disciplină umanistică opțională: Psihologie (curs), 113/4",
         ]);
-        IEnumerable<ParsedLesson> collection2 = collection;
-        var lesson = Assert.Single(collection2);
+        var lesson = Assert.Single(lessons);
 
         Assert.Equal(expected: "Disciplină umanistică opțională: Psihologie", actual: lesson.LessonName.Span);
         Assert.Equal(expected: LessonType.Curs, actual: lesson.LessonType);
@@ -247,24 +238,15 @@ public sealed class LessonParserTests
             "WR: A.Donu  213a/4",
         ]);
 
-        TimeOnly Time(int hours)
-        {
-            var span = TimeSpan.FromHours(hours);
-            return TimeOnly.FromTimeSpan(span);
-        }
+        TimeOnly Time(int hours) => TimeOnly.FromTimeSpan(TimeSpan.FromHours(hours));
 
         Assert.Collection(
             lessons,
             lesson1 =>
             {
-                var expected2 = Time(8);
-                TimeOnly? expected3 = expected2;
-                var actual2 = lesson1.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
+                Assert.Equal(expected: Time(8), actual: lesson1.StartTime);
                 Assert.Equal(expected: "CV", actual: lesson1.PartitionHint.Span);
-                string expected4 = "M.Croitor";
-                var actual3 = Assert.Single(lesson1.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                AssertEqualName("M.Croitor", Assert.Single(lesson1.TeacherNames));
                 Assert.Equal(expected: "326/4", actual: lesson1.RoomName.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: lesson1.LessonType);
                 Assert.Equal(expected: Parity.OddWeek, actual: lesson1.Parity);
@@ -272,14 +254,9 @@ public sealed class LessonParserTests
             },
             lesson2 =>
             {
-                var expected2 = Time(15);
-                TimeOnly? expected3 = expected2;
-                var actual2 = lesson2.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
+                Assert.Equal(expected: Time(15), actual: lesson2.StartTime);
                 Assert.Equal(expected: "WR", actual: lesson2.PartitionHint.Span);
-                string expected4 = "A.Donu";
-                var actual3 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                AssertEqualName("A.Donu", Assert.Single(lesson2.TeacherNames));
                 Assert.Equal(expected: "213a/4", actual: lesson2.RoomName.Span);
                 Assert.Equal(expected: LessonType.Curs, actual: lesson2.LessonType);
                 Assert.Equal(expected: Parity.EveryWeek, actual: lesson2.Parity);
@@ -307,18 +284,14 @@ public sealed class LessonParserTests
             {
                 CheckCommon(lesson1);
                 Assert.Equal(expected: "WR1", actual: lesson1.PartitionHint.Span);
-                string expected2 = "A.Donu";
-                var actual2 = Assert.Single(lesson1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("A.Donu", Assert.Single(lesson1.TeacherNames));
                 Assert.Equal(expected: "143/4", actual: lesson1.RoomName.Span);
             },
             lesson2 =>
             {
                 CheckCommon(lesson2);
                 Assert.Equal(expected: "WR2", actual: lesson2.PartitionHint.Span);
-                string expected2 = "Cr.Crudu";
-                var actual2 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("Cr.Crudu", Assert.Single(lesson2.TeacherNames));
                 Assert.Equal(expected: "145a/4", actual: lesson2.RoomName.Span);
             });
     }
@@ -339,9 +312,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "HTML", actual: first.LessonName.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: first.LessonType);
                 Assert.Equal(expected: "I", actual: first.PartitionHint.Span);
-                string expected2 = "B. Vișnevschi";
-                var actual2 = Assert.Single(first.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("B. Vișnevschi", Assert.Single(first.TeacherNames));
                 Assert.Equal(expected: "218/4a", actual: first.RoomName.Span);
             },
             second =>
@@ -349,9 +320,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "HTML", actual: second.LessonName.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: second.LessonType);
                 Assert.Equal(expected: "II", actual: second.PartitionHint.Span);
-                string expected2 = "V. Vișnevschi";
-                var actual2 = Assert.Single(second.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("V. Vișnevschi", Assert.Single(second.TeacherNames));
                 Assert.Equal(expected: "219/4a", actual: second.RoomName.Span);
             });
     }
@@ -448,17 +417,13 @@ public sealed class LessonParserTests
             {
                 Lesson(lesson1);
                 Assert.Equal(expected: "A", actual: lesson1.PartitionHint.Span);
-                string expected2 = "TeacherA";
-                var actual2 = Assert.Single(lesson1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("TeacherA", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
                 Lesson(lesson2);
                 Assert.Equal(expected: "B", actual: lesson2.PartitionHint.Span);
-                string expected2 = "TeacherB";
-                var actual2 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("TeacherB", Assert.Single(lesson2.TeacherNames));
             });
     }
 
@@ -478,18 +443,14 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
                 Assert.Equal(expected: "A", actual: lesson1.PartitionHint.Span);
                 Assert.Equal(expected: Parity.EvenWeek, actual: lesson1.Parity);
-                string expected2 = "TeacherA";
-                var actual2 = Assert.Single(lesson1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("TeacherA", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson2.LessonName.Span);
                 Assert.Equal(expected: "B", actual: lesson2.PartitionHint.Span);
                 Assert.Equal(expected: Parity.OddWeek, actual: lesson2.Parity);
-                string expected2 = "TeacherB";
-                var actual2 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("TeacherB", Assert.Single(lesson2.TeacherNames));
             });
     }
 
@@ -515,9 +476,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Lesson", actual: lesson2.LessonName.Span);
                 Assert.Equal(expected: "B", actual: lesson2.PartitionHint.Span);
                 Assert.Equal(expected: Parity.EveryWeek, actual: lesson2.Parity);
-                string expected2 = "TeacherA";
-                var actual2 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("TeacherA", Assert.Single(lesson2.TeacherNames));
             });
     }
 
@@ -532,9 +491,7 @@ public sealed class LessonParserTests
         void Common(in ParsedLesson lesson)
         {
             Assert.Equal(expected: "Lesson", actual: lesson.LessonName.Span);
-            string expected2 = "TeacherA";
-            var actual2 = Assert.Single(lesson.TeacherNames);
-            AssertEqualName(expected2, actual2);
+            AssertEqualName("TeacherA", Assert.Single(lesson.TeacherNames));
         }
 
         Assert.Collection(
@@ -558,9 +515,7 @@ public sealed class LessonParserTests
         void Common(in ParsedLesson lesson)
         {
             Assert.Equal(expected: "LessonA", actual: lesson.LessonName.Span);
-            string expected2 = "TeacherA";
-            var actual2 = Assert.Single(lesson.TeacherNames);
-            AssertEqualName(expected2, actual2);
+            AssertEqualName("TeacherA", Assert.Single(lesson.TeacherNames));
         }
 
         Assert.Collection(
@@ -591,9 +546,7 @@ public sealed class LessonParserTests
         {
             Assert.Equal(expected: "MTA 3D", actual: lesson.LessonName.Span);
             Assert.Equal(expected: LessonType.Lab, actual: lesson.LessonType);
-            string expected2 = "A.Schiopu";
-            var actual2 = Assert.Single(lesson.TeacherNames);
-            AssertEqualName(expected2, actual2);
+            AssertEqualName("A.Schiopu", Assert.Single(lesson.TeacherNames));
             Assert.Equal(expected: "251/4", actual: lesson.RoomName.Span);
         }
 
@@ -754,16 +707,12 @@ public sealed class LessonParserTests
             lesson1 =>
             {
                 Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
-                string expected2 = "Teacher";
-                var actual2 = Assert.Single(lesson1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
             },
             lesson2 =>
             {
                 Assert.Equal(expected: "Other, Lesson", actual: lesson2.LessonName.Span);
-                string expected2 = "Teacher";
-                var actual2 = Assert.Single(lesson2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("Teacher", Assert.Single(lesson2.TeacherNames));
             });
     }
 
@@ -777,9 +726,7 @@ public sealed class LessonParserTests
 
         var lesson1 = Assert.Single(lessons);
         Assert.Equal(expected: "Lesson", actual: lesson1.LessonName.Span);
-        string expected2 = "Teacher";
-        var actual2 = Assert.Single(lesson1.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("Teacher", Assert.Single(lesson1.TeacherNames));
         Assert.Equal(expected: "123R", actual: lesson1.RoomName.Span);
     }
 
@@ -818,9 +765,7 @@ public sealed class LessonParserTests
         ]);
 
         var lesson = Assert.Single(lessons);
-        string expected2 = "Iu.Drăgălina";
-        var actual2 = Assert.Single(lesson.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("Iu.Drăgălina", Assert.Single(lesson.TeacherNames));
         Assert.Equal(expected: "213a/4", actual: lesson.RoomName.Span);
     }
 
@@ -833,9 +778,7 @@ public sealed class LessonParserTests
         ]);
 
         var lesson = Assert.Single(lessons);
-        string expected = "G.-M. Lastname";
-        var actual = Assert.Single(lesson.TeacherNames);
-        AssertEqualName(expected, actual);
+        AssertEqualName("G.-M. Lastname", Assert.Single(lesson.TeacherNames));
     }
 
     [Fact]
@@ -877,10 +820,8 @@ public sealed class LessonParserTests
                 {
                     c.Lexer.Move();
 
-                    bool condition = c.Lexer.TryConsume(TokenType.Whitespace);
-                    Assert.True(condition);
-                    bool condition2 = c.Lexer.TryConsume(LessonTokenType.Word);
-                    Assert.True(condition2); // One
+                    Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
+                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
                     return c.DontInsertAll();
                 }
                 return c.DefaultAll();
@@ -905,10 +846,8 @@ public sealed class LessonParserTests
                 {
                     c.Lexer.Move();
 
-                    bool condition = c.Lexer.TryConsume(TokenType.Whitespace);
-                    Assert.True(condition);
-                    bool condition2 = c.Lexer.TryConsume(LessonTokenType.Word);
-                    Assert.True(condition2); // One
+                    Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
+                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
                     return c.DontInsertAll(inclusive: inclusive);
                 }
                 return c.DefaultAll();
@@ -957,20 +896,12 @@ public sealed class LessonParserTests
         var l = Assert.Single(lessons);
         Assert.Equal(expected: "Dezv. apl. server-side cu Node.js", actual: l.LessonName.Span);
 
-        TimeSpan CalculateTs()
-        {
-            var ts = TimeSpan.FromMinutes(45);
-            return ts;
-        }
-
         var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(9)
-            .Add(CalculateTs()));
+            .Add(TimeSpan.FromMinutes(45)));
         Assert.Equal(expected: time, actual: l.StartTime);
         Assert.Equal(expected: "opț", actual: l.GroupName.Span);
         Assert.Equal(expected: LessonType.Unspecified, actual: l.LessonType);
-        string expected2 = "N.Nartea";
-        var actual2 = Assert.Single(l.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("N.Nartea", Assert.Single(l.TeacherNames));
         Assert.Equal(expected: "145/4", actual: l.RoomName.Span);
     }
 
@@ -1011,9 +942,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Fund. Progr.", actual: l1.LessonName.Span);
                 Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(expected: LessonType.Prelegere, actual: l1.LessonType);
-                string expected2 = "M.Pavel";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("M.Pavel", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "404/4", actual: l1.RoomName.Span);
             });
     }
@@ -1034,9 +963,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Elab. aplic. graf.", actual: l1.LessonName.Span);
                 Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(expected: LessonType.Lab, actual: l1.LessonType);
-                string expected2 = "M.Marin";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("M.Marin", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "145a/4", actual: l1.RoomName.Span);
             });
     }
@@ -1060,9 +987,7 @@ public sealed class LessonParserTests
                 Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(expected: LessonType.Curs, actual: l1.LessonType);
                 Assert.Equal(expected: Parity.OddWeek, actual: l1.Parity);
-                string expected2 = "A.Niculiță";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("A.Niculiță", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "213a/4", actual: l1.RoomName.Span);
             });
     }
@@ -1086,9 +1011,7 @@ public sealed class LessonParserTests
                 Assert.True(l1.PartitionHint.IsEmpty);
                 Assert.Equal(expected: LessonType.Curs, actual: l1.LessonType);
                 Assert.Equal(expected: Parity.OddWeek, actual: l1.Parity);
-                string expected2 = "A.Niculiță";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("A.Niculiță", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "213a/4", actual: l1.RoomName.Span);
             });
     }
@@ -1133,14 +1056,9 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Dezvoltare de aplicații enterprise", actual: l1.LessonName.Span);
                 Assert.Equal(expected: "Spring", actual: l1.PartitionHint.Span);
                 Assert.Equal(expected: LessonType.Curs, actual: l1.LessonType);
-                var expected2 = new TimeOnly(hour: 8, minute: 00);
-                TimeOnly? expected3 = expected2;
-                var actual2 = l1.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
+                Assert.Equal(expected: new TimeOnly(hour: 8, minute: 00), actual: l1.StartTime);
                 Assert.Equal(expected: Parity.EveryWeek, actual: l1.Parity);
-                string expected4 = "M.Dodi";
-                var actual3 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                AssertEqualName("M.Dodi", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "222/4", actual: l1.RoomName.Span);
             },
             l2 =>
@@ -1148,14 +1066,9 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "Dezvoltare de aplicații enterprise", actual: l2.LessonName.Span);
                 Assert.Equal(expected: "Spring", actual: l2.PartitionHint.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: l2.LessonType);
-                var expected2 = new TimeOnly(hour: 9, minute: 45);
-                TimeOnly? expected3 = expected2;
-                var actual2 = l2.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
+                Assert.Equal(expected: new TimeOnly(hour: 9, minute: 45), actual: l2.StartTime);
                 Assert.Equal(expected: Parity.EveryWeek, actual: l2.Parity);
-                string expected4 = "M.Dodi";
-                var actual3 = Assert.Single(l2.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                AssertEqualName("M.Dodi", Assert.Single(l2.TeacherNames));
                 Assert.Equal(expected: "326/4", actual: l2.RoomName.Span);
             });
     }
@@ -1188,9 +1101,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "I", actual: l1.PartitionHint.Span);
                 Assert.Equal(expected: "Javascript", actual: l1.LessonName.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: l1.LessonType);
-                string expected2 = "N. Nartea";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("N. Nartea", Assert.Single(l1.TeacherNames));
                 Assert.Equal(expected: "145/4", actual: l1.RoomName.Span);
             },
             l2 =>
@@ -1198,9 +1109,7 @@ public sealed class LessonParserTests
                 Assert.Equal(expected: "II", actual: l2.PartitionHint.Span);
                 Assert.Equal(expected: "POO", actual: l2.LessonName.Span);
                 Assert.Equal(expected: LessonType.Lab, actual: l2.LessonType);
-                string expected2 = "Gh. Latul";
-                var actual2 = Assert.Single(l2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("Gh. Latul", Assert.Single(l2.TeacherNames));
                 Assert.Equal(expected: "216a/4a", actual: l2.RoomName.Span);
             });
     }
@@ -1218,9 +1127,7 @@ public sealed class LessonParserTests
         var lesson = Assert.Single(lessons);
         Assert.Equal(expected: "Design soft.", actual: lesson.LessonName.Span);
         Assert.Equal(expected: LessonType.Prelegere, actual: lesson.LessonType);
-        string expected2 = "G.-C. Stănescu";
-        var actual2 = Assert.Single(lesson.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("G.-C. Stănescu", Assert.Single(lesson.TeacherNames));
         Assert.Equal(expected: "404/4", actual: lesson.RoomName.Span);
     }
 
@@ -1274,27 +1181,17 @@ public sealed class LessonParserTests
             lessons,
             first =>
             {
-                var expected2 = new TimeOnly(hour: 8, minute: 0);
-                TimeOnly? expected3 = expected2;
-                var actual2 = first.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
+                Assert.Equal(expected: new TimeOnly(hour: 8, minute: 0), actual: first.StartTime);
                 Assert.Equal(expected: "încep.", actual: first.GroupName.Span);
                 Assert.True(SpecialSubGroups.TryFromNamePrefix(first.GroupName.Span, out var subGroup));
                 Assert.Equal(expected: SpecialSubGroups.Beginners, actual: subGroup);
-                string expected4 = "G. Ciudin";
-                var actual3 = Assert.Single(first.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                AssertEqualName("G. Ciudin", Assert.Single(first.TeacherNames));
                 Assert.Equal(expected: "222/4", actual: first.RoomName.Span);
             },
             second =>
             {
-                var expected2 = new TimeOnly(hour: 15, minute: 0);
-                TimeOnly? expected3 = expected2;
-                var actual2 = second.StartTime;
-                Assert.Equal(expected: expected3, actual: actual2);
-                string expected4 = "O. Bașirov";
-                var actual3 = Assert.Single(second.TeacherNames);
-                AssertEqualName(expected4, actual3);
+                Assert.Equal(expected: new TimeOnly(hour: 15, minute: 0), actual: second.StartTime);
+                AssertEqualName("O. Bașirov", Assert.Single(second.TeacherNames));
                 Assert.Equal(expected: "419/4", actual: second.RoomName.Span);
             });
     }
@@ -1315,43 +1212,30 @@ public sealed class LessonParserTests
     [Fact]
     public void SpecialSubGroupPrefixAcceptsTwoCharactersAndLongerAbbreviations()
     {
-        bool condition = SpecialSubGroups.TryFromNamePrefix("ro", out var ro);
-        Assert.True(condition);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ro", out var ro));
         Assert.Equal(expected: SpecialSubGroups.Ro, actual: ro);
 
-        bool condition2 = SpecialSubGroups.TryFromNamePrefix("ru", out var ru);
-        Assert.True(condition2);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ru", out var ru));
         Assert.Equal(expected: SpecialSubGroups.Ru, actual: ru);
 
-        bool condition3 = SpecialSubGroups.TryFromNamePrefix("AG", out var ag);
-        Assert.True(condition3);
-        var expected2 = new SubGroup(Specialization.AG.Value!);
-        var actual2 = ag;
-        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("AG", out var ag));
+        Assert.Equal(expected: new SubGroup(Specialization.AG.Value!), actual: ag);
 
-        bool condition4 = SpecialSubGroups.TryFromNamePrefix("ui", out var ui);
-        Assert.True(condition4);
-        var expected3 = new SubGroup(Specialization.UI.Value!);
-        var actual3 = ui;
-        Assert.Equal(expected: expected3, actual: actual3);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("ui", out var ui));
+        Assert.Equal(expected: new SubGroup(Specialization.UI.Value!), actual: ui);
 
-        bool condition5 = SpecialSubGroups.TryFromNamePrefix("în", out var beginners);
-        Assert.True(condition5);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("în", out var beginners));
         Assert.Equal(expected: SpecialSubGroups.Beginners, actual: beginners);
 
-        bool condition6 = SpecialSubGroups.TryFromNamePrefix("încep.", out beginners);
-        Assert.True(condition6);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("încep.", out beginners));
         Assert.Equal(expected: SpecialSubGroups.Beginners, actual: beginners);
     }
 
     [Fact]
     public void SpecialSubGroupPrefixPrefersExactLegacyMatchOverLongerSpecialization()
     {
-        bool condition = SpecialSubGroups.TryFromNamePrefix("GA", out var ga);
-        Assert.True(condition);
-        var expected2 = new SubGroup("GA");
-        var actual2 = ga;
-        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.True(SpecialSubGroups.TryFromNamePrefix("GA", out var ga));
+        Assert.Equal(expected: new SubGroup("GA"), actual: ga);
     }
 
     [Fact]
@@ -1361,15 +1245,10 @@ public sealed class LessonParserTests
 
         var lesson = Assert.Single(lessons);
         Assert.Equal(expected: "Sisteme operare", actual: lesson.LessonName.Span);
-        var expected2 = new TimeOnly(hour: 17, minute: 30);
-        TimeOnly? expected3 = expected2;
-        var actual2 = lesson.StartTime;
-        Assert.Equal(expected: expected3, actual: actual2);
+        Assert.Equal(expected: new TimeOnly(hour: 17, minute: 30), actual: lesson.StartTime);
         Assert.Equal(expected: LessonType.Exam, actual: lesson.LessonType);
         Assert.Equal(expected: "218/4a", actual: lesson.RoomName.Span);
-        string expected4 = "M. Butnaru";
-        var actual3 = Assert.Single(lesson.TeacherNames);
-        AssertEqualName(expected4, actual3);
+        AssertEqualName("M. Butnaru", Assert.Single(lesson.TeacherNames));
     }
 
     [Fact(Skip = "Not implemented, this is hard to implement, maybe do later, maybe delete all this code")]
@@ -1395,17 +1274,13 @@ public sealed class LessonParserTests
             {
                 Common(l1);
                 Assert.Equal(expected: LessonType.Curs, actual: l1.LessonType);
-                string expected2 = "I. Cucu";
-                var actual2 = Assert.Single(l1.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("I. Cucu", Assert.Single(l1.TeacherNames));
             },
             l2 =>
             {
                 Common(l2);
                 Assert.Equal(expected: LessonType.Curs, actual: l2.LessonType);
-                string expected2 = "N. Cuciuc";
-                var actual2 = Assert.Single(l2.TeacherNames);
-                AssertEqualName(expected2, actual2);
+                AssertEqualName("N. Cuciuc", Assert.Single(l2.TeacherNames));
             });
     }
 
@@ -1421,9 +1296,7 @@ public sealed class LessonParserTests
             Assert.Equal(expected: "Etica și dreptul în Inteligența Artificială", actual: l.LessonName.Span);
             Assert.Equal(expected: LessonType.Lab, actual: l.LessonType);
             Assert.Equal(expected: "145/4", actual: l.RoomName.Span);
-            string expected2 = "A. Poiată";
-            var actual2 = Assert.Single(l.TeacherNames);
-            AssertEqualName(expected2, actual2);
+            AssertEqualName("A. Poiată", Assert.Single(l.TeacherNames));
         }
 
         Assert.Collection(
@@ -1449,9 +1322,7 @@ public sealed class LessonParserTests
 
         var l1 = Assert.Single(lessons);
         Assert.Equal(expected: "Proiect practic de știința datelor", actual: l1.LessonName.Span);
-        string expected2 = "V. Ursachi";
-        var actual2 = Assert.Single(l1.TeacherNames);
-        AssertEqualName(expected2, actual2);
+        AssertEqualName("V. Ursachi", Assert.Single(l1.TeacherNames));
         Assert.Equal(expected: LessonType.Lab, actual: l1.LessonType);
         Assert.Equal(expected: "I", actual: l1.PartitionHint.Span);
         Assert.Equal(expected: "219/4a", actual: l1.RoomName.Span);
