@@ -504,7 +504,8 @@ edits and exports use request records rather than long scalar/Boolean parameter
 lists. The formatter uses JetBrains CleanupCode with a restricted formatting, braces
 and commas profile rather than a custom syntax rewriter. See
 [formatting](formatting.md) for the automatic utility and
-[analyzer decisions](decisions/analyzer-initializer-assignments.md) for the accepted
+[CodingRules specification](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md)
+for the accepted
 initializer policy.
 
 ## Reusable schedule serialization (#243)

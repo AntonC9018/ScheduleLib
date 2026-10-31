@@ -1,7 +1,7 @@
 # Baseline test failures
 
-Tracked in [#248](https://github.com/AntonC9/ScheduleLib/issues/248); the registry privacy
-regression is also [#228](https://github.com/AntonC9/ScheduleLib/issues/228). These failures
+Tracked in [#248](https://github.com/AntonC9018/ScheduleLib/issues/248); the registry privacy
+regression is also [#228](https://github.com/AntonC9018/ScheduleLib/issues/228). These failures
 predate the analyzer cleanup and were reproduced on AWS before any fix; they were not repaired,
 suppressed or weakened by it. Unfiltered suites stay red.
 

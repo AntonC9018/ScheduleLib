@@ -32,7 +32,7 @@ fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Ana"]));
 ```
 
 This is now accepted; see the
-[single-construction allowance](../decisions/analyzer-single-construction-allowance.md).
+[single-construction allowance](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md).
 
 Credential requests in [AuthenticationTests.cs:34][authentication] and website
 teacher records in [WebsiteExportTests.cs:137][website-teachers] also benefit.

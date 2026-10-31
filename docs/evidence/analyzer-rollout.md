@@ -1,6 +1,6 @@
 # Analyzer rollout record
 
-Work item: [#246](https://github.com/AntonC9/ScheduleLib/issues/246). This is the single
+Work item: [#246](https://github.com/AntonC9018/ScheduleLib/issues/246). This is the single
 chronological record of the `Anton.CodingRules` rollout in ScheduleLib. Each dated
 section describes the state at that time; the latest is at the end.
 Design decisions live in [docs/decisions](../decisions/README.md).
@@ -157,7 +157,7 @@ allowance, spec reconciliation). Candidate archive SHA-256
 Consumer source `b4270ba` cleaned the conditional-value, Boolean scratch-decision, return,
 pipeline and layout clusters: reviewed findings fell from 134 to 62 (43 test constructions, 9
 production constructions, 10 readable assertions). Candidate `97de786` then accepted one simple
-construction per call ([decision](../decisions/analyzer-single-construction-allowance.md)),
+construction per call ([decision](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md)),
 reducing them to **26** (source snapshot `9e09740`, all 538 C# hashes match). Per-cluster
 detail: [remaining clusters](analyzer-remaining-clusters.md). Full test suites at `b4270ba`:
 solution 715 cases / 11 failures / 7 skipped; CLI 770 cases / 3 failures; no ScheduleLib test
@@ -173,7 +173,7 @@ Logs, TRX reports, inventories and source hashes are retained under the ignored
 `single-construction-97de786/`. The candidate packages remain local and unpublished; the commits
 referenced here were local, unpublished commits.
 
-[cr35]: https://github.com/AntonC9/CodingRules/pull/35
+[cr35]: https://github.com/AntonC9018/CodingRules/pull/35
 
 ## Additional run measurements
 

@@ -259,4 +259,4 @@ gate. Manual architectural decisions, the explicitly unresolved policies above,
 and eventual release/publication are not closed by this adoption.
 
 [follow-up]:
-  https://github.com/AntonC9/CodingRules/blob/070dbf9/docs/schedulelib-follow-up.md
+  https://github.com/AntonC9018/CodingRules/blob/070dbf9/docs/schedulelib-follow-up.md

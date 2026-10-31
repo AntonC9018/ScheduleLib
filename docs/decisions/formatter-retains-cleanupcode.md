@@ -28,4 +28,4 @@
 
 - [Formatter cost and timings](../evidence/analyzer-tooling-costs.md).
 
-[244]: https://github.com/AntonC9/ScheduleLib/issues/244
+[244]: https://github.com/AntonC9018/ScheduleLib/issues/244

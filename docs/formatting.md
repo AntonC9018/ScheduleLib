@@ -111,7 +111,7 @@ This is not a diagnostic baseline or suppression: builds continue to report the
 actual findings. Do not bulk-fix user-authored pre-June code or disable a rule to
 hide a questionable finding. Apply clear improvements; record contested findings
 and the maintainer's decision in GitHub. See
-[initializer assignments](decisions/analyzer-initializer-assignments.md).
+the [CodingRules specification](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md).
 
 The style allowlist also includes required braces, cast spacing and CR0805:
 every subsequent chained invocation starts on a new line, even for a short

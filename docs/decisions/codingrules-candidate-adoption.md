@@ -46,4 +46,4 @@ python3 build/use-codingrules-candidate.py <candidate-directory>/Anton.CodingRul
 - [Adoption validation](../evidence/codingrules-adoption-validation.md) and
   [candidate history](../evidence/codingrules-candidates.md).
 
-[244]: https://github.com/AntonC9/ScheduleLib/issues/244
+[244]: https://github.com/AntonC9018/ScheduleLib/issues/244
