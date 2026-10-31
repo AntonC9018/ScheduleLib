@@ -23,14 +23,8 @@ public sealed class GoogleDriveProviderTests
     [InlineData(true, true)]
     public async Task AmbiguousFolderStopsPreviewAndApplyBeforeListingOrMutation(bool apply, bool splitPages)
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var call = 0;
         using var handler = new Transport((request, _) =>
@@ -544,14 +538,8 @@ public sealed class GoogleDriveProviderTests
         int driveRequests,
         int tokenRequests)
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var original = Console.Out;
         var originalError = Console.Error;
@@ -1096,14 +1084,8 @@ public sealed class GoogleDriveProviderTests
     [InlineData("")]
     public async Task SdkRefreshPersistsOmittedScopesAndHonorsExplicitGrants(string? responseScope)
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         using var handler = new Transport((request, _) =>
         {
@@ -1252,14 +1234,8 @@ public sealed class GoogleDriveProviderTests
         int readsAndWrites,
         int writes)
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var original = Console.Out;
         var originalError = Console.Error;

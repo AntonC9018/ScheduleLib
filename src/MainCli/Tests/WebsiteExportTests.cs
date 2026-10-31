@@ -613,13 +613,8 @@ public sealed class WebsiteExportTests
     [Fact]
     public async Task MissingSourceReturnsConfigurationError()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid().ToString("N");
-            return path2;
-        }
-
-        var missing = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var missing = temp.Path;
         var source = new SourceArguments
         {
             NoCache = true,

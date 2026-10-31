@@ -94,14 +94,8 @@ public sealed class GoogleCalendarProviderTests
     [Fact]
     public async Task ProvisionedCredentialRefreshesBeforeSendAndPersistsAuthorization()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         using var transport = new Transport((request, _) =>
         {
             string value;
@@ -1063,14 +1057,8 @@ public sealed class GoogleCalendarProviderTests
             return new HttpResponseMessage(HttpStatusCode.NoContent);
         });
 
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
 
         string? CalculateRefreshToken()
         {

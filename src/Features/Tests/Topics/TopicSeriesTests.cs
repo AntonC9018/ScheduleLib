@@ -14,13 +14,8 @@ public sealed class TopicSeriesTests
     [Fact]
     public async Task ManifestTypeAndLanguageFilterInterleavedCsvRows()
     {
-        string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $"topic-interleaved-{toString}";
-        string path2 = text;
-        var directory = Path.Combine(path1, path2);
-        Directory.CreateDirectory(directory);
+        using var temp = new TestTempDirectory("topic-interleaved");
+        var directory = temp.Path;
         try
         {
             await File.WriteAllTextAsync(
@@ -157,13 +152,8 @@ public sealed class TopicSeriesTests
     [Fact]
     public async Task InterleavedSeriesPreserveTypesLanguagesPartitionsAndSequenceOrder()
     {
-        string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $"topic-series-{toString}";
-        string path2 = text;
-        var directory = Path.Combine(path1, path2);
-        Directory.CreateDirectory(directory);
+        using var temp = new TestTempDirectory("topic-series");
+        var directory = temp.Path;
         try
         {
             await File.WriteAllTextAsync(

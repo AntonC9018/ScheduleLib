@@ -399,14 +399,8 @@ public sealed class CalendarSyncTests
     [Fact]
     public async Task ActualAccountAndDestinationLockBlocksAliasesBeforeRemoteStateRead()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var root = temp.Path;
         try
         {
             await using var lease = await LocalFileLock.Acquire(

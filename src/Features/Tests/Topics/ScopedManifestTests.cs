@@ -38,13 +38,8 @@ public sealed class ScopedManifestTests
         bool unspecifiedLanguage,
         bool allowMissingLessonTypes)
     {
-        string path1 = Path.GetTempPath();
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $"scoped-topics-{toString}";
-        string path2 = text;
-        var directory = Path.Combine(path1, path2);
-        Directory.CreateDirectory(directory);
+        using var temp = new TestTempDirectory("scoped-topics");
+        var directory = temp.Path;
         try
         {
             await File.WriteAllTextAsync(

@@ -98,16 +98,14 @@ public sealed class QueryTests
     [Fact]
     public async Task MissingInputReturnsConfigurationError()
     {
+        using var temp = new TestTempDirectory("schedulelib-tests");
         Assert.Equal(
             expected: 3,
             actual: await new FixtureQuery().Lessons(
                 new(),
                 new()
                 {
-                    DataDirectory = Path.Combine(
-                        Path.GetTempPath(),
-                        Guid.NewGuid()
-                            .ToString()),
+                    DataDirectory = temp.Path,
                 },
                 new()));
     }
@@ -120,13 +118,8 @@ public sealed class QueryTests
             return;
         }
 
-        string CalculatePath2()
-        {
-            string path2 = $"schedulelib-test-{Guid.NewGuid():N}";
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var input = Path.Combine(directory, "source.doc");
         var output = Path.Combine(directory, "source.docx");
@@ -152,13 +145,8 @@ public sealed class QueryTests
     [Fact]
     public async Task XlsxFixtureProducesLessonsIndependently()
     {
-        string CalculatePath2()
-        {
-            string path2 = $"schedulelib-xlsx-{Guid.NewGuid():N}";
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         var zi = Path.Combine(
             directory,
             "2025_sem2",
@@ -244,14 +232,8 @@ public sealed class QueryTests
     {
         var original = Console.Out;
 
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         try
         {

@@ -71,13 +71,8 @@ public sealed class CommandContextTests
     [Fact]
     public async Task PublishedArtifactsSurviveFailureWithPartialManifestAndReleaseTheirLease()
     {
-        string CalculatePath2()
-        {
-            string path2 = $"cli-context-{Guid.NewGuid():N}";
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         try
         {
             using (var context = new CliCommandContext(

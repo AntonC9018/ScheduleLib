@@ -22,17 +22,8 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task TopicsAndProvenanceRemainPrivateAndConsoleContainsCounts()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         var original = Console.Out;
         using var output = new StringWriter();
         try
@@ -105,14 +96,8 @@ public sealed class RegistryHistoryTopicsCommandTests
             return;
         }
 
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var parent = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var parent = temp.Path;
         var target = Path.Combine(parent, "target");
         var link = Path.Combine(parent, "link");
         Directory.CreateDirectory(target);
@@ -144,6 +129,7 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task ProviderFailuresDoNotDiscloseTopicsOrCredentials()
     {
+        using var temp = new TestTempDirectory("registry-history-tests");
         var original = Console.Error;
         using var error = new StringWriter();
         try
@@ -161,7 +147,7 @@ public sealed class RegistryHistoryTopicsCommandTests
                     },
                     new()
                     {
-                        LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history"),
+                        LocalDirectory = Path.Combine(temp.Path, ".registry-history"),
                     },
                     new()));
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
@@ -175,6 +161,7 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task UnsupportedTopicLayoutReportsFixedDiagnosticWithoutPrivateContent()
     {
+        using var temp = new TestTempDirectory("registry-history-tests");
         var originalOut = Console.Out;
         var originalError = Console.Error;
         using var output = new StringWriter();
@@ -196,7 +183,7 @@ public sealed class RegistryHistoryTopicsCommandTests
                         },
                         new()
                         {
-                            LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history"),
+                            LocalDirectory = Path.Combine(temp.Path, ".registry-history"),
                         },
                         new()
                         {

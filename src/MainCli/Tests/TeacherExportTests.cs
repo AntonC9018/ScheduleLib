@@ -840,7 +840,9 @@ public sealed class TeacherExportTests
 
     private sealed class Fixture : IDisposable
     {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
+        private readonly TestTempDirectory _temp = new("schedulelib-teacher");
+
+        public string Path => _temp.Path;
 
         public SourceArguments Source
         {
@@ -949,13 +951,7 @@ public sealed class TeacherExportTests
             ];
         }
 
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-teacher-{Guid.NewGuid():N}";
-            return path2;
-        }
+        public void Dispose() => _temp.Dispose();
     }
 
     private sealed class FixtureExport(FakeTheses theses) : ExportCommands

@@ -308,9 +308,8 @@ public sealed class GroupPdfTests
 
     private static async Task<string[]> Generate(Schedule schedule)
     {
-        string path1 = Path.GetTempPath();
-        string path2 = $"ScheduleLib-pdf-tests-{Guid.NewGuid():N}";
-        var root = Path.Combine(path1, path2);
+        using var temp = new TestTempDirectory("ScheduleLib-pdf-tests");
+        var root = temp.Path;
         var output = new OutputDirectory(root);
         output.Initialize();
         try

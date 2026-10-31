@@ -440,10 +440,7 @@ public sealed class FreeRoomsTests
                     new()
                     {
                         NoCache = true,
-                        DataDirectory = Path.Combine(
-                            Path.GetTempPath(),
-                            Guid.NewGuid()
-                                .ToString()),
+                        DataDirectory = temp.Path,
                     },
                     new()
                     {

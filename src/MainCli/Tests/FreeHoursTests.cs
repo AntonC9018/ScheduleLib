@@ -673,6 +673,7 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task MissingSourceIsAConfigurationError()
     {
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var original = Console.Out;
         using var output = new StringWriter();
         try
@@ -686,10 +687,7 @@ public sealed class FreeHoursTests
                 new()
                 {
                     NoCache = true,
-                    DataDirectory = Path.Combine(
-                        Path.GetTempPath(),
-                        Guid.NewGuid()
-                            .ToString()),
+                    DataDirectory = temp.Path,
                 },
                 new()
                 {

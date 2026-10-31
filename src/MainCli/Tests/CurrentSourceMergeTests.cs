@@ -9,18 +9,8 @@ public sealed class CurrentSourceMergeTests
     [Fact]
     public async Task WebsitePdfsAndOlderWordSourcesProduceTheSameMergeFromFreshAndCachedLoads()
     {
-        string CalculatePath2()
-        {
-            string toString = Guid.NewGuid()
-                .ToString("N");
-            string text = $"schedulelib-period-cache-{toString}";
-            string path2 = text;
-            return path2;
-        }
-
-        var cacheDirectory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var cacheDirectory = temp.Path;
         Directory.CreateDirectory(cacheDirectory);
         try
         {
@@ -266,16 +256,8 @@ public sealed class CurrentSourceMergeTests
     [Fact]
     public async Task WordPeriodAfterPdfRetainsOriginalElectivePolicyInFreshAndCachedLoads()
     {
-        string CalculatePath2()
-        {
-            string toString = Guid.NewGuid()
-                .ToString("N");
-            string text = $"schedulelib-word-after-pdf-{toString}";
-            string path2 = text;
-            return path2;
-        }
-
-        var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var root = temp.Path;
         var sources = Path.Combine(root, "sources");
         var cache = Path.Combine(root, "cache");
         Directory.CreateDirectory(cache);

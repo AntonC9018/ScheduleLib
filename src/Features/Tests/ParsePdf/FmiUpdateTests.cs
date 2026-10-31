@@ -4,7 +4,8 @@ using FmiWebsiteInterop;
 
 public sealed class FmiUpdateTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+    private readonly TestTempDirectory _temp = new("schedule-update-tests");
+    private string _directory => _temp.Path;
     private string State => Path.Combine(_directory, "hashes.json");
 
     [Fact]
@@ -268,18 +269,6 @@ public sealed class FmiUpdateTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_directory))
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
-    }
-
-    private static string CalculatePath2()
-    {
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $"schedule-update-tests-{toString}";
-        string path2 = text;
-        return path2;
+        _temp.Dispose();
     }
 }

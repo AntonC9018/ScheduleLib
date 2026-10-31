@@ -296,17 +296,8 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public async Task CandidateFilesArePrivateAppendOnlyCsvWithSeparateUnresolvedProvenance()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         try
         {
             var selection = RegistryHistoryTopicSelection.Select(
@@ -612,17 +603,8 @@ public sealed class RegistryHistoryTopicsTests
     {
         var (analysis, _) = await ReadThreeYearHistory(duplicateCurrent: true);
 
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         try
         {
             var result = await new RegistryHistoryTopicDirectory(directory).Save(
@@ -673,17 +655,8 @@ public sealed class RegistryHistoryTopicsTests
     {
         var (analysis, _) = await ReadThreeYearHistory(latestDuplicate: true);
 
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         try
         {
             var result = await new RegistryHistoryTopicDirectory(directory).Save(
@@ -924,17 +897,8 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public async Task ExportKeepsOnlyRegularTopicsAndTheirDates()
     {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         try
         {
             var course = Course(

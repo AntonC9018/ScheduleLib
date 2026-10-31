@@ -43,13 +43,8 @@ public sealed class CommandSurfaceTests
     [MemberData(nameof(Operations))]
     public async Task EveryOperationHasHelpWithoutReadingEvenInvalidProjectSettings(string operation)
     {
-        string CalculatePath2()
-        {
-            string path2 = $"schedulelib-help-{Guid.NewGuid():N}";
-            return path2;
-        }
-
-        var directory = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var config = Path.Combine(directory, "schedulelib.json");
         await File.WriteAllTextAsync(path: config, contents: "invalid settings must not be loaded by help");

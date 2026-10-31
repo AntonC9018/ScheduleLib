@@ -188,7 +188,8 @@ public sealed class WordConverterOwnershipTests
     [InlineData(true)]
     public void StagingCleanupCannotMaskCancellation(bool denied)
     {
-        using var staging = OwnedConversionDirectory.Create(Path.GetTempPath());
+        using var temp = new TestTempDirectory("word-converter-tests");
+        using var staging = OwnedConversionDirectory.Create(temp.Path);
         var error = Assert.Throws<OperationCanceledException>(
             (Action) (() =>
             {
@@ -220,8 +221,9 @@ public sealed class WordConverterOwnershipTests
             return; // Creating Windows symlinks can require elevation.
         }
 
-        using var staging = OwnedConversionDirectory.Create(Path.GetTempPath());
-        using var outside = OwnedConversionDirectory.Create(Path.GetTempPath());
+        using var temp = new TestTempDirectory("word-converter-tests");
+        using var staging = OwnedConversionDirectory.Create(temp.Path);
+        using var outside = OwnedConversionDirectory.Create(temp.Path);
         var retained = Path.Combine(outside.DirectoryPath, "retained");
         File.WriteAllText(path: retained, contents: "keep");
         Directory.Delete(staging.DirectoryPath);
@@ -303,7 +305,8 @@ public sealed class WordConverterOwnershipTests
             return; // Exercises the protocol with a portable fake converter.
         }
 
-        using var staging = OwnedConversionDirectory.Create(Path.GetTempPath());
+        using var temp = new TestTempDirectory("word-converter-tests");
+        using var staging = OwnedConversionDirectory.Create(temp.Path);
         var cancellationPath = Path.Combine(staging.DirectoryPath, "cancel");
         var info = new System.Diagnostics.ProcessStartInfo("/bin/sh")
         {

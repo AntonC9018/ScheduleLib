@@ -1460,13 +1460,7 @@ public sealed class CliJsonlTests
         var applyUpdates = new List<StreamedUpdate>();
         using var applyProvider = new DriveFake();
 
-        string CalculatePath2()
-        {
-            string path2 = Path.Combine(root.Path, "a.pdf");
-            return path2;
-        }
-
-        await using var created = File.Create(CalculatePath2());
+        await using var created = File.Create(Path.Combine(root.Path, "a.pdf"));
         await created.WriteAsync("fixture bytes"u8.ToArray());
         await created.FlushAsync();
         await created.DisposeAsync();
@@ -1669,7 +1663,8 @@ public sealed class CliJsonlTests
         Assert.Single(queryFinal.GetProperty("data")
             .EnumerateObject());
 
-        var historyDirectory = NewHistoryDirectory();
+        using var historyTemp = NewHistoryDirectory();
+        var historyDirectory = Path.Combine(historyTemp.Path, ".registry-history");
         try
         {
             var (historyExit, historyStdout, _) = await CaptureJsonl(() =>
@@ -1912,7 +1907,8 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task HistoryTopicsStreamsCollectionsWithScalarFinal()
     {
-        var directory = NewHistoryDirectory();
+        using var historyTemp = NewHistoryDirectory();
+        var directory = Path.Combine(historyTemp.Path, ".registry-history");
         try
         {
             var (exit, stdout, _) = await CaptureJsonl(() =>
@@ -2297,36 +2293,7 @@ public sealed class CliJsonlTests
         }
     }
 
-    private static string NewTempRoot()
-    {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var path = Path.Combine(Path.GetTempPath(), CalculatePath2());
-        Directory.CreateDirectory(path);
-        return path;
-    }
-
-    private static string NewHistoryDirectory()
-    {
-        string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            CalculatePath2(),
-            ".registry-history");
-        Directory.CreateDirectory(directory);
-        return directory;
-    }
+    private static TestTempDirectory NewHistoryDirectory() => new("registry-history-tests");
 
 
 
@@ -2709,6 +2676,7 @@ public sealed class CliJsonlTests
         private readonly string? _previousConfig;
         private readonly string? _previousData;
         private readonly string _previousDirectory;
+        private readonly TestTempDirectory _temp = new("schedulelib-xdg-tests");
 
         public XdgIsolation()
         {
@@ -2716,14 +2684,7 @@ public sealed class CliJsonlTests
             _previousData = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
             _previousDirectory = Environment.CurrentDirectory;
 
-            string CalculatePath2()
-            {
-                string path2 = Guid.NewGuid()
-                    .ToString("N");
-                return path2;
-            }
-
-            var root = Path.Combine(Path.GetTempPath(), CalculatePath2());
+            var root = _temp.Path;
             string path = Path.Combine(root, "config");
             Directory.CreateDirectory(path);
             string path3 = Path.Combine(root, "data");
@@ -2747,7 +2708,7 @@ public sealed class CliJsonlTests
             Environment.SetEnvironmentVariable(variable: "XDG_CONFIG_HOME", value: _previousConfig);
             Environment.SetEnvironmentVariable(variable: "XDG_DATA_HOME", value: _previousData);
             Environment.CurrentDirectory = _previousDirectory;
-            Directory.Delete(Root, recursive: true);
+            _temp.Dispose();
         }
     }
 
