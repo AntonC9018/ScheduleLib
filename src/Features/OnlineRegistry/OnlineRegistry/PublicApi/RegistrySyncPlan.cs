@@ -77,6 +77,26 @@ public sealed class RegistryActionExecutionException(bool submissionStarted, Exc
     public bool SubmissionStarted { get; } = submissionStarted;
 }
 
+public static class RegistryActionGuard
+{
+    public static async Task Run(Func<Action, Task> submit)
+    {
+        var submissionStarted = false;
+        try
+        {
+            await submit(() => submissionStarted = true);
+        }
+        catch (OperationCanceledException error)
+        {
+            throw new RegistryActionCancelledException(submissionStarted, error);
+        }
+        catch (Exception error)
+        {
+            throw new RegistryActionExecutionException(submissionStarted, error);
+        }
+    }
+}
+
 public class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
 
 /// <summary>A fresh registry read confirms that the requested deletion was not applied.</summary>

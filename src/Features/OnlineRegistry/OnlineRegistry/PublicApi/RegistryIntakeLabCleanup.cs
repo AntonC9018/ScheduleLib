@@ -183,8 +183,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         omission: null,
                         async token =>
                         {
-                            var submissionStarted = false;
-                            try
+                            await RegistryActionGuard.Run(async onSubmissionStarted =>
                             {
                                 token.ThrowIfCancellationRequested();
                                 // A changed date, type, topic or attendance requires a fresh preview.
@@ -204,10 +203,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 {
                                     await navigator.SubmitDelete(
                                         document,
-                                        () =>
-                                        {
-                                            submissionStarted = true;
-                                        });
+                                        onSubmissionStarted);
                                 }
                                 catch (Exception error) when (error is IOException
                                                                   or RegistrySubmissionRejectedException
@@ -230,15 +226,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                         "Registry lab changed during deletion; inspect the destination before retrying.",
                                         submissionError);
                                 }
-                            }
-                            catch (OperationCanceledException error)
-                            {
-                                throw new RegistryActionCancelledException(submissionStarted, error);
-                            }
-                            catch (Exception error)
-                            {
-                                throw new RegistryActionExecutionException(submissionStarted, error);
-                            }
+                            });
                         }))
                     .ToArray();
                 if (!(await onGroupPlanned(actions)))

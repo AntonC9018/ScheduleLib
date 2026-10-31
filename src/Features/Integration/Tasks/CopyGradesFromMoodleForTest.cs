@@ -397,8 +397,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     changes,
                     async token =>
                     {
-                        var started = false;
-                        try
+                        await RegistryActionGuard.Run(async onSubmissionStarted =>
                         {
                             token.ThrowIfCancellationRequested();
                             foreach (var input in inputs)
@@ -411,13 +410,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                             await registryNav.SubmitGrades(
                                 test1Doc,
                                 token,
-                                () =>
-                                {
-                                    started = true;
-                                });
-                        }
-                        catch (OperationCanceledException e) { throw new RegistryActionCancelledException(started, e); }
-                        catch (Exception e) { throw new RegistryActionExecutionException(started, e); }
+                                onSubmissionStarted);
+                        });
                     }));
                 continue;
 

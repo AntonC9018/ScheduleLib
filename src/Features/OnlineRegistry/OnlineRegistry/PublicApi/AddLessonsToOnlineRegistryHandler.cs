@@ -1029,26 +1029,11 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         async token =>
                         {
                             token.ThrowIfCancellationRequested();
-                            var submissionStarted = false;
-                            try
-                            {
-                                await HandleCommand(
+                            await RegistryActionGuard.Run(onSubmissionStarted => HandleCommand(
                                     captured,
                                     addLessonUri,
                                     scanResult.Students,
-                                    () =>
-                                    {
-                                        submissionStarted = true;
-                                    });
-                            }
-                            catch (OperationCanceledException error)
-                            {
-                                throw new RegistryActionCancelledException(submissionStarted, error);
-                            }
-                            catch (Exception error)
-                            {
-                                throw new RegistryActionExecutionException(submissionStarted, error);
-                            }
+                                    onSubmissionStarted));
                         }));
                 }
                 if (!(await onGroupPlanned(actions)))
