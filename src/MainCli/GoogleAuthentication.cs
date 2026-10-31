@@ -291,13 +291,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                     scopes),
                 token);
         }
-        catch (OperationCanceledException)
+        catch (TokenResponseException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
+            throw new AuthenticationRequiredException(
+                provider: "google",
+                teacher: teacher,
+                innerException: error);
         }
         token.ThrowIfCancellationRequested();
         if (!Usable(result, scopes))
@@ -363,21 +362,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 authorization = refreshed;
                 await store.Write(authorization, cancellationToken);
             }
-            catch (OperationCanceledException)
+            catch (TokenResponseException error)
             {
-                throw;
-            }
-            catch (IOException)
-            {
-                throw;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
+                throw new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: teacher,
+                    innerException: error);
             }
         }
         var credentialPath = AccountFile(teacher: teacher, clientId: secrets.ClientId);
@@ -428,13 +418,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
             return result;
         }
-        catch (OperationCanceledException)
+        catch (GoogleApiKeysMissingException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
+            throw new AuthenticationRequiredException(
+                provider: "google",
+                teacher: teacher,
+                innerException: error);
         }
     }
 

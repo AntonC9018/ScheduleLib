@@ -148,8 +148,9 @@ public sealed class AuthenticationTests
                     Teacher,
                     fixture.Services),
                 default));
-        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.ToString());
-        Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.ToString());
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.Message);
+        Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.Message);
+        Assert.IsType<TokenResponseException>(error.InnerException);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         Assert.Equal(
             expected: "access-secret",
@@ -560,7 +561,11 @@ public sealed class AuthenticationTests
             Refreshes++;
             if (FailRefresh)
             {
-                throw new Exception("provider leaked access-secret client-secret");
+                throw new TokenResponseException(new TokenErrorResponse
+                {
+                    Error = "invalid_grant",
+                    ErrorDescription = "provider leaked access-secret client-secret",
+                });
             }
 
             return Task.FromResult<TokenResponse?>(new()

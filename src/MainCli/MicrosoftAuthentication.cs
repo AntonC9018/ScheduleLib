@@ -199,13 +199,13 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         {
             authorization = await _tokens.Consent(config, token);
         }
-        catch (OperationCanceledException)
+        // Consent failures (declined, cancelled in the browser, rejected by the tenant) need a new login.
+        catch (MsalException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+            throw new AuthenticationRequiredException(
+                provider: "microsoft",
+                teacher: profile,
+                innerException: error);
         }
         EnsureUsable(authorization, profile);
         var binding = new Binding(
@@ -287,13 +287,12 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                 cached.Cache,
                 token);
         }
-        catch (OperationCanceledException)
+        catch (MsalUiRequiredException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+            throw new AuthenticationRequiredException(
+                provider: "microsoft",
+                teacher: profile,
+                innerException: error);
         }
         EnsureUsable(authorization, profile);
         if (authorization.AccountId != binding.AccountId)

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.Identity.Client;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
@@ -50,13 +51,16 @@ public sealed class MicrosoftTests
                 default));
         Assert.Equal(expected: 1, actual: tokens.Consents);
         Assert.Equal(expected: 1, actual: tokens.SilentCalls);
-        tokens.FailSilent = true;
+        tokens.SilentFailure = new MsalUiRequiredException(
+            errorCode: "invalid_grant",
+            errorMessage: "provider exposed access-secret");
         var failed =
             await Assert.ThrowsAsync<AuthenticationRequiredException>(() => authentication.Resolve(
                 Config,
                 Teacher,
                 default));
-        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: failed.ToString());
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: failed.Message);
+        Assert.Same(expected: tokens.SilentFailure, actual: failed.InnerException);
         Assert.Equal(expected: 1, actual: tokens.Consents);
         Assert.Single((await authentication.Status(Teacher, default)).Accounts);
     }
@@ -250,6 +254,24 @@ public sealed class MicrosoftTests
     }
 
     [Fact]
+    public async Task NonAuthenticationSilentFailureIsNotReportedAsLoginRequired()
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var tokens = new FakeTokens();
+        var authentication = new MicrosoftAuthentication(temp.Path, tokens);
+        await authentication.Login(
+            Config,
+            Teacher,
+            default);
+        tokens.SilentFailure = new IOException("token cache unreadable");
+        var error = await Assert.ThrowsAsync<IOException>(() => authentication.Resolve(
+            Config,
+            Teacher,
+            default));
+        Assert.Same(expected: tokens.SilentFailure, actual: error);
+    }
+
+    [Fact]
     public async Task DifferentClientCannotUseProvisionedAccount()
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
@@ -274,7 +296,7 @@ public sealed class MicrosoftTests
     {
         public int Consents;
         public int SilentCalls;
-        public bool FailSilent;
+        public Exception? SilentFailure;
         public bool CancelConsent;
         public string AccountId = "first-account";
 
@@ -318,9 +340,9 @@ public sealed class MicrosoftTests
             CancellationToken token)
         {
             SilentCalls++;
-            if (FailSilent)
+            if (SilentFailure is { } failure)
             {
-                throw new Exception("provider exposed access-secret");
+                throw failure;
             }
 
             string CalculateActual()

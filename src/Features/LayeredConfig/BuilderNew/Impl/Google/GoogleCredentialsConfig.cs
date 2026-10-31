@@ -63,6 +63,9 @@ public sealed class GoogleCredentialsConfig
     }
 }
 
+/// <summary>The configured source has no Google API keys; a login or reconfiguration can fix this.</summary>
+public sealed class GoogleApiKeysMissingException(string message) : InvalidOperationException(message);
+
 public interface IGoogleApiKeysSource
 {
     public ValueTask<ClientSecrets> Get(IServiceProvider sp, CancellationToken cancellationToken);
@@ -77,7 +80,11 @@ public sealed partial class GlobalConfigurationApiKeysSource : IGoogleApiKeysSou
     {
         var binder = sp.GetRequiredService<DynamicOptionsBinder<ClientSecrets>>();
         var config = sp.GetRequiredService<IConfiguration>();
-        var section = config.GetRequiredSection(_serviceKey);
+        var section = config.GetSection(_serviceKey);
+        if (!section.Exists())
+        {
+            throw new GoogleApiKeysMissingException("Secrets not contained in IConfiguration");
+        }
         var ret = binder.Get(section);
         return ValueTask.FromResult(ret);
     }
@@ -94,7 +101,7 @@ public sealed partial class MarkedConfigurationApiKeysSource : IGoogleApiKeysSou
         var value = secretsResolver.Resolve(_serviceKey);
         if (value == null)
         {
-            throw new InvalidOperationException("Secrets not contained in IConfiguration");
+            throw new GoogleApiKeysMissingException("Secrets not contained in IConfiguration");
         }
         return ValueTask.FromResult(value);
     }
@@ -165,8 +172,13 @@ public sealed class GoogleCredentialResolver : IDisposable
         {
             secrets = await config.ApiKeysSource.Get(_sp, cancellationToken);
         }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
+        catch (GoogleApiKeysMissingException error)
+        {
+            throw new AuthenticationRequiredException(
+                provider: "google",
+                teacher: user,
+                innerException: error);
+        }
 
         bool CalculateConditionResult()
         {
@@ -217,7 +229,13 @@ public sealed class GoogleCredentialResolver : IDisposable
                 throw new AuthenticationRequiredException(provider: "google", teacher: user);
             }
         }
-        catch (TokenResponseException) { throw new AuthenticationRequiredException(provider: "google", teacher: user); }
+        catch (TokenResponseException error)
+        {
+            throw new AuthenticationRequiredException(
+                provider: "google",
+                teacher: user,
+                innerException: error);
+        }
         return credential;
     }
 }
@@ -310,9 +328,13 @@ public sealed class AuthenticationRequiredException : Exception
     public string Provider { get; }
     public string LoginCommand { get; }
 
-    public AuthenticationRequiredException(string provider, string teacher)
+    public AuthenticationRequiredException(
+        string provider,
+        string teacher,
+        Exception? innerException = null)
         : base(
-            $"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}")
+            $"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}",
+            innerException)
     {
         Provider = provider;
         LoginCommand = BuildLoginCommand(provider: provider, teacher: teacher);
