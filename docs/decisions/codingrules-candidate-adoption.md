@@ -12,6 +12,11 @@ dotnet pack Package/CodingRules.Package.csproj -c Release --output <candidate-di
 python3 build/use-codingrules-candidate.py <candidate-directory>/Anton.CodingRules.0.1.0.nupkg
 ```
 
+- Packing uses the SDK selected by the CodingRules `global.json` (currently .NET 10), and its
+  `NuGet.Config` source `artifacts/local-feed` must exist (an empty directory suffices).
+- The published NuGet.org 0.1.0 does not satisfy current sources: annotations such as
+  `ExternalSignature` require an adopted candidate. Record each adopted candidate's commit and
+  hash in the [candidate history](../evidence/codingrules-candidates.md).
 - The script never packs, publishes, switches branches, edits another checkout or modifies the
   machine's global NuGet cache.
 - It creates an ignored root `NuGet.Config` and a feed/cache under ignored

@@ -4,6 +4,10 @@ All candidates are local, unpublished `Anton.CodingRules.0.1.0.nupkg` archives o
 the repository commit and SHA-256 distinguish them. Latest first. Adoption procedure:
 [decision](../decisions/codingrules-candidate-adoption.md).
 
+- **`e3c48f2`** (2026-10-31, branch `refactor/analyzer-reuse`), SHA-256
+  `1aeac0a8ad25bdaf59289c024edb049f7dc8a4feec2289e45ab7ef3913cba8d3`: first candidate adopted
+  for the #264 integration; it provides `ExternalSignatureAttribute`, which published 0.1.0
+  lacks. Packed on AWS with .NET SDK 10.0.403; verified across 23 restored projects.
 - **`97de786`** (2026-10-28), SHA-256
   `ea2022c5760ba614e40003ab4d933d0c48b0fa3921e6f1d5e93ad0936509da7c`:
   1,488 analyzer/fixer/package cases and 11 consumer gates; single-construction allowance.
