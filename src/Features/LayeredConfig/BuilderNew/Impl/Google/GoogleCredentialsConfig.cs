@@ -236,7 +236,7 @@ public sealed class GoogleCredentialResolver : IDisposable
                 throw new AuthenticationRequiredException(provider: "google", teacher: user);
             }
         }
-        catch (TokenResponseException error)
+        catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
         {
             throw TranslatedFailureLog.Translated(
                 Logger,

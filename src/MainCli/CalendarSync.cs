@@ -458,7 +458,14 @@ public static class CalendarSync
                     "Cancelled. Any uncertain action may have completed remotely; inspect the destination before another apply.",
                 ]);
         }
-        catch (GooglePreSendTransportException)
+        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException e)
+            when (GoogleTokenErrors.RequiresLogin(e))
+        {
+            return AuthenticationFailure();
+        }
+        // A refresh failure, including a provider response that keeps the grant, precedes sending.
+        catch (Exception e) when (e is GooglePreSendTransportException
+            or Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
         {
             var effects = AnyCompleted();
             AddCurrentOutcome(ActionState.Failed);
@@ -467,10 +474,6 @@ public static class CalendarSync
                 [RemoteSyncOutcomes.CredentialRefreshTransportError]);
         }
         catch (AuthenticationRequiredException)
-        {
-            return AuthenticationFailure();
-        }
-        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
         {
             return AuthenticationFailure();
         }

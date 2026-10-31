@@ -10,7 +10,7 @@ namespace ScheduleLib.Cli;
 internal static class RemoteSyncOutcomes
 {
     public const string CredentialRefreshTransportError =
-        "Google credential refresh transport failed; the action was not sent. Completed actions remain applied.";
+        "Google credential refresh failed; the action was not sent. Completed actions remain applied.";
 
     /// <summary>A cancellation surfaced as a transport failure once the token is cancelled.</summary>
     public static bool IsCancellationTransportError(CancellationToken token, Exception error)

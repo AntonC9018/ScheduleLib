@@ -299,7 +299,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                     scopes),
                 token);
         }
-        catch (TokenResponseException error) when (RequiresLogin(error))
+        catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
         {
             throw TranslatedFailureLog.Translated(
                 _logger,
@@ -373,7 +373,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 authorization = refreshed;
                 await store.Write(authorization, cancellationToken);
             }
-            catch (TokenResponseException error) when (RequiresLogin(error))
+            catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
             {
                 throw TranslatedFailureLog.Translated(
                     _logger,
@@ -389,11 +389,6 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         var tokenContext = new GoogleTokenContext(secrets, teacher, scopes);
         return _tokens.CreateCredential(tokenContext, authorization, credentialStore);
     }
-
-    // Only a rejected grant or declined consent needs a new login. Other OAuth errors, such as
-    // temporarily_unavailable, server_error or invalid_client, keep their own classification.
-    private static bool RequiresLogin(TokenResponseException error) =>
-        error.Error?.Error is "invalid_grant" or "access_denied";
 
     private static bool Usable(TokenResponse authorization, string[] scopes)
     {

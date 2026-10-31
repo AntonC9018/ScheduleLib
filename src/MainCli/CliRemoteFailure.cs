@@ -63,7 +63,8 @@ internal static class CliRemoteFailure
 
         bool CalculateConditionResult2()
         {
-            if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
+            if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException token
+                && GoogleTokenErrors.RequiresLogin(token))
             {
                 return true;
             }
@@ -95,7 +96,8 @@ internal static class CliRemoteFailure
         {
             CliOutputStreamingException => new(CliExit.Unexpected, ["Output streaming failed."]),
             OperationCanceledException => new(CliExit.IoFailure, [messages.Timeout]),
-            HttpRequestException => new(CliExit.IoFailure, [messages.Network]),
+            HttpRequestException
+                or Google.Apis.Auth.OAuth2.Responses.TokenResponseException => new(CliExit.IoFailure, [messages.Network]),
             LocalOperationBusyException => new(CliExit.Busy, [messages.Busy]),
             JsonException
                 or ArgumentException

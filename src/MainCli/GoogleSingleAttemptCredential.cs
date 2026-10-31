@@ -1,16 +1,20 @@
-using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Responses;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Http;
+using ScheduleLib.Application.Config;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The downstream API request has not been sent when credential interception fails.</summary>
+/// <summary>
+/// The downstream API request has not been sent when credential interception fails through
+/// transport, timeout or a provider response that does not reject the grant.
+/// </summary>
 // HttpClient rewrites HttpRequestException into cancellation when its deadline expires.
 // Use IOException so the pre-send evidence survives that translation.
 public sealed class GooglePreSendTransportException : IOException
 {
     public GooglePreSendTransportException() : base(
-        "Google credential refresh transport failed before sending the API request.")
+        "Google credential refresh failed before sending the API request.")
     {
     }
 }
@@ -59,9 +63,13 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
 
             await credential.InterceptAsync(request, cancellationToken);
         }
-        catch (TokenResponseException)
+        catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
         {
             throw AuthorizationFailure();
+        }
+        catch (TokenResponseException)
+        {
+            throw new GooglePreSendTransportException();
         }
         catch (HttpRequestException)
         {

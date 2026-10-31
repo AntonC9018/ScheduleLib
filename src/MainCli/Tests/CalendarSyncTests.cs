@@ -323,6 +323,37 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: expected2, actual: actual2);
     }
 
+    [Theory]
+    [InlineData("token-invalid_grant", CliExit.AuthenticationRequired)]
+    [InlineData("token-access_denied", CliExit.AuthenticationRequired)]
+    [InlineData("token-temporarily_unavailable", CliExit.IoFailure)]
+    [InlineData("token-server_error", CliExit.IoFailure)]
+    public async Task TokenProviderResponsesRequireLoginOnlyWhenTheGrantIsRejected(string fail, int exit)
+    {
+        using var provider = new Fake
+        {
+            Fail = fail,
+            Missing = true,
+        };
+        var result = await CalendarSync.Run(
+            provider,
+            "Lessons",
+            [new()],
+            true,
+            default);
+        Assert.Equal(expected: exit, actual: result.ExitCode);
+        Assert.Equal(expected: "failed", actual: result.Outcomes[0].State.ToWire());
+        Assert.All(
+            result.Outcomes.Skip(1),
+            x => Assert.Equal(expected: "not-attempted", actual: x.State.ToWire()));
+        var errors = string.Join('\n', result.Errors);
+        Assert.DoesNotContain(expectedSubstring: "synthetic-private-detail", actualString: errors);
+        if (exit == CliExit.IoFailure)
+        {
+            Assert.Equal(expected: RemoteSyncOutcomes.CredentialRefreshTransportError, actual: Assert.Single(result.Errors));
+        }
+    }
+
     [Fact]
     public async Task RejectedFirstCreateIsFailureBeforePartialApplication()
     {
@@ -690,6 +721,16 @@ public sealed class CalendarSyncTests
             if (Fail == "calendar")
             {
                 throw new IOException("Response lost after creating calendar");
+            }
+
+            if (Fail?.StartsWith("token-", StringComparison.Ordinal) == true)
+            {
+                throw new Google.Apis.Auth.OAuth2.Responses.TokenResponseException(
+                    new Google.Apis.Auth.OAuth2.Responses.TokenErrorResponse
+                    {
+                        Error = Fail["token-".Length..],
+                        ErrorDescription = "synthetic-private-detail",
+                    });
             }
 
             return Task.FromResult("new");

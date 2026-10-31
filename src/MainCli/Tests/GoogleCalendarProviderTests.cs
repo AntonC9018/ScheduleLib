@@ -329,6 +329,13 @@ public sealed class GoogleCalendarProviderTests
         0,
         null)]
     [InlineData(
+        "read-expired-refresh-unavailable",
+        5,
+        0,
+        3,
+        0,
+        null)]
+    [InlineData(
         "read-expired-refresh-cancel",
         130,
         0,
@@ -350,6 +357,13 @@ public sealed class GoogleCalendarProviderTests
         2,
         "failed")]
     [InlineData(
+        "create-expired-refresh-unavailable",
+        5,
+        0,
+        3,
+        2,
+        "failed")]
+    [InlineData(
         "create-expired-refresh-cancel",
         130,
         0,
@@ -368,6 +382,13 @@ public sealed class GoogleCalendarProviderTests
         6,
         1,
         1,
+        2,
+        "failed")]
+    [InlineData(
+        "event-expired-refresh-unavailable",
+        6,
+        1,
+        3,
         2,
         "failed")]
     [InlineData(
@@ -642,6 +663,17 @@ public sealed class GoogleCalendarProviderTests
 
             if (CheckCondition7())
             {
+                if (scenario.EndsWith("unavailable", StringComparison.Ordinal))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                    {
+                        Content = new StringContent(
+                            "{\"error\":\"temporarily_unavailable\",\"error_description\":\"synthetic-private-detail\"}",
+                            Encoding.UTF8,
+                            "application/json"),
+                    };
+                }
+
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
                     throw new HttpRequestException("synthetic-private-detail");

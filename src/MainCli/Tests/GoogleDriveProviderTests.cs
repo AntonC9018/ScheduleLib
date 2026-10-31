@@ -323,6 +323,12 @@ public sealed class GoogleDriveProviderTests
         0,
         1)]
     [InlineData(
+        "expired-refresh-unavailable",
+        5,
+        "failed",
+        0,
+        3)]
+    [InlineData(
         "expired-refresh-cancel",
         130,
         "cancelled",
@@ -341,6 +347,12 @@ public sealed class GoogleDriveProviderTests
         4,
         1)]
     [InlineData(
+        "apply-expired-refresh-unavailable",
+        5,
+        "failed",
+        4,
+        3)]
+    [InlineData(
         "apply-expired-refresh-cancel",
         130,
         "cancelled",
@@ -358,6 +370,12 @@ public sealed class GoogleDriveProviderTests
         "partial",
         5,
         1)]
+    [InlineData(
+        "apply-after-create-expired-refresh-unavailable",
+        6,
+        "partial",
+        5,
+        3)]
     [InlineData(
         "apply-after-create-expired-refresh-cancel",
         130,
@@ -478,6 +496,17 @@ public sealed class GoogleDriveProviderTests
             if (request.RequestUri!.Host == "oauth2.googleapis.com"
                 && scenario.Contains("expired-refresh", StringComparison.Ordinal))
             {
+                if (scenario.EndsWith("unavailable", StringComparison.Ordinal))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                    {
+                        Content = new StringContent(
+                            "{\"error\":\"temporarily_unavailable\",\"error_description\":\"private-provider-diagnostic\"}",
+                            Encoding.UTF8,
+                            "application/json"),
+                    };
+                }
+
                 if (scenario.EndsWith("connection", StringComparison.Ordinal))
                 {
                     throw new HttpRequestException("private-provider-diagnostic");
