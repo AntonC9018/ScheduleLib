@@ -610,297 +610,39 @@ public static class Config
     /// academic-year numbering (fall week 1 is even, so spring week 1 after the 15-week fall
     /// term is odd); the PDF fixes only the week counts and dates, not the parity.
     /// </summary>
-    public static StudyWeek[] StudyWeeks
-    {
-        get
-        {
-            DateOnly CalculateMonday()
-            {
-                DateOnly monday2 = new(
-                    year: 2026,
-                    month: 8,
-                    day: 31);
-                return monday2;
-            }
-
-            DateOnly CalculateMonday2()
-            {
-                DateOnly monday3 = new(
-                    year: 2026,
-                    month: 9,
-                    day: 7);
-                return monday3;
-            }
-
-            DateOnly CalculateMonday3()
-            {
-                DateOnly monday4 = new(
-                    year: 2026,
-                    month: 9,
-                    day: 14);
-                return monday4;
-            }
-
-            DateOnly CalculateMonday4()
-            {
-                DateOnly monday5 = new(
-                    year: 2026,
-                    month: 9,
-                    day: 21);
-                return monday5;
-            }
-
-            DateOnly CalculateMonday5()
-            {
-                DateOnly monday6 = new(
-                    year: 2026,
-                    month: 9,
-                    day: 28);
-                return monday6;
-            }
-
-            DateOnly CalculateMonday6()
-            {
-                DateOnly monday7 = new(
-                    year: 2026,
-                    month: 10,
-                    day: 5);
-                return monday7;
-            }
-
-            DateOnly CalculateMonday7()
-            {
-                DateOnly monday8 = new(
-                    year: 2026,
-                    month: 10,
-                    day: 12);
-                return monday8;
-            }
-
-            DateOnly CalculateMonday8()
-            {
-                DateOnly monday9 = new(
-                    year: 2026,
-                    month: 10,
-                    day: 19);
-                return monday9;
-            }
-
-            DateOnly CalculateMonday9()
-            {
-                DateOnly monday10 = new(
-                    year: 2026,
-                    month: 10,
-                    day: 26);
-                return monday10;
-            }
-
-            DateOnly CalculateMonday10()
-            {
-                DateOnly monday11 = new(
-                    year: 2026,
-                    month: 11,
-                    day: 2);
-                return monday11;
-            }
-
-            DateOnly CalculateMonday11()
-            {
-                DateOnly monday12 = new(
-                    year: 2026,
-                    month: 11,
-                    day: 9);
-                return monday12;
-            }
-
-            DateOnly CalculateMonday12()
-            {
-                DateOnly monday13 = new(
-                    year: 2026,
-                    month: 11,
-                    day: 16);
-                return monday13;
-            }
-
-            DateOnly CalculateMonday13()
-            {
-                DateOnly monday14 = new(
-                    year: 2026,
-                    month: 11,
-                    day: 23);
-                return monday14;
-            }
-
-            DateOnly CalculateMonday14()
-            {
-                DateOnly monday15 = new(
-                    year: 2026,
-                    month: 11,
-                    day: 30);
-                return monday15;
-            }
-
-            DateOnly CalculateMonday15()
-            {
-                DateOnly monday16 = new(
-                    year: 2026,
-                    month: 12,
-                    day: 7);
-                return monday16;
-            }
-
-            DateOnly CalculateMonday16()
-            {
-                DateOnly monday17 = new(
-                    year: 2027,
-                    month: 2,
-                    day: 1);
-                return monday17;
-            }
-
-            DateOnly CalculateMonday17()
-            {
-                DateOnly monday18 = new(
-                    year: 2027,
-                    month: 2,
-                    day: 8);
-                return monday18;
-            }
-
-            DateOnly CalculateMonday18()
-            {
-                DateOnly monday19 = new(
-                    year: 2027,
-                    month: 2,
-                    day: 15);
-                return monday19;
-            }
-
-            DateOnly CalculateMonday19()
-            {
-                DateOnly monday20 = new(
-                    year: 2027,
-                    month: 2,
-                    day: 22);
-                return monday20;
-            }
-
-            DateOnly CalculateMonday20()
-            {
-                DateOnly monday21 = new(
-                    year: 2027,
-                    month: 3,
-                    day: 1);
-                return monday21;
-            }
-
-            DateOnly CalculateMonday21()
-            {
-                DateOnly monday22 = new(
-                    year: 2027,
-                    month: 3,
-                    day: 8);
-                return monday22;
-            }
-
-            DateOnly CalculateMonday22()
-            {
-                DateOnly monday23 = new(
-                    year: 2027,
-                    month: 3,
-                    day: 15);
-                return monday23;
-            }
-
-            DateOnly CalculateMonday23()
-            {
-                DateOnly monday24 = new(
-                    year: 2027,
-                    month: 3,
-                    day: 22);
-                return monday24;
-            }
-
-            DateOnly CalculateMonday24()
-            {
-                DateOnly monday25 = new(
-                    year: 2027,
-                    month: 3,
-                    day: 29);
-                return monday25;
-            }
-
-            DateOnly CalculateMonday25()
-            {
-                DateOnly monday26 = new(
-                    year: 2027,
-                    month: 4,
-                    day: 5);
-                return monday26;
-            }
-
-            DateOnly CalculateMonday26()
-            {
-                DateOnly monday27 = new(
-                    year: 2027,
-                    month: 4,
-                    day: 12);
-                return monday27;
-            }
-
-            DateOnly CalculateMonday27()
-            {
-                DateOnly monday28 = new(
-                    year: 2027,
-                    month: 4,
-                    day: 19);
-                return monday28;
-            }
-
-            DateOnly CalculateMonday28()
-            {
-                DateOnly monday29 = new(
-                    year: 2027,
-                    month: 4,
-                    day: 26);
-                return monday29;
-            }
-
-            return
-            [
-                // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
-                new(monday: CalculateMonday(), isOddWeek: false),
-                new(monday: CalculateMonday2(), isOddWeek: true),
-                new(monday: CalculateMonday3(), isOddWeek: false),
-                new(monday: CalculateMonday4(), isOddWeek: true),
-                new(monday: CalculateMonday5(), isOddWeek: false),
-                new(monday: CalculateMonday6(), isOddWeek: true),
-                new(monday: CalculateMonday7(), isOddWeek: false),
-                new(monday: CalculateMonday8(), isOddWeek: true),
-                new(monday: CalculateMonday9(), isOddWeek: false),
-                new(monday: CalculateMonday10(), isOddWeek: true),
-                new(monday: CalculateMonday11(), isOddWeek: false),
-                new(monday: CalculateMonday12(), isOddWeek: true),
-                new(monday: CalculateMonday13(), isOddWeek: false),
-                new(monday: CalculateMonday14(), isOddWeek: true),
-                new(monday: CalculateMonday15(), isOddWeek: false),
-                // Semestrul II: 13 weeks, numbering continues from the fall term.
-                new(monday: CalculateMonday16(), isOddWeek: true),
-                new(monday: CalculateMonday17(), isOddWeek: false),
-                new(monday: CalculateMonday18(), isOddWeek: true),
-                new(monday: CalculateMonday19(), isOddWeek: false),
-                new(monday: CalculateMonday20(), isOddWeek: true),
-                new(monday: CalculateMonday21(), isOddWeek: false),
-                new(monday: CalculateMonday22(), isOddWeek: true),
-                new(monday: CalculateMonday23(), isOddWeek: false),
-                new(monday: CalculateMonday24(), isOddWeek: true),
-                new(monday: CalculateMonday25(), isOddWeek: false),
-                new(monday: CalculateMonday26(), isOddWeek: true),
-                new(monday: CalculateMonday27(), isOddWeek: false),
-                new(monday: CalculateMonday28(), isOddWeek: true),
-            ];
-        }
-    }
+    public static readonly StudyWeek[] StudyWeeks =
+    [
+        // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
+        new(new DateOnly(2026, 8, 31), isOddWeek: false),
+        new(new DateOnly(2026, 9, 7), isOddWeek: true),
+        new(new DateOnly(2026, 9, 14), isOddWeek: false),
+        new(new DateOnly(2026, 9, 21), isOddWeek: true),
+        new(new DateOnly(2026, 9, 28), isOddWeek: false),
+        new(new DateOnly(2026, 10, 5), isOddWeek: true),
+        new(new DateOnly(2026, 10, 12), isOddWeek: false),
+        new(new DateOnly(2026, 10, 19), isOddWeek: true),
+        new(new DateOnly(2026, 10, 26), isOddWeek: false),
+        new(new DateOnly(2026, 11, 2), isOddWeek: true),
+        new(new DateOnly(2026, 11, 9), isOddWeek: false),
+        new(new DateOnly(2026, 11, 16), isOddWeek: true),
+        new(new DateOnly(2026, 11, 23), isOddWeek: false),
+        new(new DateOnly(2026, 11, 30), isOddWeek: true),
+        new(new DateOnly(2026, 12, 7), isOddWeek: false),
+        // Semestrul II: 13 weeks, numbering continues from the fall term.
+        new(new DateOnly(2027, 2, 1), isOddWeek: true),
+        new(new DateOnly(2027, 2, 8), isOddWeek: false),
+        new(new DateOnly(2027, 2, 15), isOddWeek: true),
+        new(new DateOnly(2027, 2, 22), isOddWeek: false),
+        new(new DateOnly(2027, 3, 1), isOddWeek: true),
+        new(new DateOnly(2027, 3, 8), isOddWeek: false),
+        new(new DateOnly(2027, 3, 15), isOddWeek: true),
+        new(new DateOnly(2027, 3, 22), isOddWeek: false),
+        new(new DateOnly(2027, 3, 29), isOddWeek: true),
+        new(new DateOnly(2027, 4, 5), isOddWeek: false),
+        new(new DateOnly(2027, 4, 12), isOddWeek: true),
+        new(new DateOnly(2027, 4, 19), isOddWeek: false),
+        new(new DateOnly(2027, 4, 26), isOddWeek: true),
+    ];
 
     public static HolidayPeriod[] HolidayPeriods
     {
