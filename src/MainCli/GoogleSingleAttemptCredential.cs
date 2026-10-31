@@ -13,8 +13,10 @@ namespace ScheduleLib.Cli;
 // Use IOException so the pre-send evidence survives that translation.
 public sealed class GooglePreSendTransportException : IOException
 {
-    public GooglePreSendTransportException() : base(
-        "Google credential refresh failed before sending the API request.")
+    // The cause stays available to debugging; public messages never include its details.
+    public GooglePreSendTransportException(Exception? innerException = null) : base(
+        "Google credential refresh failed before sending the API request.",
+        innerException)
     {
     }
 }
@@ -65,31 +67,31 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         }
         catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
         {
-            throw AuthorizationFailure();
+            throw AuthorizationFailure(error);
         }
-        catch (TokenResponseException)
+        catch (TokenResponseException error)
         {
-            throw new GooglePreSendTransportException();
+            throw new GooglePreSendTransportException(error);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException error)
         {
-            throw new GooglePreSendTransportException();
+            throw new GooglePreSendTransportException(error);
         }
         // The SDK supplies a linked request token, also cancelled by HttpClient.Timeout.
         // Preserve pre-send provenance; only the outer operation knows caller cancellation.
-        catch (OperationCanceledException)
+        catch (OperationCanceledException error)
         {
-            throw new GooglePreSendTransportException();
+            throw new GooglePreSendTransportException(error);
         }
         catch (InvalidOperationException error) when (IsSdkRefreshTimeout(error))
         {
-            throw new GooglePreSendTransportException();
+            throw new GooglePreSendTransportException(error);
         }
     }
 
-    private Google.GoogleApiException AuthorizationFailure()
+    private Google.GoogleApiException AuthorizationFailure(Exception? cause = null)
     {
-        return new(serviceName: api, message: "Google authorization failed.")
+        return new(serviceName: api, message: "Google authorization failed.", cause)
         {
             HttpStatusCode = System.Net.HttpStatusCode.Unauthorized,
         };
