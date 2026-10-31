@@ -28,7 +28,8 @@ public sealed class MicrosoftTests
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
-        var authentication = new MicrosoftAuthentication(temp.Path, tokens);
+        using var log = new DebugLogCapture();
+        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
         var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
             authentication.Resolve(
                 Config,
@@ -61,6 +62,10 @@ public sealed class MicrosoftTests
                 default));
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: failed.Message);
         Assert.Same(expected: tokens.SilentFailure, actual: failed.InnerException);
+        Assert.Contains(
+            expectedSubstring: "AuthenticationRequiredException translated from MsalUiRequiredException (code invalid_grant)",
+            actualString: log.All);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
         Assert.Equal(expected: 1, actual: tokens.Consents);
         Assert.Single((await authentication.Status(Teacher, default)).Accounts);
     }

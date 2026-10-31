@@ -1,4 +1,5 @@
 using CommandDotNet;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 
@@ -179,6 +180,7 @@ public partial class RegistryCommands
         }
         catch (RegistryHistoryException error)
         {
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history topic discovery", error);
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
@@ -197,6 +199,7 @@ public partial class RegistryCommands
         // The cause may contain private registry data, so it is classified but never echoed.
         catch (Exception error)
         {
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history topic discovery", error);
             var exit = context.ClassifyInputFailure(error).ExitCode;
             return Finish(exit, "Registry history topic discovery failed or stopped.");
         }

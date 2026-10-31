@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Identity.Client;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 
@@ -111,8 +113,13 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
 
 /// <summary>Teacher, tenant/client and actual MSAL account partitions live in user state.
 /// Hold the profile lease through acquisition and atomic publication, including refresh.</summary>
-public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicrosoftTokenProvider? tokens = null)
+public sealed class MicrosoftAuthentication(
+    string? stateDirectory = null,
+    IMicrosoftTokenProvider? tokens = null,
+    ILogger? logger = null)
 {
+    private readonly ILogger _logger = logger ?? NullLogger.Instance;
+
     private readonly string _root = stateDirectory
         ?? Path.Combine(
             CalculatePath1(),
@@ -202,10 +209,13 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         // Consent failures (declined, cancelled in the browser, rejected by the tenant) need a new login.
         catch (MsalException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "microsoft",
-                teacher: profile,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "microsoft",
+                    teacher: profile,
+                    innerException: error),
+                error.ErrorCode);
         }
         EnsureUsable(authorization, profile);
         var binding = new Binding(
@@ -289,10 +299,13 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
         }
         catch (MsalUiRequiredException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "microsoft",
-                teacher: profile,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "microsoft",
+                    teacher: profile,
+                    innerException: error),
+                error.ErrorCode);
         }
         EnsureUsable(authorization, profile);
         if (authorization.AccountId != binding.AccountId)

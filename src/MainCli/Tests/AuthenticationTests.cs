@@ -109,6 +109,34 @@ public sealed class AuthenticationTests
     }
 
     [Fact]
+    public async Task NonAuthenticationRefreshFailureIsNotReportedAsLoginRequired()
+    {
+        using var fixture = new Fixture();
+        using var auth = fixture.Auth;
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
+        var file = Assert.Single(Directory.GetFiles(
+            path: fixture.Root,
+            searchPattern: "*.json",
+            SearchOption.AllDirectories));
+        var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
+        stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+        await new AtomicTokenStore(file).Write(stored, default);
+        var failure = new HttpRequestException("Google token endpoint unreachable");
+        fixture.Tokens.RefreshError = failure;
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
+                    Scopes,
+                    Teacher,
+                    fixture.Services),
+                default));
+        Assert.Same(expected: failure, actual: error);
+    }
+
+    [Fact]
     public async Task MissingScopesAndFailedRefreshRequireLoginAndRedactProviderErrors()
     {
         using var fixture = new Fixture();
@@ -151,6 +179,10 @@ public sealed class AuthenticationTests
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.Message);
         Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.Message);
         Assert.IsType<TokenResponseException>(error.InnerException);
+        Assert.Contains(
+            expectedSubstring: "AuthenticationRequiredException translated from TokenResponseException (code invalid_grant)",
+            actualString: fixture.Log.All);
+        Assert.DoesNotContain(expectedSubstring: "secret", actualString: fixture.Log.All);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         Assert.Equal(
             expected: "access-secret",
@@ -494,7 +526,9 @@ public sealed class AuthenticationTests
 
         public FakeTokens Tokens { get; } = new();
 
-        public GoogleAuthentication Auth => new(Root, Tokens);
+        public DebugLogCapture Log { get; } = new();
+
+        public GoogleAuthentication Auth => new(Root, Tokens, Log);
 
         public ServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
 
@@ -531,6 +565,8 @@ public sealed class AuthenticationTests
 
         public bool FailRefresh { get; set; }
 
+        public Exception? RefreshError { get; set; }
+
         public bool CancelConsent { get; set; }
 
         public Task<TokenResponse> Consent(
@@ -559,6 +595,10 @@ public sealed class AuthenticationTests
             CancellationToken token)
         {
             Refreshes++;
+            if (RefreshError is { } refreshError)
+            {
+                throw refreshError;
+            }
             if (FailRefresh)
             {
                 throw new TokenResponseException(new TokenErrorResponse

@@ -165,15 +165,16 @@ public sealed class RegistryHistoryCommandTests
         using var temp = new TestTempDirectory("registry-history-tests");
         var original = Console.Error;
         using var error = new StringWriter();
+        var commands = new Commands(new Provider
+        {
+            Fail = true,
+        });
         try
         {
             Console.SetError(error);
             Assert.Equal(
                 expected: 5,
-                actual: await new Commands(new Provider
-                {
-                    Fail = true,
-                }).History(
+                actual: await commands.History(
                     new()
                     {
                         Profile = "synthetic",
@@ -184,6 +185,49 @@ public sealed class RegistryHistoryCommandTests
                     },
                     new()));
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
+            Assert.Contains(
+                expectedSubstring: "Registry history discovery failed with IOException",
+                actualString: commands.Log.All);
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: commands.Log.All);
+        }
+        finally
+        {
+            Console.SetError(original);
+        }
+    }
+
+    [Fact]
+    public async Task UnexpectedProviderBugIsNotReportedAsIoFailure()
+    {
+        using var temp = new TestTempDirectory("registry-history-tests");
+        var original = Console.Error;
+        using var error = new StringWriter();
+        var commands = new Commands(new Provider
+        {
+            Bug = new InvalidOperationException(
+                "canary-bug",
+                new FormatException("canary-cause")),
+        });
+        try
+        {
+            Console.SetError(error);
+            Assert.Equal(
+                expected: CliExit.Unexpected,
+                actual: await commands.History(
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = Path.Combine(temp.Path, ".registry-history"),
+                    },
+                    new()));
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
+            Assert.Contains(
+                expectedSubstring: "failed with InvalidOperationException (causes FormatException)",
+                actualString: commands.Log.All);
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: commands.Log.All);
         }
         finally
         {
@@ -321,7 +365,11 @@ public sealed class RegistryHistoryCommandTests
 
     private sealed class Commands(Provider provider) : RegistryCommands
     {
+        public DebugLogCapture Log { get; } = new();
+
         protected override IRegistryHistoryProvider CreateHistoryProvider() => provider;
+
+        protected override Microsoft.Extensions.Logging.ILogger CreateFailureLogger(CliCommandContext context) => Log;
     }
 
     private sealed class Provider : IRegistryHistoryProvider
@@ -329,6 +377,8 @@ public sealed class RegistryHistoryCommandTests
         public int Calls { get; private set; }
 
         public bool Fail { get; init; }
+
+        public Exception? Bug { get; init; }
 
         public RegistryHistoryFailure? Failure { get; init; }
 
@@ -357,6 +407,11 @@ public sealed class RegistryHistoryCommandTests
             if (Fail)
             {
                 throw new IOException("canary-password canary-token canary-student");
+            }
+
+            if (Bug is { } bug)
+            {
+                throw bug;
             }
 
             return Task.FromResult<IReadOnlyList<RegistryHistoryYearSummary>>(

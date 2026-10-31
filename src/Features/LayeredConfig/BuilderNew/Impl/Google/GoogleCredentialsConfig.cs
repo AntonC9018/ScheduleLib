@@ -13,6 +13,8 @@ using Google.Apis.Util.Store;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Extensions.Http;
 using ScheduleLib.Helper;
@@ -144,6 +146,9 @@ public sealed class GoogleCredentialResolver : IDisposable
         _sp = sp;
     }
 
+    private ILogger Logger =>
+        (ILogger?)_sp.GetService<ILogger<GoogleCredentialResolver>>() ?? NullLogger.Instance;
+
     public async Task<UserCredential> Resolve(
         BuiltGoogleCredentialsConfig config,
         string[] requiredScopes,
@@ -174,10 +179,12 @@ public sealed class GoogleCredentialResolver : IDisposable
         }
         catch (GoogleApiKeysMissingException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "google",
-                teacher: user,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                Logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: user,
+                    innerException: error));
         }
 
         bool CalculateConditionResult()
@@ -231,10 +238,13 @@ public sealed class GoogleCredentialResolver : IDisposable
         }
         catch (TokenResponseException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "google",
-                teacher: user,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                Logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: user,
+                    innerException: error),
+                error.Error?.Error);
         }
         return credential;
     }

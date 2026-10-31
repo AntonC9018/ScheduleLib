@@ -132,15 +132,16 @@ public sealed class RegistryHistoryTopicsCommandTests
         using var temp = new TestTempDirectory("registry-history-tests");
         var original = Console.Error;
         using var error = new StringWriter();
+        var commands = new Commands(new Provider
+        {
+            Fail = true,
+        });
         try
         {
             Console.SetError(error);
             Assert.Equal(
                 expected: 5,
-                actual: await new Commands(new Provider
-                {
-                    Fail = true,
-                }).HistoryTopics(
+                actual: await commands.HistoryTopics(
                     new()
                     {
                         Profile = "synthetic",
@@ -151,6 +152,10 @@ public sealed class RegistryHistoryTopicsCommandTests
                     },
                     new()));
             Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
+            Assert.Contains(
+                expectedSubstring: "Registry history topic discovery failed with IOException",
+                actualString: commands.Log.All);
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: commands.Log.All);
         }
         finally
         {
@@ -208,7 +213,11 @@ public sealed class RegistryHistoryTopicsCommandTests
 
     private sealed class Commands(Provider provider) : RegistryCommands
     {
+        public DebugLogCapture Log { get; } = new();
+
         protected override IRegistryHistoryTopicsProvider CreateHistoryTopicsProvider() => provider;
+
+        protected override Microsoft.Extensions.Logging.ILogger CreateFailureLogger(CliCommandContext context) => Log;
     }
 
     private sealed class Provider : IRegistryHistoryTopicsProvider

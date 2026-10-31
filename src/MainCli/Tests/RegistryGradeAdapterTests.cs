@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -1171,21 +1172,28 @@ public sealed class RegistryGradeAdapterTests
     public async Task MoodleTransportFailureIsNotReportedAsAuthenticationFailure()
     {
         var transportFailure = new HttpRequestException("Moodle unreachable");
+        using var log = new DebugLogCapture();
         var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            PlanWithFailingMoodle(transportFailure));
+            PlanWithFailingMoodle(transportFailure, log));
         Assert.Same(expected: transportFailure, actual: error);
     }
 
     [Fact]
     public async Task MoodleLoginRejectionChainsTheCause()
     {
-        var rejection = new ScrapingAuthenticationException("Failed to retrieve token.");
+        var rejection = new ScrapingAuthenticationException("login form echoed canary-password");
+        using var log = new DebugLogCapture();
         var error = await Assert.ThrowsAsync<RegistryAuthenticationException>(() =>
-            PlanWithFailingMoodle(rejection));
+            PlanWithFailingMoodle(rejection, log));
         Assert.Same(expected: rejection, actual: error.InnerException);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.Message);
+        Assert.Contains(
+            expectedSubstring: "RegistryAuthenticationException translated from ScrapingAuthenticationException",
+            actualString: log.All);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: log.All);
     }
 
-    private static async Task PlanWithFailingMoodle(Exception failure)
+    private static async Task PlanWithFailingMoodle(Exception failure, DebugLogCapture log)
     {
         using var settings = await CliSettings.Load(new());
         settings.Tree.Defaults.Moodle()
@@ -1199,6 +1207,8 @@ public sealed class RegistryGradeAdapterTests
             });
         var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
+        collection.AddLogging(logging => logging.AddProvider(log)
+            .SetMinimumLevel(LogLevel.Debug));
         await using var provider = AppConfiguration.BuildServiceProvider(collection);
         await using var scope = provider.CreateAsyncScope();
         await using var session = new Session(scope.ServiceProvider);

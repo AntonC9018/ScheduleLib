@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
@@ -63,6 +64,7 @@ public sealed class CliCommandContext : IDisposable
 {
     private readonly ConsoleCancelEventHandler _cancel;
     private readonly CliOutput? _previousOutput;
+    private readonly CliJsonlLoggerProvider _loggers;
     private int _streamed;
     private bool _started;
 
@@ -83,6 +85,7 @@ public sealed class CliCommandContext : IDisposable
             command: command,
             runId: runId,
             arguments);
+        _loggers = new CliJsonlLoggerProvider(Output);
         Cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
         _previousOutput = CliAmbient.Current;
         _cancel = (_, e) =>
@@ -93,6 +96,9 @@ public sealed class CliCommandContext : IDisposable
     }
 
     public CliOutput Output { get; }
+
+    /// <summary>A logger writing to this command's output, for diagnostics outside a service provider.</summary>
+    public ILogger CreateLogger(string category) => _loggers.CreateLogger(category);
 
     public CancellationTokenSource Cancellation { get; }
 
@@ -433,6 +439,7 @@ public sealed class CliCommandContext : IDisposable
         }
         CliAmbient.Current = _previousOutput;
         Artifacts?.Dispose();
+        _loggers.Dispose();
         Cancellation.Dispose();
     }
 }

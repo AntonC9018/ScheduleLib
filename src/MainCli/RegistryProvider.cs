@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;
@@ -13,6 +15,10 @@ public sealed class RegistryAuthenticationException(string message, Exception? i
 
 internal static class RegistryCredentials
 {
+    public static ILogger FailureLogger(IServiceProvider services) =>
+        (ILogger?)services.GetService<ILogger<RegistryAuthenticationException>>()
+        ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+
     public static bool HasLoginAndPassword(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] Scraping.Common.Credentials? credentials)
     {
@@ -140,7 +146,11 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
             catch (CredentialsMissingException error)
             {
-                throw new RegistryAuthenticationException(missingCredentialsMessage, error);
+                throw TranslatedFailureLog.Translated(
+                    RegistryCredentials.FailureLogger(scope.ServiceProvider),
+                    new RegistryAuthenticationException(
+                        missingCredentialsMessage,
+                        error));
             }
             if (!RegistryCredentials.HasLoginAndPassword(credentials))
             {
@@ -156,9 +166,11 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
             catch (ScrapingAuthenticationException error)
             {
-                throw new RegistryAuthenticationException(
-                    "Registry authentication failed using configured credentials.",
-                    error);
+                throw TranslatedFailureLog.Translated(
+                    RegistryCredentials.FailureLogger(scope.ServiceProvider),
+                    new RegistryAuthenticationException(
+                        "Registry authentication failed using configured credentials.",
+                        error));
             }
             var settings2 = resolved;
             var provider2 = provider;

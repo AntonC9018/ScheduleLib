@@ -6,6 +6,8 @@ using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 
@@ -136,9 +138,14 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
     private readonly string _root;
     private readonly IGoogleTokenProvider _tokens;
+    private readonly ILogger _logger;
 
-    public GoogleAuthentication(string? stateDirectory = null, IGoogleTokenProvider? tokens = null)
+    public GoogleAuthentication(
+        string? stateDirectory = null,
+        IGoogleTokenProvider? tokens = null,
+        ILogger? logger = null)
     {
+        _logger = logger ?? NullLogger.Instance;
         string CalculatePath1()
         {
             string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -155,7 +162,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
     }
 
     public static void Register(IServiceCollection services) =>
-        services.AddSingleton<IGoogleCredentialAuthorization>(_ => new GoogleAuthentication());
+        services.AddSingleton<IGoogleCredentialAuthorization>(sp =>
+            new GoogleAuthentication(logger: sp.GetService<ILogger<GoogleAuthentication>>()));
 
     public void Dispose()
     {
@@ -293,10 +301,13 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
         catch (TokenResponseException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "google",
-                teacher: teacher,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: teacher,
+                    innerException: error),
+                error.Error?.Error);
         }
         token.ThrowIfCancellationRequested();
         if (!Usable(result, scopes))
@@ -364,10 +375,13 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
             }
             catch (TokenResponseException error)
             {
-                throw new AuthenticationRequiredException(
-                    provider: "google",
-                    teacher: teacher,
-                    innerException: error);
+                throw TranslatedFailureLog.Translated(
+                    _logger,
+                    new AuthenticationRequiredException(
+                        provider: "google",
+                        teacher: teacher,
+                        innerException: error),
+                    error.Error?.Error);
             }
         }
         var credentialPath = AccountFile(teacher: teacher, clientId: secrets.ClientId);
@@ -383,7 +397,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
                 .Any();
     }
 
-    private static async Task<ClientSecrets> Secrets(
+    private async Task<ClientSecrets> Secrets(
         BuiltGoogleCredentialsConfig config,
         string teacher,
         IServiceProvider services,
@@ -420,10 +434,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
         catch (GoogleApiKeysMissingException error)
         {
-            throw new AuthenticationRequiredException(
-                provider: "google",
-                teacher: teacher,
-                innerException: error);
+            throw TranslatedFailureLog.Translated(
+                _logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: teacher,
+                    innerException: error));
         }
     }
 

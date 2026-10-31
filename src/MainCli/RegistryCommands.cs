@@ -1,4 +1,5 @@
 using CommandDotNet;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleLib.Cli;
@@ -32,6 +33,8 @@ public partial class RegistryCommands
 {
     protected virtual IRegistryProvider CreateProvider() => new ConfiguredRegistryProvider();
     protected virtual IRegistryAccountLock CreateAccountLock() => new RegistryAccountLock();
+    protected virtual ILogger CreateFailureLogger(CliCommandContext context) =>
+        context.CreateLogger(typeof(RegistryCommands).FullName!);
 
     [Command(
         "sync",
