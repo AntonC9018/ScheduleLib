@@ -13,6 +13,8 @@ using Google.Apis.Util.Store;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Extensions.Http;
 using ScheduleLib.Helper;
@@ -23,6 +25,7 @@ namespace ScheduleLib.Application.Config;
 public sealed class GoogleCredentialsConfig
 {
     public string? CredentialsPath { get; set; }
+
     // user = teacher name
     public bool? SaveCredentials { get; set; }
     public IGoogleApiKeysSource? ApiKeysSource { get; set; }
@@ -62,6 +65,9 @@ public sealed class GoogleCredentialsConfig
     }
 }
 
+/// <summary>The configured source has no Google API keys; a login or reconfiguration can fix this.</summary>
+public sealed class GoogleApiKeysMissingException(string message) : InvalidOperationException(message);
+
 public interface IGoogleApiKeysSource
 {
     public ValueTask<ClientSecrets> Get(IServiceProvider sp, CancellationToken cancellationToken);
@@ -76,7 +82,11 @@ public sealed partial class GlobalConfigurationApiKeysSource : IGoogleApiKeysSou
     {
         var binder = sp.GetRequiredService<DynamicOptionsBinder<ClientSecrets>>();
         var config = sp.GetRequiredService<IConfiguration>();
-        var section = config.GetRequiredSection(_serviceKey);
+        var section = config.GetSection(_serviceKey);
+        if (!section.Exists())
+        {
+            throw new GoogleApiKeysMissingException("Secrets not contained in IConfiguration");
+        }
         var ret = binder.Get(section);
         return ValueTask.FromResult(ret);
     }
@@ -93,7 +103,7 @@ public sealed partial class MarkedConfigurationApiKeysSource : IGoogleApiKeysSou
         var value = secretsResolver.Resolve(_serviceKey);
         if (value == null)
         {
-            throw new InvalidOperationException("Secrets not contained in IConfiguration");
+            throw new GoogleApiKeysMissingException("Secrets not contained in IConfiguration");
         }
         return ValueTask.FromResult(value);
     }
@@ -118,14 +128,26 @@ public readonly struct BuiltGoogleCredentialsConfig
 public sealed class GoogleCredentialResolver : IDisposable
 {
     private readonly List<GoogleAuthorizationCodeFlow> _flows = [];
-    public void Dispose() { foreach (var flow in _flows) flow.Dispose(); }
+
+    public void Dispose()
+    {
+        foreach (var flow in _flows)
+        {
+            flow.Dispose();
+        }
+    }
+
     private readonly CurrentUserNameProvider _userNameProvider;
     private readonly IServiceProvider _sp;
+
     public GoogleCredentialResolver(CurrentUserNameProvider userNameProvider, IServiceProvider sp)
     {
         _userNameProvider = userNameProvider;
         _sp = sp;
     }
+
+    private ILogger Logger =>
+        (ILogger?)_sp.GetService<ILogger<GoogleCredentialResolver>>() ?? NullLogger.Instance;
 
     public async Task<UserCredential> Resolve(
         BuiltGoogleCredentialsConfig config,
@@ -133,17 +155,61 @@ public sealed class GoogleCredentialResolver : IDisposable
         CancellationToken cancellationToken)
     {
         if (_sp.GetService<IGoogleCredentialAuthorization>() is { } authorization)
-            return await authorization.Resolve(config, requiredScopes, _userNameProvider.Get(), _sp, cancellationToken);
+        {
+            return await authorization.Resolve(
+                new GoogleCredentialRequest(
+                    config,
+                    requiredScopes,
+                    _userNameProvider.Get(),
+                    _sp),
+                cancellationToken);
+        }
 
         // Legacy hosts may refresh provisioned credentials, but never initiate consent.
         var user = _userNameProvider.Get();
-        if (config.CredentialsPath is null) throw new AuthenticationRequiredException("google", user);
+        if (config.CredentialsPath is null)
+        {
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
         ClientSecrets secrets;
-        try { secrets = await config.ApiKeysSource.Get(_sp, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception) { throw new AuthenticationRequiredException("google", user); }
-        if (string.IsNullOrWhiteSpace(secrets.ClientId) || string.IsNullOrWhiteSpace(secrets.ClientSecret))
-            throw new AuthenticationRequiredException("google", user);
+        try
+        {
+            secrets = await config.ApiKeysSource.Get(_sp, cancellationToken);
+        }
+        catch (GoogleApiKeysMissingException error)
+        {
+            throw TranslatedFailureLog.Translated(
+                Logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: user,
+                    innerException: error));
+        }
+
+        bool CalculateConditionResult()
+        {
+            if (string.IsNullOrWhiteSpace(secrets.ClientId))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
+        {
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = secrets,
@@ -152,20 +218,39 @@ public sealed class GoogleCredentialResolver : IDisposable
         });
         _flows.Add(flow);
         var token = await flow.LoadTokenAsync(user, cancellationToken);
-        if (token is null || requiredScopes.Except(token.Scope?.Split(' ') ?? []).Any())
-            throw new AuthenticationRequiredException("google", user);
-        var credential = new UserCredential(flow, user, token);
+        if (token is null
+            || requiredScopes.Except(token.Scope?.Split(' ') ?? [])
+                .Any())
+        {
+            throw new AuthenticationRequiredException(provider: "google", teacher: user);
+        }
+
+        var credential = new UserCredential(
+            flow,
+            user,
+            token);
         try
         {
-            if (token.IsStale && !await credential.RefreshTokenAsync(cancellationToken))
-                throw new AuthenticationRequiredException("google", user);
+            if (token.IsStale && !(await credential.RefreshTokenAsync(cancellationToken)))
+            {
+                throw new AuthenticationRequiredException(provider: "google", teacher: user);
+            }
         }
-        catch (TokenResponseException) { throw new AuthenticationRequiredException("google", user); }
+        catch (TokenResponseException error) when (GoogleTokenErrors.RequiresLogin(error))
+        {
+            throw TranslatedFailureLog.Translated(
+                Logger,
+                new AuthenticationRequiredException(
+                    provider: "google",
+                    teacher: user,
+                    innerException: error),
+                error.Error?.Error);
+        }
         return credential;
     }
 }
 
-public sealed class GoogleHttpClientProvider : Google.Apis.Http.HttpClientFactory
+public sealed class GoogleHttpClientProvider : HttpClientFactory
 {
     public static void Register(IServiceCollection services)
     {
@@ -198,12 +283,14 @@ public sealed class GoogleTaskRunnerProvider
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<GoogleTaskRunnerProvider>();
-        services.AddKeyedSingleton(Key, (sp, key) =>
-        {
-            _ = sp;
-            _ = key;
-            return new LimitedTaskRunnerProvider(maxConcurrentTasks: 20);
-        });
+        services.AddKeyedSingleton(
+            Key,
+            (sp, key) =>
+            {
+                _ = sp;
+                _ = key;
+                return new LimitedTaskRunnerProvider(maxConcurrentTasks: 20);
+            });
     }
 }
 
@@ -233,23 +320,39 @@ public sealed partial class GoogleApiHelper
     }
 }
 
+/// <summary>Inputs needed to resolve an account without initiating interactive consent.</summary>
+public readonly record struct GoogleCredentialRequest(
+    BuiltGoogleCredentialsConfig Config,
+    string[] Scopes,
+    string Teacher,
+    IServiceProvider Services);
+
 /// <summary>Operational authorization contract: implementations must never initiate consent.</summary>
 public interface IGoogleCredentialAuthorization
 {
-    Task<UserCredential> Resolve(BuiltGoogleCredentialsConfig config, string[] scopes, string teacher,
-        IServiceProvider services, CancellationToken cancellationToken);
+    Task<UserCredential> Resolve(GoogleCredentialRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class AuthenticationRequiredException : Exception
 {
     public string Provider { get; }
     public string LoginCommand { get; }
-    public AuthenticationRequiredException(string provider, string teacher)
-        : base($"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider, teacher)}")
+
+    public AuthenticationRequiredException(
+        string provider,
+        string teacher,
+        Exception? innerException = null)
+        : base(
+            $"{provider} authorization is missing or unusable. Run: {BuildLoginCommand(provider: provider, teacher: teacher)}",
+            innerException)
     {
         Provider = provider;
-        LoginCommand = BuildLoginCommand(provider, teacher);
+        LoginCommand = BuildLoginCommand(provider: provider, teacher: teacher);
     }
-    private static string BuildLoginCommand(string provider, string teacher) =>
-        "schedulelib auth login " + provider + " --profile \"" + teacher.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+
+    private static string BuildLoginCommand(string provider, string teacher)
+    {
+        var escapedTeacher = teacher.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        return $"schedulelib auth login {provider} --profile \"{escapedTeacher}\"";
+    }
 }

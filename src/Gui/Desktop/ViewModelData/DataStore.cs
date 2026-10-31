@@ -83,6 +83,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         Queueing,
         EmptyingQueue,
     }
+
     private QueueingState _isQueueing;
 
     private readonly record struct Key(CallerIdentity CallerId, Type Type, string? PropertyName = null);
@@ -92,12 +93,41 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void StartQueueing()
     {
-        bool areQueuesEmpty = _keyQueue.IsEmpty && _latestActions.IsEmpty;
+        bool CalculateConditionResult()
+        {
+            if (!_keyQueue.IsEmpty)
+            {
+                return false;
+            }
+
+            if (_latestActions.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        bool areQueuesEmpty = conditionResult;
         var prevState = Interlocked.CompareExchange(
-            ref _isQueueing,
+            location1: ref _isQueueing,
             value: QueueingState.Queueing,
             comparand: QueueingState.NotQueueing);
-        if (prevState != QueueingState.NotQueueing || !areQueuesEmpty)
+        bool conditionResult2;
+        if (prevState != QueueingState.NotQueueing)
+        {
+            conditionResult2 = true;
+        }
+        else
+        {
+            conditionResult2 = areQueuesEmpty;
+            conditionResult2 = !conditionResult2;
+        }
+
+        if (conditionResult2)
         {
             Debug.Fail("Started two queue ops at once?");
             return;
@@ -108,9 +138,9 @@ public sealed class TreeEventDispatcher : IDispatcher
     public void EndQueueing()
     {
         var prevQueueing = Interlocked.CompareExchange(
-                ref _isQueueing,
-                value: QueueingState.EmptyingQueue,
-                comparand: QueueingState.Queueing);
+            location1: ref _isQueueing,
+            value: QueueingState.EmptyingQueue,
+            comparand: QueueingState.Queueing);
         if (prevQueueing != QueueingState.Queueing)
         {
             throw new InvalidOperationException("Cannot end queueing while not queueing");
@@ -143,7 +173,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         finally
         {
             var updatedPrevQueueing = Interlocked.CompareExchange(
-                ref _isQueueing,
+                location1: ref _isQueueing,
                 value: QueueingState.NotQueueing,
                 comparand: QueueingState.EmptyingQueue);
             Debug.Assert(updatedPrevQueueing == QueueingState.EmptyingQueue);
@@ -152,7 +182,10 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void Post<T>(PostArgs<T> args)
     {
-        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
+        bool conditionResult;
+        var conditionValue = Volatile.Read(ref _isQueueing);
+        conditionResult = conditionValue == QueueingState.NotQueueing;
+        if (conditionResult)
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
@@ -210,7 +243,11 @@ public sealed class TreeEventDispatcher : IDispatcher
                 return action;
             });
 
-        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
+        bool conditionResult2;
+        var
+            conditionValue2 = Volatile.Read(ref _isQueueing);
+        conditionResult2 = conditionValue2 == QueueingState.NotQueueing;
+        if (conditionResult2)
         {
             // This is kind of the best we can do.
             _latestActions.TryRemove(key, out _);
@@ -221,45 +258,45 @@ public sealed class TreeEventDispatcher : IDispatcher
 
 public static class VolatileExtensions
 {
-    extension (Volatile)
+    extension(Volatile)
     {
         public static T Read<T>(ref T location) where T : struct, Enum
         {
             switch (Unsafe.SizeOf<T>())
             {
                 case 1:
-                {
-                    ref var x = ref Unsafe.As<T, byte>(ref location);
-                    byte ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<byte, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, byte>(ref location);
+                        byte ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<byte, T>(ref ret);
+                        return ret1;
+                    }
                 case 2:
-                {
-                    ref var x = ref Unsafe.As<T, short>(ref location);
-                    short ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<short, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, short>(ref location);
+                        short ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<short, T>(ref ret);
+                        return ret1;
+                    }
                 case 4:
-                {
-                    ref var x = ref Unsafe.As<T, int>(ref location);
-                    int ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<int, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, int>(ref location);
+                        int ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<int, T>(ref ret);
+                        return ret1;
+                    }
                 case 8:
-                {
-                    ref var x = ref Unsafe.As<T, long>(ref location);
-                    long ret = Volatile.Read(ref x);
-                    ref var ret1 = ref Unsafe.As<long, T>(ref ret);
-                    return ret1;
-                }
+                    {
+                        ref var x = ref Unsafe.As<T, long>(ref location);
+                        long ret = Volatile.Read(ref x);
+                        ref var ret1 = ref Unsafe.As<long, T>(ref ret);
+                        return ret1;
+                    }
                 default:
-                {
-                    throw new NotSupportedException(
-                        $"Enum underlying type size {Unsafe.SizeOf<T>()} is not supported.");
-                }
+                    {
+                        int size = Unsafe.SizeOf<T>();
+                        throw new UnsupportedEnumUnderlyingTypeSizeException(size);
+                    }
             }
         }
     }

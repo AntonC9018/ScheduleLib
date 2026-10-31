@@ -1,4 +1,5 @@
 using CommandDotNet;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 
@@ -10,11 +11,7 @@ public sealed class RegistryHistoryTopicsArguments : IArgumentModel
         "local-directory",
         Description =
             "Required private output directory named .registry-history. Existing topics are preserved; only counts appear on stdout.")]
-    public string? LocalDirectory
-    {
-        get;
-        set;
-    }
+    public string? LocalDirectory { get; set; }
 }
 
 public interface IRegistryHistoryTopicsProvider
@@ -24,12 +21,23 @@ public interface IRegistryHistoryTopicsProvider
 
 public sealed partial class ConfiguredRegistryHistoryProvider
 {
-    public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token) =>
-        WithHistoryContext(
+    public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
+    {
+        return WithHistoryContext(
             settings,
-            client => new RegistryHistoryTopicsReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance"))
-                .Discover(token),
+            client =>
+            {
+                var client2 = client;
+                Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                var registryHistoryTopicsReader =
+                    new RegistryHistoryTopicsReader(client2, index);
+                var token2 = token;
+                var
+                    discover = registryHistoryTopicsReader.Discover(token2);
+                return discover;
+            },
             token);
+    }
 }
 
 public partial class RegistryCommands
@@ -59,26 +67,36 @@ public partial class RegistryCommands
         var cancellation = context.Cancellation;
         try
         {
-            if (string.IsNullOrWhiteSpace(settings.Profile) || string.IsNullOrWhiteSpace(history.LocalDirectory))
+            int MissingInput()
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Select --profile and an explicit --local-directory named .registry-history.");
             }
 
+            if (string.IsNullOrWhiteSpace(settings.Profile))
+            {
+                return MissingInput();
+            }
+            if (string.IsNullOrWhiteSpace(history.LocalDirectory))
+            {
+                return MissingInput();
+            }
+
+            RegistryHistoryTopicDirectory outputDirectory;
             try
             {
-                RegistryHistoryTopicFiles.ValidateDirectory(history.LocalDirectory);
+                outputDirectory = new(history.LocalDirectory);
             }
-            catch (Exception)
+            catch (Exception error) when (error is IOException or ArgumentException)
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Private history output requires a regular directory named .registry-history.");
             }
-            var analysis = await CreateHistoryTopicsProvider().DiscoverTopics(settings, cancellation.Token);
-            var output = await RegistryHistoryTopicFiles.Save(
-                history.LocalDirectory,
+            var analysis = await CreateHistoryTopicsProvider()
+                .DiscoverTopics(settings, cancellation.Token);
+            var output = await outputDirectory.Save(
                 analysis,
                 cancellation.Token);
             // Stream anonymized per-collection counts. Offered year values are
@@ -87,45 +105,70 @@ public partial class RegistryCommands
             for (var yearIndex = 0; yearIndex < analysis.OfferedYears.Count; yearIndex++)
             {
                 var offeredYear = analysis.OfferedYears[yearIndex];
-                cli.WriteHuman($"Offered year {offeredYear}.");
-                cli.EmitItem(
-                    "year-" + yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
-                    new { year = offeredYear });
+                var cliOutput = cli;
+                string line = $"Offered year {offeredYear}.";
+                cliOutput.WriteHuman(line);
+                var cliOutput2 = cli;
+                string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text = $"year-{toString}";
+                string id2 = text;
+                var status2 = ActionState.Completed;
+                object item = new { year = offeredYear };
+                cliOutput2.EmitItem(
+                    id: id2,
+                    status: status2,
+                    item);
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
             {
                 var candidate = analysis.Selection.Candidates[candidateIndex];
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
-                cli.WriteHuman(
-                    $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.");
-                cli.EmitItem(
-                    "candidate-" + candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
-                    new
-                    {
-                        historicalYear = candidate.Historical.Year,
-                        groups = groupCount,
-                        lessons = lessonCount,
-                    });
+                var cliOutput3 = cli;
+                string line2 =
+                    $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
+                cliOutput3.WriteHuman(
+                    line2);
+                var cliOutput4 = cli;
+                string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text2 = $"candidate-{toString2}";
+                string id3 = text2;
+                var status3 = ActionState.Completed;
+                object item2 = new
+                {
+                    historicalYear = candidate.Historical.Year,
+                    groups = groupCount,
+                    lessons = lessonCount,
+                };
+                cliOutput4.EmitItem(
+                    id: id3,
+                    status: status3,
+                    item2);
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
-                cli.WriteHuman($"Unresolved {unresolvedIndex}: {unresolved.Reason}.");
-                cli.EmitItem(
-                    "unresolved-" + unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
-                    new { reason = unresolved.Reason.ToString() });
+                var cliOutput5 = cli;
+                string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
+                cliOutput5.WriteHuman(line3);
+                var cliOutput6 = cli;
+                string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string text3 = $"unresolved-{toString3}";
+                string id4 = text3;
+                var status4 = ActionState.Completed;
+                object item3 = new { reason = unresolved.Reason.ToString() };
+                cliOutput6.EmitItem(
+                    id: id4,
+                    status: status4,
+                    item3);
             }
             return Finish(
-                CliExit.Success,
+                exit: CliExit.Success,
                 null,
-                analysis.Current.Count,
-                analysis.Selection.Candidates.Count,
-                analysis.Selection.Unresolved.Count,
-                output.CsvFiles.Count);
+                courses: analysis.Current.Count,
+                candidates: analysis.Selection.Candidates.Count,
+                unresolved: analysis.Selection.Unresolved.Count,
+                files: output.CsvFiles.Count);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -137,20 +180,28 @@ public partial class RegistryCommands
         }
         catch (RegistryHistoryException error)
         {
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history topic discovery", error);
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            return Finish(
-                CliExit.IoFailure,
-                $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.");
+            int exit2 = CliExit.IoFailure;
+            string error2 =
+                $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            int finish = Finish(
+                exit2,
+                error2);
+            return finish;
         }
         catch (LocalOperationBusyException)
         {
             return Finish(CliExit.Busy, "Another local registry history operation is active.");
         }
-        catch (Exception)
+        // The cause may contain private registry data, so it is classified but never echoed.
+        catch (Exception error)
         {
-            return Finish(CliExit.IoFailure, "Registry history topic discovery failed or stopped.");
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history topic discovery", error);
+            var exit = context.ClassifyInputFailure(error).ExitCode;
+            return Finish(exit, "Registry history topic discovery failed or stopped.");
         }
 
         int Finish(
@@ -173,10 +224,10 @@ public partial class RegistryCommands
                 unresolved,
                 files,
             };
-            var status = CliCommandContext.Status(exit, success: "downloaded");
+            var status = CliCommandContext.Status(exit, success: RunStatus.Downloaded);
             var jsonStatus = CliCommandContext.Status(
                 exit,
-                success: "downloaded",
+                success: RunStatus.Downloaded,
                 cancellation: false);
             return context.Finish(new CliCompletion<object>(
                 exit,
@@ -190,8 +241,11 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        cli.WriteHuman(
-                            $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.");
+                        var cliOutput = cli;
+                        string line =
+                            $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

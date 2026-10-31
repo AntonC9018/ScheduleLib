@@ -46,19 +46,23 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     private readonly EnumBitArray<T> RestoreSlice(UnsizedBitArray64 array)
     {
-        var ret = array.ShiftedRightWithDataLoss(_offset).WithShrunkLen(_Length);
+        var ret = array.ShiftedRightWithDataLoss(_offset)
+            .WithShrunkLen(_Length);
         return new(ret.AsUnsized());
     }
 
     public void ResetArray(EnumBitArray<T> array)
     {
-        _impl.ClearArray(UnsizedBitArray64.GetMask(array.Length).ShiftedLeft(_offset));
-        _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.ClearArray(UnsizedBitArray64.GetMask(array.Length)
+            .ShiftedLeft(_offset));
+        _impl.SetArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public void SetArray(EnumBitArray<T> array)
     {
-        _impl.SetArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.SetArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public void SetAll(bool value = true)
@@ -75,7 +79,8 @@ public ref struct OffsetBitArrayForEnumRef<T>
 
     public void ClearArray(EnumBitArray<T> array)
     {
-        _impl.ClearArray(array.AsUnsized().ShiftedLeft(_offset));
+        _impl.ClearArray(array.AsUnsized()
+            .ShiftedLeft(_offset));
     }
 
     public readonly EnumBitArray<T> RestoredSlice => RestoreSlice(_impl);
@@ -112,23 +117,18 @@ public ref struct OffsetBitArrayForEnumRef<T>
         return _impl.IsSet(i);
     }
 
-    [Pure]
-    public readonly bool AreAllSet => RestoredSlice.AreAllSet;
-    [Pure]
-    public readonly bool AreNoneSet => RestoredSlice.AreNoneSet;
-    [Pure]
-    public readonly bool AreAnySet => !AreNoneSet;
-    [Pure]
-    public readonly int SetCount => RestoredSlice.SetCount;
+    [Pure] public readonly bool AreAllSet => RestoredSlice.AreAllSet;
+    [Pure] public readonly bool AreNoneSet => RestoredSlice.AreNoneSet;
+    [Pure] public readonly bool AreAnySet => !AreNoneSet;
+    [Pure] public readonly int SetCount => RestoredSlice.SetCount;
 
     public void ClearAll()
     {
-        var shiftedMask = UnsizedBitArray64.GetOffsetMask(_offset, Length);
+        var shiftedMask = UnsizedBitArray64.GetOffsetMask(offset: _offset, length: Length);
         _impl.ClearArray(shiftedMask);
     }
 
-    [Pure]
-    public readonly bool IsEmpty => RestoredSlice.IsEmpty;
+    [Pure] public readonly bool IsEmpty => RestoredSlice.IsEmpty;
 
     public readonly EnumBitArray<T>.SetEnumValuesEnumerable SetValues() => RestoredSlice.SetValues();
 
@@ -140,7 +140,6 @@ public static partial class BitArrayExtensions
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
         this ref UnsizedBitArray64 array,
         int offset)
-
         where T : struct, Enum
     {
         return new(ref array, offset);
@@ -149,7 +148,6 @@ public static partial class BitArrayExtensions
     public static OffsetBitArrayForEnumRef<T> EnumPortionRef<T>(
         this ref BitArray64 array,
         int offset)
-
         where T : struct, Enum
     {
         return OffsetBitArrayForEnumRef<T>.Create(ref array, offset);

@@ -66,31 +66,36 @@ internal struct MatchedLessonData
             return true;
         }
 
-        return Local.RegistryLessonType == Remote.LessonType;
+        if (Local.RegistryLessonType == Remote.LessonType)
+        {
+            return true;
+        }
+
+        return false;
     }
+
     public readonly bool TopicEquals()
     {
         if (Local.Topic is null)
         {
             return true;
         }
+
         if (Local.Topic.ReplaceLineEndings("\n") == Remote.Topic?.ReplaceLineEndings("\n"))
         {
             return true;
         }
+
         return false;
     }
+
     public readonly bool AttendanceEquals()
     {
         if (Local.Attendance is null)
         {
             return true;
         }
-        if (Equal(Local.Attendance, Remote.Attendance))
-        {
-            return true;
-        }
-        return false;
+        return Equal(all: Local.Attendance, existing: Remote.Attendance);
 
         static bool Equal(Attendance[] all, Attendance[] existing)
         {
@@ -114,7 +119,6 @@ internal struct MatchedLessonData
             return true;
         }
     }
-
 }
 
 internal interface IDateTime

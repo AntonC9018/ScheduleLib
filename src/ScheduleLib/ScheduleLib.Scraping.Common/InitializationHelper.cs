@@ -29,12 +29,12 @@ public sealed class ScrapingContextBuilder
         {
             return HttpClientContext.Create(_delay);
         });
-        _services.AddSingleton<CookieContainer>(sp =>
+        _services.AddSingleton(sp =>
         {
             var ctx = sp.GetRequiredService<HttpClientContext>();
             return ctx.Cookies;
         });
-        _services.AddSingleton<HttpClient>(sp =>
+        _services.AddSingleton(sp =>
         {
             var ctx = sp.GetRequiredService<HttpClientContext>();
             return ctx.Client;
@@ -58,7 +58,9 @@ public sealed class ScrapingContextBuilder
     {
         if (value != null)
         {
-            _services.Replace(ServiceDescriptor.Singleton(value));
+            var serviceCollection = _services;
+            var descriptor = ServiceDescriptor.Singleton(value);
+            serviceCollection.Replace(descriptor);
             return;
         }
         if (_services.Any(sd => sd.ServiceType == typeof(T)))
@@ -83,7 +85,7 @@ public sealed class ScrapingContextBuilder
             optsConfig.ValidateDataAnnotations();
         }
         _services
-            .AddSingleton<T>(static services =>
+            .AddSingleton(static services =>
             {
                 // get and validate
                 var options = services.GetRequiredService<IOptions<T>>();
@@ -101,7 +103,7 @@ public sealed class ScrapingContextBuilder
         public TokenAuthBuilder(ScrapingContextBuilder builder)
         {
             _builder = builder;
-            _builder._services.AddSingleton<ITokenRetriever>(sp =>
+            _builder._services.AddSingleton(sp =>
             {
                 var factory = sp.GetRequiredService<Func<ITokenRetriever>>();
                 var impl = factory();
@@ -126,8 +128,8 @@ public sealed class ScrapingContextBuilder
             _builder.AddConfig(credentials);
             _builder.AddConfig(formConfig);
             _builder._services.AddSingleton<PasswordLoginFormTokenRetriever>();
-            _builder._services.AddSingleton<Func<ITokenRetriever>>(
-                sp => sp.GetRequiredService<PasswordLoginFormTokenRetriever>);
+            _builder._services.AddSingleton<Func<ITokenRetriever>>(sp =>
+                sp.GetRequiredService<PasswordLoginFormTokenRetriever>);
             _password = true;
         }
 
@@ -141,8 +143,7 @@ public sealed class ScrapingContextBuilder
             _builder.AddConfig(credentials);
             _builder.AddConfig(fieldNames);
             _builder._services.AddSingleton<PasswordTokenRetriever>();
-            _builder._services.AddSingleton<Func<ITokenRetriever>>(
-                sp => sp.GetRequiredService<PasswordTokenRetriever>);
+            _builder._services.AddSingleton<Func<ITokenRetriever>>(sp => sp.GetRequiredService<PasswordTokenRetriever>);
             _password = true;
         }
 
@@ -159,7 +160,18 @@ public sealed class ScrapingContextBuilder
 
         internal void Validate()
         {
-            if (_cached && !_password)
+            bool conditionResult;
+            if (_cached)
+            {
+                conditionResult = _password;
+                conditionResult = !conditionResult;
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 throw new NotSupportedException();
             }
@@ -191,7 +203,9 @@ public sealed class ScrapingContextBuilder
 
     public void JsonOptions(JsonSerializerOptions jsonOptions)
     {
-        _services.Replace(ServiceDescriptor.Singleton(jsonOptions));
+        var serviceCollection = _services;
+        var descriptor = ServiceDescriptor.Singleton(jsonOptions);
+        serviceCollection.Replace(descriptor);
     }
 
     // Add more stuff here.
@@ -200,7 +214,12 @@ public sealed class ScrapingContextBuilder
     public async Task<ScrapingContext> Build(CancellationToken cancellationToken, HttpClientContext? httpContext = null)
     {
         if (httpContext is not null)
-            _services.Replace(ServiceDescriptor.Singleton<HttpClientContext>(_ => httpContext));
+        {
+            var serviceCollection = _services;
+            var descriptor = ServiceDescriptor.Singleton(_ => httpContext);
+            serviceCollection.Replace(descriptor);
+        }
+
         var sp = _services.BuildServiceProvider();
         ScrapingContext? ret = null;
         try

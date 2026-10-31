@@ -18,14 +18,20 @@ public partial class ExportCommands
         ResultArguments result,
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
-        => ExportSchedule(
-            new(
-                source,
-                destination,
-                result,
-                settings ?? new()),
-            ScheduleExportKind.Pdf,
-            cancellationToken);
+    {
+        ExportRequest request = new(
+            source,
+            destination,
+            result,
+            settings ?? new());
+        var kind = ScheduleExportKind.Pdf;
+        var cancellationToken2 = cancellationToken;
+        var exportSchedule = ExportSchedule(
+            request,
+            kind,
+            cancellationToken2);
+        return exportSchedule;
+    }
 
     [Command(
         "ics",
@@ -37,14 +43,20 @@ public partial class ExportCommands
         ResultArguments result,
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
-        => ExportSchedule(
-            new(
-                source,
-                destination,
-                result,
-                settings ?? new()),
-            ScheduleExportKind.Ics,
-            cancellationToken);
+    {
+        ExportRequest request = new(
+            source,
+            destination,
+            result,
+            settings ?? new());
+        var kind = ScheduleExportKind.Ics;
+        var cancellationToken2 = cancellationToken;
+        var exportSchedule = ExportSchedule(
+            request,
+            kind,
+            cancellationToken2);
+        return exportSchedule;
+    }
 
     private async Task<int> ExportSchedule(
         ExportRequest request,
@@ -56,8 +68,24 @@ public partial class ExportCommands
         var resultArgs = request.Result;
         var settings = request.Settings;
         var calendar = kind == ScheduleExportKind.Ics;
+
+        string CalculateCommand()
+        {
+            string command2;
+            if (calendar)
+            {
+                command2 = "export ics";
+            }
+            else
+            {
+                command2 = "export pdf";
+            }
+
+            return command2;
+        }
+
         using var context = new CliCommandContext(
-            calendar ? "export ics" : "export pdf",
+            CalculateCommand(),
             resultArgs,
             cancellationToken);
         if (!context.Start())
@@ -86,22 +114,27 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
-                resolvedSettings.ProjectDirectory);
+                projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.LatestPeriodSchedule();
-            lessonCount = schedule.EnumerateWeeklyLessons().Count();
+            lessonCount = schedule.EnumerateWeeklyLessons()
+                .Count();
             teacherCount = schedule.Teachers.Count();
             var all = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var omitted = all.EnumerateWeeklyLessons().Count() - lessonCount;
+            var omitted = all.EnumerateWeeklyLessons()
+                    .Count()
+                - lessonCount;
             if (omitted > 0)
             {
-                warnings.Add($"Latest-period selection omits {omitted} weekly lessons from other periods.");
+                var list = warnings;
+                string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
+                list.Add(item);
             }
 
             if (teacherCount == 0)
@@ -123,20 +156,22 @@ public partial class ExportCommands
 
             if (calendar)
             {
-                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>().RunAsync(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                    ReportOmission = warnings.Add,
-                });
+                await scope.ServiceProvider.GetRequiredService<GenerateIcsCalendarsTaskHandler>()
+                    .RunAsync(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                        ReportOmission = warnings.Add,
+                    });
             }
             else
             {
-                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>().Run(new()
-                {
-                    CancellationToken = cancellation.Token,
-                    PublishArtifact = PublishStreaming,
-                });
+                await scope.ServiceProvider.GetRequiredService<GeneratePdfsForGroupsAndTeachersTaskHandler>()
+                    .Run(new()
+                    {
+                        CancellationToken = cancellation.Token,
+                        PublishArtifact = PublishStreaming,
+                    });
             }
 
             StreamNew();
@@ -145,7 +180,7 @@ public partial class ExportCommands
                 warnings.Add("No artifacts were generated for the latest period.");
             }
 
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }
@@ -168,13 +203,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
+
+            ScheduleExportResult CalculateData()
+            {
+                ScheduleExportResult data = new(
+                    output?.DirectoryPath,
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount);
+                return data;
+            }
+
             return context.Finish(new CliCompletion<ScheduleExportResult>(
                 exit,
                 errors,
-                new(
-                    output?.DirectoryPath,
-                    lessonCount,
-                    teacherCount))
+                CalculateData())
             {
                 Summary = new
                 {
@@ -186,8 +228,14 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                        line);
+                },
             });
         }
     }

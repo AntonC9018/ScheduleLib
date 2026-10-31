@@ -26,7 +26,7 @@ public struct ArrayBuilder<T>
         return Array;
     }
 
-    public Span<T> SoFar => Array.AsSpan(0, _index);
+    public Span<T> SoFar => Array.AsSpan(start: 0, length: _index);
 }
 
 public static class ArrayBuilder
@@ -36,4 +36,3 @@ public static class ArrayBuilder
         return new(new T[count]);
     }
 }
-

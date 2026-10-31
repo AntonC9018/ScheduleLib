@@ -64,7 +64,6 @@ internal sealed class PolymorphicResolver : DefaultJsonTypeInfoResolver
         typeInfo.PolymorphismOptions = polymorphicOptions;
         return typeInfo;
     }
-
 }
 
 public sealed class TreeSerializer
@@ -108,7 +107,10 @@ public sealed class TreeSerializer
                 }
 
                 writer.WritePropertyName(config.Key.Value);
-                JsonSerializer.Serialize(writer, value, _jsonSerializerOptions);
+                JsonSerializer.Serialize(
+                    writer,
+                    value,
+                    _jsonSerializerOptions);
             }
             writer.WriteEndObject();
         }
@@ -117,6 +119,7 @@ public sealed class TreeSerializer
     }
 
     public readonly record struct PendingConfig(NodeDataKey Key, object Value);
+
     public sealed class PendingConfigs : List<PendingConfig>
     {
     }
@@ -128,7 +131,7 @@ public sealed class TreeSerializer
         using var ms = new MemoryStream();
         await input.CopyToAsync(ms);
         var buffer = ms.GetBuffer();
-        var reader = new Utf8JsonReader(buffer.AsSpan(0, (int) ms.Length));
+        var reader = new Utf8JsonReader(buffer.AsSpan(start: 0, length: (int) ms.Length));
 
         reader.Read();
         while (reader.Read())
@@ -172,16 +175,21 @@ public sealed class TreeSerializer
                 var type = NodeDataKey.Registry.TryGetTypeFromKey(key);
                 if (type == null)
                 {
-                    throw new JsonException($"Invalid config key: {key.Value}");
+                    throw new InvalidConfigKeyException(key.Value);
                 }
 
-                var value = JsonSerializer.Deserialize(ref reader, type, _jsonSerializerOptions);
+                var value = JsonSerializer.Deserialize(
+                    ref reader,
+                    type,
+                    _jsonSerializerOptions);
                 if (value == null)
                 {
                     continue;
                 }
 
-                pendingProperties.Add(new(key, value));
+                var pendingConfigs = pendingProperties;
+                PendingConfig item = new(key, value);
+                pendingConfigs.Add(item);
             }
 
             var layer = findLayer(layerName, pendingProperties);
@@ -190,19 +198,28 @@ public sealed class TreeSerializer
                 var type = NodeDataKey.Registry.GetTypeFromKey(key);
                 var method = _setValueGenericMethod.MakeGenericMethod(type);
                 var deleg = method.CreateDelegate<Action<SetValueArgs>>();
-                deleg(new(layer, key, value));
+                var action = deleg;
+                SetValueArgs obj = new(
+                    layer,
+                    key,
+                    value);
+                action(obj);
             }
         }
     }
 
     private readonly record struct SetValueArgs(NodeBuilder Layer, NodeDataKey Key, object Value);
+
     private static readonly MethodInfo _setValueGenericMethod = typeof(TreeSerializer)
         .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
         .Single(x => x.Name == nameof(SetValue));
+
     private static void SetValue<T>(SetValueArgs args)
         where T : class
     {
-        var conf = args.Layer.Node.GetOrAdd<T>(new(args.Key));
+        var mutableNode = args.Layer.Node;
+        NodeDataKey<T> key = new(args.Key);
+        var conf = mutableNode.GetOrAdd(key);
         var value = conf.GetValue();
         if (value == null)
         {

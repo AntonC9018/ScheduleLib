@@ -42,44 +42,71 @@ public sealed class QueryTests
     {
         // The invocation directory contains no schedule data; these must still succeed/fail as parsing requires.
         var exit = await CliHost.Run(args);
-        Assert.Equal(expected, exit);
+        Assert.Equal(expected: expected, actual: exit);
     }
 
     [Fact]
     public async Task PortableDocxAndXlsxFixtureUsesPredicatesAndCleanJson()
     {
         var all = await Execute(new());
-        Assert.NotEmpty(all.GetProperty("data").EnumerateArray());
+        Assert.NotEmpty(all.GetProperty("data")
+            .EnumerateArray());
         var first = all.GetProperty("data")[0];
-        var room = first.GetProperty("room").GetString()!;
-        var day = Enum.Parse<DayOfWeek>(first.GetProperty("day").GetString()!);
-        var parity = Enum.Parse<Parity>(first.GetProperty("parity").GetString()!);
+        var room = first.GetProperty("room")
+            .GetString()!;
+        var day = Enum.Parse<DayOfWeek>(first.GetProperty("day")
+            .GetString()!);
+        var parity = Enum.Parse<Parity>(first.GetProperty("parity")
+            .GetString()!);
         var filtered = await Execute(new()
         {
             Room = room,
             Day = day,
             Parity = parity,
-            BeforeSlot = first.GetProperty("slot").GetInt32(),
+            BeforeSlot = first.GetProperty("slot")
+                .GetInt32(),
         });
-        Assert.NotEmpty(filtered.GetProperty("data").EnumerateArray());
-        foreach (var lesson in filtered.GetProperty("data").EnumerateArray())
+        Assert.NotEmpty(filtered.GetProperty("data")
+            .EnumerateArray());
+        foreach (var lesson in filtered.GetProperty("data")
+                     .EnumerateArray())
         {
-            Assert.Equal(room, lesson.GetProperty("room").GetString());
-            Assert.Equal(day.ToString(), lesson.GetProperty("day").GetString());
-            Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity").GetString()!).IsMatch(parity));
-            Assert.True(lesson.GetProperty("slot").GetInt32() <= first.GetProperty("slot").GetInt32());
+            Assert.Equal(
+                expected: room,
+                actual: lesson.GetProperty("room")
+                    .GetString());
+            Assert.Equal(
+                expected: day.ToString(),
+                actual: lesson.GetProperty("day")
+                    .GetString());
+            Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity")
+                    .GetString()!)
+                .IsMatch(parity));
+            Assert.True(lesson.GetProperty("slot")
+                    .GetInt32()
+                <= first.GetProperty("slot")
+                    .GetInt32());
         }
-        Assert.Empty((await Execute(new() { Day = DayOfWeek.Sunday })).GetProperty("data").EnumerateArray());
+        Assert.Empty((await Execute(new()
+        {
+            Day = DayOfWeek.Sunday,
+        }))
+            .GetProperty("data")
+            .EnumerateArray());
     }
 
     [Fact]
     public async Task MissingInputReturnsConfigurationError()
     {
+        using var temp = new TestTempDirectory("schedulelib-tests");
         Assert.Equal(
-            3,
-            await new FixtureQuery().Lessons(
+            expected: 3,
+            actual: await new FixtureQuery().Lessons(
                 new(),
-                new() { DataDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()) },
+                new()
+                {
+                    DataDirectory = temp.Path,
+                },
                 new()));
     }
 
@@ -91,21 +118,23 @@ public sealed class QueryTests
             return;
         }
 
-        var directory = Path.Combine(Path.GetTempPath(), $"schedulelib-test-{Guid.NewGuid():N}");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         var input = Path.Combine(directory, "source.doc");
         var output = Path.Combine(directory, "source.docx");
         try
         {
-            await File.WriteAllTextAsync(input, "original document bytes");
+            await File.WriteAllTextAsync(path: input, contents: "original document bytes");
             var hash = SHA256.HashData(await File.ReadAllBytesAsync(input));
             await Assert.ThrowsAsync<PlatformNotSupportedException>(() =>
                 DocToDocxConversionHelper.TryConvertFile(
-                    input,
-                    output,
+                    inputPath: input,
+                    outputPath: output,
                     CancellationToken.None));
-            Assert.Equal(hash, SHA256.HashData(await File.ReadAllBytesAsync(input)));
-            Assert.False(File.Exists(output));
+            Assert.Equal(expected: hash, actual: SHA256.HashData(await File.ReadAllBytesAsync(input)));
+            bool condition = File.Exists(output);
+            Assert.False(condition);
         }
         finally
         {
@@ -116,7 +145,8 @@ public sealed class QueryTests
     [Fact]
     public async Task XlsxFixtureProducesLessonsIndependently()
     {
-        var directory = Path.Combine(Path.GetTempPath(), $"schedulelib-xlsx-{Guid.NewGuid():N}");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         var zi = Path.Combine(
             directory,
             "2025_sem2",
@@ -124,15 +154,25 @@ public sealed class QueryTests
         Directory.CreateDirectory(zi);
         try
         {
-            File.Copy(
-                Path.Combine(
+            string CalculateSourceFileName()
+            {
+                string sourceFileName2 = Path.Combine(
                     AppContext.BaseDirectory,
                     "fixtures",
                     "2025_sem2",
                     "zi",
-                    "master.xlsx"),
-                Path.Combine(zi, "master.xlsx"));
-            Assert.NotEmpty((await Execute(new(), directory)).GetProperty("data").EnumerateArray());
+                    "master.xlsx");
+                return sourceFileName2;
+            }
+
+            string sourceFileName3 = CalculateSourceFileName();
+            string destFileName2 = Path.Combine(zi, "master.xlsx");
+            File.Copy(
+                sourceFileName: sourceFileName3,
+                destFileName: destFileName2);
+            Assert.NotEmpty((await Execute(new(), directory))
+                .GetProperty("data")
+                .EnumerateArray());
         }
         finally
         {
@@ -143,13 +183,19 @@ public sealed class QueryTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
+        CancellationToken CalculateCancellationToken()
+        {
+            var cancellationToken = new CancellationToken(canceled: true);
+            return cancellationToken;
+        }
+
         Assert.Equal(
-            130,
-            await new FixtureQuery().Lessons(
+            expected: 130,
+            actual: await new FixtureQuery().Lessons(
                 new(),
                 new(),
                 new(),
-                new CancellationToken(canceled: true)));
+                CalculateCancellationToken()));
     }
 
     [Fact]
@@ -160,9 +206,12 @@ public sealed class QueryTests
         try
         {
             Console.SetOut(output);
-            Assert.Equal(2, await CliHost.Run(["query", "lessons", "--day", "invalid", "--json"]));
+            Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--json", "--day", "invalid"]));
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(2, document.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(
+                expected: 2,
+                actual: document.RootElement.GetProperty("exitCode")
+                    .GetInt32());
         }
         finally
         {
@@ -182,7 +231,9 @@ public sealed class QueryTests
     public async Task SourceRequestsDistinguishTimeoutConnectionFailureAndCallerCancellation(string command)
     {
         var original = Console.Out;
-        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = temp.Path;
         Directory.CreateDirectory(directory);
         try
         {
@@ -198,10 +249,31 @@ public sealed class QueryTests
                 using var deadline = new CancellationTokenSource();
                 // A provider deadline cancels its own linked token, not the caller's token.
                 deadline.Cancel();
-                var error = failure == "connection"
-                    ? (Exception) new HttpRequestException("source unavailable")
-                    : new OperationCanceledException(deadline.Token);
-                var initializer = new FailingInitializer(error, failure == "cancel" ? caller.Cancel : null);
+                Exception exception;
+                if (failure == "connection")
+                {
+                    var httpRequestException = new HttpRequestException("source unavailable");
+                    exception = httpRequestException;
+                }
+                else
+                {
+                    var operationCanceledException = new OperationCanceledException(deadline.Token);
+                    exception = operationCanceledException;
+                }
+
+                var error = exception;
+                var failure2 = error;
+                Action? beforeFailure;
+                if (failure == "cancel")
+                {
+                    beforeFailure = caller.Cancel;
+                }
+                else
+                {
+                    beforeFailure = null;
+                }
+
+                var initializer = new FailingInitializer(failure2, beforeFailure);
                 var query = new FailingQuery(initializer);
                 var export = new FailingExport(initializer);
                 var source = new SourceArguments
@@ -209,8 +281,14 @@ public sealed class QueryTests
                     NoCache = true,
                     DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 };
-                var destination = new OutputArguments { Directory = Path.Combine(directory, command + failure) };
-                var result = new ResultArguments { Json = true };
+                var destination = new OutputArguments
+                {
+                    Directory = Path.Combine(directory, $"{command}{failure}"),
+                };
+                var result = new ResultArguments
+                {
+                    Json = true,
+                };
                 Console.SetOut(stdout);
                 var exit = command switch
                 {
@@ -220,7 +298,10 @@ public sealed class QueryTests
                         result,
                         caller.Token),
                     "free-hours" => await query.FreeHours(
-                        new() { Groups = ["IA2301"] },
+                        new()
+                        {
+                            Groups = ["IA2301"],
+                        },
                         source,
                         result,
                         caller.Token),
@@ -257,16 +338,36 @@ public sealed class QueryTests
                     _ => throw new InvalidOperationException(),
                 };
                 using var json = JsonDocument.Parse(stdout.ToString());
-                Assert.Equal(failure == "cancel" ? 130 : 5, exit);
-                Assert.Equal(exit, json.RootElement.GetProperty("exitCode").GetInt32());
-                Assert.Equal("failed", json.RootElement.GetProperty("status").GetString());
-                Assert.Empty(json.RootElement.GetProperty("outputs").EnumerateArray());
+                int expected2;
+                if (failure == "cancel")
+                {
+                    expected2 = 130;
+                }
+                else
+                {
+                    expected2 = 5;
+                }
+
+                int actual2 = exit;
+                Assert.Equal(expected: expected2, actual: actual2);
+                Assert.Equal(
+                    expected: exit,
+                    actual: json.RootElement.GetProperty("exitCode")
+                        .GetInt32());
+                Assert.Equal(
+                    expected: "failed",
+                    actual: json.RootElement.GetProperty("status")
+                        .GetString());
+                Assert.Empty(json.RootElement.GetProperty("outputs")
+                    .EnumerateArray());
                 Assert.True(initializer.Called);
+                var collection = Directory.EnumerateFiles(
+                    path: directory,
+                    searchPattern: "*.json",
+                    SearchOption.AllDirectories);
+                System.Collections.IEnumerable collection2 = collection;
                 Assert.Empty(
-                    Directory.EnumerateFiles(
-                        directory,
-                        "*.json",
-                        SearchOption.AllDirectories));
+                    collection2);
             }
         }
         finally
@@ -280,10 +381,16 @@ public sealed class QueryTests
     public async Task NoCacheAssertionDetectsRootPrefixedCacheFiles()
     {
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
+        var encoding = System.Text.Encoding.UTF8;
+        string s = Path.GetFullPath(fixtures);
+        byte[] source = encoding.GetBytes(s);
+        byte[] inArray = SHA256.HashData(source);
         var identity = Convert.ToHexStringLower(
-            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(fixtures))));
-        var cache = Path.Combine(fixtures, $"{identity}_schedule_2025_2.json");
-        await File.WriteAllTextAsync(cache, "{}");
+            inArray);
+        string path1 = fixtures;
+        string path2 = $"{identity}_schedule_2025_2.json";
+        var cache = Path.Combine(path1, path2);
+        await File.WriteAllTextAsync(path: cache, contents: "{}");
         try
         {
             await Assert.ThrowsAsync<Xunit.Sdk.EmptyException>(() => Execute(new()));
@@ -298,11 +405,7 @@ public sealed class QueryTests
 
     private sealed class FailingInitializer(Exception failure, Action? beforeFailure) : IScheduleInitializer
     {
-        public bool Called
-        {
-            get;
-            private set;
-        }
+        public bool Called { get; private set; }
 
         public Task Initialize(ScheduleBuilder builder, CancellationToken cancellationToken)
         {
@@ -345,17 +448,36 @@ public sealed class QueryTests
                     NoCache = true,
                     DataDirectory = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures"),
                 },
-                new() { Json = true });
-            Assert.Equal(0, exit);
+                new()
+                {
+                    Json = true,
+                });
+            Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
-            Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal("query lessons", document.RootElement.GetProperty("command").GetString());
-            Assert.Equal(cwd, Environment.CurrentDirectory);
+            Assert.Equal(
+                expected: 1,
+                actual: document.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            Assert.Equal(
+                expected: "query lessons",
+                actual: document.RootElement.GetProperty("command")
+                    .GetString());
+            Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
+
+            IEnumerable<string> CalculateCollection()
+            {
+                string path2 = Path.Combine(AppContext.BaseDirectory, "fixtures");
+                string searchPattern2 = "*schedule_*.json";
+                var searchOption = SearchOption.AllDirectories;
+                var collection = Directory.EnumerateFiles(
+                    path: path2,
+                    searchPattern: searchPattern2,
+                    searchOption);
+                return collection;
+            }
+
             Assert.Empty(
-                Directory.EnumerateFiles(
-                    Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                    "*schedule_*.json",
-                    SearchOption.AllDirectories));
+                CalculateCollection());
             return document.RootElement.Clone();
         }
         finally
@@ -369,7 +491,11 @@ public sealed class QueryTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                var scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);

@@ -40,11 +40,18 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
     {
         public OutputDirectory? OutputDirectory { get; init; }
         public CancellationToken CancellationToken { get; init; }
+
         public Func<string, Func<Stream, CancellationToken, Task>, CancellationToken, Task>? PublishArtifact { get; init; }
+
         public Action<string>? ReportOmission { get; init; }
     }
 
-    public void Run(RunParams p) => RunAsync(p).GetAwaiter().GetResult();
+    public void Run(RunParams p)
+    {
+        RunAsync(p)
+            .GetAwaiter()
+            .GetResult();
+    }
 
     public async Task RunAsync(RunParams p)
     {
@@ -55,21 +62,47 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         foreach (var g in _schedule.EnumerateGroups())
         {
             var calendarName = GroupCalendarName(g.Item, semester);
-            await WriteGroupCalendar($"{g.Item.Name}.ics", calendarName, new()
+
+            string CalculateFileName()
             {
-                OneOfGroupIds = [g.Id],
-            });
+                string fileName2 = $"{g.Item.Name}.ics";
+                return fileName2;
+            }
+
+            await WriteGroupCalendar(
+                fileName: CalculateFileName(),
+                calendarName: calendarName,
+                new()
+                {
+                    OneOfGroupIds = [g.Id],
+                });
 
             foreach (var combination in partitionInfoByGroup[g.Id].Combinations)
             {
                 var sb = new StringBuilder();
                 sb.Append(g.Item.Name);
                 sb.Append('_');
-                combination.AppendFileNamePart(new ListStringBuilder(sb, "-"));
+
+                ListStringBuilder CalculateLb()
+                {
+                    var lb = new ListStringBuilder(sb, "-");
+                    return lb;
+                }
+
+                combination.AppendFileNamePart(CalculateLb());
                 sb.Append(".ics");
                 var fileName = sb.ToStringAndClear();
 
-                await WriteGroupCalendar(fileName, calendarName, combination.ToGroupFilter(g.Id));
+                GroupFilter CalculateGroupFilter()
+                {
+                    var groupFilter2 = combination.ToGroupFilter(g.Id);
+                    return groupFilter2;
+                }
+
+                await WriteGroupCalendar(
+                    fileName: fileName,
+                    calendarName: calendarName,
+                    CalculateGroupFilter());
             }
         }
 
@@ -81,25 +114,40 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             sb1.Append(".ics");
             var fileName = sb1.ToStringAndClear();
 
-            await WriteCalendar(fileName, TeacherCalendarName(teacher), isTeacherCalendar: true, new()
-            {
-                TeacherFilter = new()
+            await WriteCalendar(
+                fileName: fileName,
+                calendarName: TeacherCalendarName(teacher),
+                isTeacherCalendar: true,
+                new()
                 {
-                    IncludeIds = [new TeacherId(teacherId)],
-                },
-            });
+                    TeacherFilter = new()
+                    {
+                        IncludeIds = [new TeacherId(teacherId)],
+                    },
+                });
         }
         return;
 
-        async Task WriteGroupCalendar(string fileName, string calendarName, GroupFilter groupFilter)
+        async Task WriteGroupCalendar(
+            string fileName,
+            string calendarName,
+            GroupFilter groupFilter)
         {
-            await WriteCalendar(fileName, calendarName, isTeacherCalendar: false, new()
-            {
-                GroupFilter = groupFilter,
-            });
+            await WriteCalendar(
+                fileName: fileName,
+                calendarName: calendarName,
+                isTeacherCalendar: false,
+                new()
+                {
+                    GroupFilter = groupFilter,
+                });
         }
 
-        async Task WriteCalendar(string fileName, string calendarName, bool isTeacherCalendar, ScheduleFilter filter)
+        async Task WriteCalendar(
+            string fileName,
+            string calendarName,
+            bool isTeacherCalendar,
+            ScheduleFilter filter)
         {
             p.CancellationToken.ThrowIfCancellationRequested();
             var filteredSchedule = _schedule.Filter(
@@ -124,7 +172,11 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 // ScheduleDefaults.SemesterIntervalProvider to cover it.
                 var omission = $"Skipping calendar {fileName}: {e.Message}";
                 p.ReportOmission?.Invoke(omission);
-                _logger.LogWarning(e, "Skipping calendar {File}: {Reason}", fileName, e.Message);
+                _logger.LogWarning(
+                    e,
+                    "Skipping calendar {File}: {Reason}",
+                    fileName,
+                    e.Message);
                 return;
             }
             if (events.Count == 0)
@@ -138,10 +190,18 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 Events = events,
             };
             if (p.PublishArtifact is { } publish)
-                await publish(fileName, Write, p.CancellationToken);
+            {
+                await publish(
+                    fileName,
+                    Write,
+                    p.CancellationToken);
+            }
             else
             {
-                using var outputFile = p.OutputDirectory!.OpenFile(fileName, FileMode.Create, FileAccess.Write);
+                using var outputFile = p.OutputDirectory!.OpenFile(
+                    fileName,
+                    FileMode.Create,
+                    FileAccess.Write);
                 await Write(outputFile, p.CancellationToken);
             }
 
@@ -262,7 +322,10 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 {
                     sb.Append(", ");
                 }
-                sb.Append(_schedule.Get(groupId).Name);
+                var stringBuilder = sb;
+                var get = _schedule.Get(groupId);
+                string value = get.Name;
+                stringBuilder.Append(value);
                 added = true;
             }
             return sb.ToStringAndClear();
@@ -285,7 +348,13 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
     private static int SemesterNumber(Grade grade, Semester semester)
     {
-        int sem1 = grade.Value * 2 - 1;
-        return semester == Semester.Sem1 ? sem1 : sem1 + 1;
+        int int32 = grade.Value * 2;
+        int sem1 = int32 - 1;
+        if (semester == Semester.Sem1)
+        {
+            return sem1;
+        }
+
+        return sem1 + 1;
     }
 }

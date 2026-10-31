@@ -70,19 +70,28 @@ public sealed partial class StudentAttendanceLoader
                 }
             }
 
-            using var stream = new FileStream(source.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var stream = new FileStream(
+                source.FilePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite);
             using var workbook = new XLWorkbook(stream);
             var parser = _parser;
-            parser.Parse(new(
+            var attendanceListsExcelParser = parser;
+            ParseAttendanceListsExcelParams p = new(
                 parseParameters: parseParams,
                 builder: builder,
                 schedule: filteredSchedule,
-                workbook: workbook));
+                workbook: workbook);
+            attendanceListsExcelParser.Parse(p);
         }
 
         // Maybe configure this per workbook.
         var ret = builder.Build(missingDaysFiller:
             attendanceConfig.MissingDaysFiller ?? Attendance.Present);
-        return AttendanceLabMerges.Project(ret, filteredSchedule.Source, _registryConfig.Get()?.LabMerges ?? []);
+        return AttendanceLabMerges.Project(
+            ret,
+            filteredSchedule.Source,
+            _registryConfig.Get()?.LabMerges ?? []);
     }
 }

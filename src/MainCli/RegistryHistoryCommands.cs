@@ -4,6 +4,7 @@ using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common;
@@ -17,21 +18,13 @@ public sealed class RegistryHistoryArguments : IArgumentModel
         "year",
         Description =
             "Exact academic-year selector value, e.g. 2024/25, or current for the registry-selected year only. Omit to discover all offered years.")]
-    public string? Year
-    {
-        get;
-        set;
-    }
+    public string? Year { get; set; }
 
     [Option(
         "local-directory",
         Description =
             "Required private output directory named .registry-history (ignored by Git). Only counts appear on stdout.")]
-    public string? LocalDirectory
-    {
-        get;
-        set;
-    }
+    public string? LocalDirectory { get; set; }
 }
 
 public interface IRegistryHistoryProvider
@@ -47,13 +40,26 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
     public Task<IReadOnlyList<RegistryHistoryYearSummary>> Discover(
         SettingsArguments settings,
         string? year,
-        CancellationToken token) =>
-        WithHistoryContext(
+        CancellationToken token)
+    {
+        return WithHistoryContext(
             settings,
-            client => new RegistryHistoryReader(client, new(RegistryScraping.BaseUrl + "LessonAttendance")).Discover(
-                year,
-                token),
+            client =>
+            {
+                var client2 = client;
+                Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
+                var registryHistoryReader =
+                    new RegistryHistoryReader(client2, index);
+                string? year2 = year;
+                var token2 = token;
+                var discover =
+                    registryHistoryReader.Discover(
+                        year2,
+                        token2);
+                return discover;
+            },
             token);
+    }
 
     private static async Task<T> WithHistoryContext<T>(
         SettingsArguments settings,
@@ -61,11 +67,15 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         CancellationToken token)
     {
         // A single destination-wide lease covers login and all reads, regardless of account/profile.
+        string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string path2 = "ScheduleLib";
+        string path3 = "locks";
+        string path4 = "registry-history-global.lock";
         var lockPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ScheduleLib",
-            "locks",
-            "registry-history-global.lock");
+            path1,
+            path2,
+            path3,
+            path4);
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
         using var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
@@ -74,24 +84,30 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await using var scope = provider.CreateAsyncScope();
-        Credentials credentials;
+        const string missingCredentialsMessage =
+            "Registry credentials are missing; configure the selected teacher's existing credential source.";
+        var credentialsResolver =
+            scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>();
+        Credentials? credentials;
         try
         {
-            credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>().Get();
-            if (credentials is null
-                || string.IsNullOrWhiteSpace(credentials.Login)
-                || string.IsNullOrWhiteSpace(credentials.Password))
-            {
-                throw new InvalidOperationException();
-            }
+            credentials = credentialsResolver.Get();
         }
-        catch (InvalidOperationException)
+        catch (CredentialsMissingException error)
         {
-            throw new RegistryAuthenticationException(
-                "Registry credentials are missing; configure the selected teacher's existing credential source.");
+            throw TranslatedFailureLog.Translated(
+                RegistryCredentials.FailureLogger(scope.ServiceProvider),
+                new RegistryAuthenticationException(
+                    missingCredentialsMessage,
+                    error));
+        }
+        if (!RegistryCredentials.HasLoginAndPassword(credentials))
+        {
+            throw new RegistryAuthenticationException(missingCredentialsMessage);
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
-        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()?.HttpCallDelay
+        var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()
+                ?.HttpCallDelay
             ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         using var context = await RegistryScraping.CreateHistoryContext(
             credentials,
@@ -127,28 +143,38 @@ public partial class RegistryCommands
         var cancellation = context.Cancellation;
         try
         {
-            if (string.IsNullOrWhiteSpace(settings.Profile) || string.IsNullOrWhiteSpace(history.LocalDirectory))
+            int MissingInput()
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Select --profile and an explicit --local-directory named .registry-history.");
             }
 
+            if (string.IsNullOrWhiteSpace(settings.Profile))
+            {
+                return MissingInput();
+            }
+            if (string.IsNullOrWhiteSpace(history.LocalDirectory))
+            {
+                return MissingInput();
+            }
+
             try
             {
-                RegistryHistoryTopicFiles.ValidateDirectory(history.LocalDirectory);
+                _ = new RegistryHistoryTopicDirectory(history.LocalDirectory);
             }
-            catch (Exception)
+            catch (Exception error) when (error is IOException or ArgumentException)
             {
                 return Finish(
                     CliExit.InvalidArguments,
                     "Private local storage requires a regular directory named .registry-history.");
             }
             var directory = Path.GetFullPath(history.LocalDirectory);
-            var summary = await CreateHistoryProvider().Discover(
-                settings,
-                history.Year,
-                cancellation.Token);
+            var summary = await CreateHistoryProvider()
+                .Discover(
+                    settings,
+                    history.Year,
+                    cancellation.Token);
             if (OperatingSystem.IsWindows())
             {
                 Directory.CreateDirectory(directory);
@@ -167,7 +193,10 @@ public partial class RegistryCommands
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
 
-            var path = Path.Combine(directory, "summary-" + context.RunId + ".json");
+            string path1 = directory;
+            string text = $"summary-{context.RunId}.json";
+            string path2 = text;
+            var path = Path.Combine(path1, path2);
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
             {
@@ -194,23 +223,29 @@ public partial class RegistryCommands
                 var year = summary[yearIndex];
                 var courseCount = year.Courses.Count;
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
-                output.WriteHuman($"Year {year.Year}: {courseCount} courses, {groupCount} groups.");
-                output.EmitItem(
-                    yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
-                    new
-                    {
-                        year = year.Year,
-                        courses = courseCount,
-                        groups = groupCount,
-                    });
+                var cliOutput = output;
+                string line = $"Year {year.Year}: {courseCount} courses, {groupCount} groups.";
+                cliOutput.WriteHuman(line);
+                var cliOutput2 = output;
+                string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var status2 = ActionState.Completed;
+                object item = new
+                {
+                    year = year.Year,
+                    courses = courseCount,
+                    groups = groupCount,
+                };
+                cliOutput2.EmitItem(
+                    id: id2,
+                    status: status2,
+                    item);
             }
             return Finish(
-                CliExit.Success,
+                exit: CliExit.Success,
                 null,
-                summary.Count,
-                summary.Sum(x => x.Courses.Count),
-                summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
+                years: summary.Count,
+                courses: summary.Sum(x => x.Courses.Count),
+                groups: summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -222,21 +257,29 @@ public partial class RegistryCommands
         }
         catch (RegistryHistoryException error)
         {
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history discovery", error);
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            return Finish(
-                CliExit.IoFailure,
-                $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.");
+            int exit2 = CliExit.IoFailure;
+            string error2 =
+                $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
+            int finish = Finish(
+                exit2,
+                error2);
+            return finish;
         }
         catch (LocalOperationBusyException)
         {
             return Finish(CliExit.Busy, "Another local registry history operation is active.");
         }
-        catch (Exception)
+        // The cause may contain private registry data, so it is classified but never echoed.
+        catch (Exception error)
         {
+            TranslatedFailureLog.Unreported(CreateFailureLogger(context), "Registry history discovery", error);
+            var exit = context.ClassifyInputFailure(error).ExitCode;
             return Finish(
-                CliExit.IoFailure,
+                exit,
                 "Registry history discovery failed or stopped. No remote changes were submitted.");
         }
 
@@ -258,10 +301,10 @@ public partial class RegistryCommands
                 courses,
                 groups,
             };
-            var status = CliCommandContext.Status(exit, success: "downloaded");
+            var status = CliCommandContext.Status(exit, success: RunStatus.Downloaded);
             var jsonStatus = CliCommandContext.Status(
                 exit,
-                success: "downloaded",
+                success: RunStatus.Downloaded,
                 cancellation: false);
             return context.Finish(new CliCompletion<object>(
                 exit,
@@ -275,8 +318,10 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        output.WriteHuman(
-                            $"Saved local summary: {years} years, {courses} courses, {groups} groups.");
+                        var cliOutput = output;
+                        string line = $"Saved local summary: {years} years, {courses} courses, {groups} groups.";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

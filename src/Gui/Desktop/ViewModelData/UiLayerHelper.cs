@@ -31,7 +31,8 @@ public static class UiLayerHelper
         {
             Debug.Assert(!builder.Node.IsOnEditableLayer());
             var b = builder.AddLayer(UiTeacherLayer);
-            b.Builder(TeacherLayerConfig.Key).Enable();
+            b.Builder(TeacherLayerConfig.Key)
+                .Enable();
             return b;
         }
 
@@ -47,7 +48,8 @@ public static class UiLayerHelper
         public NodeBuilder MaybeCreateUiLayer(TeacherLayerConfig config)
         {
             var b = MaybeCreateUiLayer(builder);
-            b.Builder(TeacherLayerConfig.Key).CopyValue(config);
+            b.Builder(TeacherLayerConfig.Key)
+                .CopyValue(config);
             return b;
         }
     }
@@ -58,11 +60,7 @@ public static class UiLayerHelper
     {
         root.RemoveNodes(layer =>
         {
-            if (ReferenceEquals(nodeToRemove, layer))
-            {
-                return true;
-            }
-            return false;
+            return ReferenceEquals(objA: nodeToRemove, objB: layer);
         });
     }
 
@@ -72,8 +70,12 @@ public static class UiLayerHelper
             Stream output,
             TreeBuilder configRoot)
         {
-            var uiLayers = configRoot.GetUiLayers().Select(x => x.Node);
-            await helper.SerializeValues(uiLayers, output, serializeLayerName: false)
+            var uiLayers = configRoot.GetUiLayers()
+                .Select(x => x.Node);
+            await helper.SerializeValues(
+                    uiLayers,
+                    output,
+                    serializeLayerName: false)
                 .ConfigureAwait(false);
             output.SetLength(output.Position);
         }
@@ -83,31 +85,32 @@ public static class UiLayerHelper
             TreeBuilder configRoot)
         {
             await helper.DeserializeValues(
-                output,
-                (layerName, configs) =>
-                {
+                    output,
+                    (layerName, configs) =>
                     {
-                        if (layerName is { } x && x != UiTeacherLayer)
                         {
-                            throw new InvalidOperationException($"Expected a layer with name {UiTeacherLayer}");
+                            if (layerName is { } x && x != UiTeacherLayer)
+                            {
+                                throw new ExpectedUiTeacherLayerException(UiTeacherLayer);
+                            }
                         }
-                    }
-                    {
-                        var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
-                        var markerLayer = configRoot
-                            .GetMarkerNodes()
-                            .FirstOrDefault(x => x.Config.Equals(marker))
-                            .Builder;
-
-                        if (markerLayer.IsNull)
                         {
-                            markerLayer = configRoot.Defaults;
-                        }
+                            var marker = (TeacherLayerConfig) configs.Find(x => x.Key == TeacherLayerConfig.Key).Value;
+                            var markerLayer = configRoot
+                                .GetMarkerNodes()
+                                .FirstOrDefault(x => x.Config.Equals(marker))
+                                .Builder;
 
-                        var ret = markerLayer.MaybeCreateUiLayer();
-                        return ret;
-                    }
-                }).ConfigureAwait(false);
+                            if (markerLayer.IsNull)
+                            {
+                                markerLayer = configRoot.Defaults;
+                            }
+
+                            var ret = markerLayer.MaybeCreateUiLayer();
+                            return ret;
+                        }
+                    })
+                .ConfigureAwait(false);
         }
     }
 }

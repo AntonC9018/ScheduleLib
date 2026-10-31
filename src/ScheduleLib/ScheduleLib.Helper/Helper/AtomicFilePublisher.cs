@@ -9,11 +9,19 @@ public static class AtomicFilePublisher
         Func<Stream, CancellationToken, Task> write,
         CancellationToken token)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destination))!);
-        var staged = destination + $".{Guid.NewGuid():N}.tmp";
+        string CalculatePath()
+        {
+            string path = Path.GetFullPath(destination);
+            string path2 = Path.GetDirectoryName(path)!;
+            return path2;
+        }
+
+        Directory.CreateDirectory(CalculatePath());
+        var staged = $"{destination}{($".{Guid.NewGuid():N}.tmp")}";
         try
         {
-            await using (var stream = new FileStream(staged,
+            await using (var stream = new FileStream(
+                             staged,
                              FileMode.CreateNew,
                              FileAccess.ReadWrite,
                              FileShare.None))
@@ -23,7 +31,8 @@ public static class AtomicFilePublisher
                 stream.Flush(flushToDisk: true);
             }
             token.ThrowIfCancellationRequested();
-            File.Move(sourceFileName: staged,
+            File.Move(
+                sourceFileName: staged,
                 destFileName: destination,
                 overwrite: true);
         }

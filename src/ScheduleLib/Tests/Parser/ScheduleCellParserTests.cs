@@ -17,21 +17,27 @@ public sealed class ScheduleCellParserTests
         var first = context.Schedule.Group("IA2601(ro)").Id;
         var second = context.Schedule.Group("IA2602(ro)").Id;
         var lesson = Parse(context, "15:00 HTML (lab, imp)\nG.Marin 326/4");
-        context.AddOrMergeLesson(new(lesson,
+        var scheduleImportContext = context;
+        ImportedLessonInput input = new(
+            lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
-            [first]));
-        context.AddOrMergeLesson(new(lesson,
+            [first]);
+        scheduleImportContext.AddOrMergeLesson(input);
+        var scheduleImportContext2 = context;
+        ImportedLessonInput input2 = new(
+            lesson,
             DayOfWeek.Monday,
             TimeSlot.First,
-            [second]));
+            [second]);
+        scheduleImportContext2.AddOrMergeLesson(input2);
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(2, result.Base.Group.Groups.Count);
-        Assert.Equal(4, result.Date.TimeSlot!.Value.Index);
-        Assert.Equal(Parity.OddWeek, result.Date.Parity);
-        Assert.Equal(default, result.Base.Group.Alternative);
-        Assert.Equal(context.CurrentPeriodId, result.Base.General.Period);
+        Assert.Equal(expected: 2, actual: result.Base.Group.Groups.Count);
+        Assert.Equal(expected: 4, actual: result.Date.TimeSlot!.Value.Index);
+        Assert.Equal(expected: Parity.OddWeek, actual: result.Date.Parity);
+        Assert.Equal(expected: default, actual: result.Base.Group.Alternative);
+        Assert.Equal(expected: context.CurrentPeriodId, actual: result.Base.General.Period);
     }
 
     [Fact]
@@ -40,24 +46,41 @@ public sealed class ScheduleCellParserTests
         var context = CreateContext();
         var group = context.Schedule.Group("IA2504(ru)").Id;
         var lesson = Parse(context, "Antreprenoriat inovativ (curs)\nN.Nazar 528/3");
-        context.AddOrMergeLesson(new(lesson,
-            DayOfWeek.Monday,
-            TimeSlot.First,
-            [group],
-            new("Gr.1")));
-        context.AddOrMergeLesson(new(lesson,
-            DayOfWeek.Monday,
-            TimeSlot.First,
-            [group],
-            new("Gr.2")));
+        var scheduleImportContext = context;
+        var lesson2 = lesson;
+        var day = DayOfWeek.Monday;
+        var timeSlot = TimeSlot.First;
+        IReadOnlyList<GroupId> groups = [group];
+        Alternative alternative = new("Gr.1");
+        ImportedLessonInput input = new(
+            lesson2,
+            day,
+            timeSlot,
+            groups,
+            alternative);
+        scheduleImportContext.AddOrMergeLesson(input);
+        var scheduleImportContext2 = context;
+        var lesson3 = lesson;
+        var day2 = DayOfWeek.Monday;
+        var timeSlot2 = TimeSlot.First;
+        IReadOnlyList<GroupId> groups2 = [group];
+        Alternative alternative2 = new("Gr.2");
+        ImportedLessonInput input2 = new(
+            lesson3,
+            day2,
+            timeSlot2,
+            groups2,
+            alternative2);
+        scheduleImportContext2.AddOrMergeLesson(input2);
 
-        Assert.Equal(2, context.Schedule.WeeklyLessons.Count);
-        Assert.Equal(new[]
+        Assert.Equal(expected: 2, actual: context.Schedule.WeeklyLessons.Count);
+        Assert.Equal(
+            expected: new[]
             {
                 "Gr.1",
                 "Gr.2",
             },
-            context.Schedule.WeeklyLessons.List
+            actual: context.Schedule.WeeklyLessons.List
                 .Select(l => l.Base.Group.Alternative.Value));
     }
 
@@ -70,14 +93,19 @@ public sealed class ScheduleCellParserTests
         var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
         lesson.GroupName = "IA2602(ro)".AsMemory();
 
-        context.AddOrMergeLesson(new(lesson,
+        var scheduleImportContext = context;
+        ImportedLessonInput input = new(
+            lesson,
             DayOfWeek.Tuesday,
             TimeSlot.First,
-            [cellGroup]));
+            [cellGroup]);
+        scheduleImportContext.AddOrMergeLesson(input);
 
         var result = Assert.Single(context.Schedule.WeeklyLessons.List);
-        Assert.Equal(lessonGroup, Assert.Single(result.Base.Group.Groups));
-        Assert.Equal(DayOfWeek.Tuesday, result.Date.DayOfWeek);
+        var expected2 = lessonGroup;
+        var actual2 = Assert.Single(result.Base.Group.Groups);
+        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.Equal(expected: DayOfWeek.Tuesday, actual: result.Date.DayOfWeek);
     }
 
     [Fact]
@@ -86,13 +114,18 @@ public sealed class ScheduleCellParserTests
         var context = CreateContext();
         var group = context.Schedule.Group("IA2601(ro)").Id;
         var lesson = Parse(context, "HTML (lab)\nG.Marin 326/4");
-        lesson.StartTime = new(7, 13);
+        lesson.StartTime = new(hour: 7, minute: 13);
 
-        Assert.Throws<InvalidScheduleDocumentException>(() =>
-            context.AddOrMergeLesson(new(lesson,
+        Assert.Throws<InvalidScheduleDocumentException.UnknownTimeSlotException>(() =>
+        {
+            var scheduleImportContext = context;
+            ImportedLessonInput input = new(
+                lesson,
                 DayOfWeek.Monday,
                 TimeSlot.First,
-                [group])));
+                [group]);
+            scheduleImportContext.AddOrMergeLesson(input);
+        });
         Assert.Empty(context.Schedule.WeeklyLessons.List);
     }
 
@@ -111,18 +144,24 @@ public sealed class ScheduleCellParserTests
         });
         context.SetPeriod(new()
         {
-            StartDate = new(2026,
-                9,
-                14),
+            StartDate = new(
+                year: 2026,
+                month: 9,
+                day: 14),
         });
         return context;
     }
 
     private static ParsedLesson Parse(ScheduleImportContext context, string text)
     {
-        using var lines = text.Split('\n').Select(x => x.AsMemory()).GetEnumerator();
+        using var lines = text.Split('\n')
+            .Select(x => x.AsMemory())
+            .GetEnumerator();
         var parser = context.ParserFactory.Create();
         parser.Lexer.Reset(lines);
-        return Assert.Single(parser.ParseLessons(new StringBuilder()));
+        var collection =
+            parser.ParseLessons(new StringBuilder());
+        var single = Assert.Single(collection);
+        return single;
     }
 }

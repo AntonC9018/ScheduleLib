@@ -49,19 +49,24 @@ public sealed class LessonTimeConfig
                 return 1;
             }
             var endTime = startTime.Add(_duration);
-            if (search > endTime)
+            if (!(search > endTime))
             {
-                return -1;
+                return 0;
             }
-            return 0;
+
+            return -1;
         }
     }
 
     private IncludesComparer? _includesComparer;
+
     public TimeSlot? FindTimeSlotByIncludedTime(TimeOnly time)
     {
         _includesComparer ??= new(LessonDuration);
-        var i = Array.BinarySearch(TimeSlotStarts, time, _includesComparer);
+        var i = Array.BinarySearch(
+            TimeSlotStarts,
+            time,
+            _includesComparer);
         if (i < 0)
         {
             return null;
@@ -84,6 +89,7 @@ public sealed class LessonTimeConfig
                     var t1 = (t.Item.Add(offset) - time).TotalMinutes;
                     return Math.Abs(t1);
                 }
+
                 var a = Diff(TimeSpan.Zero);
                 var b = Diff(LessonDuration);
                 return Math.Min(a, b);
@@ -113,7 +119,9 @@ public sealed class LessonTimeConfig
             {
                 break;
             }
-            output.Add(new(currentIndex));
+            var list = output;
+            TimeSlot item = new(currentIndex);
+            list.Add(item);
             currentIndex++;
         }
     }
@@ -132,19 +140,23 @@ public sealed class LessonTimeConfig
     {
         TimeOnly New(int hour, int min)
         {
-            var t = new TimeSpan(hours: hour, minutes: min, seconds: 0);
+            var t = new TimeSpan(
+                hours: hour,
+                minutes: min,
+                seconds: 0);
             var ret = TimeOnly.FromTimeSpan(t);
             return ret;
         }
 
-        return [
-            New(8, 00),
-            New(9, 45),
-            New(11, 30),
-            New(13, 15),
-            New(15, 00),
-            New(16, 45),
-            New(18, 30),
+        return
+        [
+            New(hour: 8, min: 00),
+            New(hour: 9, min: 45),
+            New(hour: 11, min: 30),
+            New(hour: 13, min: 15),
+            New(hour: 15, min: 00),
+            New(hour: 16, min: 45),
+            New(hour: 18, min: 30),
         ];
     }
 
@@ -167,7 +179,13 @@ public sealed class LessonTimeConfig
         {
             for (int i = 0; i < TimeSlotStarts.Length; i++)
             {
-                yield return GetTimeSlotInterval(new TimeSlot(i));
+                TimeSlot CalculateIndex()
+                {
+                    var index = new TimeSlot(i);
+                    return index;
+                }
+
+                yield return GetTimeSlotInterval(CalculateIndex());
             }
         }
     }
@@ -188,10 +206,10 @@ public record struct TimeSlotInterval(TimeOnly Start, TimeSpan Duration)
 public record struct TimeSlot(int Index) : IComparable<TimeSlot>
 {
     public static TimeSlot First => new(0);
-    public static bool operator<(TimeSlot left, TimeSlot right) => left.Index < right.Index;
-    public static bool operator>(TimeSlot left, TimeSlot right) => left.Index > right.Index;
-    public static bool operator<=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
-    public static bool operator>=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
+    public static bool operator <(TimeSlot left, TimeSlot right) => left.Index < right.Index;
+    public static bool operator >(TimeSlot left, TimeSlot right) => left.Index > right.Index;
+    public static bool operator <=(TimeSlot left, TimeSlot right) => left.Index <= right.Index;
+    public static bool operator >=(TimeSlot left, TimeSlot right) => left.Index >= right.Index;
 
     public int CompareTo(TimeSlot other)
     {

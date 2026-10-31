@@ -80,7 +80,7 @@ class FormattingWriteTests(unittest.TestCase):
             commands = [call.args[0] for call in run.call_args_list]
             self.assertEqual(commands[0][2], str(mirror / 'App.csproj'))
             self.assertEqual(commands[1][commands[1].index('--diagnostics') + 1:commands[1].index('--include')],
-                             ['RCS0042', 'RCS1016', 'CR0800', 'CR0801', 'CR0802'])
+                             ['RCS0042', 'RCS1016', 'CR0800', 'CR0801', 'CR0802', 'CR0803', 'CR0804', 'CR0805'])
             self.assertEqual(commands[1][-1], 'Source.cs')
             self.assertEqual(commands[2][2], 'whitespace')
 

@@ -23,18 +23,10 @@ public sealed class SettingsArguments : IArgumentModel
     [Option(
         "project",
         Description = "Existing project directory; otherwise discover the nearest schedulelib.json upward.")]
-    public string? Project
-    {
-        get;
-        set;
-    }
+    public string? Project { get; set; }
 
     [Option("profile", Description = "Code-defined teacher identity; user/project settings overlay this teacher.")]
-    public string? Profile
-    {
-        get;
-        set;
-    }
+    public string? Profile { get; set; }
 }
 
 public sealed class ConfigOverrideArguments : IArgumentModel
@@ -42,11 +34,7 @@ public sealed class ConfigOverrideArguments : IArgumentModel
     [Option(
         "calendar-name",
         Description = "Inspect a typed GoogleCalendarConfig calendar-name override for this invocation.")]
-    public string? CalendarName
-    {
-        get;
-        set;
-    }
+    public string? CalendarName { get; set; }
 }
 
 public sealed record SettingsSource(string Name, string? File, IReadOnlyList<string> Keys);
@@ -63,35 +51,17 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     internal JsonSerializerOptions Json => _json;
     internal IServiceProvider Services => _provider;
 
-    public TreeBuilder Tree
-    {
-        get;
-    }
+    public TreeBuilder Tree { get; }
 
-    public NodePath Path
-    {
-        get;
-    }
+    public NodePath Path { get; }
 
-    public string? ProjectDirectory
-    {
-        get;
-    }
+    public string? ProjectDirectory { get; }
 
-    public string? Profile
-    {
-        get;
-    }
+    public string? Profile { get; }
 
-    public IReadOnlyList<string> Profiles
-    {
-        get;
-    }
+    public IReadOnlyList<string> Profiles { get; }
 
-    public IReadOnlyList<SettingsSource> Sources
-    {
-        get;
-    }
+    public IReadOnlyList<SettingsSource> Sources { get; }
 
     internal ResolvedSettings(
         ServiceProvider provider,
@@ -128,27 +98,35 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
             options.AutoMergeLabSubGroups = GetGlobal(ScheduleDerivationConfig.Key)?.AutoMergeLabSubGroups ?? false);
         if (Profile is { } teacher)
         {
-            services.AddScoped(_ => new TeacherLayerConfig { TeacherName = NameHelper.Parse(teacher) });
+            services.AddScoped(_ => new TeacherLayerConfig
+            {
+                TeacherName = NameHelper.Parse(teacher),
+            });
         }
     }
 
     MarkerData IMarkerDataHelper.GetMarkerData(IServiceProvider sp) => new(sp.GetRequiredService<TeacherLayerConfig>());
 
-    NodePath? IMarkerDataHelper.GetCurrentPath(MarkerData data) =>
-        data.Value is TeacherLayerConfig { TeacherName: { } name }
+    NodePath? IMarkerDataHelper.GetCurrentPath(MarkerData data)
+    {
+        return data.Value is TeacherLayerConfig { TeacherName: { } name }
             ? _profilePaths.GetValueOrDefault(name.ToString())
             : Path;
+    }
 
     public IReadOnlyDictionary<string, SettingsValue> Inspect()
     {
         var values = new SortedDictionary<string, SettingsValue>(StringComparer.Ordinal);
-        foreach (var key in Path.Path.SelectMany(x => x.ConfigKeys).Distinct().Where(x => x != TeacherLayerConfig.Key))
+        foreach (var key in Path.Path.SelectMany(x => x.ConfigKeys)
+                     .Distinct()
+                     .Where(x => x != TeacherLayerConfig.Key))
         {
             var type = NodeDataKey.Registry.GetTypeFromKey(key);
             var value = typeof(ResolvedSettings).GetMethod(
                     nameof(GetNode),
                     BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(type).Invoke(this, [key]);
+                .MakeGenericMethod(type)
+                .Invoke(this, [key]);
             values.Add(key.Value, new((JsonNode?) value, ContributingSources(key.Value)));
         }
         return values;
@@ -157,9 +135,10 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public SettingsValue Inspect(string key)
     {
         var parts = key.Split('.');
-        if (!Inspect().TryGetValue(parts[0], out var block))
+        if (!Inspect()
+                .TryGetValue(parts[0], out var block))
         {
-            throw new JsonException($"Unknown setting key: {key}");
+            throw new UnknownSettingsKeyException(key);
         }
 
         var value = block.Value;
@@ -167,33 +146,51 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         {
             if (value is not JsonObject obj || !obj.TryGetPropertyValue(part, out value))
             {
-                throw new JsonException($"Unknown setting key: {key}");
+                throw new UnknownSettingsKeyException(key);
             }
         }
         return new(value?.DeepClone(), ContributingSources(key));
     }
 
-    private IReadOnlyList<SettingsSource> ContributingSources(string key) => Sources
-        .Select(source => source with
-        {
-            Keys = source.Keys.Where(x =>
-                x == key
-                || x.StartsWith(key + ".", StringComparison.Ordinal)
-                || key.StartsWith(x + ".", StringComparison.Ordinal)).Order().ToArray(),
-        })
-        .Where(source => source.Keys.Count != 0).ToArray();
+    private IReadOnlyList<SettingsSource> ContributingSources(string key)
+    {
+        return Sources
+            .Select(source => source with
+            {
+                Keys = source.Keys.Where(x =>
+                    {
+                        if (x == key)
+                        {
+                            return true;
+                        }
+
+                        if (x.StartsWith($"{key}.", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        return key.StartsWith($"{x}.", StringComparison.Ordinal);
+                    })
+                    .Order()
+                    .ToArray(),
+            })
+            .Where(source => source.Keys.Count != 0)
+            .ToArray();
+    }
 
     private JsonNode? GetNode<T>(NodeDataKey key) where T : class
     {
         var value = Get(new NodeDataKey<T>(key));
-        return CliSettings.Redact(JsonSerializer.SerializeToNode(value, _json));
+        var node = JsonSerializer.SerializeToNode(value, _json);
+        return CliSettings.Redact(node);
     }
 
     public void Validate()
     {
         foreach (var path in _profilePaths.Values.Prepend(Path))
         {
-            foreach (var key in path.Path.SelectMany(x => x.ConfigKeys).Distinct()
+            foreach (var key in path.Path.SelectMany(x => x.ConfigKeys)
+                         .Distinct()
                          .Where(x => x != TeacherLayerConfig.Key))
             {
                 try
@@ -201,11 +198,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     typeof(ResolvedSettings).GetMethod(
                             nameof(ValidateBlock),
                             BindingFlags.NonPublic | BindingFlags.Instance)!
-                        .MakeGenericMethod(NodeDataKey.Registry.GetTypeFromKey(key)).Invoke(this, [path, key]);
+                        .MakeGenericMethod(NodeDataKey.Registry.GetTypeFromKey(key))
+                        .Invoke(this, [path, key]);
                 }
                 catch (TargetInvocationException e) when (e.InnerException is { } error)
                 {
-                    throw new JsonException($"Cannot resolve settings block '{key.Value}': {error.Message}");
+                    throw new SettingsBlockResolutionException(blockKey: key.Value, resolutionMessage: error.Message);
                 }
             }
         }
@@ -215,6 +213,26 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         _ = path.ConstructValue(new NodeDataKey<T>(key), _provider);
 
     public void Dispose() => _provider.Dispose();
+
+    internal sealed class UnknownSettingsKeyException : JsonException
+    {
+        internal UnknownSettingsKeyException(string key)
+            : base($"Unknown setting key: {key}")
+            => Key = key;
+
+        public string Key { get; }
+    }
+
+    internal sealed class SettingsBlockResolutionException : JsonException
+    {
+        internal SettingsBlockResolutionException(string blockKey, string resolutionMessage)
+            : base($"Cannot resolve settings block '{blockKey}': {resolutionMessage}")
+            => (BlockKey, ResolutionMessage) = (blockKey, resolutionMessage);
+
+        public string BlockKey { get; }
+
+        public string ResolutionMessage { get; }
+    }
 }
 
 public static partial class CliSettings
@@ -235,10 +253,16 @@ public static partial class CliSettings
         "ScheduleDerivationConfig",
     };
 
-    public static string UserFile => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ScheduleLib",
-        FileName);
+    public static string UserFile
+    {
+        get
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ScheduleLib",
+                FileName);
+        }
+    }
 
     public static async Task<ResolvedSettings> Load(
         SettingsArguments arguments,
@@ -246,12 +270,14 @@ public static partial class CliSettings
         string? userFile = null,
         CancellationToken cancellationToken = default,
         ConfigOverrideArguments? overrides = null)
-        => await LoadCore(
+    {
+        return await LoadCore(
             arguments,
-            invocationDirectory,
-            userFile,
+            invocationDirectory: invocationDirectory,
+            userFile: userFile,
             cancellationToken,
             overrides);
+    }
 
     private static async Task<ResolvedSettings> LoadCore(
         SettingsArguments arguments,
@@ -262,7 +288,7 @@ public static partial class CliSettings
         (string Path, JsonObject Envelope)? replacement = null)
     {
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
-        var project = DiscoverProject(arguments.Project, cwd);
+        var project = DiscoverProject(explicitProject: arguments.Project, invocationDirectory: cwd);
         var services = new ServiceCollection();
         // Registration only: never initialize schedules, credential resolvers, provider clients, or user secrets.
         services.AddConfigsServices();
@@ -272,14 +298,14 @@ public static partial class CliSettings
         {
             var tree = provider.GetRequiredService<TreeBuilder>();
             tree.AddDefaultConfig();
-            var codeProfiles = tree.GetMarkerNodes().ToDictionary(
-                x => x.Config.TeacherName.ToString(),
-                x => x.Builder.Node,
-                StringComparer.Ordinal);
+            var codeProfiles = tree.GetMarkerNodes()
+                .ToDictionary(
+                    keySelector: x => x.Config.TeacherName.ToString(),
+                    elementSelector: x => x.Builder.Node,
+                    StringComparer.Ordinal);
             if (arguments.Profile is { } teacher && !codeProfiles.ContainsKey(teacher))
             {
-                throw new JsonException(
-                    $"Unknown teacher profile '{teacher}'. Use config profiles to list supported teachers.");
+                throw new UnknownCliTeacherProfileException(teacher);
             }
 
             var json =
@@ -334,28 +360,25 @@ public static partial class CliSettings
             var selectedSources = defaultSources;
             foreach (var coded in codeProfiles)
             {
-                var path = defaultsPath.ToImmutable().ToBuilder();
+                var path = defaultsPath.ToImmutable()
+                    .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
-                sources.Add(
-                    CodeSource(
-                        "code profile: " + coded.Key,
-                        coded.Value,
-                        json));
+                sources.Add(CodeSource($"code profile: {coded.Key}", coded.Value, json));
                 AddOverlay(
                     path,
                     sources,
                     user,
-                    "user profile: " + coded.Key,
+                    name: $"user profile: {coded.Key}",
                     user?.Profiles.GetValueOrDefault(coded.Key),
-                    coded.Key);
+                    profile: coded.Key);
                 AddOverlay(
                     path,
                     sources,
                     local,
-                    "project profile: " + coded.Key,
+                    name: $"project profile: {coded.Key}",
                     local?.Profiles.GetValueOrDefault(coded.Key),
-                    coded.Key);
+                    profile: coded.Key);
                 AddCli(path, sources);
                 profilePaths.Add(coded.Key, new(path.ToImmutable()));
                 if (arguments.Profile == coded.Key)
@@ -370,17 +393,20 @@ public static partial class CliSettings
                 AddCli(path, selectedSources);
                 selectedPath = path.ToImmutable();
             }
+            var settingsPath = new NodePath(selectedPath);
+            var globalPath = new NodePath(defaultsPath.ToImmutable());
             var resolved = new ResolvedSettings(
                 provider,
                 tree,
-                new(selectedPath),
+                path: settingsPath,
                 json,
-                project,
-                arguments.Profile,
-                codeProfiles.Keys.Order().ToArray(),
+                projectDirectory: project,
+                profile: arguments.Profile,
+                codeProfiles.Keys.Order()
+                    .ToArray(),
                 selectedSources,
                 profilePaths,
-                new(defaultsPath.ToImmutable()));
+                globalPath: globalPath);
             resolved.Validate();
             return resolved;
 
@@ -398,6 +424,7 @@ public static partial class CliSettings
                 }
 
                 var actions = GetOperations(file.Operations, profile);
+
                 if (values is null && actions is null)
                 {
                     return;
@@ -430,11 +457,14 @@ public static partial class CliSettings
                     }
                 }
 
+                var leafKeys = LeafKeys(values);
+                var actionKeys = actions?.Cast<JsonObject>()
+                        .Select(x => x["key"]!.GetValue<string>())
+                    ?? [];
                 sources.Add(new(
-                    name,
-                    file.Path,
-                    LeafKeys(values).Concat(
-                            actions?.Cast<JsonObject>().Select(x => x["key"]!.GetValue<string>()) ?? [])
+                    Name: name,
+                    File: file.Path,
+                    leafKeys.Concat(actionKeys)
                         .ToArray()));
             }
 
@@ -446,11 +476,12 @@ public static partial class CliSettings
                 }
 
                 var node = new MutableNode();
-                new NodeBuilder(node, provider).GoogleCalendar().ConfigureValue(x => x.CalendarName = calendar);
+                new NodeBuilder(node, provider).GoogleCalendar()
+                    .ConfigureValue(x => x.CalendarName = calendar);
                 path.Add(node);
                 sources.Add(new(
-                    "CLI arguments",
-                    null,
+                    Name: "CLI arguments",
+                    File: null,
                     ["GoogleCalendarConfig.calendarName"]));
             }
         }
@@ -468,15 +499,15 @@ public static partial class CliSettings
             string full;
             try
             {
-                full = Path.GetFullPath(selected, invocationDirectory);
+                full = Path.GetFullPath(path: selected, basePath: invocationDirectory);
             }
             catch (ArgumentException)
             {
-                throw new JsonException("Invalid project directory path.");
+                throw new InvalidProjectDirectoryPathException(selected);
             }
             if (!Directory.Exists(full))
             {
-                throw new DirectoryNotFoundException($"Project directory does not exist: {full}");
+                throw new ProjectDirectoryNotFoundException(full);
             }
 
             return full;
@@ -485,7 +516,8 @@ public static partial class CliSettings
              directory is not null;
              directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(directory.FullName, FileName)))
+            string settingsPath = Path.Combine(directory.FullName, FileName);
+            if (File.Exists(settingsPath))
             {
                 return directory.FullName;
             }
@@ -537,7 +569,7 @@ public static partial class CliSettings
         }
         catch (JsonException e)
         {
-            throw new JsonException($"Invalid settings JSON in {path}: {e.Message}");
+            throw new InvalidSettingsJsonException(settingsPath: path, parserMessage: e.Message);
         }
         return ReadEnvelope(
             node,
@@ -554,7 +586,7 @@ public static partial class CliSettings
     {
         if (node is not JsonObject envelope)
         {
-            throw new JsonException($"Expected settings object in {path}.");
+            throw new ExpectedSettingsObjectException(path);
         }
 
         CheckKeys(
@@ -565,7 +597,7 @@ public static partial class CliSettings
             || !version.TryGetValue<int>(out var schema)
             || schema != 1)
         {
-            throw new JsonException($"Unsupported or missing schemaVersion in {path}; expected 1.");
+            throw new UnsupportedSettingsSchemaVersionException(path);
         }
 
         var defaults = ReadBlock(envelope["defaults"], "defaults");
@@ -574,17 +606,17 @@ public static partial class CliSettings
         {
             if (profileNode is not JsonObject map)
             {
-                throw new JsonException($"profiles must be an object in {path}.");
+                throw new SettingsObjectRequiredException(location: "profiles", settingsPath: path);
             }
 
             foreach (var entry in map)
             {
                 if (!teachers.Contains(entry.Key))
                 {
-                    throw new JsonException($"Unknown teacher profile '{entry.Key}' in {path}.");
+                    throw new UnknownSettingsProfileException(profile: entry.Key, settingsPath: path);
                 }
 
-                profiles.Add(entry.Key, ReadBlock(entry.Value, "profiles." + entry.Key));
+                profiles.Add(entry.Key, ReadBlock(entry.Value, $"profiles.{entry.Key}"));
             }
         }
         var operations = ReadOperations(
@@ -594,9 +626,9 @@ public static partial class CliSettings
             teachers);
         return new(
             Path.GetFullPath(path),
-            defaults,
+            Defaults: defaults,
             profiles,
-            operations);
+            Operations: operations);
 
         JsonObject? ReadBlock(JsonNode? block, string location)
         {
@@ -607,7 +639,7 @@ public static partial class CliSettings
 
             if (block is not JsonObject values)
             {
-                throw new JsonException($"{location} must be an object in {path}.");
+                throw new SettingsObjectRequiredException(location: location, settingsPath: path);
             }
 
             foreach (var setting in values)
@@ -622,7 +654,7 @@ public static partial class CliSettings
                 var type = NodeDataKey.Registry.TryGetTypeFromKey(key);
                 if (type is null || !SupportedBlocks.Contains(setting.Key))
                 {
-                    throw new JsonException($"Unsupported settings block '{setting.Key}' in {path}.");
+                    throw new UnsupportedSettingsBlockException(blockKey: setting.Key, settingsPath: path);
                 }
 
                 RejectSecrets(setting.Value, path);
@@ -631,6 +663,7 @@ public static partial class CliSettings
                     type,
                     json,
                     path);
+
                 ResolvePaths(setting.Value, Path.GetDirectoryName(Path.GetFullPath(path))!);
                 // Separate CLI options; the desktop serializer's format and options remain unchanged.
                 try
@@ -642,7 +675,11 @@ public static partial class CliSettings
                                               or NotSupportedException
                                               or InvalidOperationException)
                 {
-                    throw new JsonException($"Invalid {location}.{setting.Key} in {path}: {e.Message}");
+                    throw new InvalidSettingsBlockValueException(
+                        location: location,
+                        settingKey: setting.Key,
+                        settingsPath: path,
+                        errorMessage: e.Message);
                 }
             }
             return values;
@@ -656,7 +693,8 @@ public static partial class CliSettings
     {
         typeof(CliSettings)
             .GetMethod(nameof(SetTypedValue), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(value.GetType()).Invoke(null, [node, key, value]);
+            .MakeGenericMethod(value.GetType())
+            .Invoke(null, [node, key, value]);
     }
 
     private static void SetTypedValue<T>(
@@ -677,7 +715,7 @@ public static partial class CliSettings
             {
                 if (!names.Add(property.Name))
                 {
-                    throw new JsonException($"Duplicate settings key '{property.Name}' in {file}.");
+                    throw new DuplicateSettingsKeyException(key: property.Name, settingsPath: file);
                 }
 
                 CheckDuplicates(property.Value, file);
@@ -701,7 +739,7 @@ public static partial class CliSettings
         {
             if (!allowed.Contains(key))
             {
-                throw new JsonException($"Unsupported settings key '{key}' in {path}.");
+                throw new UnsupportedSettingsKeyInFileException(key: key, settingsPath: path);
             }
         }
     }
@@ -713,11 +751,10 @@ public static partial class CliSettings
             foreach (var entry in obj)
             {
                 if (IsSecret(entry.Key)
-                    || entry.Key == "$type"
-                    && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
+                    || (entry.Key == "$type"
+                        && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource"))
                 {
-                    throw new JsonException(
-                        $"Inline secrets are unsupported in settings file {file}; reference the existing credential configuration instead.");
+                    throw new InlineSettingsSecretsUnsupportedException(file);
                 }
 
                 RejectSecrets(entry.Value, file);
@@ -744,14 +781,10 @@ public static partial class CliSettings
             {
                 if (item is null)
                 {
-                    throw new JsonException($"Null collection entries are unsupported in {file}.");
+                    throw new NullSettingsCollectionEntryException(file);
                 }
 
-                NormalizeInheritance(
-                    item,
-                    type.GetGenericArguments()[0],
-                    json,
-                    file);
+                NormalizeInheritance(item, type.GetGenericArguments()[0], json, file);
             }
             return;
         }
@@ -786,7 +819,7 @@ public static partial class CliSettings
             var property = info.Properties.FirstOrDefault(x => x.Name == entry.Key);
             if (property is null)
             {
-                throw new JsonException($"Unsupported settings member '{entry.Key}' in {file}.");
+                throw new UnsupportedSettingsMemberException(memberName: entry.Key, settingsPath: file);
             }
 
             if (entry.Value is null)
@@ -816,11 +849,11 @@ public static partial class CliSettings
                 {
                     try
                     {
-                        obj[entry.Key] = Path.GetFullPath(path, directory);
+                        obj[entry.Key] = Path.GetFullPath(path: path, basePath: directory);
                     }
                     catch (ArgumentException)
                     {
-                        throw new JsonException($"Invalid settings path for '{entry.Key}'.");
+                        throw new InvalidSettingsPathMemberException(entry.Key);
                     }
                 }
                 else
@@ -853,18 +886,17 @@ public static partial class CliSettings
             }
             else
             {
-                var leaves = LeafKeys(
-                    JsonSerializer.SerializeToNode(
-                        value,
-                        value.GetType(),
-                        json),
-                    config.Key.Value).ToArray();
+                var serialized = JsonSerializer.SerializeToNode(
+                    value,
+                    value.GetType(),
+                    json);
+                var leaves = LeafKeys(serialized, config.Key.Value).ToArray();
                 keys.AddRange(leaves.Length == 0 ? [config.Key.Value] : leaves);
             }
         }
         return new(
-            name,
-            null,
+            Name: name,
+            File: null,
             keys);
     }
 
@@ -879,7 +911,8 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                foreach (var key in LeafKeys(entry.Value, prefix.Length == 0 ? entry.Key : prefix + "." + entry.Key))
+                var childPrefix = prefix.Length == 0 ? entry.Key : $"{prefix}.{entry.Key}";
+                foreach (var key in LeafKeys(entry.Value, childPrefix))
                 {
                     yield return key;
                 }
@@ -891,11 +924,35 @@ public static partial class CliSettings
         }
     }
 
-    private static bool IsSecret(string key) => key.Contains("password", StringComparison.OrdinalIgnoreCase)
-        || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
-        || key.Contains("token", StringComparison.OrdinalIgnoreCase)
-        || key.Equals("apiKey", StringComparison.OrdinalIgnoreCase)
-        || key.Equals("accessKey", StringComparison.OrdinalIgnoreCase);
+    private static bool IsSecret(string key)
+    {
+        if (key.Contains("password", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Contains("secret", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Contains("token", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Equals("apiKey", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (key.Equals("accessKey", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
 
     internal static JsonNode? Redact(JsonNode? node)
     {
@@ -922,6 +979,267 @@ public static partial class CliSettings
         }
 
         return node;
+    }
+
+    internal sealed class UnknownCliTeacherProfileException : JsonException
+    {
+        internal UnknownCliTeacherProfileException(string profile)
+            : base($"Unknown teacher profile '{profile}'. Use config profiles to list supported teachers.")
+            => Profile = profile;
+
+        public string Profile { get; }
+    }
+
+    internal sealed class InvalidProjectDirectoryPathException : JsonException
+    {
+        internal InvalidProjectDirectoryPathException(string projectPath)
+            : base("Invalid project directory path.")
+            => ProjectPath = projectPath;
+
+        public string ProjectPath { get; }
+    }
+
+    internal sealed class ProjectDirectoryNotFoundException : DirectoryNotFoundException
+    {
+        internal ProjectDirectoryNotFoundException(string projectPath)
+            : base($"Project directory does not exist: {projectPath}")
+            => ProjectPath = projectPath;
+
+        public string ProjectPath { get; }
+    }
+
+    internal sealed class InvalidSettingsJsonException : JsonException
+    {
+        internal InvalidSettingsJsonException(string settingsPath, string parserMessage)
+            : base($"Invalid settings JSON in {settingsPath}: {parserMessage}")
+            => (SettingsPath, ParserMessage) = (settingsPath, parserMessage);
+
+        public string SettingsPath { get; }
+
+        public string ParserMessage { get; }
+    }
+
+    internal sealed class ExpectedSettingsObjectException : JsonException
+    {
+        internal ExpectedSettingsObjectException(string settingsPath)
+            : base($"Expected settings object in {settingsPath}.")
+            => SettingsPath = settingsPath;
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class UnsupportedSettingsSchemaVersionException : JsonException
+    {
+        internal UnsupportedSettingsSchemaVersionException(string settingsPath)
+            : base($"Unsupported or missing schemaVersion in {settingsPath}; expected 1.")
+            => SettingsPath = settingsPath;
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class SettingsObjectRequiredException : JsonException
+    {
+        internal SettingsObjectRequiredException(string location, string settingsPath)
+            : base($"{location} must be an object in {settingsPath}.")
+            => (Location, SettingsPath) = (location, settingsPath);
+
+        public string Location { get; }
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class UnknownSettingsProfileException : JsonException
+    {
+        internal UnknownSettingsProfileException(string profile, string settingsPath)
+            : base($"Unknown teacher profile '{profile}' in {settingsPath}.")
+            => (Profile, SettingsPath) = (profile, settingsPath);
+
+        public string Profile { get; }
+
+        public string SettingsPath { get; }
+    }
+
+
+    internal sealed class UnsupportedSettingsBlockException : JsonException
+    {
+        internal UnsupportedSettingsBlockException(string blockKey, string settingsPath)
+            : base($"Unsupported settings block '{blockKey}' in {settingsPath}.")
+            => (BlockKey, SettingsPath) = (blockKey, settingsPath);
+
+        public string BlockKey { get; }
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class InvalidSettingsBlockValueException : JsonException
+    {
+        internal InvalidSettingsBlockValueException(
+            string location,
+            string settingKey,
+            string settingsPath,
+            string errorMessage)
+            : base($"Invalid {location}.{settingKey} in {settingsPath}: {errorMessage}")
+        {
+            (Location, SettingKey, SettingsPath, ErrorMessage) =
+                (location, settingKey, settingsPath, errorMessage);
+        }
+
+        public string Location { get; }
+
+        public string SettingKey { get; }
+
+        public string SettingsPath { get; }
+
+        public string ErrorMessage { get; }
+    }
+
+    internal sealed class DuplicateSettingsKeyException : JsonException
+    {
+        internal DuplicateSettingsKeyException(string key, string settingsPath)
+            : base($"Duplicate settings key '{key}' in {settingsPath}.")
+            => (Key, SettingsPath) = (key, settingsPath);
+
+        public string Key { get; }
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class UnsupportedSettingsKeyInFileException : JsonException
+    {
+        internal UnsupportedSettingsKeyInFileException(string key, string settingsPath)
+            : base($"Unsupported settings key '{key}' in {settingsPath}.")
+            => (Key, SettingsPath) = (key, settingsPath);
+
+        public string Key { get; }
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class InlineSettingsSecretsUnsupportedException : JsonException
+    {
+        internal InlineSettingsSecretsUnsupportedException(string sourcePath)
+            : base(
+                $"Inline secrets are unsupported in settings file {sourcePath}; reference the existing credential configuration instead.")
+            => SourcePath = sourcePath;
+
+        public string SourcePath { get; }
+    }
+
+    internal sealed class NullSettingsCollectionEntryException : JsonException
+    {
+        internal NullSettingsCollectionEntryException(string settingsPath)
+            : base($"Null collection entries are unsupported in {settingsPath}.")
+            => SettingsPath = settingsPath;
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class UnsupportedSettingsMemberException : JsonException
+    {
+        internal UnsupportedSettingsMemberException(string memberName, string settingsPath)
+            : base($"Unsupported settings member '{memberName}' in {settingsPath}.")
+            => (MemberName, SettingsPath) = (memberName, settingsPath);
+
+        public string MemberName { get; }
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class InvalidSettingsPathMemberException : JsonException
+    {
+        internal InvalidSettingsPathMemberException(string memberName)
+            : base($"Invalid settings path for '{memberName}'.")
+            => MemberName = memberName;
+
+        public string MemberName { get; }
+    }
+
+    internal sealed class SettingsOperationsArrayRequiredException : JsonException
+    {
+        internal SettingsOperationsArrayRequiredException(string settingsPath)
+            : base($"Operations must be an array in {settingsPath}.")
+            => SettingsPath = settingsPath;
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class SettingsOperationObjectRequiredException : JsonException
+    {
+        internal SettingsOperationObjectRequiredException(string settingsPath)
+            : base($"Expected operation object in {settingsPath}.")
+            => SettingsPath = settingsPath;
+
+        public string SettingsPath { get; }
+    }
+
+    internal sealed class UnsupportedSettingKeyException : JsonException
+    {
+        internal UnsupportedSettingKeyException(string key)
+            : base($"Unsupported setting key: {key}")
+            => Key = key;
+
+        public string Key { get; }
+    }
+
+    internal sealed class UnsupportedOperationKeyException : JsonException
+    {
+        internal UnsupportedOperationKeyException(string key)
+            : base($"Unsupported operation key: {key}")
+            => Key = key;
+
+        public string Key { get; }
+    }
+
+    internal sealed class SettingsOperationMembersRequiredException : JsonException
+    {
+        internal SettingsOperationMembersRequiredException(string memberName)
+            : base("Operation requires string key and operation members.")
+            => MemberName = memberName;
+
+        public string MemberName { get; }
+    }
+
+    internal sealed class UnsupportedSettingsOperationException : JsonException
+    {
+        internal UnsupportedSettingsOperationException(string operation, string settingKey)
+            : base(
+                $"Unsupported {operation} operation for {settingKey}; remove accepts a block or collection --item, clear accepts a collection.")
+            => (Operation, SettingKey) = (operation, settingKey);
+
+        public string Operation { get; }
+
+        public string SettingKey { get; }
+    }
+
+
+    internal sealed class InvalidTypedSettingsOperationItemException : JsonException
+    {
+        internal InvalidTypedSettingsOperationItemException(string settingKey, Exception innerException)
+            : base(
+                $"Invalid typed item for {settingKey}; include its registered identity and any required $type discriminator.",
+                innerException)
+            => SettingKey = settingKey;
+
+        public string SettingKey { get; }
+    }
+
+
+    internal sealed class InvalidSettingsScopeException : ArgumentException
+    {
+        internal InvalidSettingsScopeException(SettingsScope scope)
+            : base("Scope must be user or project.")
+            => Scope = scope;
+
+        public SettingsScope Scope { get; }
+    }
+
+    internal sealed class SettingsMemberIsNotObjectException : JsonException
+    {
+        internal SettingsMemberIsNotObjectException(string settingKey)
+            : base($"Cannot edit member beneath a non-object setting: {settingKey}")
+            => SettingKey = settingKey;
+
+        public string SettingKey { get; }
     }
 }
 

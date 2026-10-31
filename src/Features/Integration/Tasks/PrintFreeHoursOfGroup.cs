@@ -5,6 +5,7 @@ using ScheduleLib.Generation;
 namespace ScheduleLib.Application.Core;
 
 public sealed record FreeHoursInterval(TimeSlot Start, TimeSlot EndInclusive);
+
 public sealed record FreeHoursDay(DayOfWeek Day, FreeHoursInterval[] Intervals);
 
 /// <summary>Which lessons of a group are treated as occupying their time slot. The two
@@ -17,6 +18,7 @@ public enum FreeHoursOccupancyMode
     /// whole-group lessons and lessons addressed to a subgroup, a specialization or an
     /// alternative. A slot is free only when the group has no lesson in it at all.</summary>
     EveryLessonOccupies,
+
     /// <summary>Lessons that target the whole group - <see cref="GroupPartitionKey.All"/>,
     /// meaning subgroup, specialization and alternative are all unset - occupy their slot,
     /// plus lessons that carry the legacy <c>opțional</c> subgroup marker without a
@@ -25,7 +27,11 @@ public enum FreeHoursOccupancyMode
     WholeGroupAndUnspecializedOptionalLessonsOccupy,
 }
 
-public sealed record FreeHoursSection(string Group, Parity Parity, FreeHoursOccupancyMode Mode, FreeHoursDay[] Days);
+public sealed record FreeHoursSection(
+    string Group,
+    Parity Parity,
+    FreeHoursOccupancyMode Mode,
+    FreeHoursDay[] Days);
 
 [AutoConstructor]
 public sealed partial class PrintFreeHoursOfGroupTaskHandler
@@ -42,26 +48,53 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
 
     public void Run(RunParams p)
     {
-        foreach (var section in Sections(p.Groups)) Write(section, p.StringBuilder);
+        foreach (var section in Sections(p.Groups))
+        {
+            Write(section, p.StringBuilder);
+        }
     }
 
     /// <summary>The sections <see cref="Run"/> prints: both parities, both occupancy modes,
     /// for every supplied group, over all weekly periods. Cancellation is observed while
     /// the lessons are enumerated and before the result is handed back.</summary>
     public FreeHoursSection[] Sections(string[] groups, CancellationToken cancellationToken = default)
-        => Sections(groups, _schedule.EnumerateWeeklyLessons().Select(x => x), cancellationToken);
+    {
+        return Sections(
+            groups,
+            _schedule.EnumerateWeeklyLessons()
+                .Select(x => x),
+            cancellationToken);
+    }
 
-    internal FreeHoursSection[] Sections(string[] groups, IEnumerable<WeeklyLessonAccessor> lessons, CancellationToken cancellationToken)
+    internal FreeHoursSection[] Sections(
+        string[] groups,
+        IEnumerable<WeeklyLessonAccessor> lessons,
+        CancellationToken cancellationToken)
     {
         var sections = new List<FreeHoursSection>();
-        foreach (var parity in new[]{Parity.EvenWeek, Parity.OddWeek})
+        foreach (var parity in new[]
+                 {
+                     Parity.EvenWeek,
+                     Parity.OddWeek,
+                 })
         {
             foreach (var group in groups)
             {
-                foreach (var mode in new[] { FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy, FreeHoursOccupancyMode.EveryLessonOccupies })
+                foreach (var mode in new[]
+                         {
+                             FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy,
+                             FreeHoursOccupancyMode.EveryLessonOccupies,
+                         })
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    sections.Add(Section(group, parity, mode, lessons, cancellationToken));
+                    var list = sections;
+                    var item = Section(
+                        group,
+                        parity,
+                        mode,
+                        lessons,
+                        cancellationToken);
+                    list.Add(item);
                 }
             }
         }
@@ -69,7 +102,12 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         return sections.ToArray();
     }
 
-    private FreeHoursSection Section(string group, Parity parity, FreeHoursOccupancyMode mode, IEnumerable<WeeklyLessonAccessor> lessonSource, CancellationToken cancellationToken)
+    private FreeHoursSection Section(
+        string group,
+        Parity parity,
+        FreeHoursOccupancyMode mode,
+        IEnumerable<WeeklyLessonAccessor> lessonSource,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var groupId = _schedule.Groups
@@ -91,11 +129,13 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 {
                     return true;
                 }
+
                 if (partition.SubGroup == SpecialSubGroups.Optional
                     && partition.Specialization == Specialization.All)
                 {
                     return true;
                 }
+
                 return false;
             });
 
@@ -113,17 +153,27 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
         var unusedTimes = allTimes.Except(usedTimes);
 
+        FreeHoursDay CreateFreeHoursDay(
+            IGrouping<DayOfWeek, (DayOfWeek Day, TimeSlot Time)> dayTimes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var day = dayTimes.Key;
+            var mergeConsecutive = MergeConsecutive(dayTimes.Select(x => x.Time));
+            var intervals = mergeConsecutive.ToArray();
+            return new FreeHoursDay(day, intervals);
+        }
+
         var days = unusedTimes
             .OrderBy(x => (x.Day, x.Time))
             .GroupBy(x => x.Day)
-            .Select(x =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return new FreeHoursDay(x.Key, MergeConsecutive(x.Select(y => y.Time)).ToArray());
-            })
+            .Select(CreateFreeHoursDay)
             .ToArray();
         cancellationToken.ThrowIfCancellationRequested();
-        return new(group, parity, mode, days);
+        return new(
+            group,
+            parity,
+            mode,
+            days);
     }
 
     private static IEnumerable<FreeHoursInterval> MergeConsecutive(IEnumerable<TimeSlot> x)
@@ -139,13 +189,13 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         {
             if (!e.MoveNext())
             {
-                yield return new(start, prev);
+                yield return new(Start: start, EndInclusive: prev);
                 yield break;
             }
             var c = e.Current;
             if (c.Index - prev.Index > 1)
             {
-                yield return new(start, prev);
+                yield return new(Start: start, EndInclusive: prev);
                 start = c;
             }
             prev = c;
@@ -157,10 +207,13 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         var displayHandler = new TimeSlotDisplayHandler();
         var parityDisplay = new ParityDisplayHandler();
         var isOptional = section.Mode == FreeHoursOccupancyMode.WholeGroupAndUnspecializedOptionalLessonsOccupy;
-        sb.AppendLine($"paritatea: {parityDisplay.Get(section.Parity)}, grupa: {section.Group}, optional?: {isOptional}");
+        sb.AppendLine(
+            $"paritatea: {parityDisplay.Get(section.Parity)}, grupa: {section.Group}, optional?: {isOptional}");
         foreach (var day in section.Days)
         {
-            sb.Append(_dayNameProvider.GetDayName(day.Day));
+            var stringBuilder = sb;
+            string value = _dayNameProvider.GetDayName(day.Day);
+            stringBuilder.Append(value);
             sb.Append(":");
 
             var listBuilder = new ListStringBuilder(sb, ",");
@@ -171,7 +224,9 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 var startTime = _timeConfig.GetTimeSlotInterval(start).Start;
                 var endTime = _timeConfig.GetTimeSlotInterval(end).End;
                 var duration = endTime - startTime;
-                var intervalStr = displayHandler.IntervalDisplay(new TimeSlotInterval(startTime, duration));
+                var timeSlotDisplayHandler = displayHandler;
+                var i = new TimeSlotInterval(startTime, duration);
+                var intervalStr = timeSlotDisplayHandler.IntervalDisplay(i);
                 listBuilder.Append(intervalStr);
             }
             sb.AppendLine();

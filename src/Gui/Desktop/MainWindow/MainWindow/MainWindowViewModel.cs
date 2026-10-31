@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Anton.LayeredData;
 using CommunityToolkit.Mvvm.Input;
 using Desktop.MvvmEssentials;
@@ -58,12 +58,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             RemoveSelectedUserCommand.NotifyCanExecuteChanged();
         });
 
-        _dataStore.UiSelectedNodeViewModel.NodeSelected().Sub(node =>
-        {
-            _ = node;
-            EnableSelectedUserCommand.NotifyCanExecuteChanged();
-            RemoveSelectedUserCommand.NotifyCanExecuteChanged();
-        });
+        _dataStore.UiSelectedNodeViewModel.NodeSelected()
+            .Sub(node =>
+            {
+                _ = node;
+                EnableSelectedUserCommand.NotifyCanExecuteChanged();
+                RemoveSelectedUserCommand.NotifyCanExecuteChanged();
+            });
     }
 
     private LayerLevel LayerLevel
@@ -71,6 +72,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         get => LayerLevelSelection.LayerLevel;
         set => LayerLevelSelection.LayerLevel = value;
     }
+
     private UiNode SelectedUiNode => _dataStore.UiSelectedNodeViewModel.Value;
 
     public bool CanSelectUser => LayerLevel is LayerLevel.UiUser or LayerLevel.ProgrammableUser;
@@ -88,10 +90,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
+
             if (node.IsUiLayer)
             {
                 return true;
             }
+
             return false;
         }
     }
@@ -121,11 +125,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             {
                 return false;
             }
-            if (n.IsEditable)
+
+            if (!n.IsEditable)
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         }
     }
 

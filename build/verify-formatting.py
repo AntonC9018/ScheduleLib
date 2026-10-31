@@ -45,12 +45,12 @@ def main():
         assert 'Keep(new Payload' in package_text, 'A1 constructor adjacency'
         assert '\n            && second' in package_text, 'A3 leading Boolean'
         assert 'Multiline(int value)\n    {' in package_text, 'A12 block conversion'
-        assert 'if (Both(true, true))\n        {' not in package_text, 'Reassess package braces coverage'
+        assert 'if (Both(true, true))\n        {' in package_text, 'Package braces coverage'
         assert '\n            2,\n        ];' not in package_text, 'Reassess package trailing-comma coverage'
         assert 'Sum(Step(3), Step(4), Step(5))' in package_text, 'Reassess package wrapping coverage'
         assert '0123456789", "second-width-probe' in package_text, 'Reassess package width wrapping'
         assert 'trace = trace * 10 + value; return value;' in package_text, 'Reassess package statement layout'
-        print('Package-only: A1/A2/A3/A12 covered; braces, trailing commas, statement splitting and argument wrapping still need CleanupCode.', flush=True)
+        print('Package-only: A1/A2/A3/A12 and braces covered; collection trailing commas, statement splitting and argument wrapping still need CleanupCode.', flush=True)
 
         wrapper = ('build/format.sh', '--project', project, '--path', selected, '--style')
         run(*wrapper, '--check', expected=1)

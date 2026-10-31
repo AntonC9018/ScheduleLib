@@ -27,7 +27,9 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
     [DebuggerStepThrough]
     public EnumBitArray32(UnsizedBitArray32 impl)
     {
-        Debug.Assert(impl.WithShrunkLen(_Length).AsUnsized() == impl);
+        Debug.Assert(
+            impl.WithShrunkLen(_Length).AsUnsized() == impl,
+            "The bit mask must not contain bits outside its declared length.");
         _impl = impl;
     }
 
@@ -57,10 +59,8 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
     }
 
     private static int _Length => EnumMembers<T>.Count;
-    [UnscopedRef]
-    private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(_Length);
-    [Pure]
-    private readonly BitArray32 SizedImpl => _impl.WithFixedSize(_Length);
+    [UnscopedRef] private SizedBitArray32Ref SizedImplMut => _impl.AsFixedSizeRef(_Length);
+    [Pure] private readonly BitArray32 SizedImpl => _impl.WithFixedSize(_Length);
 
     public void Set(T index, bool value)
     {
@@ -151,14 +151,10 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
         return Intersect(arr) == arr;
     }
 
-    [Pure]
-    public readonly bool AreAllSet => _impl.AreAllSet(_Length);
-    [Pure]
-    public readonly bool AreNoneSet => _impl.AreNoneSet;
-    [Pure]
-    public readonly bool AreAnySet => !_impl.AreNoneSet;
-    [Pure]
-    public readonly int SetCount => _impl.SetCount;
+    [Pure] public readonly bool AreAllSet => _impl.AreAllSet(_Length);
+    [Pure] public readonly bool AreNoneSet => _impl.AreNoneSet;
+    [Pure] public readonly bool AreAnySet => !_impl.AreNoneSet;
+    [Pure] public readonly int SetCount => _impl.SetCount;
 
     public void ClearAll()
     {
@@ -179,13 +175,10 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
     [Pure]
     public readonly SetEnumValuesEnumerable SetValues() => new(_impl.Bits);
 
-    [Pure]
-    public readonly uint Bits => _impl.Bits;
-    [Pure]
-    public readonly bool IsEmpty => _impl.IsEmpty;
+    [Pure] public readonly uint Bits => _impl.Bits;
+    [Pure] public readonly bool IsEmpty => _impl.IsEmpty;
 
-    [Pure]
-    public readonly int Length => _Length;
+    [Pure] public readonly int Length => _Length;
 
     public readonly struct SetEnumValuesEnumerable : IEnumerable<T>
     {
@@ -205,10 +198,8 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
 
         public SetEnumValuesEnumerator(SetBitIndicesEnumerator x) => _inner = x;
         public bool MoveNext() => _inner.MoveNext();
-        [Pure]
-        public readonly T Current => EnumMembers<T>.EnumFromOffset(_inner.Current);
-        [Pure]
-        readonly object IEnumerator.Current => Current;
+        [Pure] public readonly T Current => EnumMembers<T>.EnumFromOffset(_inner.Current);
+        [Pure] readonly object IEnumerator.Current => Current;
 
         public void Reset()
         {
@@ -232,11 +223,22 @@ public record struct EnumBitArray32<T> : IEnumerable<T>
         var lb = new ListStringBuilder(output);
         foreach (var value in SetValues())
         {
-            lb.Append(Enum.GetName(value));
+            string? CalculateS()
+            {
+                string? s = Enum.GetName(value);
+                return s;
+            }
+
+            lb.Append(CalculateS());
         }
     }
 
-    public SetEnumValuesEnumerator GetEnumerator() => SetValues().GetEnumerator();
+    public SetEnumValuesEnumerator GetEnumerator()
+    {
+        return SetValues()
+            .GetEnumerator();
+    }
+
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -291,7 +293,10 @@ public sealed class EnumBitArray32JsonConverter<T> : JsonConverter<EnumBitArray3
         writer.WriteStartArray();
         foreach (var v in value.SetValues())
         {
-            JsonSerializer.Serialize(writer, v, options);
+            JsonSerializer.Serialize(
+                writer,
+                v,
+                options);
         }
 
         writer.WriteEndArray();

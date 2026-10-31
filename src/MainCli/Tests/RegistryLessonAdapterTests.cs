@@ -33,16 +33,51 @@ public sealed class RegistryLessonAdapterTests
     {
         const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
         const string detail = "/studregistry/LessonAttendance/LessonDetail/42";
+
+        string CalculateText()
+        {
+            if (scenario == "identity")
+            {
+                return "43";
+            }
+
+            return "42";
+        }
+
         var details =
-            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{(scenario == "identity" ? "43" : "42")}'></form>";
+            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{CalculateText()}'></form>";
+        string text;
+        if (scenario == "present")
+        {
+            string text2 = $"<tr><td><a href='{detail}'>lesson</a></td></tr>";
+            text = text2;
+        }
+        else
+        {
+            text = "";
+        }
+
         var saved =
-            $"<a href='/studregistry/LessonAttendance/CreateLesson/1'>Adaugare</a><table><tr><th>lesson</th></tr>{(scenario == "present" ? $"<tr><td><a href='{detail}'>lesson</a></td></tr>" : "")}</table>";
+            $"<a href='/studregistry/LessonAttendance/CreateLesson/1'>Adaugare</a><table><tr><th>lesson</th></tr>{text}</table>";
         using var handler = new Handler(request =>
         {
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) status, "redirect");
-                redirect.Headers.Location = new(scenario == "unexpected" ? "/other" : list, UriKind.Relative);
+                var httpResponseHeaders = redirect.Headers;
+                string uriString;
+                if (scenario == "unexpected")
+                {
+                    uriString = "/other";
+                }
+                else
+                {
+                    uriString = list;
+                }
+
+                var uriKind = UriKind.Relative;
+                Uri uri = new(uriString, uriKind);
+                httpResponseHeaders.Location = uri;
                 return redirect;
             }
             if (request.RequestUri!.AbsolutePath == detail)
@@ -50,10 +85,40 @@ public sealed class RegistryLessonAdapterTests
                 return Response(HttpStatusCode.OK, details);
             }
 
-            return Response(
-                scenario == "read-failure" ? HttpStatusCode.InternalServerError : HttpStatusCode.OK,
-                scenario == "login" ? "<input type='password'>" :
-                scenario == "unrecognized" ? "<table><tr><th>other</th></tr></table>" : saved);
+            HttpStatusCode status2;
+            if (scenario == "read-failure")
+            {
+                status2 = HttpStatusCode.InternalServerError;
+            }
+            else
+            {
+                status2 = HttpStatusCode.OK;
+            }
+
+            string body;
+            if (scenario == "login")
+            {
+                body = "<input type='password'>";
+            }
+            else
+            {
+                string text;
+                if (scenario == "unrecognized")
+                {
+                    text = "<table><tr><th>other</th></tr></table>";
+                }
+                else
+                {
+                    text = saved;
+                }
+
+                body = text;
+            }
+
+            var response = Response(
+                status2,
+                body);
+            return response;
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -62,12 +127,23 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test" + detail));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test" + detail);
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         if (scenario == "absent")
         {
             await navigator.SubmitDelete(document);
@@ -81,8 +157,19 @@ public sealed class RegistryLessonAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitDelete(document));
         }
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(scenario is "unexpected" or "identity" ? 1 : 2, handler.Reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        int expected2;
+        if (scenario is "unexpected" or "identity")
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 2;
+        }
+
+        int actual2 = handler.Reads;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     public static IEnumerable<object[]> FailedResponses()
@@ -123,7 +210,19 @@ public sealed class RegistryLessonAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                return Response(HttpStatusCode.OK, kind == "delete" ? DeleteForm : LessonForm);
+                var status2 = HttpStatusCode.OK;
+                string body2;
+                if (kind == "delete")
+                {
+                    body2 = DeleteForm;
+                }
+                else
+                {
+                    body2 = LessonForm;
+                }
+
+                var response2 = Response(status2, body2);
+                return response2;
             }
 
             var response = Response((HttpStatusCode) status, body);
@@ -141,28 +240,44 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            string text = $"https://registry.test/{kind}";
+            string uriString = text;
+            Uri uri = new(uriString);
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         var started = false;
         var error = await Assert.ThrowsAnyAsync<Exception>(() => Submit(
             navigator,
             document,
             kind,
-            () => started = true));
-        Assert.Equal(rejected, error is RegistrySubmissionRejectedException);
+            () =>
+            {
+                started = true;
+            }));
+        Assert.Equal(expected: rejected, actual: error is RegistrySubmissionRejectedException);
         if (!rejected)
         {
             Assert.IsAssignableFrom<IOException>(error);
         }
 
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(1, handler.Reads);
-        Assert.Equal(0, auth.Calls);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Reads);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     [Theory]
@@ -171,9 +286,34 @@ public sealed class RegistryLessonAdapterTests
     [InlineData("delete")]
     public async Task AcceptedResponseCompletesExactlyOneSubmission(string kind)
     {
-        using var handler = new Handler(request => Response(
-            HttpStatusCode.OK,
-            request.Method == HttpMethod.Post ? "<div>Saved</div>" : kind == "delete" ? DeleteForm : LessonForm));
+        using var handler = new Handler(request =>
+        {
+            var status = HttpStatusCode.OK;
+            string body;
+            if (request.Method == HttpMethod.Post)
+            {
+                body = "<div>Saved</div>";
+            }
+            else
+            {
+                string text;
+                if (kind == "delete")
+                {
+                    text = DeleteForm;
+                }
+                else
+                {
+                    text = LessonForm;
+                }
+
+                body = text;
+            }
+
+            var response = Response(
+                status,
+                body);
+            return response;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -181,20 +321,36 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            string text = $"https://registry.test/{kind}";
+            string uriString = text;
+            Uri uri = new(uriString);
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         var started = false;
         await Submit(
             navigator,
             document,
             kind,
-            () => started = true);
+            () =>
+            {
+                started = true;
+            });
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -203,9 +359,28 @@ public sealed class RegistryLessonAdapterTests
     [InlineData("delete")]
     public async Task InvalidFormNeverCrossesSubmissionBoundary(string kind)
     {
-        using var handler = new Handler(_ => Response(
-            HttpStatusCode.OK,
-            (kind == "delete" ? DeleteForm : LessonForm).Replace("method='post'", "method='get'")));
+        using var handler = new Handler(_ =>
+        {
+            var status = HttpStatusCode.OK;
+            string text;
+            if (kind == "delete")
+            {
+                text = DeleteForm;
+            }
+            else
+            {
+                text = LessonForm;
+            }
+
+            string text2 = text;
+            string oldValue = "method='post'";
+            string newValue = "method='get'";
+            string body = text2.Replace(oldValue, newValue);
+            var response = Response(
+                status,
+                body);
+            return response;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -213,20 +388,36 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/" + kind));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            string text = $"https://registry.test/{kind}";
+            string uriString = text;
+            Uri uri = new(uriString);
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         var started = false;
         await Assert.ThrowsAsync<InvalidOperationException>(() => Submit(
             navigator,
             document,
             kind,
-            () => started = true));
+            () =>
+            {
+                started = true;
+            }));
         Assert.False(started);
-        Assert.Equal(0, handler.Posts);
+        Assert.Equal(expected: 0, actual: handler.Posts);
     }
 
     [Theory]
@@ -280,38 +471,36 @@ public sealed class RegistryLessonAdapterTests
                     $"<tr><td>03.09.2026 13:15 curs</td><td>Synthetic topic</td><td><a href='{edit}'>Edit</a></td></tr>";
                 return Response(
                     HttpStatusCode.OK,
-                    "<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>"
-                    + (scenario == "missing" ? "" : row)
-                    + (scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")
-                    + "</table>");
+                    $"<table><tr><th>Date</th><th>Topic</th><th>Edit</th></tr>{(scenario == "missing" ? "" : row)}{(scenario == "duplicate" ? row.Replace("Edit/3", "Edit/4") : "")}</table>");
             }
-            if (request.RequestUri.AbsolutePath.Contains("/Edit/"))
+            if (!request.RequestUri.AbsolutePath.Contains("/Edit/"))
             {
-                if (scenario == "edit-login")
-                {
-                    return Response(HttpStatusCode.OK, "<input type='password'>");
-                }
-
-                if (scenario == "edit-failure")
-                {
-                    return Response(HttpStatusCode.InternalServerError, "failed");
-                }
-
-                return Response(
-                    HttpStatusCode.OK,
-                    scenario switch
-                    {
-                        "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
-                        "mode" => form.Replace("value='curs'", "value='laborator'"),
-                        "topic" => form.Replace("Synthetic topic", "Different topic"),
-                        "topic-line-endings" => form.Replace("\n", "&#13;&#10;"),
-                        "topic-different-multiline" => form.Replace("second line", "Different line")
-                            .Replace("\n", "&#13;&#10;"),
-                        "attendance" => form.Replace("value='a'", "value='am'"),
-                        _ => form,
-                    });
+                return Response(HttpStatusCode.OK, form);
             }
-            return Response(HttpStatusCode.OK, form);
+
+            if (scenario == "edit-login")
+            {
+                return Response(HttpStatusCode.OK, "<input type='password'>");
+            }
+
+            if (scenario == "edit-failure")
+            {
+                return Response(HttpStatusCode.InternalServerError, "failed");
+            }
+
+            return Response(
+                HttpStatusCode.OK,
+                scenario switch
+                {
+                    "date" => form.Replace("2026-09-03T13:15", "2026-09-03T15:00"),
+                    "mode" => form.Replace("value='curs'", "value='laborator'"),
+                    "topic" => form.Replace("Synthetic topic", "Different topic"),
+                    "topic-line-endings" => form.Replace("\n", "&#13;&#10;"),
+                    "topic-different-multiline" => form.Replace("second line", "Different line")
+                        .Replace("\n", "&#13;&#10;"),
+                    "attendance" => form.Replace("value='a'", "value='am'"),
+                    _ => form,
+                });
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -320,12 +509,23 @@ public sealed class RegistryLessonAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/create"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/create");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         if (scenario is "match" or "topic-line-endings")
         {
             await navigator.SubmitLesson(document);
@@ -335,11 +535,42 @@ public sealed class RegistryLessonAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitLesson(document));
         }
 
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        int expected2;
+        if (scenario == "foreign")
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            int int32;
+            if (scenario is "missing" or "list-login")
+            {
+                int32 = 2;
+            }
+            else
+            {
+                int int322;
+                if (scenario == "duplicate")
+                {
+                    int322 = 4;
+                }
+                else
+                {
+                    int322 = 3;
+                }
+
+                int32 = int322;
+            }
+
+            expected2 = int32;
+        }
+
+        int actual2 = handler.Reads;
         Assert.Equal(
-            scenario == "foreign" ? 1 : scenario is "missing" or "list-login" ? 2 : scenario == "duplicate" ? 4 : 3,
-            handler.Reads);
-        Assert.Equal(0, auth.Calls);
+            expected: expected2,
+            actual: actual2);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     private static Task Submit(
@@ -349,13 +580,16 @@ public sealed class RegistryLessonAdapterTests
         Action started) =>
         kind == "delete" ? navigator.SubmitDelete(document, started) : navigator.SubmitLesson(document, started);
 
-    private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)
+    private static HttpResponseMessage Response(HttpStatusCode status, string body)
     {
-        Content = new StringContent(
-            body,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(status)
+        {
+            Content = new StringContent(
+                body,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 
     private sealed class Auth : IAuthHandler
     {
@@ -386,7 +620,13 @@ public sealed class RegistryLessonAdapterTests
                 Reads++;
             }
 
-            return Task.FromResult(send(request));
+            HttpResponseMessage CalculateResult()
+            {
+                var result = send(request);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
         }
     }
 }

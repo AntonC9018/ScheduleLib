@@ -21,6 +21,9 @@ public sealed record SettingsEdit(
 
 public static partial class CliSettings
 {
+    /// <summary>A parent object on a settings path, and the member name under it.</summary>
+    private readonly record struct SettingsParent(JsonObject Parent, string Key);
+
     // The candidate is resolved through the same engine as a fresh invocation before publication.
     internal static async Task<SettingsEdit> Edit(
         SettingsArguments arguments,
@@ -38,12 +41,31 @@ public static partial class CliSettings
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         using var initial = await Load(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken);
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
-        if (!unset && operation is null)
+
+        bool CalculateConditionResult()
+        {
+            if (unset)
+            {
+                return false;
+            }
+
+            if (operation is null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             try
             {
@@ -60,9 +82,9 @@ public static partial class CliSettings
         var action = operation is null
             ? null
             : CreateOperation(
-                operation,
-                key,
-                item,
+                operation: operation,
+                key: key,
+                item: item,
                 initial);
         var file = scope switch
         {
@@ -70,7 +92,7 @@ public static partial class CliSettings
             SettingsScope.Project when initial.ProjectDirectory is { } project => Path.Combine(project, FileName),
             SettingsScope.Project => throw new JsonException(
                 "Project scope requires a discovered settings file or --project DIRECTORY."),
-            _ => throw new ArgumentException("Scope must be user or project."),
+            _ => throw new InvalidSettingsScopeException(scope),
         };
         if (action is not null)
         {
@@ -80,22 +102,25 @@ public static partial class CliSettings
                 file);
         }
         // Validate a synthetic document before creating even the coordination file.
-        var probe = new JsonObject { ["schemaVersion"] = 1 };
+        var probe = new JsonObject
+        {
+            ["schemaVersion"] = 1,
+        };
         if (action is null)
         {
             Apply(
                 probe,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 parsed,
                 unset: false);
         }
         else
         {
             ApplyOperation(
-                probe,
+                envelope: probe,
                 arguments.Profile,
-                action);
+                action: action);
         }
 
         ReadEnvelope(
@@ -104,19 +129,23 @@ public static partial class CliSettings
             initial.Json,
             initial.Profiles);
         await using var lease = await LocalFileLock.Acquire(
-            file + ".lock",
+            $"{file}.lock",
             cancellationToken,
             wait: true);
         // Re-read under the lease so concurrent edits cannot overwrite one another.
         using var current = await Load(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken);
         var exists = File.Exists(file);
         var envelope = exists
-            ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!.AsObject()
-            : new JsonObject { ["schemaVersion"] = 1 };
+            ? JsonNode.Parse(await File.ReadAllTextAsync(file, cancellationToken))!
+                .AsObject()
+            : new JsonObject
+            {
+                ["schemaVersion"] = 1,
+            };
         var before = envelope.ToJsonString();
         if (action is not null)
         {
@@ -125,28 +154,28 @@ public static partial class CliSettings
                 current,
                 file);
             ApplyOperation(
-                envelope,
+                envelope: envelope,
                 arguments.Profile,
-                action);
+                action: action);
         }
         else
         {
             RemoveOperations(
                 envelope,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 includeAncestors: !unset);
             Apply(
                 envelope,
-                arguments.Profile,
-                key,
+                profile: arguments.Profile,
+                key: key,
                 parsed,
                 unset);
         }
         using var candidate = await LoadCore(
             arguments,
-            cwd,
-            userFile,
+            invocationDirectory: cwd,
+            userFile: userFile,
             cancellationToken,
             replacement: (file, envelope));
         var changed = before != envelope.ToJsonString();
@@ -157,26 +186,40 @@ public static partial class CliSettings
                 (stream, token) => JsonSerializer.SerializeAsync(
                     stream,
                     envelope,
-                    new JsonSerializerOptions { WriteIndented = true },
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                    },
                     token),
                 cancellationToken);
         }
 
         return new(
-            file,
-            scope.ToString().ToLowerInvariant(),
-            arguments.Profile,
-            key,
+            File: file,
+            Scope: scope.ToString()
+                .ToLowerInvariant(),
+            Profile: arguments.Profile,
+            Key: key,
             changed);
     }
 
     private static void ValidateEditKey(string key, ResolvedSettings settings)
     {
         var parts = key.Split('.');
-        var type = NodeDataKey.Registry.TryGetTypeFromKey(new(parts[0]));
-        if (type is null || !SupportedBlocks.Contains(parts[0]) || parts.Any(string.IsNullOrEmpty))
+        var nodeDataKeyRegistry = NodeDataKey.Registry;
+        NodeDataKey key2 = new(parts[0]);
+        var type = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
+        if (type is null)
         {
-            throw new JsonException($"Unsupported setting key: {key}");
+            throw new UnsupportedSettingKeyException(key);
+        }
+        if (!SupportedBlocks.Contains(parts[0]))
+        {
+            throw new UnsupportedSettingKeyException(key);
+        }
+        if (parts.Any(string.IsNullOrEmpty))
+        {
+            throw new UnsupportedSettingKeyException(key);
         }
 
         foreach (var part in parts.Skip(1))
@@ -191,7 +234,7 @@ public static partial class CliSettings
             var property = info.Properties.FirstOrDefault(x => x.Name == part);
             if (property is null)
             {
-                throw new JsonException($"Unsupported setting key: {key}");
+                throw new UnsupportedSettingKeyException(key);
             }
 
             type = property.PropertyType;
@@ -206,18 +249,28 @@ public static partial class CliSettings
         bool unset)
     {
         var parts = key.Split('.');
-        var path = profile is null
-            ? new[]
-            {
-                "defaults",
-            }.Concat(parts).ToArray()
-            : new[]
-            {
-                "profiles",
-                profile,
-            }.Concat(parts).ToArray();
+        string[] value2;
+        if (profile is null)
+        {
+            value2 = new[]
+                {
+                    "defaults",
+                }.Concat(parts)
+                .ToArray();
+        }
+        else
+        {
+            value2 = new[]
+                {
+                    "profiles",
+                    profile,
+                }.Concat(parts)
+                .ToArray();
+        }
+
+        var path = value2;
         var current = envelope;
-        var parents = new List<(JsonObject Parent, string Key)>();
+        var parents = new List<SettingsParent>();
         foreach (var part in path.SkipLast(1))
         {
             if (current[part] is not JsonObject next)
@@ -229,12 +282,12 @@ public static partial class CliSettings
 
                 if (current[part] is not null)
                 {
-                    throw new JsonException($"Cannot edit member beneath a non-object setting: {key}");
+                    throw new SettingsMemberIsNotObjectException(key);
                 }
 
                 current[part] = next = new JsonObject();
             }
-            parents.Add((current, part));
+            parents.Add(new(current, part));
             current = next;
         }
         if (!unset)
@@ -243,7 +296,8 @@ public static partial class CliSettings
             return;
         }
         current.Remove(path[^1]);
-        foreach (var parent in parents.AsEnumerable().Reverse())
+        foreach (var parent in parents.AsEnumerable()
+                     .Reverse())
         {
             if (parent.Parent[parent.Key] is JsonObject { Count: 0 })
             {

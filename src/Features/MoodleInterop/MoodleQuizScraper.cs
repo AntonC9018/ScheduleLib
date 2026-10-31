@@ -1,22 +1,22 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Unicode;
 using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 
 namespace QuizModels;
 
+/// <summary>
+/// One entry of the Moodle page breadcrumb. The last entry, the current page,
+/// has no link.
+/// </summary>
+public readonly record struct MoodleBreadcrumbItem(string Name, string? Href);
+
 public sealed class QuizAttemptsPage
 {
     public required List<QuizAttempt> Attempts { get; init; }
-    public required List<(string Name, string? Href)> Path { get; init; }
+    public required List<MoodleBreadcrumbItem> Path { get; init; }
 }
 
 // claude wrote most of the code.
@@ -25,7 +25,8 @@ public static class MoodleQuizScraper
     public static async Task<QuizAttemptsPage> ScrapeQuizAttempts(
         this MoodleScrapingContext context,
         string quizId,
-        int pageSize = 2000, CancellationToken cancellationToken = default)
+        int pageSize = 2000,
+        CancellationToken cancellationToken = default)
     {
         // Navigate to the quiz overview page
         string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
@@ -34,20 +35,24 @@ public static class MoodleQuizScraper
         // await page.SaveForDebug();
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
-        var path = pathItems.Select(x =>
+
+        MoodleBreadcrumbItem ProjectValue(IHtmlListItemElement x)
         {
             var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
             if (anchor != null)
             {
-                return (anchor.TextContent.Trim(), anchor.Href);
+                return new(Name: anchor.TextContent.Trim(), Href: anchor.Href);
             }
             var span = x.QuerySelector<IHtmlSpanElement>("span");
             if (span != null)
             {
-                return (span.TextContent.Trim(), (string?) null);
+                return new(Name: span.TextContent.Trim(), Href: null);
             }
             throw new InvalidOperationException("Expected span or anchor in path");
-        }).ToList();
+        }
+
+        var path = pathItems.Select(ProjectValue)
+            .ToList();
 
         // Set page size
         var pageSizeInput = (IHtmlInputElement) page.QuerySelector("#id_pagesize")!;
@@ -56,7 +61,8 @@ public static class MoodleQuizScraper
         // Submit the form
         var submitButton = (IHtmlInputElement) page.QuerySelector("#id_submitbutton")!;
         cancellationToken.ThrowIfCancellationRequested();
-        page = await submitButton.Form!.SubmitAsync().WaitAsync(cancellationToken);
+        page = await submitButton.Form!.SubmitAsync()
+            .WaitAsync(cancellationToken);
 
         // Find the attempts table
         var attemptsElement = page.QuerySelector("table#attempts");
@@ -83,14 +89,16 @@ public static class MoodleQuizScraper
         }
 
         // Parse data rows
-        var rows = table.QuerySelectorAll("tbody tr").Cast<IHtmlTableRowElement>().ToList();
+        var rows = table.QuerySelectorAll("tbody tr")
+            .Cast<IHtmlTableRowElement>()
+            .ToList();
 
         foreach (var row in rows)
         {
             cancellationToken.ThrowIfCancellationRequested();
             // Skip divider and summary rows
-            if (row.QuerySelector(".tabledivider") != null ||
-                row.TextContent.Contains("Medie generală"))
+            if (row.QuerySelector(".tabledivider") != null
+                || row.TextContent.Contains("Medie generală"))
             {
                 continue;
             }
@@ -118,18 +126,26 @@ public static class MoodleQuizScraper
                 var ret = node.TextContent.Trim();
                 return ret;
             }
+
             var userName = ExtractUserName();
             if (userName is null)
             {
                 break;
             }
-            var email = rowSearch.FindCell("email").MaybeExtractText();
-            var state = ParseAttemptState(rowSearch.FindCell("state").MaybeExtractText());
-            var timeStart = ParseDateTime(rowSearch.FindCell("timestart").MaybeExtractText());
-            var timeFinish = ParseDateTime(rowSearch.FindCell("timefinish").MaybeExtractText());
-            var duration = ParseDuration(rowSearch.FindCell("duration").MaybeExtractText());
-            var grade = ParseGrade(rowSearch.FindCell("sumgrades").MaybeExtractText());
-            var reviewLink = ExtractReviewLink(new(nameCell));
+            var email = rowSearch.FindCell("email")
+                .MaybeExtractText();
+            var state = ParseAttemptState(rowSearch.FindCell("state")
+                .MaybeExtractText());
+            var timeStart = ParseDateTime(rowSearch.FindCell("timestart")
+                .MaybeExtractText());
+            var timeFinish = ParseDateTime(rowSearch.FindCell("timefinish")
+                .MaybeExtractText());
+            var duration = ParseDuration(rowSearch.FindCell("duration")
+                .MaybeExtractText());
+            var grade = ParseGrade(rowSearch.FindCell("sumgrades")
+                .MaybeExtractText());
+            CellSearchResult x = new(nameCell);
+            var reviewLink = x.ExtractReviewLink();
             var questionGrades = ExtractQuestionGrades(rowSearch);
             if (reviewLink is null)
             {
@@ -176,7 +192,8 @@ public static class MoodleQuizScraper
             }
 
             var columnMapping = new Dictionary<string, int>();
-            var headers = headerRow.QuerySelectorAll("th").ToList();
+            var headers = headerRow.QuerySelectorAll("th")
+                .ToList();
 
             for (int i = 0; i < headers.Count; i++)
             {
@@ -214,9 +231,12 @@ public static class MoodleQuizScraper
             {
                 foreach (var key in keys)
                 {
-                    if (_tableHelper._mapping.TryGetValue(key, out int index) && index < Cells.Length)
+                    if (_tableHelper._mapping.TryGetValue(key, out int index))
                     {
-                        return new(Cells[index]);
+                        if (index < Cells.Length)
+                        {
+                            return new(Cells[index]);
+                        }
                     }
                 }
                 return new(null);
@@ -265,7 +285,14 @@ public static class MoodleQuizScraper
         {
             return null;
         }
-        return link.GetAttribute("href");
+
+        var result = link.GetAttribute("href");
+        if (result is null)
+        {
+            return null;
+        }
+
+        return result;
     }
 
     private static List<QuestionGrade> ExtractQuestionGrades(MappedTableHelper.RowSearchHelper row)
@@ -275,7 +302,13 @@ public static class MoodleQuizScraper
 
         while (true)
         {
-            var cellResult = row.FindCell($"qsgrade{questionNum}");
+            string CalculateKeys()
+            {
+                string keys = $"qsgrade{questionNum}";
+                return keys;
+            }
+
+            var cellResult = row.FindCell(CalculateKeys());
             if (cellResult.Cell is not { } cell)
             {
                 break;
@@ -293,7 +326,8 @@ public static class MoodleQuizScraper
                 QuestionNumber = questionNum,
                 Grade = ParseFloatOrNull(gradeSpan.MaybeExtractText()),
                 Status = ParseQuestionStatus(gradeSpan?.GetAttribute("class")),
-                ReviewLink = link?.GetAttribute("href") ?? throw new InvalidOperationException("Expecting a review link"),
+                ReviewLink = link?.GetAttribute("href")
+                    ?? throw new InvalidOperationException("Expecting a review link"),
             });
             questionNum++;
         }
@@ -351,9 +385,47 @@ public static class MoodleQuizScraper
         var classList = classes.Split(' ');
         foreach (var cls in classList)
         {
-            if (cls == "que" || cls.Contains("feedback") || cls.Contains("graded") ||
-                cls == "complete" || cls == "correct" || cls == "incorrect" ||
-                cls == "partiallycorrect")
+            bool CheckCondition()
+            {
+                if (cls == "que")
+                {
+                    return true;
+                }
+
+                if (cls.Contains("feedback"))
+                {
+                    return true;
+                }
+
+                if (cls.Contains("graded"))
+                {
+                    return true;
+                }
+
+                if (cls == "complete")
+                {
+                    return true;
+                }
+
+                if (cls == "correct")
+                {
+                    return true;
+                }
+
+                if (cls == "incorrect")
+                {
+                    return true;
+                }
+
+                if (cls == "partiallycorrect")
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 continue;
             }
@@ -387,7 +459,8 @@ public static class MoodleQuizScraper
             return default;
         }
 
-        var parts = grade.Replace("Marcat ", "").Split([" din "], StringSplitOptions.None);
+        var parts = grade.Replace("Marcat ", "")
+            .Split([" din "], StringSplitOptions.None);
         if (parts.Length != 2)
         {
             return default;
@@ -395,7 +468,7 @@ public static class MoodleQuizScraper
 
         var scored = ParseFloatOrNull(parts[0])!.Value;
         var outOf = ParseFloatOrNull(parts[1])!.Value;
-        return new ScoreOutOf(scored, outOf);
+        return new ScoreOutOf(Scored: scored, OutOf: outOf);
     }
 
     private static HistoryAction ParseHistoryAction(string? action)
@@ -425,7 +498,9 @@ public static class MoodleQuizScraper
             const string s = "Salvat:";
             if (x.StartsWith(s))
             {
-                return x.AsSpan()[s.Length ..].Trim().ToString();
+                return x.AsSpan()[s.Length..]
+                    .Trim()
+                    .ToString();
             }
         }
         return null;
@@ -449,17 +524,26 @@ public static class MoodleQuizScraper
 
         var culture = new CultureInfo("ro-RO");
 
-        if (DateTime.TryParseExact(dateTime.Trim(), formats, culture, DateTimeStyles.None, out var result))
+        if (DateTime.TryParseExact(
+                dateTime.Trim(),
+                formats,
+                culture,
+                DateTimeStyles.None,
+                out var result))
         {
             return result;
         }
 
-        if (DateTime.TryParse(dateTime, culture, DateTimeStyles.None, out result))
+        if (DateTime.TryParse(
+                dateTime,
+                culture,
+                DateTimeStyles.None,
+                out result))
         {
             return result;
         }
 
-        throw new InvalidOperationException($"Cannot parse datetime: {dateTime}");
+        throw new MoodleDateTimeParseException(dateTime);
     }
 
     private static TimeSpan? ParseDuration(string? duration)
@@ -492,7 +576,10 @@ public static class MoodleQuizScraper
             }
         }
 
-        return new TimeSpan(0, minutes, seconds);
+        return new TimeSpan(
+            hours: 0,
+            minutes: minutes,
+            seconds: seconds);
     }
 
     private static float? ParseFloatOrNull(string? value)
@@ -505,12 +592,16 @@ public static class MoodleQuizScraper
         // Replace comma with period for decimal separator
         value = value.Replace(',', '.');
 
-        if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result))
+        if (!float.TryParse(
+                value,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var result))
         {
-            return result;
+            return null;
         }
 
-        return null;
+        return result;
     }
 
     private static float? ParseGrade(string? grade)
@@ -533,10 +624,17 @@ public static class MoodleQuizScraper
             var rows = summaryTable.QuerySelectorAll("tr");
             foreach (var row in rows)
             {
-                var header = row.QuerySelector("th").MaybeExtractText();
-                var value = row.QuerySelector("td").MaybeExtractText();
+                var header = row.QuerySelector("th")
+                    .MaybeExtractText();
+                var value = row.QuerySelector("td")
+                    .MaybeExtractText();
 
-                if (header is null || value is null)
+                if (header is null)
+                {
+                    continue;
+                }
+
+                if (value is null)
                 {
                     continue;
                 }
@@ -562,7 +660,7 @@ public static class MoodleQuizScraper
                         details.FinalGrade = ParseFinalGrade(value);
                         break;
                     default:
-                        throw new InvalidOperationException($"Unknown summary table header: {header}");
+                        throw new UnknownMoodleSummaryTableHeaderException(header);
                 }
             }
         }
@@ -589,7 +687,7 @@ public static class MoodleQuizScraper
         {
             var a = ParseGrade(parts[0])!.Value;
             var b = ParseGrade(parts[1])!.Value;
-            return new ScoreOutOf(a, b);
+            return new ScoreOutOf(Scored: a, OutOf: b);
         }
         return null;
     }
@@ -600,7 +698,13 @@ public static class MoodleQuizScraper
         var parts = finalGrade.Split([' '], StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length > 0)
         {
-            return ParseGrade(parts[0]);
+            var result = ParseGrade(parts[0]);
+            if (result is null)
+            {
+                return null;
+            }
+
+            return result;
         }
         return null;
     }
@@ -650,7 +754,9 @@ public static class MoodleQuizScraper
             {
                 var checkbox = answerDiv.QuerySelector("input[type=checkbox]");
                 var label = answerDiv.QuerySelector("div[data-region=answer-label]");
-                var isCorrect = answerDiv.GetAttribute("class")?.Contains("correct") ?? false;
+                var isCorrect = answerDiv.GetAttribute("class")
+                        ?.Contains("correct")
+                    ?? false;
                 var isChecked = checkbox?.HasAttribute("checked") ?? false;
                 if (label != null)
                 {
@@ -666,13 +772,21 @@ public static class MoodleQuizScraper
 
         // Comment
         var commentDiv = questionDiv.QuerySelector(".comment");
-        var comment = commentDiv?.QuerySelector("p")?.TextContent.Trim() ?? "";
-        var commentLink = commentDiv?.QuerySelector("a")?.GetAttribute("href") ?? "";
+        var comment = commentDiv?.QuerySelector("p")
+                ?.TextContent.Trim()
+            ?? "";
+        var commentLink = commentDiv?.QuerySelector("a")
+                ?.GetAttribute("href")
+            ?? "";
 
         // Feedback
         var feedbackDiv = questionDiv.QuerySelector(".feedback");
-        var feedback = feedbackDiv?.QuerySelector(".specificfeedback")?.TextContent.Trim() ?? "";
-        var correctAnswer = feedbackDiv?.QuerySelector(".rightanswer")?.TextContent.Trim() ?? "";
+        var feedback = feedbackDiv?.QuerySelector(".specificfeedback")
+                ?.TextContent.Trim()
+            ?? "";
+        var correctAnswer = feedbackDiv?.QuerySelector(".rightanswer")
+                ?.TextContent.Trim()
+            ?? "";
 
         // Response history
         var historyTable = questionDiv.QuerySelector(".history table");
@@ -713,7 +827,8 @@ public static class MoodleQuizScraper
         int stepIndex = 1;
         foreach (var row in rows)
         {
-            var cells = row.QuerySelectorAll("td").ToList();
+            var cells = row.QuerySelectorAll("td")
+                .ToList();
             if (cells.Count >= 5)
             {
                 var actionContent = cells[2].TextContent.Trim();
@@ -741,7 +856,7 @@ public static class MoodleQuizScraper
         };
 
         var json = JsonSerializer.Serialize(attempts, options);
-        await File.WriteAllTextAsync(filePath, json);
+        await File.WriteAllTextAsync(path: filePath, contents: json);
     }
 
     public static async Task<List<QuizAttempt>> LoadFromJsonAsync(string filePath)
@@ -752,7 +867,7 @@ public static class MoodleQuizScraper
 }
 
 // Models
-public class QuizAttempt
+public sealed class QuizAttempt
 {
     public string AttemptId { get; set; } = "";
     public required string UserName { get; set; }
@@ -766,7 +881,7 @@ public class QuizAttempt
     public List<QuestionGrade> QuestionGrades { get; set; } = [];
 }
 
-public class QuestionGrade
+public sealed class QuestionGrade
 {
     public int QuestionNumber { get; set; }
     public float? Grade { get; set; }
@@ -774,7 +889,7 @@ public class QuestionGrade
     public required string ReviewLink { get; set; }
 }
 
-public class AttemptDetails
+public sealed class AttemptDetails
 {
     public AttemptState Status { get; set; }
     public DateTime? StartedAt { get; set; }
@@ -785,7 +900,7 @@ public class AttemptDetails
     public List<QuestionDetail> Questions { get; set; } = [];
 }
 
-public class QuestionDetail
+public sealed class QuestionDetail
 {
     public int QuestionNumber { get; set; }
     public QuestionType QuestionType { get; set; }
@@ -803,14 +918,14 @@ public class QuestionDetail
     public List<ResponseHistoryEntry> ResponseHistory { get; set; } = [];
 }
 
-public class ChoiceDetail
+public sealed class ChoiceDetail
 {
     public string Text { get; set; } = "";
     public bool IsChecked { get; set; }
     public bool IsCorrect { get; set; }
 }
 
-public class ResponseHistoryEntry
+public sealed class ResponseHistoryEntry
 {
     public int Step { get; set; }
     public DateTime? Time { get; set; }
@@ -939,254 +1054,3 @@ public readonly record struct QuestionType(string Value)
 }
 
 public readonly record struct ScoreOutOf(float Scored, float OutOf);
-
-// ChatGPT repurposed some other code
-public static class MoodleQuizAnswersSerializer
-{
-    public static readonly JsonSerializerOptions Options = CreateOptions();
-
-    private static JsonSerializerOptions CreateOptions()
-    {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.General)
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        };
-
-        options.Converters.Add(new SingleValueWrapperConverterFactory());
-
-        var textEncoder = new TextEncoderSettings();
-        textEncoder.AllowRanges(UnicodeRanges.All);
-        options.Encoder = JavaScriptEncoder.Create(textEncoder);
-
-        return options;
-    }
-
-    public static async Task SaveToJsonAsync(List<QuizAttempt> attempts, string filePath)
-    {
-        var json = JsonSerializer.Serialize(attempts, Options);
-        await File.WriteAllTextAsync(filePath, json);
-    }
-
-    public static async Task<List<QuizAttempt>> LoadFromJsonAsync(string filePath)
-    {
-        var json = await File.ReadAllTextAsync(filePath);
-        return JsonSerializer.Deserialize<List<QuizAttempt>>(json, Options) ?? [];
-    }
-}
-
-file static class Accessors
-{
-    private static ConcurrentDictionary<Type, AccessorsBase?> _accessors = new();
-
-    public static Accessors<T, TValue> Get<T, TValue>()
-    {
-        var t = _accessors[typeof(T)];
-        Debug.Assert(t != null);
-        Debug.Assert(t.ValueType == typeof(TValue));
-        return (Accessors<T, TValue>) t;
-    }
-
-    public static AccessorsBase? Get(Type type)
-    {
-        var t = _accessors[type];
-        return t;
-    }
-
-    public static AccessorsBase? TryAddAccessorsFor(Type type)
-    {
-        if (_accessors.TryGetValue(type, out var accessor))
-        {
-            return accessor;
-        }
-
-        var info = FindInfo(type);
-        if (info == default)
-        {
-            _accessors.TryAdd(type, null);
-            return null;
-        }
-
-        var createMethod = CreateMethod.MakeGenericMethod(type, info.ValueType);
-        var ret = (AccessorsBase) createMethod.Invoke(null, [info])!;
-        ret = _accessors.GetOrAdd(type, ret);
-        return ret;
-    }
-
-    private readonly record struct Info(MethodInfo? CreateMethod, ConstructorInfo Constructor, MemberInfo Member, Type ValueType);
-    private static Info FindInfo(Type type)
-    {
-        var constructors = type
-            .GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-            .Select(c => (Params: c.GetParameters(), Constructor: c))
-            .ToArray();
-        if (constructors.Any(x => x.Params.Length > 1))
-        {
-            return default;
-        }
-
-        var fields = type
-            .GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .ToArray();
-        if (fields.Length > 1)
-        {
-            return default;
-        }
-
-        var createMethods = type
-            .GetMethods(BindingFlags.Static | BindingFlags.Public)
-            .Select(x => (Params: x.GetParameters(), Method: x))
-            .Where(x => x.Params.Length == 1)
-            .Where(x => x.Method.ReturnType == type)
-            .ToArray();
-
-        var constructorsWithOneParam = constructors
-            .Where(x => x.Params.Length == 1)
-            .ToArray();
-
-        var properties = type
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-            .ToArray();
-
-        // We'll collect (constructor, matchingMember) pairs where matchingMember.Type == constructor param type
-        Info wholeMatch = default;
-
-        foreach (var ctor in constructorsWithOneParam)
-        {
-            var paramType = ctor.Params[0].ParameterType;
-
-            // find members whose type equals the constructor parameter type
-            var matchingProps = properties.Where(p => p.PropertyType == paramType).Cast<MemberInfo>();
-            var matchingFields = fields.Where(f => f.FieldType == paramType).Cast<MemberInfo>();
-            using var matchingMembers = matchingProps.Concat(matchingFields).GetEnumerator();
-
-            if (!matchingMembers.MoveNext())
-            {
-                continue;
-            }
-            var match = matchingMembers.Current;
-            if (matchingMembers.MoveNext())
-            {
-                continue;
-            }
-
-            if (wholeMatch != default)
-            {
-                return default;
-            }
-
-
-            var createMethod = createMethods
-                .FirstOrDefault(x => x.Params[0].ParameterType == ctor.Params[0].ParameterType);
-            wholeMatch = new(createMethod.Method, ctor.Constructor, match, paramType);
-        }
-        return wholeMatch;
-    }
-
-    private static readonly MethodInfo CreateMethod = typeof(Accessors).GetMethod(
-        nameof(Create),
-        BindingFlags.Static | BindingFlags.NonPublic)!;
-
-    private static Accessors<T, TValue> Create<T, TValue>(Info info)
-    {
-        Func<TValue?, T> creator;
-        if (info.CreateMethod is { } createMethod)
-        {
-            creator = createMethod.CreateDelegate<Func<TValue?, T>>();
-
-        }
-        else
-        {
-            // Compile: (TValue v) => new T(v)
-            var valueParam = Expression.Parameter(typeof(TValue), "value");
-            var newExpr = Expression.New(info.Constructor, valueParam);
-            creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam).Compile();
-        }
-
-        // Compile: (T t) => t.Value
-        var tParam = Expression.Parameter(typeof(T), "t");
-        Expression memberAccess = info.Member is PropertyInfo prop
-            ? Expression.Property(tParam, prop)
-            : Expression.Field(tParam, (FieldInfo) info.Member);
-
-        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam).Compile();
-        return new()
-        {
-            Creator = creator,
-            Extractor = extractor,
-            ValueType = typeof(TValue),
-        };
-    }
-}
-
-file class AccessorsBase
-{
-    public required Type ValueType { get; init; }
-}
-
-file class Accessors<T, TValue> : AccessorsBase
-{
-    public required Func<TValue?, T> Creator { get; init; }
-    public required Func<T, TValue?> Extractor { get; init; }
-}
-
-
-// ChatGPT
-file sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
-{
-    private readonly Accessors<T, TValue> _accessor = Accessors.Get<T, TValue>();
-
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        var value = JsonSerializer.Deserialize<TValue>(ref reader, options);
-        return _accessor.Creator(value);
-    }
-
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
-    {
-        JsonSerializer.Serialize(writer, _accessor.Extractor(value), options);
-    }
-}
-
-file sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
-{
-    // Cache of created converters per wrapped type
-    private static readonly ConcurrentDictionary<Type, JsonConverter> _converterCache = new();
-
-    public override bool CanConvert(Type typeToConvert)
-    {
-        // Skip primitives and enums
-        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
-        {
-            return false;
-        }
-        if (_converterCache.ContainsKey(typeToConvert))
-        {
-            return true;
-        }
-
-        if (Accessors.TryAddAccessorsFor(typeToConvert) is { } accessor)
-        {
-            _ = accessor;
-            return true;
-        }
-
-        return false;
-    }
-
-    public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-    {
-        if (_converterCache.TryGetValue(typeToConvert, out var cached))
-        {
-            return cached;
-        }
-
-        var accessor = Accessors.Get(typeToConvert);
-        var converterType = typeof(SingleValueWrapperConverter<,>).MakeGenericType(typeToConvert, accessor!.ValueType);
-        var converter = (JsonConverter) Activator.CreateInstance(converterType)!;
-
-        _converterCache[typeToConvert] = converter;
-        return converter;
-    }
-}

@@ -12,7 +12,7 @@ namespace ScheduleFromDoc.Tests;
 using static IntegrationTestHelper;
 
 [CollectionDefinition("common1", DisableParallelization = true)]
-public class VerifyScheduleTestsCollection : ICollectionFixture<object>;
+public sealed class VerifyScheduleTestsCollection : ICollectionFixture<object>;
 
 [Collection("common1")]
 public sealed class ScheduleFromDocTestExclusive1
@@ -24,9 +24,16 @@ public sealed class ScheduleFromDocTestExclusive1
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var verify = helper.ScheduleVerify(schedule);
+
+        string CalculateFileName()
+        {
+            string fileName = VerifyScheduleSnapshotName(option);
+            return fileName;
+        }
+
         await verify
             .DisableRequireUniquePrefix()
-            .UseFileName(VerifyScheduleSnapshotName(option));
+            .UseFileName(CalculateFileName());
     }
 
     [Theory]
@@ -34,13 +41,27 @@ public sealed class ScheduleFromDocTestExclusive1
     public async Task JsonAndWordModelsAreEquivalent(TestOption option)
     {
         using var helper = await Create(option);
+
+        string CalculateJsonPath()
+        {
+            string jsonPath = ScheduleSnapshotJsonPath(option);
+            return jsonPath;
+        }
+
         var jsonSchedule = await GetScheduleFromJson(
-            ScheduleSnapshotJsonPath(option),
+            CalculateJsonPath(),
             helper.CancellationToken);
         var verify = helper.ScheduleVerify(jsonSchedule);
+
+        string CalculateFileName()
+        {
+            string fileName = VerifyScheduleSnapshotName(option);
+            return fileName;
+        }
+
         await verify
             .DisableRequireUniquePrefix()
-            .UseFileName(VerifyScheduleSnapshotName(option));
+            .UseFileName(CalculateFileName());
     }
 
     // Utility for regenerating the committed schedule json caches. Remove the Skip, run,
@@ -51,8 +72,15 @@ public sealed class ScheduleFromDocTestExclusive1
     {
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
+
+        string CalculatePath()
+        {
+            string path = ScheduleSnapshotJsonPath(option);
+            return path;
+        }
+
         await using var outputFile = new FileStream(
-            ScheduleSnapshotJsonPath(option),
+            CalculatePath(),
             FileMode.Create);
         await ScheduleSerializer.Serialize()
             .Input(schedule)
@@ -64,11 +92,21 @@ public sealed class ScheduleFromDocTestExclusive1
 public sealed class EnumMembersDataAttribute<T> : MemberDataAttributeBase
     where T : struct, Enum
 {
-    public static IEnumerable<object[]> Members => Enum.GetValues<T>().Select(x => new object[]{x});
+    public static IEnumerable<object[]> Members
+    {
+        get
+        {
+            return Enum.GetValues<T>()
+                .Select(x => new object[]
+                {
+                    x,
+                });
+        }
+    }
 
     public EnumMembersDataAttribute() : base(nameof(Members), [])
     {
-        MemberType = this.GetType();
+        MemberType = GetType();
     }
 
     protected override object[]? ConvertDataItem(MethodInfo testMethod, object item)
@@ -137,7 +175,7 @@ public sealed class ScheduleFromDocTests
         {
             var text1 = await File.ReadAllTextAsync(outputPath, helper.CancellationToken);
             var text2 = await File.ReadAllTextAsync(otherOutputPath, helper.CancellationToken);
-            Assert.Equal(text1, text2);
+            Assert.Equal(expected: text1, actual: text2);
         }
     }
 
@@ -148,7 +186,14 @@ public sealed class ScheduleFromDocTests
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var settingsTask = helper.ScheduleVerify(schedule);
-        await settingsTask.UseFileName(ScheduleJsonSnapshotName(option));
+
+        string CalculateFileName()
+        {
+            string fileName = ScheduleJsonSnapshotName(option);
+            return fileName;
+        }
+
+        await settingsTask.UseFileName(CalculateFileName());
     }
 
     [Theory]
@@ -171,7 +216,7 @@ public sealed class ScheduleFromDocTests
             foreach (var name in course.Item.Names)
             {
                 var id = lookup.Course(name.AsMemory());
-                Assert.Equal(course.Id, id);
+                Assert.Equal(expected: course.Id, actual: id);
             }
         }
         foreach (var teacher in schedule.EnumerateTeachers())
@@ -182,7 +227,7 @@ public sealed class ScheduleFromDocTests
         foreach (var group in schedule.EnumerateGroups())
         {
             var id = lookup.Group(group.Item.Name);
-            Assert.Equal(group.Id, id);
+            Assert.Equal(expected: group.Id, actual: id);
         }
     }
 }

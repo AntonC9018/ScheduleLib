@@ -19,6 +19,11 @@ The three replacement-summary actions are record structs, carried in
 existing JSON action strings. The other commands' existing `Actions` contract
 is retained. Human summaries and JSONL finals retain their existing behavior.
 
+On cancellation or an unexpected error, the interrupted action is recorded in
+`outcomes` like Drive sync (#259): `uncertain` once attempted, otherwise
+`not-attempted` on cancellation and `failed` on an unexpected error. The
+remaining plan still streams as `not-attempted` items only.
+
 ## Evaluation and snapshot review
 
 At approved snapshot `4c26748e448fe7ccbdffc3f8f6c4b05ffddce144`, the local

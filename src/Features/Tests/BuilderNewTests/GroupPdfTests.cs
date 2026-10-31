@@ -16,14 +16,15 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[]
+        bool condition = new[]
         {
             "IA2401.pdf",
             "IA2401_CV-I.pdf",
             "IA2401_CV-II.pdf",
             "IA2401_DJ-I.pdf",
             "IA2401_DJ-II.pdf",
-        }.SequenceEqual(files));
+        }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -33,14 +34,15 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[]
+        bool condition = new[]
         {
             "IA2401.pdf",
             "IA2401_A1-CV-I.pdf",
             "IA2401_A1-DJ-I.pdf",
             "IA2401_A2-CV-I.pdf",
             "IA2401_A2-DJ-I.pdf",
-        }.SequenceEqual(files));
+        }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     private static Schedule BuildWithAlternative()
@@ -58,11 +60,17 @@ public sealed class GroupPdfTests
         var course = builder.Course("Course");
 
         AddLesson();
-        AddLesson(subGroup: SubGroup.CreateNumeric(1));
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        SubGroup? subGroup3 = subGroup2;
+        AddLesson(subGroup: subGroup3);
         AddLesson(specialization: Specialization.CV);
         AddLesson(specialization: Specialization.DJ);
-        AddLesson(alternative: new Alternative("A1"));
-        AddLesson(alternative: new Alternative("A2"));
+        var alternative2 = new Alternative("A1");
+        Alternative? alternative3 = alternative2;
+        AddLesson(alternative: alternative3);
+        var alternative4 = new Alternative("A2");
+        Alternative? alternative5 = alternative4;
+        AddLesson(alternative: alternative5);
 
         return builder.Build();
 
@@ -122,10 +130,28 @@ public sealed class GroupPdfTests
                 StringBuilder = new StringBuilder(),
             });
 
+            string text2 = text.BoldPrefix;
+            string text3 = $"{alternative}:";
+            string value = text3;
+            var comparisonType = StringComparison.Ordinal;
+            bool condition;
+            if (text2.StartsWith(value, comparisonType))
+            {
+                condition = true;
+            }
+            else
+            {
+                string text4 = text.BoldPrefix;
+                string text5 = $"{alternative},";
+                string value2 = text5;
+                var comparisonType2 = StringComparison.Ordinal;
+                condition = text4.StartsWith(value2, comparisonType2);
+            }
+
+            string userMessage = $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'";
             Assert.True(
-                text.BoldPrefix.StartsWith(alternative + ":", StringComparison.Ordinal)
-                    || text.BoldPrefix.StartsWith(alternative + ",", StringComparison.Ordinal),
-                $"prefix '{text.BoldPrefix}' should start with alternative '{alternative}'");
+                condition,
+                userMessage);
         }
         Assert.True(seenAlternative);
     }
@@ -150,12 +176,17 @@ public sealed class GroupPdfTests
         lesson.Course(course);
         lesson.DayOfWeek(DayOfWeek.Monday);
         lesson.TimeSlot(TimeSlot.First);
-        lesson.SubGroup(SubGroup.CreateNumeric(1));
+        var lessonBuilder = lesson;
+        var subGroup = SubGroup.CreateNumeric(1);
+        lessonBuilder.SubGroup(subGroup);
         lesson.Specialization(Specialization.CV);
-        lesson.Alternative(new Alternative("A1"));
+        var lessonBuilder2 = lesson;
+        var alternative = new Alternative("A1");
+        lessonBuilder2.Alternative(alternative);
 
         var schedule = builder.Build();
-        var accessor = schedule.EnumerateAllLessons().Single();
+        var accessor = schedule.EnumerateAllLessons()
+            .Single();
 
         var services = new LessonTextDisplayHandler.Services(
             new SubGroupNumberDisplayHandler(),
@@ -174,23 +205,44 @@ public sealed class GroupPdfTests
             StringBuilder = new StringBuilder(),
         });
 
-        Assert.Equal("A1, CV, I: ", text.BoldPrefix);
+        Assert.Equal(expected: "A1, CV, I: ", actual: text.BoldPrefix);
     }
 
     private sealed class RecordingRichText : IRichText
     {
         public string BoldPrefix = "";
+
         public void Span(string str, bool isBold = false)
         {
-            if (isBold && BoldPrefix == "")
+            bool CalculateConditionResult()
+            {
+                if (!isBold)
+                {
+                    return false;
+                }
+
+                if (BoldPrefix == "")
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 BoldPrefix = str;
             }
         }
+
         public void Line(string str)
         {
         }
     }
+
     [Fact]
     public async Task AGroupWithoutSplitsGetsOnlyItsWholeGroupPdf()
     {
@@ -198,7 +250,11 @@ public sealed class GroupPdfTests
 
         var files = await Generate(schedule);
 
-        Assert.True(new[] { "IA2401.pdf" }.SequenceEqual(files));
+        bool condition = new[]
+        {
+            "IA2401.pdf",
+        }.SequenceEqual(files);
+        Assert.True(condition);
     }
 
     private static Schedule Build(bool withSplits)
@@ -218,8 +274,12 @@ public sealed class GroupPdfTests
         AddLesson();
         if (withSplits)
         {
-            AddLesson(subGroup: SubGroup.CreateNumeric(1));
-            AddLesson(subGroup: SubGroup.CreateNumeric(2));
+            var subGroup2 = SubGroup.CreateNumeric(1);
+            SubGroup? subGroup3 = subGroup2;
+            AddLesson(subGroup: subGroup3);
+            var subGroup4 = SubGroup.CreateNumeric(2);
+            SubGroup? subGroup5 = subGroup4;
+            AddLesson(subGroup: subGroup5);
             AddLesson(specialization: Specialization.CV);
             AddLesson(specialization: Specialization.DJ);
         }
@@ -248,7 +308,8 @@ public sealed class GroupPdfTests
 
     private static async Task<string[]> Generate(Schedule schedule)
     {
-        var root = Path.Combine(Path.GetTempPath(), $"ScheduleLib-pdf-tests-{Guid.NewGuid():N}");
+        using var temp = new TestTempDirectory("ScheduleLib-pdf-tests");
+        var root = temp.Path;
         var output = new OutputDirectory(root);
         output.Initialize();
         try
@@ -275,7 +336,15 @@ public sealed class GroupPdfTests
                 .Select(x => x.Path)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            Assert.All(files, file => Assert.True(new FileInfo(output.BuildPath(file)).Length > 0));
+            Assert.All(
+                files,
+                file =>
+                {
+                    string fileName = output.BuildPath(file);
+                    var fileInfo = new FileInfo(fileName);
+                    bool condition = fileInfo.Length > 0;
+                    Assert.True(condition);
+                });
             return files;
         }
         finally

@@ -17,7 +17,7 @@ public static class CliHost
     internal static async Task<int> RunCore(string[] args, Action<AppRunner<Commands>>? configure)
     {
         var invoked = false;
-        var inputFailure = false;
+        var startupRequest = StartupRequest.None;
         string? parseDetail = null;
         var runner = new AppRunner<Commands>(new AppSettings
         {
@@ -28,19 +28,28 @@ public static class CliHost
             },
             DisableDirectives = true,
         });
-        // When --jsonl is selected (without --json and without explicit --help), capture
-        // CommandDotNet's own human parse-error output so neither stdout nor stderr
-        // mixes human text into JSONL. Command results use System.Console directly and
-        // are unaffected; explicit --help keeps the ordinary text console.
-        var hasJson = args.Contains("--json");
-        var hasJsonl = args.Contains("--jsonl");
-        var hasHelp = args.Contains("--help") || args.Contains("-h");
         CapturingConsole? capture = null;
-        if (hasJsonl && !hasJson && !hasHelp)
+        runner.Configure(builder =>
         {
-            capture = new();
-            runner.Configure(builder => builder.Console = capture);
-        }
+            var appConfigBuilder = builder;
+            appConfigBuilder.UseMiddleware(
+                (context, next) =>
+                {
+                    var parseResult = context.ParseResult;
+                    startupRequest = StartupRequest.FromParsedInput(parseResult);
+
+                    // Capture parser diagnostics for JSONL or a format conflict. Help
+                    // remains human-readable; conflicts produce one dedicated error.
+                    if (startupRequest.CapturesDiagnostics)
+                    {
+                        capture = new();
+                        context.Console = capture;
+                    }
+
+                    return next(context);
+                },
+                MiddlewareSteps.ParseInput + 1);
+        });
         runner.Configure(builder => builder.UseMiddleware(
             (context, next) =>
             {
@@ -52,14 +61,15 @@ public static class CliHost
             async (context, next) =>
             {
                 var exit = await next(context);
-                inputFailure = !invoked
-                    && (context.ParseResult?.ParseError is not null || exit == ExitCodes.ValidationError);
-                if (!invoked && context.ParseResult?.ParseError is not null)
+                if (!invoked)
                 {
-                    parseDetail = context.ParseResult.ParseError.ToString();
+                    if (context.ParseResult?.ParseError is { } parseError)
+                    {
+                        parseDetail = parseError.ToString();
+                    }
                 }
 
-                if (exit != CliExit.Success && !invoked && (args.Contains("--json") || args.Contains("--jsonl")))
+                if (startupRequest.ShouldSuppressFailureHelp(invoked, exit))
                 {
                     context.ShowHelpOnExit = false;
                 }
@@ -70,26 +80,32 @@ public static class CliHost
         try
         {
             configure?.Invoke(runner);
-            var result = await runner.RunAsync(args.Length == 0 ? ["--help"] : args);
-            if (result == 0 || invoked)
+            var invocationArguments = args.Length == 0 ? ["--help"] : args;
+            var result = await runner.RunAsync(invocationArguments);
+            if (result == CliExit.Success)
             {
                 return result;
             }
 
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            if (invoked)
+            {
+                return result;
+            }
+
+            if (startupRequest.RejectsFormatConflict)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
+            var inputFailure = IsStartupInputFailure(result, parseDetail);
             var exit = inputFailure ? CliExit.InvalidArguments : CliExit.Unexpected;
             // Preserve actionable parser diagnostics on stderr without dumping argv
             // or credentials: CommandDotNet's captured human error plus ParseError.
             var details = new List<string>();
             if (capture is not null)
             {
-                foreach (var line in capture.GetError().Split('\n'))
+                foreach (var line in capture.GetError()
+                             .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -97,7 +113,8 @@ public static class CliHost
                         details.Add(trimmed);
                     }
                 }
-                foreach (var line in capture.GetOut().Split('\n'))
+                foreach (var line in capture.GetOut()
+                             .Split('\n'))
                 {
                     var trimmed = line.Trim();
                     if (trimmed.Length > 0)
@@ -106,9 +123,12 @@ public static class CliHost
                     }
                 }
             }
-            if (parseDetail is { Length: > 0 } parsed && !details.Contains(parsed))
+            if (parseDetail is { Length: > 0 } parsed)
             {
-                details.Add(parsed);
+                if (!details.Contains(parsed))
+                {
+                    details.Add(parsed);
+                }
             }
 
             var summary = inputFailure
@@ -119,95 +139,192 @@ public static class CliHost
                 details.Add(summary);
             }
 
-            WriteStartupResult(
-                exit,
-                summary,
-                details.ToArray());
+            WriteStartupResult(exit, summary, details);
             return exit;
         }
         catch (Exception e)
         {
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            if (startupRequest.RejectsFormatConflict)
             {
                 Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
                 return CliExit.InvalidArguments;
             }
-            if (hasJsonl && !hasJson)
-            {
-                var output = new CliOutput(
-                    "cli",
-                    Guid.NewGuid().ToString("N"),
-                    false,
-                    true);
-                output.EmitStart();
-                output.WriteError(e.Message);
-                output.EmitFinal(
-                    "failed",
-                    1,
-                    [],
-                    ["Unexpected CLI startup failure. See stderr for details."],
-                    null);
-                return CliExit.Unexpected;
-            }
-            Console.Error.WriteLine(e.Message);
             WriteStartupResult(
                 1,
                 "Unexpected CLI startup failure. See stderr for details.",
                 [e.Message]);
+            if (!startupRequest.UsesJsonlOutput)
+            {
+                Console.Error.WriteLine(e.Message);
+            }
             return CliExit.Unexpected;
         }
 
         void WriteStartupResult(
             int exit,
             string error,
-            string[] details)
+            IReadOnlyList<string> details)
         {
-            hasJson = args.Contains("--json");
-            hasJsonl = args.Contains("--jsonl");
-            if (hasJson && hasJsonl)
+            if (startupRequest.HelpRequested)
             {
                 return;
             }
 
-            if (hasJsonl)
+            if (startupRequest.Jsonl)
             {
-                var output = new CliOutput(
-                    "cli",
-                    Guid.NewGuid().ToString("N"),
-                    false,
-                    true);
+                var output = new CliOutput("cli", Guid.NewGuid().ToString("N"), false, true);
                 output.EmitStart();
                 foreach (var detail in details)
                 {
                     output.WriteError(detail);
                 }
 
-                output.EmitFinal(
-                    "failed",
+                output.EmitFinal(RunStatus.Failed, exit, [], [error], null);
+                return;
+            }
+
+            if (startupRequest.Json)
+            {
+                var value = new CommandResult<object?>(
+                    1,
+                    "cli",
+                    Guid.NewGuid().ToString("N"),
+                    RunStatus.Failed,
                     exit,
+                    [],
+                    [],
                     [],
                     [error],
                     null);
-            }
-            else if (hasJson)
-            {
                 Console.WriteLine(
                     JsonSerializer.Serialize(
-                        new CommandResult<object?>(
-                            1,
-                            "cli",
-                            Guid.NewGuid().ToString("N"),
-                            "failed",
-                            exit,
-                            [],
-                            [],
-                            [],
-                            [error],
-                            null),
-                        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+                        value,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        }));
             }
+        }
+    }
+
+    private static bool IsStartupInputFailure(int exit, string? parseDetail)
+    {
+        if (exit == ExitCodes.ValidationError)
+        {
+            return true;
+        }
+
+        if (parseDetail is not null)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private readonly record struct StartupRequest(bool Json, bool Jsonl, bool HelpRequested)
+    {
+        public static StartupRequest None => default;
+
+        public bool HasFormat => Json || Jsonl;
+
+        public bool ConflictingFormats => Json && Jsonl;
+
+        public bool CapturesDiagnostics
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (ConflictingFormats)
+                {
+                    return true;
+                }
+
+                if (Jsonl)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool UsesJsonlOutput
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (Json)
+                {
+                    return false;
+                }
+
+                if (Jsonl)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool RejectsFormatConflict
+        {
+            get
+            {
+                if (HelpRequested)
+                {
+                    return false;
+                }
+
+                if (ConflictingFormats)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public bool ShouldSuppressFailureHelp(bool commandInvoked, int exit)
+        {
+            if (commandInvoked)
+            {
+                return false;
+            }
+
+            if (exit == CliExit.Success)
+            {
+                return false;
+            }
+
+            if (HelpRequested)
+            {
+                return false;
+            }
+
+            if (HasFormat)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static StartupRequest FromParsedInput(CommandDotNet.Parsing.ParseResult? parseResult)
+        {
+            var json = parseResult?.TargetCommand.HasInputValues("json") == true;
+            var jsonl = parseResult?.TargetCommand.HasInputValues("jsonl") == true;
+            var helpRequested = parseResult?.HelpWasRequested() == true;
+            return new(Json: json, Jsonl: jsonl, HelpRequested: helpRequested);
         }
     }
 
@@ -219,7 +336,7 @@ public static class CliHost
 
         private sealed class CaptureWriter(StringBuilder builder, object gate) : TextWriter
         {
-            public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
+            public override Encoding Encoding => Encoding.UTF8;
 
             public override void WriteLine(string? value)
             {
@@ -276,19 +393,9 @@ public static class CliHost
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public ExportCommands Export
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public ExportCommands Export { get; set; } = new();
 
-    [Subcommand]
-    public QueryCommands Query
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public QueryCommands Query { get; set; } = new();
 }
 
 [Command("query")]
@@ -328,9 +435,33 @@ public partial class QueryCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            if (query.BeforeSlot is < 1 or > 7
-                || query.Day is { } day && !Enum.IsDefined(day)
-                || query.Parity is { } parity && !Enum.IsDefined(parity))
+            bool IsValidQuery()
+            {
+                if (query.BeforeSlot is < 1 or > 7)
+                {
+                    return false;
+                }
+
+                if (query.Day is { } day)
+                {
+                    if (!Enum.IsDefined(day))
+                    {
+                        return false;
+                    }
+                }
+
+                if (query.Parity is { } parity)
+                {
+                    if (!Enum.IsDefined(parity))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            if (!IsValidQuery())
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -349,7 +480,9 @@ public partial class QueryCommands
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            if (query.Room is { } room && !schedule.EnumerateWeeklyLessons().Any(x => x.Lesson.Room.Id == room))
+            if (query.Room is { } room
+                && !schedule.EnumerateWeeklyLessons()
+                    .Any(x => x.Lesson.Room.Id == room))
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -358,38 +491,72 @@ public partial class QueryCommands
             }
 
             var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            foreach (var lesson in schedule.Filter(FilterHelper.Builder().WithLatestPeriod(schedule))
+            foreach (var lesson in schedule.Filter(FilterHelper.Builder()
+                             .WithLatestPeriod(schedule))
                          .EnumerateWeeklyLessons())
             {
                 cancellation.Token.ThrowIfCancellationRequested();
-                if (query.Room is { } r && lesson.Lesson.Room.Id != r
-                    || query.Day is { } d && lesson.Date.DayOfWeek != d
-                    || query.Parity is { } p && !lesson.Date.Parity.IsMatch(p)
-                    || query.BeforeSlot is { } slot && lesson.Date.TimeSlot.Index + 1 > slot)
+
+                if (query.Room is { } roomFilter)
                 {
-                    continue;
+                    if (lesson.Lesson.Room.Id != roomFilter)
+                    {
+                        continue;
+                    }
+                }
+
+                if (query.Day is { } dayFilter)
+                {
+                    if (lesson.Date.DayOfWeek != dayFilter)
+                    {
+                        continue;
+                    }
+                }
+
+                if (query.Parity is { } parityFilter)
+                {
+                    if (!lesson.Date.Parity.IsMatch(parityFilter))
+                    {
+                        continue;
+                    }
+                }
+
+                if (query.BeforeSlot is { } lastSlot)
+                {
+                    var slotNumber = lesson.Date.TimeSlot.Index + 1;
+                    if (slotNumber > lastSlot)
+                    {
+                        continue;
+                    }
                 }
 
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
+
+                var start = interval.Start.ToString("HH:mm");
+
                 var item = new LessonResult(
                     lesson.Date.DayOfWeek.ToString(),
                     lesson.Date.Parity.ToString(),
                     lesson.Date.TimeSlot.Index + 1,
-                    interval.Start.ToString("HH:mm"),
+                    start,
                     interval.End.ToString("HH:mm"),
                     lesson.Lesson.Room.Id,
                     schedule.Get(lesson.Lesson.Course).FullName,
-                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName.ToString()).ToArray());
+                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
+                            .ToString())
+                        .ToArray());
                 lessons.Add(item);
+                var id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Action renderHuman = () =>
+                {
+                    output.WriteHuman(
+                        $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
+                };
                 context.StreamItem(
-                    streamed.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    "completed",
+                    id,
+                    status: ActionState.Completed,
                     item,
-                    renderHuman: () =>
-                    {
-                        output.WriteHuman(
-                            $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
-                    });
+                    renderHuman: renderHuman);
                 streamed++;
             }
             return Finish(
@@ -401,7 +568,7 @@ public partial class QueryCommands
         {
             var failure = context.ClassifyInputFailure(error);
             IReadOnlyList<LessonResult> reportedLessons = lessons;
-            if (error is ArgumentException or ScheduleLib.Application.Config.AuthenticationRequiredException)
+            if (error is ArgumentException or Application.Config.AuthenticationRequiredException)
             {
                 reportedLessons = [];
             }
@@ -426,7 +593,12 @@ public partial class QueryCommands
                 Summary = new { count = streamed },
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => output.WriteHuman($"{status}: {streamed} lessons."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = output;
+                    string line = $"{status}: {streamed} lessons.";
+                    cliOutput.WriteHuman(line);
+                },
             });
         }
     }
@@ -435,32 +607,16 @@ public partial class QueryCommands
 public sealed class QueryArguments : IArgumentModel
 {
     [Option("room", Description = "Exact room identifier, for example 423/4.")]
-    public string? Room
-    {
-        get;
-        set;
-    }
+    public string? Room { get; set; }
 
     [Option("day", Description = "Day name, for example Tuesday.")]
-    public DayOfWeek? Day
-    {
-        get;
-        set;
-    }
+    public DayOfWeek? Day { get; set; }
 
     [Option("parity", Description = "OddWeek, EvenWeek or EveryWeek.")]
-    public Parity? Parity
-    {
-        get;
-        set;
-    }
+    public Parity? Parity { get; set; }
 
     [Option("before-slot", Description = "Inclusive time-slot cutoff, numbered from 1.")]
-    public int? BeforeSlot
-    {
-        get;
-        set;
-    }
+    public int? BeforeSlot { get; set; }
 }
 
 public sealed class SourceArguments : IArgumentModel
@@ -469,45 +625,25 @@ public sealed class SourceArguments : IArgumentModel
         "data-dir",
         Description =
             "Schedule data root; defaults to packaged code-configured resources. Academic year and semester remain configured in C#.")]
-    public string? DataDirectory
-    {
-        get;
-        set;
-    }
+    public string? DataDirectory { get; set; }
 
     [Option("no-cache", Description = "Bypass schedule cache reads and writes.")]
-    public bool NoCache
-    {
-        get;
-        set;
-    }
+    public bool NoCache { get; set; }
 
     [Option("cache-dir", Description = "Shared schedule cache directory; defaults to the ScheduleLib user cache.")]
-    public string? CacheDirectory
-    {
-        get;
-        set;
-    }
+    public string? CacheDirectory { get; set; }
 }
 
 public sealed class ResultArguments : IArgumentModel
 {
     [Option("json", Description = "Emit one versioned JSON result on stdout; diagnostics use stderr.")]
-    public bool Json
-    {
-        get;
-        set;
-    }
+    public bool Json { get; set; }
 
     [Option(
         "jsonl",
         Description =
             "Stream newline-delimited JSON records on stdout (start, items as available, final summary); stderr is JSONL. Mutually exclusive with --json.")]
-    public bool Jsonl
-    {
-        get;
-        set;
-    }
+    public bool Jsonl { get; set; }
 }
 
 public sealed record LessonResult(

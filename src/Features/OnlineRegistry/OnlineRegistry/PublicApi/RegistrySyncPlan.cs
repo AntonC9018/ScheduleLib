@@ -11,11 +11,13 @@ public interface IRegistrySyncNavigator
     Task<IDocument> GetHtml(Uri uri);
     Task SubmitLesson(IDocument document);
     Task SubmitDelete(IDocument document);
+
     Task SubmitLesson(IDocument document, Action onSubmissionStarted)
     {
         onSubmissionStarted();
         return SubmitLesson(document);
     }
+
     Task SubmitDelete(IDocument document, Action onSubmissionStarted)
     {
         onSubmissionStarted();
@@ -23,11 +25,40 @@ public interface IRegistrySyncNavigator
     }
 }
 
-public sealed class RegistrySyncAction(string kind, string destination, string course, string groups,
-    DateTime date, string? topic, int? attendanceCount, bool enabled, string? omission,
+public enum RegistrySyncActionKind
+{
+    Create,
+    Update,
+    Delete,
+}
+
+public static class RegistrySyncActionKindExtensions
+{
+    public static string ToLowercaseValue(this RegistrySyncActionKind kind)
+    {
+        return kind switch
+        {
+            RegistrySyncActionKind.Create => "create",
+            RegistrySyncActionKind.Update => "update",
+            RegistrySyncActionKind.Delete => "delete",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+}
+
+public sealed class RegistrySyncAction(
+    RegistrySyncActionKind kind,
+    string destination,
+    string course,
+    string groups,
+    DateTime date,
+    string? topic,
+    int? attendanceCount,
+    bool enabled,
+    string? omission,
     Func<CancellationToken, Task> execute)
 {
-    public string Kind { get; } = kind;
+    public RegistrySyncActionKind Kind { get; } = kind;
     public string Destination { get; } = destination;
     public string Course { get; } = course;
     public string Groups { get; } = groups;
@@ -46,14 +77,36 @@ public sealed class RegistryActionExecutionException(bool submissionStarted, Exc
     public bool SubmissionStarted { get; } = submissionStarted;
 }
 
-public sealed class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
+public static class RegistryActionGuard
+{
+    public static async Task Run(Func<Action, Task> submit)
+    {
+        var submissionStarted = false;
+        try
+        {
+            await submit(() => submissionStarted = true);
+        }
+        catch (OperationCanceledException error)
+        {
+            throw new RegistryActionCancelledException(submissionStarted, error);
+        }
+        catch (Exception error)
+        {
+            throw new RegistryActionExecutionException(submissionStarted, error);
+        }
+    }
+}
+
+public class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
 
 /// <summary>A fresh registry read confirms that the requested deletion was not applied.</summary>
 public sealed class RegistryDeletionRefusedException()
     : InvalidOperationException("Registry refused deletion; the lesson remains unchanged.");
 
 public sealed class RegistryActionCancelledException(bool submissionStarted, OperationCanceledException inner)
-    : OperationCanceledException("Registry action cancelled.", inner, inner.CancellationToken)
+    : OperationCanceledException("Registry action cancelled.",
+        inner,
+        inner.CancellationToken)
 {
     public bool SubmissionStarted { get; } = submissionStarted;
 }

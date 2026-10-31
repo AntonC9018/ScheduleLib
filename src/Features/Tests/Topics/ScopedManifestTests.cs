@@ -12,26 +12,54 @@ namespace ScheduleLib.Topics.Tests;
 public sealed class ScopedManifestTests
 {
     [Theory]
-    [InlineData(1, true, false, false)]
-    [InlineData(2, false, false, false)]
-    [InlineData(null, false, false, false)]
-    [InlineData(1, true, true, false)]
-    [InlineData(1, true, false, true)]
-    public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(int? semester, bool enabled, bool unspecifiedLanguage, bool allowMissingLessonTypes)
+    [InlineData(1,
+        true,
+        false,
+        false)]
+    [InlineData(2,
+        false,
+        false,
+        false)]
+    [InlineData(null,
+        false,
+        false,
+        false)]
+    [InlineData(1,
+        true,
+        true,
+        false)]
+    [InlineData(1,
+        true,
+        false,
+        true)]
+    public async Task ImportedTopicsStayWithinCourseGroupPartitionAndSemester(
+        int? semester,
+        bool enabled,
+        bool unspecifiedLanguage,
+        bool allowMissingLessonTypes)
     {
-        var directory = Path.Combine(Path.GetTempPath(), "scoped-topics-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+        using var temp = new TestTempDirectory("scoped-topics");
+        var directory = temp.Path;
         try
         {
-            await File.WriteAllTextAsync(Path.Combine(directory, "topics.csv"), "name\nSynthetic topic\n");
+            await File.WriteAllTextAsync(
+                path: Path.Combine(directory, "topics.csv"),
+                contents: "name\nSynthetic topic\n");
             var scheduleBuilder = new ScheduleBuilder();
-            scheduleBuilder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+            scheduleBuilder.GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2026),
+            });
             scheduleBuilder.EnableLookupModule();
             var course = scheduleBuilder.Course("Synthetic course");
             var otherCourse = scheduleBuilder.Course("Other course");
             var group = scheduleBuilder.Group("IA2601");
             var otherGroup = scheduleBuilder.Group("IA2602");
-            foreach (var currentGroup in new[] { group, otherGroup })
+            foreach (var currentGroup in new[]
+                     {
+                         group,
+                         otherGroup,
+                     })
             {
                 scheduleBuilder.RegularLesson(lesson =>
                 {
@@ -58,26 +86,133 @@ public sealed class ScopedManifestTests
             scheduleBuilder.RefreshLookup();
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
-            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
-                "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                """));
+
+            byte[] CalculateBuffer()
+            {
+                byte[] buffer = Encoding.UTF8.GetBytes("""
+                                                       {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
+                                                       "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
+                                                       """);
+                return buffer;
+            }
+
+            await using var input = new MemoryStream(CalculateBuffer());
             var manifest = await ManifestSerializer.Deserialize(input, default);
             manifest.Documents[0].AllowMissingLessonTypes = allowMissingLessonTypes;
-            if (unspecifiedLanguage) manifest.Documents[0].Language = null;
-            var builder = new AllLessonTopicsDatabaseBuilder(schedule.Filter(new()), NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
+            if (unspecifiedLanguage)
             {
-                Semester = semester,
-            };
-            await builder.AddFromManifest(new(manifest, directory), lookup, default);
+                manifest.Documents[0].Language = null;
+            }
+
+            var builder =
+                new AllLessonTopicsDatabaseBuilder(
+                    schedule.Filter(new()),
+                    NullLogger<AllLessonTopicsDatabaseBuilder>.Instance)
+                {
+                    Semester = semester,
+                };
+            await builder.AddFromManifest(
+                new(manifest, directory),
+                lookup,
+                default);
             var topics = builder.Build();
-            AttendanceLookupKey Key(CourseId courseId, GroupId groupId, GroupPartitionKey partition) =>
-                new(new FoundGroups { Value = [groupId], IsWildcard = false }, partition, courseId, LessonType.Lab, 0, default);
-            Assert.Equal(enabled ? "Synthetic topic" : null, topics.Get(Key(course, group, GroupPartitionKey.All)));
-            Assert.Null(topics.Get(Key(course, group, GroupPartitionKey.All) with { LessonType = LessonType.Curs }));
-            Assert.Null(topics.Get(Key(course, otherGroup, GroupPartitionKey.All)));
-            Assert.Null(topics.Get(Key(otherCourse, group, GroupPartitionKey.All)));
-            Assert.Null(topics.Get(Key(course, group, new(new SubGroup("I"), Specialization.All))));
+
+            AttendanceLookupKey Key(
+                CourseId courseId,
+                GroupId groupId,
+                GroupPartitionKey partition)
+            {
+                return new(
+                    new FoundGroups
+                    {
+                        Value = [groupId],
+                        IsWildcard = false,
+                    },
+                    partition,
+                    courseId,
+                    LessonType.Lab,
+                    0,
+                    default);
+            }
+
+            AttendanceLookupKey CalculateKey()
+            {
+                var key = Key(
+                    course,
+                    group,
+                    GroupPartitionKey.All);
+                return key;
+            }
+
+            string? CalculateExpected()
+            {
+                string? expected2;
+                if (enabled)
+                {
+                    expected2 = "Synthetic topic";
+                }
+                else
+                {
+                    expected2 = null;
+                }
+
+                return expected2;
+            }
+
+            string? expected3 = CalculateExpected();
+            string? actual2 = topics.Get(CalculateKey());
+            Assert.Equal(expected: expected3, actual: actual2);
+            Assert.Null(topics.Get(Key(
+                    course,
+                    group,
+                    GroupPartitionKey.All) with
+            {
+                LessonType = LessonType.Curs,
+            }));
+
+            AttendanceLookupKey CalculateKey2()
+            {
+                var key2 = Key(
+                    course,
+                    otherGroup,
+                    GroupPartitionKey.All);
+                return key2;
+            }
+
+            string? objectValue = topics.Get(CalculateKey2());
+            object? objectValue2 = objectValue;
+            Assert.Null(objectValue2);
+
+            AttendanceLookupKey CalculateKey3()
+            {
+                var key3 = Key(
+                    otherCourse,
+                    group,
+                    GroupPartitionKey.All);
+                return key3;
+            }
+
+            string? objectValue3 = topics.Get(CalculateKey3());
+            object? objectValue4 = objectValue3;
+            Assert.Null(objectValue4);
+
+            AttendanceLookupKey CalculateKey4()
+            {
+                var courseId2 = course;
+                GroupId groupId2 = group;
+                var subGroup = new SubGroup("I");
+                var specialization = Specialization.All;
+                GroupPartitionKey partition2 = new(subGroup, specialization);
+                var key4 = Key(
+                    courseId2,
+                    groupId2,
+                    partition2);
+                return key4;
+            }
+
+            string? objectValue5 = topics.Get(CalculateKey4());
+            object? objectValue6 = objectValue5;
+            Assert.Null(objectValue6);
         }
         finally
         {

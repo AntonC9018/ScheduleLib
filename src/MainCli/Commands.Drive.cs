@@ -8,12 +8,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public DriveCommands Drive
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public DriveCommands Drive { get; set; } = new();
 }
 
 [Command(
@@ -28,10 +23,12 @@ public class DriveCommands
         IServiceProvider services,
         BuiltGoogleDriveConfig config,
         CancellationToken token)
-        => GoogleDriveSyncProvider.Connect(
+    {
+        return GoogleDriveSyncProvider.Connect(
             services,
             config,
             token);
+    }
 
     [Command(
         "publish",
@@ -115,7 +112,8 @@ public class DriveCommands
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
-            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>().Get();
+            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>()
+                .Get();
             if (config is null)
             {
                 return await Finish(
@@ -128,11 +126,11 @@ public class DriveCommands
                 config,
                 cancellation.Token);
             outputLease = await RunOutput.Create(
-                outputDirectory,
-                "drive publish",
-                context.RunId,
+                output: outputDirectory,
+                command: "drive publish",
+                runId: context.RunId,
                 cancellation.Token,
-                resolved.ProjectDirectory);
+                projectDirectory: resolved.ProjectDirectory);
             output = outputLease;
             var artifacts = await DriveBundle.Generate(
                 scope.ServiceProvider,
@@ -140,7 +138,7 @@ public class DriveCommands
                 warnings,
                 cancellation.Token);
             StreamNewArtifacts();
-            await output.Complete("generated", cancellation.Token);
+            await output.Complete(RunStatus.Generated, cancellation.Token);
             StreamNewArtifacts();
             bundleGenerated = true;
             data = await DriveSync.Run(
@@ -154,7 +152,7 @@ public class DriveCommands
             return await Finish(
                 data.ExitCode,
                 data.ExitCode == CliExit.AuthenticationRequired
-                    ? [new AuthenticationRequiredException("google", resolved.Profile).Message]
+                    ? [new AuthenticationRequiredException(provider: "google", teacher: resolved.Profile).Message]
                     : data.Errors);
         }
         catch (DriveStreamingException ex)
@@ -201,10 +199,15 @@ public class DriveCommands
                 if (streamedArtifacts.Add(path))
                 {
                     cli.WriteHuman(path);
-                    cli.EmitItem(
-                        "artifact:" + path,
-                        "completed",
-                        new { path });
+                    var cliOutput = cli;
+                    string text = $"artifact:{path}";
+                    string id2 = text;
+                    var status2 = ActionState.Completed;
+                    object item = new { path };
+                    cliOutput.EmitItem(
+                        id: id2,
+                        status: status2,
+                        item);
                 }
             }
         }
@@ -212,26 +215,33 @@ public class DriveCommands
         async Task<int> Finish(int exit, string[] errors)
         {
             StreamNewArtifacts();
-            if (output is not null
-                && output.PublishedPaths.Count > 0
-                && !output.PublishedPaths.Contains(output.ManifestPath))
+            if (output is not null)
             {
-                try
+                if (output.PublishedPaths.Count > 0)
                 {
-                    await output.Complete("partial", CancellationToken.None);
+                    if (!output.PublishedPaths.Contains(output.ManifestPath))
+                    {
+                        try
+                        {
+                            await output.Complete(RunStatus.Partial, CancellationToken.None);
+                        }
+                        catch (Exception)
+                        {
+                            warnings.Add("Could not publish partial bundle manifest.");
+                        }
+                        StreamNewArtifacts();
+                    }
                 }
-                catch (Exception)
-                {
-                    warnings.Add("Could not publish partial bundle manifest.");
-                }
-                StreamNewArtifacts();
             }
-            var allWarnings = warnings.Concat(data?.Warnings ?? []).ToArray();
-            var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}").ToArray() ?? [];
-            var success = "preview";
+            var allWarnings = warnings.Concat(data?.Warnings ?? [])
+                .ToArray();
+            var actions = data?.Actions.Select(x => $"{x.Action} {x.Name}; id {x.FileId}")
+                    .ToArray()
+                ?? [];
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(exit, success);
             object summary = new
@@ -271,8 +281,11 @@ public class DriveCommands
                 {
                     if (data is not null)
                     {
-                        cli.WriteHuman(
-                            $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})");
+                        var cliOutput = cli;
+                        string line =
+                            $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})";
+                        cliOutput.WriteHuman(
+                            line);
                     }
                 },
             });

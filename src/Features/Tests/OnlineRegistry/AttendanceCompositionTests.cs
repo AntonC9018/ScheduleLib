@@ -9,10 +9,22 @@ public sealed class AttendanceCompositionTests
     {
         var names = NamesInDb.Create([NameHelper.Parse("Synthetic Alpha")]);
         var unknown = new List<Name>();
-        var helper = StudentNameRemapHelper.Create([new HtmlStudent("Synthetic Alphaa", false), new HtmlStudent("Unlisted Beta", false)],
-            names, unknown, new Dictionary<string, string> { ["Synthetic Alphaa"] = "Synthetic Alpha" });
+        var helper = StudentNameRemapHelper.Create(
+            [new HtmlStudent("Synthetic Alphaa", false), new HtmlStudent("Unlisted Beta", false)],
+            names,
+            unknown,
+            new Dictionary<string, string>
+            {
+                ["Synthetic Alphaa"] = "Synthetic Alpha",
+            });
         Assert.Single(unknown);
-        Assert.Equal(new[] { Attendance.NotPresent, Attendance.None }, helper.RemapToHtml([Attendance.NotPresent]));
+        var expected2 = new[]
+        {
+            Attendance.NotPresent,
+            Attendance.None,
+        };
+        var actual2 = helper.RemapToHtml([Attendance.NotPresent]);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -23,28 +35,155 @@ public sealed class AttendanceCompositionTests
         var first = new GroupId(0);
         var second = new GroupId(1);
         var partition = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
-        Add(first, "Synthetic Alpha", 2, Attendance.NotPresent);
-        Add(second, "Synthetic Beta", 9, Attendance.Present);
+        Add(
+            first,
+            "Synthetic Alpha",
+            2,
+            Attendance.NotPresent);
+        Add(
+            second,
+            "Synthetic Beta",
+            9,
+            Attendance.Present);
         var list = builder.Build(Attendance.None);
-        var groups = new LessonGroups { first, second };
-        var names = list.StudentNames(new(groups, partition, course, LessonType.Lab));
-        Assert.Equal(2, names.Count);
-        Assert.Equal(0, names.NameToIndex(NameHelper.Parse("Synthetic Alpha")).Value);
-        Assert.Equal(1, names.NameToIndex(NameHelper.Parse("Synthetic Beta")).Value);
-        Assert.Equal(new[] { Attendance.NotPresent, Attendance.None }, Day(2));
-        Assert.Equal(new[] { Attendance.None, Attendance.Present }, Day(9));
-        Assert.All(Day(16), value => Assert.Equal(Attendance.None, value));
-        var inactive = list.Get(new AttendanceLookupKey(new FoundGroups { Value = groups, IsWildcard = true },
-            partition, course, LessonType.Lab, 0, new DateTime(2026, 9, 2)) { ActiveGroups = new LessonGroups { second } });
-        Assert.All(inactive.AsArray(), value => Assert.Equal(Attendance.None, value));
-
-        Attendance[] Day(int day) => list.Get(new(new FoundGroups { Value = groups, IsWildcard = true },
-            partition, course, LessonType.Lab, 0, new DateTime(2026, 9, day))).AsArray().ToArray();
-        void Add(GroupId parent, string name, int day, Attendance attendance)
+        var groups = new LessonGroups
         {
-            var parentList = builder.List(new(new LessonGroups { parent }, partition, course, LessonType.Lab));
-            parentList.AddAttendanceDates([new AttendanceDate { Year = 2026, Month = 9, Day = day }]);
-            parentList.Student(NameHelper.Parse(name)).Day(attendance);
+            first,
+            second,
+        };
+
+        StudentsLookupKey CalculateKey()
+        {
+            StudentsLookupKey key = new(
+                groups,
+                partition,
+                course,
+                LessonType.Lab);
+            return key;
+        }
+
+        var names = list.StudentNames(CalculateKey());
+        Assert.Equal(expected: 2, actual: names.Count);
+
+        Name CalculateName()
+        {
+            var name2 = NameHelper.Parse("Synthetic Alpha");
+            return name2;
+        }
+
+        Assert.Equal(expected: 0, actual: names.NameToIndex(CalculateName()).Value);
+
+        Name CalculateName2()
+        {
+            var name3 = NameHelper.Parse("Synthetic Beta");
+            return name3;
+        }
+
+        Assert.Equal(expected: 1, actual: names.NameToIndex(CalculateName2()).Value);
+        var expected2 = new[]
+        {
+            Attendance.NotPresent,
+            Attendance.None,
+        };
+        var actual2 = Day(2);
+        Assert.Equal(expected: expected2, actual: actual2);
+        var expected3 = new[]
+        {
+            Attendance.None,
+            Attendance.Present,
+        };
+        var actual3 = Day(9);
+        Assert.Equal(expected: expected3, actual: actual3);
+        var collection = Day(16);
+        IEnumerable<Attendance> collection2 = collection;
+        Action<Attendance> action = value => Assert.Equal(expected: Attendance.None, actual: value);
+        Assert.All(collection2, action);
+
+        DateTime CalculateDateTime()
+        {
+            var dateTime = new DateTime(
+                year: 2026,
+                month: 9,
+                day: 2);
+            return dateTime;
+        }
+
+        var inactive = list.Get(new AttendanceLookupKey(
+            new FoundGroups
+            {
+                Value = groups,
+                IsWildcard = true,
+            },
+            partition,
+            course,
+            LessonType.Lab,
+            0,
+            CalculateDateTime())
+        {
+            ActiveGroups = new LessonGroups { second },
+        });
+        Assert.All(inactive.AsArray(), value => Assert.Equal(expected: Attendance.None, actual: value));
+
+        Attendance[] Day(int day)
+        {
+            DateTime CalculateDateTime()
+            {
+                var dateTime = new DateTime(
+                    year: 2026,
+                    month: 9,
+                    day: day);
+                return dateTime;
+            }
+
+            return list.Get(new(
+                    new FoundGroups
+                    {
+                        Value = groups,
+                        IsWildcard = true,
+                    },
+                    partition,
+                    course,
+                    LessonType.Lab,
+                    0,
+                    CalculateDateTime()))
+                .AsArray()
+                .ToArray();
+        }
+
+        void Add(
+            GroupId parent,
+            string name,
+            int day,
+            Attendance attendance)
+        {
+            StudentsLookupKey CalculateKey()
+            {
+                StudentsLookupKey key = new(
+                    new LessonGroups { parent },
+                    partition,
+                    course,
+                    LessonType.Lab);
+                return key;
+            }
+
+            var parentList = builder.List(CalculateKey());
+            parentList.AddAttendanceDates([
+                new AttendanceDate
+                {
+                    Year = 2026,
+                    Month = 9,
+                    Day = day,
+                },
+            ]);
+
+            Name CalculateName()
+            {
+                var name2 = NameHelper.Parse(name);
+                return name2;
+            }
+
+            parentList.Student(CalculateName())
+                .Day(attendance);
         }
     }
 }

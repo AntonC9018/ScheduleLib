@@ -31,7 +31,9 @@ public sealed class ElectiveCohorts
                     alternatives = [];
                     _byGroup.Add(id, alternatives);
                 }
-                alternatives.Add(new(cell.Alternative!));
+                var hashSet = alternatives;
+                Alternative item = new(cell.Alternative!);
+                hashSet.Add(item);
             }
         }
         SplitConfig = CreateSplitConfig(context.Schedule.ImplicitSplitConfig ?? Config.ImplicitSplitConfig);
@@ -65,10 +67,7 @@ public sealed class ElectiveCohorts
         return config.Build();
     }
 
-    public ImplicitSplitConfig SplitConfig
-    {
-        get;
-    }
+    public ImplicitSplitConfig SplitConfig { get; }
 
     public void Add(ImportedLessonInput input)
     {

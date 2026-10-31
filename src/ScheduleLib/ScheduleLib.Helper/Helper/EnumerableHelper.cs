@@ -5,6 +5,9 @@ namespace ScheduleLib;
 
 public readonly record struct Indexed<T>(int Index, T Item);
 
+/// <summary>Two items taken from a sequence, in sequence order.</summary>
+public readonly record struct ItemPair<T>(T First, T Second);
+
 public static class EnumerableExtensionsClass
 {
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source)
@@ -21,8 +24,9 @@ public static class EnumerableExtensions
     public static IEnumerable<T> WhereNotDefault<T>(this IEnumerable<T> source)
         where T : struct
     {
-        return source.Where(x => !EqualityComparer<T>.Default.Equals(x, default));
+        return source.Where(x => !EqualityComparer<T>.Default.Equals(x: x, y: default));
     }
+
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> source)
         where T : struct
     {
@@ -39,12 +43,14 @@ public static class EnumerableExtensions
             .Where(x => x != null)
             .Select(x => x!.Value);
     }
+
     extension<T>(IEnumerable<T> source)
     {
         public bool None(Func<T, bool> pred)
         {
             return !source.Any(pred);
         }
+
         public bool None()
         {
             return !source.Any();
@@ -59,18 +65,25 @@ public static class EnumerableExtensions
         {
             if (source.TryGetNonEnumeratedCount(out int count))
             {
-                return count >= 2;
+                if (count >= 2)
+                {
+                    return true;
+                }
+
+                return false;
             }
             using var e = source.GetEnumerator();
             if (!e.MoveNext())
             {
                 return false;
             }
-            if (!e.MoveNext())
+
+            if (e.MoveNext())
             {
-                return false;
+                return true;
             }
-            return true;
+
+            return false;
         }
 
         public (T First, T Second)? MaybeJustTwoItems()
@@ -109,7 +122,7 @@ public static class EnumerableExtensions
             }
         }
 
-        public (T First, T Second) JustTwoItems()
+        public ItemPair<T> JustTwoItems()
         {
             if (source is IList<T> l)
             {
@@ -123,7 +136,7 @@ public static class EnumerableExtensions
                         ThrowSecond();
                         break;
                     case 2:
-                        return (l[0], l[1]);
+                        return new(First: l[0], Second: l[1]);
                     default:
                         ThrowMore();
                         break;
@@ -148,7 +161,7 @@ public static class EnumerableExtensions
                 {
                     ThrowMore();
                 }
-                return (first, second);
+                return new(First: first, Second: second);
             }
 
             [DoesNotReturn]
@@ -156,11 +169,13 @@ public static class EnumerableExtensions
             {
                 throw new InvalidOperationException("Sequence contains no elements");
             }
+
             [DoesNotReturn]
             void ThrowSecond()
             {
                 throw new InvalidOperationException("Sequence contains only 1 element");
             }
+
             [DoesNotReturn]
             void ThrowMore()
             {
@@ -168,7 +183,7 @@ public static class EnumerableExtensions
             }
         }
 
-        public (T A, T B) At2(int indexA, int indexB)
+        public ItemPair<T> At2(int indexA, int indexB)
         {
             if (indexA >= indexB)
             {
@@ -177,7 +192,7 @@ public static class EnumerableExtensions
 
             if (source is IList<T> l)
             {
-                return (l[indexA], l[indexB]);
+                return new(First: l[indexA], Second: l[indexB]);
             }
 
             {
@@ -185,7 +200,7 @@ public static class EnumerableExtensions
                 int index = 0;
                 var a = ItemAt(indexA);
                 var b = ItemAt(indexB);
-                return (a, b);
+                return new(First: a, Second: b);
 
 
                 T ItemAt(int i)
@@ -237,6 +252,7 @@ public static class EnumerableExtensions
 
         public readonly bool IsDone => _isDone;
         public readonly T Current => _e.Current;
+
         public bool MoveNext()
         {
             if (!_e.MoveNext())
@@ -285,17 +301,37 @@ public static class EnumerableExtensions
         IComparer<T> comparer,
         MergeDuplicateBehavior duplicateBehavior)
     {
-        using var e1 = a.GetEnumerator().RememberIsDone();
-        using var e2 = b.GetEnumerator().RememberIsDone();
+        using var e1 = a.GetEnumerator()
+            .RememberIsDone();
+        using var e2 = b.GetEnumerator()
+            .RememberIsDone();
         while (true)
         {
-            if (e1.IsDone || e2.IsDone)
+            bool CalculateConditionResult()
+            {
+                if (e1.IsDone)
+                {
+                    return true;
+                }
+
+                if (e2.IsDone)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 break;
             }
             var c1 = e1.Current;
             var c2 = e2.Current;
-            int comparisonResult = comparer.Compare(c1, c2);
+            int comparisonResult = comparer.Compare(x: c1, y: c2);
             if (comparisonResult < 0)
             {
                 yield return c1;
@@ -311,36 +347,36 @@ public static class EnumerableExtensions
                 switch (duplicateBehavior)
                 {
                     case MergeDuplicateBehavior.KeepBoth:
-                    {
-                        yield return c1;
-                        e1.MoveNext();
-                        yield return c2;
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c1;
+                            e1.MoveNext();
+                            yield return c2;
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.KeepFirst:
-                    {
-                        yield return c1;
-                        e1.MoveNext();
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c1;
+                            e1.MoveNext();
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.KeepSecond:
-                    {
-                        yield return c2;
-                        e1.MoveNext();
-                        e2.MoveNext();
-                        continue;
-                    }
+                        {
+                            yield return c2;
+                            e1.MoveNext();
+                            e2.MoveNext();
+                            continue;
+                        }
                     case MergeDuplicateBehavior.Fail:
-                    {
-                        throw new InvalidOperationException(
-                            "Merging two sequences with duplicates not allowed");
-                    }
+                        {
+                            throw new InvalidOperationException(
+                                "Merging two sequences with duplicates not allowed");
+                        }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
             }
         }
@@ -360,12 +396,10 @@ public static class EnumerableExtensions
         this IEnumerable<T> a,
         IEnumerable<T> b,
         MergeDuplicateBehavior duplicateBehavior)
-
         where T : IComparable<T>
     {
-        return MergeSorted(
-            a,
-            b,
+        return a.MergeSorted(
+            b: b,
             Comparer<T>.Default,
             duplicateBehavior);
     }
@@ -383,10 +417,12 @@ public sealed class ClassEnumeratorWrapper<T, TEnumerator> : IEnumerator<T>
     where TEnumerator : struct, IEnumerator<T>
 {
     private TEnumerator _enumerator;
+
     public ClassEnumeratorWrapper(TEnumerator enumerator)
     {
         _enumerator = enumerator;
     }
+
     public T Current => _enumerator.Current;
     object? IEnumerator.Current => _enumerator.Current;
     public void Dispose() => _enumerator.Dispose();
@@ -399,8 +435,7 @@ public static class EnumeratorHelper1
 {
     public static ClassEnumeratorWrapper<T, TEnumerator> Wrap<T, TEnumerator>(
         this TEnumerator e,
-        T? tag = default(T))
-
+        T? tag = default)
         where TEnumerator : struct, IEnumerator<T>
         where T : notnull
     {
@@ -410,8 +445,7 @@ public static class EnumeratorHelper1
 
     public static ClassEnumeratorWrapper<T, TEnumerator> WrapNullable<T, TEnumerator>(
         this TEnumerator e,
-        T? tag = default(T))
-
+        T? tag = default)
         where TEnumerator : struct, IEnumerator<T>
     {
         _ = tag;

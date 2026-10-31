@@ -24,19 +24,22 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
     private readonly LessonTimeConfig _timeConfig;
     private readonly GoogleApiHelper _helper;
 
-    private static readonly string[] Scopes = [
+    private static readonly string[] Scopes =
+    [
         CalendarService.Scope.Calendar,
     ];
 
     /// <summary>Builds the same recurring events used by replacement synchronization, without remote access.</summary>
     public IReadOnlyList<Event> BuildDesiredEvents(CancellationToken cancellationToken)
     {
-        var lessonDisplay = new LessonTextDisplayHandler(_lessonDisplayServices, new()
-        {
-            PrintsTeacherName = false,
-            PrintsGroupNames = true,
-            PrintsSubGroup = true,
-        });
+        var lessonDisplay = new LessonTextDisplayHandler(
+            _lessonDisplayServices,
+            new()
+            {
+                PrintsTeacherName = false,
+                PrintsGroupNames = true,
+                PrintsSubGroup = true,
+            });
 
         var filteredSchedule = _filteredScheduleProvider.Get();
         var lessons = filteredSchedule.Lessons;
@@ -64,7 +67,10 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                 var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                 var date = timeEvent.Event.First;
                 var dateTime = new DateTime(date, time);
-                return new(dateTime, zone.GetUtcOffset(dateTime));
+                var dateTime2 = dateTime;
+                var offset = zone.GetUtcOffset(dateTime);
+                DateTimeOffset dateTimeOffset = new(dateTime2, offset);
+                return dateTimeOffset;
             }
 
             var notRichText = new NotRichText();
@@ -132,20 +138,23 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         using var service = new CalendarService(_helper.CreateServiceInitializer(credential));
 
         var desired = BuildDesiredEvents(cancellationToken);
-        var calendarId = await service.MakeSureCleanCalendarWithSummary(new Calendar
-        {
-            Summary = config.CalendarName,
-            Location = "Chișinău, Moldova",
-            TimeZone = "Europe/Chisinau",
-        }, cancellationToken);
+        var calendarId = await service.MakeSureCleanCalendarWithSummary(
+            new Calendar
+            {
+                Summary = config.CalendarName,
+                Location = "Chișinău, Moldova",
+                TimeZone = "Europe/Chisinau",
+            },
+            cancellationToken);
         using var runner = _helper.RunnerProvider.Create(cancellationToken);
         foreach (var ev in desired)
         {
-            runner.Add([SuppressMessage("ReSharper", "AccessToDisposedClosure")] async (token) =>
+            runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (token) =>
             {
-                await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+                await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
                 {
-                    await service.Events.Insert(ev, calendarId).ExecuteAsync(token);
+                    await service.Events.Insert(ev, calendarId)
+                        .ExecuteAsync(token);
                 });
             });
         }
@@ -157,7 +166,9 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
 file sealed class LessonToColorConverter()
 {
     private GoogleCalendarColorId _nextColor;
-    private Dictionary<(LessonGroups Groups, GroupPartitionKey Partition, CourseId Course), GoogleCalendarColorId> lessonToColorMap = new();
+
+    private Dictionary<(LessonGroups Groups, GroupPartitionKey Partition, CourseId Course), GoogleCalendarColorId>
+        lessonToColorMap = new();
 
     public GoogleCalendarColorId GetColorId(AnyLessonAccessor lesson)
     {
@@ -169,7 +180,10 @@ file sealed class LessonToColorConverter()
 
         lock (this)
         {
-            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(lessonToColorMap, key, out bool exists);
+            ref var v = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                lessonToColorMap,
+                key,
+                out bool exists);
             if (!exists)
             {
                 v = _nextColor;
@@ -215,11 +229,12 @@ internal static class GoogleCalendarServiceExtensions
         string calendarName,
         CancellationToken cancellationToken)
     {
-        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
             try
             {
-                var response = await service.CalendarList.Get(calendarName).ExecuteAsync(cancellationToken);
+                var response = await service.CalendarList.Get(calendarName)
+                    .ExecuteAsync(cancellationToken);
                 _ = response;
                 return true;
             }
@@ -235,21 +250,24 @@ internal static class GoogleCalendarServiceExtensions
         Calendar calendar,
         CancellationToken cancellationToken)
     {
-        var calendars = await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        var calendars = await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
-            var calendars = await service.CalendarList.List().ExecuteAsync(cancellationToken);
+            var calendars = await service.CalendarList.List()
+                .ExecuteAsync(cancellationToken);
             return calendars;
         });
         if (calendars.Items.FirstOrDefault(x => x.Summary == calendar.Summary) is { } c)
         {
-            await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+            await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
             {
-                await service.Calendars.Delete(c.Id).ExecuteAsync(cancellationToken);
+                await service.Calendars.Delete(c.Id)
+                    .ExecuteAsync(cancellationToken);
             });
         }
-        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
-            var result = await service.Calendars.Insert(calendar).ExecuteAsync(cancellationToken);
+            var result = await service.Calendars.Insert(calendar)
+                .ExecuteAsync(cancellationToken);
             return result.Id;
         });
     }

@@ -16,28 +16,86 @@ public sealed class CalendarReportingTests
         try
         {
             Console.SetOut(text);
-            using var context = new CliCommandContext("calendar sync",
+            using var context = new CliCommandContext(
+                "calendar sync",
                 new()
                 {
                     Json = json,
                     Jsonl = jsonl,
                 },
                 default);
-            context.StreamUpdate(new CalendarReport("desired-0",
-                "completed",
-                new { index = 0 },
-                new ProbeMessage(probe)));
-            Assert.Equal(json || jsonl ? 0 : 1, probe.Calls);
-            if (jsonl)
+
+            CalendarReport CalculateUpdate()
             {
-                using var document = JsonDocument.Parse(text.ToString());
-                Assert.Equal("desired-0", document.RootElement.GetProperty("id").GetString());
-                Assert.Equal(0, document.RootElement.GetProperty("item").GetProperty("index").GetInt32());
-                Assert.DoesNotContain("human", document.RootElement.EnumerateObject().Select(x => x.Name));
+                string id = "desired-0";
+                var status = ActionState.Completed;
+                object item = new { index = 0 };
+                var human = new ProbeMessage(probe);
+                ICliMessage human2 = human;
+                var update = new CalendarReport(
+                    Id: id,
+                    Status: status,
+                    item,
+                    human2);
+                return update;
+            }
+
+            context.StreamUpdate(CalculateUpdate());
+
+            bool CheckCondition()
+            {
+                if (json)
+                {
+                    return true;
+                }
+
+                return jsonl;
+            }
+
+            int expected2;
+            if (CheckCondition())
+            {
+                expected2 = 0;
             }
             else
             {
-                Assert.Equal(json ? "" : "probe" + Environment.NewLine, text.ToString());
+                expected2 = 1;
+            }
+
+            int actual2 = probe.Calls;
+            Assert.Equal(expected: expected2, actual: actual2);
+            if (jsonl)
+            {
+                using var document = JsonDocument.Parse(text.ToString());
+                Assert.Equal(
+                    expected: "desired-0",
+                    actual: document.RootElement.GetProperty("id")
+                        .GetString());
+                Assert.Equal(
+                    expected: 0,
+                    actual: document.RootElement.GetProperty("item")
+                        .GetProperty("index")
+                        .GetInt32());
+                Assert.DoesNotContain(
+                    "human",
+                    document.RootElement.EnumerateObject()
+                        .Select(x => x.Name));
+            }
+            else
+            {
+                string expected3;
+                if (json)
+                {
+                    expected3 = "";
+                }
+                else
+                {
+                    string text2 = $"probe{Environment.NewLine}";
+                    expected3 = text2;
+                }
+
+                string actual3 = text.ToString();
+                Assert.Equal(expected: expected3, actual: actual3);
             }
         }
         finally
@@ -54,10 +112,15 @@ public sealed class CalendarReportingTests
         try
         {
             Console.SetOut(text);
-            using var context = new CliCommandContext("calendar sync",
-                new() { Json = true },
+            using var context = new CliCommandContext(
+                "calendar sync",
+                new()
+                {
+                    Json = true,
+                },
                 default);
-            context.Finish(new CliCompletion<object?>(0,
+            context.Finish(new CliCompletion<object?>(
+                0,
                 [],
                 null)
             {
@@ -70,13 +133,15 @@ public sealed class CalendarReportingTests
             });
             using var document = JsonDocument.Parse(text.ToString());
             Assert.Equal(
-                new[]
+                expected: new[]
                 {
                     "Delete calendar old and its 2 events",
                     "Create calendar Lessons with a new ID",
                     "Create 3 events with new IDs",
                 },
-                document.RootElement.GetProperty("actions").EnumerateArray().Select(x => x.GetString()));
+                actual: document.RootElement.GetProperty("actions")
+                    .EnumerateArray()
+                    .Select(x => x.GetString()));
         }
         finally
         {
@@ -87,17 +152,25 @@ public sealed class CalendarReportingTests
     [Fact]
     public void RenderingUsesTheBoundaryCultureAndPreservesNullFields()
     {
-        var start = new DateTimeOffset(2026,
-            10,
-            18,
-            9,
+        TimeSpan CalculateOffset()
+        {
+            var offset = TimeSpan.FromHours(3);
+            return offset;
+        }
+
+        var start = new DateTimeOffset(
+            year: 2026,
+            month: 10,
+            day: 18,
+            hour: 9,
+            minute: 0,
+            second: 0,
+            CalculateOffset());
+        var message = new CalendarDesiredEventMessage(
             0,
-            0,
-            TimeSpan.FromHours(3));
-        var message = new CalendarDesiredEventMessage(0,
             null,
-            start,
-            null,
+            Start: start,
+            End: null,
             []);
         foreach (var cultureName in new[]
                  {
@@ -106,10 +179,14 @@ public sealed class CalendarReportingTests
                  })
         {
             var culture = CultureInfo.GetCultureInfo(cultureName);
-            Assert.Equal($"Create event [0]: ; {start.ToString(culture)}–; ", message.Format(culture));
+            string toString = start.ToString(culture);
+            string expected2 = $"Create event [0]: ; {toString}–; ";
+            string actual2 = message.Format(culture);
+            Assert.Equal(expected: expected2, actual: actual2);
         }
-        Assert.Equal("create event: not-attempted; desired index 2",
-            new CalendarNotAttemptedMessage("create event", 2).Format(CultureInfo.InvariantCulture));
+        Assert.Equal(
+            expected: "create event: not-attempted; desired index 2",
+            actual: new CalendarNotAttemptedMessage("create event", 2).Format(CultureInfo.InvariantCulture));
     }
 
     private sealed class FormattingProbe

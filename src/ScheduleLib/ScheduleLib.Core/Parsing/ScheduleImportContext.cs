@@ -23,8 +23,11 @@ public sealed class ScheduleImportContext
         var parser = ParserFactory.Create();
         parser.Lexer.Reset(enumerator);
         foreach (var lesson in parser.ParseLessons(new StringBuilder()))
+        {
             yield return lesson;
+        }
     }
+
     public ScheduleBuilder Schedule { get; }
     public LessonTimeConfig TimeConfig { get; }
     public DayNameParser DayNameParser { get; }
@@ -85,14 +88,24 @@ public sealed class ScheduleImportContext
         s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
-        return new(
-            schedule: s,
-            timeConfig: timeConfig,
-            courseNameUnifierModule: new(p.CourseNameUnifierConfig),
-            dayNameParser: new DayNameParser(p.DayNameProvider),
-            parserFactory: p.ParserFactory,
-            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty,
-            subGroupMatcher: p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default);
+        var schedule2 = s;
+        LessonTimeConfig timeConfig2 = timeConfig;
+        CourseNameUnifierModule courseNameUnifierModule2 =
+            new(p.CourseNameUnifierConfig);
+        var dayNameParser2 = new DayNameParser(p.DayNameProvider);
+        var parserFactory2 = p.ParserFactory;
+        var specializationRegistry2 =
+            p.SpecializationRegistry ?? SpecializationRegistry.Empty;
+        var subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
+        ScheduleImportContext scheduleImportContext = new(
+            schedule: schedule2,
+            timeConfig: timeConfig2,
+            courseNameUnifierModule: courseNameUnifierModule2,
+            dayNameParser: dayNameParser2,
+            parserFactory: parserFactory2,
+            specializationRegistry: specializationRegistry2,
+            subGroupMatcher: subGroupMatcher2);
+        return scheduleImportContext;
     }
 
     public SubGroupStatus SetCommonProps(
@@ -143,7 +156,9 @@ public sealed class ScheduleImportContext
             {
                 // Future specialization labels are registered by their complete
                 // name, not by the built-in abbreviation table.
-                var remapped = Schedule.RemapSubGroup(new(parsedLesson.GroupName.ToString()));
+                var scheduleBuilder = Schedule;
+                SubGroup subGroup2 = new(parsedLesson.GroupName.ToString());
+                var remapped = scheduleBuilder.RemapSubGroup(subGroup2);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     groupNameIsLabel = true;
@@ -155,12 +170,16 @@ public sealed class ScheduleImportContext
         if (!parsedLesson.PartitionHint.IsEmpty)
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
-            var remapped = Schedule.RemapSubGroup(new(parsedLesson.PartitionHint.ToString()));
+            var scheduleBuilder2 = Schedule;
+            SubGroup subGroup3 = new(parsedLesson.PartitionHint.ToString());
+            var remapped = scheduleBuilder2.RemapSubGroup(subGroup3);
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)
                 {
-                    throw ConflictingSpecializationException.ForConflictingValues(prevSpec.Value, spec.Value);
+                    throw ConflictingSpecializationException.ForConflictingValues(
+                        first: prevSpec.Value,
+                        second: spec.Value);
                 }
                 specialization = spec;
             }
@@ -169,7 +188,7 @@ public sealed class ScheduleImportContext
                 var label = remapped;
                 if (subGroup is { } prevSub)
                 {
-                    throw ConflictingSubGroupException.ForConflictingValues(prevSub.Value, label.Value);
+                    throw ConflictingSubGroupException.ForConflictingValues(first: prevSub.Value, second: label.Value);
                 }
                 subGroup = label;
             }
@@ -184,9 +203,12 @@ public sealed class ScheduleImportContext
             builder.Specialization(sp);
         }
 
-        return groupNameIsLabel
-            ? SubGroupStatus.GroupNameIsSubGroup
-            : SubGroupStatus.SetFromSubGroup;
+        if (groupNameIsLabel)
+        {
+            return SubGroupStatus.GroupNameIsSubGroup;
+        }
+
+        return SubGroupStatus.SetFromSubGroup;
     }
 
     public CourseId GetOrAddCourse(ReadOnlyMemory<char> name)
@@ -221,11 +243,8 @@ public sealed class ScheduleImportContext
                     ret.Full = x.ToString();
                     return ret;
                 }
-                else
-                {
-                    ret.Short = x.ToString();
-                    return ret;
-                }
+                ret.Short = x.ToString();
+                return ret;
             }),
             LastName = new(name.LastName.Map(x =>
             {
@@ -247,13 +266,20 @@ public sealed class ScheduleImportContext
         _ = before;
 
         teacher.Name.LastName.Parts.Update(
-            nameModel.LastName.Parts, (a, b) =>
+            nameModel.LastName.Parts,
+            (a, b) =>
             {
-                if (a == null || b == null)
+                if (a is null)
                 {
-                    return a ?? b;
+                    return b;
                 }
-                var ret = DiacriticsHelper.SelectWithDiacritics(a, b);
+
+                if (b is null)
+                {
+                    return a;
+                }
+
+                var ret = DiacriticsHelper.SelectWithDiacritics(a: a, b: b);
                 return ret;
             });
 
@@ -305,21 +331,47 @@ public sealed class ScheduleImportContext
     {
         var lesson = input.Lesson;
         var builder = Schedule.DetachedRegularLesson();
-        builder.TimeSlot(lesson.StartTime is { } startTime
-            ? new(FindTimeSlotIndex(startTime))
-            : input.TimeSlot);
+        TimeSlot timeSlot;
+        if (lesson.StartTime is { } startTime)
+        {
+            var timeSlotIndex = FindTimeSlotIndex(startTime);
+            timeSlot = new(timeSlotIndex);
+        }
+        else
+        {
+            timeSlot = input.TimeSlot;
+        }
+
+        builder.TimeSlot(timeSlot);
         builder.DayOfWeek(input.Day);
         builder.Parity(lesson.Parity);
         builder.Alternative(input.Alternative);
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
-        if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
+
+        bool CalculateConditionResult()
+        {
+            if (lesson.GroupName.IsEmpty)
+            {
+                return true;
+            }
+            return groupNameHandledAsSubgroup;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             builder.Groups([.. input.Groups]);
         }
         else
         {
-            builder.Group(Schedule.Group(lesson.GroupName.ToString()));
+            var
+                lessonBuilder = builder;
+            var group = Schedule.Group(lesson.GroupName.ToString());
+            GroupId group2 = group;
+            lessonBuilder.Group(group2);
         }
 
         if (MaybeMergeIntoAnExistingLesson())
@@ -354,8 +406,8 @@ public sealed class ScheduleImportContext
                     // Course = true,
                 };
                 var diff = LessonBuilderHelper.Diff(
-                    builder.Model.Data,
-                    model.Data,
+                    a: builder.Model.Data,
+                    b: model.Data,
                     diffMask);
                 if (diff.TheyDiffer)
                 {
@@ -394,11 +446,13 @@ public sealed class DayNameParser(DayNameProvider p)
 
     public DayOfWeek? Map(ReadOnlySpan<char> s)
     {
-        if (_days.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(s, out var day))
+        if (!_days.GetAlternateLookup<ReadOnlySpan<char>>()
+                .TryGetValue(s, out var day))
         {
-            return day;
+            return null;
         }
-        return null;
+
+        return day;
     }
 
     private static Dictionary<string, DayOfWeek> CreateMappings(DayNameProvider p)
@@ -424,21 +478,27 @@ public static class RomanianLanguageHelper
     // This is surprisingly common even though it's wrong.
     public static string? VariantWithOldLetter(string name)
     {
-        var middle = name.AsSpan()[1 .. ^1];
+        var middle = name.AsSpan()[1..^1];
         if (!middle.Contains('â'))
         {
             return null;
         }
 
-        return string.Create(name.Length, middle, (output, middle) =>
-        {
-            Debug.Assert(name.Length <= 256);
+        return string.Create(
+            name.Length,
+            middle,
+            (output, middle) =>
             {
-                middle.Replace(output[1 .. ^1], 'â', 'î');
-            }
-            output[0] = name[0];
-            output[^1] = name[^1];
-        });
+                Debug.Assert(name.Length <= 256);
+                {
+                    middle.Replace(
+                        output[1..^1],
+                        oldValue: 'â',
+                        newValue: 'î');
+                }
+                output[0] = name[0];
+                output[^1] = name[^1];
+            });
     }
 }
 

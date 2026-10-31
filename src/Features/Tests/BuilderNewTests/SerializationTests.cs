@@ -14,15 +14,25 @@ public sealed class SerializationTests
     {
         var services = new ServiceCollection();
         services.AddLayeredData();
-        services.Replace(
-            new ServiceDescriptor(
-                typeof(TreeBuilder), typeof(TreeBuilder), ServiceLifetime.Transient));
+        var serviceCollection = services;
+        var descriptor = new ServiceDescriptor(
+            serviceType: typeof(TreeBuilder),
+            implementationType: typeof(TreeBuilder),
+            ServiceLifetime.Transient);
+        serviceCollection.Replace(descriptor);
         CredentialsSource.Register(services);
         RegistryConfig.Register(services);
         TeacherLayerConfig.Register(services);
         var sp = services.BuildServiceProvider();
         var t1 = sp.GetRequiredService<TreeBuilder>();
-        var t1a = t1.Defaults.AddLayer(new("A"));
+
+        Layer CalculateLayer()
+        {
+            Layer layer3 = new("A");
+            return layer3;
+        }
+
+        var t1a = t1.Defaults.AddLayer(CalculateLayer());
 
         var t2 = sp.GetRequiredService<TreeBuilder>();
 
@@ -38,38 +48,56 @@ public sealed class SerializationTests
             },
             CommandProcessingConfig = CommandProcessingConfig.DryRun,
         };
-        t1a.Builder<RegistryConfig>().Enable().SetValue(value);
+        t1a.Builder<RegistryConfig>()
+            .Enable()
+            .SetValue(value);
 
         var serializer = sp.GetRequiredService<TreeSerializer>();
         var output = new MemoryStream();
         await serializer.SerializeValues([t1a.Node], output);
 
         output.Seek(0, SeekOrigin.Begin);
-        await serializer.DeserializeValues(output, (layer, configs) =>
-        {
-            if (layer is { } l)
+        await serializer.DeserializeValues(
+            output,
+            (layer, configs) =>
             {
-                Assert.Equal("A", l.Value);
-            }
-            var config = Assert.Single(configs);
-            Assert.Equal(RegistryConfig.Key.Value, config.Key);
-            Assert.Equal(value, (RegistryConfig?) config.Value, Comparer.Instance);
-            return t2.AddNode(new("A"));
-        });
+                if (layer is { } l)
+                {
+                    Assert.Equal(expected: "A", actual: l.Value);
+                }
+                var config = Assert.Single(configs);
+                Assert.Equal(expected: RegistryConfig.Key.Value, actual: config.Key);
+                Assert.Equal(
+                    expected: value,
+                    actual: (RegistryConfig?) config.Value,
+                    Comparer.Instance);
+                var treeBuilder = t2;
+                Layer layer2 = new("A");
+                var addNode = treeBuilder.AddNode(layer2);
+                return addNode;
+            });
 
         var child0 = t2.BaseNode.ChildNodes[0];
-        var config = child0.Get(RegistryConfig.Key).Value.GetValue();
-        Assert.Equal(value, config, Comparer.Instance);
+        var config = child0.Get(RegistryConfig.Key).Value
+            .GetValue();
+        Assert.Equal(
+            expected: value,
+            actual: config,
+            Comparer.Instance);
     }
 }
 
 file sealed class Comparer : IEqualityComparer<RegistryConfig?>
 {
     public static readonly Comparer Instance = new();
+
     public bool Equals(RegistryConfig? x, RegistryConfig? y)
     {
         {
-            if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool bothNull))
+            if (ComparisonHelper.AtLeastOneIsNull(
+                    x: x,
+                    y: y,
+                    out bool bothNull))
             {
                 return bothNull;
             }
@@ -78,34 +106,44 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
         {
             return false;
         }
-        if (!x.Credentials.ValueEquals(y.Credentials, (a, b) =>
-            {
-                if (a.GetType() != b.GetType())
+        if (!x.Credentials.ValueEquals(
+                y.Credentials,
+                (a, b) =>
                 {
+                    if (a.GetType() != b.GetType())
+                    {
+                        return false;
+                    }
+                    // only supporting this currently
+                    if (a is not ValueCredentialsSource va)
+                    {
+                        return true;
+                    }
+                    if (b is not ValueCredentialsSource vb)
+                    {
+                        return true;
+                    }
+
+                    if (va.Value.ValueEquals(
+                            vb.Value,
+                            (ca, cb) =>
+                            {
+                                if (ca.Login != cb.Login)
+                                {
+                                    return false;
+                                }
+                                if (ca.Password != cb.Password)
+                                {
+                                    return false;
+                                }
+                                return true;
+                            }))
+                    {
+                        return true;
+                    }
+
                     return false;
-                }
-                // only supporting this currently
-                if (a is not ValueCredentialsSource va)
-                {
-                    return true;
-                }
-                if (b is not ValueCredentialsSource vb)
-                {
-                    return true;
-                }
-                return va.Value.ValueEquals(vb.Value, (ca, cb) =>
-                {
-                    if (ca.Login != cb.Login)
-                    {
-                        return false;
-                    }
-                    if (ca.Password != cb.Password)
-                    {
-                        return false;
-                    }
-                    return true;
-                });
-            }))
+                }))
         {
             return false;
         }
@@ -115,11 +153,13 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
         {
             return false;
         }
-        if (x.ExtraLessonInstanceAction != y.ExtraLessonInstanceAction)
+
+        if (x.ExtraLessonInstanceAction == y.ExtraLessonInstanceAction)
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     public int GetHashCode(RegistryConfig obj) => obj.GetHashCode();

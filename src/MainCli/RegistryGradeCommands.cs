@@ -6,14 +6,35 @@ namespace ScheduleLib.Cli;
 public sealed class QuizArguments : IArgumentModel
 {
     [Option("quiz-id", Description = "Required positive numeric Moodle quiz ID.")]
-    public string? QuizId
-    {
-        get;
-        set;
-    }
+    public string? QuizId { get; set; }
 
-    internal bool IsValid =>
-        QuizId is { Length: > 0 } && QuizId.All(x => x is >= '0' and <= '9') && QuizId.Any(x => x != '0');
+    internal bool IsValid
+    {
+        get
+        {
+            bool CheckCondition()
+            {
+                if (!(QuizId is { Length: > 0 }))
+                {
+                    return false;
+                }
+
+                if (!QuizId.All(x => x is >= '0' and <= '9'))
+                {
+                    return false;
+                }
+
+                if (QuizId.Any(x => x != '0'))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            return CheckCondition();
+        }
+    }
 }
 
 public sealed record RegistryGradeOutcome(
@@ -22,7 +43,7 @@ public sealed record RegistryGradeOutcome(
     string Groups,
     int TestNumber,
     IReadOnlyList<RegistryGradeChange> Grades,
-    string Status,
+    ActionState Status,
     string? Detail);
 
 public sealed record RegistryGradeResult(
@@ -83,30 +104,49 @@ public partial class RegistryCommands
                     ["Select a teacher with --profile. Use config profiles to list supported teachers."]);
             }
 
-            await using var session = await CreateProvider().Open(
-                source,
-                settings,
-                cancellation.Token);
+            await using var session = await CreateProvider()
+                .Open(
+                    source,
+                    settings,
+                    cancellation.Token);
             target = session.Target;
-            await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply
+                ? await CreateAccountLock()
+                    .Acquire(target, cancellation.Token)
+                : null;
             // Every invocation derives current remote state; no preview transaction is replayed.
-            var plan = await CreateGradePlanner().Plan(
-                session,
-                quiz.QuizId!,
-                cancellation.Token);
+            var plan = await CreateGradePlanner()
+                .Plan(
+                    session,
+                    quiz.QuizId!,
+                    cancellation.Token);
             notices.AddRange(plan.Notices);
             foreach (var notice in notices)
             {
-                warnings.Add($"{notice.Kind}: {notice.Detail}");
+                var list = warnings;
+                string item = $"{notice.Kind}: {notice.Detail}";
+                list.Add(item);
             }
 
             foreach (var action in plan.Actions)
             {
                 actionIndexes.Add(action, outcomes.Count);
+                var action2 = action;
+                ActionState status3;
+                if (apply.Apply)
+                {
+                    status3 = ActionState.NotAttempted;
+                }
+                else
+                {
+                    status3 = ActionState.Planned;
+                }
+
+                string? detail2 = null;
                 var initial = ToOutcome(
-                    action,
-                    apply.Apply ? "not-attempted" : "planned",
-                    null);
+                    action2,
+                    status: status3,
+                    detail: detail2);
                 outcomes.Add(initial);
                 StreamOutcome(outcomes.Count - 1, initial);
             }
@@ -126,8 +166,8 @@ public partial class RegistryCommands
                 attempted |= outcome.SubmissionStarted;
                 Record(
                     action,
-                    outcome.Status,
-                    outcome.Detail);
+                    status: outcome.Status,
+                    detail: outcome.Detail);
                 if (outcome.Cancelled)
                 {
                     throw new OperationCanceledException();
@@ -160,49 +200,64 @@ public partial class RegistryCommands
 
         static RegistryGradeOutcome ToOutcome(
             RegistryGradeAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             return new(
-                action.Destination,
-                action.Course,
-                action.Groups,
+                Destination: action.Destination,
+                Course: action.Course,
+                Groups: action.Groups,
                 action.TestNumber,
                 action.Grades,
-                status,
-                detail);
+                Status: status,
+                Detail: detail);
         }
 
         void Record(
             RegistryGradeAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             var index = actionIndexes[action];
             var outcome = ToOutcome(
                 action,
-                status,
-                detail);
+                status: status,
+                detail: detail);
             outcomes[index] = outcome;
             StreamOutcome(index, outcome);
         }
 
         void StreamOutcome(int index, RegistryGradeOutcome outcome)
         {
-            context.StreamItem(
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                outcome.Status,
-                outcome,
-                renderHuman: () =>
+            var cliCommandContext = context;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var status2 = outcome.Status;
+            object item = outcome;
+            Action renderHuman2 = () =>
+            {
+                string CalculateLine()
                 {
-                    output.WriteHuman(
-                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status} {outcome.Detail}");
-                    foreach (var grade in outcome.Grades)
-                    {
-                        output.WriteHuman(
-                            $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})");
-                    }
-                });
+                    string line =
+                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
+                    return line;
+                }
+
+                output.WriteHuman(
+                    CalculateLine());
+                foreach (var grade in outcome.Grades)
+                {
+                    var cliOutput = output;
+                    string line2 =
+                        $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
+                    cliOutput.WriteHuman(
+                        line2);
+                }
+            };
+            cliCommandContext.StreamItem(
+                id: id2,
+                status: status2,
+                item,
+                renderHuman: renderHuman2);
         }
 
         int Finish(int exit, string[] errors)
@@ -216,16 +271,17 @@ public partial class RegistryCommands
         {
             var exit = finalExit;
             var errors = finalErrors;
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status)
+                .ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,
@@ -234,7 +290,8 @@ public partial class RegistryCommands
                 counts,
                 notices,
             };
-            var actions = outcomes.Select(x => $"grades: {x.Status}").ToArray();
+            var actions = outcomes.Select(x => $"grades: {x.Status.ToWire()}")
+                .ToArray();
             var data = new RegistryGradeResult(
                 target,
                 quiz.QuizId,
@@ -253,7 +310,9 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                        var cliOutput = output;
+                        string line = $"{status}: {target.Destination} (account {target.Account})";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });

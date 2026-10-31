@@ -4,6 +4,7 @@ using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common.Config;
+using ScheduleLib.Scraping.Common;
 
 namespace ScheduleLib.Cli;
 
@@ -19,7 +20,7 @@ public interface IRegistryGradePlanner
 public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
 {
     private readonly
-        Func<IServiceProvider, ScheduleLib.Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
+        Func<IServiceProvider, Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
         _openMoodle;
 
     public ConfiguredRegistryGradePlanner() : this((
@@ -32,7 +33,7 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
     }
 
     public ConfiguredRegistryGradePlanner(
-        Func<IServiceProvider, ScheduleLib.Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
+        Func<IServiceProvider, Scraping.Common.Credentials, CancellationToken, Task<MoodleScrapingContext>>
             openMoodle) => _openMoodle = openMoodle;
 
     public async Task<RegistryGradePlan> Plan(
@@ -46,21 +47,25 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         }
 
         var services = configured.Services;
-        ScheduleLib.Scraping.Common.Credentials credentials;
+        const string missingCredentialsMessage =
+            "Moodle credentials are missing; configure the selected teacher's existing credential source.";
+        var credentialsResolver = services.GetRequiredService<CredentialsResolver<MoodleConfig>>();
+        Scraping.Common.Credentials? credentials;
         try
         {
-            credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>().Get();
-            if (credentials is null
-                || string.IsNullOrWhiteSpace(credentials.Login)
-                || string.IsNullOrWhiteSpace(credentials.Password))
-            {
-                throw new InvalidOperationException();
-            }
+            credentials = credentialsResolver.Get();
         }
-        catch (InvalidOperationException)
+        catch (CredentialsMissingException error)
         {
-            throw new RegistryAuthenticationException(
-                "Moodle credentials are missing; configure the selected teacher's existing credential source.");
+            throw TranslatedFailureLog.Translated(
+                RegistryCredentials.FailureLogger(services),
+                new RegistryAuthenticationException(
+                    missingCredentialsMessage,
+                    error));
+        }
+        if (!RegistryCredentials.HasLoginAndPassword(credentials))
+        {
+            throw new RegistryAuthenticationException(missingCredentialsMessage);
         }
         MoodleScrapingContext context;
         try
@@ -70,24 +75,25 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
                 credentials,
                 token);
         }
-        catch (OperationCanceledException)
+        catch (ScrapingAuthenticationException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new RegistryAuthenticationException("Moodle authentication failed using configured credentials.");
+            throw TranslatedFailureLog.Translated(
+                RegistryCredentials.FailureLogger(services),
+                new RegistryAuthenticationException(
+                    "Moodle authentication failed using configured credentials.",
+                    error));
         }
         using (context)
         {
             var quiz = await context.ScrapeQuizAttempts(quizId, cancellationToken: token);
-            return await services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>().Plan(new()
-            {
-                Quiz = quiz,
-                RegistryNavigator = configured.CreateNavigator(token),
-                Semester = services.GetCurrentSemester(),
-                CancellationToken = token,
-            });
+            return await services.GetRequiredService<CopyGradesFromMoodleForTestTaskHandler>()
+                .Plan(new()
+                {
+                    Quiz = quiz,
+                    RegistryNavigator = configured.CreateNavigator(token),
+                    Semester = services.GetCurrentSemester(),
+                    CancellationToken = token,
+                });
         }
     }
 }

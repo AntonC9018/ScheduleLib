@@ -88,13 +88,12 @@ public static class WordScheduleParser
         // May be combined
         var tables = bodyElement.ChildElements
             .OfType<Table>();
-        var state = new TableParsingState
-        {
-        };
+        var state = new TableParsingState { };
 
         foreach (var table in tables)
         {
-            var rows = table.ChildElements.OfType<TableRow>().ToList();
+            var rows = table.ChildElements.OfType<TableRow>()
+                .ToList();
             // NOTE: has to be copyable, but also pass-by-reference.
             using var rowEnumerator = new CopyableRowEnumerator(rows.GetEnumerator());
             if (!rowEnumerator.MoveNext())
@@ -102,112 +101,133 @@ public static class WordScheduleParser
                 break;
             }
 
-            var headerParseResult = MaybeParseHeaderRow(c, ref state, rowEnumerator);
+            var headerParseResult = MaybeParseHeaderRow(
+                c,
+                ref state,
+                rowEnumerator);
             switch (headerParseResult.Status)
             {
                 case HeaderRowParseStatus.HeaderParsed:
-                {
-                    state.Format = headerParseResult.Format;
+                    {
+                        state.Format = headerParseResult.Format;
 
-                    // Table with no rows other than the header is allowed ig.
-                    if (!rowEnumerator.MoveNext())
-                    {
-                        continue;
-                    }
-                    break;
-                }
-                case HeaderRowParseStatus.NoHeaderParsed:
-                {
-                    // if (state.Format != 0)
-                    // {
-                    //     throw new NotImplementedException("Format other than 1 not supported this");
-                    // }
-                    if (!UpdateSizesByInspectingFutureCells())
-                    {
-                        throw new NotImplementedException("A more intelligent way to figure out the widths");
-                    }
-                    break;
-
-                    bool UpdateSizesByInspectingFutureCells()
-                    {
-                        var rowEnumeratorCopy = rowEnumerator.Copy();
-                        var newGroupsArr = new SizedItemArray<GroupId>();
-                        while (true)
+                        // Table with no rows other than the header is allowed ig.
+                        if (!rowEnumerator.MoveNext())
                         {
-                            int skippedSize = 0;
+                            continue;
+                        }
+                        break;
+                    }
+                case HeaderRowParseStatus.NoHeaderParsed:
+                    {
+                        // if (state.Format != 0)
+                        // {
+                        //     throw new NotImplementedException("Format other than 1 not supported this");
+                        // }
+                        if (!UpdateSizesByInspectingFutureCells())
+                        {
+                            throw new NotImplementedException("A more intelligent way to figure out the widths");
+                        }
+                        break;
 
-                            foreach (var cell in IterateCellColumns(rowEnumeratorCopy.Current))
+                        bool UpdateSizesByInspectingFutureCells()
+                        {
+                            var rowEnumeratorCopy = rowEnumerator.Copy();
+                            var newGroupsArr = new SizedItemArray<GroupId>();
+                            while (true)
                             {
-                                switch (cell.ColumnType)
+                                int skippedSize = 0;
+
+                                foreach (var cell in IterateCellColumns(rowEnumeratorCopy.Current))
                                 {
-                                    case ColumnType.Regular:
+                                    switch (cell.ColumnType)
                                     {
-                                        var size = cell.ColSpan;
-                                        int pos = cell.ColumnSizeCounter - skippedSize;
-                                        // Add an invalid id, just to set up the breakpoints
-                                        var result = newGroupsArr.ReplaceAt(
-                                            pos,
-                                            new(GroupId.Invalid, size),
-                                            allowAddToEnd: true);
-                                        Debug.Assert(result is ReplaceItemStatus.Spliced
-                                            or ReplaceItemStatus.FullyReplaced
-                                            or ReplaceItemStatus.PartlyReplaced
-                                            or ReplaceItemStatus.AddedAtEnd
-                                            or ReplaceItemStatus.ExistingItemTooSmall);
-                                        break;
-                                    }
-                                    case ColumnType.TimeSlot:
-                                    case ColumnType.DayOfWeek:
-                                    {
-                                        skippedSize += cell.ColSpan;
-                                        break;
+                                        case ColumnType.Regular:
+                                            {
+                                                var size = cell.ColSpan;
+                                                int pos = cell.ColumnSizeCounter - skippedSize;
+
+                                                // Add an invalid id, just to set up the breakpoints
+                                                SizedItem<GroupId>
+                                                    CalculateItem()
+                                                {
+                                                    SizedItem<GroupId> item =
+                                                        new(GroupId.Invalid, size);
+                                                    return item;
+                                                }
+
+                                                var result = newGroupsArr.ReplaceAt(
+                                                    pos,
+                                                    CalculateItem(),
+                                                    allowAddToEnd: true);
+                                                Debug.Assert(result is ReplaceItemStatus.Spliced
+                                                    or ReplaceItemStatus.FullyReplaced
+                                                    or ReplaceItemStatus.PartlyReplaced
+                                                    or ReplaceItemStatus.AddedAtEnd
+                                                    or ReplaceItemStatus.ExistingItemTooSmall);
+                                                break;
+                                            }
+                                        case ColumnType.TimeSlot:
+                                        case ColumnType.DayOfWeek:
+                                            {
+                                                skippedSize += cell.ColSpan;
+                                                break;
+                                            }
                                     }
                                 }
-                            }
 
-                            if (state.CurrentGroups.Count != newGroupsArr.Count)
-                            {
-                                if (!rowEnumeratorCopy.MoveNext())
+                                if (state.CurrentGroups.Count != newGroupsArr.Count)
                                 {
-                                    return false;
-                                }
-                                continue;
-                            }
-
-                            {
-                                var group = state.CurrentGroups.GetEnumerator();
-                                var newGroup = newGroupsArr.EnumerateWithPosition().GetEnumerator();
-                                while (true)
-                                {
-                                    bool g = group.MoveNext();
-                                    bool ng = newGroup.MoveNext();
-                                    Debug.Assert(g == ng);
-                                    if (!g)
+                                    if (!rowEnumeratorCopy.MoveNext())
                                     {
-                                        break;
+                                        return false;
                                     }
-
-                                    newGroupsArr.ReplaceItem(
-                                        newGroup.Current.Position,
-                                        group.Current.Item);
+                                    continue;
                                 }
-                            }
 
-                            state.ColumnCounts = new(
-                                Skipped: new(Count: 2, Size: skippedSize),
-                                Good: newGroupsArr.TotalSize);
-                            state.CurrentGroups = newGroupsArr;
-                            return true;
+                                {
+                                    var group = state.CurrentGroups.GetEnumerator();
+                                    var newGroup = newGroupsArr.EnumerateWithPosition()
+                                        .GetEnumerator();
+                                    while (true)
+                                    {
+                                        bool g = group.MoveNext();
+                                        bool ng = newGroup.MoveNext();
+                                        Debug.Assert(g == ng);
+                                        if (!g)
+                                        {
+                                            break;
+                                        }
+
+                                        newGroupsArr.ReplaceItem(
+                                            newGroup.Current.Position,
+                                            group.Current.Item);
+                                    }
+                                }
+
+                                SkippedHeaderColumnsInfo CalculateSkipped()
+                                {
+                                    SkippedHeaderColumnsInfo skipped = new(
+                                        Count: 2,
+                                        Size: skippedSize);
+                                    return skipped;
+                                }
+
+                                state.ColumnCounts = new(
+                                    Skipped: CalculateSkipped(),
+                                    Good: newGroupsArr.TotalSize);
+                                state.CurrentGroups = newGroupsArr;
+                                return true;
+                            }
                         }
                     }
-                }
                 // The master doc has a table used for alignment
                 // with general info before the main table.
                 // We ignore it.
                 case HeaderRowParseStatus.SkipTable:
-                {
-                    continue;
-                }
+                    {
+                        continue;
+                    }
             }
 
             while (true)
@@ -237,20 +257,20 @@ public static class WordScheduleParser
                     switch (columnIndex)
                     {
                         case dayColumnIndex:
-                        {
-                            colType = ColumnType.DayOfWeek;
-                            break;
-                        }
+                            {
+                                colType = ColumnType.DayOfWeek;
+                                break;
+                            }
                         case timeSlotColumnIndex:
-                        {
-                            colType = ColumnType.TimeSlot;
-                            break;
-                        }
+                            {
+                                colType = ColumnType.TimeSlot;
+                                break;
+                            }
                         default:
-                        {
-                            colType = ColumnType.Regular;
-                            break;
-                        }
+                            {
+                                colType = ColumnType.Regular;
+                                break;
+                            }
                     }
 
                     yield return new ColumnCell(
@@ -263,15 +283,15 @@ public static class WordScheduleParser
                     {
                         case ColumnType.TimeSlot:
                         case ColumnType.DayOfWeek:
-                        {
-                            columnIndex += 1;
-                            break;
-                        }
+                            {
+                                columnIndex += 1;
+                                break;
+                            }
                         default:
-                        {
-                            columnIndex += colSpan;
-                            break;
-                        }
+                            {
+                                columnIndex += colSpan;
+                                break;
+                            }
                     }
                     columnSizeCounter += colSpan;
                 }
@@ -284,29 +304,29 @@ public static class WordScheduleParser
                     switch (cell.ColumnType)
                     {
                         case ColumnType.DayOfWeek:
-                        {
-                            var newDay = DayOfWeekCol(state.CurrentDay);
-                            if (newDay != state.CurrentDay)
                             {
-                                state.CurrentDay = newDay;
-                                state.Time = null;
+                                var newDay = DayOfWeekCol(state.CurrentDay);
+                                if (newDay != state.CurrentDay)
+                                {
+                                    state.CurrentDay = newDay;
+                                    state.Time = null;
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case ColumnType.TimeSlot:
-                        {
-                            state.Time = TimeSlotCol(state.Time);
-                            break;
-                        }
+                            {
+                                state.Time = TimeSlotCol(state.Time);
+                                break;
+                            }
                         case ColumnType.Regular:
-                        {
-                            NormalCol(cell.ColSpan);
-                            break;
-                        }
+                            {
+                                NormalCol(cell.ColSpan);
+                                break;
+                            }
                         default:
-                        {
-                            throw Unreachable();
-                        }
+                            {
+                                throw Unreachable();
+                            }
                     }
 
                     int countLeft = state.ColumnCounts!.Value.Total - cell.ColumnSizeCounter;
@@ -336,7 +356,7 @@ public static class WordScheduleParser
 
                         if (mergeStart.Val != MergedCellValues.Restart)
                         {
-                            throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                            throw new UnsupportedMergeCellCommandException(mergeStart.Val);
                         }
 
                         if (cell.Cell.InnerText is not { } dayNameText)
@@ -346,7 +366,7 @@ public static class WordScheduleParser
 
                         if (c.DayNameParser.Map(dayNameText) is not { } day)
                         {
-                            throw new NotSupportedException($"The day {dayNameText} is invalid");
+                            throw new InvalidScheduleDayNameException(dayNameText);
                         }
 
                         return day;
@@ -369,7 +389,7 @@ public static class WordScheduleParser
 
                                 if (mergeStart.Val != MergedCellValues.Restart)
                                 {
-                                    throw new NotSupportedException($"Unsupported merge cell command: {mergeStart.Val}");
+                                    throw new UnsupportedMergeCellCommandException(mergeStart.Val);
                                 }
                             }
                         }
@@ -379,7 +399,8 @@ public static class WordScheduleParser
 
                         // May be two paragraphs, may be one
                         {
-                            using var paragraphs = cell.Cell.ChildElements.OfType<Paragraph>().GetEnumerator();
+                            using var paragraphs = cell.Cell.ChildElements.OfType<Paragraph>()
+                                .GetEnumerator();
                             if (!paragraphs.MoveNext())
                             {
                                 throw new NotSupportedException("Invalid time slot cell");
@@ -424,7 +445,7 @@ public static class WordScheduleParser
                             var expectedEndTime = parsedTime.Start.Add(c.TimeConfig.LessonDuration);
                             if (expectedEndTime != parsedTime.End)
                             {
-                                throw new NotSupportedException($"The lesson durations must all be equal to the default duration ({c.TimeConfig.LessonDuration} minutes)");
+                                throw new UnequalScheduleLessonDurationException(c.TimeConfig.LessonDuration);
                             }
 
                             return new()
@@ -470,7 +491,8 @@ public static class WordScheduleParser
                         catch (WrongFormatException e)
                         {
                             // ReSharper disable once PossibleMultipleEnumeration
-                            throw new NotSupportedException($"Unsupported syntax when parsing {string.Join('\n', l)}", e);
+                            var syntax = string.Join('\n', l);
+                            throw new UnsupportedLessonSyntaxException(syntax, e);
                         }
 
                         return;
@@ -481,11 +503,13 @@ public static class WordScheduleParser
                             {
                                 return true;
                             }
+
                             if (merge.Val is { } val
                                 && val == MergedCellValues.Restart)
                             {
                                 return true;
                             }
+
                             return false;
                         }
 
@@ -512,7 +536,6 @@ public static class WordScheduleParser
                     }
                 }
             }
-
         }
     }
 
@@ -537,7 +560,13 @@ public static class WordScheduleParser
             i += groupBucket.Size;
             groups.Add(groupBucket.Item);
         }
-        c.AddOrMergeLesson(new(lesson, state.CurrentDay!.Value, state.Time!.Value.TimeSlot, groups));
+        var scheduleImportContext = c;
+        ImportedLessonInput input = new(
+            lesson,
+            state.CurrentDay!.Value,
+            state.Time!.Value.TimeSlot,
+            groups);
+        scheduleImportContext.AddOrMergeLesson(input);
     }
 
     private static IEnumerable<TableCell> Cells(this TableRow row)
@@ -555,7 +584,8 @@ public static class WordScheduleParser
         IEnumerator<TableCell>? cellEnumerator = null;
         try
         {
-            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+            cellEnumerator = rowEnumerator.Current.Cells()
+                .GetEnumerator();
             if (!cellEnumerator.MoveNext())
             {
                 throw new NotSupportedException("Empty table not supported");
@@ -603,7 +633,7 @@ public static class WordScheduleParser
             }
             if (skippedInfo.Count != expectedEmptySkippedCount)
             {
-                throw new NotSupportedException($"Expected {expectedEmptySkippedCount} empty header columns");
+                throw new UnexpectedEmptyHeaderColumnCountException(expectedEmptySkippedCount);
             }
             return skippedInfo;
         }
@@ -635,7 +665,7 @@ public static class WordScheduleParser
                 skippedSize1 += size;
                 MoveToNextCellForGroupRow();
             }
-            return new(skippedCount1, skippedSize1);
+            return new(Count: skippedCount1, Size: skippedSize1);
         }
 
         SkippedHeaderColumnsInfo TrySecondFormat()
@@ -649,7 +679,8 @@ public static class WordScheduleParser
             // Now make sure we skip the same size on the next row.
             rowEnumerator.MoveNext();
             cellEnumerator.Dispose();
-            cellEnumerator = rowEnumerator.Current.Cells().GetEnumerator();
+            cellEnumerator = rowEnumerator.Current.Cells()
+                .GetEnumerator();
 
             if (!cellEnumerator.MoveNext())
             {
@@ -664,7 +695,7 @@ public static class WordScheduleParser
 
             MoveToNextCellForGroupRow();
 
-            return new(1, skippedWidth);
+            return new(Count: 1, Size: skippedWidth);
         }
 
         // Returns the size of the column.
@@ -725,7 +756,6 @@ public static class WordScheduleParser
 
                 return res.Number;
             }
-
         }
 
         int AddGroups(SizedItemArray<GroupId> outputGroups)
@@ -736,7 +766,14 @@ public static class WordScheduleParser
                 var groupName = cell.InnerText;
                 var group = c.Schedule.Group(groupName);
                 var colSpan = cell.GetWidth();
-                outputGroups.Add(new(group, colSpan));
+
+                SizedItem<GroupId> CalculateIt()
+                {
+                    SizedItem<GroupId> it = new(group, colSpan);
+                    return it;
+                }
+
+                outputGroups.Add(CalculateIt());
 
                 if (!cellEnumerator.MoveNext())
                 {
@@ -752,6 +789,7 @@ public static class WordScheduleParser
         NoHeaderParsed,
         SkipTable,
     }
+
     private readonly record struct HeaderRowParseResult(HeaderRowParseStatus Status, int Format);
 }
 
@@ -762,16 +800,19 @@ public static class WordprocessingHelper
         return cell.TableCellProperties?.GridSpan?.Val ?? 1;
     }
 
-    public static IEnumerable<(TableCell Cell, int Position)> WithPosition(this IEnumerable<TableCell> e)
+    public static IEnumerable<TableCellWithPosition> WithPosition(this IEnumerable<TableCell> e)
     {
         var pos = 0;
         foreach (var x in e)
         {
-            yield return (x, pos);
+            yield return new(x, pos);
             pos += x.GetWidth();
         }
     }
 }
+
+/// <summary>A table cell together with the grid column it starts at.</summary>
+public readonly record struct TableCellWithPosition(TableCell Cell, int Position);
 
 internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
 {
@@ -779,13 +820,13 @@ internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
     public bool IsNotMatch => Count == 0;
 }
 
-
 internal enum ColumnType
 {
     DayOfWeek,
     TimeSlot,
     Regular,
 }
+
 internal readonly record struct ColumnCell(
     ColumnType ColumnType,
     int ColumnSizeCounter,

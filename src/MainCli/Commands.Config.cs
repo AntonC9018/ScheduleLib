@@ -4,12 +4,7 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public ConfigCommands Config
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public ConfigCommands Config { get; set; } = new();
 }
 
 public sealed class ConfigKeyArguments : IArgumentModel
@@ -18,11 +13,7 @@ public sealed class ConfigKeyArguments : IArgumentModel
         "key",
         Description =
             "Registered block name followed by optional camelCase member path, e.g. GoogleCalendarConfig.calendarName.")]
-    public string Key
-    {
-        get;
-        set;
-    } = null!;
+    public string Key { get; set; } = null!;
 }
 
 [Command(
@@ -35,8 +26,9 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ConfigOverrideArguments overrides,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Execute(
+        CancellationToken cancellationToken = default)
+    {
+        return Execute(
             "show",
             settings,
             overrides,
@@ -48,6 +40,7 @@ public sealed partial class ConfigCommands
                 Settings = resolved.Inspect(),
             },
             cancellationToken);
+    }
 
     [Command("get", Description = "Read a resolved setting with its contributing sources.")]
     public Task<int> Get(
@@ -55,14 +48,16 @@ public sealed partial class ConfigCommands
         SettingsArguments settings,
         ConfigOverrideArguments overrides,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Execute(
+        CancellationToken cancellationToken = default)
+    {
+        return Execute(
             "get",
             settings,
             overrides,
             output,
             resolved => resolved.Inspect(key.Key),
             cancellationToken);
+    }
 
     [Command(
         "validate",
@@ -71,8 +66,9 @@ public sealed partial class ConfigCommands
     public Task<int> Validate(
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Execute(
+        CancellationToken cancellationToken = default)
+    {
+        return Execute(
             "validate",
             settings,
             new(),
@@ -85,19 +81,22 @@ public sealed partial class ConfigCommands
                 resolved.Sources,
             },
             cancellationToken);
+    }
 
     [Command("profiles", Description = "List code-defined teacher profiles; JSON adds overlays to these identities.")]
     public Task<int> Profiles(
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Execute(
+        CancellationToken cancellationToken = default)
+    {
+        return Execute(
             "profiles",
             settings,
             new(),
             output,
             resolved => resolved.Profiles,
             cancellationToken);
+    }
 
     private static async Task<int> Execute(
         string verb,
@@ -107,7 +106,7 @@ public sealed partial class ConfigCommands
         Func<ResolvedSettings, object> inspect,
         CancellationToken cancellationToken)
     {
-        var command = "config " + verb;
+        var command = $"config {verb}";
         using var context = new CliCommandContext(
             command,
             outputArgs,
@@ -124,12 +123,18 @@ public sealed partial class ConfigCommands
                 settings,
                 cancellationToken: cancellation.Token,
                 overrides: overrides);
-            return CliConfigExecution.Finish(
-                context,
-                CliExit.Success,
-                [],
-                inspect(resolved),
-                verb);
+            var context2 = context;
+            int exit = CliExit.Success;
+            string[] errors = [];
+            object data = inspect(resolved);
+            string verb2 = verb;
+            int finish = CliConfigExecution.Finish(
+                context2,
+                exit,
+                errors,
+                data,
+                verb2);
+            return finish;
         }
         catch (Exception error)
         {

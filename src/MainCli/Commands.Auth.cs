@@ -84,17 +84,20 @@ public partial class AuthCommands
         ResultArguments output,
         CancellationToken token)
     {
-        return provider == AuthProvider.microsoft
-            ? ExecuteMicrosoft(
-                verb,
-                settings,
-                output,
-                token)
-            : Execute(
+        if (provider == AuthProvider.microsoft)
+        {
+            return ExecuteMicrosoft(
                 verb,
                 settings,
                 output,
                 token);
+        }
+
+        return Execute(
+            verb,
+            settings,
+            output,
+            token);
     }
 
     private static async Task<int> Execute(
@@ -103,7 +106,7 @@ public partial class AuthCommands
         ResultArguments outputArgs,
         CancellationToken cancellationToken)
     {
-        var command = "auth " + verb + " google";
+        var command = $"auth {verb} google";
         using var context = new CliCommandContext(
             command,
             outputArgs,
@@ -126,7 +129,8 @@ public partial class AuthCommands
                     "Google");
             }
 
-            using var authentication = new GoogleAuthentication();
+            using var authentication = new GoogleAuthentication(
+                logger: context.CreateLogger(typeof(GoogleAuthentication).FullName!));
             if (verb == "login")
             {
                 var credentials = new[]
@@ -134,7 +138,9 @@ public partial class AuthCommands
                         resolved.Get(GoogleCalendarConfig.Key)?.Credentials,
                         resolved.Get(GoogleDriveConfig.Key)?.Credentials,
                     }
-                    .Where(x => x is not null).Select(x => x!.Build()).ToArray();
+                    .Where(x => x is not null)
+                    .Select(x => x!.Build())
+                    .ToArray();
                 if (credentials.Length == 0)
                 {
                     return CliAuthenticationExecution.Finish(
@@ -152,11 +158,9 @@ public partial class AuthCommands
                 services.AddScoped<CurrentUserNameProvider>();
                 await using var container = services.BuildServiceProvider();
                 await using var scope = container.CreateAsyncScope();
-                await authentication.Login(
-                    credentials,
-                    teacher,
-                    scope.ServiceProvider,
-                    cancellation.Token);
+                await authentication.Login(teacher, scope.ServiceProvider)
+                    .WithCredentials(credentials)
+                    .Execute(cancellation.Token);
             }
             else if (verb == "logout")
             {

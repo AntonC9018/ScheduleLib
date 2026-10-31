@@ -63,6 +63,7 @@ public static class ScheduleDirectoryDiscovery
     private static (StudyYear StudyYear, Semester Sem)? ParseFirst(ReadOnlyMemory<char> path)
     {
         var baseParser = new SequenceReader(path);
+
         InvalidScheduleDirectoryFormat Error(SequencePosition position, string reason)
         {
             var segment = baseParser.Segment(position);
@@ -145,38 +146,39 @@ public sealed class ScheduleDirectoryDescriptor
         switch (AttendanceMode)
         {
             case AttendanceMode.FrecventaRedusa:
-            {
-                yield return new ScheduleDirectoryExcelLoaderComponent
                 {
-                    Config = ExcelScheduleParser.FrConfig,
-                    DirectoryPath = Path,
-                };
-                break;
-            }
+                    yield return new ScheduleDirectoryExcelLoaderComponent
+                    {
+                        Config = ExcelScheduleParser.FrConfig,
+                        DirectoryPath = Path,
+                    };
+                    break;
+                }
             case AttendanceMode.Zi:
-            {
-                yield return new DirectoryScheduleLoaderComponent
                 {
-                    DirectoryPath = Path,
-                };
-                yield return new ScheduleDirectoryExcelLoaderComponent
-                {
-                    Config = ExcelScheduleParser.MasterConfig,
-                    DirectoryPath = Path,
-                };
-                break;
-            }
+                    yield return new DirectoryScheduleLoaderComponent
+                    {
+                        DirectoryPath = Path,
+                    };
+                    yield return new ScheduleDirectoryExcelLoaderComponent
+                    {
+                        Config = ExcelScheduleParser.MasterConfig,
+                        DirectoryPath = Path,
+                    };
+                    break;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 }
 
 public abstract class InvalidScheduleSourceException(string message) : NotSupportedException(message);
 
-public sealed class InvalidAttendanceDirectoryFormat(string name) : InvalidScheduleSourceException($"Invalid attendance mode: {name}");
+public sealed class InvalidAttendanceDirectoryFormat(string name)
+    : InvalidScheduleSourceException($"Invalid attendance mode: {name}");
 
 public sealed class InvalidScheduleDirectoryFormat : InvalidScheduleSourceException
 {

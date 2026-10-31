@@ -73,24 +73,29 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var grouping = full.TeacherGrouping(FilterHelper.Builder().WithLatestPeriod(full));
+            var grouping = full.TeacherGrouping(FilterHelper.Builder()
+                .WithLatestPeriod(full));
             var slugLookup =
-                await scope.ServiceProvider.GetRequiredService<ISlugProvider>().SlugMap(cancellation.Token);
+                await scope.ServiceProvider.GetRequiredService<ISlugProvider>()
+                    .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugLookup.Values.Select(x => $"{x}.json"));
             var latest = scope.ServiceProvider.LatestPeriodSchedule();
-            var teacherless = latest.EnumerateWeeklyLessons().Count(x => !x.Lesson.Teachers.Any());
+            var teacherless = latest.EnumerateWeeklyLessons()
+                .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                warnings.Add($"The website schedule export omits {teacherless} weekly lessons with no teacher.");
+                var list = warnings;
+                string item = $"The website schedule export omits {teacherless} weekly lessons with no teacher.";
+                list.Add(item);
             }
 
             var displays = new WebsiteJsonScheduleHelper.Services
@@ -106,21 +111,29 @@ public partial class ExportCommands
                 if (!slugLookup.TryGetValue(name, out var slug))
                 {
                     missingSlugs.Add(name.ToString());
-                    warnings.Add($"No slug for '{name}'.");
+                    var list2 = warnings;
+                    string item2 = $"No slug for '{name}'.";
+                    list2.Add(item2);
                     continue;
                 }
                 var model = WebsiteJsonScheduleHelper.CreateSerializationModel(filteredSchedule, displays);
                 if (model.ScheduleDaysDto.IsEmpty)
                 {
                     omittedEmpty.Add(name.ToString());
-                    warnings.Add($"Teacher '{name}' has no website schedule entries and is omitted.");
+                    var list3 = warnings;
+                    string item3 = $"Teacher '{name}' has no website schedule entries and is omitted.";
+                    list3.Add(item3);
                     continue;
                 }
                 using var buffer = new MemoryStream();
                 await WebsiteJsonScheduleHelper.Serialize(model, buffer);
-                if (!files.TryAdd($"{slug}.json", buffer.ToArray()))
+                var dictionary = files;
+                string key = $"{slug}.json";
+                byte[] value = buffer.ToArray();
+                bool tryAdd = dictionary.TryAdd(key, value);
+                if (!tryAdd)
                 {
-                    throw new IOException($"Duplicate website artifact name: {slug}.json");
+                    throw new DuplicateWebsiteArtifactNameException(artifactName: slug, suffix: ".json");
                 }
             }
             foreach (var (name, bytes) in files.OrderBy(x => x.Key, StringComparer.Ordinal))
@@ -144,7 +157,7 @@ public partial class ExportCommands
             }
 
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }
@@ -180,26 +193,40 @@ public partial class ExportCommands
                 exit,
                 errors,
                 new(
-                    output?.DirectoryPath,
+                    OutputDirectory: output?.DirectoryPath,
                     files.Count,
-                    zipPath,
-                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                    omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+                    ZipPath: zipPath,
+                    MissingSlugs: missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
+                    OmittedEmpty: omittedEmpty.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray()))
             {
                 Summary = new
                 {
                     outputDirectory = output?.DirectoryPath,
                     fileCount = files.Count,
                     zipPath,
-                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
-                    omittedEmpty = omittedEmpty.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    missingSlugs = missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
+                    omittedEmpty = omittedEmpty.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
                     artifactCount = paths.Length,
                 },
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                        line);
+                },
             });
         }
     }
@@ -250,9 +277,9 @@ public partial class ExportCommands
             services.AddSingleton(thesisWarnings);
             services.AddSingleton<ILoggerProvider, ThesisWarningLoggerProvider>();
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
@@ -261,23 +288,38 @@ public partial class ExportCommands
             var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
                 .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));
-            var stagingRoot = Path.Combine(Path.GetTempPath(), $"schedulelib-theses-{context.RunId}");
+            string path1 = Path.GetTempPath();
+            string path2 = $"schedulelib-theses-{context.RunId}";
+            var stagingRoot = Path.Combine(path1, path2);
             try
             {
-                var staging = new OutputDirectory(Path.Combine(stagingRoot, "theses"));
+                string directory = Path.Combine(stagingRoot, "theses");
+                var staging = new OutputDirectory(directory);
                 staging.Initialize(clear: true);
                 var handler = scope.ServiceProvider.GetRequiredService<ThesesConversionTaskHandler>();
                 await handler.Handle(cancellation.Token, staging);
-                foreach (var file in staging.FilePaths("*.json", new() { RecurseSubdirectories = false })
+                foreach (var file in staging.FilePaths(
+                                 "*.json",
+                                 new()
+                                 {
+                                     RecurseSubdirectories = false,
+                                 })
                              .OrderBy(x => x.Path, StringComparer.Ordinal))
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
                     var stagedName = Path.GetFileName(file.Path);
+
+                    string CalculatePath()
+                    {
+                        string path = staging.BuildPath(file.Path);
+                        return path;
+                    }
+
                     if (!files.TryAdd(
                             stagedName,
-                            await File.ReadAllBytesAsync(staging.BuildPath(file.Path), cancellation.Token)))
+                            await File.ReadAllBytesAsync(CalculatePath(), cancellation.Token)))
                     {
-                        throw new IOException($"Duplicate website artifact name: {stagedName}");
+                        throw new DuplicateWebsiteArtifactNameException(stagedName);
                     }
                 }
             }
@@ -290,7 +332,9 @@ public partial class ExportCommands
             }
             foreach (var warning in thesisWarnings.Messages)
             {
-                missingSlugs.Add(ExtractTeacher(warning));
+                var list = missingSlugs;
+                string item = ExtractTeacher(warning);
+                list.Add(item);
                 warnings.Add(warning);
             }
             ValidateWebsiteArtifactNames(files.Keys);
@@ -315,7 +359,7 @@ public partial class ExportCommands
             }
 
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             return await Finish(CliExit.Success, []);
         }
@@ -351,24 +395,34 @@ public partial class ExportCommands
                 exit,
                 errors,
                 new(
-                    output?.DirectoryPath,
+                    OutputDirectory: output?.DirectoryPath,
                     files.Count,
-                    zipPath,
-                    missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray()))
+                    ZipPath: zipPath,
+                    missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray()))
             {
                 Summary = new
                 {
                     outputDirectory = output?.DirectoryPath,
                     fileCount = files.Count,
                     zipPath,
-                    missingSlugs = missingSlugs.Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                    missingSlugs = missingSlugs.Distinct()
+                        .OrderBy(x => x, StringComparer.Ordinal)
+                        .ToArray(),
                     artifactCount = paths.Length,
                 },
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                        line);
+                },
             });
         }
     }
@@ -378,27 +432,54 @@ public partial class ExportCommands
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var name in names)
         {
-            if (string.IsNullOrWhiteSpace(name)
-                || name != Path.GetFileName(name)
-                || name is "." or ".."
-                || name.Contains('\\')
-                || name.Contains('/')
-                || name.Contains(':')
-                || string.Equals(
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (name != Path.GetFileName(name))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (name is "." or "..")
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (name.Contains('\\'))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (name.Contains('/'))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (name.Contains(':'))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+
+            if (string.Equals(
                     name,
                     "schedulelib-manifest.json",
-                    StringComparison.OrdinalIgnoreCase)
-                || string.Equals(
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidWebsiteArtifactNameException(name);
+            }
+            if (string.Equals(
                     name,
                     ".schedulelib-output.lock",
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw new IOException($"Invalid website artifact name: {name}");
+                throw new InvalidWebsiteArtifactNameException(name);
             }
 
             if (!seen.Add(name))
             {
-                throw new IOException($"Duplicate website artifact name: {name}");
+                throw new DuplicateWebsiteArtifactNameException(name);
             }
         }
     }
@@ -455,17 +536,22 @@ public partial class ExportCommands
     private static void VerifyZip(string zipPath, IEnumerable<string> expectedNames)
     {
         using var zip = ZipFile.OpenRead(zipPath);
-        var actual = zip.Entries.Where(x => !string.IsNullOrEmpty(x.Name)).Select(x => x.FullName)
+        var actual = zip.Entries.Where(x => !string.IsNullOrEmpty(x.Name))
+            .Select(x => x.FullName)
             .ToHashSet(StringComparer.Ordinal);
         var expected = expectedNames.ToHashSet(StringComparer.Ordinal);
         if (!actual.SetEquals(expected))
         {
-            var missing = expected.Except(actual, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal)
+            var missing = expected.Except(actual, StringComparer.Ordinal)
+                .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            var extra = actual.Except(expected, StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal)
+            var extra = actual.Except(expected, StringComparer.Ordinal)
+                .OrderBy(x => x, StringComparer.Ordinal)
                 .ToArray();
-            throw new InvalidDataException(
-                $"ZIP content mismatch in {zipPath}: missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+            throw WebsiteZipContentMismatch.CreateException(
+                zipPath,
+                missing: missing,
+                extra: extra);
         }
     }
 
@@ -473,30 +559,34 @@ public partial class ExportCommands
     {
         var first = warning.IndexOf('\'');
         var last = warning.LastIndexOf('\'');
-        return first >= 0 && last > first ? warning[(first + 1)..last] : warning;
+        if (first >= 0 && last > first)
+        {
+            return warning[(first + 1)..last];
+        }
+
+        return warning;
     }
 
     private sealed class ThesisWarningCollector
     {
-        public List<string> Messages
-        {
-            get;
-        } = [];
+        public List<string> Messages { get; } = [];
     }
 
     private sealed class ThesisWarningLoggerProvider(ThesisWarningCollector collector) : ILoggerProvider
     {
-        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) =>
-            categoryName.Contains("ThesesConversion", StringComparison.Ordinal)
+        public ILogger CreateLogger(string categoryName)
+        {
+            return categoryName.Contains("ThesesConversion", StringComparison.Ordinal)
                 ? new ThesisWarningLogger(collector)
                 : new NullWebsiteLogger();
+        }
 
         public void Dispose()
         {
         }
     }
 
-    private sealed class ThesisWarningLogger(ThesisWarningCollector collector) : Microsoft.Extensions.Logging.ILogger
+    private sealed class ThesisWarningLogger(ThesisWarningCollector collector) : ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullWebsiteScope.Instance;
 
@@ -516,12 +606,14 @@ public partial class ExportCommands
 
             lock (collector)
             {
-                collector.Messages.Add(formatter(state, exception));
+                var list = collector.Messages;
+                string item = formatter(state, exception);
+                list.Add(item);
             }
         }
     }
 
-    private sealed class NullWebsiteLogger : Microsoft.Extensions.Logging.ILogger
+    private sealed class NullWebsiteLogger : ILogger
     {
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullWebsiteScope.Instance;
 
@@ -543,6 +635,47 @@ public partial class ExportCommands
 
         public void Dispose()
         {
+        }
+    }
+
+    internal sealed class DuplicateWebsiteArtifactNameException : IOException
+    {
+        internal DuplicateWebsiteArtifactNameException(string artifactName, string suffix = "")
+            : base($"Duplicate website artifact name: {artifactName}{suffix}")
+            => ArtifactName = string.Concat(str0: artifactName, str1: suffix);
+
+        public string ArtifactName { get; }
+    }
+
+    internal sealed class InvalidWebsiteArtifactNameException : IOException
+    {
+        internal InvalidWebsiteArtifactNameException(string? artifactName)
+            : base($"Invalid website artifact name: {artifactName}")
+            => ArtifactName = artifactName;
+
+        public string? ArtifactName { get; }
+    }
+
+    internal sealed record WebsiteZipContentMismatch(
+        string ZipPath,
+        IReadOnlyList<string> Missing,
+        IReadOnlyList<string> Extra)
+    {
+        internal static InvalidDataException CreateException(
+            string zipPath,
+            string[] missing,
+            string[] extra)
+        {
+            // InvalidDataException is sealed; preserve callers' existing catch contract.
+#pragma warning disable CR1600 // Typed failure context is attached below instead of subclassing a sealed framework type.
+            var error = new InvalidDataException(
+                $"ZIP content mismatch in {zipPath}: missing [{string.Join(", ", missing)}], extra [{string.Join(", ", extra)}].");
+#pragma warning restore CR1600
+            error.Data[typeof(WebsiteZipContentMismatch)] = new WebsiteZipContentMismatch(
+                zipPath,
+                Missing: Array.AsReadOnly((string[]) missing.Clone()),
+                Extra: Array.AsReadOnly((string[]) extra.Clone()));
+            return error;
         }
     }
 }

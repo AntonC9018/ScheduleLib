@@ -56,17 +56,28 @@ public sealed class AllRecorders : IDisposable
     public AllRecorders(EventRecorderSource s, MainWindowViewModel main)
     {
         var store = main._dataStore;
-        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed).SetName("NodePath");
-        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed).SetName("SelectedLayer");
-        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed).SetName("SelectedNode");
-        SelectedUiNode = s.Record(store.UiSelectedNodeViewModel.NodeSelected()).SetName("UiSelectedNode");
-        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged).SetName("LayerLevel");
-        NodeSelected = s.Record(main.NodeSelection).SetName("NodeSelectionProperty");
-        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged.As()).SetName("NodeData");
-        Main = s.Record(main).SetName("MainProperty");
-        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand).SetName("CanEnableSelectedUser");
-        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand).SetName("CanRemoveSelectedUser");
-        TreeChangedRecorder = s.Record(store.TreeStructureChanged.As()).SetName("TreeStructureChanged");
+        NodePath = s.Record(store.SelectedNodePath.NodePath.Changed)
+            .SetName("NodePath");
+        SelectedLayer = s.Record(store.SelectedNodePath.SelectedLayer.Changed)
+            .SetName("SelectedLayer");
+        SelectedNode = s.Record(store.SelectedNodePath.SelectedNode.Changed)
+            .SetName("SelectedNode");
+        SelectedUiNode = s.Record(store.UiSelectedNodeViewModel.NodeSelected())
+            .SetName("UiSelectedNode");
+        SelectedLevel = s.Record(main.LayerLevelSelection.LayerLevelChanged)
+            .SetName("LayerLevel");
+        NodeSelected = s.Record(main.NodeSelection)
+            .SetName("NodeSelectionProperty");
+        NodeData = s.Record(store.NodeDataChangeDispatcher.DataChanged.As())
+            .SetName("NodeData");
+        Main = s.Record(main)
+            .SetName("MainProperty");
+        CanEnableSelectedUser = s.Record(main.EnableSelectedUserCommand)
+            .SetName("CanEnableSelectedUser");
+        CanRemoveSelectedUser = s.Record(main.RemoveSelectedUserCommand)
+            .SetName("CanRemoveSelectedUser");
+        TreeChangedRecorder = s.Record(store.TreeStructureChanged.As())
+            .SetName("TreeStructureChanged");
     }
 
     public void Dispose()
@@ -87,6 +98,7 @@ public abstract class EventRecorder : IDisposable
 {
     public string? Name { get; set; }
     public override string? ToString() => Name;
+
     public virtual void Dispose()
     {
         GC.SuppressFinalize(this);
@@ -122,7 +134,9 @@ public sealed class PropertyChangedRecorder : EventRecorderBase<PropertyChangedE
 
     public void Update(object? o, PropertyChangedEventArgs? args)
     {
-        _s.AddEvent(new(this, args));
+        var eventRecorderSource = _s;
+        Ev ev = new(this, args);
+        eventRecorderSource.AddEvent(ev);
     }
 
     public override void Dispose()
@@ -147,7 +161,9 @@ public sealed class CanExecuteChangedRecorder : EventRecorderBase<EventArgs>
 
     public void Update(object? o, EventArgs? args)
     {
-        _s.AddEvent(new(this, args));
+        var eventRecorderSource = _s;
+        Ev ev = new(this, args);
+        eventRecorderSource.AddEvent(ev);
     }
 
     public override void Dispose()
@@ -163,11 +179,10 @@ public static partial class RecorderHelper
         PropertyChangedRecorder rec,
         Action<PropertyChangedEventArgs?> a)
     {
-        Assert.Same(rec, e.Recorder);
+        Assert.Same(expected: rec, actual: e.Recorder);
         a((PropertyChangedEventArgs?) e.Payload);
     }
 }
-
 
 public sealed partial class EventRecorder<T> : EventRecorderBase<T>
 {
@@ -177,7 +192,12 @@ public sealed partial class EventRecorder<T> : EventRecorderBase<T>
         EventRecorderSource source,
         Event<T> e)
     {
-        _eventSub = e.Sub(x => source.AddEvent(new(this, x)));
+        _eventSub = e.Sub(x =>
+        {
+            var eventRecorderSource = source;
+            Ev ev = new(this, x);
+            eventRecorderSource.AddEvent(ev);
+        });
     }
 
     public override void Dispose()
@@ -237,7 +257,11 @@ public readonly record struct ExpectHelperAll<T>(IEnumerable<Ev> Events)
         {
             return x => f(x.GetPayload<T>());
         }
-        Assert.Collection(Events, a.Select(Wrapped).ToArray());
+
+        Assert.Collection(
+            Events,
+            a.Select(Wrapped)
+                .ToArray());
     }
 }
 
@@ -255,15 +279,15 @@ public readonly record struct ExpectHelperOne<T>(IEnumerable<Ev> Events, HelperO
         switch (Mode)
         {
             case HelperOneMode.OnlyOne:
-            {
-                Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
+                {
+                    Assert.Single(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                    break;
+                }
             case HelperOneMode.AtLeastOne:
-            {
-                Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
-                break;
-            }
+                {
+                    Assert.Contains(Events.Select(x => x.GetPayload<T>()), x => a(x));
+                    break;
+                }
         }
     }
 }
@@ -284,7 +308,7 @@ public static partial class RecorderHelper
         Action<T> a)
     {
         _ = rec;
-        Assert.Same(rec, e.Recorder);
+        Assert.Same(expected: rec, actual: e.Recorder);
         a((T) e.Payload!);
     }
 
@@ -299,7 +323,7 @@ public static partial class RecorderHelper
         this EventRecorderSource s,
         EventRecorderBase<T> rec)
     {
-        var x = s.Where(e => ReferenceEquals(e.Recorder, rec));
+        var x = s.Where(e => ReferenceEquals(objA: e.Recorder, objB: rec));
         return new(x);
     }
 }

@@ -23,17 +23,11 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
     private readonly string _runId;
     private readonly Dictionary<string, string> _owned;
 
-    public string DirectoryPath
-    {
-        get;
-    }
+    public string DirectoryPath { get; }
 
     public string ManifestPath => Path.Combine(DirectoryPath, "schedulelib-manifest.json");
 
-    public List<string> PublishedPaths
-    {
-        get;
-    } = [];
+    public List<string> PublishedPaths { get; } = [];
 
     private RunOutput(
         string directory,
@@ -60,7 +54,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         {
             if (current.LinkTarget is not null)
             {
-                throw new IOException($"Output directory cannot traverse a symbolic link: {current.FullName}");
+                throw new OutputDirectoryTraversesSymbolicLinkException(current.FullName);
             }
         }
 
@@ -72,7 +66,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             var owned = new Dictionary<string, string>(StringComparer.Ordinal);
             if (Directory.Exists(manifestPath) || new FileInfo(manifestPath).LinkTarget is not null)
             {
-                throw new IOException($"Manifest collision: {manifestPath}");
+                throw new OutputManifestCollisionException(manifestPath);
             }
 
             if (File.Exists(manifestPath))
@@ -85,14 +79,23 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                 }
                 catch (JsonException e)
                 {
-                    throw new IOException($"Unrelated or invalid manifest: {manifestPath}", e);
+                    throw new InvalidOutputManifestException(manifestPath, e);
                 }
-                if (manifest is null
-                    || manifest.SchemaVersion != 1
-                    || manifest.Command != command
-                    || manifest.Artifacts is null)
+                if (manifest is null)
                 {
-                    throw new IOException($"Output manifest belongs to another operation: {manifestPath}");
+                    throw new OutputManifestDoesNotBelongToOperationException(manifestPath);
+                }
+                if (manifest.SchemaVersion != 1)
+                {
+                    throw new OutputManifestDoesNotBelongToOperationException(manifestPath);
+                }
+                if (manifest.Command != command)
+                {
+                    throw new OutputManifestDoesNotBelongToOperationException(manifestPath);
+                }
+                if (manifest.Artifacts is null)
+                {
+                    throw new OutputManifestDoesNotBelongToOperationException(manifestPath);
                 }
 
                 foreach (var artifact in manifest.Artifacts)
@@ -100,15 +103,15 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                     ValidateName(artifact.Name);
                     if (!owned.TryAdd(artifact.Name, artifact.Sha256))
                     {
-                        throw new IOException("Duplicate manifest artifact.");
+                        throw new DuplicateOutputManifestArtifactException(artifact.Name);
                     }
                 }
             }
             return new(
-                directory,
+                directory: directory,
                 lease,
-                command,
-                runId,
+                command: command,
+                runId: runId,
                 owned);
         }
         catch
@@ -127,13 +130,13 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         var destination = Path.Combine(DirectoryPath, name);
         if (Directory.Exists(destination) || new FileInfo(destination).LinkTarget is not null)
         {
-            throw new IOException($"Output collision: {destination}");
+            throw new OutputArtifactCollisionException(destination);
         }
 
         if (File.Exists(destination)
-            && (!_owned.TryGetValue(name, out var hash) || hash != await Fingerprint(destination, token)))
+            && (!_owned.TryGetValue(key: name, value: out var hash) || hash != await Fingerprint(destination, token)))
         {
-            throw new IOException($"Output collision with an unrelated or modified file: {destination}");
+            throw new OutputArtifactOwnershipConflictException(destination);
         }
 
         await AtomicFile.Publish(
@@ -144,14 +147,15 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
         _owned[name] = await Fingerprint(destination, CancellationToken.None);
     }
 
-    public async Task Complete(string status, CancellationToken token)
+    public async Task Complete(RunStatus status, CancellationToken token)
     {
         var manifest = new OutputManifest(
             1,
-            _command,
-            _runId,
-            status,
-            _owned.Select(x => new OwnedArtifact(x.Key, x.Value)).ToArray());
+            Command: _command,
+            RunId: _runId,
+            Status: status.ToWire(),
+            _owned.Select(x => new OwnedArtifact(Name: x.Key, Sha256: x.Value))
+                .ToArray());
         await AtomicFile.Publish(
             ManifestPath,
             (stream, ct) => JsonSerializer.SerializeAsync(
@@ -164,14 +168,44 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
 
     private static void ValidateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)
-            || name != Path.GetFileName(name)
-            || name is "." or ".."
-            || name.Contains('\\')
-            || name.Contains('/')
-            || name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+        bool CheckCondition()
         {
-            throw new IOException($"Invalid owned artifact name: {name}");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return true;
+            }
+
+            if (name != Path.GetFileName(name))
+            {
+                return true;
+            }
+
+            if (name is "." or "..")
+            {
+                return true;
+            }
+
+            if (name.Contains('\\'))
+            {
+                return true;
+            }
+
+            if (name.Contains('/'))
+            {
+                return true;
+            }
+
+            if (name is "schedulelib-manifest.json" or ".schedulelib-output.lock")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
+        {
+            throw new InvalidOwnedArtifactNameException(name);
         }
     }
 
@@ -183,4 +217,76 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
 
     public ValueTask DisposeAsync() => _lease.DisposeAsync();
     public void Dispose() => _lease.Dispose();
+
+    internal sealed class OutputDirectoryTraversesSymbolicLinkException : IOException
+    {
+        internal OutputDirectoryTraversesSymbolicLinkException(string directoryPath)
+            : base($"Output directory cannot traverse a symbolic link: {directoryPath}")
+            => DirectoryPath = directoryPath;
+
+        public string DirectoryPath { get; }
+    }
+
+    internal sealed class OutputManifestCollisionException : IOException
+    {
+        internal OutputManifestCollisionException(string manifestPath)
+            : base($"Manifest collision: {manifestPath}")
+            => ManifestPath = manifestPath;
+
+        public string ManifestPath { get; }
+    }
+
+    internal sealed class InvalidOutputManifestException : IOException
+    {
+        internal InvalidOutputManifestException(string manifestPath, Exception innerException)
+            : base($"Unrelated or invalid manifest: {manifestPath}", innerException)
+            => ManifestPath = manifestPath;
+
+        public string ManifestPath { get; }
+    }
+
+    internal sealed class OutputManifestDoesNotBelongToOperationException : IOException
+    {
+        internal OutputManifestDoesNotBelongToOperationException(string manifestPath)
+            : base($"Output manifest belongs to another operation: {manifestPath}")
+            => ManifestPath = manifestPath;
+
+        public string ManifestPath { get; }
+    }
+
+    internal sealed class DuplicateOutputManifestArtifactException : IOException
+    {
+        internal DuplicateOutputManifestArtifactException(string artifactName)
+            : base("Duplicate manifest artifact.")
+            => ArtifactName = artifactName;
+
+        public string ArtifactName { get; }
+    }
+
+    internal sealed class OutputArtifactCollisionException : IOException
+    {
+        internal OutputArtifactCollisionException(string destinationPath)
+            : base($"Output collision: {destinationPath}")
+            => DestinationPath = destinationPath;
+
+        public string DestinationPath { get; }
+    }
+
+    internal sealed class OutputArtifactOwnershipConflictException : IOException
+    {
+        internal OutputArtifactOwnershipConflictException(string destinationPath)
+            : base($"Output collision with an unrelated or modified file: {destinationPath}")
+            => DestinationPath = destinationPath;
+
+        public string DestinationPath { get; }
+    }
+
+    internal sealed class InvalidOwnedArtifactNameException : IOException
+    {
+        internal InvalidOwnedArtifactNameException(string? artifactName)
+            : base($"Invalid owned artifact name: {artifactName}")
+            => ArtifactName = artifactName;
+
+        public string? ArtifactName { get; }
+    }
 }

@@ -81,18 +81,21 @@ public sealed class ScheduleSerializationBuilder
         var model = SerializationModels.ConvertToSerializationModel(input, hash);
         if (outputStream is not null)
         {
-            await ScheduleSerializer.SerializeModelAsync(model,
+            await ScheduleSerializer.SerializeModelAsync(
+                model,
                 outputStream,
                 cancellationToken);
             return;
         }
-        await AtomicFilePublisher.Publish(outputPath!,
+        await AtomicFilePublisher.Publish(
+            outputPath!,
             Write,
             cancellationToken);
 
         Task Write(Stream stream, CancellationToken token)
         {
-            return ScheduleSerializer.SerializeModelAsync(model,
+            return ScheduleSerializer.SerializeModelAsync(
+                model,
                 stream,
                 token);
         }
@@ -101,10 +104,7 @@ public sealed class ScheduleSerializationBuilder
 
 public sealed class MissingSerializationConfigurationException : ScheduleBuildException
 {
-    public string Configuration
-    {
-        get;
-    }
+    public string Configuration { get; }
 
     public MissingSerializationConfigurationException(string configuration)
         : base($"Serialization requires {configuration} configuration before execution.")

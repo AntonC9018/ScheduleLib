@@ -6,7 +6,7 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
 
-public class RegistryScrapingTests
+public sealed class RegistryScrapingTests
 {
     private static GroupForSearch Parse(string input)
     {
@@ -22,15 +22,15 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA253Rfr");
 
-        Assert.Equal("IA", result.FacultyName.Span);
-        Assert.Equal(3, result.GroupNumber);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 3, actual: result.GroupNumber);
         Assert.True(result.SubGroupName.IsEmpty);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
         Assert.False(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(QualificationType.Licenta, result.QualificationType);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: QualificationType.Licenta, actual: result.QualificationType);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -38,14 +38,14 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA253R(a)fr");
 
-        Assert.Equal("IA", result.FacultyName.Span);
-        Assert.Equal(3, result.GroupNumber);
-        Assert.Equal("a", result.SubGroupName.Span);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 3, actual: result.GroupNumber);
+        Assert.Equal(expected: "a", actual: result.SubGroupName.Span);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
         Assert.False(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -53,14 +53,14 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA253R(b)fr");
 
-        Assert.Equal("IA", result.FacultyName.Span);
-        Assert.Equal(3, result.GroupNumber);
-        Assert.Equal("b", result.SubGroupName.Span);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 3, actual: result.GroupNumber);
+        Assert.Equal(expected: "b", actual: result.SubGroupName.Span);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
         Assert.False(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -68,14 +68,14 @@ public class RegistryScrapingTests
     {
         var result = Parse("Repetare - IA253Rfr Iatisina.Tamara HTML si CSS");
 
-        Assert.Equal("IA", result.FacultyName.Span);
-        Assert.Equal(3, result.GroupNumber);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 3, actual: result.GroupNumber);
         Assert.True(result.SubGroupName.IsEmpty);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
         Assert.True(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -83,14 +83,14 @@ public class RegistryScrapingTests
     {
         var result = Parse("DJ2502ru");
 
-        Assert.Equal("DJ", result.FacultyName.Span);
-        Assert.Equal(2, result.GroupNumber);
+        Assert.Equal(expected: "DJ", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 2, actual: result.GroupNumber);
         Assert.True(result.SubGroupName.IsEmpty);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(AttendanceMode.Zi, result.AttendanceMode);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: AttendanceMode.Zi, actual: result.AttendanceMode);
         Assert.False(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -98,14 +98,14 @@ public class RegistryScrapingTests
     {
         var result = Parse("DJ2502(I)");
 
-        Assert.Equal("DJ", result.FacultyName.Span);
-        Assert.Equal(2, result.GroupNumber);
-        Assert.Equal("I", result.SubGroupName.Span);
+        Assert.Equal(expected: "DJ", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 2, actual: result.GroupNumber);
+        Assert.Equal(expected: "I", actual: result.SubGroupName.Span);
         Assert.Null(result.Language);
-        Assert.Equal(AttendanceMode.Zi, result.AttendanceMode);
+        Assert.Equal(expected: AttendanceMode.Zi, actual: result.AttendanceMode);
         Assert.False(result.IsRepeat);
         Assert.False(result.IsWildcard);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
     }
 
     [Theory]
@@ -113,13 +113,16 @@ public class RegistryScrapingTests
     [InlineData("DJ2502(II)ru", "II")]
     public void LanguageAfterNumericSubgroupUsesRequestedAcademicYear(string name, string subgroup)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
-        Assert.Equal("DJ", result.FacultyName.Span);
-        Assert.Equal(2, result.GroupNumber);
-        Assert.Equal(subgroup, result.SubGroupName.ToString());
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(2, result.Grade.Value);
+        Assert.Equal(expected: "DJ", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 2, actual: result.GroupNumber);
+        Assert.Equal(expected: subgroup, actual: result.SubGroupName.ToString());
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: 2, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -131,12 +134,15 @@ public class RegistryScrapingTests
     [Fact]
     public void EducationSciencesMarkerIsRetainedAsAdditionalCourses()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "I2402SEru");
-        Assert.Equal("I", result.FacultyName.Span);
-        Assert.Equal(2, result.GroupNumber);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(3, result.Grade.Value);
+        Assert.Equal(expected: "I", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 2, actual: result.GroupNumber);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: 3, actual: result.Grade.Value);
         Assert.True(result.SubGroupName.IsEmpty);
         Assert.True(result.IsAdditionalCourses);
     }
@@ -147,13 +153,13 @@ public class RegistryScrapingTests
     public void EnglishLabPartitionPreservesParentGroupLanguage(string name, Language? language)
     {
         var result = Parse(name);
-        Assert.Equal(1, result.GroupNumber);
-        Assert.Equal(SpecialSubGroups.Eng.Value, result.SubGroupName.ToString());
-        Assert.Equal(language, result.Language);
+        Assert.Equal(expected: 1, actual: result.GroupNumber);
+        Assert.Equal(expected: SpecialSubGroups.Eng.Value, actual: result.SubGroupName.ToString());
+        Assert.Equal(expected: language, actual: result.Language);
         Assert.False(result.IsWildcard);
         Assert.False(result.IsAdditionalCourses);
         var partition = new GroupPartitionResolver(null).Resolve(result);
-        Assert.Equal(SpecialSubGroups.Eng, partition.SubGroup);
+        Assert.Equal(expected: SpecialSubGroups.Eng, actual: partition.SubGroup);
     }
 
     [Theory]
@@ -166,22 +172,34 @@ public class RegistryScrapingTests
     [InlineData("DJ2502SE(I)", true)]
     public void AdditionalCoursesMarkerIsRetainedAcrossPositions(string name, bool expected)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
-        Assert.Equal(expected, result.IsAdditionalCourses);
+        Assert.Equal(expected: expected, actual: result.IsAdditionalCourses);
     }
 
     [Fact]
     public void AdditionalCoursesMarkerDoesNotChangeScheduledPartition()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var ordinary = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601(I)");
         var additional = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601SE(I)");
         Assert.False(ordinary.IsAdditionalCourses);
         Assert.True(additional.IsAdditionalCourses);
         var resolver = new GroupPartitionResolver(null);
-        Assert.Equal(resolver.Resolve(ordinary), resolver.Resolve(additional));
-        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All), resolver.Resolve(additional));
+        var expected2 = resolver.Resolve(ordinary);
+        var actual2 = resolver.Resolve(additional);
+        Assert.Equal(expected: expected2, actual: actual2);
+        var subGroup = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var expected3 = new GroupPartitionKey(subGroup, specialization);
+        var actual3 = resolver.Resolve(additional);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -189,13 +207,13 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA24(GA2D)ru");
 
-        Assert.Equal("IA", result.FacultyName.Span);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
         Assert.Null(result.GroupNumber);
-        Assert.Equal("GA2D", result.SubGroupName.Span);
-        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(expected: "GA2D", actual: result.SubGroupName.Span);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
         Assert.True(result.IsWildcard);
         Assert.False(result.IsRepeat);
-        Assert.Equal(2, result.Grade.Value);
+        Assert.Equal(expected: 2, actual: result.Grade.Value);
     }
 
     [Fact]
@@ -203,19 +221,39 @@ public class RegistryScrapingTests
     {
         var result = Parse("IA2501SE");
 
-        Assert.Equal("IA", result.FacultyName.Span);
-        Assert.Equal(1, result.GroupNumber);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.Span);
+        Assert.Equal(expected: 1, actual: result.GroupNumber);
         Assert.Null(result.Language);
-        Assert.Equal(1, result.Grade.Value);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
         Assert.True(result.IsAdditionalCourses);
     }
 
     [Theory]
-    [InlineData("IAFR2603(ru)", "IA", 3, Language.Ru, 1, false)]
-    [InlineData("IAFR2403ru", "IA", 3, Language.Ru, 3, false)]
-    [InlineData("MFR2501", "M", 1, null, 2, true)]
+    [InlineData("IAFR2603(ru)",
+        "IA",
+        3,
+        Language.Ru,
+        1,
+        false)]
+    [InlineData("IAFR2403ru",
+        "IA",
+        3,
+        Language.Ru,
+        3,
+        false)]
+    [InlineData("MFR2501",
+        "M",
+        1,
+        null,
+        2,
+        true)]
     public void FacultyAttendanceSuffixIsSeparatedBeforeResolvingQualification(
-        string name, string faculty, int number, Language? language, int grade, bool master)
+        string name,
+        string faculty,
+        int number,
+        Language? language,
+        int grade,
+        bool master)
     {
         var context = GroupParseContext.Create(new()
         {
@@ -223,12 +261,23 @@ public class RegistryScrapingTests
             GroupLabelsThatAreMaster = new ReadOnlySet<string>(new HashSet<string> { "M" }),
         });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
-        Assert.Equal(faculty, result.FacultyName.ToString());
-        Assert.Equal(number, result.GroupNumber);
-        Assert.Equal(language, result.Language);
-        Assert.Equal(grade, result.Grade.Value);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
-        Assert.Equal(master ? QualificationType.Master : QualificationType.Licenta, result.QualificationType);
+        Assert.Equal(expected: faculty, actual: result.FacultyName.ToString());
+        Assert.Equal(expected: number, actual: result.GroupNumber);
+        Assert.Equal(expected: language, actual: result.Language);
+        Assert.Equal(expected: grade, actual: result.Grade.Value);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
+        QualificationType expected2;
+        if (master)
+        {
+            expected2 = QualificationType.Master;
+        }
+        else
+        {
+            expected2 = QualificationType.Licenta;
+        }
+
+        var actual2 = result.QualificationType;
+        Assert.Equal(expected: expected2, actual: actual2);
         Assert.False(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
@@ -239,49 +288,62 @@ public class RegistryScrapingTests
     [InlineData("IA2603(ro)", Language.Ro)]
     public void ParenthesizedWholeGroupLanguageDoesNotCreatePartition(string name, Language language)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
-        Assert.Equal(language, result.Language);
+        Assert.Equal(expected: language, actual: result.Language);
         Assert.True(result.SubGroupName.IsEmpty);
-        Assert.Equal(GroupPartitionKey.All, new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(expected: GroupPartitionKey.All, actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
     [Fact]
     public void DualSuffixSetsBothAttendanceAndDualMatchingFlag()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2601DU");
-        Assert.Equal("IA", result.FacultyName.ToString());
-        Assert.Equal(1, result.GroupNumber);
-        Assert.Equal(1, result.Grade.Value);
-        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
+        Assert.Equal(expected: 1, actual: result.GroupNumber);
+        Assert.Equal(expected: 1, actual: result.Grade.Value);
+        Assert.Equal(expected: AttendanceMode.DualZi, actual: result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
     }
 
     [Theory]
-    [InlineData("IA_2001fr", 1, null)]
-    [InlineData("IA_2002Rfr", 2, Language.Ru)]
-    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(string name, int number, Language? language)
+    [InlineData("IA_2001fr",
+        1,
+        null)]
+    [InlineData("IA_2002Rfr",
+        2,
+        Language.Ru)]
+    public void HistoricalFacultyYearSeparatorPreservesAttendanceAndLanguage(
+        string name,
+        int number,
+        Language? language)
     {
         var result = Parse(name);
-        Assert.Equal("IA", result.FacultyName.ToString());
-        Assert.Equal(number, result.GroupNumber);
-        Assert.Equal(AttendanceMode.FrecventaRedusa, result.AttendanceMode);
-        Assert.Equal(language, result.Language);
+        Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
+        Assert.Equal(expected: number, actual: result.GroupNumber);
+        Assert.Equal(expected: AttendanceMode.FrecventaRedusa, actual: result.AttendanceMode);
+        Assert.Equal(expected: language, actual: result.Language);
     }
 
     [Fact]
     public void ParenthesizedDualAfterNumberSelectsAttendanceInsteadOfPartition()
     {
         var result = Parse("IA2501(Dual)");
-        Assert.Equal(1, result.GroupNumber);
-        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.Equal(expected: 1, actual: result.GroupNumber);
+        Assert.Equal(expected: AttendanceMode.DualZi, actual: result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.False(result.IsWildcard);
         Assert.True(result.SubGroupName.IsEmpty);
-        Assert.Equal(GroupPartitionKey.All, new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(expected: GroupPartitionKey.All, actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
     [Theory]
@@ -297,7 +359,10 @@ public class RegistryScrapingTests
     [InlineData("IA2501DU(Dual)")]
     public void DuplicateMarkersAreRejected(string name)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         Assert.Throws<GroupParsingException>(() => RegistryScraping.ParseGroupFromOnlineRegistry(context, name));
     }
 
@@ -316,40 +381,63 @@ public class RegistryScrapingTests
             "RVA" => Specialization.DJ,
             _ => Specialization.DezvoltareaAplicatiilor,
         };
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
-        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, $"IA25({alias})ru");
-        result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!.AsMemory();
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
+        var context2 = context;
+        string s = $"IA25({alias})ru";
+        var result = RegistryScraping.ParseGroupFromOnlineRegistry(context2, s);
+        result.SubGroupName = remappings.SubGroupNameRemappings.Remap(result.SubGroupName).Value!
+            .AsMemory();
         Assert.True(result.IsWildcard);
         Assert.Null(result.GroupNumber);
-        Assert.Equal(2, result.Grade.Value);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, specialization), new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(expected: 2, actual: result.Grade.Value);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+
+        GroupPartitionKey CalculateExpected()
+        {
+            var expected2 = new GroupPartitionKey(SubGroup.All, specialization);
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
 
     [Fact]
     public void HistoricalWildcardPreservesSpecializationAndAcademicYear()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA25(GA2D)ru");
-        Assert.Equal("IA", result.FacultyName.ToString());
+        Assert.Equal(expected: "IA", actual: result.FacultyName.ToString());
         Assert.Null(result.GroupNumber);
         Assert.True(result.IsWildcard);
-        Assert.Equal(Language.Ru, result.Language);
-        Assert.Equal(2, result.Grade.Value);
-        Assert.Equal(new GroupPartitionKey(SubGroup.All, Specialization.GA2D), new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
+        Assert.Equal(expected: 2, actual: result.Grade.Value);
+
+        GroupPartitionKey CalculateExpected()
+        {
+            var expected2 = new GroupPartitionKey(SubGroup.All, Specialization.GA2D);
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
     [Fact]
     public void ExistingDualWildcardSetsConsistentMatchingFields()
     {
         var result = Parse("IA25(Dual)ru");
-        Assert.Equal(AttendanceMode.DualZi, result.AttendanceMode);
+        Assert.Equal(expected: AttendanceMode.DualZi, actual: result.AttendanceMode);
         Assert.True(result.IsDual);
         Assert.Null(result.GroupNumber);
         Assert.True(result.SubGroupName.IsEmpty);
         Assert.False(result.IsWildcard);
-        Assert.Equal(Language.Ru, result.Language);
+        Assert.Equal(expected: Language.Ru, actual: result.Language);
     }
 
 
@@ -362,11 +450,10 @@ public class RegistryScrapingTests
             GroupLabelsThatAreMaster = Config.GroupLabelsThatAreMaster,
         });
         var result = RegistryScraping.ParseGroupFromOnlineRegistry(context, "MIA2501");
-        Assert.Equal("MIA", result.FacultyName.ToString());
-        Assert.Equal(QualificationType.Master, result.QualificationType);
-        Assert.Equal(1, result.GroupNumber);
-        Assert.Equal(2, result.Grade.Value);
-        Assert.Equal(AttendanceMode.Zi, result.AttendanceMode);
+        Assert.Equal(expected: "MIA", actual: result.FacultyName.ToString());
+        Assert.Equal(expected: QualificationType.Master, actual: result.QualificationType);
+        Assert.Equal(expected: 1, actual: result.GroupNumber);
+        Assert.Equal(expected: 2, actual: result.Grade.Value);
+        Assert.Equal(expected: AttendanceMode.Zi, actual: result.AttendanceMode);
     }
-
 }

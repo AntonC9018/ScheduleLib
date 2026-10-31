@@ -9,7 +9,12 @@ public sealed class OwnedConversionDirectory : IDisposable
 
     public static OwnedConversionDirectory Create(string parent)
     {
-        var path = Path.Combine(Path.GetFullPath(parent), "schedulelib-doc-" + Guid.NewGuid().ToString("N"));
+        string path1 = Path.GetFullPath(parent);
+        string toString = Guid.NewGuid()
+            .ToString("N");
+        string text = $"schedulelib-doc-{toString}";
+        string path2 = text;
+        var path = Path.Combine(path1, path2);
         Directory.CreateDirectory(path);
         return new OwnedConversionDirectory(path);
     }
@@ -22,7 +27,12 @@ public sealed class OwnedConversionDirectory : IDisposable
         {
             // Refuse a replacement symlink/junction, rather than deleting through
             // a path that no longer names our staging directory.
-            if (!Directory.Exists(DirectoryPath) || (File.GetAttributes(DirectoryPath) & FileAttributes.ReparsePoint) != 0) return;
+            if (!Directory.Exists(DirectoryPath)
+                || (File.GetAttributes(DirectoryPath) & FileAttributes.ReparsePoint) != 0)
+            {
+                return;
+            }
+
             delete(DirectoryPath);
         }
         catch (IOException) { }

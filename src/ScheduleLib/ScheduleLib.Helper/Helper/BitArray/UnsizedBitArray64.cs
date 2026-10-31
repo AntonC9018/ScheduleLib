@@ -13,21 +13,24 @@ public record struct UnsizedBitArray64
 
     [Pure]
     public readonly BitArray64 WithFixedSize(int size) => new(this, size);
-    [Pure]
-    public readonly int SetCount => BitOperations.PopCount(_bits);
+
+    [Pure] public readonly int SetCount => BitOperations.PopCount(_bits);
 
     private static void ValidateIndex(int index)
     {
         if (index < 0 || index >= BitArray64.MaxLength)
         {
-            Debug.Fail($"Index {index} is invalid");
+            string message = $"Index {index} is invalid";
+            Debug.Fail(message);
         }
     }
+
     internal static void ValidateLen(int len)
     {
         if (len < 0 || len > BitArray64.MaxLength)
         {
-            Debug.Fail($"Len {len} is invalid");
+            string message = $"Len {len} is invalid";
+            Debug.Fail(message);
         }
     }
 
@@ -64,7 +67,7 @@ public record struct UnsizedBitArray64
 
     public void ClearArray(UnsizedBitArray64 other)
     {
-        _bits &= ~(other._bits);
+        _bits &= ~other._bits;
     }
 
     public void Clear(int index)
@@ -72,11 +75,12 @@ public record struct UnsizedBitArray64
         var mask = IndexMask(index);
         ClearArray(mask);
     }
+
     [Pure]
     public readonly bool IsSet(int index)
     {
         ValidateIndex(index);
-        return (_bits & (1UL << index)) != 0;
+        return (_bits & 1UL << index) != 0;
     }
 
     [Pure]
@@ -84,13 +88,16 @@ public record struct UnsizedBitArray64
     {
         return Intersect(arr) == arr;
     }
+
     [Pure]
     public readonly int GetSetAfter(int index)
     {
         Debug.Assert(index < BitArray64.MaxLength);
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
-        var set = _bits & ~ignoredMask;
+        ulong uInt64 = _bits;
+        ulong uInt642 = ~ignoredMask;
+        var set = uInt64 & uInt642;
         if (set == 0)
         {
             return -1;
@@ -98,6 +105,7 @@ public record struct UnsizedBitArray64
 
         return BitOperations.TrailingZeroCount(set);
     }
+
     [Pure]
     public readonly int GetUnsetAfter(int index, int length)
     {
@@ -110,8 +118,10 @@ public record struct UnsizedBitArray64
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
         var allMask = GetMask(length).Bits;
-        var mask = ~ignoredMask & allMask;
-        var unset = ~_bits & mask;
+        ulong uInt64 = ~ignoredMask;
+        var mask = uInt64 & allMask;
+        ulong uInt642 = ~_bits;
+        var unset = uInt642 & mask;
         if (unset == 0)
         {
             return -1;
@@ -119,6 +129,7 @@ public record struct UnsizedBitArray64
 
         return BitOperations.TrailingZeroCount(unset);
     }
+
     [Pure]
     public readonly UnsizedBitArray64 WithSet(int index)
     {
@@ -128,6 +139,7 @@ public record struct UnsizedBitArray64
         copy.Set(index);
         return copy;
     }
+
     [Pure]
     public readonly UnsizedBitArray64 WithClear(int index)
     {
@@ -137,24 +149,34 @@ public record struct UnsizedBitArray64
         copy.Clear(index);
         return copy;
     }
+
     [Pure]
     public readonly UnsizedBitArray64 Flipped()
     {
         var not = ~_bits;
         return new(not);
     }
+
     [Pure]
     public readonly BitArray64 Flipped(int length)
     {
         var x = this;
-        return x.Flipped().WithShrunkLen(length);
+        return x.Flipped()
+            .WithShrunkLen(length);
     }
 
     [Pure]
     public readonly BitArray64 WithShrunkLen(int len)
     {
         var x = this;
-        x = x.Intersect(GetMask(len));
+
+        UnsizedBitArray64 CalculateOther()
+        {
+            var other = GetMask(len);
+            return other;
+        }
+
+        x = x.Intersect(CalculateOther());
         var ret = x.WithFixedSize(len);
         return ret;
     }
@@ -167,11 +189,13 @@ public record struct UnsizedBitArray64
         var mask = GetMask(length);
         return new(bits & mask.Bits, length);
     }
+
     [Pure]
     public readonly UnsizedBitArray64 Intersect(UnsizedBitArray64 other)
     {
         return new(_bits & other._bits);
     }
+
     [Pure]
     public readonly UnsizedBitArray64 Remove(UnsizedBitArray64 other)
     {
@@ -231,12 +255,9 @@ public record struct UnsizedBitArray64
         return Intersect(mask) == mask;
     }
 
-    [Pure]
-    public readonly bool AreNoneSet => _bits == 0;
-    [Pure]
-    public readonly ulong Bits => _bits;
-    [Pure]
-    public readonly bool IsEmpty => AreNoneSet;
+    [Pure] public readonly bool AreNoneSet => _bits == 0;
+    [Pure] public readonly ulong Bits => _bits;
+    [Pure] public readonly bool IsEmpty => AreNoneSet;
 
     public static UnsizedBitArray64 AllSet(int length = BitArray64.MaxLength)
     {
@@ -253,8 +274,12 @@ public record struct UnsizedBitArray64
             return new(0);
         }
 
-        int shift = sizeof(ulong) * 8 - length;
-        return new(~default(ulong) >> shift);
+        int int32 = sizeof(ulong) * 8;
+        int shift = int32 - length;
+        ulong uInt64 = ~default(ulong);
+        ulong bits = uInt64 >> shift;
+        UnsizedBitArray64 unsizedBitArray64 = new(bits);
+        return unsizedBitArray64;
     }
 
     public static UnsizedBitArray64 GetOffsetMask(int offset, int length)
@@ -274,12 +299,9 @@ public record struct UnsizedBitArray64
     }
 
     // These would wrap custom enumerable structs if needed
-    [Pure]
-    public readonly SetBitIndicesEnumerable64 SetBitIndicesLowToHigh => new(Bits);
-    [Pure]
-    public readonly ReverseSetBitIndicesEnumerable64 SetBitIndicesHighToLow => new(Bits);
-    [Pure]
-    public readonly SetBitIndicesEnumerable64 UnsetBitIndicesLowToHigh => new(Flipped().Bits);
+    [Pure] public readonly SetBitIndicesEnumerable64 SetBitIndicesLowToHigh => new(Bits);
+    [Pure] public readonly ReverseSetBitIndicesEnumerable64 SetBitIndicesHighToLow => new(Bits);
+    [Pure] public readonly SetBitIndicesEnumerable64 UnsetBitIndicesLowToHigh => new(Flipped().Bits);
 }
 
 public static class UnsizedBitArrayHelper64

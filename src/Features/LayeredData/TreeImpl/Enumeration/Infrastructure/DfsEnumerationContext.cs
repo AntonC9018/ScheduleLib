@@ -32,6 +32,7 @@ public sealed class EnumerationContextKeyRegistry
         var ret = Register<T>(typeof(T).Name);
         return ret;
     }
+
     public EnumerationContextKey<T> Register<T>(string name) where T : class
     {
         var ret = _impl.Register(name);
@@ -44,6 +45,7 @@ public readonly record struct EnumerationContextKey(string Value) : ICreateFromS
     public static readonly EnumerationContextKeyRegistry Registry = new();
     public static EnumerationContextKey Create(string val) => new(val);
 }
+
 public readonly record struct EnumerationContextKey<T>(EnumerationContextKey Value);
 
 public interface IEnumerationContext
@@ -70,7 +72,7 @@ public readonly struct EnumerationContextCollection : IDisposable
                 return (T) x.Value;
             }
         }
-        throw new KeyNotFoundException($"{key.Value.Value} not found");
+        throw new NodeDataKeyNotFoundException(key.Value.Value);
     }
 
     public void Dispose()
@@ -99,11 +101,7 @@ public readonly struct EnumerationContextCollection : IDisposable
         public bool MoveNext()
         {
             _index++;
-            if (_index < self._items.Length)
-            {
-                return true;
-            }
-            return false;
+            return _index < self._items.Length;
         }
 
         public KeyedContext Current => self._items[_index];

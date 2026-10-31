@@ -8,7 +8,7 @@ public static class ExplorerHelper
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            ExplorerHelper.OpenFolderAndSelectFile(file);
+            OpenFolderAndSelectFile(file);
             return true;
         }
         return false;
@@ -19,17 +19,25 @@ public static class ExplorerHelper
     {
         filePath = Path.GetFullPath(filePath);
         ArgumentNullException.ThrowIfNull(filePath);
-        IntPtr pidl = ILCreateFromPathW(filePath);
-        SHOpenFolderAndSelectItems(pidl, 0, IntPtr.Zero, 0);
+        nint pidl = ILCreateFromPathW(filePath);
+        SHOpenFolderAndSelectItems(
+            pidlFolder: pidl,
+            cild: 0,
+            apidl: nint.Zero,
+            dwFlags: 0);
         ILFree(pidl);
     }
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-    private static extern IntPtr ILCreateFromPathW(string pszPath);
+    private static extern nint ILCreateFromPathW(string pszPath);
 
     [DllImport("shell32.dll")]
-    private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, int cild, IntPtr apidl, int dwFlags);
+    private static extern int SHOpenFolderAndSelectItems(
+        nint pidlFolder,
+        int cild,
+        nint apidl,
+        int dwFlags);
 
     [DllImport("shell32.dll")]
-    private static extern void ILFree(IntPtr pidl);
+    private static extern void ILFree(nint pidl);
 }

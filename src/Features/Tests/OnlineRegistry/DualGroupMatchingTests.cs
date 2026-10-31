@@ -19,25 +19,53 @@ public sealed class DualGroupMatchingTests
     [InlineData("DJ2601DU", 4)]
     public void CurrentRegistrySelectsExactProgramAndMode(string name, int expectedGroup)
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
-        var builder = new ScheduleBuilder { GroupParseContext = context };
-        foreach (var group in new[] { "IA2601", "DU-IA2601", "IAFR2601", "DU-IAFR2601", "DU-DJ2601" })
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = context,
+        };
+        foreach (var group in new[]
+                 {
+                     "IA2601",
+                     "DU-IA2601",
+                     "IAFR2601",
+                     "DU-IAFR2601",
+                     "DU-DJ2601",
+                 })
+        {
             builder.Group(group);
+        }
+
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, name);
         var match = GroupsNavigator.FindGroupMatch(builder.Build(), parsed);
-        Assert.Equal(new GroupId(expectedGroup), Assert.Single(match));
+        var expected2 = new GroupId(expectedGroup);
+        var actual2 = Assert.Single(match);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
     public void ConfirmedLegacyAliasMatchesThisYearsDualRegistry()
     {
-        var context = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
-        var builder = new ScheduleBuilder { GroupParseContext = context };
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = context,
+        };
         Config.ConfigureRemappings(builder.Remappings);
         builder.Group("DU2501");
         builder.Group("IA2501");
         var parsed = RegistryScraping.ParseGroupFromOnlineRegistry(context, "IA2501DU");
-        Assert.Equal(2, parsed.Grade.Value);
-        Assert.Equal(new GroupId(0), Assert.Single(GroupsNavigator.FindGroupMatch(builder.Build(), parsed)));
+        Assert.Equal(expected: 2, actual: parsed.Grade.Value);
+        var expected2 = new GroupId(0);
+        var collection = GroupsNavigator.FindGroupMatch(builder.Build(), parsed);
+        IEnumerable<GroupId> collection2 = collection;
+        var actual2 = Assert.Single(collection2);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 }

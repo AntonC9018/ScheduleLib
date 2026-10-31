@@ -17,11 +17,12 @@ public static class RegistrationHelper
         services.AddOptions<OpenHierarchyOptions>();
 
         services.AddSingleton<TreeSerializer>();
-        services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey).Configure(opts =>
-        {
-            _ = opts;
-            // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
-        });
+        services.AddOptions<JsonSerializerOptions>(TreeSerializer.ServiceKey)
+            .Configure(opts =>
+            {
+                _ = opts;
+                // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
+            });
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }
 
@@ -44,14 +45,36 @@ public static class RegistrationHelper
 
         bool ProcessSelf_CheckShouldProcessChildren()
         {
-            if (type == typeof(string)
-                || type == typeof(Type)
-                || type.IsInterface
-                || type.IsSubclassOf(typeof(Delegate)))
+            bool CheckCondition()
+            {
+                if (type == typeof(string))
+                {
+                    return true;
+                }
+
+                if (type == typeof(Type))
+                {
+                    return true;
+                }
+
+                if (type.IsInterface)
+                {
+                    return true;
+                }
+
+                if (type.IsSubclassOf(typeof(Delegate)))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(type);
-                services.TryAddSingleton(serviceType, implType);
+                services.TryAddSingleton(service: serviceType, implementationType: implType);
                 return false;
             }
 
@@ -64,12 +87,12 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ListMerger<>).MakeGenericType(elementType);
-                    services.TryAddSingleton(serviceType, implType);
+                    services.TryAddSingleton(service: serviceType, implementationType: implType);
                 }
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                     var implType = typeof(ListBasicOperations<>).MakeGenericType(elementType);
-                    services.TryAddSingleton(serviceType, implType);
+                    services.TryAddSingleton(service: serviceType, implementationType: implType);
                 }
                 RegisterBasicOperationsAndMergersForType(services, elementType);
                 return false;
@@ -81,7 +104,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                     var implType = typeof(ReflectionBasicOperations<>).MakeGenericType(type);
-                    if (services.TryAddSingleton(serviceType, implType))
+                    if (services.TryAddSingleton(service: serviceType, implementationType: implType))
                     {
                         added = true;
                     }
@@ -89,7 +112,7 @@ public static class RegistrationHelper
                 {
                     var serviceType = typeof(IMerger<>).MakeGenericType(type);
                     var implType = typeof(ReflectionMerger<>).MakeGenericType(type);
-                    if (services.TryAddSingleton(serviceType, implType))
+                    if (services.TryAddSingleton(service: serviceType, implementationType: implType))
                     {
                         added = true;
                     }
@@ -101,24 +124,26 @@ public static class RegistrationHelper
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(NullableStructBasicOperations<>).MakeGenericType(underlyingType);
-                services.TryAddSingleton(serviceType, implType);
+                services.TryAddSingleton(service: serviceType, implementationType: implType);
                 return false;
             }
 
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(ImmutableStructBasicOperations<>).MakeGenericType(type);
-                services.TryAddSingleton(serviceType, implType);
+                services.TryAddSingleton(service: serviceType, implementationType: implType);
             }
             return false;
         }
 
         void ProcessChildren()
         {
-            var members = type
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .AsEnumerable<MemberInfo>()
-                .Concat(type.GetFields(BindingFlags.Public | BindingFlags.Instance));
+            var properties = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var asEnumerable = properties.AsEnumerable<MemberInfo>();
+            var second = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            IEnumerable<MemberInfo> second2 = second;
+            var members = asEnumerable.Concat(second2);
             foreach (var m in members)
             {
                 Type mtype;
@@ -144,35 +169,38 @@ public static class RegistrationHelper
     internal static bool TryAddSingleton(
         this IServiceCollection collection,
         Type service,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof (service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
-        ServiceDescriptor descriptor = ServiceDescriptor.Singleton(service, implementationType);
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(service, nameof(service));
+        ArgumentNullException.ThrowIfNull(implementationType, nameof(implementationType));
+        var descriptor = ServiceDescriptor.Singleton(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
+
     internal static bool TryAddScoped(
         this IServiceCollection collection,
         Type service,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        Type implementationType)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) service, nameof (service));
-        ArgumentNullException.ThrowIfNull((object) implementationType, nameof (implementationType));
-        ServiceDescriptor descriptor = ServiceDescriptor.Scoped(service, implementationType);
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(service, nameof(service));
+        ArgumentNullException.ThrowIfNull(implementationType, nameof(implementationType));
+        var descriptor = ServiceDescriptor.Scoped(service: service, implementationType: implementationType);
         return collection.TryAdd(descriptor);
     }
 
     private static bool TryAdd(this IServiceCollection collection, ServiceDescriptor descriptor)
     {
-        ArgumentNullException.ThrowIfNull((object) collection, nameof (collection));
-        ArgumentNullException.ThrowIfNull((object) descriptor, nameof (descriptor));
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        ArgumentNullException.ThrowIfNull(descriptor, nameof(descriptor));
         int count = collection.Count;
         for (int index = 0; index < count; ++index)
         {
             if (collection[index].ServiceType == descriptor.ServiceType
-                && object.Equals(collection[index].ServiceKey, descriptor.ServiceKey))
+                && Equals(objA: collection[index].ServiceKey, objB: descriptor.ServiceKey))
             {
                 return false;
             }
@@ -190,20 +218,22 @@ public static class RegistrationHelper
         //     ServiceLifetime.Singleton);
         collection.AddSingleton<IDataMapperBase, T>();
     }
+
     public static void AddMerger<T>(this IServiceCollection collection)
         where T : IMergerBase
     {
         collection.RegisterRequiredImplementationsOfGenericService<T>(
-            typeof(IMergerBase),
-            typeof(IMerger<>),
+            markerServiceType: typeof(IMergerBase),
+            unboundServiceType: typeof(IMerger<>),
             ServiceLifetime.Singleton);
     }
+
     public static void AddBasicOperations<T>(this IServiceCollection collection)
         where T : IBasicOperationsBase
     {
         collection.RegisterRequiredImplementationsOfGenericService<T>(
-            typeof(IBasicOperationsBase),
-            typeof(IBasicOperations<>),
+            markerServiceType: typeof(IBasicOperationsBase),
+            unboundServiceType: typeof(IBasicOperations<>),
             ServiceLifetime.Singleton);
     }
 }

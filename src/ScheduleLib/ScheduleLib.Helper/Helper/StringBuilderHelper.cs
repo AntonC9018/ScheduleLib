@@ -72,7 +72,10 @@ public readonly struct ListStringBuilder(
     {
         private readonly ListStringBuilder writer;
 
-        public WriteInterpolatedStringHandler(int literalLength, int formattedCount, ListStringBuilder writer)
+        public WriteInterpolatedStringHandler(
+            int literalLength,
+            int formattedCount,
+            ListStringBuilder writer)
         {
             _ = literalLength;
             _ = formattedCount;
@@ -96,7 +99,7 @@ public readonly struct ListStringBuilder(
 
         public void AppendFormatted(ReadOnlySpan<char> value)
         {
-            this.writer.StringBuilder.Append(value);
+            writer.StringBuilder.Append(value);
         }
 
         public void AppendFormatted<T>(T value)
@@ -108,11 +111,23 @@ public readonly struct ListStringBuilder(
         {
             if (value is ISpanFormattable spanFormattable)
             {
-                AppendFormatted(spanFormattable.ToString(format, CultureInfo.InvariantCulture));
+                string CalculateValue()
+                {
+                    string value2 = spanFormattable.ToString(format, CultureInfo.InvariantCulture);
+                    return value2;
+                }
+
+                AppendFormatted(CalculateValue());
             }
             else if (value is IFormattable formattable)
             {
-                AppendFormatted(formattable.ToString(format, CultureInfo.InvariantCulture));
+                string CalculateValue2()
+                {
+                    string value3 = formattable.ToString(format, CultureInfo.InvariantCulture);
+                    return value3;
+                }
+
+                AppendFormatted(CalculateValue2());
             }
             else if (value is not null)
             {

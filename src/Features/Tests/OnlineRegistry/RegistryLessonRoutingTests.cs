@@ -14,63 +14,209 @@ public sealed class RegistryLessonRoutingTests
         var builder = NewBuilder();
         var course = builder.Course("Synthetic course");
         GroupId parent = builder.Group("IA2601");
-        foreach (var number in new[] { 1, 2 })
+        foreach (var number in new[]
+                 {
+                     1,
+                     2,
+                 })
+        {
             builder.RegularLesson(lesson =>
             {
-                lesson.Course(course); lesson.Group(parent, SubGroup.CreateNumeric(number));
-                lesson.Type(LessonType.Lab); lesson.DayOfWeek(number == 1 ? DayOfWeek.Monday : DayOfWeek.Tuesday);
+                lesson.Course(course);
+                var lessonBuilder = lesson;
+                var group = parent;
+                var subGroup = SubGroup.CreateNumeric(number);
+                SubGroup? subGroup2 = subGroup;
+                lessonBuilder.Group(group, subGroup2);
+                lesson.Type(LessonType.Lab);
+                var lessonBuilder2 = lesson;
+                DayOfWeek dayOfWeek;
+                if (number == 1)
+                {
+                    dayOfWeek = DayOfWeek.Monday;
+                }
+                else
+                {
+                    dayOfWeek = DayOfWeek.Tuesday;
+                }
+
+                lessonBuilder2.DayOfWeek(dayOfWeek);
                 lesson.TimeSlot(TimeSlot.First);
             });
+        }
+
         builder.RefreshLookup();
         var schedule = builder.Build();
         var config = EmptyConfig();
-        config.LabMerges = [new() { Course = "Synthetic course", Group = "IA2601", SourceSubGroup = "I" }];
-        var fallback = MakeLink([parent], GroupPartitionKey.All, true, false, "https://registry.test/fallback");
-        var oldSubgroup = ExplicitParent(parent, new(SubGroup.CreateNumeric(1), Specialization.All), "https://registry.test/old-subgroup");
-        var merged = RegistryLessonRouting.Candidates(config, ParamsFor(builder, schedule, course, fallback.Groups, fallback.GroupPartition));
-        var obsolete = RegistryLessonRouting.Candidates(config, ParamsFor(builder, schedule, course, oldSubgroup.Groups, oldSubgroup.GroupPartition));
+        config.LabMerges =
+        [
+            new()
+            {
+                Course = "Synthetic course",
+                Group = "IA2601",
+                SourceSubGroup = "I",
+            },
+        ];
+        var fallback = MakeLink(
+            [parent],
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: false,
+            "https://registry.test/fallback");
+        var parent2 = parent;
+        var subGroup3 = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        GroupPartitionKey partition = new(subGroup3, specialization);
+        string uri = "https://registry.test/old-subgroup";
+        var oldSubgroup = ExplicitParent(
+            parent2,
+            partition,
+            uri);
+        var config2 = config;
+        var parameters = ParamsFor(
+            builder,
+            schedule,
+            course,
+            fallback.Groups,
+            fallback.GroupPartition);
+        var merged = RegistryLessonRouting.Candidates(config2, parameters);
+        var config3 = config;
+        var parameters2 = ParamsFor(
+            builder,
+            schedule,
+            course,
+            oldSubgroup.Groups,
+            oldSubgroup.GroupPartition);
+        var obsolete = RegistryLessonRouting.Candidates(config3, parameters2);
         Assert.Empty(obsolete.Lessons);
         var survivor = Assert.Single(merged.Lessons);
-        Assert.Equal(GroupPartitionKey.All, RegistryLessonRouting.ProjectPartition(config, schedule, schedule.Get(survivor).Lesson));
-        Assert.Equal(DayOfWeek.Monday, schedule.Get(survivor).Weekly!.Value.Date.DayOfWeek);
+        Assert.Equal(
+            expected: GroupPartitionKey.All,
+            actual: RegistryLessonRouting.ProjectPartition(
+                config,
+                schedule,
+                schedule.Get(survivor).Lesson));
+        Assert.Equal(expected: DayOfWeek.Monday, actual: schedule.Get(survivor).Weekly!.Value.Date.DayOfWeek);
     }
 
-    private static BuiltRegistryConfig EmptyConfig() => new()
+    private static BuiltRegistryConfig EmptyConfig()
     {
-        Credentials = new ValueCredentialsSource { Value = new Credentials { Login = "synthetic", Password = "synthetic" } },
-        ExtraLessonInstanceAction = ExtraLessonInstanceAction.LeaveAlone,
-        EquationCommandsDerivation = new AnyDayDerivation(),
-        CommandProcessingConfig = CommandProcessingConfig.DryRun,
-        LabMerges = [],
-    };
+        return new()
+        {
+            Credentials = new ValueCredentialsSource
+            {
+                Value = new Credentials
+                {
+                    Login = "synthetic",
+                    Password = "synthetic",
+                },
+            },
+            ExtraLessonInstanceAction = ExtraLessonInstanceAction.LeaveAlone,
+            EquationCommandsDerivation = new AnyDayDerivation(),
+            CommandProcessingConfig = CommandProcessingConfig.DryRun,
+            LabMerges = [],
+        };
+    }
 
     private static ScheduleBuilder NewBuilder()
     {
         var builder = new ScheduleBuilder();
-        builder.GroupParseContext = GroupParseContext.Create(new() { CurrentStudyYear = new(2026) });
+        builder.GroupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2026),
+        });
         builder.EnableLookupModule();
         return builder;
     }
 
-    private static GroupLink MakeLink(LessonGroups groups, GroupPartitionKey partition, bool isWildcard, bool isCombined, string uri, bool isAdditionalCourses = false)
+    private static GroupLink MakeLink(
+        LessonGroups groups,
+        GroupPartitionKey partition,
+        bool isWildcard,
+        bool isCombined,
+        string uri,
+        bool isAdditionalCourses = false)
     {
-        var found = new FoundGroups { Value = groups, IsWildcard = isWildcard, IsCombined = isCombined };
-        return new GroupLink(found, partition, new Uri(uri), new Uri(uri + "/evaluation"), isAdditionalCourses);
+        var found = new FoundGroups
+        {
+            Value = groups,
+            IsWildcard = isWildcard,
+            IsCombined = isCombined,
+        };
+
+        Uri CalculateUri()
+        {
+            var uri2 = new Uri(uri);
+            return uri2;
+        }
+
+        Uri CalculateEvaluationUri()
+        {
+            string text = $"{uri}/evaluation";
+            string uriString = text;
+            var evaluationUri2 = new Uri(uriString);
+            return evaluationUri2;
+        }
+
+        return new GroupLink(
+            found,
+            partition,
+            uri: CalculateUri(),
+            evaluationUri: CalculateEvaluationUri(),
+            isAdditionalCourses);
     }
 
-    private static GroupLink ExplicitParent(GroupId parent, GroupPartitionKey partition, string uri, bool isAdditionalCourses = false)
+    private static GroupLink ExplicitParent(
+        GroupId parent,
+        GroupPartitionKey partition,
+        string uri,
+        bool isAdditionalCourses = false)
     {
-        return MakeLink(new LessonGroups { parent }, partition, isWildcard: false, isCombined: false, uri, isAdditionalCourses);
+        return MakeLink(
+            new LessonGroups { parent },
+            partition,
+            isWildcard: false,
+            isCombined: false,
+            uri,
+            isAdditionalCourses: isAdditionalCourses);
     }
 
-    private static LessonMatchParams ParamsFor(ScheduleBuilder builder, Schedule schedule, CourseId course, FoundGroups groups, GroupPartitionKey partition)
+    private static LessonMatchParams ParamsFor(
+        ScheduleBuilder builder,
+        Schedule schedule,
+        CourseId course,
+        FoundGroups groups,
+        GroupPartitionKey partition)
     {
-        return new(new LessonSearchFilter(course, groups, partition), builder.LookupModule!.LessonsByCourse, schedule);
+        var filter = new LessonSearchFilter(
+            course,
+            groups,
+            partition);
+        var lookup = builder.LookupModule!.LessonsByCourse;
+        var schedule2 = schedule;
+        LessonMatchParams lessonMatchParams = new(
+            filter,
+            lookup,
+            schedule2);
+        return lessonMatchParams;
     }
 
-    private static RegistryLessonSelection CandidatesFor(ScheduleBuilder builder, Schedule schedule, CourseId course, FoundGroups groups, GroupPartitionKey partition)
+    private static RegistryLessonSelection CandidatesFor(
+        ScheduleBuilder builder,
+        Schedule schedule,
+        CourseId course,
+        FoundGroups groups,
+        GroupPartitionKey partition)
     {
-        return RegistryLessonRouting.Candidates(EmptyConfig(), ParamsFor(builder, schedule, course, groups, partition));
+        var config = EmptyConfig();
+        var parameters = ParamsFor(
+            builder,
+            schedule,
+            course,
+            groups,
+            partition);
+        var candidates = RegistryLessonRouting.Candidates(config, parameters);
+        return candidates;
     }
 
     [Theory]
@@ -103,29 +249,52 @@ public sealed class RegistryLessonRoutingTests
 
         var fallbackGroups = new FoundGroups
         {
-            Value = new LessonGroups { first, second },
+            Value = new LessonGroups
+            {
+                first,
+                second,
+            },
             IsWildcard = true,
             IsCombined = isCombined,
         };
-        var selection = CandidatesFor(builder, schedule, course, fallbackGroups, GroupPartitionKey.All);
-        Assert.Equal(2, selection.Lessons.Count);
-        Assert.Equal(GroupPartitionKey.All, selection.AttendancePartition);
+        var selection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            fallbackGroups,
+            GroupPartitionKey.All);
+        Assert.Equal(expected: 2, actual: selection.Lessons.Count);
+        Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
         Assert.False(selection.IsLabMerge);
 
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var fallbackLink = MakeLink(
+            new LessonGroups
+            {
+                first,
+                second,
+            },
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: isCombined,
+            "https://registry.test/fallback");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: MakeLink(new LessonGroups { first, second }, GroupPartitionKey.All, isWildcard: true, isCombined: isCombined, "https://registry.test/fallback"), Selection: selection),
+            new(Group: fallbackLink, Selection: selection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         var fallbackUri = new Uri("https://registry.test/fallback");
-        Assert.Equal(2, routed[fallbackUri].Count);
+        Assert.Equal(expected: 2, actual: routed[fallbackUri].Count);
         foreach (var entry in routed[fallbackUri])
         {
             var audience = entry.Value;
-            Assert.Equal(1, audience.Count);
+            Assert.Equal(expected: 1, actual: audience.Count);
             var lesson = schedule.Get(entry.Key).Lesson;
             Assert.True(lesson.Groups.IsSingleGroup);
-            Assert.True(audience.Contains(lesson.Groups[0]));
+            bool condition = audience.Contains(lesson.Groups[0]);
+            Assert.True(condition);
         }
     }
 
@@ -157,36 +326,82 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var fallbackSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first, second }, IsWildcard = true, IsCombined = isCombined },
+        var fallbackSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups
+                {
+                    first,
+                    second,
+                },
+                IsWildcard = true,
+                IsCombined = isCombined,
+            },
             GroupPartitionKey.All);
-        var firstSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first }, IsWildcard = false },
+        var firstSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { first },
+                IsWildcard = false,
+            },
             GroupPartitionKey.All);
-        var secondSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { second }, IsWildcard = false },
+        var secondSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { second },
+                IsWildcard = false,
+            },
             GroupPartitionKey.All);
-        Assert.Equal(2, fallbackSelection.Lessons.Count);
+        Assert.Equal(expected: 2, actual: fallbackSelection.Lessons.Count);
         Assert.Single(firstSelection.Lessons);
         Assert.Single(secondSelection.Lessons);
 
-        var fallbackLink = MakeLink(new LessonGroups { first, second }, GroupPartitionKey.All, isWildcard: true, isCombined: isCombined, "https://registry.test/fallback");
-        var firstLink = ExplicitParent(first, GroupPartitionKey.All, "https://registry.test/first");
-        var secondLink = ExplicitParent(second, GroupPartitionKey.All, "https://registry.test/second");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var fallbackLink = MakeLink(
+            new LessonGroups
+            {
+                first,
+                second,
+            },
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: isCombined,
+            "https://registry.test/fallback");
+        var firstLink = ExplicitParent(
+            first,
+            GroupPartitionKey.All,
+            "https://registry.test/first");
+        var secondLink = ExplicitParent(
+            second,
+            GroupPartitionKey.All,
+            "https://registry.test/second");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: fallbackLink, Selection: fallbackSelection),
-            (Group: firstLink, Selection: firstSelection),
-            (Group: secondLink, Selection: secondSelection),
+            new(Group: fallbackLink, Selection: fallbackSelection),
+            new(Group: firstLink, Selection: firstSelection),
+            new(Group: secondLink, Selection: secondSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         Assert.Empty(routed[fallbackLink.Uri]);
         Assert.Single(routed[firstLink.Uri]);
         Assert.Single(routed[secondLink.Uri]);
         var firstRouted = Assert.Single(routed[firstLink.Uri]);
-        Assert.True(firstRouted.Value.Contains(first));
+        bool condition = firstRouted.Value.Contains(first);
+        Assert.True(condition);
         var secondRouted = Assert.Single(routed[secondLink.Uri]);
-        Assert.True(secondRouted.Value.Contains(second));
+        bool condition2 = secondRouted.Value.Contains(second);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -215,31 +430,66 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var broadSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first, second }, IsWildcard = true },
+        var broadSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups
+                {
+                    first,
+                    second,
+                },
+                IsWildcard = true,
+            },
             GroupPartitionKey.All);
-        var explicitSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first }, IsWildcard = false },
+        var explicitSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { first },
+                IsWildcard = false,
+            },
             GroupPartitionKey.All);
-        Assert.Equal(2, broadSelection.Lessons.Count);
+        Assert.Equal(expected: 2, actual: broadSelection.Lessons.Count);
         Assert.Single(explicitSelection.Lessons);
 
-        var broadLink = MakeLink(new LessonGroups { first, second }, GroupPartitionKey.All, isWildcard: true, isCombined: false, "https://registry.test/broad");
-        var explicitLink = ExplicitParent(first, GroupPartitionKey.All, "https://registry.test/explicit");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var broadLink = MakeLink(
+            new LessonGroups
+            {
+                first,
+                second,
+            },
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: false,
+            "https://registry.test/broad");
+        var explicitLink = ExplicitParent(
+            first,
+            GroupPartitionKey.All,
+            "https://registry.test/explicit");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: broadLink, Selection: broadSelection),
-            (Group: explicitLink, Selection: explicitSelection),
+            new(Group: broadLink, Selection: broadSelection),
+            new(Group: explicitLink, Selection: explicitSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         Assert.Single(routed[explicitLink.Uri]);
         Assert.Single(routed[broadLink.Uri]);
         var explicitEntry = Assert.Single(routed[explicitLink.Uri]);
-        Assert.True(explicitEntry.Value.Contains(first));
-        Assert.Equal(first, schedule.Get(explicitEntry.Key).Lesson.Groups[0]);
+        bool condition = explicitEntry.Value.Contains(first);
+        Assert.True(condition);
+        Assert.Equal(expected: first, actual: schedule.Get(explicitEntry.Key).Lesson.Groups[0]);
         var broadEntry = Assert.Single(routed[broadLink.Uri]);
-        Assert.True(broadEntry.Value.Contains(second));
-        Assert.Equal(second, schedule.Get(broadEntry.Key).Lesson.Groups[0]);
+        bool condition2 = broadEntry.Value.Contains(second);
+        Assert.True(condition2);
+        Assert.Equal(expected: second, actual: schedule.Get(broadEntry.Key).Lesson.Groups[0]);
     }
 
     [Fact]
@@ -248,41 +498,71 @@ public sealed class RegistryLessonRoutingTests
         var builder = NewBuilder();
         var course = builder.Course("Synthetic course");
         GroupId parent = builder.Group("IA2601");
-        var subgroupPartition = new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All);
+        var subGroup = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var subgroupPartition = new GroupPartitionKey(subGroup, specialization);
         builder.RegularLesson(lesson =>
         {
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(1));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(1);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Monday);
             lesson.TimeSlot(TimeSlot.First);
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var subgroupSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, subgroupPartition);
-        var parentSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
+        var subgroupSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            subgroupPartition);
+        var parentSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
         var lab = Assert.Single(subgroupSelection.Lessons);
         Assert.Contains(lab, parentSelection.Lessons);
-        Assert.Equal(subgroupPartition, subgroupSelection.AttendancePartition);
-        Assert.Equal(GroupPartitionKey.All, parentSelection.AttendancePartition);
+        Assert.Equal(expected: subgroupPartition, actual: subgroupSelection.AttendancePartition);
+        Assert.Equal(expected: GroupPartitionKey.All, actual: parentSelection.AttendancePartition);
 
-        var subgroupLink = ExplicitParent(parent, subgroupPartition, "https://registry.test/subgroup");
-        var parentLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/parent");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var subgroupLink = ExplicitParent(
+            parent,
+            subgroupPartition,
+            "https://registry.test/subgroup");
+        var parentLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/parent");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: subgroupLink, Selection: subgroupSelection),
-            (Group: parentLink, Selection: parentSelection),
+            new(Group: subgroupLink, Selection: subgroupSelection),
+            new(Group: parentLink, Selection: parentSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         Assert.Single(routed[subgroupLink.Uri]);
         Assert.Empty(routed[parentLink.Uri]);
         var routedEntry = Assert.Single(routed[subgroupLink.Uri]);
-        Assert.Equal(lab, routedEntry.Key);
-        Assert.True(routedEntry.Value.Contains(parent));
+        Assert.Equal(expected: lab, actual: routedEntry.Key);
+        bool condition = routedEntry.Value.Contains(parent);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -291,13 +571,17 @@ public sealed class RegistryLessonRoutingTests
         var builder = NewBuilder();
         var course = builder.Course("Synthetic course");
         GroupId parent = builder.Group("IA2601");
-        var firstPartition = new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All);
+        var subGroup = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var firstPartition = new GroupPartitionKey(subGroup, specialization);
         builder.RegularLesson(lesson =>
         {
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(1));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(1);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Monday);
             lesson.TimeSlot(TimeSlot.First);
         });
@@ -306,34 +590,77 @@ public sealed class RegistryLessonRoutingTests
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(2));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(2);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Wednesday);
             lesson.TimeSlot(TimeSlot.First);
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var subgroupSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, firstPartition);
-        var parentSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
+        var subgroupSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            firstPartition);
+        var parentSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
         Assert.Single(subgroupSelection.Lessons);
-        Assert.Equal(2, parentSelection.Lessons.Count);
+        Assert.Equal(expected: 2, actual: parentSelection.Lessons.Count);
 
-        var subgroupLink = ExplicitParent(parent, firstPartition, "https://registry.test/subgroup-one");
-        var parentLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/parent");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var subgroupLink = ExplicitParent(
+            parent,
+            firstPartition,
+            "https://registry.test/subgroup-one");
+        var parentLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/parent");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: subgroupLink, Selection: subgroupSelection),
-            (Group: parentLink, Selection: parentSelection),
+            new(Group: subgroupLink, Selection: subgroupSelection),
+            new(Group: parentLink, Selection: parentSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         var subgroupEntry = Assert.Single(routed[subgroupLink.Uri]);
         var parentEntry = Assert.Single(routed[parentLink.Uri]);
-        Assert.Equal(SubGroup.CreateNumeric(1), schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
-        Assert.Equal(SubGroup.CreateNumeric(2), schedule.Get(parentEntry.Key).Lesson.SubGroup);
-        Assert.True(subgroupEntry.Value.Contains(parent));
-        Assert.True(parentEntry.Value.Contains(parent));
+
+        SubGroup CalculateExpected()
+        {
+            var expected2 = SubGroup.CreateNumeric(1);
+            return expected2;
+        }
+
+        Assert.Equal(expected: CalculateExpected(), actual: schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
+
+        SubGroup CalculateExpected2()
+        {
+            var expected3 = SubGroup.CreateNumeric(2);
+            return expected3;
+        }
+
+        Assert.Equal(expected: CalculateExpected2(), actual: schedule.Get(parentEntry.Key).Lesson.SubGroup);
+        bool condition = subgroupEntry.Value.Contains(parent);
+        Assert.True(condition);
+        bool condition2 = parentEntry.Value.Contains(parent);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -362,25 +689,52 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var firstSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first }, IsWildcard = false }, GroupPartitionKey.All);
-        var secondSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { second }, IsWildcard = false }, GroupPartitionKey.All);
-        var firstLink = ExplicitParent(first, GroupPartitionKey.All, "https://registry.test/first");
-        var secondLink = ExplicitParent(second, GroupPartitionKey.All, "https://registry.test/second");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var firstSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { first },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var secondSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { second },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var firstLink = ExplicitParent(
+            first,
+            GroupPartitionKey.All,
+            "https://registry.test/first");
+        var secondLink = ExplicitParent(
+            second,
+            GroupPartitionKey.All,
+            "https://registry.test/second");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: firstLink, Selection: firstSelection),
-            (Group: secondLink, Selection: secondSelection),
+            new(Group: firstLink, Selection: firstSelection),
+            new(Group: secondLink, Selection: secondSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         var firstEntry = Assert.Single(routed[firstLink.Uri]);
         var secondEntry = Assert.Single(routed[secondLink.Uri]);
-        Assert.Equal(1, firstEntry.Value.Count);
-        Assert.Equal(1, secondEntry.Value.Count);
-        Assert.True(firstEntry.Value.Contains(first));
-        Assert.True(secondEntry.Value.Contains(second));
-        Assert.NotEqual(firstEntry.Key, secondEntry.Key);
+        Assert.Equal(expected: 1, actual: firstEntry.Value.Count);
+        Assert.Equal(expected: 1, actual: secondEntry.Value.Count);
+        bool condition = firstEntry.Value.Contains(first);
+        Assert.True(condition);
+        bool condition2 = secondEntry.Value.Contains(second);
+        Assert.True(condition2);
+        Assert.NotEqual(expected: firstEntry.Key, actual: secondEntry.Key);
     }
 
     [Fact]
@@ -412,11 +766,20 @@ public sealed class RegistryLessonRoutingTests
 
         var combinedGroups = new FoundGroups
         {
-            Value = new LessonGroups { first, second },
+            Value = new LessonGroups
+            {
+                first,
+                second,
+            },
             IsWildcard = true,
             IsCombined = true,
         };
-        var selection = CandidatesFor(builder, schedule, course, combinedGroups, GroupPartitionKey.All);
+        var selection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            combinedGroups,
+            GroupPartitionKey.All);
         AnyLessonId valid = default;
         AnyLessonId tainted = default;
         bool foundValid = false;
@@ -424,12 +787,54 @@ public sealed class RegistryLessonRoutingTests
         foreach (var id in builder.LookupModule!.LessonsByCourse[course])
         {
             var lesson = schedule.Get(id).Lesson;
-            if (lesson.Groups.Count == 2 && lesson.Groups.Contains(first) && lesson.Groups.Contains(second))
+
+            bool CheckCondition()
+            {
+                if (lesson.Groups.Count != 2)
+                {
+                    return false;
+                }
+
+                if (!lesson.Groups.Contains(first))
+                {
+                    return false;
+                }
+
+                if (lesson.Groups.Contains(second))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition())
             {
                 valid = id;
                 foundValid = true;
             }
-            if (lesson.Groups.Count == 2 && lesson.Groups.Contains(first) && lesson.Groups.Contains(outside))
+
+            bool CheckCondition2()
+            {
+                if (lesson.Groups.Count != 2)
+                {
+                    return false;
+                }
+
+                if (!lesson.Groups.Contains(first))
+                {
+                    return false;
+                }
+
+                if (lesson.Groups.Contains(outside))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (CheckCondition2())
             {
                 tainted = id;
                 foundTainted = true;
@@ -462,7 +867,9 @@ public sealed class RegistryLessonRoutingTests
             lesson.Group(second);
             lesson.Type(LessonType.Lab);
             lesson.DayOfWeek(DayOfWeek.Monday);
-            lesson.TimeSlot(new TimeSlot(1));
+            var lessonBuilder = lesson;
+            var timeSlot = new TimeSlot(1);
+            lessonBuilder.TimeSlot(timeSlot);
         });
         builder.RegularLesson(lesson =>
         {
@@ -475,21 +882,56 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var fallbackSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first, second }, IsWildcard = true }, GroupPartitionKey.All);
-        var explicitSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { first }, IsWildcard = false }, GroupPartitionKey.All);
-        Assert.Equal(3, fallbackSelection.Lessons.Count);
-        Assert.Equal(2, explicitSelection.Lessons.Count);
+        var fallbackSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups
+                {
+                    first,
+                    second,
+                },
+                IsWildcard = true,
+            },
+            GroupPartitionKey.All);
+        var explicitSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { first },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        Assert.Equal(expected: 3, actual: fallbackSelection.Lessons.Count);
+        Assert.Equal(expected: 2, actual: explicitSelection.Lessons.Count);
 
-        var fallbackLink = MakeLink(new LessonGroups { first, second }, GroupPartitionKey.All, isWildcard: true, isCombined: false, "https://registry.test/broad");
-        var explicitLink = ExplicitParent(first, GroupPartitionKey.All, "https://registry.test/explicit");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var fallbackLink = MakeLink(
+            new LessonGroups
+            {
+                first,
+                second,
+            },
+            GroupPartitionKey.All,
+            isWildcard: true,
+            isCombined: false,
+            "https://registry.test/broad");
+        var explicitLink = ExplicitParent(
+            first,
+            GroupPartitionKey.All,
+            "https://registry.test/explicit");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: fallbackLink, Selection: fallbackSelection),
-            (Group: explicitLink, Selection: explicitSelection),
+            new(Group: fallbackLink, Selection: fallbackSelection),
+            new(Group: explicitLink, Selection: explicitSelection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         AnyLessonId lecture = default;
         foreach (var id in fallbackSelection.Lessons)
         {
@@ -498,24 +940,28 @@ public sealed class RegistryLessonRoutingTests
                 lecture = id;
             }
         }
-        Assert.True(routed[explicitLink.Uri].ContainsKey(lecture));
-        Assert.True(routed[fallbackLink.Uri].ContainsKey(lecture));
+        bool condition = routed[explicitLink.Uri].ContainsKey(lecture);
+        Assert.True(condition);
+        bool condition2 = routed[fallbackLink.Uri].ContainsKey(lecture);
+        Assert.True(condition2);
         foreach (var entry in routed[explicitLink.Uri])
         {
             if (schedule.Get(entry.Key).Lesson.Type == LessonType.Lab)
             {
-                Assert.True(entry.Value.Contains(first));
+                bool condition3 = entry.Value.Contains(first);
+                Assert.True(condition3);
             }
         }
         foreach (var entry in routed[fallbackLink.Uri])
         {
             if (schedule.Get(entry.Key).Lesson.Type == LessonType.Lab)
             {
-                Assert.True(entry.Value.Contains(second));
+                bool condition4 = entry.Value.Contains(second);
+                Assert.True(condition4);
             }
         }
-        Assert.Equal(2, routed[explicitLink.Uri].Count);
-        Assert.Equal(2, routed[fallbackLink.Uri].Count);
+        Assert.Equal(expected: 2, actual: routed[explicitLink.Uri].Count);
+        Assert.Equal(expected: 2, actual: routed[fallbackLink.Uri].Count);
     }
 
     [Fact]
@@ -543,22 +989,47 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var firstSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        var secondSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        Assert.Equal(2, firstSelection.Lessons.Count);
-        Assert.Equal(2, secondSelection.Lessons.Count);
+        var firstSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var secondSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        Assert.Equal(expected: 2, actual: firstSelection.Lessons.Count);
+        Assert.Equal(expected: 2, actual: secondSelection.Lessons.Count);
 
-        var firstLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/duplicate-one");
-        var secondLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/duplicate-two");
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var firstLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/duplicate-one");
+        var secondLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/duplicate-two");
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: firstLink, Selection: firstSelection),
-            (Group: secondLink, Selection: secondSelection),
+            new(Group: firstLink, Selection: firstSelection),
+            new(Group: secondLink, Selection: secondSelection),
         ];
         var diagnostics = new RegistrySyncDiagnostics();
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics);
         AnyLessonId lab = default;
         AnyLessonId lecture = default;
         foreach (var id in firstSelection.Lessons)
@@ -573,13 +1044,18 @@ public sealed class RegistryLessonRoutingTests
                 lecture = id;
             }
         }
-        Assert.False(routed[firstLink.Uri].ContainsKey(lab));
-        Assert.False(routed[secondLink.Uri].ContainsKey(lab));
-        Assert.True(routed[firstLink.Uri].ContainsKey(lecture));
-        Assert.True(routed[secondLink.Uri].ContainsKey(lecture));
-        var diagnostic = Assert.Single(diagnostics.Items.Where((RegistrySyncDiagnostic item) => item.Kind == "ambiguous-registry-destination"));
-        Assert.Equal("Synthetic course", diagnostic.Course);
-        Assert.Equal("IA2601", diagnostic.Group);
+        bool condition = routed[firstLink.Uri].ContainsKey(lab);
+        Assert.False(condition);
+        bool condition2 = routed[secondLink.Uri].ContainsKey(lab);
+        Assert.False(condition2);
+        bool condition3 = routed[firstLink.Uri].ContainsKey(lecture);
+        Assert.True(condition3);
+        bool condition4 = routed[secondLink.Uri].ContainsKey(lecture);
+        Assert.True(condition4);
+        var diagnostic =
+            Assert.Single(diagnostics.Items.Where((item) => item.Kind == "ambiguous-registry-destination"));
+        Assert.Equal(expected: "Synthetic course", actual: diagnostic.Course);
+        Assert.Equal(expected: "IA2601", actual: diagnostic.Group);
     }
 
     [Fact]
@@ -593,37 +1069,73 @@ public sealed class RegistryLessonRoutingTests
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(1));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(1);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Monday);
             lesson.TimeSlot(TimeSlot.First);
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
-        var subgroupPartition = new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All);
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var subgroupPartition = new GroupPartitionKey(subGroup2, specialization);
 
-        var ordinarySelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, subgroupPartition);
-        var additionalSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
+        var ordinarySelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            subgroupPartition);
+        var additionalSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
         var lab = Assert.Single(ordinarySelection.Lessons);
         Assert.Contains(lab, additionalSelection.Lessons);
 
-        var ordinaryLink = ExplicitParent(parent, subgroupPartition, "https://registry.test/ordinary-subgroup");
-        var additionalLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/additional-parent", isAdditionalCourses: true);
+        var ordinaryLink = ExplicitParent(
+            parent,
+            subgroupPartition,
+            "https://registry.test/ordinary-subgroup");
+        var additionalLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/additional-parent",
+            isAdditionalCourses: true);
         Assert.False(ordinaryLink.IsAdditionalCourses);
         Assert.True(additionalLink.IsAdditionalCourses);
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: ordinaryLink, Selection: ordinarySelection),
-            (Group: additionalLink, Selection: additionalSelection),
+            new(Group: ordinaryLink, Selection: ordinarySelection),
+            new(Group: additionalLink, Selection: additionalSelection),
         ];
         var diagnostics = new RegistrySyncDiagnostics();
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics);
-        Assert.True(routed[ordinaryLink.Uri].ContainsKey(lab));
-        Assert.True(routed[additionalLink.Uri].ContainsKey(lab));
-        Assert.True(routed[ordinaryLink.Uri][lab].Contains(parent));
-        Assert.True(routed[additionalLink.Uri][lab].Contains(parent));
-        Assert.Equal(0, diagnostics.Items.Count((RegistrySyncDiagnostic item) => item.Kind == "ambiguous-registry-destination"));
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics);
+        bool condition = routed[ordinaryLink.Uri].ContainsKey(lab);
+        Assert.True(condition);
+        bool condition2 = routed[additionalLink.Uri].ContainsKey(lab);
+        Assert.True(condition2);
+        bool condition3 = routed[ordinaryLink.Uri][lab].Contains(parent);
+        Assert.True(condition3);
+        bool condition4 = routed[additionalLink.Uri][lab].Contains(parent);
+        Assert.True(condition4);
+        Assert.Equal(
+            expected: 0,
+            actual: diagnostics.Items.Count((item) => item.Kind == "ambiguous-registry-destination"));
     }
 
     [Fact]
@@ -643,25 +1155,55 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var ordinarySelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        var additionalSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
+        var ordinarySelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var additionalSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
         var lab = Assert.Single(ordinarySelection.Lessons);
         Assert.Contains(lab, additionalSelection.Lessons);
 
-        var ordinaryLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/ordinary-parent");
-        var additionalLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/additional-parent", isAdditionalCourses: true);
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var ordinaryLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/ordinary-parent");
+        var additionalLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/additional-parent",
+            isAdditionalCourses: true);
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: ordinaryLink, Selection: ordinarySelection),
-            (Group: additionalLink, Selection: additionalSelection),
+            new(Group: ordinaryLink, Selection: ordinarySelection),
+            new(Group: additionalLink, Selection: additionalSelection),
         ];
         var diagnostics = new RegistrySyncDiagnostics();
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics);
-        Assert.True(routed[ordinaryLink.Uri].ContainsKey(lab));
-        Assert.True(routed[additionalLink.Uri].ContainsKey(lab));
-        Assert.Equal(0, diagnostics.Items.Count((RegistrySyncDiagnostic item) => item.Kind == "ambiguous-registry-destination"));
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics);
+        bool condition = routed[ordinaryLink.Uri].ContainsKey(lab);
+        Assert.True(condition);
+        bool condition2 = routed[additionalLink.Uri].ContainsKey(lab);
+        Assert.True(condition2);
+        Assert.Equal(
+            expected: 0,
+            actual: diagnostics.Items.Count((item) => item.Kind == "ambiguous-registry-destination"));
     }
 
     [Fact]
@@ -689,35 +1231,70 @@ public sealed class RegistryLessonRoutingTests
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var firstSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        var secondSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        Assert.Equal(2, firstSelection.Lessons.Count);
+        var firstSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var secondSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        Assert.Equal(expected: 2, actual: firstSelection.Lessons.Count);
 
-        var firstLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/additional-one", isAdditionalCourses: true);
-        var secondLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/additional-two", isAdditionalCourses: true);
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var firstLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/additional-one",
+            isAdditionalCourses: true);
+        var secondLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/additional-two",
+            isAdditionalCourses: true);
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: firstLink, Selection: firstSelection),
-            (Group: secondLink, Selection: secondSelection),
+            new(Group: firstLink, Selection: firstSelection),
+            new(Group: secondLink, Selection: secondSelection),
         ];
         var diagnostics = new RegistrySyncDiagnostics();
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics);
         AnyLessonId lab = default;
         AnyLessonId lecture = default;
         foreach (var id in firstSelection.Lessons)
         {
             if (schedule.Get(id).Lesson.Type == LessonType.Lab)
+            {
                 lab = id;
+            }
             else
+            {
                 lecture = id;
+            }
         }
-        Assert.False(routed[firstLink.Uri].ContainsKey(lab));
-        Assert.False(routed[secondLink.Uri].ContainsKey(lab));
-        Assert.True(routed[firstLink.Uri].ContainsKey(lecture));
-        Assert.True(routed[secondLink.Uri].ContainsKey(lecture));
-        Assert.Single(diagnostics.Items.Where((RegistrySyncDiagnostic item) => item.Kind == "ambiguous-registry-destination"));
+        bool condition = routed[firstLink.Uri].ContainsKey(lab);
+        Assert.False(condition);
+        bool condition2 = routed[secondLink.Uri].ContainsKey(lab);
+        Assert.False(condition2);
+        bool condition3 = routed[firstLink.Uri].ContainsKey(lecture);
+        Assert.True(condition3);
+        bool condition4 = routed[secondLink.Uri].ContainsKey(lecture);
+        Assert.True(condition4);
+        Assert.Single(diagnostics.Items.Where((item) => item.Kind == "ambiguous-registry-destination"));
     }
 
     [Fact]
@@ -731,25 +1308,43 @@ public sealed class RegistryLessonRoutingTests
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(1));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(1);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Monday);
             lesson.TimeSlot(TimeSlot.First);
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var selection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
+        var selection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
         var lab = Assert.Single(selection.Lessons);
-        var additionalLink = ExplicitParent(parent, GroupPartitionKey.All, "https://registry.test/only-additional", isAdditionalCourses: true);
-        List<(GroupLink Group, RegistryLessonSelection Selection)> destinations =
+        var additionalLink = ExplicitParent(
+            parent,
+            GroupPartitionKey.All,
+            "https://registry.test/only-additional",
+            isAdditionalCourses: true);
+        List<RegistryLessonDestination> destinations =
         [
-            (Group: additionalLink, Selection: selection),
+            new(Group: additionalLink, Selection: selection),
         ];
-        var routed = RegistryLessonRouting.Prioritize(schedule, destinations, diagnostics: null);
+        var routed = RegistryLessonRouting.Prioritize(
+            schedule,
+            destinations,
+            diagnostics: null);
         var entry = Assert.Single(routed[additionalLink.Uri]);
-        Assert.Equal(lab, entry.Key);
-        Assert.True(entry.Value.Contains(parent));
+        Assert.Equal(expected: lab, actual: entry.Key);
+        bool condition = entry.Value.Contains(parent);
+        Assert.True(condition);
     }
 
     [Fact]
@@ -763,24 +1358,48 @@ public sealed class RegistryLessonRoutingTests
             lesson.Course(course);
             lesson.Group(parent);
             lesson.Type(LessonType.Lab);
-            lesson.SubGroup(SubGroup.CreateNumeric(1));
+            var lessonBuilder = lesson;
+            var subGroup = SubGroup.CreateNumeric(1);
+            lessonBuilder.SubGroup(subGroup);
             lesson.DayOfWeek(DayOfWeek.Monday);
             lesson.TimeSlot(TimeSlot.First);
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
 
-        var ordinarySelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        var additionalSelection = CandidatesFor(builder, schedule, course,
-            new FoundGroups { Value = new LessonGroups { parent }, IsWildcard = false }, GroupPartitionKey.All);
-        Assert.Equal(ordinarySelection.Lessons.Count, additionalSelection.Lessons.Count);
-        Assert.Equal(ordinarySelection.Lessons.ToHashSet(), additionalSelection.Lessons.ToHashSet());
-        Assert.Equal(GroupPartitionKey.All, ordinarySelection.AttendancePartition);
-        Assert.Equal(GroupPartitionKey.All, additionalSelection.AttendancePartition);
+        var ordinarySelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        var additionalSelection = CandidatesFor(
+            builder,
+            schedule,
+            course,
+            new FoundGroups
+            {
+                Value = new LessonGroups { parent },
+                IsWildcard = false,
+            },
+            GroupPartitionKey.All);
+        Assert.Equal(expected: ordinarySelection.Lessons.Count, actual: additionalSelection.Lessons.Count);
+        Assert.Equal(expected: ordinarySelection.Lessons.ToHashSet(), actual: additionalSelection.Lessons.ToHashSet());
+        Assert.Equal(expected: GroupPartitionKey.All, actual: ordinarySelection.AttendancePartition);
+        Assert.Equal(expected: GroupPartitionKey.All, actual: additionalSelection.AttendancePartition);
         var lab = Assert.Single(ordinarySelection.Lessons);
         var lesson = schedule.Get(lab).Lesson;
-        Assert.Equal(new GroupPartitionKey(SubGroup.CreateNumeric(1), Specialization.All),
-            RegistryLessonRouting.ProjectPartition(EmptyConfig(), schedule, lesson));
+        var subGroup2 = SubGroup.CreateNumeric(1);
+        var specialization = Specialization.All;
+        var expected2 = new GroupPartitionKey(subGroup2, specialization);
+        var actual2 = RegistryLessonRouting.ProjectPartition(
+            EmptyConfig(),
+            schedule,
+            lesson);
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 }

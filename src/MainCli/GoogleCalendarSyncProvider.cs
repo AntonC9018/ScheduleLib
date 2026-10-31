@@ -24,8 +24,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Reliability",
-        "CA2000",
+        category: "Reliability",
+        checkId: "CA2000",
         Justification = "Ownership transfers to the returned disposable provider.")]
     public static async Task<ICalendarSyncProvider> Connect(
         IServiceProvider services,
@@ -40,11 +40,16 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             token);
         var initializer = helper.CreateServiceInitializer(credential);
         initializer.DefaultExponentialBackOffPolicy = ExponentialBackOffPolicy.None;
-        return new GoogleCalendarSyncProvider(new CalendarService(initializer));
+        var service = new CalendarService(initializer);
+        var googleCalendarSyncProvider = new GoogleCalendarSyncProvider(service);
+        return googleCalendarSyncProvider;
     }
 
-    public async Task<string> GetAccount(CancellationToken token) =>
-        (await _service.Calendars.Get("primary").ExecuteAsync(token)).Id;
+    public async Task<string> GetAccount(CancellationToken token)
+    {
+        return (await _service.Calendars.Get("primary")
+            .ExecuteAsync(token)).Id;
+    }
 
     public async Task<IReadOnlyList<CalendarDestination>> ListCalendars(CancellationToken token)
     {
@@ -57,8 +62,8 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var response = await request.ExecuteAsync(token);
             result.AddRange(
                 (response.Items ?? []).Select(x => new CalendarDestination(
-                    x.Id,
-                    x.Summary,
+                    Id: x.Id,
+                    Summary: x.Summary,
                     x.Primary == true)));
             page = response.NextPageToken;
         } while (page is not null);
@@ -74,14 +79,18 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
             var request = _service.Events.List(calendarId);
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            result.AddRange((response.Items ?? []).Select(x => new CalendarEventIdentity(x.Id, x.Summary)));
+            result.AddRange(
+                (response.Items ?? []).Select(x => new CalendarEventIdentity(Id: x.Id, Summary: x.Summary)));
             page = response.NextPageToken;
         } while (page is not null);
         return result;
     }
 
-    public async Task DeleteCalendar(string calendarId, CancellationToken token) =>
-        await _service.Calendars.Delete(calendarId).ExecuteAsync(token);
+    public async Task DeleteCalendar(string calendarId, CancellationToken token)
+    {
+        await _service.Calendars.Delete(calendarId)
+            .ExecuteAsync(token);
+    }
 
     public async Task<string> CreateCalendar(string summary, CancellationToken token)
     {
@@ -99,8 +108,11 @@ public sealed class GoogleCalendarSyncProvider : ICalendarSyncProvider
     public async Task<string> CreateEvent(
         string calendarId,
         Event desired,
-        CancellationToken token) =>
-        RequireCreatedId((await _service.Events.Insert(desired, calendarId).ExecuteAsync(token)).Id);
+        CancellationToken token)
+    {
+        return RequireCreatedId((await _service.Events.Insert(desired, calendarId)
+            .ExecuteAsync(token)).Id);
+    }
 
     private static string RequireCreatedId(string? id)
     {

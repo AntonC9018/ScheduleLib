@@ -23,41 +23,32 @@ public sealed class CliOutput
     public const string ConflictingResultFormatsMessage = "Only one of --json and --jsonl may be specified.";
 
     private static readonly JsonSerializerOptions JsonOptions =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
 
     private readonly object _gate = new();
     private int _stdoutSeq;
     private int _stderrSeq;
 
-    public string Command
-    {
-        get;
-    }
+    public string Command { get; }
 
-    public string RunId
-    {
-        get;
-    }
+    public string RunId { get; }
 
-    public bool Json
-    {
-        get;
-    }
+    public bool Json { get; }
 
-    public bool Jsonl
-    {
-        get;
-    }
+    public bool Jsonl { get; }
 
     public CliOutput(
         string command,
         string runId,
         ResultArguments result)
         : this(
-            command,
-            runId,
-            result.Json,
-            GetJsonl(result))
+            command: command,
+            runId: runId,
+            json: result.Json,
+            jsonl: GetJsonl(result))
     {
     }
 
@@ -75,8 +66,18 @@ public sealed class CliOutput
 
     public static bool GetJsonl(ResultArguments result) => result.Jsonl;
 
-    public static string? ExclusiveError(ResultArguments result) =>
-        result.Json && result.Jsonl ? ConflictingResultFormatsMessage : null;
+    public static string? ExclusiveError(ResultArguments result)
+    {
+        if (!result.Json)
+        {
+            return null;
+        }
+        if (!result.Jsonl)
+        {
+            return null;
+        }
+        return ConflictingResultFormatsMessage;
+    }
 
     public void EmitStart()
     {
@@ -99,7 +100,7 @@ public sealed class CliOutput
 
     public void EmitItem(
         string id,
-        string status,
+        ActionState status,
         object? item)
     {
         if (!Jsonl)
@@ -123,7 +124,7 @@ public sealed class CliOutput
     }
 
     public void EmitFinal(
-        string status,
+        RunStatus status,
         int exitCode,
         string[] warnings,
         string[] errors,
@@ -153,7 +154,25 @@ public sealed class CliOutput
 
     public void WriteHuman(string line)
     {
-        if (Json || Jsonl)
+        bool CalculateConditionResult()
+        {
+            if (Json)
+            {
+                return true;
+            }
+
+            if (Jsonl)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return;
         }
@@ -167,19 +186,38 @@ public sealed class CliOutput
 
     public void WriteHuman<TMessage>(TMessage message) where TMessage : ICliMessage
     {
-        if (Json || Jsonl)
+        bool CalculateConditionResult()
+        {
+            if (Json)
+            {
+                return true;
+            }
+
+            if (Jsonl)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return;
         }
 
-        WriteHuman(message.Format(System.Globalization.CultureInfo.CurrentCulture));
+        string line = message.Format(System.Globalization.CultureInfo.CurrentCulture);
+        WriteHuman(line);
     }
 
     public void WriteWarning(string message)
     {
         if (Jsonl)
         {
-            WriteStderrLog("Warning", message);
+            WriteStderrLog(level: "Warning", message: message);
         }
         else
         {
@@ -195,7 +233,7 @@ public sealed class CliOutput
     {
         if (Jsonl)
         {
-            WriteStderrLog("Error", message);
+            WriteStderrLog(level: "Error", message: message);
         }
         else
         {
@@ -219,11 +257,11 @@ public sealed class CliOutput
 
         WriteStructuredLog(
             level,
-            message,
-            exception,
+            message: message,
+            exception: exception,
             null,
             null,
-            null,
+            category: null,
             DateTimeOffset.UtcNow);
     }
 
@@ -242,12 +280,12 @@ public sealed class CliOutput
         }
 
         WriteStderrLog(
-            level.ToString(),
-            message,
-            exception,
+            level: level.ToString(),
+            message: message,
+            exception: exception,
             properties,
             scopes,
-            category,
+            category: category,
             timestamp);
     }
 
@@ -257,12 +295,12 @@ public sealed class CliOutput
         string? exception = null)
     {
         WriteStderrLog(
-            level,
-            message,
-            exception,
+            level: level,
+            message: message,
+            exception: exception,
             null,
             null,
-            null,
+            category: null,
             DateTimeOffset.UtcNow);
     }
 
@@ -323,9 +361,17 @@ public sealed class CliOutput
 /// uncertainty: the remote operation already completed and must not be retried
 /// or duplicated. Callers stop further work when this escapes an output callback.
 /// </summary>
-public class CliOutputStreamingException : Exception
+public abstract class CliOutputStreamingException : Exception
 {
-    public CliOutputStreamingException(string message, Exception? inner = null)
+    protected CliOutputStreamingException(string message, Exception? inner = null)
+        : base(message, inner)
+    {
+    }
+}
+
+public sealed class GeneralCliOutputStreamingException : CliOutputStreamingException
+{
+    public GeneralCliOutputStreamingException(string message, Exception? inner = null)
         : base(message, inner)
     {
     }
@@ -336,19 +382,26 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
     private IExternalScopeProvider _scopes = new LoggerExternalScopeProvider();
     public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopes = scopeProvider;
 
-    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(
-        output,
-        categoryName,
-        () => _scopes);
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new Logger(
+            output,
+            categoryName,
+            () => _scopes);
+    }
 
     public void Dispose()
     {
     }
 
     private sealed class Logger(CliOutput output, string category, Func<IExternalScopeProvider> scopeProvider)
-        : Microsoft.Extensions.Logging.ILogger
+        : ILogger
     {
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => scopeProvider().Push(state);
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull
+        {
+            return scopeProvider()
+                .Push(state);
+        }
 
         // Matches the original Serilog console configuration, whose default
         // minimum is Information. Debug/Trace never reached stderr before and
@@ -370,34 +423,64 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
             }
 
             var message = formatter(state, exception);
-            var properties = ExtractProperties(state)?.ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value,
-                    StringComparer.Ordinal)
+            var properties = ExtractProperties(state)
+                    ?.ToDictionary(
+                        keySelector: pair => pair.Key,
+                        elementSelector: pair => pair.Value,
+                        StringComparer.Ordinal)
                 ?? new Dictionary<string, object?>(StringComparer.Ordinal);
             var scopes = new List<string>();
-            scopeProvider().ForEachScope(
-                (scope, collected) =>
-                {
-                    if (scope is IEnumerable<KeyValuePair<string, object?>> named)
+            scopeProvider()
+                .ForEachScope(
+                    (scope, collected) =>
                     {
-                        foreach (var pair in named)
+                        if (scope is IEnumerable<KeyValuePair<string, object?>> named)
                         {
-                            properties.TryAdd(pair.Key, pair.Value);
+                            foreach (var pair in named)
+                            {
+                                properties.TryAdd(pair.Key, pair.Value);
+                            }
                         }
-                    }
 
-                    collected.Add(scope?.ToString() ?? string.Empty);
-                },
-                scopes);
-            output.WriteStructuredLog(
-                logLevel,
-                message,
-                exception?.ToString(),
-                properties.Count > 0 ? properties : null,
-                scopes.Count > 0 ? scopes : null,
-                category,
-                DateTimeOffset.UtcNow);
+                        collected.Add(scope?.ToString() ?? string.Empty);
+                    },
+                    scopes);
+            var cliOutput = output;
+            var level = logLevel;
+            string message2 = message;
+            string? exception2 = exception?.ToString();
+            Dictionary<string, object?>? properties2;
+            if (properties.Count > 0)
+            {
+                properties2 = properties;
+            }
+            else
+            {
+                properties2 = null;
+            }
+
+            IReadOnlyDictionary<string, object?>? properties3 = properties2;
+            List<string>? scopes2;
+            if (scopes.Count > 0)
+            {
+                scopes2 = scopes;
+            }
+            else
+            {
+                scopes2 = null;
+            }
+
+            IReadOnlyList<string>? scopes3 = scopes2;
+            string category2 = category;
+            var timestamp = DateTimeOffset.UtcNow;
+            cliOutput.WriteStructuredLog(
+                level,
+                message: message2,
+                exception: exception2,
+                properties3,
+                scopes3,
+                category: category2,
+                timestamp);
         }
 
         private static IReadOnlyDictionary<string, object?>? ExtractProperties<TState>(TState state)
@@ -431,7 +514,10 @@ public static class CliLogging
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
-            builder.AddProvider(new CliJsonlLoggerProvider(output));
+            var iLoggingBuilder = builder;
+            var provider = new CliJsonlLoggerProvider(output);
+            ILoggerProvider provider2 = provider;
+            iLoggingBuilder.AddProvider(provider2);
         });
     }
 }

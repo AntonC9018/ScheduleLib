@@ -40,16 +40,40 @@ internal readonly record struct LessonMatchParams
 internal static class MatchLessonHelper
 {
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
-        => MatchLessonCandidates(p)
+    {
+        return MatchLessonCandidates(p)
             .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
+    }
 
     internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
-        => MatchLessonCandidates(p)
+    {
+        return MatchLessonCandidates(p)
             .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
             .ToList();
+    }
 
     private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
-        => lesson.Type == LessonType.Lab && (groups.IsWildcard || !groups.Value.IsSingleGroup);
+    {
+        bool conditionResult;
+        if (lesson.Type == LessonType.Lab)
+        {
+            if (groups.IsWildcard)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = groups.Value.IsSingleGroup;
+                conditionResult = !conditionResult;
+            }
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        return conditionResult;
+    }
 
     internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
     {
@@ -60,7 +84,20 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
-            if (yielded || p.Filter.Groups.IsCombined)
+
+            bool CalculateConditionResult()
+            {
+                if (yielded)
+                {
+                    return true;
+                }
+                return p.Filter.Groups.IsCombined;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 yield break;
             }
@@ -79,16 +116,65 @@ internal static class MatchLessonHelper
         }
     }
 
-    internal static bool MatchesPartition(Schedule schedule, LessonData lesson, GroupPartitionKey partition)
+    internal static bool MatchesPartition(
+        Schedule schedule,
+        LessonData lesson,
+        GroupPartitionKey partition)
     {
-        if (lesson.GroupPartitionKey == partition) return true;
-        if (partition != GroupPartitionKey.All || lesson.Specialization != Specialization.All
-            || lesson.Alternative != Alternative.All || lesson.Groups.IsEmpty) return false;
+        if (lesson.GroupPartitionKey == partition)
+        {
+            return true;
+        }
+
+        bool CheckCondition()
+        {
+            if (partition != GroupPartitionKey.All)
+            {
+                return true;
+            }
+
+            if (lesson.Specialization != Specialization.All)
+            {
+                return true;
+            }
+
+            if (lesson.Alternative != Alternative.All)
+            {
+                return true;
+            }
+
+            if (lesson.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (CheckCondition())
+        {
+            return false;
+        }
         // The ordinary registry destination represents the parent's teaching language;
         // another language subgroup has its own destination.
-        return lesson.SubGroup.IsLanguageSubGroup()
-            && lesson.Groups.All(group => schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
-                && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup);
+        if (lesson.SubGroup.IsLanguageSubGroup()
+            && lesson.Groups.All(group =>
+            {
+                Language CalculateLang()
+                {
+                    var get = schedule.Get(group);
+                    var lang = get.Language;
+                    return lang;
+                }
+
+                return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                    && SpecialSubGroups.FromLanguage(CalculateLang()) == lesson.SubGroup;
+            }))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
@@ -98,10 +184,27 @@ internal static class MatchLessonHelper
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
-            if (!p.Schedule.IsLessonActive(lessonId)) continue;
+            if (!p.Schedule.IsLessonActive(lessonId))
+            {
+                continue;
+            }
+
             var lesson = p.Schedule.Get(lessonId);
-            if (p.Filter.Groups.IsCombined ? lesson.Lesson.GroupPartitionKey != groupPartition
-                : !MatchesPartition(p.Schedule, lesson.Lesson, groupPartition))
+            bool condition;
+            if (p.Filter.Groups.IsCombined)
+            {
+                condition = lesson.Lesson.GroupPartitionKey != groupPartition;
+            }
+            else
+            {
+                bool matchesPartition = MatchesPartition(
+                    p.Schedule,
+                    lesson.Lesson,
+                    groupPartition);
+                condition = !matchesPartition;
+            }
+
+            if (condition)
             {
                 continue;
             }
@@ -119,8 +222,25 @@ internal static class MatchLessonHelper
             }
             else if (g.IsWildcard)
             {
-                if (lesson.Lesson.Groups.IsEmpty
-                    || !g.Value.IsSubSetOf(lesson.Lesson.Groups) && !lesson.Lesson.Groups.IsSubSetOf(g.Value))
+                bool conditionResult;
+                if (lesson.Lesson.Groups.IsEmpty)
+                {
+                    conditionResult = true;
+                }
+                else
+                {
+                    if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
+                    {
+                        conditionResult = lesson.Lesson.Groups.IsSubSetOf(g.Value);
+                        conditionResult = !conditionResult;
+                    }
+                    else
+                    {
+                        conditionResult = false;
+                    }
+                }
+
+                if (conditionResult)
                 {
                     continue;
                 }

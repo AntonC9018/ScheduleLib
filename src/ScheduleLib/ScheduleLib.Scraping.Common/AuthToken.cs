@@ -17,7 +17,7 @@ public sealed class TokenCookieModel
 
     public Cookie ToObject(string name)
     {
-        var ret = new Cookie(name, Value)
+        var ret = new Cookie(name: name, value: Value)
         {
             Expires = ExpireTime,
         };
@@ -89,19 +89,16 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
     {
         var uri = _services.Names.LoginUrl;
         using var content = new FormUrlEncodedContent([
-            new(_services.FieldNames.Login, _services.Credentials.Login),
-            new(_services.FieldNames.Password, _services.Credentials.Password)]);
+            new(key: _services.FieldNames.Login, value: _services.Credentials.Login),
+            new(key: _services.FieldNames.Password, value: _services.Credentials.Password),
+        ]);
 
         var response = await _services.HttpClient.PostAsync(
             uri,
             content: content,
             cancellationToken: cancellationToken);
         _ = response;
-        if (response.StatusCode == HttpStatusCode.Redirect)
-        {
-            return true;
-        }
-        return false;
+        return response.StatusCode == HttpStatusCode.Redirect;
     }
 }
 
@@ -148,8 +145,13 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
 
     public async Task<bool> InitializeToken(CancellationToken cancellationToken)
     {
-        var html = await _browser.Get().OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
-        if (html.StatusCode != HttpStatusCode.OK) return false;
+        var html = await _browser.Get()
+            .OpenAsync(_names.LoginUrl.ToString(), cancellationToken);
+        if (html.StatusCode != HttpStatusCode.OK)
+        {
+            return false;
+        }
+
         if (GetInput(_formConfig.LoginName) is not { } loginInput)
         {
             return false;
@@ -193,24 +195,58 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
         }
 
         IDocument response;
-        try { response = await submission.WaitAsync(cancellationToken); }
+        try
+        {
+            response = await submission.WaitAsync(cancellationToken);
+        }
         catch (OperationCanceledException)
         {
             // AngleSharp cannot cancel submission; end this owned browsing session and
             // observe any later transport fault without waiting for it to finish.
-            _browser.Get().Dispose();
+            _browser.Get()
+                .Dispose();
             _ = submission.ContinueWith(task => _ = task.Exception,
-                CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
             throw;
         }
-        return response.StatusCode == HttpStatusCode.OK
-            && response.QuerySelector("input[type=password]") is null
-            && (_formConfig.AuthenticationSuccessSelector is not { } selector || response.QuerySelector(selector) is not null);
+
+        bool CalculateConditionResult()
+        {
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                return false;
+            }
+
+            if (!(response.QuerySelector("input[type=password]") is null))
+            {
+                return false;
+            }
+
+            if (_formConfig.AuthenticationSuccessSelector is not { } selector)
+            {
+                return true;
+            }
+
+            if (response.QuerySelector(selector) is not null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        return conditionResult;
 
         IHtmlInputElement? GetInput(string name)
         {
-            var ret = html.QuerySelector<IHtmlInputElement>($"""input[name="{name}"]""");
+            var iDocument = html;
+            string selectors = $"""input[name="{name}"]""";
+            var ret = iDocument.QuerySelector<IHtmlInputElement>(selectors);
             if (ret is null)
             {
                 ErrorNotFoundInPage(name);
@@ -230,11 +266,12 @@ public static class TokenCookieHelper
     public static Cookie? FindCookie(this CookieContainer cookieContainer, TokenNamesConfig names)
     {
         var cookies = cookieContainer.GetCookies(names.LoginUrl);
-        if (cookies[names.TokenCookieName] is { } token)
+        if (!(cookies[names.TokenCookieName] is { } token))
         {
-            return token;
+            return null;
         }
-        return null;
+
+        return token;
     }
 }
 
@@ -375,7 +412,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
 
     public async Task<bool> RecreateToken(CancellationToken cancellationToken)
     {
-        if (!await _fields.UnderlyingRetriever.InitializeToken(cancellationToken))
+        if (!(await _fields.UnderlyingRetriever.InitializeToken(cancellationToken)))
         {
             return false;
         }
@@ -383,7 +420,10 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         var token = _fields.CookieContainer.FindCookie(_fields.Names);
         Debug.Assert(token != null, "Must be set by token retriever");
 
-        await using var stream = File.Open(_fields.StorageConfig.TokensFile, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+        await using var stream = File.Open(
+            _fields.StorageConfig.TokensFile,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite);
         if (await TryUpdateExisting())
         {
             return true;
@@ -392,7 +432,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         return true;
 
 
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+        [SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
         async ValueTask<bool> TryUpdateExisting()
         {
             if (stream.Length == 0)
@@ -416,7 +456,13 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             {
                 return false;
             }
-            return await Save(jobj);
+
+            if (await Save(jobj))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         async Task<bool> CreateNew()
@@ -425,7 +471,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             return await Save(root);
         }
 
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure")]
+        [SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
         async Task<bool> Save(JsonObject root)
         {
             stream.Seek(0, SeekOrigin.Begin);
@@ -440,5 +486,4 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
             return true;
         }
     }
-
 }

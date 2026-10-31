@@ -6,35 +6,43 @@ namespace ScheduleLib.Cli;
 
 internal static class CliAuthenticationExecution
 {
-    internal static CliFailure ClassifyGoogle(Exception error) => error switch
+    internal static CliFailure ClassifyGoogle(Exception error)
     {
-        OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
-        AuthenticationRequiredException e => new(CliExit.AuthenticationRequired, [e.Message]),
-        LocalOperationBusyException => new(
-            CliExit.Busy,
-            ["Another authentication operation owns this teacher's local state."]),
-        JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        IOException => new(CliExit.IoFailure, ["Could not read or update local authorization state."]),
-        UnauthorizedAccessException => new(CliExit.IoFailure, ["Local authorization state is inaccessible."]),
-        _ => new(
-            CliExit.Unexpected,
-            ["Authentication operation failed. Check the configured Google client credentials."]),
-    };
+        return error switch
+        {
+            OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
+            AuthenticationRequiredException e => new(CliExit.AuthenticationRequired, [e.Message]),
+            LocalOperationBusyException => new(
+                CliExit.Busy,
+                ["Another authentication operation owns this teacher's local state."]),
+            JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            IOException => new(CliExit.IoFailure, ["Could not read or update local authorization state."]),
+            UnauthorizedAccessException => new(CliExit.IoFailure, ["Local authorization state is inaccessible."]),
+            _ => new(
+                CliExit.Unexpected,
+                ["Authentication operation failed. Check the configured Google client credentials."]),
+        };
+    }
 
-    internal static CliFailure ClassifyMicrosoft(Exception error, bool cancellationRequested) => error switch
+    internal static CliFailure ClassifyMicrosoft(Exception error, bool cancellationRequested)
     {
-        OperationCanceledException when cancellationRequested => new(CliExit.Cancelled, ["Cancelled."]),
-        AuthenticationRequiredException e => new(CliExit.AuthenticationRequired, [e.Message]),
-        LocalOperationBusyException => new(
-            CliExit.Busy,
-            ["Another Microsoft authentication operation owns this profile's local state."]),
-        JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
-        IOException => new(CliExit.IoFailure, ["Could not read or update local Microsoft authorization state."]),
-        UnauthorizedAccessException => new(CliExit.IoFailure, ["Local Microsoft authorization state is inaccessible."]),
-        _ => new(CliExit.Unexpected, ["Microsoft authentication operation failed unexpectedly."]),
-    };
+        return error switch
+        {
+            OperationCanceledException when cancellationRequested => new(CliExit.Cancelled, ["Cancelled."]),
+            AuthenticationRequiredException e => new(CliExit.AuthenticationRequired, [e.Message]),
+            LocalOperationBusyException => new(
+                CliExit.Busy,
+                ["Another Microsoft authentication operation owns this profile's local state."]),
+            JsonException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            DirectoryNotFoundException e => new(CliExit.InvalidConfiguration, [e.Message]),
+            IOException => new(CliExit.IoFailure, ["Could not read or update local Microsoft authorization state."]),
+            UnauthorizedAccessException => new(
+                CliExit.IoFailure,
+                ["Local Microsoft authorization state is inaccessible."]),
+            _ => new(CliExit.Unexpected, ["Microsoft authentication operation failed unexpectedly."]),
+        };
+    }
 
     internal static int Finish(
         CliCommandContext context,
@@ -62,10 +70,14 @@ internal static class CliAuthenticationExecution
         for (var index = 0; index < data.Accounts.Count; index++)
         {
             var account = data.Accounts[index];
-            cli.EmitItem(
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                "completed",
-                account);
+            var cliOutput = cli;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var status2 = ActionState.Completed;
+            object item = account;
+            cliOutput.EmitItem(
+                id: id2,
+                status: status2,
+                item);
         }
 
         return context.Finish(new CliCompletion<AuthStatus?>(
@@ -86,7 +98,9 @@ internal static class CliAuthenticationExecution
             {
                 foreach (var account in data.Accounts)
                 {
-                    cli.WriteHuman($"{account.AccountId}: {account.State}");
+                    var cliOutput = cli;
+                    string line = $"{account.AccountId}: {account.State.ToWire()}";
+                    cliOutput.WriteHuman(line);
                 }
 
                 var provisioned = "provisioned";
@@ -94,7 +108,9 @@ internal static class CliAuthenticationExecution
                 {
                     provisioned = "not provisioned";
                 }
-                cli.WriteHuman($"{providerDisplay} authorization for {data.Profile}: {provisioned}");
+                var cliOutput2 = cli;
+                string line2 = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
+                cliOutput2.WriteHuman(line2);
             },
         });
     }

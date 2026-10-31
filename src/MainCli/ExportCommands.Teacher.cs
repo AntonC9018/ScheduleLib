@@ -26,14 +26,20 @@ public partial class ExportCommands
         ResultArguments resultArgs,
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
-        => TeacherExport(
-            new(
-                source,
-                destination,
-                resultArgs,
-                settings),
-            TeacherExportKind.LabDeadlines,
-            cancellationToken);
+    {
+        ExportRequest request = new(
+            source,
+            destination,
+            resultArgs,
+            settings);
+        var kind = TeacherExportKind.LabDeadlines;
+        var cancellationToken2 = cancellationToken;
+        var teacherExport = TeacherExport(
+            request,
+            kind,
+            cancellationToken2);
+        return teacherExport;
+    }
 
     [Command(
         "pre-defense",
@@ -44,14 +50,20 @@ public partial class ExportCommands
         ResultArguments resultArgs,
         SettingsArguments settings,
         CancellationToken cancellationToken = default)
-        => TeacherExport(
-            new(
-                null,
-                destination,
-                resultArgs,
-                settings),
-            TeacherExportKind.PreDefense,
-            cancellationToken);
+    {
+        ExportRequest request = new(
+            null,
+            destination,
+            resultArgs,
+            settings);
+        var kind = TeacherExportKind.PreDefense;
+        var cancellationToken2 = cancellationToken;
+        var teacherExport = TeacherExport(
+            request,
+            kind,
+            cancellationToken2);
+        return teacherExport;
+    }
 
     private async Task<int> TeacherExport(
         ExportRequest request,
@@ -63,8 +75,24 @@ public partial class ExportCommands
         var resultArgs = request.Result;
         var settings = request.Settings;
         var preDefense = kind == TeacherExportKind.PreDefense;
+
+        string CalculateCommand()
+        {
+            string command2;
+            if (preDefense)
+            {
+                command2 = "export pre-defense";
+            }
+            else
+            {
+                command2 = "export lab-deadlines";
+            }
+
+            return command2;
+        }
+
         using var context = new CliCommandContext(
-            preDefense ? "export pre-defense" : "export lab-deadlines",
+            CalculateCommand(),
             resultArgs,
             cancellationToken);
         if (!context.Start())
@@ -87,7 +115,26 @@ public partial class ExportCommands
 
             using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
-            if (!preDefense && teacher is null)
+
+            bool CalculateConditionResult()
+            {
+                if (preDefense)
+                {
+                    return false;
+                }
+
+                if (teacher is null)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 return await Finish(
                     CliExit.InvalidConfiguration,
@@ -117,7 +164,8 @@ public partial class ExportCommands
             if (!preDefense)
             {
                 var deadlinesConfig = scope.ServiceProvider
-                    .GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>().Get();
+                    .GetRequiredService<DataProvider<DeadlinesExcelBuiltConfig>>()
+                    .Get();
                 if (deadlinesConfig is null)
                 {
                     return await Finish(
@@ -167,16 +215,22 @@ public partial class ExportCommands
                 }
 
                 output = context.Artifacts = await RunOutput.Create(
-                    destination.Directory,
-                    context.Command,
-                    context.RunId,
+                    output: destination.Directory,
+                    command: context.Command,
+                    runId: context.RunId,
                     cancellation.Token,
                     projectDirectory: resolvedSettings.ProjectDirectory);
                 var workbooks = await handler.BuildWorkbooks(ThesisType.An, cancellation.Token);
                 foreach (var (number, students) in workbooks.OrderBy(x => x.Key))
                 {
+                    string CalculateName()
+                    {
+                        string name = $"comisia_{number}.xlsx";
+                        return name;
+                    }
+
                     await output.Publish(
-                        $"comisia_{number}.xlsx",
+                        CalculateName(),
                         async (stream, token) =>
                         {
                             await ListsForPredzashitaTaskHandler.WriteAsync(
@@ -203,9 +257,13 @@ public partial class ExportCommands
                         [$"Selected teacher '{teacher}' is absent from this schedule."]);
                 }
 
-                var schedule = scope.ServiceProvider.GetRequiredService<Schedule>().Filter(
-                    FilterHelper.Builder().WithTeacher(teacherId).WithLessonType(LessonType.Lab));
-                if (!schedule.EnumerateLessons().Any())
+                var schedule = scope.ServiceProvider.GetRequiredService<Schedule>()
+                    .Filter(
+                        FilterHelper.Builder()
+                            .WithTeacher(teacherId)
+                            .WithLessonType(LessonType.Lab));
+                if (!schedule.EnumerateLessons()
+                        .Any())
                 {
                     return await Finish(
                         CliExit.InvalidConfiguration,
@@ -216,8 +274,10 @@ public partial class ExportCommands
                     "Laboratory deadlines inspect every period using coded academic date ranges. The existing handler cannot combine shared/all-group labs with other partition/course combinations in a group.");
                 foreach (var group in schedule.Groups)
                 {
-                    var partitions = schedule.EnumerateLessons().Where(x => x.Lesson.Group == group)
-                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, Course: x.Lesson.Course)).ToArray();
+                    var partitions = schedule.EnumerateLessons()
+                        .Where(x => x.Lesson.Group == group)
+                        .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, x.Lesson.Course))
+                        .ToArray();
                     if (partitions.Length > 1 && partitions.Any(x => x.Key.Partition == GroupPartitionKey.All))
                     {
                         return await Finish(
@@ -228,9 +288,9 @@ public partial class ExportCommands
                     }
                 }
                 output = context.Artifacts = await RunOutput.Create(
-                    destination.Directory,
-                    context.Command,
-                    context.RunId,
+                    output: destination.Directory,
+                    command: context.Command,
+                    runId: context.RunId,
                     cancellation.Token,
                     projectDirectory: resolvedSettings.ProjectDirectory);
                 var handler = scope.ServiceProvider.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
@@ -250,7 +310,7 @@ public partial class ExportCommands
                 StreamNew();
             }
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(CliExit.Success, []);
@@ -274,13 +334,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: true);
+
+            TeacherExportResult CalculateData()
+            {
+                TeacherExportResult data = new(
+                    OutputDirectory: output?.DirectoryPath,
+                    Teacher: teacher,
+                    workbookCount);
+                return data;
+            }
+
             return context.Finish(new CliCompletion<TeacherExportResult>(
                 exit,
                 errors,
-                new(
-                    output?.DirectoryPath,
-                    teacher,
-                    workbookCount))
+                CalculateData())
             {
                 Summary = new
                 {
@@ -292,8 +359,14 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                        line);
+                },
             });
         }
     }
@@ -326,7 +399,9 @@ public partial class ExportCommands
         {
             if (IsEnabled(level))
             {
-                warnings.Add(formatter(state, exception));
+                var list = warnings;
+                string item = formatter(state, exception);
+                list.Add(item);
             }
         }
     }

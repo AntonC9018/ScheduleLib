@@ -8,53 +8,21 @@ namespace ScheduleLib.Cli;
 /// <summary>Provider-specific public messages; exception details stay private.</summary>
 internal sealed record GoogleFailureMessages
 {
-    public required string Timeout
-    {
-        get;
-        init;
-    }
+    public required string Timeout { get; init; }
 
-    public required string Network
-    {
-        get;
-        init;
-    }
+    public required string Network { get; init; }
 
-    public required string Busy
-    {
-        get;
-        init;
-    }
+    public required string Busy { get; init; }
 
-    public required string Io
-    {
-        get;
-        init;
-    }
+    public required string Io { get; init; }
 
-    public required string Access
-    {
-        get;
-        init;
-    }
+    public required string Access { get; init; }
 
-    public required string Rejected
-    {
-        get;
-        init;
-    }
+    public required string Rejected { get; init; }
 
-    public required string Unexpected
-    {
-        get;
-        init;
-    }
+    public required string Unexpected { get; init; }
 
-    public bool IncludeIoDetails
-    {
-        get;
-        init;
-    }
+    public bool IncludeIoDetails { get; init; }
 }
 
 internal static class CliRemoteFailure
@@ -66,8 +34,25 @@ internal static class CliRemoteFailure
         GoogleFailureMessages messages,
         bool partialBundle = false)
     {
-        if (context.Cancellation.IsCancellationRequested
-            && error is OperationCanceledException or GooglePreSendTransportException)
+        bool CalculateConditionResult()
+        {
+            if (!context.Cancellation.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            if (error is OperationCanceledException or GooglePreSendTransportException)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return new(CliExit.Cancelled, ["Cancelled."]);
         }
@@ -75,10 +60,29 @@ internal static class CliRemoteFailure
         {
             return new(CliExit.AuthenticationRequired, [authentication.Message]);
         }
-        if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException
-            || error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
+
+        bool CalculateConditionResult2()
         {
-            var authenticationError = new AuthenticationRequiredException("google", profile ?? "");
+            if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException token
+                && GoogleTokenErrors.RequiresLogin(token))
+            {
+                return true;
+            }
+
+            if (error is Google.GoogleApiException { HttpStatusCode: System.Net.HttpStatusCode.Unauthorized })
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult2 = CalculateConditionResult2();
+
+
+        if (conditionResult2)
+        {
+            var authenticationError = new AuthenticationRequiredException(provider: "google", teacher: profile ?? "");
             return new(CliExit.AuthenticationRequired, [authenticationError.Message]);
         }
         var ioExit = CliExit.IoFailure;
@@ -92,7 +96,8 @@ internal static class CliRemoteFailure
         {
             CliOutputStreamingException => new(CliExit.Unexpected, ["Output streaming failed."]),
             OperationCanceledException => new(CliExit.IoFailure, [messages.Timeout]),
-            HttpRequestException => new(CliExit.IoFailure, [messages.Network]),
+            HttpRequestException
+                or Google.Apis.Auth.OAuth2.Responses.TokenResponseException => new(CliExit.IoFailure, [messages.Network]),
             LocalOperationBusyException => new(CliExit.Busy, [messages.Busy]),
             JsonException
                 or ArgumentException

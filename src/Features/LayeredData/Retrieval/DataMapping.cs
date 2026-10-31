@@ -10,8 +10,10 @@ public interface IDataMapperBase
 public static class DataMapCallHelper
 {
     private delegate object MapDelegate(IDataMapperBase mapper, object x);
+
     private static readonly MethodInfo GenericMethod = typeof(DataMapCallHelper)
         .GetMethod(nameof(MapGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
+
     private static readonly CallHelper<MapDelegate> _helper = new(typeof(IDataMapper<,>), GenericMethod);
 
     private static object MapGeneric<T1, T2>(IDataMapperBase mapper, object from)
@@ -55,7 +57,7 @@ public sealed class DataMappingRegistry
             using var itypesE = itypes.GetEnumerator();
             if (!itypesE.MoveNext())
             {
-                throw new InvalidOperationException($"Type `{type.Name}` inherits `IConfigMapperBase` directly. Don't do it!");
+                throw new InvalidDataMapperImplementationException(type);
             }
 
             while (true)
@@ -71,10 +73,13 @@ public sealed class DataMappingRegistry
                 {
                     throw new InvalidOperationException("Can't have a mapper between the same types.");
                 }
-                bool added = _mappers.TryAdd(to, new(m, from));
+                var dictionary = _mappers;
+                var key = to;
+                DataMapping value = new(m, from);
+                bool added = dictionary.TryAdd(key, value);
                 if (!added)
                 {
-                    throw new InvalidOperationException($"Mapper for config type `{to.Name}` already exists.");
+                    throw new ConfigMapperAlreadyRegisteredException(to);
                 }
 
                 if (!itypesE.MoveNext())

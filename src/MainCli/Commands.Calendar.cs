@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredData.Retrieval;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,17 +10,15 @@ namespace ScheduleLib.Cli;
 
 public sealed partial class Commands
 {
-    [Subcommand]
-    public CalendarCommands Calendar
-    {
-        get;
-        set;
-    } = new();
+    [Subcommand] public CalendarCommands Calendar { get; set; } = new();
 }
 
 [Command(
     "calendar",
     Description = "Preview or apply named Google Calendar replacement using provisioned authorization.")]
+[SuppressMessage(category: "Readability",
+    checkId: "CR1400",
+    Justification = "Virtual command seams await architecture review in issue #247.")]
 public class CalendarCommands
 {
     protected virtual void ConfigureServices(IServiceCollection services) =>
@@ -29,10 +28,12 @@ public class CalendarCommands
         IServiceProvider services,
         BuiltGoogleCalendarConfig config,
         CancellationToken token)
-        => GoogleCalendarSyncProvider.Connect(
+    {
+        return GoogleCalendarSyncProvider.Connect(
             services,
             config,
             token);
+    }
 
     [Command(
         "sync",
@@ -88,7 +89,8 @@ public class CalendarCommands
             await using var container = AppConfiguration.BuildServiceProvider(services);
             await container.InitializeSchedule(cancellation.Token);
             await using var scope = container.CreateAsyncScope();
-            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>().Get();
+            var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>()
+                .Get();
             if (config is null)
             {
                 return Finish(
@@ -117,7 +119,7 @@ public class CalendarCommands
             // plan-order ids.
             data = await CalendarSync.Run(
                 provider,
-                config.CalendarName,
+                name: config.CalendarName,
                 desired,
                 apply.Apply,
                 cancellation.Token,
@@ -155,10 +157,10 @@ public class CalendarCommands
         {
             var warnings = data?.Warnings ?? [];
             var actions = PlannedActions(data);
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(exit, success);
             object? summary = null;
@@ -188,7 +190,9 @@ public class CalendarCommands
                 {
                     if (data is not null)
                     {
-                        output.WriteHuman($"{status}: {data.Account} / {data.CalendarName}");
+                        var cliOutput = output;
+                        string line = $"{status}: {data.Account} / {data.CalendarName}";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });
@@ -204,10 +208,19 @@ public class CalendarCommands
         var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            actions.Add(new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count));
+            var list = actions;
+            var item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
+            ICliMessage item2 = item;
+            list.Add(item2);
         }
-        actions.Add(new CalendarCreateAction(data.CalendarName));
-        actions.Add(new CalendarCreateEventsAction(data.DesiredEvents.Count));
+        var list2 = actions;
+        var item3 = new CalendarCreateAction(data.CalendarName);
+        ICliMessage item4 = item3;
+        list2.Add(item4);
+        var list3 = actions;
+        var item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
+        ICliMessage item6 = item5;
+        list3.Add(item6);
         return actions.ToArray();
     }
 }

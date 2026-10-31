@@ -11,13 +11,30 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root");
 
         // Act
-        var states = CollectStates(new(root));
+        DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
-        Assert.Collection(states,
-            s1 => Assert.Equal(S(DfsVisitationState.BeforeProcess), s1),
-            s2 => Assert.Equal(S(DfsVisitationState.Process), s2),
-            s3 => Assert.Equal(S(DfsVisitationState.AfterProcess), s3));
+        Assert.Collection(
+            states,
+            s1 =>
+            {
+                var expected2 = S(DfsVisitationState.BeforeProcess);
+                var actual2 = s1;
+                Assert.Equal(expected: expected2, actual: actual2);
+            },
+            s2 =>
+            {
+                var expected2 = S(DfsVisitationState.Process);
+                var actual2 = s2;
+                Assert.Equal(expected: expected2, actual: actual2);
+            },
+            s3 =>
+            {
+                var expected2 = S(DfsVisitationState.AfterProcess);
+                var actual2 = s3;
+                Assert.Equal(expected: expected2, actual: actual2);
+            });
         VisitRecord S(DfsVisitationState state) => new("Root", state);
     }
 
@@ -27,10 +44,14 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer(
+            "Root",
+            child1,
+            child2);
 
         // Act
-        var states = CollectStates(new(root));
+        DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
         var expected = new VisitRecord[]
@@ -45,7 +66,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, states);
+        VisitSequence.AssertInOrder(expected: expected, actual: states);
     }
 
     [Fact]
@@ -55,10 +76,14 @@ public sealed class TreeIterationTests
         var grandChild = CreateLayer("GrandChild");
         var child1 = CreateLayer("Child1", grandChild);
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer(
+            "Root",
+            child1,
+            child2);
 
         // Act
-        var states = CollectStates(new(root));
+        DfsEnumerable e = new(root);
+        var states = CollectStates(e);
 
         // Assert
         var expected = new VisitRecord[]
@@ -76,7 +101,7 @@ public sealed class TreeIterationTests
             new("Child2", DfsVisitationState.AfterProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, states);
+        VisitSequence.AssertInOrder(expected: expected, actual: states);
     }
 
     [Fact]
@@ -85,7 +110,10 @@ public sealed class TreeIterationTests
         // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
-        var root = CreateLayer("Root", child1, child2);
+        var root = CreateLayer(
+            "Root",
+            child1,
+            child2);
 
         var e = new DfsEnumerable(root)
             .AddRecorder(out var recorder);
@@ -94,7 +122,25 @@ public sealed class TreeIterationTests
         foreach (var x in e)
         {
             // Skip children when we process Root
-            if (x.LayerName == "Root" && x.State == DfsVisitationState.Process)
+            bool CalculateConditionResult()
+            {
+                if (x.LayerName != "Root")
+                {
+                    return false;
+                }
+
+                if (x.State == DfsVisitationState.Process)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 x.Controller.Action = DfsAction.PreventRecursionOnce;
             }
@@ -107,15 +153,17 @@ public sealed class TreeIterationTests
             new("Root", DfsVisitationState.Process),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected: expected, actual: recorder.Records);
     }
 
     [Fact]
     public void KeepPreventingRecursion_SkipsAllSubsequentChildren()
     {
         // Arrange
-        var root = CreateLayer("Root",
-            CreateLayer("Child1",
+        var root = CreateLayer(
+            "Root",
+            CreateLayer(
+                "Child1",
                 CreateLayer("GrandChild")),
             CreateLayer("Child2"));
 
@@ -125,7 +173,25 @@ public sealed class TreeIterationTests
         // Act
         foreach (var x in e)
         {
-            if (x.LayerName == "Child1" && x.State == DfsVisitationState.BeforeProcess)
+            bool CalculateConditionResult()
+            {
+                if (x.LayerName != "Child1")
+                {
+                    return false;
+                }
+
+                if (x.State == DfsVisitationState.BeforeProcess)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool conditionResult = CalculateConditionResult();
+
+
+            if (conditionResult)
             {
                 x.Controller.Action = DfsAction.KeepPreventingRecursion;
             }
@@ -139,15 +205,24 @@ public sealed class TreeIterationTests
             new("Child1", DfsVisitationState.BeforeProcess),
             new("Root", DfsVisitationState.AfterProcess),
         };
-        VisitSequence.AssertInOrder(expected, recorder.Records);
+        VisitSequence.AssertInOrder(expected: expected, actual: recorder.Records);
     }
 
     [Fact]
     public void MultipleChildren_AllVisited()
     {
         // Arrange
-        var children = Enumerable.Range(1, 5)
-            .Select(i => CreateLayer($"Child{i}"))
+        var children = Enumerable.Range(start: 1, count: 5)
+            .Select(i =>
+            {
+                string CalculateName()
+                {
+                    string name = $"Child{i}";
+                    return name;
+                }
+
+                return CreateLayer(CalculateName());
+            })
             .ToArray();
         var root = CreateLayer("Root", children);
         var enumerable = new DfsEnumerable(root);
@@ -160,10 +235,12 @@ public sealed class TreeIterationTests
         }
 
         // Assert
-        Assert.Equal(6, visitedLayers.Count); // Root + 5 children
+        Assert.Equal(expected: 6, actual: visitedLayers.Count); // Root + 5 children
         for (int i = 1; i <= 5; i++)
         {
-            Assert.Contains($"Child{i}", visitedLayers);
+            string expected2 = $"Child{i}";
+            var set = visitedLayers;
+            Assert.Contains(expected2, set);
         }
     }
 
@@ -172,7 +249,14 @@ public sealed class TreeIterationTests
     {
         // Arrange
         var leaf = CreateLayer("Leaf");
-        using var enumerator = new DfsEnumerator(leaf, new([]));
+
+        EnumerationContextCollection CalculateEnumerationContextCollection()
+        {
+            EnumerationContextCollection enumerationContextCollection = new([]);
+            return enumerationContextCollection;
+        }
+
+        using var enumerator = new DfsEnumerator(leaf, CalculateEnumerationContextCollection());
 
         // Act
         enumerator.MoveNext(); // BeforeProcess
@@ -181,7 +265,7 @@ public sealed class TreeIterationTests
 
         // Assert
         Assert.True(result);
-        Assert.Equal(DfsVisitationState.AfterProcess, enumerator.Current.State);
+        Assert.Equal(expected: DfsVisitationState.AfterProcess, actual: enumerator.Current.State);
     }
 
     private MutableNode CreateLayer(string name, params ReadOnlySpan<MutableNode> children)
@@ -199,24 +283,28 @@ public sealed class TreeIterationTests
 
     private List<VisitRecord> CollectStates(DfsEnumerable e)
     {
-        var x = e.AddContext(RecorderContext.Key, () => new()).Last();
+        var x = e.AddContext(RecorderContext.Key, () => new())
+            .Last();
         return x.Get(RecorderContext.Key).Records;
     }
 }
 
 file static class Helper
 {
-    extension (in DfsEnumerationContext val)
+    extension(in DfsEnumerationContext val)
     {
         public string LayerName => val.Node.Layer.Value;
     }
-    extension (DfsEnumerable c)
+
+    extension(DfsEnumerable c)
     {
         public DfsEnumerable AddRecorder(out RecorderContext recorder)
         {
             recorder = new RecorderContext();
             SingleUseItemHelper<RecorderContext> it = new(recorder);
-            c.AddContext(RecorderContext.Key, () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
+            c.AddContext(
+                RecorderContext.Key,
+                () => it.Get() ?? throw new InvalidOperationException("Cannot enumerate twice"));
             return c;
         }
     }
@@ -224,12 +312,16 @@ file static class Helper
 
 file sealed class RecorderContext : IDfsEnumerationContext
 {
-    public static readonly EnumerationContextKey<RecorderContext> Key = EnumerationContextKey.Registry.Register<RecorderContext>();
+    public static readonly EnumerationContextKey<RecorderContext> Key =
+        EnumerationContextKey.Registry.Register<RecorderContext>();
+
     public readonly List<VisitRecord> Records = new();
 
     public void Update(DfsEnumerationContext v)
     {
-        Records.Add(new(v.LayerName, v.State));
+        var list = Records;
+        VisitRecord item = new(v.LayerName, v.State);
+        list.Add(item);
     }
 }
 
@@ -257,20 +349,43 @@ file static class VisitSequence
         }
         if (filtered.Count != expected.Count)
         {
+            string CalculateText()
+            {
+                string join = string.Join(", ", expected);
+                string text = $" Expected: {join}.";
+                return text;
+            }
+
+            string CalculateText2()
+            {
+                string join2 = string.Join(", ", actual);
+                string text2 = $" Recorded sequence: {join2}";
+                return text2;
+            }
+
             Assert.Fail(
-                $"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."
-                + $" Expected: {string.Join(", ", expected)}."
-                + $" Recorded sequence: {string.Join(", ", actual)}");
+                $"{$"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."}{CalculateText()}{CalculateText2()}");
         }
         for (int i = 0; i < expected.Count; i++)
         {
             if (filtered[i] != expected[i])
             {
+                string CalculateText3()
+                {
+                    string join3 = string.Join(", ", expected);
+                    string text3 = $" Expected: {join3}.";
+                    return text3;
+                }
+
+                string CalculateText4()
+                {
+                    string join4 = string.Join(", ", actual);
+                    string text4 = $" Recorded sequence: {join4}";
+                    return text4;
+                }
+
                 Assert.Fail(
-                    $"The expected visits did not match exactly."
-                    + $" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."
-                    + $" Expected: {string.Join(", ", expected)}."
-                    + $" Recorded sequence: {string.Join(", ", actual)}");
+                    $"{$"The expected visits did not match exactly."}{$" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."}{CalculateText3()}{CalculateText4()}");
             }
         }
     }

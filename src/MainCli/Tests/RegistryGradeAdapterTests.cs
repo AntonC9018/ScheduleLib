@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -26,10 +27,21 @@ public sealed class RegistryGradeAdapterTests
     [InlineData("<input type='text' name='grade[1]' value='8'><input type='text' name='grade[1]' value='5'>")]
     public async Task InvalidGradeFieldsFailBeforeProductionPostBoundary(string inputs)
     {
-        using var handler = new Handler((_, _) => Task.FromResult(
-            Response(
-                HttpStatusCode.OK,
-                $"<form method='post' action='/grades'>{inputs}</form>")));
+        using var handler = new Handler((_, _) =>
+        {
+            HttpResponseMessage CalculateResult()
+            {
+                var status = HttpStatusCode.OK;
+                string body = $"<form method='post' action='/grades'>{inputs}</form>";
+                var result = Response(
+                    status,
+                    body);
+                return result;
+            }
+
+            return Task.FromResult(
+                CalculateResult());
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -37,19 +49,33 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         var started = false;
         await Assert.ThrowsAsync<InvalidOperationException>(() => navigator.SubmitGrades(
             document,
             default,
-            () => started = true));
+            () =>
+            {
+                started = true;
+            }));
         Assert.False(started);
-        Assert.Equal(0, handler.Posts);
+        Assert.Equal(expected: 0, actual: handler.Posts);
     }
 
     [Theory]
@@ -88,15 +114,75 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+                HttpResponseMessage CalculateResult()
+                {
+                    var result = Response(HttpStatusCode.OK, GradeForm);
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
 
             posts++;
+
             // A replay would succeed: the production requester must never send it.
-            return Task.FromResult(
-                Response(
-                    status == 401 && posts > 1 ? HttpStatusCode.OK : (HttpStatusCode) status,
-                    status == 401 && posts > 1 ? GradeForm : body));
+            bool CheckCondition()
+            {
+                if (status != 401)
+                {
+                    return false;
+                }
+
+                if (posts > 1)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool CheckCondition2()
+            {
+                if (status != 401)
+                {
+                    return false;
+                }
+
+                if (posts > 1)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            HttpStatusCode status2;
+            if (CheckCondition())
+            {
+                status2 = HttpStatusCode.OK;
+            }
+            else
+            {
+                status2 = (HttpStatusCode) status;
+            }
+
+            string body2;
+            if (CheckCondition2())
+            {
+                body2 = GradeForm;
+            }
+            else
+            {
+                body2 = body;
+            }
+
+            var result2 = Response(
+                status2,
+                body2);
+            var fromResult =
+                Task.FromResult(
+                    result2);
+            return fromResult;
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -105,16 +191,27 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         var error = await Assert.ThrowsAnyAsync<Exception>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(rejected, error is RegistrySubmissionRejectedException);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(0, auth.Calls);
+        Assert.Equal(expected: rejected, actual: error is RegistrySubmissionRejectedException);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 0, actual: auth.Calls);
     }
 
     [Theory]
@@ -123,11 +220,52 @@ public sealed class RegistryGradeAdapterTests
     public async Task GradeSuccessRequiresFreshMatchingValues(bool matches)
     {
         var reads = 0;
-        using var handler = new Handler((request, _) => Task.FromResult(
-            Response(
-                HttpStatusCode.OK,
-                request.Method == HttpMethod.Post ? GradeForm :
-                ++reads == 1 || matches ? GradeForm : GradeForm.Replace("value='8'", "value='5'"))));
+        using var handler = new Handler((request, _) =>
+        {
+            var status = HttpStatusCode.OK;
+            string body;
+            if (request.Method == HttpMethod.Post)
+            {
+                body = GradeForm;
+            }
+            else
+            {
+                int int32 = ++reads;
+
+                bool CalculateCondition()
+                {
+                    if (int32 == 1)
+                    {
+                        return true;
+                    }
+                    return matches;
+                }
+
+                bool condition = CalculateCondition();
+
+
+                string text;
+                if (condition)
+                {
+                    text = GradeForm;
+                }
+                else
+                {
+                    string replace = GradeForm.Replace("value='8'", "value='5'");
+                    text = replace;
+                }
+
+                body = text;
+            }
+
+            var result = Response(
+                status,
+                body);
+            var fromResult =
+                Task.FromResult(
+                    result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -135,12 +273,23 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         if (matches)
         {
             await navigator.SubmitGrades(document, default);
@@ -150,8 +299,8 @@ public sealed class RegistryGradeAdapterTests
             await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(document, default));
         }
 
-        Assert.Equal(2, reads);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 2, actual: reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -161,10 +310,38 @@ public sealed class RegistryGradeAdapterTests
     public async Task FailedConfirmationIsUncertainEvenAfterAcceptedPost(int status, string body)
     {
         var reads = 0;
-        using var handler = new Handler((request, _) => Task.FromResult(
-            request.Method == HttpMethod.Post || ++reads == 1
-                ? Response(HttpStatusCode.OK, GradeForm)
-                : Response((HttpStatusCode) status, body)));
+        using var handler = new Handler((request, _) =>
+        {
+            bool condition;
+            if (request.Method == HttpMethod.Post)
+            {
+                condition = true;
+            }
+            else
+            {
+                int int32 = ++reads;
+                condition = int32 == 1;
+            }
+
+            HttpResponseMessage result;
+            if (condition)
+            {
+                var response = Response(HttpStatusCode.OK, GradeForm);
+                result = response;
+            }
+            else
+            {
+                var status2 = (HttpStatusCode) status;
+                string body2 = body;
+                var response2 = Response(status2, body2);
+                result = response2;
+            }
+
+            var fromResult =
+                Task.FromResult(
+                    result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -172,15 +349,26 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(2, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 2, actual: reads);
     }
 
     [Theory]
@@ -234,22 +422,64 @@ public sealed class RegistryGradeAdapterTests
         var auth = new Auth();
         using var handler = new Handler((request, _) =>
         {
-            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
+            Assert.Equal(expected: "/grades", actual: request.RequestUri!.AbsolutePath);
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) redirectStatus, "");
                 redirect.Headers.Location = new("/evaluation", UriKind.Relative);
                 return Task.FromResult(redirect);
             }
-            if (++reads == 1)
+            bool conditionResult;
+            int conditionValue = ++reads;
+            conditionResult = conditionValue == 1;
+            if (conditionResult)
             {
-                return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+                HttpResponseMessage CalculateResult()
+                {
+                    var result = Response(HttpStatusCode.OK, GradeForm);
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
+
             // Legacy read authentication may retry the GET, but must never replay the POST.
-            return Task.FromResult(
-                readStatus == 401 && reads > 2
-                    ? Response(HttpStatusCode.OK, LoginForm)
-                    : Response((HttpStatusCode) readStatus, body));
+            bool CalculateCondition()
+            {
+                if (readStatus != 401)
+                {
+                    return false;
+                }
+
+                if (reads > 2)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool condition = CalculateCondition();
+
+
+            HttpResponseMessage result2;
+            if (condition)
+            {
+                var response = Response(HttpStatusCode.OK, LoginForm);
+                result2 = response;
+            }
+            else
+            {
+                var status = (HttpStatusCode) readStatus;
+                string body2 = body;
+                var response2 = Response(status, body2);
+                result2 = response2;
+            }
+
+            var fromResult =
+                Task.FromResult(
+                    result2);
+            return fromResult;
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -258,22 +488,58 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
 
         await Assert.ThrowsAsync<IOException>(() => navigator.SubmitGrades(
             document,
             default,
-            () => started = true));
+            () =>
+            {
+                started = true;
+            }));
 
         Assert.True(started);
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(readStatus == 401 ? 3 : 2, reads);
-        Assert.Equal(readStatus == 401 ? 1 : 0, auth.Calls);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        int expected2;
+        if (readStatus == 401)
+        {
+            expected2 = 3;
+        }
+        else
+        {
+            expected2 = 2;
+        }
+
+        int actual2 = reads;
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3;
+        if (readStatus == 401)
+        {
+            expected3 = 1;
+        }
+        else
+        {
+            expected3 = 0;
+        }
+
+        int actual3 = auth.Calls;
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 
     [Fact]
@@ -281,10 +547,38 @@ public sealed class RegistryGradeAdapterTests
     {
         var reads = 0;
         var auth = new Auth();
-        using var handler = new Handler((request, _) => Task.FromResult(
-            Response(
-                request.Method == HttpMethod.Post || ++reads == 2 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK,
-                GradeForm)));
+        using var handler = new Handler((request, _) =>
+        {
+            bool condition;
+            if (request.Method == HttpMethod.Post)
+            {
+                condition = true;
+            }
+            else
+            {
+                int int32 = ++reads;
+                condition = int32 == 2;
+            }
+
+            HttpStatusCode status;
+            if (condition)
+            {
+                status = HttpStatusCode.Unauthorized;
+            }
+            else
+            {
+                status = HttpStatusCode.OK;
+            }
+
+            string body = GradeForm;
+            var result = Response(
+                status,
+                body);
+            var fromResult =
+                Task.FromResult(
+                    result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -292,18 +586,40 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
-        await Assert.ThrowsAsync<RegistrySubmissionRejectedException>(() => navigator.SubmitGrades(document, default));
-        Assert.Equal(0, auth.Calls);
-        await navigator.GetHtml(new("https://registry.test/grades"));
-        Assert.Equal(1, auth.Calls);
-        Assert.Equal(3, reads);
-        Assert.Equal(1, handler.Posts);
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
+        var rejection =
+            await Assert.ThrowsAsync<RegistryOperationRejectedException>(() =>
+                navigator.SubmitGrades(document, default));
+        Assert.Equal(expected: "grade submission", actual: rejection.Operation);
+        Assert.Equal(expected: "Registry rejected grade submission.", actual: rejection.Message);
+        Assert.Equal(expected: 0, actual: auth.Calls);
+
+        Uri CalculateUri2()
+        {
+            Uri uri2 = new("https://registry.test/grades");
+            return uri2;
+        }
+
+        await navigator.GetHtml(CalculateUri2());
+        Assert.Equal(expected: 1, actual: auth.Calls);
+        Assert.Equal(expected: 3, actual: reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     [Theory]
@@ -316,15 +632,35 @@ public sealed class RegistryGradeAdapterTests
         var reads = 0;
         using var handler = new Handler((request, _) =>
         {
-            Assert.Equal("/grades", request.RequestUri!.AbsolutePath);
+            Assert.Equal(expected: "/grades", actual: request.RequestUri!.AbsolutePath);
             if (request.Method == HttpMethod.Post)
             {
                 var redirect = Response((HttpStatusCode) status, "");
-                redirect.Headers.Location = new(login ? "/login" : "/evaluation", UriKind.Relative);
+                var httpResponseHeaders = redirect.Headers;
+                string uriString;
+                if (login)
+                {
+                    uriString = "/login";
+                }
+                else
+                {
+                    uriString = "/evaluation";
+                }
+
+                var uriKind = UriKind.Relative;
+                Uri uri = new(uriString, uriKind);
+                httpResponseHeaders.Location = uri;
                 return Task.FromResult(redirect);
             }
             reads++;
-            return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+
+            HttpResponseMessage CalculateResult()
+            {
+                var result = Response(HttpStatusCode.OK, GradeForm);
+                return result;
+            }
+
+            return Task.FromResult(CalculateResult());
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -333,12 +669,23 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
         if (login)
         {
             await Assert.ThrowsAsync<RegistrySubmissionRejectedException>(() =>
@@ -349,8 +696,19 @@ public sealed class RegistryGradeAdapterTests
             await navigator.SubmitGrades(document, default);
         }
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(login ? 1 : 2, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        int expected2;
+        if (login)
+        {
+            expected2 = 1;
+        }
+        else
+        {
+            expected2 = 2;
+        }
+
+        int actual2 = reads;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Theory]
@@ -366,7 +724,14 @@ public sealed class RegistryGradeAdapterTests
             if (request.Method != HttpMethod.Post)
             {
                 reads++;
-                return Task.FromResult(Response(HttpStatusCode.OK, GradeForm));
+
+                HttpResponseMessage CalculateResult()
+                {
+                    var result = Response(HttpStatusCode.OK, GradeForm);
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
             var redirect = Response((HttpStatusCode) status, "");
             redirect.Headers.Location = new(location, UriKind.Relative);
@@ -379,17 +744,28 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
         using var services = new ServiceCollection().BuildServiceProvider();
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        IServiceProvider serviceProvider = services;
+        CancellationToken cancellationToken = default;
         var navigator = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            services,
-            default);
-        var document = await navigator.GetHtml(new("https://registry.test/grades"));
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
+
+        Uri CalculateUri()
+        {
+            Uri uri = new("https://registry.test/grades");
+            return uri;
+        }
+
+        var document = await navigator.GetHtml(CalculateUri());
 
         await Assert.ThrowsAsync<FormSubmissionRedirectException>(() => navigator.SubmitGrades(document, default));
 
-        Assert.Equal(1, handler.Posts);
-        Assert.Equal(1, reads);
+        Assert.Equal(expected: 1, actual: handler.Posts);
+        Assert.Equal(expected: 1, actual: reads);
     }
 
     [Fact]
@@ -398,7 +774,24 @@ public sealed class RegistryGradeAdapterTests
         var reads = 0;
         var auth = new Auth();
         using var handler = new Handler((_, _) =>
-            Task.FromResult(Response(++reads == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK, GradeForm)));
+        {
+            int int32 = ++reads;
+            HttpStatusCode status;
+            if (int32 == 1)
+            {
+                status = HttpStatusCode.Unauthorized;
+            }
+            else
+            {
+                status = HttpStatusCode.OK;
+            }
+
+            string body = GradeForm;
+            var result = Response(status, body);
+            var fromResult =
+                Task.FromResult(result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -406,8 +799,8 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         await context.Browser.OpenAsync("https://registry.test/grades");
-        Assert.Equal(2, reads);
-        Assert.Equal(1, auth.Calls);
+        Assert.Equal(expected: 2, actual: reads);
+        Assert.Equal(expected: 1, actual: auth.Calls);
     }
 
     [Fact]
@@ -415,10 +808,38 @@ public sealed class RegistryGradeAdapterTests
     {
         var auth = new Auth();
         var posts = 0;
-        using var handler = new Handler((request, _) => Task.FromResult(
-            Response(
-                request.Method == HttpMethod.Post && ++posts == 1 ? HttpStatusCode.Unauthorized : HttpStatusCode.OK,
-                GradeForm)));
+        using var handler = new Handler((request, _) =>
+        {
+            bool condition;
+            if (request.Method == HttpMethod.Post)
+            {
+                int int32 = ++posts;
+                condition = int32 == 1;
+            }
+            else
+            {
+                condition = false;
+            }
+
+            HttpStatusCode status;
+            if (condition)
+            {
+                status = HttpStatusCode.Unauthorized;
+            }
+            else
+            {
+                status = HttpStatusCode.OK;
+            }
+
+            string body = GradeForm;
+            var result = Response(
+                status,
+                body);
+            var fromResult =
+                Task.FromResult(
+                    result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -426,9 +847,10 @@ public sealed class RegistryGradeAdapterTests
             handler);
         using var context = ScrapingContext.Create(transport, auth);
         var document = await context.Browser.OpenAsync("https://registry.test/grades");
-        await document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")!.SubmitAsync();
-        Assert.Equal(2, posts);
-        Assert.Equal(1, auth.Calls);
+        await document.QuerySelector<AngleSharp.Html.Dom.IHtmlFormElement>("form")!
+            .SubmitAsync();
+        Assert.Equal(expected: 2, actual: posts);
+        Assert.Equal(expected: 1, actual: auth.Calls);
     }
 
     [Theory]
@@ -437,7 +859,23 @@ public sealed class RegistryGradeAdapterTests
     public async Task RejectedMoodleLoginFailsBeforeScraping(string body)
     {
         using var handler = new Handler((request, _) =>
-            Task.FromResult(Response(HttpStatusCode.OK, request.Method == HttpMethod.Post ? body : LoginForm)));
+        {
+            var status = HttpStatusCode.OK;
+            string body2;
+            if (request.Method == HttpMethod.Post)
+            {
+                body2 = body;
+            }
+            else
+            {
+                body2 = LoginForm;
+            }
+
+            var result = Response(status, body2);
+            var fromResult =
+                Task.FromResult(result);
+            return fromResult;
+        });
         using var services = new ServiceCollection()
             .AddSingleton<Microsoft.Extensions.Logging.ILoggerFactory>(NullLoggerFactory.Instance)
             .BuildServiceProvider();
@@ -446,7 +884,7 @@ public sealed class RegistryGradeAdapterTests
             new MemoryCookieProvider(),
             client,
             handler);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => MoodleScrapingContext.Create(
+        await Assert.ThrowsAsync<ScrapingAuthenticationException>(() => MoodleScrapingContext.Create(
             services,
             new()
             {
@@ -455,7 +893,7 @@ public sealed class RegistryGradeAdapterTests
             },
             default,
             transport));
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
         Assert.True(handler.Disposed);
     }
 
@@ -468,7 +906,13 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                return Task.FromResult(Response(HttpStatusCode.OK, LoginForm));
+                HttpResponseMessage CalculateResult()
+                {
+                    var result = Response(HttpStatusCode.OK, LoginForm);
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
 
             entered.SetResult();
@@ -492,11 +936,27 @@ public sealed class RegistryGradeAdapterTests
             },
             cancellation.Token,
             transport);
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        TimeSpan CalculateTimeout()
+        {
+            var timeout = TimeSpan.FromSeconds(5);
+            return timeout;
+        }
+
+        await entered.Task.WaitAsync(CalculateTimeout());
         cancellation.Cancel();
         try
         {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task.WaitAsync(TimeSpan.FromSeconds(5)));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            {
+                TimeSpan CalculateTimeout()
+                {
+                    var timeout = TimeSpan.FromSeconds(5);
+                    return timeout;
+                }
+
+                return task.WaitAsync(CalculateTimeout());
+            });
             Assert.True(handler.Disposed);
             Assert.False(pending.Task.IsCompleted);
         }
@@ -518,11 +978,28 @@ public sealed class RegistryGradeAdapterTests
         {
             if (request.Method != HttpMethod.Post)
             {
-                return Task.FromResult(Response(HttpStatusCode.OK, LoginForm));
+                HttpResponseMessage CalculateResult()
+                {
+                    var result = Response(HttpStatusCode.OK, LoginForm);
+                    return result;
+                }
+
+                return Task.FromResult(CalculateResult());
             }
 
             entered.TrySetResult();
-            return cancel ? pending.Task : Task.FromResult(Response(HttpStatusCode.OK, LoginForm));
+            if (cancel)
+            {
+                return pending.Task;
+            }
+
+            HttpResponseMessage CalculateResult2()
+            {
+                var result2 = Response(HttpStatusCode.OK, LoginForm);
+                return result2;
+            }
+
+            return Task.FromResult(CalculateResult2());
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -530,14 +1007,15 @@ public sealed class RegistryGradeAdapterTests
             client,
             handler);
         using var settings = await CliSettings.Load(new());
-        settings.Tree.Defaults.Moodle().ConfigureValue(x => x.Credentials = new ValueCredentialsSource
-        {
-            Value = new()
+        settings.Tree.Defaults.Moodle()
+            .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
             {
-                Login = "test",
-                Password = "test",
-            },
-        });
+                Value = new()
+                {
+                    Login = "test",
+                    Password = "test",
+                },
+            });
         var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
         await using var provider = AppConfiguration.BuildServiceProvider(collection);
@@ -563,27 +1041,68 @@ public sealed class RegistryGradeAdapterTests
         try
         {
             var task = commands.ImportGrades(
-                new() { QuizId = "123" },
+                new()
+                {
+                    QuizId = "123",
+                },
                 new(),
-                new() { Profile = "test" },
-                new() { Json = true },
-                new() { Apply = true },
+                new()
+                {
+                    Profile = "test",
+                },
+                new()
+                {
+                    Json = true,
+                },
+                new()
+                {
+                    Apply = true,
+                },
                 cancellation.Token);
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.True(accountLock.Held || !cancel);
+
+            TimeSpan CalculateTimeout()
+            {
+                var timeout = TimeSpan.FromSeconds(5);
+                return timeout;
+            }
+
+            await entered.Task.WaitAsync(CalculateTimeout());
+            bool conditionResult;
+            if (accountLock.Held)
+            {
+                conditionResult = true;
+            }
+            else
+            {
+                conditionResult = cancel;
+                conditionResult = !conditionResult;
+            }
+
+            Assert.True(conditionResult);
             if (cancel)
             {
                 cancellation.Cancel();
             }
 
-            Assert.Equal(exit, await task.WaitAsync(TimeSpan.FromSeconds(5)));
+            TimeSpan CalculateTimeout2()
+            {
+                var timeout2 = TimeSpan.FromSeconds(5);
+                return timeout2;
+            }
+
+            Assert.Equal(expected: exit, actual: await task.WaitAsync(CalculateTimeout2()));
             Assert.False(accountLock.Held);
             Assert.True(session.Disposed);
             Assert.True(handler.Disposed);
-            Assert.Equal(1, handler.Posts);
+            Assert.Equal(expected: 1, actual: handler.Posts);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(exit, result.RootElement.GetProperty("exitCode").GetInt32());
-            Assert.Empty(result.RootElement.GetProperty("data").GetProperty("outcomes").EnumerateArray());
+            Assert.Equal(
+                expected: exit,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
+            Assert.Empty(result.RootElement.GetProperty("data")
+                .GetProperty("outcomes")
+                .EnumerateArray());
             if (cancel)
             {
                 Assert.False(pending.Task.IsCompleted);
@@ -600,12 +1119,27 @@ public sealed class RegistryGradeAdapterTests
     [Fact]
     public async Task MoodleAuthenticationRequiresPositiveLoggedInMarker()
     {
-        using var handler = new Handler((request, _) => Task.FromResult(
-            Response(
-                HttpStatusCode.OK,
-                request.Method == HttpMethod.Post
-                    ? "<a href='/login/logout.php?sesskey=test'>Logout</a>"
-                    : LoginForm)));
+        using var handler = new Handler((request, _) =>
+        {
+            var status = HttpStatusCode.OK;
+            string body;
+            if (request.Method == HttpMethod.Post)
+            {
+                body = "<a href='/login/logout.php?sesskey=test'>Logout</a>";
+            }
+            else
+            {
+                body = LoginForm;
+            }
+
+            var result = Response(
+                status,
+                body);
+            var fromResult =
+                Task.FromResult(
+                    result);
+            return fromResult;
+        });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
             new MemoryCookieProvider(),
@@ -623,7 +1157,7 @@ public sealed class RegistryGradeAdapterTests
             },
             default,
             transport);
-        Assert.Equal(1, handler.Posts);
+        Assert.Equal(expected: 1, actual: handler.Posts);
     }
 
     private sealed class Commands(Session session, IRegistryGradePlanner planner, AccountLock accountLock)
@@ -634,15 +1168,65 @@ public sealed class RegistryGradeAdapterTests
         protected override IRegistryAccountLock CreateAccountLock() => accountLock;
     }
 
+    [Fact]
+    public async Task MoodleTransportFailureIsNotReportedAsAuthenticationFailure()
+    {
+        var transportFailure = new HttpRequestException("Moodle unreachable");
+        using var log = new DebugLogCapture();
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            PlanWithFailingMoodle(transportFailure, log));
+        Assert.Same(expected: transportFailure, actual: error);
+    }
+
+    [Fact]
+    public async Task MoodleLoginRejectionChainsTheCause()
+    {
+        var rejection = new ScrapingAuthenticationException("login form echoed canary-password");
+        using var log = new DebugLogCapture();
+        var error = await Assert.ThrowsAsync<RegistryAuthenticationException>(() =>
+            PlanWithFailingMoodle(rejection, log));
+        Assert.Same(expected: rejection, actual: error.InnerException);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.Message);
+        Assert.Contains(
+            expectedSubstring: "RegistryAuthenticationException translated from ScrapingAuthenticationException",
+            actualString: log.All);
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: log.All);
+    }
+
+    private static async Task PlanWithFailingMoodle(Exception failure, DebugLogCapture log)
+    {
+        using var settings = await CliSettings.Load(new());
+        settings.Tree.Defaults.Moodle()
+            .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
+            {
+                Value = new()
+                {
+                    Login = "test",
+                    Password = "test",
+                },
+            });
+        var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(collection);
+        collection.AddLogging(logging => logging.AddProvider(log)
+            .SetMinimumLevel(LogLevel.Debug));
+        await using var provider = AppConfiguration.BuildServiceProvider(collection);
+        await using var scope = provider.CreateAsyncScope();
+        await using var session = new Session(scope.ServiceProvider);
+        var planner = new ConfiguredRegistryGradePlanner((_, _, _) =>
+            Task.FromException<MoodleScrapingContext>(failure));
+        await planner.Plan(
+            session,
+            "123",
+            default);
+    }
+
     private sealed class Session(IServiceProvider services) : IConfiguredRegistrySession, IRegistryProvider
     {
         public bool Disposed;
         public IServiceProvider Services => services;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("adapter-test", "https://registry.test/");
+        public RegistryDestination Target { get; } =
+            new(Account: "adapter-test", Destination: "https://registry.test/");
 
         public OnlineRegistryNavigator CreateNavigator(CancellationToken token) =>
             throw new InvalidOperationException("Must fail before registry reads.");
@@ -670,7 +1254,11 @@ public sealed class RegistryGradeAdapterTests
         {
             Assert.False(Held);
             Held = true;
-            return Task.FromResult<IAsyncDisposable>(new Lease(this));
+            var result = new Lease(this);
+            IAsyncDisposable result2 = result;
+            var fromResult =
+                Task.FromResult(result2);
+            return fromResult;
         }
 
         private sealed class Lease(AccountLock owner) : IAsyncDisposable
@@ -683,13 +1271,16 @@ public sealed class RegistryGradeAdapterTests
         }
     }
 
-    private static HttpResponseMessage Response(HttpStatusCode status, string body) => new(status)
+    private static HttpResponseMessage Response(HttpStatusCode status, string body)
     {
-        Content = new StringContent(
-            body,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(status)
+        {
+            Content = new StringContent(
+                body,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 
     private sealed class Auth : IAuthHandler
     {

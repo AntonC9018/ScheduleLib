@@ -7,7 +7,7 @@ public sealed class TeacherNameTests
     private void Test(string input, TeacherBuilderModel.NameModel expected)
     {
         var name = TeacherNameHelper.ParseName(input);
-        Assert.Equal(expected, name);
+        Assert.Equal(expected: expected, actual: name);
     }
 
     [Fact]

@@ -39,7 +39,18 @@ public static class UsefulStylesheetEnumsHelper
         bool odd = oddnessIndex % 2 == 1;
         bool top = edgenessIndex == 0;
         bool bottom = edgenessIndex == height - 1;
-        bool neither = !top && !bottom;
+        bool conditionResult;
+        if (!top)
+        {
+            conditionResult = bottom;
+            conditionResult = !conditionResult;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        bool neither = conditionResult;
 
         int val = 0;
         if (neither)

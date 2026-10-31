@@ -1,7 +1,8 @@
 # Formatting and analyzer review
 
-The [fresh local candidate](codingrules-candidate.md), [coverage ledger](codingrules-coverage.md)
-and [validation record](codingrules-validation.md) distinguish automatic layout
+The [candidate history](evidence/codingrules-candidates.md),
+[coverage ledger](evidence/codingrules-coverage-ledger.md) and
+[validation record](evidence/codingrules-adoption-validation.md) distinguish automatic layout
 from manual architectural review. CleanupCode remains necessary for capabilities
 the package-only workflow does not replace.
 
@@ -57,8 +58,9 @@ application dependencies or analyzers. Its role is formatting, not compilation.
 See the [CleanupCode documentation](https://www.jetbrains.com/help/resharper/CleanupCode.html).
 
 This syntax-only host is retained deliberately. The executable package-only
-probe in `build/verify-formatting.py` leaves an unbraced control statement,
-missing trailing comma, same-line statements in a compact body and an unwrapped
+probe in `build/verify-formatting.py` now supplies required control-statement
+braces, but still leaves a missing collection trailing comma, same-line statements
+in a compact body and an unwrapped
 three-argument call. The combined workflow repairs them. Therefore neither
 CleanupCode nor its solution host has demonstrated a complete replacement.
 
@@ -67,7 +69,7 @@ wrapper stages the real consumer project, dependency sources and MSBuild/
 EditorConfig inputs. It copies no application data or credentials. NuGet
 configuration and the actual project references provide the fixers' binding
 context; package fixes do not run against the syntax-only project. The copied
-consumer is restored, the five fixes run with an explicit diagnostic/file
+consumer is restored, the formatting fixes run with an explicit diagnostic/file
 allowlist, then Roslyn whitespace formatting runs. Only selected source files
 can be copied back. No other workspace edits are applied to the repository.
 Complete layout/style rounds repeat until the selected bytes stabilize, with
@@ -108,4 +110,20 @@ are reviewed individually. Other warnings retain the existing build policy.
 This is not a diagnostic baseline or suppression: builds continue to report the
 actual findings. Do not bulk-fix user-authored pre-June code or disable a rule to
 hide a questionable finding. Apply clear improvements; record contested findings
-and the maintainer's decision in GitHub. See [analyzer review](analyzer-review.md).
+and the maintainer's decision in GitHub. See
+the [CodingRules specification](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md).
+
+The style allowlist also includes required braces, cast spacing and CR0805:
+every subsequent chained invocation starts on a new line, even for a short
+chain. Computation, naming, tuple and builder refactorings remain outside this
+formatting wrapper. The bounded semantic layout fixes can decline cases where
+implicit caller information or comments would change meaning.
+
+Run formatting as the final cleanup step after the source edits and focused
+checks stabilize. Select the changed files and the smallest project that covers
+them, then check the saved result. The measured clean single-file style check
+still takes 19.5 seconds on the review worker; whole-target passes take minutes.
+The wrapper currently creates fresh semantic workspaces and has no persistent
+result cache. Tool caches do not make its semantic check incremental. Avoid
+running it after every edit or compilation; caching would need a separate
+invalidation design covering source, references, configuration and tool versions.

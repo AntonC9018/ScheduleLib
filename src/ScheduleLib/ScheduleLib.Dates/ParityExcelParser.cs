@@ -28,16 +28,26 @@ public static class DayHelper
     {
         return GetDayOfWeekFromMonday(d.MondayDate, day);
     }
+
     public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
     {
-        var monday = d.AddDays(-(int) d.DayOfWeek + (int) DayOfWeek.Monday);
+        int CalculateValue()
+        {
+            int int32 = -(int) d.DayOfWeek;
+            int value = int32 + (int) DayOfWeek.Monday;
+            return value;
+        }
+
+        var monday = d.AddDays(CalculateValue());
         return GetDayOfWeekFromMonday(monday, day);
     }
 
     private const int weekdayCount = 7;
+
     private static DateOnly GetDayOfWeekFromMonday(DateOnly monday, DayOfWeek day)
     {
-        var offset = (day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
+        int int32 = day - DayOfWeek.Monday + weekdayCount;
+        var offset = int32 % weekdayCount;
         var ret = monday.AddDays(offset);
         return ret;
     }
@@ -57,7 +67,8 @@ public static class ParityExcelParser
             throw InvalidParityDocumentException.ForNoBody();
         }
 
-        var table = body.Descendants<Table>().First();
+        var table = body.Descendants<Table>()
+            .First();
         var rows = table.ChildElements.OfType<TableRow>();
         using var rowEnumerator = rows.GetEnumerator();
 
@@ -87,7 +98,8 @@ public static class ParityExcelParser
                 }
 
                 {
-                    int dayCount = ret.End.DayNumber - ret.Start.DayNumber + 1;
+                    int int32 = ret.End.DayNumber - ret.Start.DayNumber;
+                    int dayCount = int32 + 1;
                     if (dayCount != 6)
                     {
                         throw new NotSupportedException("The date range must have 6 days in total");
@@ -147,8 +159,9 @@ public static class ParityExcelParser
 
             bool CompareHeader(string expectedText)
             {
-                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan().Trim();
-                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(weekHeaderText, expectedText.AsSpan());
+                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan()
+                    .Trim();
+                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: weekHeaderText, y: expectedText.AsSpan());
             }
 
             {
@@ -217,6 +230,7 @@ public static class ParityExcelParser
             }
             return cells.Current;
         }
+
         static void NoNextCell(IEnumerator<TableCell> cells)
         {
             bool moved = cells.MoveNext();
@@ -262,7 +276,8 @@ public static class ParityExcelParser
         for (int i = 0; i < MonthNames.Length; i++)
         {
             var monthName = MonthNames[i];
-            if (monthName.AsSpan().Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (monthName.AsSpan()
+                .Equals(name, StringComparison.OrdinalIgnoreCase))
             {
                 var month = (Month) (i + 1);
                 return month;
@@ -281,10 +296,12 @@ public static class ParityExcelParser
             {
                 return true;
             }
+
             if (char.IsWhiteSpace(c))
             {
                 return true;
             }
+
             return false;
         }
     }

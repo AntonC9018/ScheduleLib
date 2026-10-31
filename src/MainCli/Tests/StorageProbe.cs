@@ -15,8 +15,14 @@ public static class StorageProbe
                     DataDirectory = args[1],
                     CacheDirectory = args[2],
                 },
-                new() { Directory = args[3] == "-" ? null : args[3] },
-                new() { Json = true });
+                new()
+                {
+                    Directory = args[3] == "-" ? null : args[3],
+                },
+                new()
+                {
+                    Json = true,
+                });
         }
 
         if (args[0] == "query")
@@ -29,7 +35,10 @@ public static class StorageProbe
                     CacheDirectory = args[2],
                     NoCache = args.Length > 3,
                 },
-                new() { Json = true });
+                new()
+                {
+                    Json = true,
+                });
         }
 
         if (args[0] == "lock")
@@ -40,8 +49,15 @@ public static class StorageProbe
         }
         if (args[0] == "interrupt")
         {
+            string CalculatePath()
+            {
+                string text = $"{args[1]}.lock";
+                string path = text;
+                return path;
+            }
+
             await using var lease = await LocalFileLock.Acquire(
-                args[1] + ".lock",
+                CalculatePath(),
                 CancellationToken.None,
                 wait: true);
             await AtomicFile.Publish(
@@ -63,7 +79,11 @@ public static class StorageProbe
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                var scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);
@@ -77,7 +97,11 @@ public static class StorageProbe
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            {
+                var scheduleBuilderInitializerOptions = x;
+                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            });
             services.Configure<StudyYearOptions>(x =>
             {
                 x.StudyYear = new(2025);

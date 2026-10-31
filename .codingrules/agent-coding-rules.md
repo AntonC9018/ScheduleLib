@@ -167,3 +167,27 @@ methods remains undecided; the concrete PDF/Word sharing decision above is
 settled independently. Static parameter-count exemptions do not exempt overload
 configuration or repeated plumbing. RequiredStep analysis remains deferred:
 do not introduce its annotations, an analyzer or a staged-builder generator.
+
+## Keep generated steps readable
+
+- Prefer a local variable for a one-off computed value, and a local function with
+  guard clauses and explicit returns for a branching decision. Name helpers after
+  their domain decision, not generically (`CheckCondition`, `CalculateArgs`).
+- Do not copy an unchanged local just to pass it on, but keep aliases that clarify
+  a role. Single use alone does not make a local useless.
+- Do not move a computation into a narrower scope when that delays, repeats or
+  skips observable work.
+- An automatic refactoring's output is not evidence of readability; review it.
+- Do not add shared API members solely for tests. Keep fixture construction in
+  tests.
+
+## Keep predicates and branches simple
+
+- Use a block lambda with guard clauses when a predicate mixes `&&` or `||` with
+  another LINQ predicate. Do not replace it with mutable Boolean scratch state.
+- Compact `Any`/`All`/`Where` predicates may nest two levels; use a block or a
+  named stage at the third.
+- Do not keep an `else` after a branch that returns or throws. Do not invert
+  user-defined operators or floating-point comparisons without proving
+  equivalence.
+- Give debug assertions an explicit, meaningful message.

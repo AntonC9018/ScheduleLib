@@ -66,7 +66,8 @@ public sealed partial class CurrentUserServiceProvider : IAsyncDisposable, IServ
         var markerContainer = nodePath.Leaf.Get(TeacherLayerConfig.Key);
         if (!markerContainer.Exists)
         {
-            throw new InvalidOperationException("Cannot reset scope when selected path doesn't contain marker node data.");
+            throw new InvalidOperationException(
+                "Cannot reset scope when selected path doesn't contain marker node data.");
         }
         var value = markerContainer.Value.GetValue();
         if (value is null)

@@ -22,12 +22,12 @@ public sealed class EventTests
         c.RecorderSource
             .Expect(c.Tags.SelectedLevel)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(LayerLevel.UiUser, x));
+            .WithValue(x => Assert.Equal(expected: LayerLevel.UiUser, actual: x));
 
         c.RecorderSource
             .Expect(c.Tags.SelectedLayer)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(UiLayerHelper.UiTeacherLayer, x));
+            .WithValue(x => Assert.Equal(expected: UiLayerHelper.UiTeacherLayer, actual: x));
 
         var mainEvents = c.RecorderSource.Expect(c.Tags.Main);
         mainEvents
@@ -110,7 +110,7 @@ public sealed class EventTests
             .Expect(c.Tags.TreeChangedRecorder)
             .SingleEvent();
 
-        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
+        Assert.Equal(expected: "Curmanschii Anton", actual: c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
     }
 }
 
@@ -194,10 +194,10 @@ public sealed class Context : IAsyncDisposable
             var recorderSource = new EventRecorderSource();
             var main = sp.GetRequiredService<MainWindowViewModel>();
 
-    #pragma warning disable CA2000
+#pragma warning disable CA2000
             var tags = new AllRecorders(recorderSource, main);
             _ = tags;
-    #pragma warning restore CA2000
+#pragma warning restore CA2000
 
             var treeOutputProvider = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
             var teacherNamesProvider = (MockTeacherNamesProvider) sp.GetRequiredService<IAllTeacherNamesProvider>();
@@ -217,7 +217,6 @@ public sealed class Context : IAsyncDisposable
         }
     }
 }
-
 
 public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {

@@ -37,7 +37,10 @@ namespace ScheduleLib.OnlineRegistry;
 /// </remarks>
 internal static class RegistryTopicScope
 {
-    internal static string Format(Schedule schedule, LessonGroups groups, GroupPartitionKey partition)
+    internal static string Format(
+        Schedule schedule,
+        LessonGroups groups,
+        GroupPartitionKey partition)
     {
         ArgumentNullException.ThrowIfNull(schedule);
 
@@ -48,12 +51,29 @@ internal static class RegistryTopicScope
         }
         ids.Sort((a, b) =>
         {
-            int comparison = string.Compare(schedule.Get(a).Name, schedule.Get(b).Name, StringComparison.Ordinal);
+            var get = schedule.Get(a);
+            string strA2 = get.Name;
+            var get2 = schedule.Get(b);
+            string strB2 = get2.Name;
+            var comparisonType = StringComparison.Ordinal;
+            int comparison = string.Compare(
+                strA: strA2,
+                strB: strB2,
+                comparisonType);
             if (comparison != 0)
             {
                 return comparison;
             }
-            comparison = schedule.Get(a).Language.CompareTo(schedule.Get(b).Language);
+
+            Language CalculateTarget()
+            {
+                var get3 = schedule.Get(b);
+                var target = get3.Language;
+                return target;
+            }
+
+            comparison = schedule.Get(a).Language
+                .CompareTo(CalculateTarget());
             if (comparison != 0)
             {
                 return comparison;
@@ -67,7 +87,9 @@ internal static class RegistryTopicScope
             var group = schedule.Get(id);
             if (group.Language is Language.Ro or Language.Ru or Language.En)
             {
-                parents.Add($"{group.Name} ({group.Language.GetName()})");
+                var list = parents;
+                string item = $"{group.Name} ({group.Language.GetName()})";
+                list.Add(item);
             }
             else
             {
@@ -79,15 +101,23 @@ internal static class RegistryTopicScope
         var tokens = new List<string>(3);
         if (!string.IsNullOrEmpty(partition.Alternative.Value))
         {
-            tokens.Add("/alt:" + partition.Alternative.Value);
+            var list2 = tokens;
+            string text = $"/alt:{partition.Alternative.Value}";
+            string item2 = text;
+            list2.Add(item2);
         }
         if (!string.IsNullOrEmpty(partition.Specialization.Value))
         {
-            tokens.Add("/spec:" + partition.Specialization.Value);
+            var list3 = tokens;
+            string text2 = $"/spec:{partition.Specialization.Value}";
+            string item3 = text2;
+            list3.Add(item3);
         }
         if (!string.IsNullOrEmpty(partition.SubGroup.Value))
         {
-            tokens.Add(FormatSubGroupToken(partition.SubGroup.Value!));
+            var list4 = tokens;
+            string item4 = FormatSubGroupToken(partition.SubGroup.Value!);
+            list4.Add(item4);
         }
 
         if (tokens.Count == 0)
@@ -98,30 +128,42 @@ internal static class RegistryTopicScope
         {
             return string.Join(" ", tokens);
         }
-        return basePart + " " + string.Join(" ", tokens);
+        return $"{basePart} {string.Join(" ", tokens)}";
     }
 
     private static string FormatSubGroupToken(string value)
     {
-        if (string.Equals(value, SpecialSubGroups.Eng.Value, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+                value,
+                SpecialSubGroups.Eng.Value,
+                StringComparison.OrdinalIgnoreCase))
         {
             return "/en";
         }
         if (LanguageHelper.ParseName(value.AsSpan()) is { } language
             && language is Language.Ro or Language.Ru or Language.En)
         {
-            return "/" + language.GetName();
+            return $"/{language.GetName()}";
         }
         var upper = value.ToUpperInvariant();
         if (NumberHelper.FromRoman(upper.AsSpan()) is not null)
         {
-            return "/" + upper;
+            return $"/{upper}";
         }
-        if (int.TryParse(value, out int arabic) && arabic >= 1 && arabic <= 10)
+        if (int.TryParse(value, out int arabic))
         {
-            return "/" + NumberHelper.ToRoman(arabic);
+            if (arabic >= 1)
+            {
+                if (arabic <= 10)
+                {
+                    string toRoman = NumberHelper.ToRoman(arabic);
+                    string text = $"/{toRoman}";
+                    string text2 = text;
+                    return text2;
+                }
+            }
         }
-        return "/sub:" + value;
+        return $"/sub:{value}";
     }
 
     /// <summary>
@@ -129,26 +171,34 @@ internal static class RegistryTopicScope
     /// trailing scope suffix (canonical or alias) so re-emitting the same scope is idempotent.
     /// Null/empty/whitespace topics are returned unchanged to avoid concealing missing topics.
     /// </summary>
-    internal static string? Append(string? topic, string scope, IReadOnlyCollection<string> knownScopes)
+    internal static string? Append(
+        string? topic,
+        string scope,
+        IReadOnlyCollection<string> knownScopes)
     {
         ArgumentNullException.ThrowIfNull(knownScopes);
         if (string.IsNullOrWhiteSpace(scope))
         {
-            throw new ArgumentException("Scope must not be empty.", nameof(scope));
+            throw new ArgumentException(message: "Scope must not be empty.", paramName: nameof(scope));
         }
         if (string.IsNullOrWhiteSpace(topic))
         {
             return topic;
         }
-        if (TrySplit(topic, knownScopes, out var baseTopic, out _))
+        if (!TrySplit(
+                topic: topic,
+                knownScopes,
+                baseTopic: out var baseTopic,
+                scope: out _))
         {
-            if (baseTopic!.Length == 0)
-            {
-                return "(" + scope + ")";
-            }
-            return baseTopic + " (" + scope + ")";
+            return $"{topic.TrimEnd()} ({scope})";
         }
-        return topic.TrimEnd() + " (" + scope + ")";
+
+        if (baseTopic!.Length == 0)
+        {
+            return $"({scope})";
+        }
+        return $"{baseTopic} ({scope})";
     }
 
     /// <summary>
@@ -157,12 +207,21 @@ internal static class RegistryTopicScope
     /// Topic-internal parentheses and unknown trailing parentheses leave the topic intact
     /// (<c>false</c> with null outputs). Alias matches return the canonical known scope.
     /// </summary>
-    internal static bool TrySplit(string? topic, IReadOnlyCollection<string> knownScopes, out string? baseTopic, out string? scope)
+    internal static bool TrySplit(
+        string? topic,
+        IReadOnlyCollection<string> knownScopes,
+        out string? baseTopic,
+        out string? scope)
     {
         baseTopic = null;
         scope = null;
         ArgumentNullException.ThrowIfNull(knownScopes);
-        if (string.IsNullOrWhiteSpace(topic) || knownScopes.Count == 0)
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            return false;
+        }
+
+        if (knownScopes.Count == 0)
         {
             return false;
         }
@@ -198,7 +257,12 @@ internal static class RegistryTopicScope
         {
             return false;
         }
-        var inner = trimmed.Substring(open + 1, trimmed.Length - open - 2).Trim();
+        string text = trimmed;
+        int startIndex2 = open + 1;
+        int int32 = trimmed.Length - open;
+        int length2 = int32 - 2;
+        string substring = text.Substring(startIndex: startIndex2, length: length2);
+        var inner = substring.Trim();
         if (inner.Length == 0)
         {
             return false;
@@ -209,9 +273,13 @@ internal static class RegistryTopicScope
             {
                 continue;
             }
-            if (string.Equals(inner, known, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(
+                    inner,
+                    known,
+                    StringComparison.OrdinalIgnoreCase))
             {
-                baseTopic = trimmed.Substring(0, open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open)
+                    .TrimEnd();
                 scope = known;
                 return true;
             }
@@ -223,9 +291,16 @@ internal static class RegistryTopicScope
             {
                 continue;
             }
-            if (string.Equals(normalizedInner, NormalizeAlias(known), StringComparison.OrdinalIgnoreCase))
+            string a = normalizedInner;
+            string b = NormalizeAlias(known);
+            var comparisonType = StringComparison.OrdinalIgnoreCase;
+            if (string.Equals(
+                    a,
+                    b,
+                    comparisonType))
             {
-                baseTopic = trimmed.Substring(0, open).TrimEnd();
+                baseTopic = trimmed.Substring(startIndex: 0, length: open)
+                    .TrimEnd();
                 scope = known;
                 return true;
             }
@@ -243,29 +318,77 @@ internal static class RegistryTopicScope
     private static string NormalizeAlias(string value)
     {
         var result = value.Trim();
-        result = result.Replace(" (", "(", StringComparison.Ordinal);
+        result = result.Replace(
+            " (",
+            "(",
+            StringComparison.Ordinal);
         while (result.Contains(" /", StringComparison.Ordinal))
         {
-            result = result.Replace(" /", "/", StringComparison.Ordinal);
+            result = result.Replace(
+                " /",
+                "/",
+                StringComparison.Ordinal);
         }
-        result = result.Replace("(eng)", "(en)", StringComparison.OrdinalIgnoreCase);
-        result = ReplaceToken(result, "/eng", "/en");
+        result = result.Replace(
+            "(eng)",
+            "(en)",
+            StringComparison.OrdinalIgnoreCase);
+        result = ReplaceToken(
+            value: result,
+            oldToken: "/eng",
+            newToken: "/en");
         for (int number = 10; number >= 1; number--)
         {
-            result = ReplaceToken(result, "/" + number, "/" + NumberHelper.ToRoman(number));
+            string value2 = result;
+            string oldToken2 = "/" + number;
+            string toRoman = NumberHelper.ToRoman(number);
+            string text = $"/{toRoman}";
+            string newToken2 = text;
+            string replaceToken = ReplaceToken(
+                value: value2,
+                oldToken: oldToken2,
+                newToken: newToken2);
+            result = replaceToken;
         }
         return result;
     }
 
-    private static string ReplaceToken(string value, string oldToken, string newToken)
+    private static string ReplaceToken(
+        string value,
+        string oldToken,
+        string newToken)
     {
         var result = new StringBuilder(value.Length);
         int i = 0;
         while (i < value.Length)
         {
-            if (i + oldToken.Length <= value.Length
-                && value.AsSpan(i, oldToken.Length).Equals(oldToken, StringComparison.OrdinalIgnoreCase)
-                && (i + oldToken.Length == value.Length || !char.IsLetterOrDigit(value[i + oldToken.Length])))
+            bool conditionResult;
+            if (i + oldToken.Length <= value.Length)
+            {
+                if (value.AsSpan(start: i, length: oldToken.Length)
+                    .Equals(oldToken, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + oldToken.Length == value.Length)
+                    {
+                        conditionResult = true;
+                    }
+                    else
+                    {
+                        conditionResult = char.IsLetterOrDigit(value[i + oldToken.Length]);
+                        conditionResult = !conditionResult;
+                    }
+                }
+                else
+                {
+                    conditionResult = false;
+                }
+            }
+            else
+            {
+                conditionResult = false;
+            }
+
+            if (conditionResult)
             {
                 result.Append(newToken);
                 i += oldToken.Length;

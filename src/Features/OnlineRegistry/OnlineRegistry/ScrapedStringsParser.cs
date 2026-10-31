@@ -86,7 +86,18 @@ public static partial class RegistryScraping
         }
 
         mainParser.SkipWhitespace();
-        if (!mainParser.IsEmpty && !isRepeat)
+        bool conditionResult;
+        if (!mainParser.IsEmpty)
+        {
+            conditionResult = isRepeat;
+            conditionResult = !conditionResult;
+        }
+        else
+        {
+            conditionResult = false;
+        }
+
+        if (conditionResult)
         {
             JustThrow("trailing group suffix");
         }
@@ -107,7 +118,7 @@ public static partial class RegistryScraping
             FacultyName = label,
             GroupNumber = (int?) groupNumber,
             QualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta,
-            AttendanceMode = AttendanceModeHelper.FromFlags(suffixes.ReducedAttendance, suffixes.Dual),
+            AttendanceMode = AttendanceModeHelper.FromFlags(isFr: suffixes.ReducedAttendance, isDual: suffixes.Dual),
             SubGroupName = subGroup,
             IsRepeat = isRepeat,
             IsWildcard = isWildcard,
@@ -133,11 +144,19 @@ public static partial class RegistryScraping
             }
             reader.MoveTo(bparser.Position);
             // Historical ordinary groups sometimes separate the faculty and year.
-            if (reader.CanPeekCount(2) && reader.PeekSpan(2)[0] == '_'
-                && char.IsAsciiDigit(reader.PeekSpan(2)[1]))
+            if (!reader.CanPeekCount(2))
             {
-                reader.Move();
+                return ret;
             }
+            if (reader.PeekSpan(2)[0] != '_')
+            {
+                return ret;
+            }
+            if (!char.IsAsciiDigit(reader.PeekSpan(2)[1]))
+            {
+                return ret;
+            }
+            reader.Move();
             return ret;
         }
 
@@ -311,8 +330,13 @@ internal static class RegistryFacultyLabels
     {
         if (IsCombined(label))
         {
-            return faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
-                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase);
+            if (faculty.Equals("I", StringComparison.OrdinalIgnoreCase)
+                || faculty.Equals("IA", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
         }
         return label.Span.Equals(faculty, StringComparison.OrdinalIgnoreCase);
     }

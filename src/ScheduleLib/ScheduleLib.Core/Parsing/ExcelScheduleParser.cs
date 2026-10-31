@@ -26,22 +26,35 @@ public static class ExcelScheduleParser
         }
     }
 
-    public static Config FrConfig => new()
+    public static Config FrConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
-        AllowedQualificationTypes = new(QualificationType.Licenta),
-        AddLessonHandler = FrScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeekAndDate,
-        ExpectBullshitRow = true,
-    };
-    public static Config MasterConfig => new()
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
+                AllowedQualificationTypes = new(QualificationType.Licenta),
+                AddLessonHandler = FrScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeekAndDate,
+                ExpectBullshitRow = true,
+            };
+        }
+    }
+
+    public static Config MasterConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
-        AllowedQualificationTypes = new(QualificationType.Master),
-        AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeek,
-        ExpectBullshitRow = false,
-    };
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
+                AllowedQualificationTypes = new(QualificationType.Master),
+                AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeek,
+                ExpectBullshitRow = false,
+            };
+        }
+    }
 
     public static ValueTask ParseFrIntoSchedule(Params p)
     {
@@ -69,7 +82,8 @@ public static class ExcelScheduleParser
         using var xl = new XLWorkbook(p.InputFile);
         var ws = xl.FindRelevantWorksheet();
 
-        using var rowE = ws.Worksheet.Rows().GetEnumerator();
+        using var rowE = ws.Worksheet.Rows()
+            .GetEnumerator();
         if (!rowE.MoveNext())
         {
             throw new NotSupportedException("Expected header row!");
@@ -79,7 +93,11 @@ public static class ExcelScheduleParser
         bool isFirstIter = true;
         while (true)
         {
-            var result = DoParsingIter(rowE, p, config, isFirstIter);
+            var result = DoParsingIter(
+                rowE,
+                p,
+                config,
+                isFirstIter);
             if (result == ParsingIterResult.EndOfFile)
             {
                 break;
@@ -106,26 +124,29 @@ public static class ExcelScheduleParser
         {
             return worksheets.First();
         }
-        var ret = xl.Worksheets
-            .Select(x =>
-            {
-                var parser = new SequenceReader(x.Name);
-                if (!parser.ConsumeExactString("sem"))
-                {
-                    return default;
-                }
-                if (!parser.SkipWhitespace().SkippedAny)
-                {
-                    return default;
-                }
-                var roman = parser.ReadRoman();
-                if (roman.Status != ReadRomanStatus.Ok)
-                {
-                    return default;
-                }
 
-                return new NumberedWorksheet(x, roman.Number);
-            })
+        NumberedWorksheet ProjectValue(IXLWorksheet x)
+        {
+            var parser = new SequenceReader(x.Name);
+            if (!parser.ConsumeExactString("sem"))
+            {
+                return default;
+            }
+            if (!parser.SkipWhitespace().SkippedAny)
+            {
+                return default;
+            }
+            var roman = parser.ReadRoman();
+            if (roman.Status != ReadRomanStatus.Ok)
+            {
+                return default;
+            }
+
+            return new NumberedWorksheet(x, roman.Number);
+        }
+
+        var ret = xl.Worksheets
+            .Select(ProjectValue)
             // TODO: add validation for sem number?
             .WhereNotDefault()
             .Single()
@@ -159,7 +180,25 @@ public static class ExcelScheduleParser
             offset,
             config);
 
-        if (isFirstTime && config.ExpectBullshitRow)
+        bool CalculateConditionResult()
+        {
+            if (!isFirstTime)
+            {
+                return false;
+            }
+
+            if (config.ExpectBullshitRow)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             if (!rowE.MoveNext())
             {
@@ -183,7 +222,8 @@ public static class ExcelScheduleParser
                 break;
             }
             var row = rowE.Current;
-            var cellE = row.CellsWithMergedAppearingOnce().GetEnumerator();
+            var cellE = row.CellsWithMergedAppearingOnce()
+                .GetEnumerator();
             var action = rowIterationContext.Update(row, cellE);
             if (action == RowIterationContext.UpdateAction.Done)
             {
@@ -192,7 +232,8 @@ public static class ExcelScheduleParser
             Debug.Assert(action == RowIterationContext.UpdateAction.Process);
             currentResult = ParsingIterResult.ProcessedNormally;
 
-            var cellIterationContext = new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
+            var cellIterationContext =
+                new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
 
             while (true)
             {
@@ -208,18 +249,22 @@ public static class ExcelScheduleParser
                     continue;
                 }
 
-                var lessonGroups = lessonGroupsMem[.. cellIterationContext.ColSpan];
+                var lessonGroups = lessonGroupsMem[..cellIterationContext.ColSpan];
                 foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
                 {
                     var offsetIndex = offset.GetUnOffsetIndex(columnNumber);
                     const string err = "Lesson found in a column that doesn't have a group assigned";
                     if (offsetIndex.Value < 0)
                     {
-                        throw cell.Exception($"{err} (appearing BEFORE THE FIRST column with a group)");
+                        var iXLCell = cell;
+                        string message = $"{err} (appearing BEFORE THE FIRST column with a group)";
+                        throw iXLCell.Exception(message);
                     }
                     if (offsetIndex.Value >= groups.Len)
                     {
-                        throw cell.Exception($"{err} (appearing AFTER THE LAST column with a group)");
+                        var iXLCell2 = cell;
+                        string message2 = $"{err} (appearing AFTER THE LAST column with a group)";
+                        throw iXLCell2.Exception(message2);
                     }
                     var groupId = groups.Get(offsetIndex);
                     lessonGroups[index] = groupId;
@@ -228,7 +273,8 @@ public static class ExcelScheduleParser
                 var text = value.GetText();
                 using var textAsEnumerable = SingleItemEnumerator.Create(text.AsMemory());
                 lessonParser.Lexer.Reset(textAsEnumerable);
-                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder).GetEnumerator();
+                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder)
+                    .GetEnumerator();
                 while (true)
                 {
                     try
@@ -383,7 +429,11 @@ public static class ExcelScheduleParser
 
             _currentDayRowSpan = range.RowCount();
             _rowsSinceLastDate = 0;
-            var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
+            var newDay = ParseDay(
+                cell,
+                text,
+                dayNameParser,
+                dayParseMode);
             _lastDateRange = range;
             _previousTimeSlotRoman = NoTimeSlotRoman;
             _rowsSinceLastTimeSlot = 0;
@@ -454,13 +504,17 @@ public static class ExcelScheduleParser
 
             if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
             {
-                throw cell.Exception($"Not found time slot with start time `{timeInterval.Start}`");
+                var iXLCell = cell;
+                string message = $"Not found time slot with start time `{timeInterval.Start}`";
+                throw iXLCell.Exception(message);
             }
 
             var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
             if (newTimeSlotTime.End != timeInterval.End)
             {
-                throw cell.Exception($"The end time of interval `{timeInterval.End}` doesn't match.");
+                var iXLCell2 = cell;
+                string message2 = $"The end time of interval `{timeInterval.End}` doesn't match.";
+                throw iXLCell2.Exception(message2);
             }
 
             if (_timeSlot is { } timeSlot)
@@ -520,12 +574,15 @@ public static class ExcelScheduleParser
             }
             var cell = _cellE.Current;
             var range = cell.ActualRange();
-            if (range.LastRow().RowNumber() >= lessonsEndRowNumber)
+            if (range.LastRow()
+                    .RowNumber()
+                >= lessonsEndRowNumber)
             {
                 throw cell.Exception("Lesson's span exits the current time slot span");
             }
 
-            var newColNumber = range.FirstColumn().ColumnNumber();
+            var newColNumber = range.FirstColumn()
+                .ColumnNumber();
             if (_colNumber != -1)
             {
                 int expectedNextCol = _colNumber + _colSpan;
@@ -643,7 +700,8 @@ public static class ExcelScheduleParser
             }
             if (startOffset == null)
             {
-                startOffset = range.FirstColumn().ColumnNumber();
+                startOffset = range.FirstColumn()
+                    .ColumnNumber();
             }
 
             if (!parser.SkipWhitespace().SkippedAny)
@@ -657,11 +715,14 @@ public static class ExcelScheduleParser
             }
 
             var grade = romanResult.Number;
-            var columnNumber = range.FirstColumn().ColumnNumber();
+            var columnNumber = range.FirstColumn()
+                .ColumnNumber();
             var columnCount = cell.ColumnCount();
             int index = columnNumber - startOffset.Value;
 
-            var item = new SizedItem<Grade>(item: new(grade), size: columnCount);
+            Grade item2 = new(grade);
+            int size2 = columnCount;
+            var item = new SizedItem<Grade>(item: item2, size: size2);
             if (ret.TotalSize != index)
             {
                 throw cell.Exception("Empty grade cell not allowed.");
@@ -713,7 +774,8 @@ public static class ExcelScheduleParser
         {
             return default;
         }
-        using var cellE = rowE.Current.CellsWithMergedAppearingOnce().GetEnumerator();
+        using var cellE = rowE.Current.CellsWithMergedAppearingOnce()
+            .GetEnumerator();
         while (true)
         {
             if (!cellE.MoveNext())
@@ -721,7 +783,9 @@ public static class ExcelScheduleParser
                 return default;
             }
             var cell = cellE.Current;
-            var col = cell.AsRange().FirstColumn().ColumnNumber();
+            var col = cell.AsRange()
+                .FirstColumn()
+                .ColumnNumber();
             var colIndex = offset.GetUnOffsetIndex(col);
             if (colIndex.Value == 0)
             {
@@ -744,7 +808,9 @@ public static class ExcelScheduleParser
             while (true)
             {
                 var cell = cellE.Current;
-                var col = cell.AsRange().FirstColumn().ColumnNumber();
+                var col = cell.AsRange()
+                    .FirstColumn()
+                    .ColumnNumber();
                 var colIndex = offset.GetUnOffsetIndex(col);
                 if (colIndex.Value != groupIndex)
                 {
@@ -767,11 +833,15 @@ public static class ExcelScheduleParser
                 var group = builder.Group(str);
                 if (!config.AllowedAttendanceModes.Contains(group.Ref.AttendanceMode))
                 {
-                    throw cell.Exception($"Expected only {config.AllowedAttendanceModes} groups in the excel");
+                    var iXLCell = cell;
+                    string message = $"Expected only {config.AllowedAttendanceModes} groups in the excel";
+                    throw iXLCell.Exception(message);
                 }
                 if (!config.AllowedQualificationTypes.Contains(group.Ref.QualificationType))
                 {
-                    throw cell.Exception($"Expected only {config.AllowedQualificationTypes} groups in the excel");
+                    var iXLCell2 = cell;
+                    string message2 = $"Expected only {config.AllowedQualificationTypes} groups in the excel";
+                    throw iXLCell2.Exception(message2);
                 }
 
                 var grade = grades.Get(colIndex);
@@ -901,7 +971,9 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
 
         if (!allowedTypes.Contains(p.ParsedLesson.LessonType))
         {
-            return AddLessonResult.Error($"Only {allowedTypes} lesson types are supported");
+            string err = $"Only {allowedTypes} lesson types are supported";
+            var error = AddLessonResult.Error(err);
+            return error;
         }
 
         if (p.ParsedLesson.StartTime != null)

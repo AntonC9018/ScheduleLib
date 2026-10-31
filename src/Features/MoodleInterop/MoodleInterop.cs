@@ -18,12 +18,14 @@ public sealed class MoodleScrapingContext : IDisposable
     }
 
     private const string BaseUrl = "https://elearning.usm.md";
+
     internal static readonly TokenNamesConfig Names = new()
     {
         BaseUrl = new(BaseUrl),
-        LoginUrl = new($"{BaseUrl}/login/index.php"),
+        LoginUrl = new(CalculateUriString()),
         TokenCookieName = new("MoodleSessionusmmd"),
     };
+
     internal static readonly PasswordLoginFormConfig TokenRetrieverConfig = new()
     {
         LoginName = new("username"),
@@ -39,11 +41,12 @@ public sealed class MoodleScrapingContext : IDisposable
         HttpClientContext? httpContext = null)
     {
         var builder = new ScrapingContextBuilder();
-        builder.Delay(TimeSpan.FromSeconds(0.4));
+        var scrapingContextBuilder = builder;
+        var delay = TimeSpan.FromSeconds(0.4);
+        scrapingContextBuilder.Delay(delay);
         builder.AddConfig(Names);
         builder.AddConfig(TokenRetrieverConfig);
-        builder.TokenAuth(
-            f => f.PasswordLoginForm(credentials));
+        builder.TokenAuth(f => f.PasswordLoginForm(credentials));
         builder.AddLogging(sp.GetRequiredService<ILoggerFactory>());
         var context = await builder.Build(cancellationToken, httpContext);
         return new MoodleScrapingContext(context);
@@ -53,13 +56,19 @@ public sealed class MoodleScrapingContext : IDisposable
     {
         _context.Dispose();
     }
+
+    private static string CalculateUriString()
+    {
+        string uriString = $"{BaseUrl}/login/index.php";
+        return uriString;
+    }
 }
 
 public static class MoodleInterop
 {
     public const string CredentialsKey = "Moodle";
 
-    #if false
+#if false
     public static async Task Login(IBrowsingContext browser, Credentials credentials)
     {
         const string loginUrl = $"{BaseUrl}/login/index.php";
@@ -105,5 +114,4 @@ public static class MoodleInterop
         await xml.SaveForDebug();
         return;
     }
-
 }

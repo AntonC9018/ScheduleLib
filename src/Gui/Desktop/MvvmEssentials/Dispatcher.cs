@@ -1,12 +1,14 @@
 namespace Desktop.MvvmEssentials;
 
 public readonly record struct CallerIdentity(object Value);
+
 public readonly record struct PostArgs<T>(
     CallerIdentity CallerId,
     Action<T> Action,
     T Arg)
 {
     public void Invoke() => Action(Arg);
+
     public Action GetInvoker()
     {
         var a = Action;
@@ -38,9 +40,9 @@ public sealed class DelegatingDispatcher<T> : IDispatcher<T>
 {
     private IDispatcher _impl;
     public DelegatingDispatcher(IDispatcher impl) => _impl = impl;
+
     public void Post(PostArgs<T> args)
     {
         _impl.Post(args);
     }
 }
-

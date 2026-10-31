@@ -29,15 +29,18 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
 
     public bool Equals(Name? x, Name? y)
     {
-        if (ComparisonHelper.AtLeastOneIsNull(x, y, out bool b))
+        if (ComparisonHelper.AtLeastOneIsNull(
+                x: x,
+                y: y,
+                out bool b))
         {
             return b;
         }
-        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.FirstName, y.FirstName))
+        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: x.FirstName, y: y.FirstName))
         {
             return false;
         }
-        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.LastName, y.LastName))
+        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: x.LastName, y: y.LastName))
         {
             return false;
         }
@@ -45,11 +48,13 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
         {
             return true;
         }
-        if (!IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x.Patronymic, y.Patronymic))
+
+        if (IgnoreDiacriticsAndCase_Name_Comparer.Instance.Equals(x: x.Patronymic, y: y.Patronymic))
         {
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     }
 
     public int GetHashCode(Name obj)
@@ -57,7 +62,7 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
         var a = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.FirstName);
         var b = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.LastName);
         // var c = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.Patronymic);
-        return HashCode.Combine(a, b);
+        return HashCode.Combine(value1: a, value2: b);
     }
 }
 
@@ -168,6 +173,7 @@ public sealed record Name
         {
             Debug.Assert(p.All(x => x != ""));
         }
+
         F(FirstName);
         F(LastName);
         F(Patronymic);
@@ -254,11 +260,17 @@ public static class NameHelper
     {
         var ret = new NameFields();
 
-        ret.LastName = ParseRequiredNamePart(ref lexer, "Last name required", "Last name incomplete");
+        ret.LastName = ParseRequiredNamePart(
+            ref lexer,
+            requiredError: "Last name required",
+            incompleteError: "Last name incomplete");
         IgnoreParenthesizedTextAndWhitespace(ref lexer);
         ErrorOnInvalidToken(ref lexer);
 
-        ret.FirstName = ParseRequiredNamePart(ref lexer, "First name required", "First name incomplete");
+        ret.FirstName = ParseRequiredNamePart(
+            ref lexer,
+            requiredError: "First name required",
+            incompleteError: "First name incomplete");
         if (lexer.IsEmpty)
         {
             return new(ret);
@@ -293,7 +305,11 @@ public static class NameHelper
 
         static void ErrorOnInvalidToken(ref LexerScope lexer)
         {
-            if (!lexer.IsEmpty && lexer.Current.Type == TokenType.Invalid)
+            if (lexer.IsEmpty)
+            {
+                return;
+            }
+            if (lexer.Current.Type == TokenType.Invalid)
             {
                 throw lexer.NameParsingException("Invalid token");
             }
@@ -390,28 +406,29 @@ public static class NameHelper
         switch (field)
         {
             case NameField.First:
-            {
-                return ref fields.FirstName;
-            }
+                {
+                    return ref fields.FirstName;
+                }
             case NameField.Last:
-            {
-                return ref fields.LastName;
-            }
+                {
+                    return ref fields.LastName;
+                }
             case NameField.Patronymic:
-            {
-                return ref fields.Patronymic;
-            }
+                {
+                    return ref fields.Patronymic;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 
     private static NameParsingException NameParsingException(this LexerScope lexer, string err)
     {
         // TODO: Do token errors properly
-        return new NameParsingException($"{err} at token {lexer}");
+        var tokenText = lexer.ToString();
+        return new NameParsingException(error: err, tokenText: tokenText);
     }
 }
 
@@ -446,12 +463,21 @@ public readonly struct NameParser : IDisposable
 
 public sealed class NameParsingException : Exception
 {
+    public string? Error { get; }
+    public string? TokenText { get; }
+
     public NameParsingException(string message) : base(message)
     {
     }
 
     public NameParsingException(string message, Exception innerException) : base(message, innerException)
     {
+    }
+
+    public NameParsingException(string error, string tokenText) : base($"{error} at token {tokenText}")
+    {
+        Error = error;
+        TokenText = tokenText;
     }
 }
 
@@ -462,7 +488,10 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
     public int Compare(Name? x, Name? y)
     {
         {
-            if (ComparisonHelper.NullGuardCompare(x, y, out int score))
+            if (ComparisonHelper.NullGuardCompare(
+                    x: x,
+                    y: y,
+                    out int score))
             {
                 return score;
             }
@@ -476,7 +505,10 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
             {
                 var ap = a[i];
                 var bp = b[i];
-                if (ComparisonHelper.NullGuardCompare(ap, bp, out int score))
+                if (ComparisonHelper.NullGuardCompare(
+                        x: ap,
+                        y: bp,
+                        out int score))
                 {
                     if (score == 0)
                     {

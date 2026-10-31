@@ -34,6 +34,7 @@ public sealed class LessonOverlapAllowlistEntry
 
     /// <summary>Constrains the entry to conflicts whose shared group is this one.</summary>
     public string? GroupName { get; init; }
+
     public DayOfWeek? Day { get; init; }
     public TimeSlot? TimeSlot { get; init; }
 

@@ -8,11 +8,7 @@ public sealed class ConfigItemArguments : IArgumentModel
         "item",
         Description =
             "Typed JSON item identifying the registered collection key (for example {\"lessonType\":\"Lab\"}).")]
-    public string? Item
-    {
-        get;
-        set;
-    }
+    public string? Item { get; set; }
 }
 
 public sealed partial class ConfigCommands
@@ -24,16 +20,20 @@ public sealed partial class ConfigCommands
         ConfigScopeArguments scope,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Write(new(
-            "remove",
-            key.Key,
-            null,
+        CancellationToken cancellationToken = default)
+    {
+        ConfigEditRequest request = new(
+            Verb: "remove",
+            Key: key.Key,
+            Value: null,
             scope,
             settings,
             output,
             cancellationToken,
-            item.Item));
+            Item: item.Item);
+        var write = Write(request);
+        return write;
+    }
 
     [Command("clear", Description = "Explicitly empty an inherited collection in an explicit scope.")]
     public Task<int> Clear(
@@ -41,13 +41,17 @@ public sealed partial class ConfigCommands
         ConfigScopeArguments scope,
         SettingsArguments settings,
         ResultArguments output,
-        CancellationToken cancellationToken = default) =>
-        Write(new(
-            "clear",
-            key.Key,
-            null,
+        CancellationToken cancellationToken = default)
+    {
+        ConfigEditRequest request = new(
+            Verb: "clear",
+            Key: key.Key,
+            Value: null,
             scope,
             settings,
             output,
-            cancellationToken));
+            cancellationToken);
+        var write = Write(request);
+        return write;
+    }
 }

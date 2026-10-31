@@ -8,59 +8,82 @@ public sealed class RegistryHistoryTopicsCommandTests
     {
         var provider = new Provider();
         Assert.Equal(
-            2,
-            await new Commands(provider).HistoryTopics(
-                new() { Profile = "synthetic" },
+            expected: 2,
+            actual: await new Commands(provider).HistoryTopics(
+                new()
+                {
+                    Profile = "synthetic",
+                },
                 new(),
                 new()));
-        Assert.Equal(0, provider.Calls);
+        Assert.Equal(expected: 0, actual: provider.Calls);
     }
 
     [Fact]
     public async Task TopicsAndProvenanceRemainPrivateAndConsoleContainsCounts()
     {
-        var directory = Path.Combine(
-            Path.GetTempPath(),
-            Guid.NewGuid().ToString("N"),
-            ".registry-history");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var directory = Path.Combine(temp.Path, ".registry-history");
         var original = Console.Out;
         using var output = new StringWriter();
         try
         {
             Console.SetOut(output);
             Assert.Equal(
-                0,
-                await new Commands(new Provider()).HistoryTopics(
-                    new() { Profile = "synthetic" },
-                    new() { LocalDirectory = directory },
-                    new() { Json = true }));
-            Assert.DoesNotContain("canary", output.ToString());
-            Assert.DoesNotContain("private.test", output.ToString());
+                expected: 0,
+                actual: await new Commands(new Provider()).HistoryTopics(
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = directory,
+                    },
+                    new()
+                    {
+                        Json = true,
+                    }));
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: output.ToString());
+            Assert.DoesNotContain(expectedSubstring: "private.test", actualString: output.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
-            Assert.Equal(1, result.RootElement.GetProperty("schemaVersion").GetInt32());
-            var inventory = Assert.Single(Directory.GetFiles(directory, "*.json"));
-            Assert.Contains("canary-current-topic", await File.ReadAllTextAsync(inventory));
+            Assert.Equal(
+                expected: 1,
+                actual: result.RootElement.GetProperty("schemaVersion")
+                    .GetInt32());
+            string[] collection = Directory.GetFiles(path: directory, searchPattern: "*.json");
+            IEnumerable<string> collection2 = collection;
+            var inventory = Assert.Single(collection2);
             Assert.Contains(
-                "canary-historical-topic",
-                await File.ReadAllTextAsync(Assert.Single(Directory.GetFiles(directory, "*.csv"))));
+                expectedSubstring: "canary-current-topic",
+                actualString: await File.ReadAllTextAsync(inventory));
+            Assert.Contains(
+                expectedSubstring: "canary-historical-topic",
+                actualString: await File.ReadAllTextAsync(
+                    Assert.Single(Directory.GetFiles(path: directory, searchPattern: "*.csv"))));
             if (!OperatingSystem.IsWindows())
             {
                 foreach (var file in Directory.GetFiles(directory))
                 {
-                    Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(file));
+                    var expected2 = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                    var actual2 = File.GetUnixFileMode(file);
+                    Assert.Equal(expected: expected2, actual: actual2);
                 }
 
+                var expected3 = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+                var actual3 = File.GetUnixFileMode(directory);
                 Assert.Equal(
-                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
-                    File.GetUnixFileMode(directory));
+                    expected: expected3,
+                    actual: actual3);
             }
         }
         finally
         {
             Console.SetOut(original);
-            if (Directory.Exists(Path.GetDirectoryName(directory)))
+            string? path3 = Path.GetDirectoryName(directory);
+            if (Directory.Exists(path3))
             {
-                Directory.Delete(Path.GetDirectoryName(directory)!, true);
+                Directory.Delete(path3!, true);
             }
         }
     }
@@ -73,21 +96,28 @@ public sealed class RegistryHistoryTopicsCommandTests
             return;
         }
 
-        var parent = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var parent = temp.Path;
         var target = Path.Combine(parent, "target");
         var link = Path.Combine(parent, "link");
         Directory.CreateDirectory(target);
-        Directory.CreateSymbolicLink(link, target);
+        Directory.CreateSymbolicLink(path: link, pathToTarget: target);
         try
         {
             var provider = new Provider();
             Assert.Equal(
-                2,
-                await new Commands(provider).HistoryTopics(
-                    new() { Profile = "synthetic" },
-                    new() { LocalDirectory = Path.Combine(link, ".registry-history") },
+                expected: 2,
+                actual: await new Commands(provider).HistoryTopics(
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = Path.Combine(link, ".registry-history"),
+                    },
                     new()));
-            Assert.Equal(0, provider.Calls);
+            Assert.Equal(expected: 0, actual: provider.Calls);
         }
         finally
         {
@@ -99,18 +129,33 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task ProviderFailuresDoNotDiscloseTopicsOrCredentials()
     {
+        using var temp = new TestTempDirectory("registry-history-tests");
         var original = Console.Error;
         using var error = new StringWriter();
+        var commands = new Commands(new Provider
+        {
+            Fail = true,
+        });
         try
         {
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(new Provider { Fail = true }).HistoryTopics(
-                    new() { Profile = "synthetic" },
-                    new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
+                expected: 5,
+                actual: await commands.HistoryTopics(
+                    new()
+                    {
+                        Profile = "synthetic",
+                    },
+                    new()
+                    {
+                        LocalDirectory = Path.Combine(temp.Path, ".registry-history"),
+                    },
                     new()));
-            Assert.DoesNotContain("canary", error.ToString());
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: error.ToString());
+            Assert.Contains(
+                expectedSubstring: "Registry history topic discovery failed with IOException",
+                actualString: commands.Log.All);
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: commands.Log.All);
         }
         finally
         {
@@ -121,6 +166,7 @@ public sealed class RegistryHistoryTopicsCommandTests
     [Fact]
     public async Task UnsupportedTopicLayoutReportsFixedDiagnosticWithoutPrivateContent()
     {
+        using var temp = new TestTempDirectory("registry-history-tests");
         var originalOut = Console.Out;
         var originalError = Console.Error;
         using var output = new StringWriter();
@@ -130,19 +176,33 @@ public sealed class RegistryHistoryTopicsCommandTests
             Console.SetOut(output);
             Console.SetError(error);
             Assert.Equal(
-                5,
-                await new Commands(new Provider { Diagnostic = RegistryHistoryDiagnostic.TopicTable })
+                expected: 5,
+                actual: await new Commands(new Provider
+                {
+                    Diagnostic = RegistryHistoryDiagnostic.TopicTable,
+                })
                     .HistoryTopics(
-                        new() { Profile = "synthetic" },
-                        new() { LocalDirectory = Path.Combine(Path.GetTempPath(), ".registry-history") },
-                        new() { Json = true }));
-            Assert.Contains("MarkupContract; phase Lessons; diagnostic TopicTable; HTTP unknown", error.ToString());
+                        new()
+                        {
+                            Profile = "synthetic",
+                        },
+                        new()
+                        {
+                            LocalDirectory = Path.Combine(temp.Path, ".registry-history"),
+                        },
+                        new()
+                        {
+                            Json = true,
+                        }));
+            Assert.Contains(
+                expectedSubstring: "MarkupContract; phase Lessons; diagnostic TopicTable; HTTP unknown",
+                actualString: error.ToString());
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             var errors = result.RootElement.GetProperty("errors");
-            Assert.Equal(1, errors.GetArrayLength());
-            Assert.Contains("diagnostic TopicTable", errors[0].GetString());
-            Assert.DoesNotContain("canary", output.ToString() + error);
-            Assert.DoesNotContain("https://", output.ToString() + error);
+            Assert.Equal(expected: 1, actual: errors.GetArrayLength());
+            Assert.Contains(expectedSubstring: "diagnostic TopicTable", actualString: errors[0].GetString());
+            Assert.DoesNotContain(expectedSubstring: "canary", actualString: output.ToString() + error);
+            Assert.DoesNotContain(expectedSubstring: "https://", actualString: output.ToString() + error);
         }
         finally
         {
@@ -153,28 +213,20 @@ public sealed class RegistryHistoryTopicsCommandTests
 
     private sealed class Commands(Provider provider) : RegistryCommands
     {
+        public DebugLogCapture Log { get; } = new();
+
         protected override IRegistryHistoryTopicsProvider CreateHistoryTopicsProvider() => provider;
+
+        protected override Microsoft.Extensions.Logging.ILogger CreateFailureLogger(CliCommandContext context) => Log;
     }
 
     private sealed class Provider : IRegistryHistoryTopicsProvider
     {
-        public int Calls
-        {
-            get;
-            private set;
-        }
+        public int Calls { get; private set; }
 
-        public bool Fail
-        {
-            get;
-            init;
-        }
+        public bool Fail { get; init; }
 
-        public RegistryHistoryDiagnostic Diagnostic
-        {
-            get;
-            init;
-        } = RegistryHistoryDiagnostic.None;
+        public RegistryHistoryDiagnostic Diagnostic { get; init; } = RegistryHistoryDiagnostic.None;
 
         public Task<RegistryHistoryTopicsAnalysis> DiscoverTopics(SettingsArguments settings, CancellationToken token)
         {
@@ -189,22 +241,41 @@ public sealed class RegistryHistoryTopicsCommandTests
 
             if (Fail)
             {
-                throw new Exception("canary-password canary-student canary-topic");
+                throw new IOException("canary-password canary-student canary-topic");
+            }
+
+            Uri CalculateUri()
+            {
+                Uri uri = new("https://private.test/groups/1");
+                return uri;
             }
 
             var course = new RegistryHistoryCourse(
                 "canary-course",
                 1,
-                new("https://private.test/groups/1"));
+                CalculateUri());
+
+            Uri CalculateUri2()
+            {
+                Uri uri2 = new("https://private.test/LessonsList/1");
+                return uri2;
+            }
+
+            DateTime CalculateDate()
+            {
+                var date = new DateTime(
+                    year: 2024,
+                    month: 10,
+                    day: 1);
+                return date;
+            }
+
             var group = new RegistryHistoryGroupTopics(
                 "canary-group",
-                new("https://private.test/LessonsList/1"),
+                CalculateUri2(),
                 [
                     new(
-                        new DateTime(
-                            2024,
-                            10,
-                            1),
+                        CalculateDate(),
                         ScheduleLib.LessonType.Curs,
                         "canary-historical-topic"),
                 ]);
@@ -212,15 +283,22 @@ public sealed class RegistryHistoryTopicsCommandTests
                 "2024/25",
                 course,
                 [group]);
+
+            DateTime CalculateDate2()
+            {
+                var date2 = new DateTime(
+                    year: 2025,
+                    month: 10,
+                    day: 1);
+                return date2;
+            }
+
             var currentGroup = group with
             {
                 Lessons =
                 [
                     new(
-                        new DateTime(
-                            2025,
-                            10,
-                            1),
+                        CalculateDate2(),
                         ScheduleLib.LessonType.Curs,
                         "canary-current-topic"),
                 ],

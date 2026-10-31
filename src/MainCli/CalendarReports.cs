@@ -10,7 +10,7 @@ public readonly record struct CalendarPlanStep(
 
 public readonly record struct CalendarReport(
     string Id,
-    string Status,
+    ActionState Status,
     object? Item,
     ICliMessage Human);
 
@@ -18,15 +18,16 @@ public readonly record struct CalendarActionMessage(CalendarActionOutcome Outcom
 {
     public string Format(IFormatProvider provider)
     {
-        return string.Create(provider,
-            $"{Outcome.Action}: {Outcome.State}; calendar {Outcome.CalendarId}; event {Outcome.EventId}; desired index {Outcome.DesiredEventIndex}");
+        return string.Create(
+            provider,
+            $"{Outcome.Action}: {Outcome.State.ToWire()}; calendar {Outcome.CalendarId}; event {Outcome.EventId}; desired index {Outcome.DesiredEventIndex}");
     }
 }
 
 public readonly record struct CalendarNotAttemptedMessage(string Action, int? DesiredEventIndex) : ICliMessage
 {
     public string Format(IFormatProvider provider) =>
-        string.Create(provider, $"{Action}: not-attempted; desired index {DesiredEventIndex}");
+        string.Create(provider, $"{Action}: {ActionState.NotAttempted.ToWire()}; desired index {DesiredEventIndex}");
 }
 
 public readonly record struct CalendarDeletedEventMessage(string Id, string? Summary) : ICliMessage
@@ -43,7 +44,8 @@ public readonly record struct CalendarDesiredEventMessage(
 {
     public string Format(IFormatProvider provider)
     {
-        return string.Create(provider,
+        return string.Create(
+            provider,
             $"Create event [{Index}]: {Summary}; {Start}–{End}; {string.Join(", ", Recurrence)}");
     }
 }

@@ -40,7 +40,9 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         var initializer = helper.CreateServiceInitializer(credential);
         // Disable SDK exponential backoff too: lost create responses must not cause duplicate files.
         initializer.DefaultExponentialBackOffPolicy = Google.Apis.Http.ExponentialBackOffPolicy.None;
-        return new GoogleDriveSyncProvider(new DriveService(initializer));
+        var service = new DriveService(initializer);
+        var googleDriveSyncProvider = new GoogleDriveSyncProvider(service);
+        return googleDriveSyncProvider;
     }
 
     public async Task<DriveAccount> GetAccount(CancellationToken token)
@@ -53,7 +55,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             throw new IOException("Drive did not return an actual account identity.");
         }
 
-        return new(user.PermissionId, user.EmailAddress);
+        return new(Id: user.PermissionId, Email: user.EmailAddress);
     }
 
     public async Task<DriveDestination> FindFolder(string name, CancellationToken token)
@@ -63,7 +65,10 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            request.Q = $"mimeType='application/vnd.google-apps.folder' and name='{Escape(name)}' and trashed=false";
+            var listRequest = request;
+            string escape = Escape(name);
+            string text = $"mimeType='application/vnd.google-apps.folder' and name='{escape}' and trashed=false";
+            listRequest.Q = text;
             request.Fields = "nextPageToken,files(id,name)";
             request.PageSize = 2;
             request.PageToken = page;
@@ -72,8 +77,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             {
                 if (folder is not null)
                 {
-                    throw new IOException(
-                        $"More than one Drive folder is named '{name}'. Use a unique folder name before synchronizing.");
+                    throw new DuplicateDriveFolderNameException(name);
                 }
 
                 folder = match;
@@ -82,10 +86,10 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         } while (!string.IsNullOrEmpty(page));
         if (folder is null)
         {
-            throw new DirectoryNotFoundException($"Drive folder does not exist: {name}");
+            throw new DriveFolderNotFoundException(name);
         }
 
-        return new(folder.Id, folder.Name);
+        return new(Id: folder.Id, Name: folder.Name);
     }
 
     public async Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string folderId, CancellationToken token)
@@ -95,26 +99,33 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         do
         {
             var request = _service.Files.List();
-            request.Q = $"'{Escape(folderId)}' in parents and trashed=false";
+            var listRequest = request;
+            string escape = Escape(folderId);
+            string text = $"'{escape}' in parents and trashed=false";
+            listRequest.Q = text;
             request.Fields = "nextPageToken,files(id,name)";
             request.PageSize = 1000;
             request.PageToken = page;
             var response = await request.ExecuteAsync(token);
-            files.AddRange((response.Files ?? []).Select(x => new DriveRemoteFile(x.Id, x.Name)));
+            files.AddRange((response.Files ?? []).Select(x => new DriveRemoteFile(Id: x.Id, Name: x.Name)));
             page = response.NextPageToken;
         } while (page is not null);
         return files;
     }
 
-    public async Task Delete(string fileId, CancellationToken token) =>
-        await _service.Files.Delete(fileId).ExecuteAsync(token);
+    public async Task Delete(string fileId, CancellationToken token)
+    {
+        await _service.Files.Delete(fileId)
+            .ExecuteAsync(token);
+    }
 
     public Task<string> Create(
         string folderId,
         string name,
         Stream input,
         CancellationToken token)
-        => Upload(
+    {
+        return Upload(
             HttpMethod.Post,
             null,
             new DriveFile
@@ -124,17 +135,20 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
             },
             input,
             token);
+    }
 
     public Task<string> Update(
         string fileId,
         Stream input,
         CancellationToken token)
-        => Upload(
+    {
+        return Upload(
             HttpMethod.Patch,
             fileId,
             new DriveFile(),
             input,
             token);
+    }
 
     private async Task<string> Upload(
         HttpMethod method,
@@ -153,21 +167,40 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         using var content = new StreamContent(input);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         multipart.Add(content);
-        var uri = "https://www.googleapis.com/upload/drive/v3/files"
-            + (fileId is null ? "" : "/" + Uri.EscapeDataString(fileId))
-            + "?uploadType=multipart&fields=id";
-        using var request = new HttpRequestMessage(method, uri) { Content = multipart };
+        string text;
+        if (fileId is null)
+        {
+            text = "";
+        }
+        else
+        {
+            string escapeDataString = Uri.EscapeDataString(fileId);
+            string text2 = $"/{escapeDataString}";
+            text = text2;
+        }
+
+        string text3 = $"https://www.googleapis.com/upload/drive/v3/files{text}?uploadType=multipart&fields=id";
+        var uri = text3;
+        using var request = new HttpRequestMessage(method, uri)
+        {
+            Content = multipart,
+        };
         using var response = await _service.HttpClient.SendAsync(request, token);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Google.GoogleApiException("drive", "Drive rejected the upload.")
+            throw new Google.GoogleApiException(serviceName: "drive", message: "Drive rejected the upload.")
             {
                 HttpStatusCode = response.StatusCode,
             };
         }
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
-        if (!document.RootElement.TryGetProperty("id", out var id) || string.IsNullOrWhiteSpace(id.GetString()))
+        bool conditionValue = document.RootElement.TryGetProperty("id", out var id);
+        if (!conditionValue)
+        {
+            throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
+        }
+        if (string.IsNullOrWhiteSpace(id.GetString()))
         {
             throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
         }
@@ -175,13 +208,37 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         return id.GetString()!;
     }
 
-    private static string Escape(string value) => value.Replace(
-        "\\",
-        "\\\\",
-        StringComparison.Ordinal).Replace(
-        "'",
-        "\\'",
-        StringComparison.Ordinal);
+    private static string Escape(string value)
+    {
+        return value.Replace(
+                "\\",
+                "\\\\",
+                StringComparison.Ordinal)
+            .Replace(
+                "'",
+                "\\'",
+                StringComparison.Ordinal);
+    }
 
     public void Dispose() => _service.Dispose();
+
+
+    internal sealed class DuplicateDriveFolderNameException : IOException
+    {
+        internal DuplicateDriveFolderNameException(string folderName)
+            : base(
+                $"More than one Drive folder is named '{folderName}'. Use a unique folder name before synchronizing.")
+            => FolderName = folderName;
+
+        public string FolderName { get; }
+    }
+
+    internal sealed class DriveFolderNotFoundException : DirectoryNotFoundException
+    {
+        internal DriveFolderNotFoundException(string folderName)
+            : base($"Drive folder does not exist: {folderName}")
+            => FolderName = folderName;
+
+        public string FolderName { get; }
+    }
 }

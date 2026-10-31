@@ -147,18 +147,17 @@ replacement changes that ID. Primary destinations are prohibited by both
 configured literal and actual remote identity. Outcomes preserve completed
 calendar/event IDs and desired-event indexes; lost or cancelled responses are
 uncertain and never retried. See `src/MainCli/CALENDAR.md` for result semantics.
-## CLI Microsoft authorization and curricula (#196)
+## CLI Microsoft authorization (#196)
 
 `MicrosoftAuthentication` uses supported MSAL cache callbacks/serialization;
-only `auth login microsoft` invokes interactive acquisition. Downloads resolve
-with `AcquireTokenSilent` under the same teacher operation lease as local
+only `auth login microsoft` invokes interactive acquisition. Ordinary operations
+resolve with `AcquireTokenSilent` under the same teacher operation lease as local
 login/status/logout. State belongs to OS user state, separated by teacher,
 tenant/client and actual MSAL account. The old working-directory cache is not
-imported; explicit login reprovisions it. The Graph adapter follows program and
-document pagination and performs reads only. Curricula retain their coded
-2024–2025 owner/path and disclose them in results. Legacy DOC conversion uses
-staged copies with separately published originals. See [CLI authorization](../src/MainCli/AUTH.md)
-for storage, capability prerequisites and unverified Windows/real-consent paths.
+imported; explicit login reprovisions it. The curricula download command built on
+it was removed in #252 as a liability and can be restored from history. See
+[CLI authorization](../src/MainCli/AUTH.md) for storage and unverified
+Windows/real-consent paths.
 
 ### Registry Moodle grade import (#198)
 
@@ -505,7 +504,9 @@ edits and exports use request records rather than long scalar/Boolean parameter
 lists. The formatter uses JetBrains CleanupCode with a restricted formatting, braces
 and commas profile rather than a custom syntax rewriter. See
 [formatting](formatting.md) for the automatic utility and
-[analyzer decisions](analyzer-review.md) for the accepted initializer policy.
+[CodingRules specification](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md)
+for the accepted
+initializer policy.
 
 ## Reusable schedule serialization (#243)
 

@@ -56,9 +56,9 @@ public sealed class RegistryGradePreflightTests
         await Run(
             defect,
             apply,
-            invalidForm,
-            5,
-            0,
+            invalidForm: invalidForm,
+            exit: 5,
+            posts: 0,
             []);
     }
 
@@ -126,9 +126,9 @@ public sealed class RegistryGradePreflightTests
         await Run(
             defect,
             true,
-            0,
-            exit,
-            posts,
+            invalidForm: 0,
+            exit: exit,
+            posts: posts,
             statuses);
     }
 
@@ -140,7 +140,10 @@ public sealed class RegistryGradePreflightTests
         int posts,
         string[] statuses)
     {
-        using var settings = await CliSettings.Load(new() { Profile = "Curmanschii Anton" });
+        using var settings = await CliSettings.Load(new()
+        {
+            Profile = "Curmanschii Anton",
+        });
         var collection = CliRuntime.CreateServices(
             new()
             {
@@ -149,7 +152,11 @@ public sealed class RegistryGradePreflightTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
-        collection.Configure<ScheduleBuilderInitializerOptions>(x => x.EnrichWithFullNames = false);
+        collection.Configure<ScheduleBuilderInitializerOptions>(x =>
+        {
+            var scheduleBuilderInitializerOptions = x;
+            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+        });
         collection.Configure<StudyYearOptions>(x =>
         {
             x.StudyYear = new(2025);
@@ -159,8 +166,9 @@ public sealed class RegistryGradePreflightTests
         await services.InitializeSchedule(default);
         await using var scope = services.CreateAsyncScope();
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-        var lesson = schedule.EnumerateWeeklyLessons().First(x =>
-            schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
+        var lesson = schedule.EnumerateWeeklyLessons()
+            .First(x =>
+                schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         using var cancellation = new CancellationTokenSource();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var pending = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -171,19 +179,81 @@ public sealed class RegistryGradePreflightTests
             var number = path.EndsWith('1') ? 1 : 2;
             if (path.StartsWith("/evaluation", StringComparison.Ordinal))
             {
+                HttpResponseMessage CalculateResult()
+                {
+                    string html =
+                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>";
+                    var result = Response(
+                        html);
+                    return result;
+                }
+
                 return Task.FromResult(
-                    Response(
-                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>"));
+                    CalculateResult());
             }
 
             if (request.Method == HttpMethod.Post)
             {
-                if (defect == "lost-first" || defect == "lost-later" && number == 2)
+                bool CheckCondition()
+                {
+                    bool CalculateConditionResult()
+                    {
+                        if (defect == "lost-first")
+                        {
+                            return true;
+                        }
+                        if (defect != "lost-later")
+                        {
+                            return false;
+                        }
+
+                        if (number == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    bool conditionResult = CalculateConditionResult();
+
+
+                    return conditionResult;
+                }
+
+                if (CheckCondition())
                 {
                     throw new IOException("In-flight response lost");
                 }
 
-                if (defect == "cancel-first" || defect == "cancel-later" && number == 2)
+                bool CheckCondition2()
+                {
+                    bool CalculateConditionResult2()
+                    {
+                        if (defect == "cancel-first")
+                        {
+                            return true;
+                        }
+                        if (defect != "cancel-later")
+                        {
+                            return false;
+                        }
+
+                        if (number == 2)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    bool conditionResult2 = CalculateConditionResult2();
+
+
+                    return conditionResult2;
+                }
+
+                if (CheckCondition2())
                 {
                     entered.TrySetResult();
                     return pending.Task;
@@ -194,9 +264,20 @@ public sealed class RegistryGradePreflightTests
             var extra = number == invalidForm && defect == "duplicate"
                 ? "<input type='text' name='grade[1]' value='5'>"
                 : "";
+
+            string CalculateText()
+            {
+                if (number == 1)
+                {
+                    return "Popescu Ion";
+                }
+
+                return "Ionescu Ana";
+            }
+
             return Task.FromResult(
                 Response(
-                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{(number == 1 ? "Popescu Ion" : "Ionescu Ana")}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
+                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{CalculateText()}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -204,11 +285,15 @@ public sealed class RegistryGradePreflightTests
             client,
             handler);
         using var context = ScrapingContext.Create(transport, new Auth());
+        IRegistryErrorHandler errorHandler = null!;
+        RegistryScrapingContext context2 = new(context);
+        var serviceProvider = scope.ServiceProvider;
+        var cancellationToken = cancellation.Token;
         var adapter = new OnlineRegistryNavigator(
-            null!,
-            new(context),
-            scope.ServiceProvider,
-            cancellation.Token);
+            errorHandler,
+            context2,
+            serviceProvider,
+            cancellationToken);
         var navigator = new Navigator(
             adapter,
             lesson.Lesson.Course,
@@ -217,15 +302,16 @@ public sealed class RegistryGradePreflightTests
         var quiz = new QuizAttemptsPage
         {
             Path = new[]
-            {
-                "Cursuri USM",
-                "Matematică și Informatică",
-                "Ciclul I Licență",
-                "Informatică aplicată",
-                $"Anul {schedule.Get(lesson.Lesson.Groups[0]).Grade.Value}",
-                schedule.Get(lesson.Lesson.Course).FullName,
-                "Atestare 1",
-            }.Select(x => (Name: x, Href: (string?) null)).ToList(),
+                {
+                    "Cursuri USM",
+                    "Matematică și Informatică",
+                    "Ciclul I Licență",
+                    "Informatică aplicată",
+                    $"Anul {schedule.Get(lesson.Lesson.Groups[0]).Grade.Value}",
+                    schedule.Get(lesson.Lesson.Course).FullName,
+                    "Atestare 1",
+                }.Select(x => new MoodleBreadcrumbItem(Name: x, Href: null))
+                .ToList(),
             Attempts =
             [
                 new()
@@ -257,38 +343,86 @@ public sealed class RegistryGradePreflightTests
         try
         {
             var task = commands.ImportGrades(
-                new() { QuizId = "123" },
+                new()
+                {
+                    QuizId = "123",
+                },
                 new(),
-                new() { Profile = "teacher" },
-                new() { Json = true },
-                new() { Apply = apply },
+                new()
+                {
+                    Profile = "teacher",
+                },
+                new()
+                {
+                    Json = true,
+                },
+                new()
+                {
+                    Apply = apply,
+                },
                 cancellation.Token);
             if (defect.StartsWith("cancel", StringComparison.Ordinal))
             {
-                await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                TimeSpan CalculateTimeout()
+                {
+                    var timeout = TimeSpan.FromSeconds(5);
+                    return timeout;
+                }
+
+                await entered.Task.WaitAsync(CalculateTimeout());
                 Assert.True(accountLock.Held);
                 cancellation.Cancel();
             }
-            Assert.Equal(exit, await task.WaitAsync(TimeSpan.FromSeconds(5)));
-            Assert.Equal(posts, handler.Posts);
+
+            TimeSpan CalculateTimeout2()
+            {
+                var timeout2 = TimeSpan.FromSeconds(5);
+                return timeout2;
+            }
+
+            Assert.Equal(expected: exit, actual: await task.WaitAsync(CalculateTimeout2()));
+            Assert.Equal(expected: posts, actual: handler.Posts);
             Assert.False(accountLock.Held);
             Assert.True(session.Disposed);
             using var result = JsonDocument.Parse(output.ToString());
             var root = result.RootElement;
-            Assert.Equal(exit, root.GetProperty("exitCode").GetInt32());
             Assert.Equal(
-                exit == 130 ? "cancelled" : posts == 0 ? "failed" : "partial",
-                root.GetProperty("status").GetString());
+                expected: exit,
+                actual: root.GetProperty("exitCode")
+                    .GetInt32());
+
+            string CalculateExpected()
+            {
+                if (exit == 130)
+                {
+                    return "cancelled";
+                }
+
+                if (posts == 0)
+                {
+                    return "failed";
+                }
+
+                return "partial";
+            }
+
             Assert.Equal(
-                statuses,
-                root.GetProperty("data").GetProperty("outcomes").EnumerateArray()
-                    .Select(x => x.GetProperty("status").GetString()));
+                expected: CalculateExpected(),
+                actual: root.GetProperty("status")
+                    .GetString());
+            Assert.Equal(
+                expected: statuses,
+                actual: root.GetProperty("data")
+                    .GetProperty("outcomes")
+                    .EnumerateArray()
+                    .Select(x => x.GetProperty("status")
+                        .GetString()));
             if (invalidForm != 0)
             {
-                Assert.Equal(invalidForm, navigator.Documents.Count);
+                Assert.Equal(expected: invalidForm, actual: navigator.Documents.Count);
                 Assert.All(
                     navigator.Documents.SelectMany(x => x.QuerySelectorAll<IHtmlInputElement>("input")),
-                    x => Assert.Equal("5", x.Value));
+                    x => Assert.Equal(expected: "5", actual: x.Value));
             }
         }
         finally
@@ -305,27 +439,52 @@ public sealed class RegistryGradePreflightTests
         LessonGroups groups,
         GroupPartitionKey partition) : IRegistryGradeNavigator
     {
-        public List<IDocument> Documents
-        {
-            get;
-        } = [];
+        public List<IDocument> Documents { get; } = [];
 
         public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
         {
-            Assert.Equal(Semester.Sem2, semester);
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, new("https://registry.test/course"))]);
+            Assert.Equal(expected: Semester.Sem2, actual: semester);
+
+            Uri CalculateUrl()
+            {
+                Uri url = new("https://registry.test/course");
+                return url;
+            }
+
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
         }
 
-        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) => Task.FromResult<IEnumerable<GroupLink>>(
-            Enumerable.Range(1, 2).Select(i => new GroupLink(
-                new FoundGroups
-                {
-                    IsWildcard = false,
-                    Value = groups,
-                },
-                partition,
-                new($"https://registry.test/group{i}"),
-                new($"https://registry.test/evaluation{i}"))));
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
+        {
+            return Task.FromResult(
+                Enumerable.Range(start: 1, count: 2)
+                    .Select(i =>
+                    {
+                        Uri CalculateUri()
+                        {
+                            string uriString = $"https://registry.test/group{i}";
+                            Uri uri2 = new(uriString);
+                            return uri2;
+                        }
+
+                        Uri CalculateEvaluationUri()
+                        {
+                            string uriString2 = $"https://registry.test/evaluation{i}";
+                            Uri evaluationUri2 = new(uriString2);
+                            return evaluationUri2;
+                        }
+
+                        return new GroupLink(
+                            new FoundGroups
+                            {
+                                IsWildcard = false,
+                                Value = groups,
+                            },
+                            partition,
+                            uri: CalculateUri(),
+                            evaluationUri: CalculateEvaluationUri());
+                    }));
+        }
 
         public async Task<IDocument> GetHtml(Uri uri)
         {
@@ -341,10 +500,13 @@ public sealed class RegistryGradePreflightTests
         public Task SubmitGrades(
             IDocument document,
             CancellationToken token,
-            Action? onSubmissionStarted = null) => adapter.SubmitGrades(
-            document,
-            token,
-            onSubmissionStarted);
+            Action? onSubmissionStarted = null)
+        {
+            return adapter.SubmitGrades(
+                document,
+                token,
+                onSubmissionStarted);
+        }
     }
 
     private sealed class Planner(
@@ -358,19 +520,33 @@ public sealed class RegistryGradePreflightTests
             string quizId,
             CancellationToken token)
         {
-            var plan = await handler.Plan(
-                new()
-                {
-                    Quiz = quiz,
-                    RegistryNavigator = navigator,
-                    Semester = Semester.Sem2,
-                    CancellationToken = token,
-                });
-            Assert.Equal(2, plan.Actions.Count);
+            var plan = await handler.Plan(new()
+            {
+                Quiz = quiz,
+                RegistryNavigator = navigator,
+                Semester = Semester.Sem2,
+                CancellationToken = token,
+            });
+            Assert.Equal(expected: 2, actual: plan.Actions.Count);
             if (defect.StartsWith("mutate", StringComparison.Ordinal))
             {
-                navigator.Documents[defect == "mutate-first" ? 0 : 1].QuerySelector<IHtmlInputElement>("input")!
-                    .RemoveAttribute("name");
+                var list = navigator.Documents;
+                int index;
+                if (defect == "mutate-first")
+                {
+                    index = 0;
+                }
+                else
+                {
+                    index = 1;
+                }
+
+                var iDocument = list[index];
+                string selectors = "input";
+                var querySelector = iDocument.QuerySelector<IHtmlInputElement>(selectors);
+                var iHtmlInputElement = querySelector!;
+                string name = "name";
+                iHtmlInputElement.RemoveAttribute(name);
             }
 
             return plan;
@@ -388,10 +564,8 @@ public sealed class RegistryGradePreflightTests
     {
         public bool Disposed;
 
-        public RegistryDestination Target
-        {
-            get;
-        } = new("test-account", "https://registry.test/");
+        public RegistryDestination Target { get; } =
+            new(Account: "test-account", Destination: "https://registry.test/");
 
         public Task<IRegistrySession> Open(
             SourceArguments source,
@@ -415,7 +589,10 @@ public sealed class RegistryGradePreflightTests
         public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token)
         {
             Held = true;
-            return Task.FromResult<IAsyncDisposable>(new Lease(this));
+            var result = new Lease(this);
+            IAsyncDisposable result2 = result;
+            var fromResult = Task.FromResult(result2);
+            return fromResult;
         }
 
         private sealed class Lease(AccountLock owner) : IAsyncDisposable
@@ -452,11 +629,14 @@ public sealed class RegistryGradePreflightTests
         }
     }
 
-    private static HttpResponseMessage Response(string html) => new(HttpStatusCode.OK)
+    private static HttpResponseMessage Response(string html)
     {
-        Content = new StringContent(
-            html,
-            System.Text.Encoding.UTF8,
-            "text/html"),
-    };
+        return new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                html,
+                System.Text.Encoding.UTF8,
+                "text/html"),
+        };
+    }
 }

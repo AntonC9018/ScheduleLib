@@ -1,4 +1,5 @@
 using CommandDotNet;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleLib.Cli;
@@ -8,11 +9,7 @@ public sealed class ApplyArguments : IArgumentModel
     [Option(
         "apply",
         Description = "Recompute current remote state and execute changes. Without this flag, only preview.")]
-    public bool Apply
-    {
-        get;
-        set;
-    }
+    public bool Apply { get; set; }
 }
 
 public sealed record RegistryActionOutcome(
@@ -23,7 +20,7 @@ public sealed record RegistryActionOutcome(
     DateTime Date,
     string? Topic,
     int? AttendanceCount,
-    string Status,
+    ActionState Status,
     string? Detail);
 
 public sealed record RegistrySyncResult(
@@ -36,6 +33,8 @@ public partial class RegistryCommands
 {
     protected virtual IRegistryProvider CreateProvider() => new ConfiguredRegistryProvider();
     protected virtual IRegistryAccountLock CreateAccountLock() => new RegistryAccountLock();
+    protected virtual ILogger CreateFailureLogger(CliCommandContext context) =>
+        context.CreateLogger(typeof(RegistryCommands).FullName!);
 
     [Command(
         "sync",
@@ -47,13 +46,15 @@ public partial class RegistryCommands
         ResultArguments result,
         ApplyArguments apply,
         CancellationToken cancellationToken = default)
-        => RunLessonActions(
+    {
+        return RunLessonActions(
             source,
             settings,
             result,
             apply,
             cleanupIntakeLabs: false,
             cancellationToken);
+    }
 
     [Command(
         "cleanup-intake-labs",
@@ -65,13 +66,15 @@ public partial class RegistryCommands
         ResultArguments result,
         ApplyArguments apply,
         CancellationToken cancellationToken = default)
-        => RunLessonActions(
+    {
+        return RunLessonActions(
             source,
             settings,
             result,
             apply,
             cleanupIntakeLabs: true,
             cancellationToken);
+    }
 
     private async Task<int> RunLessonActions(
         SourceArguments source,
@@ -81,8 +84,23 @@ public partial class RegistryCommands
         bool cleanupIntakeLabs,
         CancellationToken cancellationToken)
     {
+        string CalculateCommand()
+        {
+            string command;
+            if (cleanupIntakeLabs)
+            {
+                command = "registry cleanup-intake-labs";
+            }
+            else
+            {
+                command = "registry sync";
+            }
+
+            return command;
+        }
+
         using var context = new CliCommandContext(
-            cleanupIntakeLabs ? "registry cleanup-intake-labs" : "registry sync",
+            CalculateCommand(),
             result,
             cancellationToken);
         if (!context.Start())
@@ -98,10 +116,20 @@ public partial class RegistryCommands
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = context.Warnings;
-        warnings.Add(
-            cleanupIntakeLabs
-                ? "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected."
-                : "Existing positional matching is used; updates are not a semantic minimum patch.");
+        var list = warnings;
+        string item2;
+        if (cleanupIntakeLabs)
+        {
+            item2 =
+                "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected.";
+        }
+        else
+        {
+            item2 = "Existing positional matching is used; updates are not a semantic minimum patch.";
+        }
+
+        list.Add(
+            item2);
         var attempted = false;
         var finalExit = CliExit.Unexpected;
         string[] finalErrors = ["Unexpected registry failure."];
@@ -116,10 +144,11 @@ public partial class RegistryCommands
                     ["Select a teacher with --profile. Use config profiles to list supported teachers."]);
             }
 
-            await using var session = await CreateProvider().Open(
-                source,
-                settings,
-                cancellation.Token);
+            await using var session = await CreateProvider()
+                .Open(
+                    source,
+                    settings,
+                    cancellation.Token);
             target = session.Target;
             diagnostics = session.Diagnostics;
             liveDiagnostics = session.LiveDiagnostics;
@@ -128,7 +157,10 @@ public partial class RegistryCommands
                 liveDiagnostics.Reported += StreamDiagnostic;
             }
 
-            await using var lease = apply.Apply ? await CreateAccountLock().Acquire(target, cancellation.Token) : null;
+            await using var lease = apply.Apply
+                ? await CreateAccountLock()
+                    .Acquire(target, cancellation.Token)
+                : null;
             // The planner discovers a course's assignments before applying its groups in sequence.
             var stopped = false;
             if (cleanupIntakeLabs)
@@ -140,17 +172,44 @@ public partial class RegistryCommands
                 await session.PlanGroups(ProcessGroup, cancellation.Token);
             }
 
-            return stopped ? finalExit : Finish(CliExit.Success, []);
+            if (stopped)
+            {
+                return finalExit;
+            }
+
+            return Finish(CliExit.Success, []);
 
             async Task<bool> ProcessGroup(IReadOnlyList<RegistrySyncAction> plan)
             {
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
+                    var action2 = action;
+                    ActionState status2;
+                    if (!action.Enabled)
+                    {
+                        status2 = ActionState.Omitted;
+                    }
+                    else
+                    {
+                        ActionState text;
+                        if (apply.Apply)
+                        {
+                            text = ActionState.NotAttempted;
+                        }
+                        else
+                        {
+                            text = ActionState.Planned;
+                        }
+
+                        status2 = text;
+                    }
+
+                    string? detail2 = action.Omission;
                     var initial = ToOutcome(
-                        action,
-                        !action.Enabled ? "omitted" : apply.Apply ? "not-attempted" : "planned",
-                        action.Omission);
+                        action2,
+                        status: status2,
+                        detail: detail2);
                     outcomes.Add(initial);
                     StreamOutcome(outcomes.Count - 1, initial);
                 }
@@ -170,14 +229,14 @@ public partial class RegistryCommands
                     var request = new RegistryMutationRequest(action.Execute, cancellation.Token)
                     {
                         CancellationPolicy = "Creates",
-                        AllowRefusedDeletion = action.Kind == "delete",
+                        AllowRefusedDeletion = action.Kind == RegistrySyncActionKind.Delete,
                     };
                     var outcome = await RegistryMutation.Execute(request);
                     attempted |= outcome.SubmissionStarted;
                     Record(
                         action,
-                        outcome.Status,
-                        outcome.Detail);
+                        status: outcome.Status,
+                        detail: outcome.Detail);
                     if (outcome.DeletionRefused)
                     {
                         var warning =
@@ -224,46 +283,58 @@ public partial class RegistryCommands
 
         static RegistryActionOutcome ToOutcome(
             RegistrySyncAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             return new(
-                action.Kind,
-                action.Destination,
-                action.Course,
-                action.Groups,
+                Kind: action.Kind.ToLowercaseValue(),
+                Destination: action.Destination,
+                Course: action.Course,
+                Groups: action.Groups,
                 action.Date,
-                action.Topic,
+                Topic: action.Topic,
                 action.AttendanceCount,
-                status,
-                detail);
+                Status: status,
+                Detail: detail);
         }
 
         void Record(
             RegistrySyncAction action,
-            string status,
+            ActionState status,
             string? detail)
         {
             var index = actionIndexes[action];
             var outcome = ToOutcome(
                 action,
-                status,
-                detail);
+                status: status,
+                detail: detail);
             outcomes[index] = outcome;
             StreamOutcome(index, outcome);
         }
 
         void StreamOutcome(int index, RegistryActionOutcome outcome)
         {
-            context.StreamItem(
-                index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                outcome.Status,
-                outcome,
-                renderHuman: () =>
+            var cliCommandContext = context;
+            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var status2 = outcome.Status;
+            object item = outcome;
+            Action renderHuman2 = () =>
+            {
+                string CalculateLine()
                 {
-                    output.WriteHuman(
-                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status} {outcome.Detail}");
-                });
+                    string line =
+                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
+                    return line;
+                }
+
+                output.WriteHuman(
+                    CalculateLine());
+            };
+            cliCommandContext.StreamItem(
+                id: id2,
+                status: status2,
+                item,
+                renderHuman: renderHuman2);
         }
 
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
@@ -285,7 +356,7 @@ public partial class RegistryCommands
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw new CliOutputStreamingException("Output streaming failed.", ex);
+                throw new GeneralCliOutputStreamingException("Output streaming failed.", ex);
             }
         }
 
@@ -305,16 +376,17 @@ public partial class RegistryCommands
                 var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
                 warnings.Add(text);
             }
-            var success = "preview";
+            var success = RunStatus.Preview;
             if (apply.Apply)
             {
-                success = "applied";
+                success = RunStatus.Applied;
             }
             var status = CliCommandContext.Status(
                 exit,
                 success,
                 partial: attempted);
-            var counts = outcomes.GroupBy(x => x.Status).ToDictionary(x => x.Key, x => x.Count());
+            var counts = outcomes.GroupBy(x => x.Status)
+                .ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Count());
             var summary = new
             {
                 target,
@@ -322,7 +394,8 @@ public partial class RegistryCommands
                 total = outcomes.Count,
                 counts,
             };
-            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status}").ToArray();
+            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status.ToWire()}")
+                .ToArray();
             var data = new RegistrySyncResult(
                 target,
                 outcomes,
@@ -341,7 +414,9 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        output.WriteHuman($"{status}: {target.Destination} (account {target.Account})");
+                        var cliOutput = output;
+                        string line = $"{status}: {target.Destination} (account {target.Account})";
+                        cliOutput.WriteHuman(line);
                     }
                 },
             });

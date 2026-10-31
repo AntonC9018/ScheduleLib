@@ -1,4 +1,5 @@
 // Most of the below is ChatGPT, refactored manually.
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -12,15 +13,27 @@ public sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
 {
     private readonly Accessors<T, TValue> _accessor = Accessors.Get<T, TValue>();
 
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override T Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         var value = JsonSerializer.Deserialize<TValue>(ref reader, options);
         return _accessor.Creator(value);
     }
 
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        T value,
+        JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(writer, _accessor.Extractor(value), options);
+        var writer2 = writer;
+        var value2 = _accessor.Extractor(value);
+        var options2 = options;
+        JsonSerializer.Serialize(
+            writer2,
+            value2,
+            options2);
     }
 }
 
@@ -32,7 +45,25 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
+        bool CalculateConditionResult()
+        {
+            if (typeToConvert.IsPrimitive)
+            {
+                return true;
+            }
+
+            if (typeToConvert.IsEnum)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool conditionResult = CalculateConditionResult();
+
+
+        if (conditionResult)
         {
             return false;
         }
@@ -69,6 +100,12 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
 // mostly Chat GPT
 file static class Accessors
 {
+    /// <summary>A single-parameter constructor with the parameter list it was found with.</summary>
+    private readonly record struct ConstructorCandidate(ParameterInfo[] Parameters, ConstructorInfo Constructor);
+
+    /// <summary>The constructor and member through which a single-value wrapper exposes its value.</summary>
+    private readonly record struct WrapperMemberMatch(ConstructorInfo Constructor, MemberInfo Member, Type ValueType);
+
     private static ConcurrentDictionary<Type, AccessorsBase?> _accessors = new();
 
     public static Accessors<T, TValue> Get<T, TValue>()
@@ -105,14 +142,14 @@ file static class Accessors
         return ret;
     }
 
-    private static (ConstructorInfo Constructor, MemberInfo Member, Type ValueType) FindInfo(
+    private static WrapperMemberMatch FindInfo(
         Type type)
     {
         // Get all public instance constructors with exactly one parameter
         var constructors = type
             .GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-            .Select(c => (Param: c.GetParameters(), Constructor: c))
-            .Where(x => x.Param.Length == 1)
+            .Select(c => new ConstructorCandidate(c.GetParameters(), c))
+            .Where(x => x.Parameters.Length == 1)
             .ToArray();
 
         // Candidate public instance properties (declared only) and fields
@@ -126,16 +163,19 @@ file static class Accessors
             .ToArray();
 
         // We'll collect (constructor, matchingMember) pairs where matchingMember.Type == constructor param type
-        (ConstructorInfo Constructor, MemberInfo Member, Type ValueType) wholeMatch = default;
+        WrapperMemberMatch wholeMatch = default;
 
         foreach (var (paramArr, ctor) in constructors)
         {
             var paramType = paramArr[0].ParameterType;
 
             // find members whose type equals the constructor parameter type
-            var matchingProps = properties.Where(p => p.PropertyType == paramType).Cast<MemberInfo>();
-            var matchingFields = fields.Where(f => f.FieldType == paramType).Cast<MemberInfo>();
-            using var matchingMembers = matchingProps.Concat(matchingFields).GetEnumerator();
+            var matchingProps = properties.Where(p => p.PropertyType == paramType)
+                .Cast<MemberInfo>();
+            var matchingFields = fields.Where(f => f.FieldType == paramType)
+                .Cast<MemberInfo>();
+            using var matchingMembers = matchingProps.Concat(matchingFields)
+                .GetEnumerator();
 
             if (!matchingMembers.MoveNext())
             {
@@ -151,7 +191,10 @@ file static class Accessors
             {
                 return default;
             }
-            wholeMatch = (ctor, match, paramType);
+            wholeMatch = new(
+                ctor,
+                match,
+                paramType);
         }
         return wholeMatch;
     }
@@ -168,7 +211,8 @@ file static class Accessors
         // Compile: (TValue v) => new T(v)
         var valueParam = Expression.Parameter(typeof(TValue), "value");
         var newExpr = Expression.New(constructor, valueParam);
-        var creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam).Compile();
+        var creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam)
+            .Compile();
 
         // Compile: (T t) => t.Value
         var tParam = Expression.Parameter(typeof(T), "t");
@@ -176,7 +220,8 @@ file static class Accessors
             ? Expression.Property(tParam, prop)
             : Expression.Field(tParam, (FieldInfo) getterPropOrField);
 
-        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam).Compile();
+        var extractor = Expression.Lambda<Func<T, TValue?>>(memberAccess, tParam)
+            .Compile();
         return new()
         {
             Creator = creator,

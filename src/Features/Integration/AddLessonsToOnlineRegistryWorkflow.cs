@@ -24,33 +24,44 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
     // Maybe make a builder, make it possible to override default stuff,
     // then execute from builder (so it's not forced for the current teacher only).
     // Do the same thing for
-    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(IRegistrySyncNavigator navigator, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(
+        IRegistrySyncNavigator navigator,
+        CancellationToken cancellationToken)
     {
-        return await _handler.Plan(new()
-        {
-            Navigator = navigator,
-            Diagnostics = _diagnostics,
-            Attendance = _attendanceLoader.Load(),
-            HasAttendanceSources = _attendanceLoader.HasSources,
-            LessonTopics = await _topicsLoader.Load(cancellationToken),
-            Semester = _studyYear.Value.Semester,
-            LessonFilter = _lessonFilterProvider.Get(),
-        }, cancellationToken, explicitApply: true);
+        return await _handler.Plan(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
+            cancellationToken,
+            explicitApply: true);
     }
 
-    public async Task PlanGroups(IRegistrySyncNavigator navigator,
-        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
+    public async Task PlanGroups(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
     {
-        await _handler.PlanGroups(new()
-        {
-            Navigator = navigator,
-            Diagnostics = _diagnostics,
-            Attendance = _attendanceLoader.Load(),
-            HasAttendanceSources = _attendanceLoader.HasSources,
-            LessonTopics = await _topicsLoader.Load(cancellationToken),
-            Semester = _studyYear.Value.Semester,
-            LessonFilter = _lessonFilterProvider.Get(),
-        }, onGroupPlanned, cancellationToken, explicitApply: true);
+        await _handler.PlanGroups(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
+            onGroupPlanned,
+            cancellationToken,
+            explicitApply: true);
     }
 
     public async ValueTask Execute(CancellationToken cancellationToken)
@@ -76,10 +87,19 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         });
     }
 
-    public Task PlanIntakeLabCleanup(IRegistrySyncNavigator navigator,
-        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken cancellationToken)
-        => _handler.PlanIntakeLabCleanup(navigator, _studyYear.Value.Semester, _lessonFilterProvider.Get(),
-            _diagnostics, onGroupPlanned, cancellationToken);
+    public Task PlanIntakeLabCleanup(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
+    {
+        return _handler.PlanIntakeLabCleanup(
+            navigator,
+            _studyYear.Value.Semester,
+            _lessonFilterProvider.Get(),
+            _diagnostics,
+            onGroupPlanned,
+            cancellationToken);
+    }
 }
 
 // Make a simple abstraction for now, because I don't know what I'm going to want to do.
@@ -151,7 +171,8 @@ public sealed partial class CurrentTeacherLessonFilterProvider
 
     public ILessonFilter Get()
     {
-        var b = _sp.LessonFilterBuilder().CurrentTeacher();
+        var b = _sp.LessonFilterBuilder()
+            .CurrentTeacher();
 
         if (_lessonFilterConfig.Get() is { } filterConfig)
         {

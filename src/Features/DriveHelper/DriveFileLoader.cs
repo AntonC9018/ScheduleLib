@@ -20,7 +20,8 @@ public sealed class DriveFileLoader : IDisposable
 
     public static void Register(IServiceCollection services)
     {
-        services.AddOptions<DriveFileLoaderOptions>().ValidateDataAnnotations();
+        services.AddOptions<DriveFileLoaderOptions>()
+            .ValidateDataAnnotations();
         services.ConfigureOptions<DefaultDriveFileLoaderConfigureOptions>();
         services.AddScoped<DriveFileLoader>();
     }
@@ -64,21 +65,21 @@ public sealed class DriveFileLoader : IDisposable
         if (meta.MimeType == nativeGoogleSheetTypeString)
         {
             // do conversion
-            var exportRequest = _driveService.Files.Export(fileId, uploadedFileTypeString);
+            var exportRequest = _driveService.Files.Export(fileId: fileId, mimeType: uploadedFileTypeString);
             var progress = await exportRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
-        else if (meta.MimeType == uploadedFileTypeString)
+        if (meta.MimeType == uploadedFileTypeString)
         {
             // don't do conversion
             var downloadRequest = _driveService.Files.Get(fileId);
             var progress = await downloadRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
-        else
-        {
-            throw new InvalidOperationException($"The file is not in the expected format '{uploadedFileTypeString}' ({fileType}). The actual mime type is '{meta.MimeType}'");
-        }
+        throw new UnexpectedDriveFileFormatException(
+            uploadedFileTypeString: uploadedFileTypeString,
+            fileType,
+            actualMimeType: meta.MimeType);
     }
 
     public void Dispose()
@@ -89,8 +90,7 @@ public sealed class DriveFileLoader : IDisposable
 
 public sealed class DriveFileLoaderOptions
 {
-    [MinLength(10)]
-    public required string GoogleApiKey { get; set; }
+    [MinLength(10)] public required string GoogleApiKey { get; set; }
 }
 
 [AutoConstructor]
@@ -100,8 +100,8 @@ public sealed partial class DefaultDriveFileLoaderConfigureOptions : IConfigureO
 
     public void Configure(DriveFileLoaderOptions options)
     {
-        options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey").Get<string>()
+        options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey")
+                .Get<string>()
             ?? throw new InvalidOperationException("Expected to find Google:ApiKey in the configuration");
     }
 }
-

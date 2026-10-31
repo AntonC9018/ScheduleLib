@@ -51,16 +51,17 @@ public partial class ExportCommands
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
-                destination.Directory,
-                context.Command,
-                context.RunId,
+                output: destination.Directory,
+                command: context.Command,
+                runId: context.RunId,
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await provider.InitializeSchedule(cancellation.Token);
             await using var scope = provider.CreateAsyncScope();
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            lessonCount = schedule.EnumerateWeeklyLessons().Count();
+            lessonCount = schedule.EnumerateWeeklyLessons()
+                .Count();
             warnings.Add("Free rooms inspect every weekly period, not only the latest one.");
             if (lessonCount == 0)
             {
@@ -80,7 +81,9 @@ public partial class ExportCommands
                     token.ThrowIfCancellationRequested();
                     stream.Position = 0;
                     using var workbook = SpreadsheetDocument.Open(stream, false);
-                    var sheets = workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.OfType<Sheet>().ToArray() ?? [];
+                    var sheets = workbook.WorkbookPart?.Workbook.Sheets?.ChildElements.OfType<Sheet>()
+                            .ToArray()
+                        ?? [];
                     if (sheets.Length == 0 || workbook.WorkbookPart?.WorksheetParts.Any() != true)
                     {
                         throw new InvalidDataException("Generated free-room workbook has no usable worksheet.");
@@ -90,7 +93,7 @@ public partial class ExportCommands
                 },
                 cancellation.Token);
             StreamNew();
-            await output.Complete("succeeded", cancellation.Token);
+            await output.Complete(RunStatus.Succeeded, cancellation.Token);
             StreamNew();
             cancellation.Token.ThrowIfCancellationRequested();
             return await Finish(CliExit.Success, []);
@@ -114,13 +117,20 @@ public partial class ExportCommands
                 exit,
                 partial: paths.Length > 0,
                 cancellation: false);
+
+            FreeRoomsResult CalculateData()
+            {
+                FreeRoomsResult data = new(
+                    output?.DirectoryPath,
+                    lessonCount,
+                    worksheets.ToArray());
+                return data;
+            }
+
             return context.Finish(new CliCompletion<FreeRoomsResult>(
                 exit,
                 errors,
-                new(
-                    output?.DirectoryPath,
-                    lessonCount,
-                    worksheets.ToArray()))
+                CalculateData())
             {
                 Summary = new
                 {
@@ -132,8 +142,14 @@ public partial class ExportCommands
                 Paths = paths,
                 Status = status,
                 JsonStatus = jsonStatus,
-                RenderHuman = status => cli.WriteHuman(
-                    $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}."),
+                RenderHuman = status =>
+                {
+                    var cliOutput = cli;
+                    string line =
+                        $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.";
+                    cliOutput.WriteHuman(
+                        line);
+                },
             });
         }
     }

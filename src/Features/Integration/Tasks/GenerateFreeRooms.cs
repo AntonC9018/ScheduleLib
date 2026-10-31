@@ -26,14 +26,13 @@ public sealed partial class GenerateFreeRoomsTaskHandler
     public async ValueTask Run(RunParams p)
     {
         var rooms = PreprocessedRooms(_schedule.EnumerateWeeklyLessons());
-        var allRooms = rooms.Distinct().ToHashSet();
+        var allRooms = rooms.Distinct()
+            .ToHashSet();
 
         await using var spreadsheet = await Spreadsheet.CreateNewAsync(
             p.OutputStream,
             cancellationToken: p.CancellationToken);
-        var headerStyle = spreadsheet.AddStyle(new()
-        {
-        });
+        var headerStyle = spreadsheet.AddStyle(new() { });
 
         Parity[] parities = [Parity.EvenWeek, Parity.OddWeek];
         List<DataCell> dataCells = new();
@@ -41,9 +40,10 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         foreach (var parity in parities)
         {
             string parityLabel = _parityDisplay.Get(parity)!;
-            await spreadsheet.StartWorksheetAsync(parityLabel, new()
-            {
-            }, p.CancellationToken);
+            await spreadsheet.StartWorksheetAsync(
+                parityLabel,
+                new() { },
+                p.CancellationToken);
 
             foreach (var day in new EnumMembers<DayOfWeek>())
             {
@@ -56,13 +56,18 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 }
 
                 var dayName = _dayNameProvider.GetDayName(day);
-                await spreadsheet.AddHeaderRowAsync([dayName], headerStyle, p.CancellationToken);
+                await spreadsheet.AddHeaderRowAsync(
+                    [dayName],
+                    headerStyle,
+                    p.CancellationToken);
 
                 foreach (var timeSlot in _timeConfig.TimeSlots)
                 {
                     var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
                     var intervalText = _timeSlotDisplay.IntervalDisplay(interval);
-                    dataCells.Add(new(intervalText));
+                    var list = dataCells;
+                    DataCell item = new(intervalText);
+                    list.Add(item);
 
                     var lessons = lessonsThisDay
                         .Where(x => x.Date.TimeSlot == timeSlot
@@ -74,13 +79,15 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                         var id = roomId.Id!;
                         // TODO: Maybe store this in the model?
                         var blockIndex = id.IndexOf('/');
-                        var block = blockIndex >= 0 ? id[(blockIndex + 1) ..] : null;
-                        var room = id[.. blockIndex];
+                        var block = blockIndex >= 0 ? id[(blockIndex + 1)..] : null;
+                        var room = id[..blockIndex];
                         return (block, room);
                     });
                     foreach (var freeRoom in orderedFreeRooms)
                     {
-                        dataCells.Add(new(freeRoom.Id!));
+                        var list2 = dataCells;
+                        DataCell item2 = new(freeRoom.Id!);
+                        list2.Add(item2);
                     }
 
                     await spreadsheet.AddRowAsync(dataCells, p.CancellationToken);
@@ -190,7 +197,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         {
             // The style with this id is some dotted grid pattern.
             // ???
-            var wtf = stylesheet.Fill(_ => {});
+            var wtf = stylesheet.Fill(_ => { });
             _ = wtf;
         }
 
@@ -252,6 +259,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 Style = Thick(),
             };
         });
+
         BorderId BorderIdByEdge(Edge edge)
         {
             return cellBorderIds.Get(edge);
@@ -282,7 +290,9 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         {
             x.CenterAndWrap();
             x.SetFont(cellFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -293,13 +303,17 @@ public sealed partial class GenerateFreeRoomsTaskHandler
             x.CenterAndWrap();
             x.SetFont(cellFontId);
             x.SetFill(greenFillId);
-            x.SetBorder(BorderIdByEdge(edge));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge);
+            cellFormat.SetBorder(borderId);
         });
         var timeSlotStyleIds = stylesheet.CellFormats<OddEdge>((x, edge) =>
         {
             x.CenterAndWrap();
             x.SetFont(timeSlotFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -336,15 +350,15 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(a: x.LastName, b: y.LastName);
             if (t != 0)
             {
                 return t;
             }
         }
         var ret = NamePartHelper.CompareEach(
-            x.FirstName,
-            y.FirstName,
+            a: x.FirstName,
+            b: y.FirstName,
             Comparer.Instance);
         return ret;
     }
@@ -356,7 +370,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 
         public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
-            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(a: x.Longer, b: y.Longer);
         }
     }
 }
