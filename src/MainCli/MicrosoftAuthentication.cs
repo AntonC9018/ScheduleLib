@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.Identity.Client;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Curriculum.Download;
 
 namespace ScheduleLib.Cli;
 
@@ -14,6 +13,12 @@ public sealed record MicrosoftToken(
     DateTimeOffset ExpiresOn,
     string[] Scopes,
     byte[] Cache);
+
+public static class MicrosoftScopes
+{
+    public static readonly string[] Required =
+        ["Files.Read.All", "Files.Read", "User.Read", "User.ReadBasic.All"];
+}
 
 public interface IMicrosoftTokenProvider
 {
@@ -42,7 +47,7 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
     {
         var app = Application(config);
         var cache = new SupportedCache(app, []);
-        var result = await app.AcquireTokenInteractive(CurriculaDownloadTasks.ApiRequiredScopes)
+        var result = await app.AcquireTokenInteractive(MicrosoftScopes.Required)
             .WithUseEmbeddedWebView(false)
             .ExecuteAsync(token);
         return ToToken(cache, result);
@@ -64,7 +69,7 @@ public sealed class MicrosoftTokenProvider : IMicrosoftTokenProvider
                 errorMessage: "Explicit login is required.");
         }
 
-        var result = await app.AcquireTokenSilent(CurriculaDownloadTasks.ApiRequiredScopes, account)
+        var result = await app.AcquireTokenSilent(MicrosoftScopes.Required, account)
             .ExecuteAsync(token);
         return ToToken(serialized, result);
     }
@@ -454,7 +459,7 @@ public sealed class MicrosoftAuthentication(string? stateDirectory = null, IMicr
                 return true;
             }
 
-            if (CurriculaDownloadTasks.ApiRequiredScopes.Except(
+            if (MicrosoftScopes.Required.Except(
                     authorization.Scopes,
                     StringComparer.OrdinalIgnoreCase)
                 .Any())

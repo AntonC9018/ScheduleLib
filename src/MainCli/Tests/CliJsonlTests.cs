@@ -2092,13 +2092,6 @@ public sealed class CliJsonlTests
                     both,
                     default)),
             new(
-                "curricula download",
-                () => new CurriculaCommands().Download(
-                    new(),
-                    new(),
-                    both,
-                    default)),
-            new(
                 "config show",
                 () => new ConfigCommands().Show(
                     new(),

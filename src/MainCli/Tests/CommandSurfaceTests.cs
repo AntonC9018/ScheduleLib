@@ -24,7 +24,6 @@ public sealed class CommandSurfaceTests
                 "registry sync",
                 "registry import-grades",
                 "registry history",
-                "curricula download",
                 "config show",
                 "config get",
                 "config set",
@@ -116,12 +115,6 @@ public sealed class CommandSurfaceTests
                     "export",
                     "pre-defense",
                     "--no-cache",
-                },
-                new[]
-                {
-                    "curricula",
-                    "download",
-                    "--apply",
                 },
                 new[]
                 {

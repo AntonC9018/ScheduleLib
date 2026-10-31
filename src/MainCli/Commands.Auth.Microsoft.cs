@@ -1,5 +1,5 @@
 using System.Text.Json;
-using ScheduleLib.Curriculum.Download;
+using Microsoft.Extensions.Configuration;
 
 namespace ScheduleLib.Cli;
 
@@ -66,14 +66,23 @@ public partial class AuthCommands
     }
 }
 
+public sealed class MicrosoftAuthConfig
+{
+    public required string TenantId { get; init; }
+    public required string ClientId { get; init; }
+}
+
 public static class MicrosoftCliConfiguration
 {
     public static MicrosoftAuthConfig Load()
     {
+        var configuration = new ConfigurationBuilder()
+            .AddUserSecrets(typeof(Commands).Assembly)
+            .Build();
         try
         {
-            return CredentialHelper.CreateDefaultConfiguration(typeof(Commands).Assembly)
-                .GetMicrosoftGraphAuth();
+            return configuration.GetRequiredSection("Microsoft").Get<MicrosoftAuthConfig>()
+                ?? throw new InvalidOperationException("Microsoft section is empty.");
         }
         catch (InvalidOperationException)
         {
