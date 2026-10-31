@@ -129,7 +129,8 @@ public partial class AuthCommands
                     "Google");
             }
 
-            using var authentication = new GoogleAuthentication();
+            using var authentication = new GoogleAuthentication(
+                logger: context.CreateLogger(typeof(GoogleAuthentication).FullName!));
             if (verb == "login")
             {
                 var credentials = new[]

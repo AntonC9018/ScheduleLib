@@ -5,7 +5,8 @@ namespace ScheduleLib.Cli;
 
 public partial class AuthCommands
 {
-    protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication() => new();
+    protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication(CliCommandContext context) =>
+        new(logger: context.CreateLogger(typeof(MicrosoftAuthentication).FullName!));
     protected virtual MicrosoftAuthConfig LoadMicrosoftConfig() => MicrosoftCliConfiguration.Load();
 
     private async Task<int> ExecuteMicrosoft(
@@ -32,7 +33,7 @@ public partial class AuthCommands
                 throw new JsonException("A teacher --profile is required. Use config profiles to list identities.");
             }
 
-            var authentication = CreateMicrosoftAuthentication();
+            var authentication = CreateMicrosoftAuthentication(context);
             if (verb == "login")
             {
                 await authentication.Login(

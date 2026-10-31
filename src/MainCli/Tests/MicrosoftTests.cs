@@ -363,7 +363,8 @@ public sealed class MicrosoftTests
 
     private sealed class FakeAuth(MicrosoftAuthentication authentication, bool forbidConfig = false) : AuthCommands
     {
-        protected override MicrosoftAuthentication CreateMicrosoftAuthentication() => authentication;
+        protected override MicrosoftAuthentication CreateMicrosoftAuthentication(CliCommandContext context) =>
+            authentication;
 
         protected override MicrosoftAuthConfig LoadMicrosoftConfig()
         {
