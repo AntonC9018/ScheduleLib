@@ -159,6 +159,36 @@ public sealed class PdfImportTests
     }
 
     [Theory]
+    [InlineData("Baze de date(lab)", "Baze de date(lab, imp)")]
+    [InlineData("Baze de date(ro)(lab)", "Baze de date(ro)(lab, imp)")]
+    [InlineData("Baze de date", "Baze de date (imp)")]
+    public void ParityRepairMarksOnlyTheLastParenthesizedNote(string firstLine, string expected)
+    {
+        var repairs = new PdfParityRepairs(
+            Reference: "clash-fixes.md",
+            Rules:
+            [
+                new(
+                    Group: "I2502(ru)",
+                    Day: "Vineri",
+                    Start: "11:30",
+                    Course: "Baze de date",
+                    Teacher: "Cr.Ulmanu",
+                    Parity: "imp"),
+            ]);
+        var cell = new PdfScheduleCell(
+            Source: "test",
+            1,
+            ["I2502(ru)"],
+            Day: "Vineri",
+            Start: "11:30",
+            Text: $"{firstLine}\nCr.Ulmanu 218/4a");
+
+        var repaired = PdfTextNormalizer.RepairMissingParity(cell, repairs);
+        Assert.Equal(expected: $"{expected}\nCr.Ulmanu 218/4a", actual: repaired.Text);
+    }
+
+    [Theory]
     [InlineData("2025-09-01", 0)]
     [InlineData("2026-09-01", 3)]
     [InlineData("2027-02-02", 0)]

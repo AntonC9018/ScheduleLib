@@ -120,9 +120,7 @@ public static class PdfTextNormalizer
                 continue;
             }
 
-            lines[0] = lines[0].Contains(')')
-                ? lines[0].Replace(")", $", {rule.Parity})")
-                : $"{lines[0]} ({rule.Parity})";
+            lines[0] = WithParityMarker(lines[0], rule.Parity);
             return cell with
             {
                 Text = string.Join('\n', lines),
@@ -130,5 +128,16 @@ public static class PdfTextNormalizer
             };
         }
         return cell;
+    }
+
+    /// <summary>Adds the parity to the last parenthesized note, so other notes such as a language stay intact.</summary>
+    private static string WithParityMarker(string line, string parity)
+    {
+        int closing = line.LastIndexOf(')');
+        if (closing < 0)
+        {
+            return $"{line} ({parity})";
+        }
+        return line.Insert(closing, $", {parity}");
     }
 }
