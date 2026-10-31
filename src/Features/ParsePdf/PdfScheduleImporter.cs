@@ -17,34 +17,27 @@ public static class PdfScheduleImporter
     private static readonly Regex Group = new(@"^(?:DU-)?[A-Z]+\d{4}\((?:ro|ru|en)\)$");
     private static readonly Regex Time = new(@"^[IV]+\s+(\d{1,2}:\d{2})-\d{1,2}:\d{2}$");
 
-    public static IReadOnlyList<PdfScheduleCell> Read(Stream pdf, string source)
+    public static IReadOnlyList<PdfScheduleCell> Read(Stream pdf, string source, PdfParityRepairs parityRepairs)
     {
-        var tables =
-            PdfTableReader.Read(pdf);
-        string source2 = source;
-        var resolve =
-            Resolve(tables, source2);
-        return resolve;
+        var tables = PdfTableReader.Read(pdf);
+        return Resolve(tables, source, parityRepairs);
     }
 
     public static void Import(
         ScheduleImportContext context,
         Stream pdf,
         string source,
+        PdfParityRepairs parityRepairs,
         ImportedLessonHandler? addLesson = null)
     {
-        var context2 = context;
-        var cells =
-            Read(pdf, source);
-        IEnumerable<PdfScheduleCell> cells2 = cells;
-        var addLesson2 = addLesson;
-        Import(
-            context2,
-            cells2,
-            addLesson2);
+        var cells = Read(pdf, source, parityRepairs);
+        Import(context, cells, addLesson);
     }
 
-    public static IReadOnlyList<PdfScheduleCell> Resolve(IReadOnlyList<PdfScheduleTable> tables, string source)
+    public static IReadOnlyList<PdfScheduleCell> Resolve(
+        IReadOnlyList<PdfScheduleTable> tables,
+        string source,
+        PdfParityRepairs parityRepairs)
     {
         var result = new List<PdfScheduleCell>();
         ColumnHeader[] columns = [];
@@ -202,14 +195,9 @@ public static class PdfScheduleImporter
                     Text: text,
                     RawText: rawText,
                     Bounds: bounds);
-                var list = result;
-                var
-                    expandCohorts = PdfTextNormalizer.ExpandCohorts(resolved);
-                Func<PdfScheduleCell,
-                    PdfScheduleCell> selector = PdfTextNormalizer.RepairMissingParity;
-                var
-                    collection = expandCohorts.Select(selector);
-                list.AddRange(collection);
+                var repaired = PdfTextNormalizer.ExpandCohorts(resolved)
+                    .Select(c => PdfTextNormalizer.RepairMissingParity(c, parityRepairs));
+                result.AddRange(repaired);
             }
         }
         return result;

@@ -4,15 +4,6 @@ namespace ScheduleLib.Import.Pdf;
 
 public static class PdfTextNormalizer
 {
-    /// <summary>A known cell whose study parity has to be restored after import.</summary>
-    private readonly record struct ParityRepairRule(
-        string Group,
-        string Day,
-        string Start,
-        string Course,
-        string Teacher,
-        string Parity);
-
     public static string Normalize(string text)
     {
         char separator = '\n';
@@ -114,71 +105,11 @@ public static class PdfTextNormalizer
         }
     }
 
-    public static PdfScheduleCell RepairMissingParity(PdfScheduleCell cell)
+    public static PdfScheduleCell RepairMissingParity(PdfScheduleCell cell, PdfParityRepairs repairs)
     {
-        // Source decisions in docs/wayfinder/2026-sem1-clash-fixes.md on the domain-model branch.
-        ParityRepairRule[] rules =
-        [
-            new(
-                Group: "IA2603(ru)",
-                Day: "Joi",
-                Start: "13:15",
-                Course: "Limba straina",
-                Teacher: "G.Ciudin",
-                Parity: "par"),
-            new(
-                Group: "IA2604(ru)",
-                Day: "Joi",
-                Start: "13:15",
-                Course: "Limba straina",
-                Teacher: "O.Basirov",
-                Parity: "imp"),
-            new(
-                Group: "I2502(ru)",
-                Day: "Vineri",
-                Start: "11:30",
-                Course: "Baze de date",
-                Teacher: "Cr.Ulmanu",
-                Parity: "imp"),
-        ];
-        foreach (var rule in rules)
+        foreach (var rule in repairs.Rules)
         {
-            bool CheckCondition()
-            {
-                if (cell.Groups.Length != 1)
-                {
-                    return true;
-                }
-
-                if (cell.Groups[0] != rule.Group)
-                {
-                    return true;
-                }
-
-                if (cell.Day != rule.Day)
-                {
-                    return true;
-                }
-
-                if (cell.Start != rule.Start)
-                {
-                    return true;
-                }
-
-                if (!cell.Text.Contains(rule.Course))
-                {
-                    return true;
-                }
-
-                if (!cell.Text.Contains(rule.Teacher))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
+            if (!rule.Matches(cell))
             {
                 continue;
             }
@@ -189,19 +120,13 @@ public static class PdfTextNormalizer
                 continue;
             }
 
-            string CalculateNewValue()
-            {
-                string newValue = $", {rule.Parity})";
-                return newValue;
-            }
-
             lines[0] = lines[0].Contains(')')
-                ? lines[0].Replace(")", CalculateNewValue())
-                : $"{lines[0]}{$" ({rule.Parity})"}";
+                ? lines[0].Replace(")", $", {rule.Parity})")
+                : $"{lines[0]} ({rule.Parity})";
             return cell with
             {
                 Text = string.Join('\n', lines),
-                Repair = $"Missing {rule.Parity} marker; documented in 2026-sem1-clash-fixes.md",
+                Repair = $"Missing {rule.Parity} marker; documented in {repairs.Reference}",
             };
         }
         return cell;

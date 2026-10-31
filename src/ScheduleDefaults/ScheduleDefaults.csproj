@@ -5,6 +5,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Features\OnlineRegistry\OnlineRegistry.csproj" />
+        <ProjectReference Include="..\Features\ParsePdf\ParsePdf.csproj" />
         <ProjectReference Include="..\ScheduleLib\ScheduleLib.Core\ScheduleLib.Core.csproj" />
     </ItemGroup>
 </Project>

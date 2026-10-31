@@ -14,7 +14,7 @@ public sealed class PdfImportTests
             AppContext.BaseDirectory,
             "Fixtures",
             source));
-        var actual = PdfScheduleImporter.Read(stream, source);
+        var actual = PdfScheduleImporter.Read(stream, source, PdfParityRepairs.None);
 
         string CalculateJson()
         {
@@ -125,6 +125,18 @@ public sealed class PdfImportTests
     [Fact]
     public void ParityRepairIsScopedAndIdempotent()
     {
+        var repairs = new PdfParityRepairs(
+            Reference: "clash-fixes.md",
+            Rules:
+            [
+                new(
+                    Group: "I2502(ru)",
+                    Day: "Vineri",
+                    Start: "11:30",
+                    Course: "Baze de date",
+                    Teacher: "Cr.Ulmanu",
+                    Parity: "imp"),
+            ]);
         var cell = new PdfScheduleCell(
             Source: "test",
             1,
@@ -132,17 +144,27 @@ public sealed class PdfImportTests
             Day: "Vineri",
             Start: "11:30",
             Text: "Baze de date(lab)\nCr.Ulmanu 218/4a");
-        var repaired = PdfTextNormalizer.RepairMissingParity(cell);
+
+        var repaired = PdfTextNormalizer.RepairMissingParity(cell, repairs);
         Assert.Equal(expected: "Baze de date(lab, imp)\nCr.Ulmanu 218/4a", actual: repaired.Text);
-        var expected2 = repaired;
-        var actual2 = PdfTextNormalizer.RepairMissingParity(repaired);
-        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.Equal(expected: "Missing imp marker; documented in clash-fixes.md", actual: repaired.Repair);
+        Assert.Equal(expected: repaired, actual: PdfTextNormalizer.RepairMissingParity(repaired, repairs));
+
         var monday = cell with
         {
             Day = "Luni",
         };
-        var expected3 = monday;
-        var actual3 = PdfTextNormalizer.RepairMissingParity(monday);
-        Assert.Equal(expected: expected3, actual: actual3);
+        Assert.Equal(expected: monday, actual: PdfTextNormalizer.RepairMissingParity(monday, repairs));
+        Assert.Equal(expected: cell, actual: PdfTextNormalizer.RepairMissingParity(cell, PdfParityRepairs.None));
+    }
+
+    [Theory]
+    [InlineData("2025-09-01", 0)]
+    [InlineData("2026-09-01", 3)]
+    [InlineData("2027-02-02", 0)]
+    public void ParityRepairsApplyOnlyToTheirVerifiedPeriod(string periodStart, int expectedRules)
+    {
+        var repairs = ScheduleLib.ScheduleDefaults.Config.PdfParityRepairsForPeriod(DateOnly.Parse(periodStart));
+        Assert.Equal(expected: expectedRules, actual: repairs.Rules.Count);
     }
 }

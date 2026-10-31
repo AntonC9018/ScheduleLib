@@ -27,17 +27,14 @@ public static class FmiPdfImport
         }
 
         var start = update.PeriodStart;
+        var parityRepairs = Config.PdfParityRepairsForPeriod(start);
         var cells = new List<PdfScheduleCell>();
         foreach (var source in update.Downloads)
         {
             cancellationToken.ThrowIfCancellationRequested();
             using var pdf = new MemoryStream(source.Content, writable: false);
-            var list = cells;
-            Stream pdf2 = pdf;
-            string source2 = $"orar{source.Link.Year}.pdf";
-            var collection = PdfScheduleImporter.Read(pdf2, source2);
-            IEnumerable<PdfScheduleCell> collection2 = collection;
-            list.AddRange(collection2);
+            string sourceName = $"orar{source.Link.Year}.pdf";
+            cells.AddRange(PdfScheduleImporter.Read(pdf, sourceName, parityRepairs));
         }
         if (cells.Count == 0)
         {

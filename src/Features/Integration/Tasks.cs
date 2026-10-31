@@ -205,19 +205,14 @@ public static class TasksHelper
                 return;
             }
 
+            var parityRepairs = ScheduleDefaults.Config.PdfParityRepairsForPeriod(period?.StartDate);
             var cells = new List<PdfScheduleCell>();
             foreach (var filePath in pdfs)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using var stream = File.OpenRead(filePath);
-                var list = cells;
-                Stream pdf = stream;
                 string source = Path.GetFileName(filePath);
-                var
-                    collection = PdfScheduleImporter.Read(pdf, source);
-                IEnumerable<PdfScheduleCell>
-                    collection2 = collection;
-                list.AddRange(collection2);
+                cells.AddRange(PdfScheduleImporter.Read(stream, source, parityRepairs));
             }
             if (cells.Count == 0)
             {

@@ -4,6 +4,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
+using ScheduleLib.Import.Pdf;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.Parsing.Lesson.Internal;
@@ -14,6 +15,48 @@ public static class Config
 {
     /// <summary>The user-secrets key under which the registry credentials are stored.</summary>
     public const string RegistryCredentialsConfigKey = "Curmanschii Anton:Registry";
+
+    /// <summary>Restores parity markers missing from the 2026 first-semester source PDFs.</summary>
+    private static readonly PdfParityRepairs Sem1Of2026ParityRepairs = new(
+        Reference:
+            "https://github.com/AntonC9018/ScheduleLib/blob/7e46e5bcfeaec550775243e610b34812475c4dcf/docs/wayfinder/2026-sem1-clash-fixes.md",
+        Rules:
+        [
+            new(
+                Group: "IA2603(ru)",
+                Day: "Joi",
+                Start: "13:15",
+                Course: "Limba straina",
+                Teacher: "G.Ciudin",
+                Parity: "par"),
+            new(
+                Group: "IA2604(ru)",
+                Day: "Joi",
+                Start: "13:15",
+                Course: "Limba straina",
+                Teacher: "O.Basirov",
+                Parity: "imp"),
+            new(
+                Group: "I2502(ru)",
+                Day: "Vineri",
+                Start: "11:30",
+                Course: "Baze de date",
+                Teacher: "Cr.Ulmanu",
+                Parity: "imp"),
+        ]);
+
+    /// <summary>
+    /// Selects the parity repairs verified for the source period starting at <paramref name="periodStart"/>.
+    /// Other periods are imported unchanged.
+    /// </summary>
+    public static PdfParityRepairs PdfParityRepairsForPeriod(DateOnly? periodStart)
+    {
+        if (periodStart >= new DateOnly(2026, 8, 1) && periodStart < new DateOnly(2027, 2, 1))
+        {
+            return Sem1Of2026ParityRepairs;
+        }
+        return PdfParityRepairs.None;
+    }
 
     public static CourseNameParserConfig CourseNameParser
     {
