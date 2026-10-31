@@ -32,18 +32,7 @@ public static class LabSubGroupMerges
 
     public static Schedule Project(Schedule source, bool enabled)
     {
-        bool conditionResult;
-        if (!enabled)
-        {
-            conditionResult = true;
-        }
-        else
-        {
-            conditionResult = source.AutomaticLabSubGroupMerges.IsEmpty;
-            conditionResult = !conditionResult;
-        }
-
-        if (conditionResult)
+        if (!enabled || !source.AutomaticLabSubGroupMerges.IsEmpty)
         {
             return source;
         }
@@ -55,20 +44,7 @@ public static class LabSubGroupMerges
         var labs = source.EnumerateWeeklyLessons()
             .Where(x => x.Lesson.Type == LessonType.Lab)
             .ToArray();
-        var candidates = labs.Where(x =>
-            {
-                if (!x.Lesson.Groups.IsSingleGroup)
-                {
-                    return false;
-                }
-
-                if (!x.Lesson.Groups.IsEmpty)
-                {
-                    return true;
-                }
-
-                return false;
-            })
+        var candidates = labs.Where(x => x.Lesson.Groups.IsSingleGroup && !x.Lesson.Groups.IsEmpty)
             .GroupBy(x => new Key(
                 x.Lesson.Course,
                 x.Lesson.Group,
@@ -98,28 +74,12 @@ public static class LabSubGroupMerges
             }
             if (candidate.Any(x =>
                 {
-                    bool CalculateConditionResult()
+                    if (!x.Date.Period.IsUnspecified)
                     {
-                        if (!x.Date.Period.IsUnspecified)
-                        {
-                            return false;
-                        }
-
-                        if (IsNumeric(x.Lesson.SubGroup))
-                        {
-                            return true;
-                        }
-
-                        if (x.Lesson.SubGroup == SubGroup.All)
-                        {
-                            return true;
-                        }
-
                         return false;
                     }
 
-                    bool conditionResult = CalculateConditionResult();
-                    return conditionResult;
+                    return IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All;
                 })
                 || applicable.Zip(applicable.Skip(1))
                     .Any(pair =>
@@ -131,37 +91,19 @@ public static class LabSubGroupMerges
             }
             if (labs.Any(x =>
                 {
-                    bool CheckCondition()
+                    if (x.Lesson.Groups.IsSingleGroup)
                     {
-                        if (x.Lesson.Groups.IsSingleGroup)
-                        {
-                            return false;
-                        }
-
-                        if (!x.Lesson.Groups.Contains(key.Group))
-                        {
-                            return false;
-                        }
-
-                        if (!(x.Lesson.Course == key.Course))
-                        {
-                            return false;
-                        }
-
-                        if (!(x.Lesson.Specialization == key.Specialization))
-                        {
-                            return false;
-                        }
-
-                        if (x.Lesson.Alternative == key.Alternative)
-                        {
-                            return true;
-                        }
-
                         return false;
                     }
 
-                    return CheckCondition();
+                    if (!x.Lesson.Groups.Contains(key.Group))
+                    {
+                        return false;
+                    }
+
+                    return x.Lesson.Course == key.Course
+                        && x.Lesson.Specialization == key.Specialization
+                        && x.Lesson.Alternative == key.Alternative;
                 }))
             {
                 Diagnose("Shared lab lessons require separate evidence for each parent group.");
@@ -192,49 +134,13 @@ public static class LabSubGroupMerges
                 continue;
             }
 
-            bool CalculateConditionResult2()
-            {
-                if (labels.Length != 0)
-                {
-                    return false;
-                }
-
-                if (whole.Length == 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult2 = CalculateConditionResult2();
-
-
-            if (conditionResult2)
+            if (labels.Length == 0 && whole.Length == 0)
             {
                 Diagnose("The latest group period has no replacement labs for this course partition.");
                 continue;
             }
 
-            bool CalculateConditionResult3()
-            {
-                if (labels.Length != 1)
-                {
-                    return false;
-                }
-
-                if (whole.Length != 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult3 = CalculateConditionResult3();
-
-
-            if (conditionResult3)
+            if (labels.Length == 1 && whole.Length != 0)
             {
                 Diagnose("The latest period mixes numeric and whole-group labs.");
                 continue;
@@ -250,28 +156,12 @@ public static class LabSubGroupMerges
             {
                 var previousLabs = candidate.Where(x =>
                     {
-                        bool CalculateConditionResult()
+                        if (x.Date.Period != previous)
                         {
-                            if (!(x.Date.Period == previous))
-                            {
-                                return false;
-                            }
-
-                            if (IsNumeric(x.Lesson.SubGroup))
-                            {
-                                return true;
-                            }
-
-                            if (x.Lesson.SubGroup == SubGroup.All)
-                            {
-                                return true;
-                            }
-
                             return false;
                         }
 
-                        bool conditionResult = CalculateConditionResult();
-                        return conditionResult;
+                        return IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All;
                     })
                     .ToArray();
                 var previousLabels = previousLabs.Where(x => IsNumeric(x.Lesson.SubGroup))
@@ -284,59 +174,15 @@ public static class LabSubGroupMerges
                     break;
                 }
 
-                bool CalculateConditionResult5()
-                {
-                    if (previousLabs.Length == 0)
-                    {
-                        return true;
-                    }
-                    if (labels.Length != 1)
-                    {
-                        return false;
-                    }
-
-                    if (previousLabels.Length != 1)
-                    {
-                        return false;
-                    }
-
-                    if (previousLabels[0] != labels[0])
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult5 = CalculateConditionResult5();
-
-
-                if (conditionResult5)
+                if (previousLabs.Length == 0
+                    || (labels.Length == 1 && previousLabels.Length == 1 && previousLabels[0] != labels[0]))
                 {
                     valid = false;
                     break;
                 }
             }
 
-            bool CalculateConditionResult4()
-            {
-                if (!valid)
-                {
-                    return true;
-                }
-
-                if (before.Length == 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult4 = CalculateConditionResult4();
-
-
-            if (conditionResult4)
+            if (!valid || before.Length == 0)
             {
                 Diagnose("No continuous earlier split-lab timetable proves a merge.");
                 continue;
@@ -348,15 +194,13 @@ public static class LabSubGroupMerges
             }
             var retained = labels.Length == 1 ? currentNumeric : whole;
             var survivor = labels.Length == 1 ? labels[0] : SubGroup.All;
-            var builder = merges;
-            DetectedLabSubGroupMerge item2 = new(
+            merges.Add(new(
                 key.Course,
                 key.Group,
                 key.Specialization,
                 key.Alternative,
                 survivor,
-                latest);
-            builder.Add(item2);
+                latest));
             foreach (var old in candidate.Where(x => IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All))
             {
                 suppressed.Add(old.Id);
@@ -382,14 +226,12 @@ public static class LabSubGroupMerges
 
             void Diagnose(string reason)
             {
-                var builder = diagnostics;
-                LabSubGroupMergeDiagnostic item = new(
+                diagnostics.Add(new(
                     key.Course,
                     key.Group,
                     key.Specialization,
                     key.Alternative,
-                    reason);
-                builder.Add(item);
+                    reason));
             }
         }
         return new()

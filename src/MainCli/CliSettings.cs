@@ -127,14 +127,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(type)
                 .Invoke(this, [key]);
-            var
-                sortedDictionary = values;
-            string key2 = key.Value;
-            var value2 = (JsonNode?) value;
-            var sources =
-                ContributingSources(key.Value);
-            SettingsValue value3 = new(value2, sources);
-            sortedDictionary.Add(key2, value3);
+            values.Add(key.Value, new((JsonNode?) value, ContributingSources(key.Value)));
         }
         return values;
     }
@@ -151,27 +144,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         var value = block.Value;
         foreach (var part in parts.Skip(1))
         {
-            bool conditionResult;
-            if (value is not JsonObject obj)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = obj.TryGetPropertyValue(part, out value);
-                conditionResult = !conditionResult;
-            }
-
-            if (conditionResult)
+            if (value is not JsonObject obj || !obj.TryGetPropertyValue(part, out value))
             {
                 throw new UnknownSettingsKeyException(key);
             }
         }
-        var value2 = value?.DeepClone();
-        var sources =
-            ContributingSources(key);
-        SettingsValue settingsValue = new(value2, sources);
-        return settingsValue;
+        return new(value?.DeepClone(), ContributingSources(key));
     }
 
     private IReadOnlyList<SettingsSource> ContributingSources(string key)
@@ -181,35 +159,17 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
             {
                 Keys = source.Keys.Where(x =>
                     {
-                        bool CheckCondition()
+                        if (x == key)
                         {
-                            if (x == key)
-                            {
-                                return true;
-                            }
-
-                            string text = x;
-                            string text2 = $"{key}.";
-                            string value = text2;
-                            var comparisonType = StringComparison.Ordinal;
-                            if (text.StartsWith(value, comparisonType))
-                            {
-                                return true;
-                            }
-
-                            string text3 = key;
-                            string text4 = $"{x}.";
-                            string value2 = text4;
-                            var comparisonType2 = StringComparison.Ordinal;
-                            if (text3.StartsWith(value2, comparisonType2))
-                            {
-                                return true;
-                            }
-
-                            return false;
+                            return true;
                         }
 
-                        return CheckCondition();
+                        if (x.StartsWith($"{key}.", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        return key.StartsWith($"{x}.", StringComparison.Ordinal);
                     })
                     .Order()
                     .ToArray(),
@@ -220,11 +180,9 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
 
     private JsonNode? GetNode<T>(NodeDataKey key) where T : class
     {
-        var key2 = new NodeDataKey<T>(key);
-        var value = Get(key2);
+        var value = Get(new NodeDataKey<T>(key));
         var node = JsonSerializer.SerializeToNode(value, _json);
-        var redact = CliSettings.Redact(node);
-        return redact;
+        return CliSettings.Redact(node);
     }
 
     public void Validate()
@@ -237,16 +195,10 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
             {
                 try
                 {
-                    Type CalculateTypeArguments()
-                    {
-                        var typeArguments = NodeDataKey.Registry.GetTypeFromKey(key);
-                        return typeArguments;
-                    }
-
                     typeof(ResolvedSettings).GetMethod(
                             nameof(ValidateBlock),
                             BindingFlags.NonPublic | BindingFlags.Instance)!
-                        .MakeGenericMethod(CalculateTypeArguments())
+                        .MakeGenericMethod(NodeDataKey.Registry.GetTypeFromKey(key))
                         .Invoke(this, [path, key]);
                 }
                 catch (TargetInvocationException e) when (e.InnerException is { } error)
@@ -257,16 +209,8 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
         }
     }
 
-    private void ValidateBlock<T>(NodePath path, NodeDataKey key) where T : class
-    {
-        NodeDataKey<T> CalculateKey()
-        {
-            var key2 = new NodeDataKey<T>(key);
-            return key2;
-        }
-
-        _ = path.ConstructValue(CalculateKey(), _provider);
-    }
+    private void ValidateBlock<T>(NodePath path, NodeDataKey key) where T : class =>
+        _ = path.ConstructValue(new NodeDataKey<T>(key), _provider);
 
     public void Dispose() => _provider.Dispose();
 
@@ -313,14 +257,10 @@ public static partial class CliSettings
     {
         get
         {
-            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string path2 = "ScheduleLib";
-            string path3 = FileName;
-            string combine = Path.Combine(
-                path1,
-                path2,
-                path3);
-            return combine;
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ScheduleLib",
+                FileName);
         }
     }
 
@@ -379,13 +319,7 @@ public static partial class CliSettings
                     WriteIndented = true,
                 };
             json.Converters.Insert(0, new ConfigColorConverter());
-            var iList =
-                json.Converters;
-            int index = 0;
-            var item =
-                new JsonStringEnumConverter(allowIntegerValues: false);
-            JsonConverter item2 = item;
-            iList.Insert(index, item2);
+            json.Converters.Insert(0, new JsonStringEnumConverter(allowIntegerValues: false));
             var user = await ReadFile(
                 userFile ?? UserFile,
                 json,
@@ -430,52 +364,23 @@ public static partial class CliSettings
                     .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
-                var list = sources;
-                string text = $"code profile: {coded.Key}";
-                string name2 = text;
-                var node2 = coded.Value;
-                var json2 = json;
-                var item3 = CodeSource(
-                    name2,
-                    node2,
-                    json2);
-                list.Add(
-                    item3);
-
-                string CalculateName()
-                {
-                    string text2 = $"user profile: {coded.Key}";
-                    string name3 = text2;
-                    return name3;
-                }
-
+                sources.Add(CodeSource($"code profile: {coded.Key}", coded.Value, json));
                 AddOverlay(
                     path,
                     sources,
                     user,
-                    name: CalculateName(),
+                    name: $"user profile: {coded.Key}",
                     user?.Profiles.GetValueOrDefault(coded.Key),
                     profile: coded.Key);
-
-                string CalculateName2()
-                {
-                    string text3 = $"project profile: {coded.Key}";
-                    string name4 = text3;
-                    return name4;
-                }
-
                 AddOverlay(
                     path,
                     sources,
                     local,
-                    name: CalculateName2(),
+                    name: $"project profile: {coded.Key}",
                     local?.Profiles.GetValueOrDefault(coded.Key),
                     profile: coded.Key);
                 AddCli(path, sources);
-                var dictionary = profilePaths;
-                string key2 = coded.Key;
-                NodePath value2 = new(path.ToImmutable());
-                dictionary.Add(key2, value2);
+                profilePaths.Add(coded.Key, new(path.ToImmutable()));
                 if (arguments.Profile == coded.Key)
                 {
                     selectedPath = path.ToImmutable();
@@ -488,30 +393,20 @@ public static partial class CliSettings
                 AddCli(path, selectedSources);
                 selectedPath = path.ToImmutable();
             }
-            var provider2 = provider;
-            var tree2 = tree;
-            NodePath path2 = new(selectedPath);
-            var json3 = json;
-            string? projectDirectory2 = project;
-            string? profile2 = arguments.Profile;
-            IReadOnlyList<string> profiles = codeProfiles.Keys.Order()
-                .ToArray();
-            IReadOnlyList<SettingsSource> sources2 =
-                selectedSources;
-            IReadOnlyDictionary<string,
-                NodePath> profilePaths2 = profilePaths;
-            NodePath globalPath2 = new(defaultsPath.ToImmutable());
+            var settingsPath = new NodePath(selectedPath);
+            var globalPath = new NodePath(defaultsPath.ToImmutable());
             var resolved = new ResolvedSettings(
-                provider2,
-                tree2,
-                path: path2,
-                json3,
-                projectDirectory: projectDirectory2,
-                profile: profile2,
-                profiles,
-                sources2,
-                profilePaths2,
-                globalPath: globalPath2);
+                provider,
+                tree,
+                path: settingsPath,
+                json,
+                projectDirectory: project,
+                profile: arguments.Profile,
+                codeProfiles.Keys.Order()
+                    .ToArray(),
+                selectedSources,
+                profilePaths,
+                globalPath: globalPath);
             resolved.Validate();
             return resolved;
 
@@ -530,25 +425,7 @@ public static partial class CliSettings
 
                 var actions = GetOperations(file.Operations, profile);
 
-                bool CalculateConditionResult()
-                {
-                    if (!(values is null))
-                    {
-                        return false;
-                    }
-
-                    if (actions is null)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (values is null && actions is null)
                 {
                     return;
                 }
@@ -580,21 +457,15 @@ public static partial class CliSettings
                     }
                 }
 
-                var list = sources;
-                string name2 = name;
-                string file2 = file.Path;
                 var leafKeys = LeafKeys(values);
-                var second = actions?.Cast<JsonObject>()
+                var actionKeys = actions?.Cast<JsonObject>()
                         .Select(x => x["key"]!.GetValue<string>())
                     ?? [];
-                var concat = leafKeys.Concat(
-                    second);
-                IReadOnlyList<string> keys = concat.ToArray();
-                SettingsSource item = new(
-                    Name: name2,
-                    File: file2,
-                    keys);
-                list.Add(item);
+                sources.Add(new(
+                    Name: name,
+                    File: file.Path,
+                    leafKeys.Concat(actionKeys)
+                        .ToArray()));
             }
 
             void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
@@ -606,18 +477,12 @@ public static partial class CliSettings
 
                 var node = new MutableNode();
                 new NodeBuilder(node, provider).GoogleCalendar()
-                    .ConfigureValue(x =>
-                    {
-                        var googleCalendarConfig = x;
-                        googleCalendarConfig.CalendarName = calendar;
-                    });
+                    .ConfigureValue(x => x.CalendarName = calendar);
                 path.Add(node);
-                var list = sources;
-                SettingsSource item = new(
+                sources.Add(new(
                     Name: "CLI arguments",
                     File: null,
-                    ["GoogleCalendarConfig.calendarName"]);
-                list.Add(item);
+                    ["GoogleCalendarConfig.calendarName"]));
             }
         }
         catch
@@ -651,8 +516,8 @@ public static partial class CliSettings
              directory is not null;
              directory = directory.Parent)
         {
-            string path2 = Path.Combine(directory.FullName, FileName);
-            if (File.Exists(path2))
+            string settingsPath = Path.Combine(directory.FullName, FileName);
+            if (File.Exists(settingsPath))
             {
                 return directory.FullName;
             }
@@ -728,25 +593,9 @@ public static partial class CliSettings
             envelope,
             ["schemaVersion", "defaults", "profiles", "operations"],
             path);
-        bool conditionResult2;
-        if (envelope["schemaVersion"] is not JsonValue version)
-        {
-            conditionResult2 = true;
-        }
-        else
-        {
-            bool conditionValue = version.TryGetValue<int>(out var schema);
-            if (!conditionValue)
-            {
-                conditionResult2 = true;
-            }
-            else
-            {
-                conditionResult2 = schema != 1;
-            }
-        }
-
-        if (conditionResult2)
+        if (envelope["schemaVersion"] is not JsonValue version
+            || !version.TryGetValue<int>(out var schema)
+            || schema != 1)
         {
             throw new UnsupportedSettingsSchemaVersionException(path);
         }
@@ -767,14 +616,7 @@ public static partial class CliSettings
                     throw new UnknownSettingsProfileException(profile: entry.Key, settingsPath: path);
                 }
 
-                var
-                    dictionary = profiles;
-                string key2 = entry.Key;
-                var block2 = entry.Value;
-                string text = $"profiles.{entry.Key}";
-                string location2 = text;
-                var value = ReadBlock(block2, location2);
-                dictionary.Add(key2, value);
+                profiles.Add(entry.Key, ReadBlock(entry.Value, $"profiles.{entry.Key}"));
             }
         }
         var operations = ReadOperations(
@@ -782,17 +624,11 @@ public static partial class CliSettings
             path,
             json,
             teachers);
-        string path2 = Path.GetFullPath(path);
-        var defaults2 = defaults;
-        var profiles2 =
-            profiles;
-        var operations2 = operations;
-        SettingsFile settingsFile = new(
-            path2,
-            Defaults: defaults2,
-            profiles2,
-            Operations: operations2);
-        return settingsFile;
+        return new(
+            Path.GetFullPath(path),
+            Defaults: defaults,
+            profiles,
+            Operations: operations);
 
         JsonObject? ReadBlock(JsonNode? block, string location)
         {
@@ -808,25 +644,8 @@ public static partial class CliSettings
 
             foreach (var setting in values)
             {
-                bool CalculateConditionResult()
-                {
-                    if (!location.StartsWith("profiles.", StringComparison.Ordinal))
-                    {
-                        return false;
-                    }
-
-                    if (setting.Key == "ScheduleDerivationConfig")
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (location.StartsWith("profiles.", StringComparison.Ordinal)
+                    && setting.Key == "ScheduleDerivationConfig")
                 {
                     throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
                 }
@@ -845,14 +664,7 @@ public static partial class CliSettings
                     json,
                     path);
 
-                string CalculateDirectory()
-                {
-                    string path2 = Path.GetFullPath(path);
-                    string directory = Path.GetDirectoryName(path2)!;
-                    return directory;
-                }
-
-                ResolvePaths(setting.Value, CalculateDirectory());
+                ResolvePaths(setting.Value, Path.GetDirectoryName(Path.GetFullPath(path))!);
                 // Separate CLI options; the desktop serializer's format and options remain unchanged.
                 try
                 {
@@ -890,9 +702,7 @@ public static partial class CliSettings
         NodeDataKey key,
         object value) where T : class
     {
-        var mutableNode = node;
-        var key2 = new NodeDataKey<T>(key);
-        var typed = mutableNode.GetOrAdd(key2);
+        var typed = node.GetOrAdd(new NodeDataKey<T>(key));
         typed.SetValue((T) value);
     }
 
@@ -940,29 +750,9 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                bool CalculateConditionResult()
-                {
-                    if (IsSecret(entry.Key))
-                    {
-                        return true;
-                    }
-                    if (entry.Key != "$type")
-                    {
-                        return false;
-                    }
-
-                    if (entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (IsSecret(entry.Key)
+                    || (entry.Key == "$type"
+                        && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource"))
                 {
                     throw new InlineSettingsSecretsUnsupportedException(file);
                 }
@@ -994,17 +784,7 @@ public static partial class CliSettings
                     throw new NullSettingsCollectionEntryException(file);
                 }
 
-                var node2 = item;
-                var genericArguments = type.GetGenericArguments();
-                int int32 = 0;
-                var type2 = genericArguments[int32];
-                var json2 = json;
-                string file2 = file;
-                NormalizeInheritance(
-                    node2,
-                    type2,
-                    json2,
-                    file2);
+                NormalizeInheritance(item, type.GetGenericArguments()[0], json, file);
             }
             return;
         }
@@ -1106,28 +886,12 @@ public static partial class CliSettings
             }
             else
             {
-                var node2 = JsonSerializer.SerializeToNode(
+                var serialized = JsonSerializer.SerializeToNode(
                     value,
                     value.GetType(),
                     json);
-                string prefix = config.Key.Value;
-                var leafKeys = LeafKeys(
-                    node2,
-                    prefix);
-                var leaves = leafKeys.ToArray();
-                var list = keys;
-                string[] collection;
-                if (leaves.Length == 0)
-                {
-                    collection = [config.Key.Value];
-                }
-                else
-                {
-                    collection = leaves;
-                }
-
-                IEnumerable<string> collection2 = collection;
-                list.AddRange(collection2);
+                var leaves = LeafKeys(serialized, config.Key.Value).ToArray();
+                keys.AddRange(leaves.Length == 0 ? [config.Key.Value] : leaves);
             }
         }
         return new(
@@ -1147,23 +911,8 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                string CalculatePrefix()
-                {
-                    string prefix2;
-                    if (prefix.Length == 0)
-                    {
-                        prefix2 = entry.Key;
-                    }
-                    else
-                    {
-                        string text = $"{prefix}.{entry.Key}";
-                        prefix2 = text;
-                    }
-
-                    return prefix2;
-                }
-
-                foreach (var key in LeafKeys(entry.Value, CalculatePrefix()))
+                var childPrefix = prefix.Length == 0 ? entry.Key : $"{prefix}.{entry.Key}";
+                foreach (var key in LeafKeys(entry.Value, childPrefix))
                 {
                     yield return key;
                 }
@@ -1508,19 +1257,15 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
         }
 
         var value = reader.GetString()!;
-        if (value.Length == 9)
+        if (value.Length == 9
+            && value[0] == '#'
+            && uint.TryParse(
+                value.AsSpan(1),
+                System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var argb))
         {
-            if (value[0] == '#')
-            {
-                if (uint.TryParse(
-                        value.AsSpan(1),
-                        System.Globalization.NumberStyles.HexNumber,
-                        System.Globalization.CultureInfo.InvariantCulture,
-                        out var argb))
-                {
-                    return Color.FromArgb(unchecked((int) argb));
-                }
-            }
+            return Color.FromArgb(unchecked((int) argb));
         }
 
         var color = Color.FromName(value);
@@ -1535,20 +1280,6 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
     public override void Write(
         Utf8JsonWriter writer,
         Color value,
-        JsonSerializerOptions options)
-    {
-        var utf8JsonWriter = writer;
-        string value2;
-        if (value.IsKnownColor)
-        {
-            value2 = value.Name;
-        }
-        else
-        {
-            string text = $"#{unchecked((uint) value.ToArgb()):X8}";
-            value2 = text;
-        }
-
-        utf8JsonWriter.WriteStringValue(value2);
-    }
+        JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.IsKnownColor ? value.Name : $"#{unchecked((uint) value.ToArgb()):X8}");
 }
