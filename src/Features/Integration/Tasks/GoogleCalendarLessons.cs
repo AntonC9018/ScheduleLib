@@ -151,7 +151,7 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         {
             runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (token) =>
             {
-                await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+                await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
                 {
                     await service.Events.Insert(ev, calendarId)
                         .ExecuteAsync(token);
@@ -229,7 +229,7 @@ internal static class GoogleCalendarServiceExtensions
         string calendarName,
         CancellationToken cancellationToken)
     {
-        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
             try
             {
@@ -250,7 +250,7 @@ internal static class GoogleCalendarServiceExtensions
         Calendar calendar,
         CancellationToken cancellationToken)
     {
-        var calendars = await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        var calendars = await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
             var calendars = await service.CalendarList.List()
                 .ExecuteAsync(cancellationToken);
@@ -258,13 +258,13 @@ internal static class GoogleCalendarServiceExtensions
         });
         if (calendars.Items.FirstOrDefault(x => x.Summary == calendar.Summary) is { } c)
         {
-            await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+            await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
             {
                 await service.Calendars.Delete(c.Id)
                     .ExecuteAsync(cancellationToken);
             });
         }
-        return await GoogleApiHelper1.ExecuteWithRetryAsync(async () =>
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
         {
             var result = await service.Calendars.Insert(calendar)
                 .ExecuteAsync(cancellationToken);

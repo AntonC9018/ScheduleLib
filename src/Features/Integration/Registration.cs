@@ -253,7 +253,6 @@ public static class Registration
                 services.AddOptions<ManifestDirectoriesOptions>();
                 services.AddStudyYear();
                 services.AddOptions<RegularSeminarDateConfig>();
-                services.AddOptions<GoogleDriveOptions>();
             }
         }
 
@@ -291,10 +290,7 @@ public static class Registration
                 services.AddScoped<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             }
 
-            {
-                services.AddScoped<SyncDriveFolderTaskHandler>();
-                services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
-            }
+            services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
             {
                 services.AddScoped<ThesesConversionTaskHandler>();
                 services.AddScoped<ListsForPredzashitaTaskHandler>();

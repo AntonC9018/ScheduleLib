@@ -44,8 +44,3 @@ public sealed class GoogleDriveConfigMapper : IDataMapper<GoogleDriveConfig, Bui
         };
     }
 }
-
-public sealed class GoogleDriveOptions
-{
-    public string ApplicationName { get; set; } = "ScheduleLib";
-}

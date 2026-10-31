@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using ScheduleLib.Builders;
 
 namespace ScheduleLib.Dates;
@@ -30,13 +29,6 @@ public readonly record struct SemesterDateRange
 
         return false;
     }
-}
-
-[InlineArray((int) Semester.Count)]
-public struct YearDateRange
-{
-    private Semester _value;
-    public readonly int Count => (int) Semester.Count;
 }
 
 public sealed class YearDateRangeBuilderModel
