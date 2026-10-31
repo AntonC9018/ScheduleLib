@@ -938,7 +938,7 @@ public sealed class RegistryLabDestinationTests
             _provider = AppConfiguration.BuildServiceProvider(services);
             AppConfiguration.ConfigureLayeredConfig(_provider);
             _scope = _provider.CreateMarkerScope(
-                marker => marker.TeacherName = NameHelper.Parse("Curmanschii Anton"));
+                marker => marker.TeacherName = NameHelper.Parse(TestProfiles.Owner));
         }
 
         public Navigator Navigator(

@@ -1167,7 +1167,7 @@ public sealed class GoogleCalendarProviderTests
                     },
                     new()
                     {
-                        Profile = "Nartea Nichita",
+                        Profile = TestProfiles.OtherTeacher,
                     },
                     new()
                     {

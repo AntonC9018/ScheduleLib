@@ -740,7 +740,7 @@ public sealed class GoogleDriveProviderTests
                 },
                 new()
                 {
-                    Profile = "Curmanschii Anton",
+                    Profile = TestProfiles.Owner,
                 },
                 new()
                 {
@@ -1089,7 +1089,7 @@ public sealed class GoogleDriveProviderTests
                     },
                     new()
                     {
-                        Profile = "Curmanschii Anton",
+                        Profile = TestProfiles.Owner,
                     },
                     new()
                     {

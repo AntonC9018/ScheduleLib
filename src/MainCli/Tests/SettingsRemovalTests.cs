@@ -26,13 +26,13 @@ public sealed class SettingsRemovalTests
             "--scope",
             "project",
             "--profile",
-            "Curmanschii Anton");
+            TestProfiles.Owner);
         Assert.Equal(
             expected: "",
             actual: await files.Get(
                 "GoogleCalendarConfig",
                 "--profile",
-                "Curmanschii Anton"));
+                TestProfiles.Owner));
         Assert.Equal(expected: "inherited", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "unset",
@@ -40,13 +40,13 @@ public sealed class SettingsRemovalTests
             "--scope",
             "project",
             "--profile",
-            "Curmanschii Anton");
+            TestProfiles.Owner);
         Assert.NotEqual(
             expected: "",
             actual: await files.Get(
                 "GoogleCalendarConfig",
                 "--profile",
-                "Curmanschii Anton"));
+                TestProfiles.Owner));
     }
 
     [Fact]

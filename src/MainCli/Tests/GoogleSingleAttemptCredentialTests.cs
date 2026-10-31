@@ -55,7 +55,7 @@ public sealed class GoogleSingleAttemptCredentialTests
         var failure = CliRemoteFailure.ClassifyGoogle(
             error,
             context,
-            "Curmanschii Anton",
+            TestProfiles.Owner,
             Messages);
         Assert.Equal(
             expected: requiresLogin ? CliExit.AuthenticationRequired : CliExit.IoFailure,

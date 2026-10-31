@@ -23,7 +23,7 @@ public sealed class SettingsWriteTests
                 await files.Get(
                     "ScheduleDerivationConfig.autoMergeLabSubGroups",
                     "--profile",
-                    "Curmanschii Anton")));
+                    TestProfiles.Owner)));
         var original = await File.ReadAllTextAsync(files.UserFile);
 
         string CalculatePath()
@@ -41,7 +41,7 @@ public sealed class SettingsWriteTests
             "--scope",
             "user",
             "--profile",
-            "Curmanschii Anton");
+            TestProfiles.Owner);
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Contains(expectedSubstring: "global", actualString: result.Error);
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.UserFile));
@@ -83,7 +83,7 @@ public sealed class SettingsWriteTests
             await files.Get(
                 "RegistryConfig.courseNames",
                 "--profile",
-                "Curmanschii Anton"));
+                TestProfiles.Owner));
     }
 
     [Fact]
@@ -114,13 +114,13 @@ public sealed class SettingsWriteTests
             "--scope",
             "project",
             "--profile",
-            "Curmanschii Anton");
+            TestProfiles.Owner);
         Assert.Equal(
             expected: "teacher",
             actual: await files.Get(
                 "GoogleCalendarConfig.calendarName",
                 "--profile",
-                "Curmanschii Anton"));
+                TestProfiles.Owner));
         Assert.Equal(expected: "project", actual: await files.Get("GoogleCalendarConfig.calendarName"));
         await files.Success(
             "unset",
@@ -134,13 +134,13 @@ public sealed class SettingsWriteTests
             "--scope",
             "project",
             "--profile",
-            "Curmanschii Anton");
+            TestProfiles.Owner);
         Assert.NotEqual(
             expected: "teacher",
             actual: await files.Get(
                 "GoogleCalendarConfig.calendarName",
                 "--profile",
-                "Curmanschii Anton"));
+                TestProfiles.Owner));
         await files.Success(
             "set",
             "GoogleCalendarConfig.credentials.credentialsPath",

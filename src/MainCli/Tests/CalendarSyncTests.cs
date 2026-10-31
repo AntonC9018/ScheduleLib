@@ -596,7 +596,7 @@ public sealed class CalendarSyncTests
                     },
                     new()
                     {
-                        Profile = "Nartea Nichita",
+                        Profile = TestProfiles.OtherTeacher,
                     },
                     new()
                     {

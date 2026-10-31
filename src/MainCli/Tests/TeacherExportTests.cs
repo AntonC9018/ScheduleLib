@@ -109,7 +109,7 @@ public sealed class TeacherExportTests
         var cell3 = sheet.Cell(row: 2, column: 3);
         string actual4 = cell3.GetString();
         Assert.Equal(expected: expected4, actual: actual4);
-        string expected5 = "Curmanschii Anton";
+        string expected5 = TestProfiles.Owner;
         var cell4 = sheet.Cell(row: 2, column: 4);
         string actual5 = cell4.GetString();
         Assert.Equal(expected: expected5, actual: actual5);
@@ -437,7 +437,7 @@ public sealed class TeacherExportTests
                 .EnumerateArray())
             .GetString();
         Assert.Contains(expectedSubstring: "maxTaskRows", actualString: error);
-        Assert.Contains(expectedSubstring: "Curmanschii Anton", actualString: error);
+        Assert.Contains(expectedSubstring: TestProfiles.Owner, actualString: error);
         Assert.Contains(expectedSubstring: "between 1 and 1048575", actualString: error);
 
         string CalculateExpectedSubstring()
@@ -627,7 +627,7 @@ public sealed class TeacherExportTests
             new()
             {
                 Project = files.Path,
-                Profile = "Nartea Nichita",
+                Profile = TestProfiles.OtherTeacher,
             }));
         Assert.Equal(expected: 3, actual: absent.Exit);
         Assert.Contains(expectedSubstring: "absent", actualString: absent.Stderr);
@@ -874,7 +874,7 @@ public sealed class TeacherExportTests
                 return new()
                 {
                     Project = Path,
-                    Profile = "Curmanschii Anton",
+                    Profile = TestProfiles.Owner,
                 };
             }
         }

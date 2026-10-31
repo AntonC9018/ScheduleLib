@@ -33,7 +33,7 @@ public sealed class CliRemoteFailureTests
         var failure = CliRemoteFailure.ClassifyGoogle(
             error,
             context,
-            "Curmanschii Anton",
+            TestProfiles.Owner,
             Messages);
         Assert.Equal(expected: exit, actual: failure.ExitCode);
         Assert.DoesNotContain(expectedSubstring: "synthetic-private-detail", actualString: string.Join('\n', failure.Errors));

@@ -12,7 +12,7 @@ using ScheduleLib.OnlineRegistry;
 
 public sealed class AuthenticationTests
 {
-    private const string Teacher = "Curmanschii Anton";
+    private const string Teacher = TestProfiles.Owner;
     private static readonly string[] Scopes = GoogleAuthentication.LoginScopes;
 
     [Fact]
@@ -289,11 +289,11 @@ public sealed class AuthenticationTests
             })
             .Execute(default);
         Assert.Equal(expected: 2, actual: fixture.Tokens.Consents);
-        await auth.Login("Nartea Nichita", fixture.Services)
+        await auth.Login(TestProfiles.OtherTeacher, fixture.Services)
             .WithCredentials(fixture.Config)
             .Execute(default);
         Assert.Equal(expected: 2, actual: (await auth.Status(Teacher, default)).Accounts.Count);
-        Assert.Single((await auth.Status("Nartea Nichita", default)).Accounts);
+        Assert.Single((await auth.Status(TestProfiles.OtherTeacher, default)).Accounts);
         var first = await auth.Resolve(
             new GoogleCredentialRequest(
                 fixture.Config,
@@ -303,7 +303,7 @@ public sealed class AuthenticationTests
             default);
         await auth.Logout(Teacher, default);
         Assert.Empty((await auth.Status(Teacher, default)).Accounts);
-        Assert.Single((await auth.Status("Nartea Nichita", default)).Accounts);
+        Assert.Single((await auth.Status(TestProfiles.OtherTeacher, default)).Accounts);
         await Assert.ThrowsAsync<IOException>(() => first.Flow.DataStore.StoreAsync(Teacher, first.Token));
         Assert.Empty((await auth.Status(Teacher, default)).Accounts);
         await auth.Logout(Teacher, default);

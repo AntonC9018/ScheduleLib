@@ -351,7 +351,7 @@ public sealed class CliJsonlTests
         {
             using var settings = await CliSettings.Load(new()
             {
-                Profile = "Curmanschii Anton",
+                Profile = TestProfiles.Owner,
             });
             var services = CliRuntime.CreateServices(
                 new()
@@ -1727,7 +1727,7 @@ public sealed class CliJsonlTests
             },
             new()
             {
-                Profile = "Nartea Nichita",
+                Profile = TestProfiles.OtherTeacher,
             },
             new()
             {
@@ -1789,7 +1789,7 @@ public sealed class CliJsonlTests
             },
             new()
             {
-                Profile = "Curmanschii Anton",
+                Profile = TestProfiles.Owner,
             },
             new()
             {
@@ -1882,7 +1882,7 @@ public sealed class CliJsonlTests
             },
             new()
             {
-                Profile = "Curmanschii Anton",
+                Profile = TestProfiles.Owner,
             },
             new()
             {
