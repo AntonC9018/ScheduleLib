@@ -165,3 +165,6 @@ explicitly unverified. No machine configuration changes are included here.
 
 [multiple-constructions]:
   ../../src/Features/Tests/OnlineRegistry/RegistryStudentCoverageTests.cs#L117
+
+Source line references in this record describe snapshot `9e09740`; line numbers
+may have shifted in later revisions.

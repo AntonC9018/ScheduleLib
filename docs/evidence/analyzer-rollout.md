@@ -174,3 +174,9 @@ Logs, TRX reports, inventories and source hashes are retained under the ignored
 referenced here were local, unpublished commits.
 
 [cr35]: https://github.com/AntonC9/CodingRules/pull/35
+
+## Additional run measurements
+
+The 384-warning solution run took 1m41s; the 340-warning CLI run took 38s.
+The earlier 486-warning CLI run took 34s, and its solution run took 1m13s.
+The corresponding review recorded 1,460 tests passed and 7 skipped.
