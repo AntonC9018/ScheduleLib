@@ -166,7 +166,7 @@ public sealed class TokenAuthHandler : IAuthHandler
         var ok = await _tokenContext.InitializeToken(cancellationToken: cancellationToken);
         if (!ok)
         {
-            throw new InvalidOperationException("Failed to retrieve token.");
+            throw new ScrapingAuthenticationException("Failed to retrieve token.");
         }
     }
 }
@@ -366,6 +366,9 @@ internal sealed class HttpClientRequester : BaseRequester
 }
 
 /// <summary>A mutation redirect whose destination was deliberately not requested.</summary>
+/// <summary>The site rejected the configured credentials or its login form could not be used.</summary>
+public sealed class ScrapingAuthenticationException(string message) : InvalidOperationException(message);
+
 public sealed class FormSubmissionRedirectException(Uri? location, HttpStatusCode statusCode)
     : IOException("Form submission redirected; the mutation result is unconfirmed.")
 {

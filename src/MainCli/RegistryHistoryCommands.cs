@@ -83,41 +83,22 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await using var scope = provider.CreateAsyncScope();
-        Credentials credentials;
+        const string missingCredentialsMessage =
+            "Registry credentials are missing; configure the selected teacher's existing credential source.";
+        var credentialsResolver =
+            scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>();
+        Credentials? credentials;
         try
         {
-            credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>()
-                .Get();
-
-            bool CheckCondition()
-            {
-                if (credentials is null)
-                {
-                    return true;
-                }
-
-                if (string.IsNullOrWhiteSpace(credentials.Login))
-                {
-                    return true;
-                }
-
-                if (string.IsNullOrWhiteSpace(credentials.Password))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
-            {
-                throw new InvalidOperationException();
-            }
+            credentials = credentialsResolver.Get();
         }
-        catch (InvalidOperationException)
+        catch (CredentialsMissingException error)
         {
-            throw new RegistryAuthenticationException(
-                "Registry credentials are missing; configure the selected teacher's existing credential source.");
+            throw new RegistryAuthenticationException(missingCredentialsMessage, error);
+        }
+        if (!RegistryCredentials.HasLoginAndPassword(credentials))
+        {
+            throw new RegistryAuthenticationException(missingCredentialsMessage);
         }
         // No schedule initialization, token cache writes, or current-course/group matching.
         var delay = scope.ServiceProvider.GetService<DataProvider<BuiltRegistryConfig>>()?.Get()
@@ -177,7 +158,7 @@ public partial class RegistryCommands
             {
                 _ = new RegistryHistoryTopicDirectory(history.LocalDirectory);
             }
-            catch (Exception)
+            catch (Exception error) when (error is IOException or ArgumentException)
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -286,10 +267,12 @@ public partial class RegistryCommands
         {
             return Finish(CliExit.Busy, "Another local registry history operation is active.");
         }
-        catch (Exception)
+        // The cause may contain private registry data, so it is classified but never echoed.
+        catch (Exception error)
         {
+            var exit = context.ClassifyInputFailure(error).ExitCode;
             return Finish(
-                CliExit.IoFailure,
+                exit,
                 "Registry history discovery failed or stopped. No remote changes were submitted.");
         }
 

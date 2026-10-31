@@ -3,11 +3,34 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.Cli;
 
-public sealed class RegistryAuthenticationException(string message) : Exception(message);
+public sealed class RegistryAuthenticationException(string message, Exception? innerException = null)
+    : Exception(message, innerException);
+
+internal static class RegistryCredentials
+{
+    public static bool HasLoginAndPassword(
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] Scraping.Common.Credentials? credentials)
+    {
+        if (credentials is null)
+        {
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(credentials.Login))
+        {
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(credentials.Password))
+        {
+            return false;
+        }
+        return true;
+    }
+}
 
 public sealed record RegistryDestination(string Account, string Destination);
 
@@ -106,41 +129,22 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             await provider.InitializeSchedule(token);
             scope = provider.CreateAsyncScope();
             hasScope = true;
-            Scraping.Common.Credentials credentials;
+            const string missingCredentialsMessage =
+                "Registry credentials are missing; configure the selected teacher's existing credential source.";
+            var credentialsResolver =
+                scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>();
+            Scraping.Common.Credentials? credentials;
             try
             {
-                credentials = scope.ServiceProvider.GetRequiredService<CredentialsResolver<BuiltRegistryConfig>>()
-                    .Get();
-
-                bool CheckCondition()
-                {
-                    if (credentials is null)
-                    {
-                        return true;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(credentials.Login))
-                    {
-                        return true;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(credentials.Password))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition())
-                {
-                    throw new InvalidOperationException();
-                }
+                credentials = credentialsResolver.Get();
             }
-            catch (InvalidOperationException)
+            catch (CredentialsMissingException error)
             {
-                throw new RegistryAuthenticationException(
-                    "Registry credentials are missing; configure the selected teacher's existing credential source.");
+                throw new RegistryAuthenticationException(missingCredentialsMessage, error);
+            }
+            if (!RegistryCredentials.HasLoginAndPassword(credentials))
+            {
+                throw new RegistryAuthenticationException(missingCredentialsMessage);
             }
             RegistryScrapingContext context;
             try
@@ -150,14 +154,11 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                     credentials,
                     token);
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
+            catch (ScrapingAuthenticationException error)
             {
                 throw new RegistryAuthenticationException(
-                    "Registry authentication failed using configured credentials.");
+                    "Registry authentication failed using configured credentials.",
+                    error);
             }
             var settings2 = resolved;
             var provider2 = provider;

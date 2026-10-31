@@ -883,7 +883,7 @@ public sealed class RegistryGradeAdapterTests
             new MemoryCookieProvider(),
             client,
             handler);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => MoodleScrapingContext.Create(
+        await Assert.ThrowsAsync<ScrapingAuthenticationException>(() => MoodleScrapingContext.Create(
             services,
             new()
             {
@@ -1165,6 +1165,49 @@ public sealed class RegistryGradeAdapterTests
         protected override IRegistryProvider CreateProvider() => session;
         protected override IRegistryGradePlanner CreateGradePlanner() => planner;
         protected override IRegistryAccountLock CreateAccountLock() => accountLock;
+    }
+
+    [Fact]
+    public async Task MoodleTransportFailureIsNotReportedAsAuthenticationFailure()
+    {
+        var transportFailure = new HttpRequestException("Moodle unreachable");
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            PlanWithFailingMoodle(transportFailure));
+        Assert.Same(expected: transportFailure, actual: error);
+    }
+
+    [Fact]
+    public async Task MoodleLoginRejectionChainsTheCause()
+    {
+        var rejection = new ScrapingAuthenticationException("Failed to retrieve token.");
+        var error = await Assert.ThrowsAsync<RegistryAuthenticationException>(() =>
+            PlanWithFailingMoodle(rejection));
+        Assert.Same(expected: rejection, actual: error.InnerException);
+    }
+
+    private static async Task PlanWithFailingMoodle(Exception failure)
+    {
+        using var settings = await CliSettings.Load(new());
+        settings.Tree.Defaults.Moodle()
+            .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
+            {
+                Value = new()
+                {
+                    Login = "test",
+                    Password = "test",
+                },
+            });
+        var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(collection);
+        await using var provider = AppConfiguration.BuildServiceProvider(collection);
+        await using var scope = provider.CreateAsyncScope();
+        await using var session = new Session(scope.ServiceProvider);
+        var planner = new ConfiguredRegistryGradePlanner((_, _, _) =>
+            Task.FromException<MoodleScrapingContext>(failure));
+        await planner.Plan(
+            session,
+            "123",
+            default);
     }
 
     private sealed class Session(IServiceProvider services) : IConfiguredRegistrySession, IRegistryProvider

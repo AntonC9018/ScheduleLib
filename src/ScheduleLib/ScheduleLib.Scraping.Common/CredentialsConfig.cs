@@ -112,6 +112,8 @@ public interface ICredentialsResolver
         CredentialsSource source);
 }
 
+public sealed class CredentialsMissingException(string message) : InvalidOperationException(message);
+
 [AutoConstructor]
 public sealed partial class CredentialsResolver : ICredentialsResolver
 {
@@ -132,7 +134,7 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
                         return credentials;
                     }
                     {
-                        throw new InvalidOperationException("Credentials must be given as per configuration");
+                        throw new CredentialsMissingException("Credentials must be given as per configuration");
                     }
                 }
             case ValueCredentialsSource v:
@@ -161,7 +163,7 @@ public sealed partial class CredentialsResolver<T>
         var config = _provider.Get();
         if (config is null)
         {
-            throw new InvalidOperationException("No credential config found");
+            throw new CredentialsMissingException("No credential config found");
         }
         var source = _sourceGetter(config);
         var ret = _generalResolver.Resolve(_serviceKey, source);

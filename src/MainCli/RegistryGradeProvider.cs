@@ -4,6 +4,7 @@ using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Scraping.Common.Config;
+using ScheduleLib.Scraping.Common;
 
 namespace ScheduleLib.Cli;
 
@@ -46,41 +47,21 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         }
 
         var services = configured.Services;
-        Scraping.Common.Credentials credentials;
+        const string missingCredentialsMessage =
+            "Moodle credentials are missing; configure the selected teacher's existing credential source.";
+        var credentialsResolver = services.GetRequiredService<CredentialsResolver<MoodleConfig>>();
+        Scraping.Common.Credentials? credentials;
         try
         {
-            credentials = services.GetRequiredService<CredentialsResolver<MoodleConfig>>()
-                .Get();
-
-            bool CheckCondition()
-            {
-                if (credentials is null)
-                {
-                    return true;
-                }
-
-                if (string.IsNullOrWhiteSpace(credentials.Login))
-                {
-                    return true;
-                }
-
-                if (string.IsNullOrWhiteSpace(credentials.Password))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
-            {
-                throw new InvalidOperationException();
-            }
+            credentials = credentialsResolver.Get();
         }
-        catch (InvalidOperationException)
+        catch (CredentialsMissingException error)
         {
-            throw new RegistryAuthenticationException(
-                "Moodle credentials are missing; configure the selected teacher's existing credential source.");
+            throw new RegistryAuthenticationException(missingCredentialsMessage, error);
+        }
+        if (!RegistryCredentials.HasLoginAndPassword(credentials))
+        {
+            throw new RegistryAuthenticationException(missingCredentialsMessage);
         }
         MoodleScrapingContext context;
         try
@@ -90,13 +71,11 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
                 credentials,
                 token);
         }
-        catch (OperationCanceledException)
+        catch (ScrapingAuthenticationException error)
         {
-            throw;
-        }
-        catch (Exception)
-        {
-            throw new RegistryAuthenticationException("Moodle authentication failed using configured credentials.");
+            throw new RegistryAuthenticationException(
+                "Moodle authentication failed using configured credentials.",
+                error);
         }
         using (context)
         {
