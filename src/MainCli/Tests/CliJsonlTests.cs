@@ -1234,7 +1234,7 @@ public sealed class CliJsonlTests
     {
         using var cancellation = new CancellationTokenSource();
         using var provider = new CalendarFake();
-        using var root = new TempRoot();
+        using var root = new TestTempDirectory("schedulelib-tests");
         var updates = new List<CalendarReport>();
         var result = await CalendarSync.Run(
             provider,
@@ -1301,7 +1301,7 @@ public sealed class CliJsonlTests
         };
         var previewUpdates = new List<CalendarReport>();
         using var previewProvider = new CalendarFake();
-        using var previewLock = new TempRoot();
+        using var previewLock = new TestTempDirectory("schedulelib-tests");
         var preview = await CalendarSync.Run(
             previewProvider,
             name: "Lessons",
@@ -1352,7 +1352,7 @@ public sealed class CliJsonlTests
 
         var applyUpdates = new List<CalendarReport>();
         using var applyProvider = new CalendarFake();
-        using var applyLock = new TempRoot();
+        using var applyLock = new TestTempDirectory("schedulelib-tests");
         var applied = await CalendarSync.Run(
             applyProvider,
             name: "Lessons",
@@ -1388,7 +1388,7 @@ public sealed class CliJsonlTests
     public async Task CalendarThrowingCallbackPreservesCompletedOutcomeWithoutRetry()
     {
         using var provider = new CalendarFake();
-        using var calendarLock = new TempRoot();
+        using var calendarLock = new TestTempDirectory("schedulelib-tests");
         var calls = 0;
         var failure = Assert.Throws<CalendarStreamingException>(() => CalendarSync.Run(
                 provider,
@@ -1428,7 +1428,7 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task DrivePlanIdsAreStableAcrossPreviewApplyAndTransitions()
     {
-        using var root = new TempRoot();
+        using var root = new TestTempDirectory("schedulelib-tests");
 
         string CalculatePath()
         {
@@ -1496,7 +1496,7 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task DriveThrowingCallbackPreservesCompletedOutcomeWithoutRetry()
     {
-        using var root = new TempRoot();
+        using var root = new TestTempDirectory("schedulelib-tests");
         using var provider = new DriveFake();
 
         string CalculatePath()
@@ -1782,7 +1782,7 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task DriveCommandPreviewStreamsPlanWithScalarFinal()
     {
-        using var output = new TempRoot();
+        using var output = new TestTempDirectory("schedulelib-tests");
         using var fake = new DriveFake();
         var (exit, stdout, _) = await CaptureJsonl(() => new FixtureDrive(fake).Publish(
             new()
@@ -2328,12 +2328,7 @@ public sealed class CliJsonlTests
         return directory;
     }
 
-    private sealed class TempRoot : IDisposable
-    {
-        public string Path { get; } = NewTempRoot();
 
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-    }
 
     private sealed class FixtureQuery : QueryCommands
     {

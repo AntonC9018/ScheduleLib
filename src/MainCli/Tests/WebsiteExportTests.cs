@@ -42,7 +42,7 @@ public sealed class WebsiteExportTests
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ScheduleKey1] = "mapped-teacher";
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "website");
         Directory.CreateDirectory(output);
         await File.WriteAllTextAsync(path: Path.Combine(output, "notes.txt"), contents: "user file");
@@ -109,7 +109,7 @@ public sealed class WebsiteExportTests
         var fixture = new FixtureWebsite();
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ScheduleKey1] = "mapped-teacher";
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "website");
         var (exit, stdout, _) = await Capture(async () =>
             await fixture.WebsiteSchedules(
@@ -139,7 +139,7 @@ public sealed class WebsiteExportTests
             LastName: teachers.ApiLast1,
             Slug: "mapped-teacher"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "theses");
         var (exit, stdout, _) = await Capture(async () =>
             await fixture.WebsiteTheses(
@@ -209,7 +209,7 @@ public sealed class WebsiteExportTests
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ScheduleKey1] = "aaa-valid-teacher";
         fixture.Slugs[teachers.ScheduleKey2] = "zzz-traversal/../../schedulelib-traversal-sentinel-sched";
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var sentinel = Path.Combine(temp.Path, "schedulelib-traversal-sentinel-sched.json");
         await File.WriteAllTextAsync(path: sentinel, contents: "sentinel-bytes");
         var output = Path.Combine(temp.Path, "website");
@@ -252,7 +252,7 @@ public sealed class WebsiteExportTests
         await File.WriteAllTextAsync(path: sentinel, contents: "sentinel-bytes");
         try
         {
-            using var temp = new TempDirectory();
+            using var temp = new TestTempDirectory("schedulelib-tests");
             var output = Path.Combine(temp.Path, "theses");
             var (exit, stdout, _) = await Capture(async () =>
                 await fixture.WebsiteTheses(
@@ -296,7 +296,7 @@ public sealed class WebsiteExportTests
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "output");
         var exit = command == "website-schedules"
             ? await fixture.WebsiteSchedules(
@@ -337,7 +337,7 @@ public sealed class WebsiteExportTests
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "output");
         var exit = command == "website-schedules"
             ? await fixture.WebsiteSchedules(
@@ -372,7 +372,7 @@ public sealed class WebsiteExportTests
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "output");
         var exit = command == "website-schedules"
             ? await fixture.WebsiteSchedules(
@@ -402,7 +402,7 @@ public sealed class WebsiteExportTests
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ScheduleKey1] = "Case-Teacher";
         fixture.Slugs[teachers.ScheduleKey2] = "case-teacher";
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "website");
         Directory.CreateDirectory(output);
         await File.WriteAllTextAsync(path: Path.Combine(output, "notes.txt"), contents: "user file");
@@ -445,7 +445,7 @@ public sealed class WebsiteExportTests
             LastName: "Ionescu",
             Slug: "case-teacher"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "theses");
         Directory.CreateDirectory(output);
         await File.WriteAllTextAsync(path: Path.Combine(output, "notes.txt"), contents: "user file");
@@ -481,7 +481,7 @@ public sealed class WebsiteExportTests
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.Slugs[teachers.ScheduleKey1] = "aaa-valid-teacher";
         fixture.Slugs[teachers.ScheduleKey2] = "SCHEDULELIB-MANIFEST";
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "website");
         Directory.CreateDirectory(output);
         await File.WriteAllTextAsync(path: Path.Combine(output, "notes.txt"), contents: "user file");
@@ -520,7 +520,7 @@ public sealed class WebsiteExportTests
             LastName: teachers.ApiLast1,
             Slug: "SCHEDULELIB-MANIFEST"));
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "theses");
         Directory.CreateDirectory(output);
         await File.WriteAllTextAsync(path: Path.Combine(output, "notes.txt"), contents: "user file");
@@ -564,7 +564,7 @@ public sealed class WebsiteExportTests
         Assert.Equal(expected: 0, actual: counts.LatestTeacherless);
         Assert.Equal(expected: 0, actual: counts.AllTeacherless);
         Assert.Equal(expected: counts.AllWeekly, actual: counts.LatestWeekly);
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var output = Path.Combine(temp.Path, "website");
         var (exit, stdout, _) = await Capture(async () =>
             await fixture.WebsiteSchedules(
@@ -985,17 +985,5 @@ public sealed class WebsiteExportTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-website-{Guid.NewGuid():N}";
-            return path2;
-        }
-    }
 }

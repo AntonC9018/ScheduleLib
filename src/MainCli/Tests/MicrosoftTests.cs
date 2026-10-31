@@ -25,7 +25,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task OrdinaryAuthenticationIsSilentAndHasExactLoginGuidance()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
         var authentication = new MicrosoftAuthentication(temp.Path, tokens);
         var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
@@ -64,7 +64,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task AccountPartitionsCancellationAndLogoutPreserveOtherTeachers()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
         var authentication = new MicrosoftAuthentication(temp.Path, tokens);
         await authentication.Login(
@@ -112,7 +112,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task TokenOperationsRejectConflictingStateAccess()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var authentication = new MicrosoftAuthentication(temp.Path, new FakeTokens());
         await authentication.Login(
             Config,
@@ -139,7 +139,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task MicrosoftCommandRouteUsesProviderAndEmitsRedactedStatus()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
 
         MicrosoftAuthentication CalculateAuthentication()
@@ -211,7 +211,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task StatusAndLogoutNeverResolveMicrosoftConfigurationOrConsent()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
 
         MicrosoftAuthentication CalculateAuthentication()
@@ -252,7 +252,7 @@ public sealed class MicrosoftTests
     [Fact]
     public async Task DifferentClientCannotUseProvisionedAccount()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
         var authentication = new MicrosoftAuthentication(temp.Path, tokens);
         await authentication.Login(
@@ -374,22 +374,5 @@ public sealed class MicrosoftTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(
-            System.IO.Path.GetTempPath(),
-            CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string toString = Guid.NewGuid()
-                .ToString("N");
-            string text = $"schedulelib-microsoft-{toString}";
-            string path2 = text;
-            return path2;
-        }
-    }
 }

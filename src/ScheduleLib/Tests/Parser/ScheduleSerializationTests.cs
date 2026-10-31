@@ -11,7 +11,7 @@ public sealed class ScheduleSerializationTests
     [InlineData(true)]
     public async Task OutputFormsRoundTripTheSameSchemaWithEmptyDefaultHash(bool usePath)
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var stream = new MemoryStream();
         var serialize = ScheduleSerializer.Serialize();
         var schedule = CreateSchedule("Course");
@@ -105,7 +105,7 @@ public sealed class ScheduleSerializationTests
     [Fact]
     public async Task LastSuccessfulSetterWinsAndExecutionRetainsConfiguration()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var replaced = new MemoryStream();
         using var final = new MemoryStream();
         var serialize = ScheduleSerializer.Serialize();
@@ -181,7 +181,7 @@ public sealed class ScheduleSerializationTests
     [InlineData(true)]
     public async Task ReexecutionRetainsInputOutputAndHash(bool usePath)
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var stream = new MemoryStream();
         var serialize = ScheduleSerializer.Serialize();
         var schedule = CreateSchedule("Course");
@@ -210,7 +210,7 @@ public sealed class ScheduleSerializationTests
     [InlineData(true)]
     public async Task PrecancelledExecutionDoesNotTouchOutputAndCanBeRetried(bool usePath)
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var previous = Encoding.UTF8.GetBytes("previous complete output");
         await File.WriteAllBytesAsync(temp.FilePath, previous);
         using var stream = new MemoryStream();
@@ -299,7 +299,7 @@ public sealed class ScheduleSerializationTests
     [Fact]
     public async Task FailedPublicationCleansStagingFileAndAllowsRetry()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         Directory.CreateDirectory(temp.FilePath);
         var sentinel = Path.Combine(temp.FilePath, "previous");
         await File.WriteAllTextAsync(path: sentinel, contents: "previous complete output");
@@ -347,20 +347,5 @@ public sealed class ScheduleSerializationTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
-        public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
-
-        public TempDirectory() => Directory.CreateDirectory(DirectoryPath);
-        public void Dispose() => Directory.Delete(DirectoryPath, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-    }
 }

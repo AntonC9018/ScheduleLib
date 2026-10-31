@@ -15,7 +15,7 @@ public sealed class ScheduleLoaderSerializationTests
     [InlineData("corrupt-json")]
     public async Task CacheHitsSkipImportAndChangedIdentityRebuilds(string change)
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var component = new Component();
         var loader = new ScheduleLoader
         {
@@ -76,7 +76,7 @@ public sealed class ScheduleLoaderSerializationTests
     [InlineData(true)]
     public async Task CancelledOrFailedRebuildKeepsCompleteCache(bool cancel)
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var component = new Component();
         var loader = new ScheduleLoader
         {
@@ -168,20 +168,5 @@ public sealed class ScheduleLoaderSerializationTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string DirectoryPath { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
 
-        public string FilePath => Path.Combine(DirectoryPath, "schedule.json");
-
-        public TempDirectory() => Directory.CreateDirectory(DirectoryPath);
-        public void Dispose() => Directory.Delete(DirectoryPath, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-    }
 }

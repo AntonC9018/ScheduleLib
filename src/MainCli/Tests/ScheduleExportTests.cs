@@ -55,7 +55,7 @@ public sealed class ScheduleExportTests
     [Fact]
     public async Task PortableFixturesProduceMatchingGroupPartitionTeacherArtifacts()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var pdfs = Path.Combine(temp.Path, "pdf");
         var calendars = Path.Combine(temp.Path, "ics");
         await Export(false, pdfs);
@@ -189,7 +189,7 @@ public sealed class ScheduleExportTests
     [Fact]
     public async Task MissingDatesReportSkippedCalendarsAndKeepUnrelatedFiles()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var notes = Path.Combine(temp.Path, "notes.txt");
         await File.WriteAllTextAsync(path: notes, contents: "caller data");
         using var capture = new Capture();
@@ -349,17 +349,5 @@ public sealed class ScheduleExportTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-formats-{Guid.NewGuid():N}";
-            return path2;
-        }
-    }
 }

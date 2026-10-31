@@ -64,7 +64,7 @@ public sealed class StorageTests
     [Fact]
     public async Task InvalidAttendanceSourceReturnsInputError()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
 
         string CalculatePath()
         {
@@ -104,7 +104,7 @@ public sealed class StorageTests
     [Fact]
     public async Task OwnershipPreservesUnrelatedFilesAndRejectsModifiedArtifacts()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var unrelated = Path.Combine(temp.Path, "notes.txt");
         await File.WriteAllTextAsync(path: unrelated, contents: "user file");
         await using (var output = await RunOutput.Create(
@@ -150,7 +150,7 @@ public sealed class StorageTests
     [Fact]
     public async Task TwoProcessesShareCompleteCacheAndGenerateRepresentativeWorkbooks()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var cache = Path.Combine(temp.Path, "cache");
         var firstOutput = Path.Combine(temp.Path, "first");
         var secondOutput = Path.Combine(temp.Path, "second");
@@ -256,7 +256,7 @@ public sealed class StorageTests
     [Fact]
     public async Task DefaultExportsOwnDistinctRunDirectories()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
         var cache = Path.Combine(temp.Path, "cache");
         using var first = Start(
@@ -304,7 +304,7 @@ public sealed class StorageTests
     [Fact]
     public async Task FailedScheduleRebuildKeepsPreviouslyDeserializableCache()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var source = Path.Combine(temp.Path, "sources");
         var fixtures = Path.Combine(AppContext.BaseDirectory, "fixtures");
         foreach (var file in Directory.EnumerateFiles(
@@ -371,7 +371,7 @@ public sealed class StorageTests
     [Fact]
     public async Task SeparateProcessOwnsDestinationAndInterruptedPublicationPreservesPreviousCache()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var cacheFile = Path.Combine(temp.Path, "schedule.json");
         await File.WriteAllTextAsync(path: cacheFile, contents: "previous complete cache");
         using (var writer = Start("interrupt", cacheFile))
@@ -432,7 +432,7 @@ public sealed class StorageTests
     [Fact]
     public async Task FailedAndCancelledWritesKeepPreviousFile()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var path = Path.Combine(temp.Path, "cache.json");
         await File.WriteAllTextAsync(path: path, contents: "previous");
         await Assert.ThrowsAsync<IOException>(() => AtomicFile.Publish(
@@ -508,17 +508,5 @@ public sealed class StorageTests
         return result;
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-storage-{Guid.NewGuid():N}";
-            return path2;
-        }
-    }
 }

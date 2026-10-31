@@ -487,7 +487,9 @@ public sealed class AuthenticationTests
 
     private sealed class Fixture : IDisposable
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        private readonly TestTempDirectory _temp = new("schedulelib-tests");
+
+        public string Root => _temp.Path;
 
         public FakeTokens Tokens { get; } = new();
 
@@ -513,17 +515,9 @@ public sealed class AuthenticationTests
         public void Dispose()
         {
             Services.Dispose();
-            Directory.Delete(Root, true);
+            _temp.Dispose();
         }
 
-        private static string CalculatePath2()
-        {
-            string toString = Guid.NewGuid()
-                .ToString("N");
-            string text = $"schedulelib-auth-{toString}";
-            string path2 = text;
-            return path2;
-        }
     }
 
     private sealed class FakeTokens : IGoogleTokenProvider, IDisposable

@@ -487,7 +487,7 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task ScheduleWithoutLessonsSucceedsWithAFullyFreeWeek()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var zi = Path.Combine(
             temp.Path,
             "2025_sem2",
@@ -835,19 +835,7 @@ public sealed class FreeHoursTests
         return $"{group}/{parity}/{modeName}";
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-free-hours-{Guid.NewGuid():N}";
-            return path2;
-        }
-    }
 
     private abstract class FixtureQueryBase : QueryCommands
     {

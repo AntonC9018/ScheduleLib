@@ -9,8 +9,9 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task PreviewAndApplyPreserveCaseInsensitiveMatchingDuplicatesAndDeletion()
     {
-        using var temp = new Temp();
-        var files = await temp.Artifacts(
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var files = await CreateArtifacts(
+            temp,
             "schedule.pdf",
             "new.ics",
             "schedulelib-manifest.json",
@@ -83,8 +84,8 @@ public sealed class DriveSyncTests
         int exit,
         string state)
     {
-        using var temp = new Temp();
-        var files = await temp.Artifacts("first.pdf", "second.ics");
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var files = await CreateArtifacts(temp, "first.pdf", "second.ics");
         using var fake = new Fake
         {
             Fail = fail,
@@ -105,7 +106,7 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task RejectedDeleteAndUnauthorizedCreateCannotBecomeSuccess()
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var rejectedDelete = new Fake
         {
             Remote = [new(Id: "old", Name: "old.txt")],
@@ -144,7 +145,7 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task PartialDeletionThenLostCreatePreservesCompletedIdentity()
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var fake = new Fake
         {
             Remote = [new(Id: "removed", Name: "old.txt")],
@@ -168,7 +169,7 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task CancellationBetweenActionsDoesNotStartNextMutation()
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var cancellation = new CancellationTokenSource();
         using var fake = new Fake
         {
@@ -190,7 +191,7 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task AliasesLockActualAccountFolderBeforeListingAndReleaseOnFailure()
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var fake = new Fake();
 
         string CalculatePath()
@@ -239,7 +240,7 @@ public sealed class DriveSyncTests
     [Fact]
     public async Task DestinationChangeUnderLockRefusesAllWrites()
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         using var fake = new Fake
         {
             ChangeFolder = true,
@@ -260,7 +261,7 @@ public sealed class DriveSyncTests
     [InlineData(true)]
     public async Task CommandBuildsRealBundleAndExcludesManifestsAndCallerFiles(bool apply)
     {
-        using var temp = new Temp();
+        using var temp = new TestTempDirectory("schedulelib-tests");
 
         string CalculatePath()
         {
@@ -375,6 +376,21 @@ public sealed class DriveSyncTests
         {
             Console.SetOut(original);
         }
+    }
+
+    private static async Task<DriveArtifact[]> CreateArtifacts(
+        TestTempDirectory temp,
+        params string[] names)
+    {
+        foreach (var name in names)
+        {
+            await File.WriteAllTextAsync(Path.Combine(temp.Path, name), "fixture bytes");
+        }
+
+        return names.Select(name => new DriveArtifact(
+                Name: name,
+                Path: Path.Combine(temp.Path, name)))
+            .ToArray();
     }
 
     [Theory]
@@ -627,42 +643,5 @@ public sealed class DriveSyncTests
         }
     }
 
-    private sealed class Temp : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public Temp() => Directory.CreateDirectory(Path);
-
-        public async Task<DriveArtifact[]> Artifacts(params string[] names)
-        {
-            foreach (var name in names)
-            {
-                await File.WriteAllTextAsync(path: System.IO.Path.Combine(Path, name), contents: "fixture bytes");
-            }
-
-            return names.Select(x =>
-                {
-                    DriveArtifact ProjectValue()
-                    {
-                        string operationValue = x;
-                        string operationValue2 = System.IO.Path.Combine(Path, x);
-                        string operationValue3 = operationValue2;
-                        var operationValue4 = new DriveArtifact(Name: operationValue, Path: operationValue3);
-                        return operationValue4;
-                    }
-
-                    return ProjectValue();
-                })
-                .ToArray();
-        }
-
-        public void Dispose() => Directory.Delete(Path, true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = Guid.NewGuid()
-                .ToString("N");
-            return path2;
-        }
-    }
 }

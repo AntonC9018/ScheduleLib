@@ -42,7 +42,7 @@ public sealed class FreeRoomsTests
     [Fact]
     public async Task WorkbookContainsBothParityWorksheetsAndFreeRooms()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var result = await Export(temp.Path);
         Assert.Equal(
             expected: 0,
@@ -290,7 +290,7 @@ public sealed class FreeRoomsTests
     [Fact]
     public async Task DefaultOutputLivesUnderTheProjectRoot()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var result = await Export(
             null,
             settings: new()
@@ -331,7 +331,7 @@ public sealed class FreeRoomsTests
     [Fact]
     public async Task ScheduleWithoutLessonsSucceedsWithAnEmptyWorkbook()
     {
-        using var source = new TempDirectory();
+        using var source = new TestTempDirectory("schedulelib-tests");
         var zi = Path.Combine(
             source.Path,
             "2025_sem2",
@@ -359,7 +359,7 @@ public sealed class FreeRoomsTests
             string file3 = Path.Combine(zi, "master.xlsx");
             xLWorkbook.SaveAs(file3);
         }
-        using var output = new TempDirectory();
+        using var output = new TestTempDirectory("schedulelib-tests");
         var result = await Export(outputDirectory: output.Path, dataDirectory: source.Path);
         Assert.Equal(
             expected: 0,
@@ -397,7 +397,7 @@ public sealed class FreeRoomsTests
     [Fact]
     public async Task CancelledExportReturns130BeforeLoading()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
 
         CancellationToken CalculateCancellationToken()
         {
@@ -428,7 +428,7 @@ public sealed class FreeRoomsTests
     [Fact]
     public async Task MissingSourceIsAConfigurationError()
     {
-        using var temp = new TempDirectory();
+        using var temp = new TestTempDirectory("schedulelib-tests");
         var original = Console.Out;
         using var output = new StringWriter();
         try
@@ -534,19 +534,7 @@ public sealed class FreeRoomsTests
         }
     }
 
-    private sealed class TempDirectory : IDisposable
-    {
-        public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), CalculatePath2());
 
-        public TempDirectory() => Directory.CreateDirectory(Path);
-        public void Dispose() => Directory.Delete(Path, recursive: true);
-
-        private static string CalculatePath2()
-        {
-            string path2 = $"schedulelib-free-rooms-{Guid.NewGuid():N}";
-            return path2;
-        }
-    }
 
     private sealed class FixtureExport : ExportCommands
     {

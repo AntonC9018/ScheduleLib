@@ -390,7 +390,9 @@ public sealed class SettingsWriteTests
 
     internal sealed class Fixture : IDisposable
     {
-        public string Root { get; } = Path.Combine(Path.GetTempPath(), CalculatePath2());
+        private readonly TestTempDirectory _temp = new("schedulelib-tests");
+
+        public string Root => _temp.Path;
 
         public string ProjectDirectory => Path.Combine(Root, "project");
         public string ProjectFile => Path.Combine(ProjectDirectory, CliSettings.FileName);
@@ -508,15 +510,7 @@ public sealed class SettingsWriteTests
                 .ToString();
         }
 
-        public void Dispose() => Directory.Delete(Root, recursive: true);
+        public void Dispose() => _temp.Dispose();
 
-        private static string CalculatePath2()
-        {
-            string toString = Guid.NewGuid()
-                .ToString("N");
-            string text = $"schedulelib-writes-{toString}";
-            string path2 = text;
-            return path2;
-        }
     }
 }
