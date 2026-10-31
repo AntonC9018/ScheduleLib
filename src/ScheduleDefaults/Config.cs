@@ -12,6 +12,9 @@ namespace ScheduleLib.ScheduleDefaults;
 
 public static class Config
 {
+    /// <summary>The user-secrets key under which the registry credentials are stored.</summary>
+    public const string RegistryCredentialsConfigKey = "Curmanschii Anton:Registry";
+
     public static CourseNameParserConfig CourseNameParser
     {
         get

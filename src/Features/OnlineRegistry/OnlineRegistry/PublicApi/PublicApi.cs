@@ -1240,8 +1240,6 @@ public static partial class RegistryScraping
         }
     }
 
-    public const string CredentialsConfigKey = "Curmanschii Anton:Registry";
-
     public static OnlineRegistryNavigator Navigator(
         this RegistryScrapingContext context,
         IServiceProvider sp,
