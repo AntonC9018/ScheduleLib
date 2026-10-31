@@ -87,7 +87,7 @@ public partial class RegistryCommands
             {
                 outputDirectory = new(history.LocalDirectory);
             }
-            catch (Exception)
+            catch (Exception error) when (error is IOException or ArgumentException)
             {
                 return Finish(
                     CliExit.InvalidArguments,
@@ -194,9 +194,11 @@ public partial class RegistryCommands
         {
             return Finish(CliExit.Busy, "Another local registry history operation is active.");
         }
-        catch (Exception)
+        // The cause may contain private registry data, so it is classified but never echoed.
+        catch (Exception error)
         {
-            return Finish(CliExit.IoFailure, "Registry history topic discovery failed or stopped.");
+            var exit = context.ClassifyInputFailure(error).ExitCode;
+            return Finish(exit, "Registry history topic discovery failed or stopped.");
         }
 
         int Finish(

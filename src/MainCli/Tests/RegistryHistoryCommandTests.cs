@@ -356,7 +356,7 @@ public sealed class RegistryHistoryCommandTests
 
             if (Fail)
             {
-                throw new Exception("canary-password canary-token canary-student");
+                throw new IOException("canary-password canary-token canary-student");
             }
 
             return Task.FromResult<IReadOnlyList<RegistryHistoryYearSummary>>(

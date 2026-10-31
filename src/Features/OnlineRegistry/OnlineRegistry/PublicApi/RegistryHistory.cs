@@ -25,7 +25,8 @@ public sealed class RegistryHistoryException(
     RegistryHistoryFailure failure = RegistryHistoryFailure.MarkupContract,
     RegistryHistoryPhase phase = RegistryHistoryPhase.Unknown,
     int? statusCode = null,
-    RegistryHistoryDiagnostic diagnostic = RegistryHistoryDiagnostic.None) : IOException(message)
+    RegistryHistoryDiagnostic diagnostic = RegistryHistoryDiagnostic.None,
+    Exception? innerException = null) : IOException(message, innerException)
 {
     public RegistryHistoryFailure Failure { get; } = failure;
     public RegistryHistoryPhase Phase { get; } = phase;
@@ -686,15 +687,22 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                     _stopped = true;
                     throw;
                 }
-                catch
+                catch (Exception error)
                 {
+                    // Any failure stops the session so the request is never replayed;
+                    // only transport faults are reported as such.
                     response?.Dispose();
                     _stopped = true;
-                    throw new RegistryHistoryException(
-                        "History transport failed; session stopped without replay.",
-                        RegistryHistoryFailure.TransportStopped,
-                        phase,
-                        diagnostic: RegistryHistoryDiagnostic.Transport);
+                    if (error is HttpRequestException or IOException)
+                    {
+                        throw new RegistryHistoryException(
+                            "History transport failed; session stopped without replay.",
+                            RegistryHistoryFailure.TransportStopped,
+                            phase,
+                            diagnostic: RegistryHistoryDiagnostic.Transport,
+                            innerException: error);
+                    }
+                    throw;
                 }
                 finally { _lastCompletion = DateTimeOffset.UtcNow; }
                 if (login)

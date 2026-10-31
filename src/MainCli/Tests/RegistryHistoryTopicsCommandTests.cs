@@ -232,7 +232,7 @@ public sealed class RegistryHistoryTopicsCommandTests
 
             if (Fail)
             {
-                throw new Exception("canary-password canary-student canary-topic");
+                throw new IOException("canary-password canary-student canary-topic");
             }
 
             Uri CalculateUri()
