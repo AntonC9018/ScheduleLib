@@ -181,6 +181,14 @@ public sealed class MicrosoftAuthentication(
         return combine;
     }
 
+    // Consent failures (declined, cancelled in the browser, rejected grant) need a new login.
+    // Service outages and client misconfiguration keep their own classification.
+    private static bool RequiresLogin(MsalException error) =>
+        error is MsalUiRequiredException
+        || error.ErrorCode is MsalError.AuthenticationCanceledError
+            or MsalError.AccessDenied
+            or MsalError.InvalidGrantError;
+
     private Task<LocalFileLock> Lease(string profile, CancellationToken token)
     {
         string path1 = ProfileDirectory(profile);
@@ -206,8 +214,7 @@ public sealed class MicrosoftAuthentication(
         {
             authorization = await _tokens.Consent(config, token);
         }
-        // Consent failures (declined, cancelled in the browser, rejected by the tenant) need a new login.
-        catch (MsalException error)
+        catch (MsalException error) when (RequiresLogin(error))
         {
             throw TranslatedFailureLog.Translated(
                 _logger,

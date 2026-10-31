@@ -136,6 +136,81 @@ public sealed class AuthenticationTests
         Assert.Same(expected: failure, actual: error);
     }
 
+    [Theory]
+    [InlineData("temporarily_unavailable")]
+    [InlineData("server_error")]
+    public async Task NonAuthenticationProviderErrorsAreNotReportedAsLoginRequired(string code)
+    {
+        using var fixture = new Fixture();
+        using var auth = fixture.Auth;
+        await auth.Login(Teacher, fixture.Services)
+            .WithCredentials(fixture.Config)
+            .Execute(default);
+        var file = Assert.Single(Directory.GetFiles(
+            path: fixture.Root,
+            searchPattern: "*.json",
+            SearchOption.AllDirectories));
+        var stored = await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher);
+        stored.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+        await new AtomicTokenStore(file).Write(stored, default);
+        var failure = ProviderError(code);
+        fixture.Tokens.RefreshError = failure;
+        fixture.Tokens.ConsentError = failure;
+
+        var refreshError = await Assert.ThrowsAsync<TokenResponseException>(() =>
+            auth.Resolve(
+                new GoogleCredentialRequest(
+                    fixture.Config,
+                    Scopes,
+                    Teacher,
+                    fixture.Services),
+                default));
+        var consentError = await Assert.ThrowsAsync<TokenResponseException>(() =>
+            auth.Login(Teacher, fixture.Services)
+                .WithCredentials(fixture.Config)
+                .Execute(default));
+
+        foreach (var error in new[] { refreshError, consentError })
+        {
+            Assert.Same(expected: failure, actual: error);
+            var classified = CliAuthenticationExecution.ClassifyGoogle(error);
+            Assert.Equal(expected: CliExit.Unexpected, actual: classified.ExitCode);
+            Assert.DoesNotContain(expectedSubstring: "secret", actualString: string.Join('\n', classified.Errors));
+        }
+        Assert.DoesNotContain(expectedSubstring: "translated", actualString: fixture.Log.All);
+        Assert.DoesNotContain(expectedSubstring: "secret", actualString: fixture.Log.All);
+        Assert.Equal(
+            expected: "access-secret",
+            actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
+    }
+
+    [Fact]
+    public async Task DeclinedConsentRequiresLogin()
+    {
+        using var fixture = new Fixture();
+        using var auth = fixture.Auth;
+        fixture.Tokens.ConsentError = ProviderError("access_denied");
+        var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
+            auth.Login(Teacher, fixture.Services)
+                .WithCredentials(fixture.Config)
+                .Execute(default));
+        Assert.Same(expected: fixture.Tokens.ConsentError, actual: error.InnerException);
+        Assert.Equal(
+            expected: CliExit.AuthenticationRequired,
+            actual: CliAuthenticationExecution.ClassifyGoogle(error).ExitCode);
+        Assert.DoesNotContain(expectedSubstring: "secret", actualString: error.Message);
+        Assert.DoesNotContain(expectedSubstring: "secret", actualString: fixture.Log.All);
+    }
+
+    private static TokenResponseException ProviderError(string code)
+    {
+        return new(new TokenErrorResponse
+        {
+            Error = code,
+            ErrorDescription = "provider leaked access-secret client-secret",
+        });
+    }
+
     [Fact]
     public async Task MissingScopesAndFailedRefreshRequireLoginAndRedactProviderErrors()
     {
@@ -569,6 +644,8 @@ public sealed class AuthenticationTests
 
         public bool CancelConsent { get; set; }
 
+        public Exception? ConsentError { get; set; }
+
         public Task<TokenResponse> Consent(
             GoogleTokenContext context,
             CancellationToken token)
@@ -577,6 +654,10 @@ public sealed class AuthenticationTests
             if (CancelConsent)
             {
                 throw new OperationCanceledException();
+            }
+            if (ConsentError is { } consentError)
+            {
+                throw consentError;
             }
 
             return Task.FromResult(new TokenResponse

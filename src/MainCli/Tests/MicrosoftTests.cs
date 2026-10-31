@@ -70,6 +70,67 @@ public sealed class MicrosoftTests
         Assert.Single((await authentication.Status(Teacher, default)).Accounts);
     }
 
+    public static TheoryData<MsalException> NonAuthenticationConsentFailures => new()
+    {
+        new MsalServiceException(errorCode: "temporarily_unavailable", errorMessage: "provider exposed access-secret"),
+        new MsalServiceException(errorCode: MsalError.RequestTimeout, errorMessage: "provider exposed access-secret"),
+        new MsalClientException(errorCode: MsalError.InvalidClient, errorMessage: "provider exposed access-secret"),
+    };
+
+    [Theory]
+    [MemberData(nameof(NonAuthenticationConsentFailures))]
+    public async Task NonAuthenticationConsentFailuresAreNotReportedAsLoginRequired(MsalException failure)
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        using var log = new DebugLogCapture();
+        var tokens = new FakeTokens
+        {
+            ConsentFailure = failure,
+        };
+        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
+        var error = await Assert.ThrowsAnyAsync<MsalException>(() => authentication.Login(
+            Config,
+            Teacher,
+            default));
+        Assert.Same(expected: failure, actual: error);
+        var classified = CliAuthenticationExecution.ClassifyMicrosoft(error, cancellationRequested: false);
+        Assert.Equal(expected: CliExit.Unexpected, actual: classified.ExitCode);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: string.Join('\n', classified.Errors));
+        Assert.DoesNotContain(expectedSubstring: "translated", actualString: log.All);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
+    }
+
+    public static TheoryData<MsalException> RejectedConsentFailures => new()
+    {
+        new MsalClientException(errorCode: MsalError.AuthenticationCanceledError, errorMessage: "provider exposed access-secret"),
+        new MsalServiceException(errorCode: MsalError.AccessDenied, errorMessage: "provider exposed access-secret"),
+        new MsalUiRequiredException(errorCode: MsalError.InvalidGrantError, errorMessage: "provider exposed access-secret"),
+    };
+
+    [Theory]
+    [MemberData(nameof(RejectedConsentFailures))]
+    public async Task RejectedConsentRequiresLogin(MsalException failure)
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        using var log = new DebugLogCapture();
+        var tokens = new FakeTokens
+        {
+            ConsentFailure = failure,
+        };
+        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
+        var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() => authentication.Login(
+            Config,
+            Teacher,
+            default));
+        Assert.Same(expected: failure, actual: error.InnerException);
+        Assert.Equal(
+            expected: CliExit.AuthenticationRequired,
+            actual: CliAuthenticationExecution.ClassifyMicrosoft(error, cancellationRequested: false).ExitCode);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.Message);
+        Assert.Contains(expectedSubstring: $"(code {failure.ErrorCode})", actualString: log.All);
+        Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
+    }
+
     [Fact]
     public async Task AccountPartitionsCancellationAndLogoutPreserveOtherTeachers()
     {
@@ -303,6 +364,7 @@ public sealed class MicrosoftTests
         public int SilentCalls;
         public Exception? SilentFailure;
         public bool CancelConsent;
+        public Exception? ConsentFailure;
         public string AccountId = "first-account";
 
         private MicrosoftToken Value()
@@ -333,6 +395,10 @@ public sealed class MicrosoftTests
             if (CancelConsent)
             {
                 throw new OperationCanceledException();
+            }
+            if (ConsentFailure is { } failure)
+            {
+                throw failure;
             }
 
             return Task.FromResult(Value());
