@@ -1,21 +1,5 @@
 # Runner, formatter and tooling measurements
 
-## AWS runner
-
-Builds and tests for the rollout ran sequentially on a temporary Terraform-managed `m7i-flex.large`
-(2 vCPU / 8 GiB). No local application data or credentials were uploaded.
-
-- The first runner was destroyed with Terraform (three managed resources); AWS queries confirmed
-  the instance, root volume, temporary SSH key and security group were gone and the Terraform
-  state was empty. Estimated compute cost was under $2 (an estimate, not a billing total) within
-  the authorized $100 budget. A later runner was cleaned up the same way.
-- A systemd watchdog (committed in `6a1c9e7` and `c5a4930`) renews a ten-minute lease on every
-  SSH connection, checked every fifteen seconds. Background jobs cannot renew it. Expiry stops
-  the instance and preserves its disk; explicit Terraform cleanup is still required.
-- Local restore remains unverified: the installed Nix .NET 11 runtime fails to load CoreCLR
-  because its `libcoreclr.so` requires `GLIBC_2.44` while the loaded `libm.so.6` comes from glibc
-  2.42. No Nix configuration change was made for this work.
-
 ## Formatter cost
 
 Measured on the 2-vCPU / 8-GiB worker; individual measurements, not controlled comparisons.
