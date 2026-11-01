@@ -14,6 +14,8 @@ day labels. The three committed PDF fixtures reproduce truncated time labels wit
 The reviewed PDF cells include the documented September 2026 parity repairs; their comparison must
 use `Config.PdfParityRepairsForPeriod` for that period instead of `PdfParityRepairs.None`.
 All 493 independently reviewed cell expectations remain unchanged after the positioning fix.
+Word imports sort filenames ordinally before parsing: filesystem enumeration order can change
+course alias unification, not just generated IDs. The existing Word snapshots catch this difference.
 The 2026 semester-one source regression additionally uses `IntegrationTestHelper.ScheduleVerify`
 to compare readable courses, teachers, groups, periods, and lesson times.
 

@@ -3,7 +3,8 @@
 Tracked in [#248](https://github.com/AntonC9018/ScheduleLib/issues/248); the registry privacy
 regression is also [#228](https://github.com/AntonC9018/ScheduleLib/issues/228). These failures
 predate the analyzer cleanup and were reproduced on AWS before any fix; they were not repaired,
-suppressed or weakened by it. Unfiltered suites stay red.
+suppressed or weakened by it. The original unfiltered suites stayed red; see the audit progress
+below.
 
 ## Failing cases
 
@@ -54,3 +55,38 @@ dotnet test All.sln -c Release --no-build --no-restore -m:1 --filter \
 ```
 
 Use `DiffEngine_Disabled=true` for test runs and run heavy jobs sequentially.
+
+## Baseline audit progress (#248, 2026-11-01)
+
+- Curriculum path parsing now handles both path separators and full paths. The filename test passes.
+  The full curriculum test remains a deterministic failure: discipline parsing was never completed.
+  Its enum-sized attendance lookup now includes null entries, the attendance guard is inverted,
+  course-name parsing explicitly throws, and other provision fields remain defaults. The original
+  `c1ec6e61` snapshot expected null provisions despite constructing that object; merge commits
+  `f5c8e429` and `681b392e` explicitly preserved the unfinished guard. Completing that feature needs
+  a scope decision; the regression test remains enabled and unchanged.
+- Website JSON expectations now reflect the intentional `DU2501` to `DU-IA2501` alias migration.
+- The live registry login declares `RequiresLiveService(ExternalServices.UsmStudentRegistry)` and
+  skips unless `SCHEDULELIB_LIVE_TESTS=1`. Opting in requires credentials; missing setup fails.
+  An offline synthetic response covers login request fields and token-cookie retention.
+- PDF text extraction uses baseline-derived positions independent of installed font fallback.
+  All three fixture tests fail with truncated time labels using the old positioning; all 35 PDF
+  tests pass with the fix. The 493 reviewed cells are unchanged and use their documented parity
+  repairs. Fresh and cached merge comparisons pass without changing their expectations.
+- The 2026 source regression retains dual-attendance assertions and gains a readable schedule
+  snapshot. Its optional canonical ordering removes discovery-order and ID noise while retaining
+  all 1,633 lessons, groups, courses, and periods. Existing snapshots keep their current ordering.
+- The #228 logger regression still rejects private canaries and student enumeration; public course
+  and group labels are permitted, as confirmed by the maintainer.
+- The three Desktop failures remain outside this audit's implementation scope, tracked by #271
+  under the Desktop epic #270. No tests were deleted or newly skipped except the live login.
+
+Verification runs locally, sequentially, with `DiffEngine_Disabled=true` and Release builds.
+The complete CLI suite passes all 806 cases, including the retained privacy and merge regressions.
+Repeated solution runs exposed filesystem-order dependence in Word imports: filename ordering
+changed both IDs and course alias unification. Word imports now sort filenames ordinally, keeping
+the existing snapshots as independent expectations. The stable 2026 snapshot passes on repeated runs.
+
+Final solution run: 724 cases, 712 passed, four failed, eight skipped. Remaining failures are the
+unchanged curriculum test and three excluded Desktop tests; the skips comprise seven pre-existing
+cases and the opt-in live login.
