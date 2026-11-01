@@ -274,7 +274,7 @@ public sealed class IntegrationTestHelper : IDisposable
 
         if (canonicalOrder)
         {
-            // Concurrent source loading can assign different model IDs and enumeration orders.
+            // Source discovery can assign different model IDs and enumeration orders.
             // The readable projection uses names for references, so assign snapshot-local IDs.
             foreach (var lesson in readableSchedule.Lessons)
             {
