@@ -343,29 +343,37 @@ public static class PdfTableReader
             .ToArray();
     }
 
+    /// <summary>
+    /// A point inside the glyph, derived from the advance-width baseline rather than the glyph
+    /// bounding box. PdfPig takes glyph boxes from the font program; for the non-embedded
+    /// Times New Roman in the FMI PDFs it falls back to the descriptor's FontBBox when the font is
+    /// not installed (e.g. on Linux), so every box is wider than the glyph and shifted right,
+    /// pushing trailing characters into the neighbouring cell. Baselines come from the PDF's own
+    /// /Widths and do not depend on installed fonts.
+    /// </summary>
+    private static PdfPoint LetterAnchor(Letter letter)
+    {
+        var start = letter.StartBaseLine;
+        var end = letter.EndBaseLine;
+        double dx = end.X - start.X;
+        double dy = end.Y - start.Y;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        var direction = length > 0
+            ? new PdfPoint(dx / length, dy / length)
+            : new PdfPoint(1, 0);
+        // Lift the point off the baseline towards the glyph's x-height, perpendicular to the text.
+        double lift = letter.PointSize / 3;
+        return new PdfPoint(
+            (start.X + end.X) / 2 - direction.Y * lift,
+            (start.Y + end.Y) / 2 + direction.X * lift);
+    }
+
     private static string ReadText(Page page, PdfBox bounds)
     {
         var letters = page.Letters.Where(l =>
             {
-                double CalculateX()
-                {
-                    double doubleValue = l.BoundingBox.Left + l.BoundingBox.Right;
-                    double x2 = doubleValue / 2;
-                    return x2;
-                }
-
-                double CalculateY()
-                {
-                    double doubleValue2 = page.Height;
-                    double doubleValue3 = l.BoundingBox.Top + l.BoundingBox.Bottom;
-                    double doubleValue4 = doubleValue3 / 2;
-                    double y2 = doubleValue2 - doubleValue4;
-                    return y2;
-                }
-
-                return bounds.Contains(
-                    x: CalculateX(),
-                    y: CalculateY());
+                var anchor = LetterAnchor(l);
+                return bounds.Contains(x: anchor.X, y: page.Height - anchor.Y);
             })
             .ToArray();
         if (letters.Length == 0)
