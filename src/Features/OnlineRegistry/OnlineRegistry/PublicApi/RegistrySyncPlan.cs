@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using AngleSharp.Dom;
 using ScheduleLib.Dates;
 
@@ -25,6 +26,7 @@ public interface IRegistrySyncNavigator
     }
 }
 
+[JsonConverter(typeof(RegistrySyncActionKindJsonConverter))]
 public enum RegistrySyncActionKind
 {
     Create,
@@ -44,6 +46,11 @@ public static class RegistrySyncActionKindExtensions
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
+}
+
+public sealed class RegistrySyncActionKindJsonConverter : WireNameJsonConverter<RegistrySyncActionKind>
+{
+    protected override string ToWire(RegistrySyncActionKind value) => value.ToLowercaseValue();
 }
 
 public sealed class RegistrySyncAction(

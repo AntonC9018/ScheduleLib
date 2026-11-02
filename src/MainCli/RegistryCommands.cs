@@ -13,7 +13,7 @@ public sealed class ApplyArguments : IArgumentModel
 }
 
 public sealed record RegistryActionOutcome(
-    string Kind,
+    RegistrySyncActionKind Kind,
     string Destination,
     string Course,
     string Groups,
@@ -287,7 +287,7 @@ public partial class RegistryCommands
             string? detail)
         {
             return new(
-                Kind: action.Kind.ToLowercaseValue(),
+                Kind: action.Kind,
                 Destination: action.Destination,
                 Course: action.Course,
                 Groups: action.Groups,
@@ -323,7 +323,7 @@ public partial class RegistryCommands
                 string CalculateLine()
                 {
                     string line =
-                        $"{outcome.Kind} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
+                        $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
                     return line;
                 }
 

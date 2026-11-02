@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ScheduleLib.Cli;
+using ScheduleLib.OnlineRegistry;
 
 public sealed class CliStatesTests
 {
@@ -7,6 +8,20 @@ public sealed class CliStatesTests
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    [Theory]
+    [InlineData(RegistrySyncActionKind.Create, "create")]
+    [InlineData(RegistrySyncActionKind.Update, "update")]
+    [InlineData(RegistrySyncActionKind.Delete, "delete")]
+    public void RegistryActionsKeepTheirWireNames(RegistrySyncActionKind kind, string wire)
+    {
+        var outcome = new RegistryActionOutcome(
+            kind, "destination", "course", "group", default, null, null,
+            ActionState.Planned, null);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(outcome, JsonOptions));
+        Assert.Equal(wire, document.RootElement.GetProperty("kind").GetString());
+        Assert.Equal(wire, kind.ToLowercaseValue());
+    }
 
     [Theory]
     [InlineData(ActionState.Planned, "planned")]
