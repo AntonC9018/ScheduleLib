@@ -143,17 +143,14 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     diagnostics.ReportRegistryLabRoutingUnresolved(
                         course: _schedule.Get(course.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule),
-                        detail: "Unresolved lab routing prevents intake cleanup.");
+                        @group: group.Groups.Value.ToString(_schedule));
                     continue;
                 }
                 if (routed[group.Uri].Keys.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
                 {
                     diagnostics.ReportRegistryLabFallbackPreserved(
                         course: _schedule.Get(course.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule),
-                        detail:
-                        "This list is needed for scoped fallback labs. Intake cleanup leaves its lesson columns and attendance unchanged.");
+                        @group: group.Groups.Value.ToString(_schedule));
                     continue;
                 }
                 var courseName = _schedule.Get(course.CourseId).FullName;
@@ -162,12 +159,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var unwanted = remote.Where(lesson => lesson.LessonType == LessonType.Lab)
                     .ToArray();
                 var marks = unwanted.Sum(lesson => lesson.Attendance.Count(IsRecordedMark));
-                string detail =
-                    $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.";
                 diagnostics.ReportUnsafeRegistryLabCleanup(
                     course: courseName,
                     @group: groupNames,
-                    detail: detail);
+                    columnCount: unwanted.Length, markCount: marks, destination: group.Uri);
                 var actions = unwanted.Select(lesson => new RegistrySyncAction(
                         kind: RegistrySyncActionKind.Delete,
                         destination: group.Uri.ToString(),

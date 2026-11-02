@@ -339,9 +339,7 @@ internal static class RegistryLessonRouting
 
                         diagnostics?.ReportAmbiguousRegistryDestination(
                             course: schedule.Get(lesson.Course).FullName,
-                            @group: CalculateGroup(),
-                            detail:
-                            "Multiple equally specific registry lists cover this lab audience. Correct the assignments; this audience was not routed by list order.");
+                            @group: CalculateGroup());
                         continue;
                     }
                     foreach (var destination in winners)

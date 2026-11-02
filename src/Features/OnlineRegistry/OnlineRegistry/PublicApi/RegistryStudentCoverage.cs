@@ -140,8 +140,7 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportAttendanceStudentsNotInRegistry(
                 course: schedule.Get(course).FullName,
                 @group: CalculateGroup(),
-                detail:
-                $"{missing} attendance students have no matching student in any relevant registry roster for {key.LessonType} ({RegistrySyncDiagnostics.DescribePartition(key.GroupPartition)}). Check enrollment and name mappings.");
+                count: missing, lessonType: key.LessonType, partition: key.GroupPartition);
         }
 
         // Related lists share one diagnostic, while each roster is checked only against
@@ -228,8 +227,7 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportUnmatchedAttendanceStudents(
                 course: schedule.Get(course).FullName,
                 @group: groups,
-                detail:
-                $"{count} registry students have no matching attendance row after all relevant rosters were considered for {types} ({partitions}). Check attendance worksheets and name mappings.");
+                count: count, lessonTypes: types, partitions: partitions);
         }
     }
 

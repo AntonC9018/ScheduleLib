@@ -123,8 +123,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 p.Diagnostics?.ReportRegistryDeletionRefused(
                     course: action.Course,
                     @group: action.Groups,
-                    detail:
-                    $"Skipped deletion on {action.Date:yyyy-MM-dd HH:mm}: the lesson remains unchanged. No retry was performed.");
+                    date: action.Date);
             }
             catch (RegistryActionExecutionException error) when (IsFormPreparationFailureBeforeSubmission(error))
             {
@@ -214,9 +213,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         iRegistryErrorHandler.LessonsDecidedErroneous(lessons2);
                         p.Diagnostics?.ReportRegistryAssignmentMismatch(
                             course: _schedule.Get(courseLink.CourseId).FullName,
-                            @group: group.Groups.Value.ToString(_schedule),
-                            detail:
-                            "The registry destination has no matching lessons assigned to this teacher. Check its assignment.");
+                            @group: group.Groups.Value.ToString(_schedule));
                         continue;
                     }
                     if (validity.Decision == LessonValidityDecision.Skip)
@@ -251,18 +248,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     if (selection.Lessons.Count == 0)
                     {
-                        string CalculateDetail()
-                        {
-                            string describePartition = RegistrySyncDiagnostics.DescribePartition(group.GroupPartition);
-                            string detail2 =
-                                $"No schedule lessons match {describePartition}. Check the registry assignment and schedule partition mapping.";
-                            return detail2;
-                        }
-
                         p.Diagnostics?.ReportRegistryPartitionMismatch(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
-                            detail: CalculateDetail());
+                            partition: group.GroupPartition);
                     }
 
                     continue;
@@ -274,9 +263,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     p.Diagnostics?.ReportEmptyRegistryRoster(
                         course: _schedule.Get(courseLink.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule),
-                        detail:
-                        "The registry destination has no student rows. Ask the registry administrator to check its enrollment; absences cannot be copied to an empty roster.");
+                        @group: group.Groups.Value.ToString(_schedule));
                 }
 
                 foreach (var lessonId in lessons)
@@ -314,9 +301,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     studentCoverageComplete = false;
                     p.Diagnostics?.ReportMissingScheduleDates(
                         course: _schedule.Get(courseLink.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule),
-                        detail:
-                        "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
+                        @group: group.Groups.Value.ToString(_schedule));
                     continue;
                 }
                 using var lessonsWithTimes = datedLessons.ToRentedBuffer();
@@ -373,8 +358,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         p.Diagnostics?.ReportMissingAttendanceSheet(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
-                            detail:
-                            $"No attendance rows were loaded for {key.Type} ({RegistrySyncDiagnostics.DescribePartition(key.Partition)}). Configure or correct the attendance worksheet for this course/group partition.");
+                            lessonType: key.Type, partition: key.Partition);
                     }
 
                     remapHelpers[key] = StudentNameRemapHelper.Create(
@@ -738,17 +722,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     inferredTypes);
                 foreach (var assessment in unresolvedAssessments)
                 {
-                    string CalculateDetail2()
-                    {
-                        string detail3 =
-                            $"Assessment on {assessment.DateTime:yyyy-MM-dd HH:mm} has no scope identifying its scheduled audience. Its entry and candidate sessions were preserved.";
-                        return detail3;
-                    }
-
                     p.Diagnostics?.ReportAmbiguousRegistryAssessment(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
-                        detail: CalculateDetail2());
+                        date: assessment.DateTime);
                 }
 
                 var arrangedLocal = new List<LessonInstance>();
@@ -886,8 +863,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     p.Diagnostics?.ReportMissingLessonTopics(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
-                        detail:
-                        $"{missingTopics} lessons have no configured topic for {RegistrySyncDiagnostics.DescribePartition(matchedGroupPartition)}. Add or correct the topic source for this course/group partition; text is copied without translation.");
+                        count: missingTopics, partition: matchedGroupPartition);
                 }
 
                 var actions = new List<RegistrySyncAction>();
@@ -1114,9 +1090,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 {
                     p.Diagnostics?.ReportMissingScheduleDates(
                         course: _schedule.Get(lesson.Lesson.Course).FullName,
-                        @group: lesson.Lesson.Groups.ToString(_schedule),
-                        detail:
-                        "Configure the semester date range for this group's grade, attendance mode, and qualification before synchronizing it.");
+                        @group: lesson.Lesson.Groups.ToString(_schedule));
                     continue;
                 }
                 if (!hasDates)

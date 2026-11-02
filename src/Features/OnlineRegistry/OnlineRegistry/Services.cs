@@ -73,8 +73,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     {
         _diagnostics?.ReportUnmatchedRegistryCourse(
             course: courseName,
-            @group: null,
-            detail: "Add or correct the course mapping in the schedule configuration.");
+            @group: null);
         LogCourseNotFound(courseName);
     }
 
@@ -123,8 +122,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     {
         _diagnostics?.ReportUnmatchedRegistryGroup(
             course: courseName,
-            @group: groupName,
-            detail: "Check the parent group, language, and subgroup mapping in the schedule configuration.");
+            @group: groupName);
         LogGroupNotFound(CourseName: courseName, GroupName: groupName);
     }
 
@@ -132,8 +130,7 @@ public sealed partial class RegistryErrorLogger : IRegistryErrorHandler
     {
         _diagnostics?.ReportUnrecognizedRegistryGroup(
             course: courseName,
-            @group: context.String,
-            detail: "Correct the registry group label or add support for its format.");
+            @group: context.String);
         _logger.LogWarning(
             "Could not parse registry group {Group} for {Course}",
             context.String,
