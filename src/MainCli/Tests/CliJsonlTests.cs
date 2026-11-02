@@ -1279,7 +1279,7 @@ public sealed class CliJsonlTests
         Assert.Equal(
             expected: [ActionState.Completed, ActionState.NotAttempted],
             actual: result.Outcomes.Select(x => x.State));
-        Assert.Equal(expected: CalendarActions.CreateCalendar, actual: result.Outcomes[1].Action);
+        Assert.Equal(expected: CalendarActionKind.CreateCalendar, actual: result.Outcomes[1].Action);
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(
             expected: ["1", "2"],

@@ -12,7 +12,7 @@ public sealed record CalendarDestination(string Id, string Summary, bool Primary
 public sealed record CalendarEventIdentity(string Id, string? Summary);
 
 public sealed record CalendarActionOutcome(
-    string Action,
+    CalendarActionKind Action,
     string? CalendarId,
     string? EventId,
     ActionState State,
@@ -186,7 +186,7 @@ public static class CalendarSync
         {
             var list = plan;
             string id2 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string action2 = CalendarActions.DeleteCalendar;
+            var action2 = CalendarActionKind.DeleteCalendar;
             string calendarId = existing.Id;
             int? desiredEventIndex = null;
             CalendarPlanStep item2 = new(
@@ -199,7 +199,7 @@ public static class CalendarSync
 
         var list2 = plan;
         string id3 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        string action3 = CalendarActions.CreateCalendar;
+        var action3 = CalendarActionKind.CreateCalendar;
         string? calendarId2 = null;
         int? desiredEventIndex2 = null;
         CalendarPlanStep item3 = new(
@@ -212,7 +212,7 @@ public static class CalendarSync
         {
             var list3 = plan;
             string id4 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string action4 = CalendarActions.CreateEvent;
+            var action4 = CalendarActionKind.CreateEvent;
             string? calendarId3 = null;
             int? desiredEventIndex3 = planIndex;
             CalendarPlanStep item4 = new(
@@ -383,7 +383,7 @@ public static class CalendarSync
             return Result(CliExit.Success, []);
         }
 
-        var action = CalendarActions.DeleteCalendar;
+        var action = CalendarActionKind.DeleteCalendar;
         string? eventId = null;
         var attempted = false;
         int? desiredIndex = null;
@@ -401,7 +401,7 @@ public static class CalendarSync
                     EventId: null,
                     State: ActionState.Completed));
             }
-            action = CalendarActions.CreateCalendar;
+            action = CalendarActionKind.CreateCalendar;
             attempted = false;
             token.ThrowIfCancellationRequested();
             attempted = true;
@@ -420,7 +420,7 @@ public static class CalendarSync
             {
                 var ev = desired[index];
                 desiredIndex = index;
-                action = CalendarActions.CreateEvent;
+                action = CalendarActionKind.CreateEvent;
                 eventId = null;
                 attempted = false;
                 token.ThrowIfCancellationRequested();
@@ -505,7 +505,7 @@ public static class CalendarSync
 
         void AddCurrentOutcome(ActionState state)
         {
-            string? calendarId = action == CalendarActions.DeleteCalendar ? existing?.Id : created;
+            string? calendarId = action == CalendarActionKind.DeleteCalendar ? existing?.Id : created;
             AddOutcome(new CalendarActionOutcome(
                 Action: action,
                 CalendarId: calendarId,
@@ -562,10 +562,3 @@ public static class CalendarSync
     }
 }
 
-/// <summary>The wire names of the calendar replacement actions.</summary>
-public static class CalendarActions
-{
-    public const string DeleteCalendar = "delete calendar";
-    public const string CreateCalendar = "create calendar";
-    public const string CreateEvent = "create event";
-}

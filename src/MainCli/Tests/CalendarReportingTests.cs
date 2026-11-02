@@ -5,6 +5,23 @@ using ScheduleLib.Cli;
 public sealed class CalendarReportingTests
 {
     [Theory]
+    [InlineData(CalendarActionKind.DeleteCalendar, "delete calendar")]
+    [InlineData(CalendarActionKind.CreateCalendar, "create calendar")]
+    [InlineData(CalendarActionKind.CreateEvent, "create event")]
+    public void ActionKindsPreserveJsonAndHumanOutput(CalendarActionKind action, string wire)
+    {
+        var outcome = new CalendarActionOutcome(action, null, null, ActionState.Planned);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(outcome));
+        Assert.Equal(wire, document.RootElement.GetProperty("Action").GetString());
+        Assert.Equal(
+            $"{wire}: planned; calendar ; event ; desired index ",
+            new CalendarActionMessage(outcome).Format(CultureInfo.InvariantCulture));
+        Assert.Equal(
+            $"{wire}: not-attempted; desired index 2",
+            new CalendarNotAttemptedMessage(action, 2).Format(CultureInfo.InvariantCulture));
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -186,7 +203,7 @@ public sealed class CalendarReportingTests
         }
         Assert.Equal(
             expected: "create event: not-attempted; desired index 2",
-            actual: new CalendarNotAttemptedMessage("create event", 2).Format(CultureInfo.InvariantCulture));
+            actual: new CalendarNotAttemptedMessage(CalendarActionKind.CreateEvent, 2).Format(CultureInfo.InvariantCulture));
     }
 
     private sealed class FormattingProbe

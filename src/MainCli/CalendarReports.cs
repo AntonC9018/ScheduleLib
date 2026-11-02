@@ -4,7 +4,7 @@ namespace ScheduleLib.Cli;
 
 public readonly record struct CalendarPlanStep(
     string Id,
-    string Action,
+    CalendarActionKind Action,
     string? CalendarId,
     int? DesiredEventIndex);
 
@@ -20,14 +20,14 @@ public readonly record struct CalendarActionMessage(CalendarActionOutcome Outcom
     {
         return string.Create(
             provider,
-            $"{Outcome.Action}: {Outcome.State.ToWire()}; calendar {Outcome.CalendarId}; event {Outcome.EventId}; desired index {Outcome.DesiredEventIndex}");
+            $"{Outcome.Action.ToWire()}: {Outcome.State.ToWire()}; calendar {Outcome.CalendarId}; event {Outcome.EventId}; desired index {Outcome.DesiredEventIndex}");
     }
 }
 
-public readonly record struct CalendarNotAttemptedMessage(string Action, int? DesiredEventIndex) : ICliMessage
+public readonly record struct CalendarNotAttemptedMessage(CalendarActionKind Action, int? DesiredEventIndex) : ICliMessage
 {
     public string Format(IFormatProvider provider) =>
-        string.Create(provider, $"{Action}: {ActionState.NotAttempted.ToWire()}; desired index {DesiredEventIndex}");
+        string.Create(provider, $"{Action.ToWire()}: {ActionState.NotAttempted.ToWire()}; desired index {DesiredEventIndex}");
 }
 
 public readonly record struct CalendarDeletedEventMessage(string Id, string? Summary) : ICliMessage
