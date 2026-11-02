@@ -286,7 +286,7 @@ public sealed class DriveSyncTests
                     },
                     new()
                     {
-                        Profile = "Curmanschii Anton",
+                        Profile = TestProfiles.Owner,
                     },
                     new()
                     {
@@ -424,7 +424,7 @@ public sealed class DriveSyncTests
                     },
                     new()
                     {
-                        Profile = "Curmanschii Anton",
+                        Profile = TestProfiles.Owner,
                     },
                     new(),
                     new()
@@ -469,7 +469,7 @@ public sealed class DriveSyncTests
             CancellationToken token)
         {
             return fake is null
-                ? throw new AuthenticationRequiredException(provider: "google", teacher: "Curmanschii Anton")
+                ? throw new AuthenticationRequiredException(provider: "google", teacher: TestProfiles.Owner)
                 : Task.FromResult(fake);
         }
     }

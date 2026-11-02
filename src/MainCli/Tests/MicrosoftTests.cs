@@ -9,7 +9,7 @@ using File = System.IO.File;
 
 public sealed class MicrosoftTests
 {
-    private const string Teacher = "Curmanschii Anton";
+    private const string Teacher = TestProfiles.Owner;
 
     private static MicrosoftAuthConfig Config
     {
@@ -148,7 +148,7 @@ public sealed class MicrosoftTests
             default);
         await authentication.Login(
             Config,
-            "Nartea Nichita",
+            TestProfiles.OtherTeacher,
             default);
         tokens.CancelConsent = true;
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => authentication.Login(
@@ -175,7 +175,7 @@ public sealed class MicrosoftTests
 
         await authentication.Logout(Teacher, default);
         Assert.Empty((await authentication.Status(Teacher, default)).Accounts);
-        Assert.Single((await authentication.Status("Nartea Nichita", default)).Accounts);
+        Assert.Single((await authentication.Status(TestProfiles.OtherTeacher, default)).Accounts);
         await authentication.Logout(Teacher, default);
     }
 

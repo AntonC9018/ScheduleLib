@@ -397,7 +397,7 @@ public sealed class RegistryGradeTests
     {
         using var settings = await CliSettings.Load(new()
         {
-            Profile = "Curmanschii Anton",
+            Profile = TestProfiles.Owner,
         });
         var services = CliRuntime.CreateServices(
             new()

@@ -28,7 +28,7 @@ public sealed class SettingsTests
             """{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":null}}}""");
         using (var settings = await files.Load(new()
         {
-            Profile = "Curmanschii Anton",
+            Profile = TestProfiles.Owner,
         }))
         {
             var global2 = settings.GetGlobal(ScheduleDerivationConfig.Key);
@@ -44,7 +44,7 @@ public sealed class SettingsTests
             """{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":false}}}""");
         using var overridden = await files.Load(new()
         {
-            Profile = "Nartea Nichita",
+            Profile = TestProfiles.OtherTeacher,
         });
         var global3 = overridden.GetGlobal(ScheduleDerivationConfig.Key);
         bool? condition3 = global3!.AutoMergeLabSubGroups;
@@ -70,7 +70,7 @@ public sealed class SettingsTests
         using var files = new SettingsFixture();
         using (var defaults = await files.Load(new()
         {
-            Profile = "Curmanschii Anton",
+            Profile = TestProfiles.Owner,
         }))
         {
             Assert.Empty(defaults.Get(LessonAttendanceConfig.Key)?.Sources ?? []);
@@ -83,7 +83,7 @@ public sealed class SettingsTests
             """);
         using var settings = await files.Load(new()
         {
-            Profile = "Curmanschii Anton",
+            Profile = TestProfiles.Owner,
         });
         var get = settings.Get(LessonAttendanceConfig.Key);
         IEnumerable<LessonAttendanceSource> collection = get!.Sources;
@@ -169,7 +169,7 @@ public sealed class SettingsTests
             actual: actual4);
         using var teacher = await files.Load(new()
         {
-            Profile = "Curmanschii Anton",
+            Profile = TestProfiles.Owner,
         });
         string expected6 = "project-profile";
         var get3 = teacher.Get(GoogleCalendarConfig.Key);
@@ -178,7 +178,7 @@ public sealed class SettingsTests
         using var cli = await files.Load(
             new()
             {
-                Profile = "Curmanschii Anton",
+                Profile = TestProfiles.Owner,
             },
             new()
             {
@@ -223,14 +223,14 @@ public sealed class SettingsTests
             actual: scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>()
                 .Get()!.CalendarName);
         Assert.Equal(
-            expected: "Curmanschii Anton",
+            expected: TestProfiles.Owner,
             actual: scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName
                 .ToString());
         // Switching teacher scopes uses that teacher's path, rather than reusing the selected teacher's settings.
         await using var other = provider.CreateMarkerScope(x =>
         {
             var teacherLayerConfig = x;
-            var parse = ScheduleLib.Parsing.NameHelper.Parse("Nartea Nichita");
+            var parse = ScheduleLib.Parsing.NameHelper.Parse(TestProfiles.OtherTeacher);
             teacherLayerConfig.TeacherName = parse;
         });
 
@@ -376,7 +376,7 @@ public sealed class SettingsTests
     [InlineData("{\"schemaVersion\":1,\"profiles\":{\"Other teacher\":{}}}",
         typeof(CliSettings.UnknownSettingsProfileException))]
     [InlineData(
-        "{\"schemaVersion\":1,\"profiles\":{\"Nartea Nichita\":{\"GoogleCalendarConfig\":{\"unknown\":true}}}}",
+        "{\"schemaVersion\":1,\"profiles\":{\"Curmanschii Anton\":{\"GoogleCalendarConfig\":{\"unknown\":true}}}}",
         typeof(CliSettings.UnsupportedSettingsMemberException))]
     [InlineData(
         "{\"schemaVersion\":1,\"defaults\":{\"MoodleConfig\":{\"credentials\":{\"$type\":\"ValueCredentialsSource\",\"value\":{\"password\":\"secret\"}}}}}",

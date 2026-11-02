@@ -176,7 +176,7 @@ public sealed class IntegrationTestHelper : IDisposable
         return jsonSchedule;
     }
 
-    public SettingsTask ScheduleVerify(Schedule schedule)
+    public SettingsTask ScheduleVerify(Schedule schedule, bool canonicalOrder = false)
     {
         var timeConfig = ServiceProvider.GetRequiredService<LessonTimeConfig>();
         var readableSchedule = new ReadableScheduleModel
@@ -271,6 +271,43 @@ public sealed class IntegrationTestHelper : IDisposable
         var textEncoder = new TextEncoderSettings();
         textEncoder.AllowRanges(UnicodeRanges.All);
         options.Encoder = JavaScriptEncoder.Create(textEncoder);
+
+        if (canonicalOrder)
+        {
+            // Source discovery can assign different model IDs and enumeration orders.
+            // The readable projection uses names for references, so assign snapshot-local IDs.
+            foreach (var lesson in readableSchedule.Lessons)
+            {
+                lesson.Id = 0;
+                Array.Sort(lesson.Groups, StringComparer.Ordinal);
+                Array.Sort(lesson.Teachers, StringComparer.Ordinal);
+            }
+            readableSchedule.Lessons = readableSchedule.Lessons
+                .OrderBy(lesson => JsonSerializer.Serialize(lesson, options), StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Lessons.Length; index++)
+            {
+                readableSchedule.Lessons[index].Id = index;
+            }
+            foreach (var course in readableSchedule.Courses)
+            {
+                Array.Sort(course.Names, StringComparer.Ordinal);
+            }
+            readableSchedule.Courses = readableSchedule.Courses
+                .OrderBy(course => JsonSerializer.Serialize(course.Names, options), StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Courses.Length; index++)
+            {
+                readableSchedule.Courses[index].Id = index;
+            }
+            readableSchedule.Groups = readableSchedule.Groups
+                .OrderBy(group => group.Name, StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Groups.Length; index++)
+            {
+                readableSchedule.Groups[index].Id = index;
+            }
+        }
 
         using var stream = new MemoryStream();
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation

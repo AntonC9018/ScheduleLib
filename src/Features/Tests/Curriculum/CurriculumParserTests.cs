@@ -4,7 +4,7 @@ namespace Curriculum.Tests;
 
 public sealed class ThesisNameTests
 {
-    private const string TestCurriculumFileName = @"data\11_I_an1_RC_Capcelea_2024.docx";
+    private static readonly string TestCurriculumFileName = Path.Combine("data", "11_I_an1_RC_Capcelea_2024.docx");
 
     [Fact]
     public async Task FileNameParsedCorrectly()

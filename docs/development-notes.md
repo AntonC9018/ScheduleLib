@@ -4,6 +4,21 @@ Keep durable technical findings here or in the document for the affected domain.
 Tasks, decisions awaiting resolution, and implementation follow-ups belong in
 GitHub Issues; see [task-management.md](task-management.md).
 
+## PDF text positions and reviewed fixtures (#248)
+
+Non-embedded PDF fonts can produce fallback glyph bounding boxes that extend into neighboring
+cells on Linux. `PdfTableReader` assigns letters by the advance-baseline midpoint, lifted toward
+the text height, rather than the font-dependent bounding-box center. This also handles the rotated
+day labels. The three committed PDF fixtures reproduce truncated time labels with the old logic.
+
+The reviewed PDF cells include the documented September 2026 parity repairs; their comparison must
+use `Config.PdfParityRepairsForPeriod` for that period instead of `PdfParityRepairs.None`.
+All 493 independently reviewed cell expectations remain unchanged after the positioning fix.
+Word imports sort filenames ordinally before parsing: filesystem enumeration order can change
+course alias unification, not just generated IDs. The existing Word snapshots catch this difference.
+The 2026 semester-one source regression additionally uses `IntegrationTestHelper.ScheduleVerify`
+to compare readable courses, teachers, groups, periods, and lesson times.
+
 ## Registry scoped fallback lists (#224)
 
 The administrator's shared-list workflow supersedes the blanket intake-lab

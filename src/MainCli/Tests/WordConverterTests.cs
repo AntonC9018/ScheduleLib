@@ -263,7 +263,7 @@ public sealed class WordConverterOwnershipTests
             return; // Linux portable process test, no Word installed.
         }
 
-        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fileName: "/bin/sleep", arguments: "10")
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fileName: "sleep", arguments: "10")
         {
             UseShellExecute = false,
         })!;

@@ -135,7 +135,8 @@ public static class TasksHelper
             foreach (var filePath in Directory.EnumerateFiles(
                          path: dirName,
                          searchPattern: "*.doc",
-                         SearchOption.TopDirectoryOnly))
+                         SearchOption.TopDirectoryOnly)
+                         .Order(StringComparer.Ordinal))
             {
                 // CA2000 misses using-declaration disposal inside this async local function.
 #pragma warning disable CA2000
@@ -170,7 +171,8 @@ public static class TasksHelper
             foreach (var filePath in Directory.EnumerateFiles(
                          path: dirName,
                          searchPattern: "*.docx",
-                         SearchOption.TopDirectoryOnly))
+                         SearchOption.TopDirectoryOnly)
+                         .Order(StringComparer.Ordinal))
             {
                 // A paired legacy source was already parsed from its staged conversion.
                 string path3 = Path.ChangeExtension(path: filePath, @extension: ".doc");

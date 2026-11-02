@@ -14,7 +14,11 @@ public sealed class PdfImportTests
             AppContext.BaseDirectory,
             "Fixtures",
             source));
-        var actual = PdfScheduleImporter.Read(stream, source, PdfParityRepairs.None);
+        // The fixtures were downloaded in September 2026; the reviewed cells include that
+        // period's documented parity repairs.
+        var fixturePeriodStart = new DateOnly(2026, 9, 1);
+        var parityRepairs = ScheduleLib.ScheduleDefaults.Config.PdfParityRepairsForPeriod(fixturePeriodStart);
+        var actual = PdfScheduleImporter.Read(stream, source, parityRepairs);
 
         string CalculateJson()
         {

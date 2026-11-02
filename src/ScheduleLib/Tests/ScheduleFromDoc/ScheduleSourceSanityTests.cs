@@ -6,13 +6,16 @@ namespace ScheduleFromDoc.Tests;
 public sealed class ScheduleSourceSanityTests
 {
     [Fact]
-    public async Task Schedule2026Semester1PassesSanityChecks()
+    public async Task Schedule2026Semester1MatchesReadableSnapshot()
     {
         using var helper = new IntegrationTestHelper(2026, Semester.Sem1);
 
         await helper.InitializeSchedule();
 
-        Assert.NotEmpty(helper.GetScheduleFromSourceOfTruth().WeeklyLessons);
+        var schedule = helper.GetScheduleFromSourceOfTruth();
+        await helper.ScheduleVerify(schedule, canonicalOrder: true);
+
+        Assert.NotEmpty(schedule.WeeklyLessons);
         var dual = helper.GetScheduleFromSourceOfTruth()
             .EnumerateGroups()
             .Where(group => group.Item.AttendanceMode.IsDual())

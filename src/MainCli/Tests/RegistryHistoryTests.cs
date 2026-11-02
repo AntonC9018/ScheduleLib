@@ -665,14 +665,16 @@ public sealed class RegistryHistoryTests
 
         GroupParseErrorContext CalculateContext()
         {
+            // Group labels and course names are public schedule identifiers and may be logged;
+            // only the exception message may carry private context.
             var exception = new GroupParsingException("canary-password canary-student");
-            string stringValue = "canary-student canary-token";
+            string stringValue = "IA2402";
             GroupParseErrorContext context = new(exception, stringValue);
             return context;
         }
 
         logger.GroupParsingError(CalculateContext());
-        logger.GroupNotFound("canary-student canary-token");
+        logger.GroupNotFound(courseName: "Cloud Computing", groupName: "IA2402");
         Assert.NotEmpty(log.Messages);
 
         string CalculateActualString()
@@ -682,6 +684,7 @@ public sealed class RegistryHistoryTests
         }
 
         Assert.DoesNotContain(expectedSubstring: "canary", actualString: CalculateActualString());
+        Assert.Contains(expectedSubstring: "IA2402", actualString: CalculateActualString());
 
         static IEnumerable<ScheduleLib.Parsing.Name> PrivateStudents()
         {
