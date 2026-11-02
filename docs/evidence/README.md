@@ -4,6 +4,7 @@ Measurements, chronologies and validation records behind the [decisions](../deci
 [Analyzer rollout record](analyzer-rollout.md) ends with the latest state.
 
 - [Baseline test failures](analyzer-baseline-test-failures.md)
+- [Reconciliation and first readability cleanup batch (2026-11-02)](reconciliation-2026-11-02.md)
 - [ScheduleLib cleanup and remaining review cases](analyzer-remaining-clusters.md)
 - [Analyzer rollout record](analyzer-rollout.md)
 - [Runner, formatter and tooling measurements](analyzer-tooling-costs.md)

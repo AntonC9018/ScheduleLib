@@ -180,3 +180,10 @@ referenced here were local, unpublished commits.
 The 384-warning solution run took 1m41s; the 340-warning CLI run took 38s.
 The earlier 486-warning CLI run took 34s, and its solution run took 1m13s.
 The corresponding review recorded 1,460 tests passed and 7 skipped.
+
+## 2026-11-02 reconciliation and consumer cleanup
+
+The [combined validation record](reconciliation-2026-11-02.md) integrates the #248 test-audit
+branch, verifies the latest local CodingRules candidate, and records the first #246/#265
+readability batch. Its results supersede the earlier test baselines for this combined snapshot;
+the historical measurements above remain evidence for their original sources.
