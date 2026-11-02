@@ -148,17 +148,9 @@ public static class WordScheduleParser
                                                 int pos = cell.ColumnSizeCounter - skippedSize;
 
                                                 // Add an invalid id, just to set up the breakpoints
-                                                SizedItem<GroupId>
-                                                    CalculateItem()
-                                                {
-                                                    SizedItem<GroupId> item =
-                                                        new(GroupId.Invalid, size);
-                                                    return item;
-                                                }
-
                                                 var result = newGroupsArr.ReplaceAt(
                                                     pos,
-                                                    CalculateItem(),
+                                                    new SizedItem<GroupId>(GroupId.Invalid, size),
                                                     allowAddToEnd: true);
                                                 Debug.Assert(result is ReplaceItemStatus.Spliced
                                                     or ReplaceItemStatus.FullyReplaced
@@ -205,16 +197,8 @@ public static class WordScheduleParser
                                     }
                                 }
 
-                                SkippedHeaderColumnsInfo CalculateSkipped()
-                                {
-                                    SkippedHeaderColumnsInfo skipped = new(
-                                        Count: 2,
-                                        Size: skippedSize);
-                                    return skipped;
-                                }
-
                                 state.ColumnCounts = new(
-                                    Skipped: CalculateSkipped(),
+                                    Skipped: new SkippedHeaderColumnsInfo(Count: 2, Size: skippedSize),
                                     Good: newGroupsArr.TotalSize);
                                 state.CurrentGroups = newGroupsArr;
                                 return true;
@@ -767,13 +751,7 @@ public static class WordScheduleParser
                 var group = c.Schedule.Group(groupName);
                 var colSpan = cell.GetWidth();
 
-                SizedItem<GroupId> CalculateIt()
-                {
-                    SizedItem<GroupId> it = new(group, colSpan);
-                    return it;
-                }
-
-                outputGroups.Add(CalculateIt());
+                outputGroups.Add(new SizedItem<GroupId>(group, colSpan));
 
                 if (!cellEnumerator.MoveNext())
                 {

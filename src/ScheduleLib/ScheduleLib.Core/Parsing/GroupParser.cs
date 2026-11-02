@@ -36,9 +36,8 @@ public sealed class GroupParseContext
 
     public Grade DetermineGrade(int year)
     {
-        int int32 = CurrentStudyYear.Mod100 - year;
-        var ret = int32 + 1;
-        return new(ret);
+        int grade = CurrentStudyYear.Mod100 - year + 1;
+        return new(grade);
     }
 }
 
@@ -117,7 +116,6 @@ public static class GroupHelper
             AttendanceMode = attendanceMode,
         };
 
-
         Language ParseLanguage()
         {
             parser.SkipWhitespace();
@@ -169,20 +167,7 @@ public static class GroupHelper
                 }
                 else
                 {
-                    bool CalculateConditionResult()
-                    {
-                        if (ch != ')')
-                        {
-                            return false;
-                        }
-
-                        return isParen;
-                    }
-
-                    bool conditionResult = CalculateConditionResult();
-
-
-                    if (conditionResult)
+                    if (ch == ')' && isParen)
                     {
                         break;
                     }
@@ -252,18 +237,7 @@ public static class GroupHelper
             throw InvalidGroupNameException.ForMissingNumberAfterLabel();
         }
 
-        bool conditionResult;
-        if (isMaybeMaster)
-        {
-            conditionResult = label.IsEmpty;
-            conditionResult = !conditionResult;
-        }
-        else
-        {
-            conditionResult = false;
-        }
-
-        bool isCertainlyMaster = conditionResult;
+        bool isCertainlyMaster = isMaybeMaster && !label.IsEmpty;
         if (label.IsEmpty)
         {
             label = "M";

@@ -297,24 +297,7 @@ public static class CourseNameParsing
         CourseIter a,
         CourseIter b)
     {
-        bool CalculateConditionResult2()
-        {
-            if (!a.IsDone)
-            {
-                return false;
-            }
-
-            if (b.IsDone)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult2();
-
-
-        if (conditionResult)
+        if (a.IsDone && b.IsDone)
         {
             return true;
         }
@@ -323,24 +306,7 @@ public static class CourseNameParsing
             CourseIter a,
             CourseIter b)
         {
-            bool CalculateConditionResult()
-            {
-                if (a.IsDone)
-                {
-                    return false;
-                }
-
-                if (a.CanIgnoreCurrent)
-                {
-                    return true;
-                }
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (!a.IsDone && a.CanIgnoreCurrent)
             {
                 foreach (var w in a.GetPossibleWords())
                 {

@@ -21,9 +21,7 @@ public readonly struct Interval
     {
         get
         {
-            int int32 = EndInclusive - Start;
-            int int322 = int32 + 1;
-            return int322;
+            return EndInclusive - Start + 1;
         }
     }
 }
@@ -261,7 +259,6 @@ public record struct BitArray32
     public const int MaxLength = sizeof(uint) * 8;
 }
 
-
 public readonly struct ReverseSetBitIndicesEnumerable : IEnumerable<int>
 {
     private readonly uint _bits;
@@ -300,12 +297,8 @@ public struct ReverseSetBitIndicesEnumerator : IEnumerator<int>
             return false;
         }
 
-        int int32 = sizeof(uint) * 8;
-        int int322 = int32;
         int leadingZeroCount = BitOperations.LeadingZeroCount(_bits);
-        int int323 = int322 - leadingZeroCount;
-        int int324 = int323 - 1;
-        _current = int324;
+        _current = sizeof(uint) * 8 - leadingZeroCount - 1;
         _bits &= ~(1u << _current);
         return true;
     }

@@ -35,29 +35,8 @@ public static partial class ScheduleBuilderHelper
         ArgumentOutOfRangeException.ThrowIfNegative(firstOneTimeLesson);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstOneTimeLesson, s.OneTimeLessons.Count);
 
-        bool CalculateConditionResult()
-        {
-            if (config is null)
-            {
-                return true;
-            }
-            if (firstWeeklyLesson != s.WeeklyLessons.Count)
-            {
-                return false;
-            }
-
-            if (firstOneTimeLesson == s.OneTimeLessons.Count)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (config is null
+            || (firstWeeklyLesson == s.WeeklyLessons.Count && firstOneTimeLesson == s.OneTimeLessons.Count))
         {
             return;
         }
@@ -175,25 +154,7 @@ public static partial class ScheduleBuilderHelper
                         ref alt);
                 }
 
-                bool CalculateConditionResult()
-                {
-                    if (!(spec is null))
-                    {
-                        return false;
-                    }
-
-                    if (alt is null)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (spec is null && alt is null)
                 {
                     // The group is covered by no entry: its part of the lesson keeps
                     // going out without a specialization.

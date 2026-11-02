@@ -116,27 +116,9 @@ public sealed partial class LessonTextDisplayHandler
                 date = oneTime.Date.Date.ToString("dd.MM.yy");
             }
 
-            bool CalculateConditionResult()
-            {
-                if (!_config.PrintsGroupNames)
-                {
-                    return false;
-                }
+            bool appendGroups = _config.PrintsGroupNames && p.Lesson.Lesson.Groups.Count > 0;
 
-                if (p.Lesson.Lesson.Groups.Count > 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            bool appendGroups = conditionResult;
-
-            bool CheckCondition()
+            bool HasLessonAnnotations()
             {
                 if (lessonType != null)
                 {
@@ -161,7 +143,7 @@ public sealed partial class LessonTextDisplayHandler
                 return false;
             }
 
-            bool appendAny = CheckCondition();
+            bool appendAny = HasLessonAnnotations();
             if (appendAny)
             {
                 sb.Append(" (");

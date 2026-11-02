@@ -829,8 +829,7 @@ public struct LimitedLexerScope : ILexer
     public readonly bool CanPeek(int offset = 1)
     {
         // Check doesn't exceed end
-        int int32 = _lexer.Position.Value + offset;
-        int i = int32 - 1;
+        int i = _lexer.Position.Value + offset - 1;
         if (i >= _endPosition.Value)
         {
             return false;

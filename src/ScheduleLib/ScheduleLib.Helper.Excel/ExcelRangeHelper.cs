@@ -23,9 +23,7 @@ public static class ExcelRangeHelper
         while (true)
         {
             const uint base_ = 'Z' - 'A' + 1;
-            uint uInt32 = remaining - 1;
-            uint uInt322 = uInt32 % base_;
-            byte remainder = (byte) uInt322;
+            byte remainder = (byte) ((remaining - 1) % base_);
             byte letter = (byte) ('A' + remainder);
             char ch = (char) letter;
             stack[stackPos] = ch;

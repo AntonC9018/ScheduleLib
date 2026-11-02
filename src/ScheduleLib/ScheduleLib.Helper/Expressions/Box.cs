@@ -15,14 +15,7 @@ public sealed record class Box<T>(T Value)
     {
         var constant = Expression.Constant(this);
 
-        System.Reflection.PropertyInfo CalculateMember()
-        {
-            var member2 = typeof(Box<T>)
-                .GetProperty(nameof(Value))!;
-            return member2;
-        }
-
-        var member = Expression.MakeMemberAccess(constant, CalculateMember());
+        var member = Expression.MakeMemberAccess(constant, typeof(Box<T>).GetProperty(nameof(Value))!);
         return new(constant, member);
     }
 }
@@ -39,23 +32,13 @@ public sealed record class Box<T, U>(T Value1, U Value2)
     {
         var boxConstant = Expression.Constant(this);
 
-        System.Reflection.PropertyInfo CalculateMember()
-        {
-            var member = typeof(Box<T, U>)
-                .GetProperty(nameof(Value1))!;
-            return member;
-        }
+        var member1 = Expression.MakeMemberAccess(
+            boxConstant,
+            typeof(Box<T, U>).GetProperty(nameof(Value1))!);
 
-        var member1 = Expression.MakeMemberAccess(boxConstant, CalculateMember());
-
-        System.Reflection.PropertyInfo CalculateMember2()
-        {
-            var member3 = typeof(Box<T, U>)
-                .GetProperty(nameof(Value2))!;
-            return member3;
-        }
-
-        var member2 = Expression.MakeMemberAccess(boxConstant, CalculateMember2());
+        var member2 = Expression.MakeMemberAccess(
+            boxConstant,
+            typeof(Box<T, U>).GetProperty(nameof(Value2))!);
         return new(
             boxConstant,
             Member1: member1,

@@ -104,13 +104,7 @@ public sealed class GroupCombinationTests
     {
         var sb = new StringBuilder();
 
-        ListStringBuilder CalculateLb()
-        {
-            var lb = new ListStringBuilder(sb, "-");
-            return lb;
-        }
-
-        c.AppendFileNamePart(CalculateLb());
+        c.AppendFileNamePart(new ListStringBuilder(sb, "-"));
         return sb.ToString();
     }
 
@@ -218,8 +212,8 @@ public sealed class GroupCombinationTests
             info.Combinations,
             c =>
             {
-                bool condition = info.IncludesLesson(c, springLesson.Lesson);
-                Assert.True(condition);
+                bool includesShared = info.IncludesLesson(c, springLesson.Lesson);
+                Assert.True(includesShared);
             });
     }
 
@@ -281,18 +275,18 @@ public sealed class GroupCombinationTests
             iInfo.Combinations,
             c =>
             {
-                bool condition = iInfo.IncludesLesson(c, sharedLesson.Lesson);
-                Assert.True(condition);
+                bool includesShared = iInfo.IncludesLesson(c, sharedLesson.Lesson);
+                Assert.True(includesShared);
             });
 
         var spring = iaInfo.Combinations.Single(c => c.Specialization == Specialization.Spring
             && c.Numeric == SubGroup.CreateNumeric(1));
         var react = iaInfo.Combinations.Single(c => c.Specialization == Specialization.React
             && c.Numeric == SubGroup.CreateNumeric(1));
-        bool condition2 = iaInfo.IncludesLesson(spring, sharedLesson.Lesson);
-        Assert.True(condition2);
-        bool condition3 = iaInfo.IncludesLesson(react, sharedLesson.Lesson);
-        Assert.False(condition3);
+        bool includesNumericI = iaInfo.IncludesLesson(spring, sharedLesson.Lesson);
+        Assert.True(includesNumericI);
+        bool includesRomanian = iaInfo.IncludesLesson(react, sharedLesson.Lesson);
+        Assert.False(includesRomanian);
 
         var iFiltered = schedule.Filter(new()
         {
@@ -355,12 +349,12 @@ public sealed class GroupCombinationTests
 
         var cvCombination = info.Combinations.Single(x => x.Specialization == new Specialization("CV"));
         var djCombination = info.Combinations.Single(x => x.Specialization == new Specialization("DJ"));
-        bool condition = info.IncludesLesson(cvCombination, cvLesson.Lesson);
-        Assert.True(condition);
-        bool condition2 = info.IncludesLesson(djCombination, cvLesson.Lesson);
-        Assert.False(condition2);
-        bool condition3 = info.IncludesLesson(djCombination, djLesson.Lesson);
-        Assert.True(condition3);
+        bool includesShared = info.IncludesLesson(cvCombination, cvLesson.Lesson);
+        Assert.True(includesShared);
+        bool includesNumericI = info.IncludesLesson(djCombination, cvLesson.Lesson);
+        Assert.False(includesNumericI);
+        bool includesRomanian = info.IncludesLesson(djCombination, djLesson.Lesson);
+        Assert.True(includesRomanian);
 
         // The numeric lesson matches both combinations.
         var numericLesson = GetLessonBySubGroup(schedule, "I");
@@ -368,8 +362,8 @@ public sealed class GroupCombinationTests
             info.Combinations,
             c =>
             {
-                bool condition = info.IncludesLesson(c, numericLesson.Lesson);
-                Assert.True(condition);
+                bool includesShared = info.IncludesLesson(c, numericLesson.Lesson);
+                Assert.True(includesShared);
             });
     }
 
@@ -430,8 +424,8 @@ public sealed class GroupCombinationTests
             info.Combinations,
             c =>
             {
-                bool condition = info.IncludesLesson(c, elective.Lesson);
-                Assert.True(condition);
+                bool includesShared = info.IncludesLesson(c, elective.Lesson);
+                Assert.True(includesShared);
             });
     }
 
@@ -469,20 +463,20 @@ public sealed class GroupCombinationTests
 
         var a1Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A1"));
         var a2Combination = info.Combinations.Single(x => x.Alternative == new Alternative("A2"));
-        bool condition = info.IncludesLesson(a1Combination, a1Lesson.Lesson);
-        Assert.True(condition);
-        bool condition2 = info.IncludesLesson(a2Combination, a1Lesson.Lesson);
-        Assert.False(condition2);
-        bool condition3 = info.IncludesLesson(a2Combination, a2Lesson.Lesson);
-        Assert.True(condition3);
+        bool includesShared = info.IncludesLesson(a1Combination, a1Lesson.Lesson);
+        Assert.True(includesShared);
+        bool includesNumericI = info.IncludesLesson(a2Combination, a1Lesson.Lesson);
+        Assert.False(includesNumericI);
+        bool includesRomanian = info.IncludesLesson(a2Combination, a2Lesson.Lesson);
+        Assert.True(includesRomanian);
 
         // The numeric lesson matches both combinations.
         Assert.All(
             info.Combinations,
             c =>
             {
-                bool condition = info.IncludesLesson(c, numericLesson.Lesson);
-                Assert.True(condition);
+                bool includesShared = info.IncludesLesson(c, numericLesson.Lesson);
+                Assert.True(includesShared);
             });
     }
 
@@ -521,12 +515,12 @@ public sealed class GroupCombinationTests
             .Select(x => schedule.Get(x.Lesson.Course).FullName)
             .OrderBy(x => x)
             .ToArray();
-        bool condition = new[]
+        bool includesShared = new[]
         {
             "Elective A1",
             "Shared",
         }.SequenceEqual(courseNames);
-        Assert.True(condition);
+        Assert.True(includesShared);
     }
 
     [Fact]
@@ -642,13 +636,8 @@ public sealed class GroupCombinationTests
             l => Assert.Equal(expected: Alternative.All, actual: l.Lesson.Alternative));
 
         // Fresh serialize→deserialize preserves Alternative (and siblings).
-        byte[] CalculateBuffer()
-        {
-            byte[] buffer = Encoding.UTF8.GetBytes(json);
-            return buffer;
-        }
 
-        using var freshStream = new MemoryStream(CalculateBuffer());
+        using var freshStream = new MemoryStream(Encoding.UTF8.GetBytes(json));
         var freshModel = await ScheduleSerializer.Deserialize(freshStream, CancellationToken.None);
         var freshBuilder = CreateBuilder();
         ScheduleSerializer.AddToBuilder(freshBuilder, freshModel);
@@ -693,8 +682,8 @@ public sealed class GroupCombinationTests
         var opaqueLesson = GetLessonBySubGroup(schedule, "S21");
 
         Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
-        bool condition = info.IncludesLesson(info.Combinations[0], opaqueLesson.Lesson);
-        Assert.False(condition);
+        bool includesShared = info.IncludesLesson(info.Combinations[0], opaqueLesson.Lesson);
+        Assert.False(includesShared);
     }
 
     [Fact]
@@ -738,10 +727,10 @@ public sealed class GroupCombinationTests
         Assert.False(info.SpecializationActive);
         Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
         Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
-        bool condition = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
-        Assert.True(condition);
-        bool condition2 = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
-        Assert.True(condition2);
+        bool includesShared = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
+        Assert.True(includesShared);
+        bool includesNumericI = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
+        Assert.True(includesNumericI);
     }
 
     [Fact]
@@ -781,10 +770,10 @@ public sealed class GroupCombinationTests
         Assert.False(info.SpecializationActive);
         Assert.Equal(expected: ["I"], actual: info.Combinations.Select(NameOf));
         Assert.All(info.Combinations, c => Assert.Null(c.Specialization));
-        bool condition = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
-        Assert.True(condition);
-        bool condition2 = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
-        Assert.True(condition2);
+        bool includesShared = info.IncludesLesson(info.Combinations[0], cvLesson.Lesson);
+        Assert.True(includesShared);
+        bool includesNumericI = info.IncludesLesson(info.Combinations[0], djLesson.Lesson);
+        Assert.True(includesNumericI);
     }
 
     [Fact]
@@ -833,16 +822,16 @@ public sealed class GroupCombinationTests
         Assert.Equal(expected: ["CV-I", "DJ-I"], actual: info.Combinations.Select(NameOf));
 
         var cvCombination = info.Combinations.Single(x => x.Specialization == Specialization.CV);
-        bool condition = info.IncludesLesson(cvCombination, cvLesson.Lesson);
-        Assert.True(condition);
-        bool condition2 = info.IncludesLesson(cvCombination, reactLesson.Lesson);
-        Assert.False(condition2);
+        bool includesShared = info.IncludesLesson(cvCombination, cvLesson.Lesson);
+        Assert.True(includesShared);
+        bool includesNumericI = info.IncludesLesson(cvCombination, reactLesson.Lesson);
+        Assert.False(includesNumericI);
         Assert.All(
             info.Combinations,
             c =>
             {
-                bool condition = info.IncludesLesson(c, reactLesson.Lesson);
-                Assert.False(condition);
+                bool includesShared = info.IncludesLesson(c, reactLesson.Lesson);
+                Assert.False(includesShared);
             });
     }
 
@@ -952,8 +941,8 @@ public sealed class GroupCombinationTests
         var second =
             registry.PermittedFor(in both);
         IEnumerable<Specialization> second2 = second;
-        bool condition = value.SequenceEqual(second2);
-        Assert.True(condition);
+        bool includesShared = value.SequenceEqual(second2);
+        Assert.True(includesShared);
         var value2 = new[]
         {
             Specialization.CV,
@@ -961,8 +950,8 @@ public sealed class GroupCombinationTests
         var second3 =
             registry.PermittedFor(in otherFaculty);
         IEnumerable<Specialization> second4 = second3;
-        bool condition2 = value2.SequenceEqual(second4);
-        Assert.True(condition2);
+        bool includesNumericI = value2.SequenceEqual(second4);
+        Assert.True(includesNumericI);
         var value3 = new[]
         {
             Specialization.DJ,
@@ -970,8 +959,8 @@ public sealed class GroupCombinationTests
         var second5 =
             registry.PermittedFor(in otherGrade);
         IEnumerable<Specialization> second6 = second5;
-        bool condition3 = value3.SequenceEqual(second6);
-        Assert.True(condition3);
+        bool includesRomanian = value3.SequenceEqual(second6);
+        Assert.True(includesRomanian);
     }
 
     [Fact]
@@ -1078,13 +1067,13 @@ public sealed class GroupCombinationTests
             .Select(x => schedule.Get(x.Lesson.Course).FullName)
             .OrderBy(x => x)
             .ToArray();
-        bool condition = new[]
+        bool includesShared = new[]
         {
             "CV",
             "Numeric I",
             "Shared",
         }.SequenceEqual(courseNames);
-        Assert.True(condition);
+        Assert.True(includesShared);
     }
 
     [Fact]
@@ -1141,143 +1130,81 @@ public sealed class GroupCombinationTests
             .Single().Value;
         var combination = info.Combinations.Single(c =>
         {
-            bool CheckCondition()
+            if (c.Specialization != Specialization.CV)
             {
-                if (!(c.Specialization == Specialization.CV))
-                {
-                    return false;
-                }
-
-                if (!(c.Proficiency == SpecialSubGroups.Beginners))
-                {
-                    return false;
-                }
-
-                if (!(c.Language == SpecialSubGroups.Ro))
-                {
-                    return false;
-                }
-
-                if (c.Numeric == SubGroup.CreateNumeric(1))
-                {
-                    return true;
-                }
-
                 return false;
             }
 
-            return CheckCondition();
+            if (c.Proficiency != SpecialSubGroups.Beginners)
+            {
+                return false;
+            }
+
+            if (c.Language != SpecialSubGroups.Ro)
+            {
+                return false;
+            }
+
+            if (c.Numeric == SubGroup.CreateNumeric(1))
+            {
+                return true;
+            }
+
+            return false;
         });
 
-        LessonData CalculateLesson()
-        {
-            var lesson = Lesson("Shared");
-            return lesson;
-        }
+        bool includesShared = info.IncludesLesson(combination, Lesson("Shared"));
+        Assert.True(includesShared);
 
-        bool condition = info.IncludesLesson(combination, CalculateLesson());
-        Assert.True(condition);
+        bool includesNumericI = info.IncludesLesson(combination, Lesson("Numeric I"));
+        Assert.True(includesNumericI);
 
-        LessonData CalculateLesson2()
-        {
-            var lesson2 = Lesson("Numeric I");
-            return lesson2;
-        }
+        bool includesRomanian = info.IncludesLesson(combination, Lesson("Romanian"));
+        Assert.True(includesRomanian);
 
-        bool condition2 = info.IncludesLesson(combination, CalculateLesson2());
-        Assert.True(condition2);
+        bool includesBeginnerLanguage = info.IncludesLesson(
+            combination,
+            Lesson("Language", SpecialSubGroups.Beginners));
+        Assert.True(includesBeginnerLanguage);
 
-        LessonData CalculateLesson3()
-        {
-            var lesson3 = Lesson("Romanian");
-            return lesson3;
-        }
+        bool includesCv = info.IncludesLesson(combination, Lesson("CV"));
+        Assert.True(includesCv);
 
-        bool condition3 = info.IncludesLesson(combination, CalculateLesson3());
-        Assert.True(condition3);
+        bool includesNumericII = info.IncludesLesson(combination, Lesson("Numeric II"));
+        Assert.False(includesNumericII);
 
-        LessonData CalculateLesson4()
-        {
-            var lesson4 = Lesson("Language", SpecialSubGroups.Beginners);
-            return lesson4;
-        }
+        bool includesRussian = info.IncludesLesson(combination, Lesson("Russian"));
+        Assert.False(includesRussian);
 
-        bool condition4 = info.IncludesLesson(combination, CalculateLesson4());
-        Assert.True(condition4);
+        bool includesNonBeginnerLanguage = info.IncludesLesson(
+            combination,
+            Lesson("Language", SpecialSubGroups.NonBeginners));
+        Assert.False(includesNonBeginnerLanguage);
 
-        LessonData CalculateLesson5()
-        {
-            var lesson5 = Lesson("CV");
-            return lesson5;
-        }
-
-        bool condition5 = info.IncludesLesson(combination, CalculateLesson5());
-        Assert.True(condition5);
-
-        LessonData CalculateLesson6()
-        {
-            var lesson6 = Lesson("Numeric II");
-            return lesson6;
-        }
-
-        bool condition6 = info.IncludesLesson(combination, CalculateLesson6());
-        Assert.False(condition6);
-
-        LessonData CalculateLesson7()
-        {
-            var lesson7 = Lesson("Russian");
-            return lesson7;
-        }
-
-        bool condition7 = info.IncludesLesson(combination, CalculateLesson7());
-        Assert.False(condition7);
-
-        LessonData CalculateLesson8()
-        {
-            var lesson8 = Lesson("Language", SpecialSubGroups.NonBeginners);
-            return lesson8;
-        }
-
-        bool condition8 = info.IncludesLesson(combination, CalculateLesson8());
-        Assert.False(condition8);
-
-        LessonData CalculateLesson9()
-        {
-            var lesson9 = Lesson("DJ");
-            return lesson9;
-        }
-
-        bool condition9 = info.IncludesLesson(combination, CalculateLesson9());
-        Assert.False(condition9);
+        bool includesDj = info.IncludesLesson(combination, Lesson("DJ"));
+        Assert.False(includesDj);
 
         LessonData Lesson(string courseName, SubGroup? subGroup = null)
         {
             return schedule.EnumerateAllLessons()
                 .Single(x =>
                 {
-                    bool CalculateConditionResult()
+                    if (schedule.Get(x.Lesson.Course).FullName != courseName)
                     {
-                        if (schedule.Get(x.Lesson.Course).FullName != courseName)
-                        {
-                            return false;
-                        }
-
-                        if (subGroup is null)
-                        {
-                            return true;
-                        }
-
-                        if (x.Lesson.SubGroup == subGroup)
-                        {
-                            return true;
-                        }
-
                         return false;
                     }
 
-                    bool conditionResult = CalculateConditionResult();
+                    if (subGroup is null)
+                    {
+                        return true;
+                    }
 
-                    return conditionResult;
+                    if (x.Lesson.SubGroup == subGroup)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 })
                 .Lesson;
         }

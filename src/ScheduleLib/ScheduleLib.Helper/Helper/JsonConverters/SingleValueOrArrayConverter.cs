@@ -22,7 +22,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
 
-            bool CheckCondition()
+            bool IsSupportedCollection()
             {
                 if (genericTypeDef == typeof(ImmutableArray<>))
                 {
@@ -62,7 +62,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
                 return false;
             }
 
-            if (CheckCondition())
+            if (IsSupportedCollection())
             {
                 return true;
             }
@@ -154,7 +154,7 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 return tCollection;
             }
 
-            bool CalculateConditionResult()
+            bool IsArrayCompatibleCollection()
             {
                 if (genericTypeDef == typeof(IEnumerable<>))
                 {
@@ -181,10 +181,7 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
                 return false;
             }
 
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (IsArrayCompatibleCollection())
             {
                 return (TCollection) (object) items;
             }

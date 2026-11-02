@@ -45,13 +45,7 @@ public sealed class BitArrayRef
         var bitArray = BitArray32.Empty(10);
         var arrRef = bitArray.PortionRef(offset: 2, len: 5);
 
-        UnsizedBitArray32 CalculateArray()
-        {
-            var array = UnsizedBitArray32.GetMask(3);
-            return array;
-        }
-
-        arrRef.SetArray(CalculateArray());
+        arrRef.SetArray(UnsizedBitArray32.GetMask(3));
         bool condition = bitArray.IsSet(2);
         Assert.True(condition);
         bool condition2 = bitArray.IsSet(3);

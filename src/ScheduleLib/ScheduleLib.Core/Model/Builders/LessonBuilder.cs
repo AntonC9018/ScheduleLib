@@ -501,27 +501,7 @@ public static class LessonBuilderHelper
                 throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
             }
 
-            bool CheckCondition()
-            {
-                if (courseId.IsInvalid)
-                {
-                    return true;
-                }
-
-                if (courseId.Id < 0)
-                {
-                    return true;
-                }
-
-                if (courseId.Id >= s.Courses.Count)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
+            if (courseId.IsInvalid || courseId.Id < 0 || courseId.Id >= s.Courses.Count)
             {
                 throw UninitializedScheduleModelException.ForLessonCourseUnknown();
             }

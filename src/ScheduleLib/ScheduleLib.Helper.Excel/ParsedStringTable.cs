@@ -37,7 +37,7 @@ public readonly struct ParsedStringTable(List<string> strings)
             return cv.InnerText;
         }
 
-        bool CheckCondition()
+        bool HasNonTextCellValue()
         {
             if (dt == CellValues.Boolean)
             {
@@ -62,7 +62,7 @@ public readonly struct ParsedStringTable(List<string> strings)
             return false;
         }
 
-        if (CheckCondition())
+        if (HasNonTextCellValue())
         {
             throw new InvalidOperationException("Expected a string");
         }

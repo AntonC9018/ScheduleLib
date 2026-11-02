@@ -21,18 +21,12 @@ public sealed class LessonTokenReader : ITokenReader
 
     public TokenType Read(ref SequenceReader reader)
     {
-        bool conditionResult;
-        var conditionValue = SkipWhitespace(ref reader);
-        conditionResult = conditionValue.SkippedAny;
-        if (conditionResult)
+        if (SkipWhitespace(ref reader).SkippedAny)
         {
             return TokenType.Whitespace;
         }
 
-        bool conditionResult2;
-        var conditionValue2 = SkipRegular(ref reader);
-        conditionResult2 = conditionValue2.SkippedAny;
-        if (conditionResult2)
+        if (SkipRegular(ref reader).SkippedAny)
         {
             bool isShort = reader.ConsumeExactChar(WordHelper.ShortenedWordCharacter);
             var type = isShort ? LessonTokenType.ShortWord : LessonTokenType.Word;

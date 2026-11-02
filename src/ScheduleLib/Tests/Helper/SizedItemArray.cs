@@ -9,21 +9,9 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 3);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 3));
 
-        array.Add(CalculateIt());
-
-        SizedItem<string> CalculateIt2()
-        {
-            SizedItem<string> it2 = new("B", 2);
-            return it2;
-        }
-
-        array.Add(CalculateIt2());
+        array.Add(new SizedItem<string>("B", 2));
 
         string expected2 = "A";
         string actual2 = array.Find(0);
@@ -41,13 +29,7 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 2);
-            return it;
-        }
-
-        array.Add(CalculateIt());
+        array.Add(new SizedItem<string>("A", 2));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => array.Find(2));
     }
@@ -57,21 +39,9 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("X", 3);
-            return it;
-        }
+        array.Add(new SizedItem<string>("X", 3));
 
-        array.Add(CalculateIt());
-
-        SizedItem<string> CalculateIt2()
-        {
-            SizedItem<string> it2 = new("Y", 2);
-            return it2;
-        }
-
-        array.Add(CalculateIt2());
+        array.Add(new SizedItem<string>("Y", 2));
 
         int? expected2 = 0;
         int? actual2 = array.FindPosition("X");
@@ -88,13 +58,7 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("Old", 2);
-            return it;
-        }
-
-        array.Add(CalculateIt());
+        array.Add(new SizedItem<string>("Old", 2));
 
         bool replaced = array.Replace(oldItem: "Old", newItem: "New");
 
@@ -109,13 +73,7 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 2);
-            return it;
-        }
-
-        array.Add(CalculateIt());
+        array.Add(new SizedItem<string>("A", 2));
 
         bool condition = array.ReplaceItem(2, "B");
         Assert.False(condition);
@@ -128,21 +86,9 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 3);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 3));
 
-        array.Add(CalculateIt());
-
-        SizedItem<string> CalculateItem()
-        {
-            SizedItem<string> item = new("B", 3);
-            return item;
-        }
-
-        var result = array.ReplaceAt(0, CalculateItem());
+        var result = array.ReplaceAt(0, new SizedItem<string>("B", 3));
 
         Assert.Equal(expected: 3, actual: array.TotalSize);
         Assert.Equal(expected: ReplaceItemStatus.FullyReplaced, actual: result);
@@ -158,21 +104,9 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 5);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 5));
 
-        array.Add(CalculateIt());
-
-        SizedItem<string> CalculateItem()
-        {
-            SizedItem<string> item = new("B", 2);
-            return item;
-        }
-
-        var result = array.ReplaceAt(0, CalculateItem());
+        var result = array.ReplaceAt(0, new SizedItem<string>("B", 2));
 
         Assert.Equal(expected: 5, actual: array.TotalSize);
         Assert.Equal(expected: ReplaceItemStatus.PartlyReplaced, actual: result);
@@ -189,21 +123,9 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 6);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 6));
 
-        array.Add(CalculateIt());
-
-        SizedItem<string> CalculateItem()
-        {
-            SizedItem<string> item = new("B", 2);
-            return item;
-        }
-
-        var result = array.ReplaceAt(2, CalculateItem());
+        var result = array.ReplaceAt(2, new SizedItem<string>("B", 2));
 
         Assert.Equal(expected: 6, actual: array.TotalSize);
         Assert.Equal(expected: ReplaceItemStatus.Spliced, actual: result);
@@ -223,37 +145,13 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 3);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 3));
 
-        array.Add(CalculateIt());
+        array.Add(new SizedItem<string>("B", 6));
 
-        SizedItem<string> CalculateIt2()
-        {
-            SizedItem<string> it2 = new("B", 6);
-            return it2;
-        }
+        array.Add(new SizedItem<string>("C", 6));
 
-        array.Add(CalculateIt2());
-
-        SizedItem<string> CalculateIt3()
-        {
-            SizedItem<string> it3 = new("C", 6);
-            return it3;
-        }
-
-        array.Add(CalculateIt3());
-
-        SizedItem<string> CalculateItem()
-        {
-            SizedItem<string> item = new("D", 1);
-            return item;
-        }
-
-        var result = array.ReplaceAt(5, CalculateItem());
+        var result = array.ReplaceAt(5, new SizedItem<string>("D", 1));
 
         Assert.Equal(expected: 15, actual: array.TotalSize);
         Assert.Equal(expected: ReplaceItemStatus.Spliced, actual: result);
@@ -279,29 +177,11 @@ public sealed class SizedItemArrayTests
     {
         var array = new SizedItemArray<string>();
 
-        SizedItem<string> CalculateIt()
-        {
-            SizedItem<string> it = new("A", 3);
-            return it;
-        }
+        array.Add(new SizedItem<string>("A", 3));
 
-        array.Add(CalculateIt());
+        array.Add(new SizedItem<string>("B", 6));
 
-        SizedItem<string> CalculateIt2()
-        {
-            SizedItem<string> it2 = new("B", 6);
-            return it2;
-        }
-
-        array.Add(CalculateIt2());
-
-        SizedItem<string> CalculateIt3()
-        {
-            SizedItem<string> it3 = new("C", 6);
-            return it3;
-        }
-
-        array.Add(CalculateIt3());
+        array.Add(new SizedItem<string>("C", 6));
 
         var result = array.ReplaceAtRange(
         3,

@@ -95,9 +95,7 @@ public record struct UnsizedBitArray64
         Debug.Assert(index < BitArray64.MaxLength);
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
-        ulong uInt64 = _bits;
-        ulong uInt642 = ~ignoredMask;
-        var set = uInt64 & uInt642;
+        var set = _bits & ~ignoredMask;
         if (set == 0)
         {
             return -1;
@@ -118,10 +116,8 @@ public record struct UnsizedBitArray64
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
         var allMask = GetMask(length).Bits;
-        ulong uInt64 = ~ignoredMask;
-        var mask = uInt64 & allMask;
-        ulong uInt642 = ~_bits;
-        var unset = uInt642 & mask;
+        var mask = ~ignoredMask & allMask;
+        var unset = ~_bits & mask;
         if (unset == 0)
         {
             return -1;
@@ -170,13 +166,7 @@ public record struct UnsizedBitArray64
     {
         var x = this;
 
-        UnsizedBitArray64 CalculateOther()
-        {
-            var other = GetMask(len);
-            return other;
-        }
-
-        x = x.Intersect(CalculateOther());
+        x = x.Intersect(GetMask(len));
         var ret = x.WithFixedSize(len);
         return ret;
     }
@@ -274,12 +264,9 @@ public record struct UnsizedBitArray64
             return new(0);
         }
 
-        int int32 = sizeof(ulong) * 8;
-        int shift = int32 - length;
-        ulong uInt64 = ~default(ulong);
-        ulong bits = uInt64 >> shift;
-        UnsizedBitArray64 unsizedBitArray64 = new(bits);
-        return unsizedBitArray64;
+        int shift = sizeof(ulong) * 8 - length;
+        ulong bits = ~default(ulong) >> shift;
+        return new(bits);
     }
 
     public static UnsizedBitArray64 GetOffsetMask(int offset, int length)

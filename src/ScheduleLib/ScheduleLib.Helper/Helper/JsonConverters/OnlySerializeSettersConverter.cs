@@ -22,25 +22,19 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
     private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
-        var
-            concurrentDictionary = _propertyCache;
         Key key = new(namingPolicy);
-        Func<Key,
-                Dictionary<string, PropertyInfo>>
-            valueFactory = np =>
+        Func<Key, Dictionary<string, PropertyInfo>> valueFactory = np =>
+        {
+            var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var prop in _writableProperties)
             {
-                var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-                foreach (var prop in _writableProperties)
-                {
-                    string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
-                    dict[name] = prop;
-                }
+                string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
+                dict[name] = prop;
+            }
 
-                return dict;
-            };
-        var orAdd =
-            concurrentDictionary.GetOrAdd(key, valueFactory);
-        return orAdd;
+            return dict;
+        };
+        return _propertyCache.GetOrAdd(key, valueFactory);
     }
 
     public override T Read(
@@ -132,37 +126,32 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
     public override bool CanConvert(Type typeToConvert)
     {
         // Check if the type is a user-defined type (not a primitive, enum, string, or built-in collection)
-        bool CheckCondition()
+        if (typeToConvert.IsPrimitive)
         {
-            if (typeToConvert.IsPrimitive)
-            {
-                return false;
-            }
-
-            if (typeToConvert.IsEnum)
-            {
-                return false;
-            }
-
-            if (!(typeToConvert != typeof(string)))
-            {
-                return false;
-            }
-
-            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
-            {
-                return false;
-            }
-
-            if (!typeToConvert.IsGenericType)
-            {
-                return true;
-            }
-
             return false;
         }
 
-        return CheckCondition();
+        if (typeToConvert.IsEnum)
+        {
+            return false;
+        }
+
+        if (typeToConvert == typeof(string))
+        {
+            return false;
+        }
+
+        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
+        {
+            return false;
+        }
+
+        if (!typeToConvert.IsGenericType)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)

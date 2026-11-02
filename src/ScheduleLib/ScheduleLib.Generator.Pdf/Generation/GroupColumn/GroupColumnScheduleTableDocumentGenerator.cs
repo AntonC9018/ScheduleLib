@@ -230,9 +230,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                         foreach (var t in OwnedLessons())
                         {
                             Handle(t.LessonOrder);
-                            uint uInt32 = t.LessonOrder + t.RowSpan;
-                            uint uInt322 = uInt32 - 1;
-                            lastOrderNeedingBorder = uInt322;
+                            lastOrderNeedingBorder = t.LessonOrder + t.RowSpan - 1;
                         }
                         Handle(s.CellsPerTimeSlot - 1);
 
@@ -339,11 +337,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            var iTableCellContainer = timeCell;
-            uint uInt32 = s.RowGroupIter.Row;
-            uint uInt322 = s.TimeSlotIndex * s.CellsPerTimeSlot;
-            uint value = uInt32 + uInt322;
-            IContainer x = iTableCellContainer.Row(value);
+            uint row = s.RowGroupIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot;
+            IContainer x = timeCell.Row(row);
             x = x.CenteredBorderedThick();
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
@@ -418,9 +413,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
         for (uint dayIndex = 0; dayIndex < days.Length; dayIndex++)
         {
             var day = days[dayIndex];
-            uint uInt32 = timeSlotCount * dayIndex;
-            uint uInt322 = uInt32 * cellsPerTimeSlot;
-            uint dayRowIndex = uInt322 + 1;
+            uint dayRowIndex = timeSlotCount * dayIndex * cellsPerTimeSlot + 1;
             yield return new()
             {
                 Day = day,
@@ -463,9 +456,7 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
         for (uint timeSlotIndex = 0; timeSlotIndex < timeSlots.Length; timeSlotIndex++)
         {
             var timeSlot = timeSlots[timeSlotIndex];
-            uint uInt32 = d.Row;
-            uint uInt322 = timeSlotIndex * d.CellsPerTimeSlot;
-            var rowStartIndex = uInt32 + uInt322;
+            var rowStartIndex = d.Row + timeSlotIndex * d.CellsPerTimeSlot;
 
             yield return new()
             {

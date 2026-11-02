@@ -156,7 +156,6 @@ public static class FilterHelper
         };
     }
 
-
     public static FilterGrouping<Accessor<Teacher, TeacherId>> TeacherGrouping(
         this Schedule schedule,
         in ScheduleFilter filter)
@@ -385,18 +384,7 @@ public static class FilterHelper
                         // every annotation as shared. A filter spanning
                         // several groups includes the lesson when it matches at least
                         // one of those group contexts.
-                        bool conditionResult;
-                        bool conditionValue = counts.TryGetValue(groupId, out var count);
-                        if (!conditionValue)
-                        {
-                            conditionResult = true;
-                        }
-                        else
-                        {
-                            conditionResult = count < 2;
-                        }
-
-                        if (conditionResult)
+                        if (!counts.TryGetValue(groupId, out var count) || count < 2)
                         {
                             return true;
                         }
@@ -526,20 +514,7 @@ public static class FilterHelper
 
                     var p = weekly.Date.Period;
 
-                    bool CalculateConditionResult()
-                    {
-                        if (!p.IsUnspecified)
-                        {
-                            return false;
-                        }
-
-                        return filter.PeriodFilter.UnspecifiedIsAll;
-                    }
-
-                    bool conditionResult = CalculateConditionResult();
-
-
-                    if (conditionResult)
+                    if (p.IsUnspecified && filter.PeriodFilter.UnspecifiedIsAll)
                     {
                         return true;
                     }
@@ -613,8 +588,7 @@ public static class FilterHelper
             var min = FindMin();
             var max = FindMax();
 
-            int int32 = max.Index - min.Index;
-            var len = int32 + 1;
+            var len = max.Index - min.Index + 1;
             var ret = new TimeSlot[len];
             for (int i = min.Index; i <= max.Index; i++)
             {

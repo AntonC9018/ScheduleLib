@@ -239,7 +239,6 @@ public record struct BitArray64
     public const int MaxLength = sizeof(ulong) * 8;
 }
 
-
 public readonly struct ReverseSetBitIndicesEnumerable64 : IEnumerable<int>
 {
     private readonly ulong _bits;
@@ -278,12 +277,8 @@ public struct ReverseSetBitIndicesEnumerator64 : IEnumerator<int>
             return false;
         }
 
-        int int32 = sizeof(ulong) * 8;
-        int int322 = int32;
         int leadingZeroCount = BitOperations.LeadingZeroCount(_bits);
-        int int323 = int322 - leadingZeroCount;
-        int int324 = int323 - 1;
-        _current = int324;
+        _current = sizeof(ulong) * 8 - leadingZeroCount - 1;
         _bits &= ~(1UL << _current);
         return true;
     }

@@ -95,9 +95,7 @@ public record struct UnsizedBitArray32
         Debug.Assert(index < BitArray32.MaxLength);
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
-        uint uInt32 = _bits;
-        uint uInt322 = ~ignoredMask;
-        var set = uInt32 & uInt322;
+        var set = _bits & ~ignoredMask;
         if (set == 0)
         {
             return -1;
@@ -118,10 +116,8 @@ public record struct UnsizedBitArray32
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
         var allMask = GetMask(length).Bits;
-        uint uInt32 = ~ignoredMask;
-        var mask = uInt32 & allMask;
-        uint uInt322 = ~_bits;
-        var unset = uInt322 & mask;
+        var mask = ~ignoredMask & allMask;
+        var unset = ~_bits & mask;
         if (unset == 0)
         {
             return -1;
@@ -170,13 +166,7 @@ public record struct UnsizedBitArray32
     {
         var x = this;
 
-        UnsizedBitArray32 CalculateOther()
-        {
-            var other = GetMask(len);
-            return other;
-        }
-
-        x = x.Intersect(CalculateOther());
+        x = x.Intersect(GetMask(len));
         var ret = x.WithFixedSize(len);
         return ret;
     }
@@ -274,12 +264,9 @@ public record struct UnsizedBitArray32
             return new(0);
         }
 
-        int int32 = sizeof(uint) * 8;
-        int shift = int32 - length;
-        uint uInt32 = ~default(uint);
-        uint bits = uInt32 >> shift;
-        UnsizedBitArray32 unsizedBitArray32 = new(bits);
-        return unsizedBitArray32;
+        int shift = sizeof(uint) * 8 - length;
+        uint bits = ~default(uint) >> shift;
+        return new(bits);
     }
 
     public static UnsizedBitArray32 GetOffsetMask(int offset, int length)

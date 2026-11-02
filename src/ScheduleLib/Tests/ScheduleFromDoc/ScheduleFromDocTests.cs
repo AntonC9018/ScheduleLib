@@ -25,15 +25,9 @@ public sealed class ScheduleFromDocTestExclusive1
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var verify = helper.ScheduleVerify(schedule);
 
-        string CalculateFileName()
-        {
-            string fileName = VerifyScheduleSnapshotName(option);
-            return fileName;
-        }
-
         await verify
             .DisableRequireUniquePrefix()
-            .UseFileName(CalculateFileName());
+            .UseFileName(VerifyScheduleSnapshotName(option));
     }
 
     [Theory]
@@ -42,26 +36,14 @@ public sealed class ScheduleFromDocTestExclusive1
     {
         using var helper = await Create(option);
 
-        string CalculateJsonPath()
-        {
-            string jsonPath = ScheduleSnapshotJsonPath(option);
-            return jsonPath;
-        }
-
         var jsonSchedule = await GetScheduleFromJson(
-            CalculateJsonPath(),
+            ScheduleSnapshotJsonPath(option),
             helper.CancellationToken);
         var verify = helper.ScheduleVerify(jsonSchedule);
 
-        string CalculateFileName()
-        {
-            string fileName = VerifyScheduleSnapshotName(option);
-            return fileName;
-        }
-
         await verify
             .DisableRequireUniquePrefix()
-            .UseFileName(CalculateFileName());
+            .UseFileName(VerifyScheduleSnapshotName(option));
     }
 
     // Utility for regenerating the committed schedule json caches. Remove the Skip, run,
@@ -73,14 +55,8 @@ public sealed class ScheduleFromDocTestExclusive1
         using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
 
-        string CalculatePath()
-        {
-            string path = ScheduleSnapshotJsonPath(option);
-            return path;
-        }
-
         await using var outputFile = new FileStream(
-            CalculatePath(),
+            ScheduleSnapshotJsonPath(option),
             FileMode.Create);
         await ScheduleSerializer.Serialize()
             .Input(schedule)
@@ -187,13 +163,7 @@ public sealed class ScheduleFromDocTests
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var settingsTask = helper.ScheduleVerify(schedule);
 
-        string CalculateFileName()
-        {
-            string fileName = ScheduleJsonSnapshotName(option);
-            return fileName;
-        }
-
-        await settingsTask.UseFileName(CalculateFileName());
+        await settingsTask.UseFileName(ScheduleJsonSnapshotName(option));
     }
 
     [Theory]

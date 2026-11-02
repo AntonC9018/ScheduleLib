@@ -138,9 +138,9 @@ public static partial class ScheduleBuilderHelper
             b.Alternative);
         foreach (var dimension in PartitionDimensions.All)
         {
-            if (!ValuesIntersect(
-                    a: aKey.GetPartitionDimension(dimension).Value,
-                    b: bKey.GetPartitionDimension(dimension).Value))
+            var aDimension = aKey.GetPartitionDimension(dimension).Value;
+            var bDimension = bKey.GetPartitionDimension(dimension).Value;
+            if (!ValuesIntersect(a: aDimension, b: bDimension))
             {
                 return false;
             }
@@ -274,8 +274,9 @@ public static partial class ScheduleBuilderHelper
                 .Append(lesson.Date.DayOfWeek)
                 .Append(" slot ")
                 .Append(lesson.Date.TimeSlot!.Value.Index)
-                .Append(", ")
-                .Append(lesson.Date.Parity is { } parity ? parity.ToString() : "no parity")
+                .Append(", ");
+            var parityDisplay = lesson.Date.Parity is { } parity ? parity.ToString() : "no parity";
+            sb.Append(parityDisplay)
                 .Append(", subgroup: ")
                 .Append(lesson.Base.Group.SubGroup.Value ?? "all")
                 .Append(", specialization: ")

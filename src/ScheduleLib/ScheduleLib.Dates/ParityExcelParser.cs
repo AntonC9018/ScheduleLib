@@ -31,14 +31,8 @@ public static class DayHelper
 
     public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
     {
-        int CalculateValue()
-        {
-            int int32 = -(int) d.DayOfWeek;
-            int value = int32 + (int) DayOfWeek.Monday;
-            return value;
-        }
-
-        var monday = d.AddDays(CalculateValue());
+        int offsetToMonday = -(int) d.DayOfWeek + (int) DayOfWeek.Monday;
+        var monday = d.AddDays(offsetToMonday);
         return GetDayOfWeekFromMonday(monday, day);
     }
 
@@ -46,8 +40,8 @@ public static class DayHelper
 
     private static DateOnly GetDayOfWeekFromMonday(DateOnly monday, DayOfWeek day)
     {
-        int int32 = day - DayOfWeek.Monday + weekdayCount;
-        var offset = int32 % weekdayCount;
+        int daysFromMonday = day - DayOfWeek.Monday + weekdayCount;
+        var offset = daysFromMonday % weekdayCount;
         var ret = monday.AddDays(offset);
         return ret;
     }
@@ -98,8 +92,7 @@ public static class ParityExcelParser
                 }
 
                 {
-                    int int32 = ret.End.DayNumber - ret.Start.DayNumber;
-                    int dayCount = int32 + 1;
+                    int dayCount = ret.End.DayNumber - ret.Start.DayNumber + 1;
                     if (dayCount != 6)
                     {
                         throw new NotSupportedException("The date range must have 6 days in total");
@@ -138,7 +131,6 @@ public static class ParityExcelParser
         }
 
         yield break;
-
 
         void VerifyHeader()
         {
@@ -269,7 +261,6 @@ public static class ParityExcelParser
             ret[(int) (m - 1)] = name;
         }
     }
-
 
     private static Month? ParseMonth(ReadOnlySpan<char> name)
     {

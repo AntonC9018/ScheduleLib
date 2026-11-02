@@ -50,7 +50,6 @@ public struct ArrangementEnumerator<T>
                 currentLastIndex--;
                 if (prev == currentLastIndex)
                 {
-
                 }
             }
         }
@@ -79,19 +78,9 @@ public static class CombinationHelper
 
     public static IEnumerable<T[]> Generate<T>(T[] items, T[] resultMem)
     {
-        ArraySegment<T> CalculateItems()
-        {
-            var items2 = new ArraySegment<T>(items);
-            return items2;
-        }
-
-        ArraySegment<T> CalculateResultMem()
-        {
-            ArraySegment<T> resultMem2 = new(resultMem);
-            return resultMem2;
-        }
-
-        foreach (var x in Generate(items: CalculateItems(), resultMem: CalculateResultMem()))
+        foreach (var x in Generate(
+                     items: new ArraySegment<T>(items),
+                     resultMem: new ArraySegment<T>(resultMem)))
         {
             _ = x;
             yield return resultMem;

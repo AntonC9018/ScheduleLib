@@ -180,25 +180,7 @@ public static class ExcelScheduleParser
             offset,
             config);
 
-        bool CalculateConditionResult()
-        {
-            if (!isFirstTime)
-            {
-                return false;
-            }
-
-            if (config.ExpectBullshitRow)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (isFirstTime && config.ExpectBullshitRow)
         {
             if (!rowE.MoveNext())
             {

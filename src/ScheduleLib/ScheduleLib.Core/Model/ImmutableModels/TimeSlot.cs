@@ -179,13 +179,7 @@ public sealed class LessonTimeConfig
         {
             for (int i = 0; i < TimeSlotStarts.Length; i++)
             {
-                TimeSlot CalculateIndex()
-                {
-                    var index = new TimeSlot(i);
-                    return index;
-                }
-
-                yield return GetTimeSlotInterval(CalculateIndex());
+                yield return GetTimeSlotInterval(new TimeSlot(i));
             }
         }
     }

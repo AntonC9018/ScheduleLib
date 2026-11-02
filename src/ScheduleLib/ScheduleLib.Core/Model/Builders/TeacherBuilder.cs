@@ -621,13 +621,7 @@ public static class TeacherNameHelper
         // If only a single name has been given, it's the last name.
         if (reader.IsEmpty)
         {
-            NameParts<string?> CalculateParts()
-            {
-                var parts = MakeSureWithoutShortName(nameA);
-                return parts;
-            }
-
-            ret.LastName = new(CalculateParts());
+            ret.LastName = new(MakeSureWithoutShortName(nameA));
             return ret;
         }
 
@@ -651,13 +645,7 @@ public static class TeacherNameHelper
             throw new ArgumentException("The last name must be provided.");
         }
 
-        NameParts<string?> CalculateParts2()
-        {
-            var parts2 = MakeSureWithoutShortName(nameB);
-            return parts2;
-        }
-
-        ret.LastName = new(CalculateParts2());
+        ret.LastName = new(MakeSureWithoutShortName(nameB));
 
         return ret;
 
@@ -711,25 +699,7 @@ public static class TeacherNameHelper
 
                 bool isShort = false;
 
-                bool CalculateConditionResult()
-                {
-                    if (bparser.IsEmpty)
-                    {
-                        return false;
-                    }
-
-                    if (bparser.Current == WordHelper.ShortenedWordCharacter)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (!bparser.IsEmpty && bparser.Current == WordHelper.ShortenedWordCharacter)
                 {
                     bparser.Move();
                     isShort = true;

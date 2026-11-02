@@ -202,7 +202,6 @@ public static class EnumerableExtensions
                 var b = ItemAt(indexB);
                 return new(First: a, Second: b);
 
-
                 T ItemAt(int i)
                 {
                     while (e.MoveNext())
@@ -307,25 +306,7 @@ public static class EnumerableExtensions
             .RememberIsDone();
         while (true)
         {
-            bool CalculateConditionResult()
-            {
-                if (e1.IsDone)
-                {
-                    return true;
-                }
-
-                if (e2.IsDone)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (e1.IsDone || e2.IsDone)
             {
                 break;
             }

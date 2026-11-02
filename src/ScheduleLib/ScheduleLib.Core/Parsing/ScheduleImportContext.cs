@@ -54,7 +54,6 @@ public sealed class ScheduleImportContext
         SubGroupMatcher = subGroupMatcher ?? SubGroupPrefixMatcher.Default;
     }
 
-
     public void SetPeriod(PeriodBeginning? period)
     {
         if (period is { } per)
@@ -349,19 +348,7 @@ public sealed class ScheduleImportContext
 
         bool groupNameHandledAsSubgroup = SetCommonProps(builder, lesson) == SubGroupStatus.GroupNameIsSubGroup;
 
-        bool CalculateConditionResult()
-        {
-            if (lesson.GroupName.IsEmpty)
-            {
-                return true;
-            }
-            return groupNameHandledAsSubgroup;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (lesson.GroupName.IsEmpty || groupNameHandledAsSubgroup)
         {
             builder.Groups([.. input.Groups]);
         }

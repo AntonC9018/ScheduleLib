@@ -212,14 +212,14 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
             throw;
         }
 
-        bool CalculateConditionResult()
+        bool IsAuthenticatedResponse()
         {
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 return false;
             }
 
-            if (!(response.QuerySelector("input[type=password]") is null))
+            if (response.QuerySelector("input[type=password]") is not null)
             {
                 return false;
             }
@@ -237,10 +237,7 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
             return false;
         }
 
-        bool conditionResult = CalculateConditionResult();
-
-
-        return conditionResult;
+        return IsAuthenticatedResponse();
 
         IHtmlInputElement? GetInput(string name)
         {
@@ -430,7 +427,6 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
         }
         await CreateNew();
         return true;
-
 
         [SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")]
         async ValueTask<bool> TryUpdateExisting()

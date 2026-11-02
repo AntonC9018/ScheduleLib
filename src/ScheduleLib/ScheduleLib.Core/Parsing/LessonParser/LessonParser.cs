@@ -402,24 +402,7 @@ public static class LessonParsingHelper
                     {
                         bool isDefaultKey = mod.Key == SubLessonModifiersKey.Default;
 
-                        bool CalculateConditionResult()
-                        {
-                            if (!isDefaultKey)
-                            {
-                                return false;
-                            }
-
-                            if (shouldNotOutputDefaultKey)
-                            {
-                                return true;
-                            }
-                            return false;
-                        }
-
-                        bool conditionResult = CalculateConditionResult();
-
-
-                        if (conditionResult)
+                        if (isDefaultKey && shouldNotOutputDefaultKey)
                         {
                             continue;
                         }
@@ -807,32 +790,24 @@ public static class LessonParsingHelper
                         if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
                         {
                             c.StateStack.Push();
-                            bool conditionResult;
-                            if (TryParsingUntilOutputOrTerminalState(c))
+                            static bool HasSpecificTeacherOrRoom(ParsingContext context)
                             {
-                                if (!c.State.LastModifiers.Specific.RoomName.IsEmpty)
+                                if (!TryParsingUntilOutputOrTerminalState(context))
                                 {
-                                    conditionResult = true;
+                                    return false;
                                 }
-                                else
+                                if (!context.State.LastModifiers.Specific.RoomName.IsEmpty)
                                 {
-                                    if (c.State.LastModifiers.Specific.TeacherNames.Count != 0)
-                                    {
-                                        conditionResult = c.State.LastModifiers.Specific.LastTeacher.IsNull;
-                                        conditionResult = !conditionResult;
-                                    }
-                                    else
-                                    {
-                                        conditionResult = false;
-                                    }
+                                    return true;
                                 }
-                            }
-                            else
-                            {
-                                conditionResult = false;
+                                if (context.State.LastModifiers.Specific.TeacherNames.Count == 0)
+                                {
+                                    return false;
+                                }
+                                return !context.State.LastModifiers.Specific.LastTeacher.IsNull;
                             }
 
-                            if (conditionResult)
+                            if (HasSpecificTeacherOrRoom(c))
                             {
                                 c.StateStack.Pop(apply: true);
                                 return true;
@@ -858,7 +833,6 @@ public static class LessonParsingHelper
                             return regRet;
                         }
                         return new();
-
 
                         SubLessonModifiersKey? RegularModifierForm(ref LimitedLexerScope lexer)
                         {
@@ -1624,27 +1598,7 @@ public static class LessonParsingHelper
                     break;
                 }
 
-                bool CheckCondition()
-                {
-                    if (t.Type != LessonTokenType.Number)
-                    {
-                        return false;
-                    }
-
-                    if (!(t.Value.Length >= 2))
-                    {
-                        return false;
-                    }
-
-                    if (!isInsideParen)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition())
+                if (t.Type == LessonTokenType.Number && t.Value.Length >= 2 && !isInsideParen)
                 {
                     break;
                 }
@@ -1999,29 +1953,8 @@ public sealed class RoomParser
                 var t = lexer.Current;
 
                 // Move this out of here?
-                bool CalculateConditionResult2()
-                {
-                    if (t.Is(','))
-                    {
-                        return true;
-                    }
-                    if (t.Type == TokenType.Whitespace)
-                    {
-                        return true;
-                    }
 
-                    if (t.Type == TokenType.EndOfLine)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult2();
-
-
-                if (conditionResult)
+                if (t.Is(',') || t.Type == TokenType.Whitespace || t.Type == TokenType.EndOfLine)
                 {
                     return true;
                 }
@@ -2085,30 +2018,7 @@ public sealed class RoomParser
                 }
                 var t = lexer.Current;
 
-                bool CalculateConditionResult()
-                {
-                    if (t.Type != LessonTokenType.Word)
-                    {
-                        return false;
-                    }
-
-                    if (t.Value.Length != 1)
-                    {
-                        return false;
-                    }
-
-                    if (char.IsLetter(t.Value.Span[0]))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (t.Type == LessonTokenType.Word && t.Value.Length == 1 && char.IsLetter(t.Value.Span[0]))
                 {
                     lexer.Move();
                     return true;

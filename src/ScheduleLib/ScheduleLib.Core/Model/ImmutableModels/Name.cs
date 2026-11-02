@@ -491,24 +491,8 @@ public static class NameDisplayHelper
         {
             var res = AppendFirstName();
 
-            bool CalculateConditionResult2()
-            {
-                if (res == WhichFirstName.Full)
-                {
-                    return true;
-                }
-                if (res != WhichFirstName.Short)
-                {
-                    return false;
-                }
-
-                return p.InsertSpaceAfterShortName;
-            }
-
-            bool conditionResult2 = CalculateConditionResult2();
-
-
-            if (conditionResult2)
+            if (res == WhichFirstName.Full
+                || (res == WhichFirstName.Short && p.InsertSpaceAfterShortName))
             {
                 shouldAddSpaceNext = true;
             }
@@ -564,25 +548,7 @@ public static class NameDisplayHelper
                     return false;
                 }
 
-                bool CalculateConditionResult()
-                {
-                    if (!(f[1].Full is null))
-                    {
-                        return false;
-                    }
-
-                    if (f[1].Short is not null)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (f[1].Full is null && f[1].Short is not null)
                 {
                     return false;
                 }

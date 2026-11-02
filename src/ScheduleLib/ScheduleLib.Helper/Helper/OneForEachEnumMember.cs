@@ -381,27 +381,9 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             // but it's undetectable from here and literally cannot be prevented.
             ret.Dispose();
 
-            bool CheckCondition()
-            {
-                if (!typeof(TValue).IsClass)
-                {
-                    return false;
-                }
-
-                if (typeof(TValue).IsSealed)
-                {
-                    return false;
-                }
-
-                if (!typeof(TValue).IsAssignableTo(typeof(IDisposable)))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (CheckCondition())
+            if (typeof(TValue).IsClass
+                && !typeof(TValue).IsSealed
+                && !typeof(TValue).IsAssignableTo(typeof(IDisposable)))
             {
                 foreach (var x in ret)
                 {
@@ -431,13 +413,7 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         writer.WriteStartObject();
         foreach (var (key, val) in value)
         {
-            string CalculatePropertyName()
-            {
-                string propertyName = Enum.GetName(key)!;
-                return propertyName;
-            }
-
-            writer.WritePropertyName(CalculatePropertyName());
+            writer.WritePropertyName(Enum.GetName(key)!);
             JsonSerializer.Serialize(
                 writer,
                 val,

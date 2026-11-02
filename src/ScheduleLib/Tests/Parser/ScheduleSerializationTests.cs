@@ -131,13 +131,7 @@ public sealed class ScheduleSerializationTests
         bool condition = fileInfo.Length < first.Length;
         Assert.True(condition);
 
-        Schedule CalculateSchedule()
-        {
-            var schedule3 = CreateSchedule("New");
-            return schedule3;
-        }
-
-        await builder.Input(CalculateSchedule())
+        await builder.Input(CreateSchedule("New"))
             .Hash("cache identity")
             .Output(final)
             .ExecuteAsync();
@@ -148,9 +142,8 @@ public sealed class ScheduleSerializationTests
         var model = await ScheduleSerializer.Deserialize(final, CancellationToken.None);
         Assert.Equal(expected: "cache identity", actual: model.Hash);
         Assert.Equal(expected: "New", actual: Assert.Single(model.Courses).Names[0]);
-        var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
-        System.Collections.IEnumerable collection2 = collection;
-        Assert.Empty(collection2);
+        var temporaryFiles = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+        Assert.Empty(temporaryFiles);
     }
 
     [Fact]
@@ -230,9 +223,8 @@ public sealed class ScheduleSerializationTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExecuteAsync(cancellation.Token));
         Assert.Equal(expected: previous, actual: await File.ReadAllBytesAsync(CalculateSchedulePath(temp)));
         Assert.Equal(expected: previous, actual: stream.ToArray());
-        var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
-        System.Collections.IEnumerable collection2 = collection;
-        Assert.Empty(collection2);
+        var temporaryFiles = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+        Assert.Empty(temporaryFiles);
         stream.Position = 0;
         stream.SetLength(0);
         await builder.ExecuteAsync();
@@ -308,9 +300,8 @@ public sealed class ScheduleSerializationTests
             .Output(CalculateSchedulePath(temp));
         await Assert.ThrowsAnyAsync<IOException>(() => builder.ExecuteAsync());
         Assert.Equal(expected: "previous complete output", actual: await File.ReadAllTextAsync(sentinel));
-        var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
-        System.Collections.IEnumerable collection2 = collection;
-        Assert.Empty(collection2);
+        var temporaryFiles = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
+        Assert.Empty(temporaryFiles);
         File.Delete(sentinel);
         Directory.Delete(CalculateSchedulePath(temp));
         await builder.ExecuteAsync();

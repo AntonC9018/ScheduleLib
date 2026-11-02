@@ -98,14 +98,12 @@ public sealed class LessonTypeDisplayHandler
     public string? Get(LessonType type)
     {
         var names = LessonTypeConstants.Names;
-        bool conditionResult;
-        int conditionValue = (int) type;
-        conditionResult = conditionValue < names.Length;
-        if (!conditionResult)
+        int lessonTypeIndex = (int) type;
+        if (lessonTypeIndex >= names.Length)
         {
             return null;
         }
 
-        return names[(int) type];
+        return names[lessonTypeIndex];
     }
 }

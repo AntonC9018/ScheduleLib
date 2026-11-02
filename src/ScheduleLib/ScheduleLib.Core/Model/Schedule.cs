@@ -517,9 +517,7 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
         int hash = 17;
         for (int i = 0; i < Capacity; i++)
         {
-            int int32 = hash * 31;
-            int int322 = int32 + this[i].GetHashCode();
-            hash = int322;
+            hash = hash * 31 + this[i].GetHashCode();
         }
         return hash;
     }

@@ -174,8 +174,24 @@ public static class LabSubGroupMerges
                     break;
                 }
 
-                if (previousLabs.Length == 0
-                    || (labels.Length == 1 && previousLabels.Length == 1 && previousLabels[0] != labels[0]))
+                bool BreaksSubgroupContinuity()
+                {
+                    if (previousLabs.Length == 0)
+                    {
+                        return true;
+                    }
+                    if (labels.Length != 1)
+                    {
+                        return false;
+                    }
+                    if (previousLabels.Length != 1)
+                    {
+                        return false;
+                    }
+                    return previousLabels[0] != labels[0];
+                }
+
+                if (BreaksSubgroupContinuity())
                 {
                     valid = false;
                     break;

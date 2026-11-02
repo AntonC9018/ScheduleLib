@@ -250,13 +250,7 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        ParsedLesson CalculateParsedLesson()
-        {
-            var parsedLesson = Parsed(groupName: "Spring", subGroup: "I");
-            return parsedLesson;
-        }
-
-        context.SetCommonProps(lesson, CalculateParsedLesson());
+        context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "I"));
 
         var expected2 = SubGroup.CreateNumeric(1);
         var actual2 = lesson.Model.Base.Group.SubGroup;
@@ -273,13 +267,7 @@ public sealed class ScheduleSanityChecksTests
 
         var error = Assert.Throws<ConflictingSubGroupException>(() =>
         {
-            ParsedLesson CalculateParsedLesson()
-            {
-                var parsedLesson = Parsed(groupName: "ro", subGroup: "ru");
-                return parsedLesson;
-            }
-
-            return context.SetCommonProps(lesson, CalculateParsedLesson());
+            return context.SetCommonProps(lesson, Parsed(groupName: "ro", subGroup: "ru"));
         });
 
         Assert.Contains(expectedSubstring: "two subgroups", actualString: error.Message);
@@ -294,14 +282,7 @@ public sealed class ScheduleSanityChecksTests
 
         var error = Assert.Throws<ConflictingSpecializationException>(() =>
         {
-            ParsedLesson CalculateParsedLesson()
-            {
-                var parsedLesson =
-                    Parsed(groupName: "Spring", subGroup: "CV");
-                return parsedLesson;
-            }
-
-            return context.SetCommonProps(lesson, CalculateParsedLesson());
+            return context.SetCommonProps(lesson, Parsed(groupName: "Spring", subGroup: "CV"));
         });
 
         Assert.Contains(expectedSubstring: "two specializations", actualString: error.Message);
@@ -340,13 +321,7 @@ public sealed class ScheduleSanityChecksTests
         var lesson = context.Schedule.RegularLesson();
         lesson.Group(group);
 
-        ParsedLesson CalculateParsedLesson()
-        {
-            var parsedLesson = Parsed(groupName: "futu", subGroup: "I");
-            return parsedLesson;
-        }
-
-        context.SetCommonProps(lesson, CalculateParsedLesson());
+        context.SetCommonProps(lesson, Parsed(groupName: "futu", subGroup: "I"));
 
         var expected2 = SubGroup.CreateNumeric(1);
         var actual2 = lesson.Model.Base.Group.SubGroup;

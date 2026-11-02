@@ -15,9 +15,7 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
         {
             int enumAsInt = EnumAsInt(End);
             int enumAsInt2 = EnumAsInt(Start);
-            int int32 = enumAsInt - enumAsInt2;
-            int int322 = int32 + 1;
-            return int322;
+            return enumAsInt - enumAsInt2 + 1;
         }
     }
 
@@ -35,9 +33,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     {
         Debug.Assert(val >= EnumAsInt(Start));
         Debug.Assert(val <= EnumAsInt(End));
-        int int32 = val;
         int enumAsInt = EnumAsInt(Start);
-        var ret = int32 - enumAsInt;
+        var ret = val - enumAsInt;
         return ret;
     }
 
@@ -103,9 +100,7 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public Enumerator()
         {
-            int enumAsInt = EnumAsInt(Start);
-            int int32 = enumAsInt - 1;
-            _index = int32;
+            _index = EnumAsInt(Start) - 1;
         }
 
         public bool MoveNext()
@@ -116,9 +111,7 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public void Reset()
         {
-            int enumAsInt = EnumAsInt(Start);
-            int int32 = enumAsInt - 1;
-            _index = int32;
+            _index = EnumAsInt(Start) - 1;
         }
 
         public readonly T Current => IntAsEnum(_index);

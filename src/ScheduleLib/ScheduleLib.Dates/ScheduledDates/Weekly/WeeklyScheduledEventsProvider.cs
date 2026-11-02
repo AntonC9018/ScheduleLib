@@ -40,9 +40,7 @@ public readonly record struct Event
         int count,
         int interval)
     {
-        int int32 = interval;
-        int int322 = count - 1;
-        var days = int32 * int322;
+        var days = interval * (count - 1);
         return first.AddDays(days);
     }
 
@@ -186,26 +184,12 @@ public static class ScheduledDatesToEventsTransformerHelper
 
             if (ShouldOutput())
             {
-                int CalculateInterval()
-                {
-                    int interval2;
-                    if (count > 1)
-                    {
-                        interval2 = interval;
-                    }
-                    else
-                    {
-                        interval2 = 0;
-                    }
-
-                    return interval2;
-                }
-
+                int eventInterval = count > 1 ? interval : 0;
                 yield return new Event(
                     first: first,
                     last: prev,
                     count: count,
-                    interval: CalculateInterval());
+                    interval: eventInterval);
                 first = default;
                 count = 0;
             }

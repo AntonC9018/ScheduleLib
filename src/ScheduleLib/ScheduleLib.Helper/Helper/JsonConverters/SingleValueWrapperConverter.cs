@@ -45,25 +45,8 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     public override bool CanConvert(Type typeToConvert)
     {
         // Skip primitives and enums
-        bool CalculateConditionResult()
-        {
-            if (typeToConvert.IsPrimitive)
-            {
-                return true;
-            }
 
-            if (typeToConvert.IsEnum)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
         {
             return false;
         }
@@ -198,7 +181,6 @@ file static class Accessors
         }
         return wholeMatch;
     }
-
 
     private static readonly MethodInfo CreateMethod = typeof(Accessors).GetMethod(
         nameof(Create),

@@ -134,33 +134,9 @@ public sealed class IcsCalendarWriterTests
     [Fact]
     public void Uid_DiffersForDifferentContent()
     {
-        IcsEvent CalculateEvents()
-        {
-            var events = Event("Curs A");
-            return events;
-        }
+        var a = WriteText(Calendar(Event("Curs A")));
 
-        IcsCalendar CalculateCalendar()
-        {
-            var calendar = Calendar(CalculateEvents());
-            return calendar;
-        }
-
-        var a = WriteText(CalculateCalendar());
-
-        IcsEvent CalculateEvents2()
-        {
-            var events2 = Event("Curs B");
-            return events2;
-        }
-
-        IcsCalendar CalculateCalendar2()
-        {
-            var calendar2 = Calendar(CalculateEvents2());
-            return calendar2;
-        }
-
-        var b = WriteText(CalculateCalendar2());
+        var b = WriteText(Calendar(Event("Curs B")));
 
         string expected2 = UidOf(a);
         string actual2 = UidOf(b);
@@ -191,9 +167,8 @@ public sealed class IcsCalendarWriterTests
         });
 
         string expected = "UID:explicit@schedulelib";
-        string[] collection = PhysicalLines(calendar);
-        IEnumerable<string> collection2 = collection;
-        Assert.Contains(expected, collection2);
+        string[] physicalLines = PhysicalLines(calendar);
+        Assert.Contains(expected, physicalLines);
     }
 
     [Fact]
@@ -276,27 +251,7 @@ public sealed class IcsCalendarWriterTests
             .SkipWhile(l => !l.StartsWith("SUMMARY:"))
             .TakeWhile((l, i) =>
             {
-                bool CheckCondition()
-                {
-                    if (i == 0)
-                    {
-                        return true;
-                    }
-
-                    if (l.StartsWith(" "))
-                    {
-                        return true;
-                    }
-
-                    if (l.StartsWith("\t"))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                return CheckCondition();
+                return i == 0 || l.StartsWith(" ") || l.StartsWith("\t");
             })
             .ToArray();
 
@@ -325,8 +280,7 @@ public sealed class IcsCalendarWriterTests
         // 74 ASCII chars then an emoji: the pair does not fit in the first
         // segment, so it must move to the continuation line whole.
         string text = new string('a', 67);
-        string text2 = $"SUMMARY:{text}🏝️";
-        var line = text2;
+        var line = $"SUMMARY:{text}🏝️";
 
         var folded = IcsCalendarWriter.Fold(line);
         var segments = folded.Split("\r\n");
