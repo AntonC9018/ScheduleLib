@@ -1,9 +1,17 @@
 # CodingRules candidate history
 
-All candidates are local, unpublished `Anton.CodingRules.0.1.0.nupkg` archives of version 0.1.0;
-the repository commit and SHA-256 distinguish them. Latest first. Adoption procedure:
+Candidates are local, unpublished archives; older entries use version 0.1.0 unless stated otherwise.
+The repository commit and SHA-256 distinguish them. Latest first. Adoption procedure:
 [decision](../decisions/codingrules-candidate-adoption.md).
 
+- **`8e727c9`** (2026-11-02, branch `feat/readability-fixer-policy`), version
+  `0.1.0-local.20261102`, SHA-256
+  `0c1701f04b372d26942391f1938225720278272015fb5cb40650678aa11e3a3f`:
+  fresh serial validation passes 287 analyzer tests, 1,369 fixer tests, all eight package tests,
+  and all twelve packaged consumer gates against this archive. Source and package provenance match.
+  Consumer adoption verifies the exact archive and assets across 23 CLI dependency projects and
+  refreshes the exported guidance. CR1700 remains an error in this strict consumer; generated
+  `TODO_` names must be renamed. Upstream merge/publication remains separate from local readiness.
 - **`e3c48f2`** (2026-10-31, branch `refactor/analyzer-reuse`), SHA-256
   `1aeac0a8ad25bdaf59289c024edb049f7dc8a4feec2289e45ab7ef3913cba8d3`: first candidate adopted
   for the #264 integration; it provides `ExternalSignatureAttribute`, which published 0.1.0
