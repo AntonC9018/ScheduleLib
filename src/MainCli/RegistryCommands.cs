@@ -394,7 +394,7 @@ public partial class RegistryCommands
                 total = outcomes.Count,
                 counts,
             };
-            var actions = outcomes.Select(x => $"{x.Kind}: {x.Status.ToWire()}")
+            var actions = outcomes.Select(x => $"{x.Kind.ToLowercaseValue()}: {x.Status.ToWire()}")
                 .ToArray();
             var data = new RegistrySyncResult(
                 target,

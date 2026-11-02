@@ -680,6 +680,9 @@ public sealed class RegistryTests
         var outcomes = result.GetProperty("data").GetProperty("outcomes");
         var kinds = outcomes.EnumerateArray().Select(outcome => outcome.GetProperty("kind").GetString());
         Assert.Equal(expected: ["create", "update", "delete"], actual: kinds);
+        Assert.Equal(
+            expected: ["create: planned", "update: planned", "delete: planned"],
+            actual: result.GetProperty("actions").EnumerateArray().Select(action => action.GetString()));
     }
 
     [Fact]
@@ -718,6 +721,10 @@ public sealed class RegistryTests
         Assert.Equal(expected: 2, actual: fake.Plans);
         Assert.Equal(expected: 3, actual: fake.Navigator.Submissions);
         Assert.Equal(expected: fake.Target, actual: locks.Target);
+        Assert.Equal(
+            expected: ["create: completed", "update: completed", "delete: completed"],
+            actual: capture.Result().GetProperty("actions").EnumerateArray()
+                .Select(action => action.GetString()));
         Assert.All(
             capture.Result()
                 .GetProperty("data")
