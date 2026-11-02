@@ -16,37 +16,12 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
         bool isOtherDefault = other.Array == default;
         bool isSelfDefault = Array == default;
 
-        bool CalculateConditionResult()
-        {
-            if (!isSelfDefault)
-            {
-                return false;
-            }
-
-            return isOtherDefault;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (isSelfDefault && isOtherDefault)
         {
             return true;
         }
 
-        bool CalculateConditionResult2()
-        {
-            if (isSelfDefault)
-            {
-                return true;
-            }
-            return isOtherDefault;
-        }
-
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (isSelfDefault || isOtherDefault)
         {
             return false;
         }

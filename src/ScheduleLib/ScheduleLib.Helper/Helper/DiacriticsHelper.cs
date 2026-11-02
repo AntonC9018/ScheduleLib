@@ -106,25 +106,7 @@ public sealed class IgnoreDiacriticsAndCaseComparer :
 
     public int Compare(string? a, string? b)
     {
-        bool CalculateConditionResult()
-        {
-            if (!(a is null))
-            {
-                return false;
-            }
-
-            if (b is null)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (a is null && b is null)
         {
             return 0;
         }

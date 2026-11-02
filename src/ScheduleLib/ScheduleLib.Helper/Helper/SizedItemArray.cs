@@ -223,25 +223,7 @@ public readonly struct SizedItemArray<T>
 
         int remainingSizeEnd = availableSize - sizeOfItems;
 
-        bool CalculateConditionResult()
-        {
-            if (!(offset > 0))
-            {
-                return false;
-            }
-
-            if (remainingSizeEnd > 0)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (offset > 0 && remainingSizeEnd > 0)
         {
             existingItemRef = existingItemRef.WithSize(offset);
             var newItem = existingItemRef.WithSize(remainingSizeEnd);
@@ -260,50 +242,14 @@ public readonly struct SizedItemArray<T>
             return ReplaceItemStatus.Spliced;
         }
 
-        bool CalculateConditionResult2()
-        {
-            if (offset != 0)
-            {
-                return false;
-            }
-
-            if (remainingSizeEnd > 0)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (offset == 0 && remainingSizeEnd > 0)
         {
             existingItemRef = existingItemRef.WithSize(remainingSizeEnd);
             _items.InsertRange(existing.Index, items);
             return ReplaceItemStatus.PartlyReplaced;
         }
 
-        bool CalculateConditionResult3()
-        {
-            if (!(offset > 0))
-            {
-                return false;
-            }
-
-            if (remainingSizeEnd == 0)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult3 = CalculateConditionResult3();
-
-
-        if (conditionResult3)
+        if (offset > 0 && remainingSizeEnd == 0)
         {
             existingItemRef = existingItemRef.WithSize(offset);
             _items.InsertRange(existing.Index + 1, items);
