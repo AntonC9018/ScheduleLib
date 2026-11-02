@@ -70,12 +70,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             var name = NameHelper.TryParseName(ref parser);
             if (name is null)
             {
-                var list =
-                    notices;
-                string kind = "omitted";
-                string detail = $"Moodle name could not be parsed: {q.UserName}";
-                RegistryGradeNotice item = new(Kind: kind, Detail: detail);
-                list.Add(item);
+                notices.Add(RegistryGradeNotice.MoodleNameUnparsed(q.UserName));
                 continue;
             }
 
@@ -89,12 +84,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (q.Grade is not { } grade1)
             {
-                var list2 =
-                    notices;
-                string kind2 = "omitted";
-                string detail2 = $"Moodle student has no grade: {q.UserName}";
-                RegistryGradeNotice item2 = new(Kind: kind2, Detail: detail2);
-                list2.Add(item2);
+                notices.Add(RegistryGradeNotice.MoodleGradeMissing(q.UserName));
                 continue;
             }
             bool conditionResult2;
@@ -118,22 +108,12 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (conditionResult2)
             {
-                var list3 =
-                    notices;
-                string kind3 = "unsupported";
-                string detail3 = $"Moodle grade is not a finite supported number: {q.UserName}";
-                RegistryGradeNotice item3 = new(Kind: kind3, Detail: detail3);
-                list3.Add(item3);
+                notices.Add(RegistryGradeNotice.MoodleGradeUnsupported(q.UserName));
                 continue;
             }
             if (gradeByName.ContainsKey(name))
             {
-                var list4 =
-                    notices;
-                string kind4 = "omitted";
-                string detail4 = $"Earlier attempt replaced by the last graded attempt: {name}";
-                RegistryGradeNotice item4 = new(Kind: kind4, Detail: detail4);
-                list4.Add(item4);
+                notices.Add(RegistryGradeNotice.MoodleAttemptSuperseded(name));
             }
 
             gradeByName[name] = grade1;
@@ -142,10 +122,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         // determine course from path
         RegistryGradePlan UnsupportedPath()
         {
-            var notice = new RegistryGradeNotice(
-                Kind: "unsupported",
-                Detail: "Moodle course/test path could not be parsed.");
-            notices.Add(notice);
+            notices.Add(RegistryGradeNotice.MoodlePathUnparsed());
             return new(actions, notices);
         }
 
@@ -170,12 +147,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         });
         if (courseId is null)
         {
-            var list6 =
-                notices;
-            RegistryGradeNotice item6 = new(
-                Kind: "unsupported",
-                Detail: "Moodle course name does not resolve in the configured schedule.");
-            list6.Add(item6);
+            notices.Add(RegistryGradeNotice.MoodleCourseUnresolved());
             return new(actions, notices);
         }
         var grade = parsedPath.Grade;
@@ -210,12 +182,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                 if (conditionResult)
                 {
-                    var
-                        list7 = notices;
-                    string kind5 = "unsupported";
-                    string detail5 = $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}";
-                    RegistryGradeNotice item7 = new(Kind: kind5, Detail: detail5);
-                    list7.Add(item7);
+                    notices.Add(RegistryGradeNotice.RegistryGroupUnsupported(group.EvaluationUri));
                     continue;
                 }
                 var groupInfo = _schedule.Get(group.Groups.Value[0]);
@@ -269,12 +236,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 var testUrl = TestAnchor();
                 if (testUrl is null)
                 {
-                    var
-                        list8 = notices;
-                    string kind6 = "unsupported";
-                    string detail6 = $"Testarea {parsedPath.TestNumber} is missing for {group.EvaluationUri}";
-                    RegistryGradeNotice item8 = new(Kind: kind6, Detail: detail6);
-                    list8.Add(item8);
+                    notices.Add(RegistryGradeNotice.RegistryTestMissing(parsedPath.TestNumber, group.EvaluationUri));
                     continue;
                 }
                 var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
@@ -297,13 +259,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         // A two-part name otherwise lets the name parser consume exmatr as a patronymic.
                         if (registryName.EndsWith(" exmatr", StringComparison.Ordinal))
                         {
-                            var list9 = notices;
-                            string kind7 = "omitted";
-                            string detail7 = $"Expelled registry student: {registryName}";
-                            RegistryGradeNotice item9 = new(
-                                Kind: kind7,
-                                Detail: detail7);
-                            list9.Add(item9);
+                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(registryName));
                             continue;
                         }
                         var nameParser = new SequenceReader(registryName);
@@ -311,51 +267,26 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var parsedName = NameHelper.TryParseName(ref nameParser);
                         if (parsedName is null)
                         {
-                            var list10 = notices;
-                            string kind8 = "unsupported";
-                            string detail8 = $"Registry name could not be parsed: {registryName}";
-                            RegistryGradeNotice item10 = new(
-                                Kind: kind8,
-                                Detail: detail8);
-                            list10.Add(item10);
+                            notices.Add(RegistryGradeNotice.RegistryNameUnparsed(registryName));
                             continue;
                         }
                         name = parsedName;
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {
-                            var list11 = notices;
-                            string kind9 = "omitted";
-                            string detail9 = $"Expelled registry student: {name}";
-                            RegistryGradeNotice item11 = new(
-                                Kind: kind9,
-                                Detail: detail9);
-                            list11.Add(item11);
+                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(name.ToString()));
                             continue;
                         }
                         if (!nameParser.IsEmpty)
                         {
-                            var list12 = notices;
-                            string kind10 = "unsupported";
-                            string detail10 = $"Registry name contains unsupported trailing text: {registryName}";
-                            RegistryGradeNotice item12 = new(
-                                Kind: kind10,
-                                Detail: detail10);
-                            list12.Add(item12);
+                            notices.Add(RegistryGradeNotice.RegistryNameTrailingTextUnsupported(registryName));
                             continue;
                         }
                     }
 
                     if (!gradeByName.Remove(name, out float gradeInDb))
                     {
-                        var
-                            list13 = notices;
-                        string kind11 = "unmatched";
-                        string detail11 = $"Registry student has no matching graded Moodle attempt: {name}";
-                        RegistryGradeNotice item13 = new(
-                            Kind: kind11,
-                            Detail: detail11);
-                        list13.Add(item13);
+                        notices.Add(RegistryGradeNotice.RegistryStudentUnmatched(name));
                         continue;
                     }
 
@@ -380,12 +311,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                 if (changes.Count == 0)
                 {
-                    var
-                        list15 = notices;
-                    string kind12 = "omitted";
-                    string detail12 = $"No mapped grades to submit for {testUrl.Href}";
-                    RegistryGradeNotice item15 = new(Kind: kind12, Detail: detail12);
-                    list15.Add(item15);
+                    notices.Add(RegistryGradeNotice.NoGradesToSubmit(testUrl.Href));
                     continue;
                 }
                 RegistryGradeForm.Validate(test1Doc);
@@ -431,22 +357,12 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
         if (actions.Count == 0)
         {
-            var list16 =
-                notices;
-            RegistryGradeNotice item16 = new(
-                Kind: "unmatched",
-                Detail: "No registry test forms with supported mapped grades were planned.");
-            list16.Add(item16);
+            notices.Add(RegistryGradeNotice.NoTestFormsPlanned());
         }
 
         foreach (var (name, value) in gradeByName)
         {
-            var list17 =
-                notices;
-            string kind13 = "unmatched";
-            string detail13 = $"Moodle student was not matched in registry: {name} ({value})";
-            RegistryGradeNotice item17 = new(Kind: kind13, Detail: detail13);
-            list17.Add(item17);
+            notices.Add(RegistryGradeNotice.MoodleStudentUnmatched(name, value));
         }
         return new(actions, notices);
     }

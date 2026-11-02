@@ -529,7 +529,7 @@ public sealed class RegistryGradeTests
             {
                 bool CheckCondition()
                 {
-                    if (x.Kind != "omitted")
+                    if (x.Kind != RegistryGradeNoticeKind.Omitted)
                     {
                         return false;
                     }
@@ -548,7 +548,7 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                if (x.Kind != "omitted")
+                if (x.Kind != RegistryGradeNoticeKind.Omitted)
                 {
                     return false;
                 }
@@ -564,7 +564,7 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                if (x.Kind != "omitted")
+                if (x.Kind != RegistryGradeNoticeKind.Omitted)
                 {
                     return false;
                 }
@@ -580,7 +580,7 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                if (x.Kind != "unmatched")
+                if (x.Kind != RegistryGradeNoticeKind.Unmatched)
                 {
                     return false;
                 }
@@ -596,7 +596,7 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                if (x.Kind != "unmatched")
+                if (x.Kind != RegistryGradeNoticeKind.Unmatched)
                 {
                     return false;
                 }
@@ -608,7 +608,7 @@ public sealed class RegistryGradeTests
 
                 return false;
             });
-        Assert.Contains(plan.Notices, x => x.Kind == "unsupported");
+        Assert.Contains(plan.Notices, x => x.Kind == RegistryGradeNoticeKind.Unsupported);
         using (var cancelled = new CancellationTokenSource())
         {
             cancelled.Cancel();
@@ -649,7 +649,7 @@ public sealed class RegistryGradeTests
             empty.Notices,
             x =>
             {
-                if (x.Kind != "omitted")
+                if (x.Kind != RegistryGradeNoticeKind.Omitted)
                 {
                     return false;
                 }
@@ -672,7 +672,7 @@ public sealed class RegistryGradeTests
             CancellationToken = default,
         });
         Assert.Empty(unsupported.Actions);
-        Assert.Contains(unsupported.Notices, x => x.Kind == "unsupported");
+        Assert.Contains(unsupported.Notices, x => x.Kind == RegistryGradeNoticeKind.Unsupported);
         Assert.Equal(expected: 1, actual: navigator.Submissions);
     }
 
@@ -768,7 +768,7 @@ public sealed class RegistryGradeTests
                         });
                 })
                 .ToArray();
-            return Task.FromResult(new RegistryGradePlan(actions, [new(Kind: "omitted", Detail: "Ungraded student")]));
+            return Task.FromResult(new RegistryGradePlan(actions, [RegistryGradeNotice.MoodleGradeMissing("Synthetic Ion")]));
         }
 
         public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token)

@@ -124,7 +124,7 @@ public partial class RegistryCommands
             foreach (var notice in notices)
             {
                 var list = warnings;
-                string item = $"{notice.Kind}: {notice.Detail}";
+                string item = $"{notice.Kind.ToWire()}: {notice.Detail}";
                 list.Add(item);
             }
 
