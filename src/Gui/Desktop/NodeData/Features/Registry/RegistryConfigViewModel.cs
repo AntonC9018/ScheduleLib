@@ -16,14 +16,8 @@ public sealed class RegistryConfigViewModel(
 {
     public static void Register(IServiceCollection services)
     {
-        PropertySetId CalculateKey()
-        {
-            PropertySetId key = new("Online Registry");
-            return key;
-        }
-
         services.AddPropertySetDisplayFactory(
-            CalculateKey(),
+            new PropertySetId("Online Registry"),
             b => b.SourceFrom(RegistryConfig.Key)
             // b => b.SourceFrom(RegistryConfig.Key, c =>
             // {
@@ -76,8 +70,10 @@ public sealed class RegistryConfigViewModel(
         services.ConfigurePropertySetDefaults(b =>
         {
             b.PropertiesWithType<CredentialsSource>(p => p.UseVm(ObservableCredentials.Id));
-            b.Parent<ICredentialsHolder>(p => p.Property(x => x.Credentials)
-                .UseVm(ObservableCredentials.Id));
+            b.Parent<ICredentialsHolder>(p =>
+            {
+                p.Property(x => x.Credentials).UseVm(ObservableCredentials.Id);
+            });
         });
 
         services.AddRegistry<IEquationCommandsDerivation>(opts =>

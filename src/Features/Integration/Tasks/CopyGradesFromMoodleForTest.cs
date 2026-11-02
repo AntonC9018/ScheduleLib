@@ -87,26 +87,9 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 notices.Add(RegistryGradeNotice.MoodleGradeMissing(q.UserName));
                 continue;
             }
-            bool conditionResult2;
-            if (!float.IsFinite(grade1))
-            {
-                conditionResult2 = true;
-            }
-            else
-            {
-                double conditionValue = (double) grade1;
-                if (conditionValue > int.MaxValue)
-                {
-                    conditionResult2 = true;
-                }
-                else
-                {
-                    double conditionValue2 = (double) grade1;
-                    conditionResult2 = conditionValue2 < int.MinValue;
-                }
-            }
-
-            if (conditionResult2)
+            if (!float.IsFinite(grade1)
+                || (double) grade1 > int.MaxValue
+                || (double) grade1 < int.MinValue)
             {
                 notices.Add(RegistryGradeNotice.MoodleGradeUnsupported(q.UserName));
                 continue;
@@ -162,25 +145,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             foreach (var group in await registryNav.GetGroups(course))
             {
-                bool CalculateConditionResult()
-                {
-                    if (group.Groups.IsWildcard)
-                    {
-                        return true;
-                    }
-
-                    if (group.Groups.Value.Count == 0)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (group.Groups.IsWildcard || group.Groups.Value.Count == 0)
                 {
                     notices.Add(RegistryGradeNotice.RegistryGroupUnsupported(group.EvaluationUri));
                     continue;

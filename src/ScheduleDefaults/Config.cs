@@ -146,30 +146,24 @@ public static class Config
             x.StudyYear = new(2026);
             x.Grade = new(2);
             x.Qualification = QualificationType.Licenta;
-            var implicitSplitScopeBuilder = x;
             string course = "Disciplină umanistică opțională: Antreprenoriat inovativ";
             Alternative alternative = new("Antreprenoriat inovativ");
-            implicitSplitScopeBuilder.Alternative(course, alternative);
-            var implicitSplitScopeBuilder2 = x;
+            x.Alternative(course, alternative);
             string course2 = "Antreprenoriat inovativ";
             Alternative alternative2 = new("Antreprenoriat inovativ");
-            implicitSplitScopeBuilder2.Alternative(course2, alternative2);
-            var implicitSplitScopeBuilder3 = x;
+            x.Alternative(course2, alternative2);
             string course3 = "Disciplină umanistică opțională: Psihologie";
             Alternative alternative3 = new("Psihologie");
-            implicitSplitScopeBuilder3.Alternative(course3, alternative3);
-            var implicitSplitScopeBuilder4 = x;
+            x.Alternative(course3, alternative3);
             string course4 = "Psihologie";
             Alternative alternative4 = new("Psihologie");
-            implicitSplitScopeBuilder4.Alternative(course4, alternative4);
-            var implicitSplitScopeBuilder5 = x;
+            x.Alternative(course4, alternative4);
             string course5 = "Opț. ped.";
             Alternative alternative5 = new("Opț. ped.");
-            implicitSplitScopeBuilder5.Alternative(course5, alternative5);
-            var implicitSplitScopeBuilder6 = x;
+            x.Alternative(course5, alternative5);
             string course6 = "Cult. comun.";
             Alternative alternative6 = new("Cult. comun.");
-            implicitSplitScopeBuilder6.Alternative(course6, alternative6);
+            x.Alternative(course6, alternative6);
         });
         return builder.Build();
     }
@@ -494,9 +488,7 @@ public static class Config
 
         for (int i = 1; i <= 10; i++)
         {
-            int int32 = 'a' + i;
-            int int322 = int32 - 1;
-            var from = $"{(char) int322}";
+            var from = $"{(char) ('a' + i - 1)}";
             var to = NumberHelper.ToRoman(i);
             subgroup.Add(key: from, value: to);
         }
@@ -527,9 +519,8 @@ public static class Config
                     for (int i = 1; i <= 3; i++)
                     {
                         var r = x.Range();
-                        var yearDateRangeBuilder = r;
                         Grade grade = new(i);
-                        yearDateRangeBuilder.Grade(grade);
+                        r.Grade(grade);
                     }
                 }
                 {
@@ -540,23 +531,20 @@ public static class Config
                     x.Range(r =>
                     {
                         r.LessonsEndInclusive(month: 5, day: 1);
-                        var yearDateRangeBuilder = r;
                         Grade grade = new(2);
-                        yearDateRangeBuilder.Grade(grade);
+                        r.Grade(grade);
                     });
                     x.Range(r =>
                     {
                         r.LessonsEndInclusive(month: 5, day: 1);
-                        var yearDateRangeBuilder = r;
                         Grade grade = new(1);
-                        yearDateRangeBuilder.Grade(grade);
+                        r.Grade(grade);
                     });
 
                     x.Range(r =>
                     {
-                        var yearDateRangeBuilder = r;
                         Grade grade = new(3);
-                        yearDateRangeBuilder.Grade(grade);
+                        r.Grade(grade);
                         r.LessonsStart(month: 2, day: 22);
                         r.LessonsEndInclusive(month: 4, day: 11);
                     });
@@ -571,22 +559,12 @@ public static class Config
 
             // Reduced-attendance calendars have several short teaching blocks and do not fit
             // this single-range model. Keep the academic-year envelope until the model supports them.
-            DateOnly CalculateStart()
-            {
-                var start = new DateOnly(
-                    year: 2026,
-                    month: 9,
-                    day: 1);
-                return start;
-            }
-
-            x.LessonsStart(CalculateStart());
-            var yearDateRangeBuilderScope = x;
+            x.LessonsStart(new DateOnly(year: 2026, month: 9, day: 1));
             var end = new DateOnly(
                 year: 2027,
                 month: 8,
                 day: 31);
-            yearDateRangeBuilderScope.LessonsEndInclusive(end);
+            x.LessonsEndInclusive(end);
 
             foreach (var sem in new EnumMembers<Semester>())
             {
@@ -594,9 +572,8 @@ public static class Config
                 for (int i = 1; i <= 3; i++)
                 {
                     var r = x.Range();
-                    var yearDateRangeBuilder = r;
                     Grade grade = new(i);
-                    yearDateRangeBuilder.Grade(grade);
+                    r.Grade(grade);
                 }
             }
         });
@@ -649,70 +626,17 @@ public static class Config
     {
         get
         {
-            HolidayPeriod[] holidayPeriods;
-
-            DateOnly CalculateSingleDay()
-            {
-                DateOnly singleDay = new(
-                    year: 2026,
-                    month: 10,
-                    day: 14);
-                return singleDay;
-            }
-
-            DateOnly CalculateStart()
-            {
-                DateOnly start2 = new(
-                    year: 2027,
-                    month: 1,
-                    day: 1);
-                return start2;
-            }
-
-            DateOnly CalculateEndExclusive()
-            {
-                DateOnly endExclusive2 = new(
-                    year: 2027,
-                    month: 1,
-                    day: 25);
-                return endExclusive2;
-            }
-
-            DateOnly CalculateSingleDay2()
-            {
-                DateOnly singleDay2 = new(
-                    year: 2027,
-                    month: 5,
-                    day: 1);
-                return singleDay2;
-            }
-
-            DateOnly CalculateStart2()
-            {
-                DateOnly start3 = new(
-                    year: 2027,
-                    month: 5,
-                    day: 2);
-                return start3;
-            }
-
-            DateOnly CalculateEndExclusive2()
-            {
-                DateOnly endExclusive3 = new(
-                    year: 2027,
-                    month: 5,
-                    day: 11);
-                return endExclusive3;
-            }
-
-            holidayPeriods =
+            return
             [
-                new(CalculateSingleDay()),
-                new(start: CalculateStart(), endExclusive: CalculateEndExclusive()),
-                new(CalculateSingleDay2()),
-                new(start: CalculateStart2(), endExclusive: CalculateEndExclusive2()),
+                new(new DateOnly(year: 2026, month: 10, day: 14)),
+                new(
+                    start: new DateOnly(year: 2027, month: 1, day: 1),
+                    endExclusive: new DateOnly(year: 2027, month: 1, day: 25)),
+                new(new DateOnly(year: 2027, month: 5, day: 1)),
+                new(
+                    start: new DateOnly(year: 2027, month: 5, day: 2),
+                    endExclusive: new DateOnly(year: 2027, month: 5, day: 11)),
             ];
-            return holidayPeriods;
         }
     }
 }

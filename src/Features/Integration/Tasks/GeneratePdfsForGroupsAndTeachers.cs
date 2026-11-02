@@ -51,13 +51,11 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                 {
                     OneOfGroupIds = [g.Id],
                 };
-                var g2 = g;
-                string fileName2 = $"{g.Item.Name}.pdf";
-                var groupFilter2 = groupFilter;
+                string groupFileName = $"{g.Item.Name}.pdf";
                 GenerateGroupPdf(
-                    g2,
-                    fileName2,
-                    groupFilter2);
+                    g,
+                    groupFileName,
+                    groupFilter);
 
                 foreach (var combination in partitionInfoByGroup[g.Id].Combinations)
                 {
@@ -65,13 +63,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                     sb.Append(g.Item.Name);
                     sb.Append('_');
 
-                    ListStringBuilder CalculateLb()
-                    {
-                        var lb = new ListStringBuilder(sb, "-");
-                        return lb;
-                    }
-
-                    combination.AppendFileNamePart(CalculateLb());
+                    combination.AppendFileNamePart(new ListStringBuilder(sb, "-"));
                     sb.Append(".pdf");
                     var fileName = sb.ToStringAndClear();
 

@@ -13,10 +13,10 @@ internal static class ColorHelper
             value: t,
             min: 0,
             max: 1);
-        return Color.FromArgb(
-            red: Interpolate(a.R, b.R, t),
-            green: Interpolate(a.G, b.G, t),
-            blue: Interpolate(a.B, b.B, t));
+        var red = Interpolate(from: a.R, to: b.R, t);
+        var green = Interpolate(from: a.G, to: b.G, t);
+        var blue = Interpolate(from: a.B, to: b.B, t);
+        return Color.FromArgb(red, green, blue);
     }
 
     private static int Interpolate(byte from, byte to, float t)

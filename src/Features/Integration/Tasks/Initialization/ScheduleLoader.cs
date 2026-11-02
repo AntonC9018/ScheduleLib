@@ -359,25 +359,7 @@ public sealed class ConsultationsLoaderComponent(
                         var parser = new SequenceReader(t);
                         var name = NameHelper.TryParseName(ref parser);
 
-                        bool CalculateConditionResult()
-                        {
-                            if (!parser.IsEmpty)
-                            {
-                                return true;
-                            }
-
-                            if (name is null)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-
-                        bool conditionResult = CalculateConditionResult();
-
-
-                        if (conditionResult)
+                        if (!parser.IsEmpty || name is null)
                         {
                             var iXLCell = cell;
                             string message = $"'{t}' did not parser as a name";

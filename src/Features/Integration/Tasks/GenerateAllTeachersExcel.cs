@@ -172,11 +172,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             for (uint dayIndex = 0; dayIndex < 6; dayIndex++)
             {
                 var merge = new MergeCell();
-                uint uInt32 = initialRowIndex;
-                uint uInt322 = dayIndex * timeSlotCount;
-                uint rowIndexStart = uInt32 + uInt322;
-                uint uInt323 = rowIndexStart + timeSlotCount;
-                uint rowIndexEnd = uInt323 - 1;
+                uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
+                uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
                 merge.Reference = ExcelRangeHelper.GetCellRange(new()
                 {
                     Start = new(Col: 0, Row: rowIndexStart),
@@ -262,18 +259,16 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             cell.SetStringValue(caps);
                         }
                         var odd = option.GetOddness();
-                        var cell2 = cell;
                         var formatId = styles.Day.Get(odd);
-                        cell2.SetStyle(formatId);
+                        cell.SetStyle(formatId);
                     }
 
                     {
                         var id = new SharedStringItemId(firstTimeSlotStringId.Value + timeSlotIndex);
                         var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        var cell3 = cell;
                         var formatId2 = styles.TimeSlot.Get(option);
-                        cell3.SetStyle(formatId2);
+                        cell.SetStyle(formatId2);
                     }
 
                     bool isSeminarDate = day == seminarDate.Day && timeSlot == seminarDate.TimeSlot;
@@ -293,9 +288,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        var cell4 = cell;
                         var formatId3 = styles.Lesson.Get(option);
-                        cell4.SetStyle(formatId3);
+                        cell.SetStyle(formatId3);
 
                         var cellKey = rowKey.DefaultCellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -332,15 +326,9 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 var timeSlot = new TimeSlot(timeSlotIndex);
                 var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
 
-                TimeSpan CalculateTs()
-                {
-                    var ts = TimeSpan.FromMinutes(1);
-                    return ts;
-                }
-
                 interval = interval with
                 {
-                    Duration = interval.Duration.Add(CalculateTs()),
+                    Duration = interval.Duration.Add(TimeSpan.FromMinutes(1)),
                 };
                 var timeSlotString = _timeSlotDisplay.IntervalDisplay(interval);
                 var ret = strings.AddString(timeSlotString);

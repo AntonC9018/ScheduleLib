@@ -63,14 +63,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         {
             var calendarName = GroupCalendarName(g.Item, semester);
 
-            string CalculateFileName()
-            {
-                string fileName2 = $"{g.Item.Name}.ics";
-                return fileName2;
-            }
-
             await WriteGroupCalendar(
-                fileName: CalculateFileName(),
+                fileName: $"{g.Item.Name}.ics",
                 calendarName: calendarName,
                 new()
                 {
@@ -83,26 +77,14 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 sb.Append(g.Item.Name);
                 sb.Append('_');
 
-                ListStringBuilder CalculateLb()
-                {
-                    var lb = new ListStringBuilder(sb, "-");
-                    return lb;
-                }
-
-                combination.AppendFileNamePart(CalculateLb());
+                combination.AppendFileNamePart(new ListStringBuilder(sb, "-"));
                 sb.Append(".ics");
                 var fileName = sb.ToStringAndClear();
-
-                GroupFilter CalculateGroupFilter()
-                {
-                    var groupFilter2 = combination.ToGroupFilter(g.Id);
-                    return groupFilter2;
-                }
 
                 await WriteGroupCalendar(
                     fileName: fileName,
                     calendarName: calendarName,
-                    CalculateGroupFilter());
+                    combination.ToGroupFilter(g.Id));
             }
         }
 
@@ -322,10 +304,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
                 {
                     sb.Append(", ");
                 }
-                var stringBuilder = sb;
-                var get = _schedule.Get(groupId);
-                string value = get.Name;
-                stringBuilder.Append(value);
+                var group = _schedule.Get(groupId);
+                sb.Append(group.Name);
                 added = true;
             }
             return sb.ToStringAndClear();
@@ -348,13 +328,12 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
     private static int SemesterNumber(Grade grade, Semester semester)
     {
-        int int32 = grade.Value * 2;
-        int sem1 = int32 - 1;
+        int firstSemester = grade.Value * 2 - 1;
         if (semester == Semester.Sem1)
         {
-            return sem1;
+            return firstSemester;
         }
 
-        return sem1 + 1;
+        return firstSemester + 1;
     }
 }

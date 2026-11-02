@@ -72,14 +72,8 @@ public sealed partial class ManifestDirectoryTeacherSource : ILessonTopicSource
             var manifestDir = Path.GetDirectoryName(manifestPath);
 
             // Might want another layer here that just gathers the manifests.
-            ManifestAtLocation CalculateM()
-            {
-                ManifestAtLocation m = new(manifest, manifestDir);
-                return m;
-            }
-
             await builder.AddFromManifest(
-                CalculateM(),
+                new ManifestAtLocation(manifest, manifestDir),
                 _lookup,
                 cancellationToken);
         }

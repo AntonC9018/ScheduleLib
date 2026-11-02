@@ -108,18 +108,20 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
     private Commission<Name>[] ParseCommissionNames()
     {
-        return (_options.Commissions ?? Commissions).Select(x =>
-                new Commission<Name>
+        return (_options.Commissions ?? Commissions).Select(commission =>
+            {
+                var members = commission.Members.Select((member, index) =>
+                    ParseCommissionMember(
+                        commissionNumber: commission.Number,
+                        memberNumber: index + 1,
+                        member.Name)).ToArray();
+                return new Commission<Name>
                 {
-                    Members = x.Members.Select((y, index) =>
-                            ParseCommissionMember(
-                                commissionNumber: x.Number,
-                                memberNumber: index + 1,
-                                y.Name))
-                        .ToArray(),
-                    Number = x.Number,
-                    Room = x.Room,
-                })
+                    Members = members,
+                    Number = commission.Number,
+                    Room = commission.Room,
+                };
+            })
             .ToArray();
     }
 
@@ -292,14 +294,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
             },
         });
 
-        string CalculateName()
-        {
-            string name = $"Comisia {commissionNumber}";
-            return name;
-        }
-
         await spreadsheet.StartWorksheetAsync(
-            CalculateName(),
+            $"Comisia {commissionNumber}",
             options: null,
             cancellationToken);
 
@@ -358,14 +354,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         foreach (var (commissionNumber, students) in data)
         {
-            string CalculatePath()
-            {
-                string path = $"comisia_{commissionNumber}.xlsx";
-                return path;
-            }
-
             await using var outputFile = output.OpenFile(
-                CalculatePath(),
+                $"comisia_{commissionNumber}.xlsx",
                 FileMode.Create,
                 FileAccess.Write);
             await WriteAsync(

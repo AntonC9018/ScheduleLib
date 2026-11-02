@@ -47,13 +47,7 @@ public static class LessonFilterBuilderExtensions
 
         public LessonFilterBuilder SkipAttendance(AttendanceMode attendance)
         {
-            SkipAttendanceLessonFilter CalculateValue()
-            {
-                var value = new SkipAttendanceLessonFilter(attendance);
-                return value;
-            }
-
-            return builder.Wrap(CalculateValue());
+            return builder.Wrap(new SkipAttendanceLessonFilter(attendance));
         }
 
         public LessonFilterBuilder CurrentTeacher()

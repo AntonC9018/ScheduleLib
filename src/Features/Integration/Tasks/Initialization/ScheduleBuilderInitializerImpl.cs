@@ -107,18 +107,6 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
-        string CalculateSerialize()
-        {
-            string serialize = System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings);
-            return serialize;
-        }
-
-        string CalculateSerialize2()
-        {
-            string serialize2 = System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings);
-            return serialize2;
-        }
-
         loader.ConfigurationIdentity = string.Join(
             "|",
             "cache-v2",
@@ -135,8 +123,8 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                 {
                     IncludeFields = true,
                 }),
-            CalculateSerialize(),
-            CalculateSerialize2(),
+            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings),
+            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings),
             string.Join(
                 ";",
                 builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())

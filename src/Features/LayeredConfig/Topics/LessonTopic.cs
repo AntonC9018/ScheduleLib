@@ -634,7 +634,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
 
             foreach (var (lang, groups) in lessonGroups)
             {
-                bool CheckCondition()
+                bool HasExplicitGroupPartition()
                 {
                     if (document.WholeGroupOnly)
                     {
@@ -663,7 +663,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                     this,
                     lang,
                     groups,
-                    CheckCondition()
+                    HasExplicitGroupPartition()
                         ? new GroupPartitionKey(
                             new SubGroup(document.SubGroup),
                             new Specialization(document.Specialization),

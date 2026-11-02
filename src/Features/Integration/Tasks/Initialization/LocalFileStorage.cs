@@ -12,14 +12,9 @@ public sealed class LocalFileLock : IAsyncDisposable, IDisposable
         CancellationToken token,
         bool wait = false)
     {
-        string CalculatePath()
-        {
-            string path2 = Path.GetFullPath(path);
-            string path3 = Path.GetDirectoryName(path2)!;
-            return path3;
-        }
-
-        Directory.CreateDirectory(CalculatePath());
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath)!;
+        Directory.CreateDirectory(directory);
         while (true)
         {
             token.ThrowIfCancellationRequested();

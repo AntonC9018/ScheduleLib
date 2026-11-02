@@ -140,15 +140,18 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
             });
 
         var allTimes = _timeConfig.TimeSlots
-            .SelectMany(x => new[]
+            .SelectMany(time =>
+            {
+                var days = new[]
                 {
                     DayOfWeek.Monday,
                     DayOfWeek.Tuesday,
                     DayOfWeek.Wednesday,
                     DayOfWeek.Thursday,
                     DayOfWeek.Friday,
-                }
-                .Select(y => (Day: y, Time: x)));
+                };
+                return days.Select(day => (Day: day, Time: time));
+            });
 
         var usedTimes = lessons.Select(x => (Day: x.Date.DayOfWeek, Time: x.Date.TimeSlot));
         var unusedTimes = allTimes.Except(usedTimes);
@@ -211,9 +214,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
             $"paritatea: {parityDisplay.Get(section.Parity)}, grupa: {section.Group}, optional?: {isOptional}");
         foreach (var day in section.Days)
         {
-            var stringBuilder = sb;
-            string value = _dayNameProvider.GetDayName(day.Day);
-            stringBuilder.Append(value);
+            var dayName = _dayNameProvider.GetDayName(day.Day);
+            sb.Append(dayName);
             sb.Append(":");
 
             var listBuilder = new ListStringBuilder(sb, ",");
@@ -224,9 +226,8 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                 var startTime = _timeConfig.GetTimeSlotInterval(start).Start;
                 var endTime = _timeConfig.GetTimeSlotInterval(end).End;
                 var duration = endTime - startTime;
-                var timeSlotDisplayHandler = displayHandler;
-                var i = new TimeSlotInterval(startTime, duration);
-                var intervalStr = timeSlotDisplayHandler.IntervalDisplay(i);
+                var intervalToDisplay = new TimeSlotInterval(startTime, duration);
+                var intervalStr = displayHandler.IntervalDisplay(intervalToDisplay);
                 listBuilder.Append(intervalStr);
             }
             sb.AppendLine();

@@ -93,41 +93,12 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void StartQueueing()
     {
-        bool CalculateConditionResult()
-        {
-            if (!_keyQueue.IsEmpty)
-            {
-                return false;
-            }
-
-            if (_latestActions.IsEmpty)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        bool areQueuesEmpty = conditionResult;
+        bool areQueuesEmpty = _keyQueue.IsEmpty && _latestActions.IsEmpty;
         var prevState = Interlocked.CompareExchange(
             location1: ref _isQueueing,
             value: QueueingState.Queueing,
             comparand: QueueingState.NotQueueing);
-        bool conditionResult2;
-        if (prevState != QueueingState.NotQueueing)
-        {
-            conditionResult2 = true;
-        }
-        else
-        {
-            conditionResult2 = areQueuesEmpty;
-            conditionResult2 = !conditionResult2;
-        }
-
-        if (conditionResult2)
+        if (prevState != QueueingState.NotQueueing || !areQueuesEmpty)
         {
             Debug.Fail("Started two queue ops at once?");
             return;
@@ -182,10 +153,7 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void Post<T>(PostArgs<T> args)
     {
-        bool conditionResult;
-        var conditionValue = Volatile.Read(ref _isQueueing);
-        conditionResult = conditionValue == QueueingState.NotQueueing;
-        if (conditionResult)
+        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
@@ -243,11 +211,7 @@ public sealed class TreeEventDispatcher : IDispatcher
                 return action;
             });
 
-        bool conditionResult2;
-        var
-            conditionValue2 = Volatile.Read(ref _isQueueing);
-        conditionResult2 = conditionValue2 == QueueingState.NotQueueing;
-        if (conditionResult2)
+        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
         {
             // This is kind of the best we can do.
             _latestActions.TryRemove(key, out _);

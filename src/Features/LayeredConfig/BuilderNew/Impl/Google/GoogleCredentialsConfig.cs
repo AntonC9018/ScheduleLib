@@ -147,7 +147,7 @@ public sealed class GoogleCredentialResolver : IDisposable
     }
 
     private ILogger Logger =>
-        (ILogger?)_sp.GetService<ILogger<GoogleCredentialResolver>>() ?? NullLogger.Instance;
+        (ILogger?) _sp.GetService<ILogger<GoogleCredentialResolver>>() ?? NullLogger.Instance;
 
     public async Task<UserCredential> Resolve(
         BuiltGoogleCredentialsConfig config,
@@ -187,25 +187,8 @@ public sealed class GoogleCredentialResolver : IDisposable
                     innerException: error));
         }
 
-        bool CalculateConditionResult()
-        {
-            if (string.IsNullOrWhiteSpace(secrets.ClientId))
-            {
-                return true;
-            }
-
-            if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (string.IsNullOrWhiteSpace(secrets.ClientId)
+            || string.IsNullOrWhiteSpace(secrets.ClientSecret))
         {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }
