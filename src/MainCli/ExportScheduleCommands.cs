@@ -139,7 +139,7 @@ public partial class ExportCommands
 
             if (teacherCount == 0)
             {
-                warnings.Add("The latest period contains no teachers.");
+                warnings.Add(ExportWarnings.NoTeachersInLatestPeriod);
             }
 
             async Task PublishStreaming(
