@@ -141,8 +141,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var hasUnresolvedLabRouting = destination.Selection.Lessons.Any(IsUnresolvedLabLesson);
                 if (hasUnresolvedLabRouting)
                 {
-                    diagnostics.Add(
-                        kind: "registry-lab-routing-unresolved",
+                    diagnostics.ReportRegistryLabRoutingUnresolved(
                         course: _schedule.Get(course.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail: "Unresolved lab routing prevents intake cleanup.");
@@ -150,8 +149,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 if (routed[group.Uri].Keys.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
                 {
-                    diagnostics.Add(
-                        kind: "registry-lab-fallback-preserved",
+                    diagnostics.ReportRegistryLabFallbackPreserved(
                         course: _schedule.Get(course.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail:
@@ -166,8 +164,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var marks = unwanted.Sum(lesson => lesson.Attendance.Count(IsRecordedMark));
                 string detail =
                     $"Selected {unwanted.Length} laboratory columns and {marks} recorded attendance marks for deletion from {group.Uri}. Other lesson types are preserved.";
-                diagnostics.Add(
-                    kind: "unsafe-registry-lab-cleanup",
+                diagnostics.ReportUnsafeRegistryLabCleanup(
                     course: courseName,
                     @group: groupNames,
                     detail: detail);

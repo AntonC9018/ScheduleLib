@@ -62,7 +62,7 @@ public sealed class RegistryLabDestinationTests
             explicitApply);
 
         Assert.NotEmpty(plan);
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
         Assert.Contains(plan, action => action.Topic == "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)");
         Assert.Contains(plan, action => action.Topic == "lab (IA2404 (ru) /spec:DezvoltareaAplicatiilor)");
         if (ownLecture)
@@ -171,7 +171,7 @@ public sealed class RegistryLabDestinationTests
         Assert.Contains(navigator.Group.Uri, navigator.ReadUris);
 
         Assert.Contains(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
     }
 
     private sealed class Commands(Provider provider) : RegistryCommands
@@ -513,7 +513,7 @@ public sealed class RegistryLabDestinationTests
                 actual: action.Topic));
         Assert.All(plan, action => Assert.Equal(expected: "IA2403", actual: action.Groups));
         Assert.All(plan, action => Assert.Equal(expected: DayOfWeek.Tuesday, actual: action.Date.DayOfWeek));
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
     }
 
     [Theory]
@@ -529,7 +529,7 @@ public sealed class RegistryLabDestinationTests
             diagnostics,
             explicitApply: true);
 
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unsafe-registry-lab-destination");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
         if (ownLecture)
         {
             Assert.NotEmpty(plan);
@@ -543,7 +543,7 @@ public sealed class RegistryLabDestinationTests
         else
         {
             Assert.Empty(plan);
-            Assert.Contains(diagnostics.Items, item => item.Kind == "registry-assignment-mismatch");
+            Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryAssignmentMismatch);
             Assert.Equal(expected: 0, actual: navigator.Reads);
         }
     }
@@ -568,7 +568,7 @@ public sealed class RegistryLabDestinationTests
         Assert.Equal(expected: 0, actual: navigator.Reads);
         Assert.Equal(expected: 0, actual: navigator.DeleteCalls);
         Assert.Equal(expected: 4, actual: navigator.Lessons.Count);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "registry-lab-fallback-preserved");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabFallbackPreserved);
     }
 
     [Theory]
@@ -602,7 +602,7 @@ public sealed class RegistryLabDestinationTests
                 "am",
             },
             actual: Assert.Single(navigator.SubmittedMarks));
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == "unmatched-attendance-students");
+        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
     }
 
     [Theory]
@@ -675,7 +675,7 @@ public sealed class RegistryLabDestinationTests
             diagnostics,
             true);
         Assert.Empty(plan);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "ambiguous-registry-assessment");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryAssessment);
         Assert.Equal(expected: 0, actual: navigator.DeleteCalls);
     }
 
@@ -707,9 +707,9 @@ public sealed class RegistryLabDestinationTests
             fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is "ambiguous-registry-destination"
-                or "unmatched-attendance-students"
-                or "attendance-students-not-in-registry");
+            item => item.Kind is RegistrySyncDiagnosticKind.AmbiguousRegistryDestination
+                or RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents
+                or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         var first = plan.Where(action => action.Destination == navigator.Group.Uri.ToString())
             .OrderBy(action => action.Date)
             .First();
@@ -763,7 +763,7 @@ public sealed class RegistryLabDestinationTests
 
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         if (!failRead)
         {
             Assert.DoesNotContain(new Uri("https://registry.test/se-group"), navigator.ReadUris);
@@ -810,7 +810,7 @@ public sealed class RegistryLabDestinationTests
             _ => throw new InvalidOperationException("Unexpected cleanup"),
             default);
         Assert.Equal(expected: 0, actual: navigator.Reads);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "registry-lab-routing-unresolved");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabRoutingUnresolved);
     }
 
     [Fact]
@@ -837,10 +837,10 @@ public sealed class RegistryLabDestinationTests
             true,
             fixture.Attendance(sameAudience: true));
         Assert.NotEmpty(plan);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "ambiguous-registry-destination");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination);
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         Assert.DoesNotContain(ordinary.Uri, navigator.ReadUris);
 
         // Reusing a diagnostic collector must not make a repeated unresolved route look complete.
@@ -851,7 +851,7 @@ public sealed class RegistryLabDestinationTests
             fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is "unmatched-attendance-students" or "attendance-students-not-in-registry");
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
     }
 
     private sealed class Fixture : IAsyncDisposable

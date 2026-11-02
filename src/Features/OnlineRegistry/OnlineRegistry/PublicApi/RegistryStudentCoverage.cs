@@ -137,8 +137,7 @@ internal sealed class RegistryStudentCoverage(
                 return group2;
             }
 
-            diagnostics.Add(
-                kind: "attendance-students-not-in-registry",
+            diagnostics.ReportAttendanceStudentsNotInRegistry(
                 course: schedule.Get(course).FullName,
                 @group: CalculateGroup(),
                 detail:
@@ -226,8 +225,7 @@ internal sealed class RegistryStudentCoverage(
                 sources.Keys.Select(key => key.LessonType)
                     .Distinct()
                     .Order());
-            diagnostics.Add(
-                kind: "unmatched-attendance-students",
+            diagnostics.ReportUnmatchedAttendanceStudents(
                 course: schedule.Get(course).FullName,
                 @group: groups,
                 detail:

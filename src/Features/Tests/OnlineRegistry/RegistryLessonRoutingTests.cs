@@ -1053,7 +1053,7 @@ public sealed class RegistryLessonRoutingTests
         bool condition4 = routed[secondLink.Uri].ContainsKey(lecture);
         Assert.True(condition4);
         var diagnostic =
-            Assert.Single(diagnostics.Items.Where((item) => item.Kind == "ambiguous-registry-destination"));
+            Assert.Single(diagnostics.Items.Where((item) => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination));
         Assert.Equal(expected: "Synthetic course", actual: diagnostic.Course);
         Assert.Equal(expected: "IA2601", actual: diagnostic.Group);
     }
@@ -1135,7 +1135,7 @@ public sealed class RegistryLessonRoutingTests
         Assert.True(condition4);
         Assert.Equal(
             expected: 0,
-            actual: diagnostics.Items.Count((item) => item.Kind == "ambiguous-registry-destination"));
+            actual: diagnostics.Items.Count((item) => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination));
     }
 
     [Fact]
@@ -1203,7 +1203,7 @@ public sealed class RegistryLessonRoutingTests
         Assert.True(condition2);
         Assert.Equal(
             expected: 0,
-            actual: diagnostics.Items.Count((item) => item.Kind == "ambiguous-registry-destination"));
+            actual: diagnostics.Items.Count((item) => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination));
     }
 
     [Fact]
@@ -1294,7 +1294,7 @@ public sealed class RegistryLessonRoutingTests
         Assert.True(condition3);
         bool condition4 = routed[secondLink.Uri].ContainsKey(lecture);
         Assert.True(condition4);
-        Assert.Single(diagnostics.Items.Where((item) => item.Kind == "ambiguous-registry-destination"));
+        Assert.Single(diagnostics.Items.Where((item) => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination));
     }
 
     [Fact]

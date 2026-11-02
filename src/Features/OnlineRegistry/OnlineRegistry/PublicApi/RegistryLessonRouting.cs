@@ -337,8 +337,7 @@ internal static class RegistryLessonRouting
                             return group2;
                         }
 
-                        diagnostics?.Add(
-                            kind: "ambiguous-registry-destination",
+                        diagnostics?.ReportAmbiguousRegistryDestination(
                             course: schedule.Get(lesson.Course).FullName,
                             @group: CalculateGroup(),
                             detail:

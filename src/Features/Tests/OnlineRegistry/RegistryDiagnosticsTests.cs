@@ -249,7 +249,7 @@ public sealed class RegistryDiagnosticsTests
         registryTargetCoverage.Cover(target);
         coverage.ReportMissingGroups(course);
         var gap = Assert.Single(diagnostics.Items);
-        Assert.Equal(expected: "missing-registry-group", actual: gap.Kind);
+        Assert.Equal(expected: RegistrySyncDiagnosticKind.MissingRegistryGroup, actual: gap.Kind);
         Assert.Equal(expected: "IA2502", actual: gap.Group);
         Assert.Contains(expectedSubstring: "eng", actualString: gap.Detail);
         Assert.Contains(expectedSubstring: "administrator", actualString: gap.Detail);
@@ -278,7 +278,7 @@ public sealed class RegistryDiagnosticsTests
         errors.GroupNotFound("Synthetic course", "IA2502(en)");
         errors.GroupNotFound("Synthetic course", "IA2502(en)");
         Assert.Equal(expected: 2, actual: diagnostics.Items.Count);
-        Assert.Equal(expected: "missing-registry-course", actual: diagnostics.Items[0].Kind);
+        Assert.Equal(expected: RegistrySyncDiagnosticKind.MissingRegistryCourse, actual: diagnostics.Items[0].Kind);
         Assert.Equal(expected: "Synthetic course", actual: diagnostics.Items[0].Course);
         Assert.Equal(expected: "IA2501", actual: diagnostics.Items[0].Group);
         Assert.Equal(expected: "IA2502(en)", actual: diagnostics.Items[1].Group);

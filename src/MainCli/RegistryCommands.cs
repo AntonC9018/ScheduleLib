@@ -339,7 +339,7 @@ public partial class RegistryCommands
 
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)
         {
-            var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
+            var text = $"{diagnostic.Kind.ToWire()}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
             StreamWarning(text);
         }
 
@@ -373,7 +373,7 @@ public partial class RegistryCommands
             var errors = finalErrors;
             foreach (var diagnostic in diagnostics)
             {
-                var text = $"{diagnostic.Kind}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
+                var text = $"{diagnostic.Kind.ToWire()}: {diagnostic.Course} ({diagnostic.Group}). {diagnostic.Detail}";
                 warnings.Add(text);
             }
             var success = RunStatus.Preview;

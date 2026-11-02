@@ -120,8 +120,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     action.Course,
                     action.Groups,
                     action.Date);
-                p.Diagnostics?.Add(
-                    kind: "registry-deletion-refused",
+                p.Diagnostics?.ReportRegistryDeletionRefused(
                     course: action.Course,
                     @group: action.Groups,
                     detail:
@@ -213,8 +212,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         var iRegistryErrorHandler = _errorHandler;
                         ErroneousLesson lessons2 = new(validity.ErrorContext);
                         iRegistryErrorHandler.LessonsDecidedErroneous(lessons2);
-                        p.Diagnostics?.Add(
-                            kind: "registry-assignment-mismatch",
+                        p.Diagnostics?.ReportRegistryAssignmentMismatch(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
                             detail:
@@ -261,8 +259,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             return detail2;
                         }
 
-                        p.Diagnostics?.Add(
-                            kind: "registry-partition-mismatch",
+                        p.Diagnostics?.ReportRegistryPartitionMismatch(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
                             detail: CalculateDetail());
@@ -275,8 +272,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var (scanResult, addLessonUri) = await QueryExistingLessonInstancesOfGroup(group.Uri);
                 if (scanResult.Students.Length == 0)
                 {
-                    p.Diagnostics?.Add(
-                        kind: "empty-registry-roster",
+                    p.Diagnostics?.ReportEmptyRegistryRoster(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail:
@@ -316,8 +312,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 catch (MissingSemesterDateRangeException)
                 {
                     studentCoverageComplete = false;
-                    p.Diagnostics?.Add(
-                        kind: "missing-schedule-dates",
+                    p.Diagnostics?.ReportMissingScheduleDates(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail:
@@ -375,8 +370,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     if (conditionResult)
                     {
-                        p.Diagnostics?.Add(
-                            kind: "missing-attendance-sheet",
+                        p.Diagnostics?.ReportMissingAttendanceSheet(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
                             detail:
@@ -751,8 +745,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return detail3;
                     }
 
-                    p.Diagnostics?.Add(
-                        kind: "ambiguous-registry-assessment",
+                    p.Diagnostics?.ReportAmbiguousRegistryAssessment(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail: CalculateDetail2());
@@ -890,8 +883,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var missingTopics = arrangedLocal.Count(lesson => string.IsNullOrWhiteSpace(lesson.Topic));
                 if (missingTopics != 0)
                 {
-                    p.Diagnostics?.Add(
-                        kind: "missing-lesson-topics",
+                    p.Diagnostics?.ReportMissingLessonTopics(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
                         detail:
@@ -1120,8 +1112,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 catch (MissingSemesterDateRangeException)
                 {
-                    p.Diagnostics?.Add(
-                        kind: "missing-schedule-dates",
+                    p.Diagnostics?.ReportMissingScheduleDates(
                         course: _schedule.Get(lesson.Lesson.Course).FullName,
                         @group: lesson.Lesson.Groups.ToString(_schedule),
                         detail:

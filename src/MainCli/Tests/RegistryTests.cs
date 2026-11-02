@@ -77,7 +77,7 @@ public sealed class RegistryTests
                 Diagnostics = diagnostics,
             });
         Assert.Empty(plan);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-schedule-dates");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.MissingScheduleDates);
         Assert.Equal(expected: 0, actual: navigator.Submissions);
     }
 
@@ -208,11 +208,11 @@ public sealed class RegistryTests
         Assert.NotEmpty(plan);
         Assert.Contains(plan, action => action.Kind == RegistrySyncActionKind.Create);
         Assert.Equal(expected: 0, actual: navigator.Submissions);
-        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-registry-course");
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.MissingRegistryCourse);
         Assert.Equal(
             expected: hasAttendanceSources,
-            actual: diagnostics.Items.Any(item => item.Kind == "missing-attendance-sheet"));
-        Assert.Contains(diagnostics.Items, item => item.Kind == "missing-lesson-topics");
+            actual: diagnostics.Items.Any(item => item.Kind == RegistrySyncDiagnosticKind.MissingAttendanceSheet));
+        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.MissingLessonTopics);
         Assert.NotEmpty(topics.Keys);
         Assert.All(
             topics.Keys,
@@ -234,7 +234,7 @@ public sealed class RegistryTests
                 {
                     bool CheckCondition()
                     {
-                        if (item.Kind != "missing-registry-group")
+                        if (item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup)
                         {
                             return false;
                         }
@@ -939,7 +939,7 @@ public sealed class RegistryTests
         RegistrySyncDiagnostic CalculateItem()
         {
             RegistrySyncDiagnostic item = new(
-                Kind: "missing-registry-group",
+                Kind: RegistrySyncDiagnosticKind.MissingRegistryGroup,
                 Course: "Synthetic course",
                 Group: "IA2502",
                 Detail: "Ask the registry administrator to add the English subgroup.");

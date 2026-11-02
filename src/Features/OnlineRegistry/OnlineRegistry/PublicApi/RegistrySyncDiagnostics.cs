@@ -1,7 +1,90 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace ScheduleLib.OnlineRegistry;
 
+/// <summary>The category of one actionable reconciliation gap.</summary>
+[JsonConverter(typeof(RegistrySyncDiagnosticKindJsonConverter))]
+public enum RegistrySyncDiagnosticKind
+{
+    /// <summary>Registry-student coverage: missing-registry-course.</summary>
+    MissingRegistryCourse,
+    /// <summary>Registry-student coverage: missing-registry-group.</summary>
+    MissingRegistryGroup,
+    /// <summary>Registry-student coverage: unmatched-registry-course.</summary>
+    UnmatchedRegistryCourse,
+    /// <summary>Registry-student coverage: unmatched-registry-group.</summary>
+    UnmatchedRegistryGroup,
+    /// <summary>Registry-student coverage: unrecognized-registry-group.</summary>
+    UnrecognizedRegistryGroup,
+    /// <summary>Registry-student coverage: ambiguous-registry-destination.</summary>
+    AmbiguousRegistryDestination,
+    /// <summary>Attendance-student coverage: attendance-students-not-in-registry.</summary>
+    AttendanceStudentsNotInRegistry,
+    /// <summary>Attendance-student coverage: unmatched-attendance-students.</summary>
+    UnmatchedAttendanceStudents,
+    /// <summary>Lesson import: registry-assignment-mismatch.</summary>
+    RegistryAssignmentMismatch,
+    /// <summary>Lesson import: registry-partition-mismatch.</summary>
+    RegistryPartitionMismatch,
+    /// <summary>Lesson import: registry-deletion-refused.</summary>
+    RegistryDeletionRefused,
+    /// <summary>Lesson import: empty-registry-roster.</summary>
+    EmptyRegistryRoster,
+    /// <summary>Lesson import: missing-schedule-dates.</summary>
+    MissingScheduleDates,
+    /// <summary>Lesson import: missing-attendance-sheet.</summary>
+    MissingAttendanceSheet,
+    /// <summary>Lesson import: ambiguous-registry-assessment.</summary>
+    AmbiguousRegistryAssessment,
+    /// <summary>Lesson import: missing-lesson-topics.</summary>
+    MissingLessonTopics,
+    /// <summary>Intake lab cleanup: registry-lab-routing-unresolved.</summary>
+    RegistryLabRoutingUnresolved,
+    /// <summary>Intake lab cleanup: registry-lab-fallback-preserved.</summary>
+    RegistryLabFallbackPreserved,
+    /// <summary>Intake lab cleanup: unsafe-registry-lab-cleanup.</summary>
+    UnsafeRegistryLabCleanup,
+}
+
+public static class RegistrySyncDiagnosticKindExtensions
+{
+    public static string ToWire(this RegistrySyncDiagnosticKind kind)
+    {
+        return kind switch
+        {
+            RegistrySyncDiagnosticKind.MissingRegistryCourse => "missing-registry-course",
+            RegistrySyncDiagnosticKind.MissingRegistryGroup => "missing-registry-group",
+            RegistrySyncDiagnosticKind.UnmatchedRegistryCourse => "unmatched-registry-course",
+            RegistrySyncDiagnosticKind.UnmatchedRegistryGroup => "unmatched-registry-group",
+            RegistrySyncDiagnosticKind.UnrecognizedRegistryGroup => "unrecognized-registry-group",
+            RegistrySyncDiagnosticKind.AmbiguousRegistryDestination => "ambiguous-registry-destination",
+            RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry =>
+                "attendance-students-not-in-registry",
+            RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents => "unmatched-attendance-students",
+            RegistrySyncDiagnosticKind.RegistryAssignmentMismatch => "registry-assignment-mismatch",
+            RegistrySyncDiagnosticKind.RegistryPartitionMismatch => "registry-partition-mismatch",
+            RegistrySyncDiagnosticKind.RegistryDeletionRefused => "registry-deletion-refused",
+            RegistrySyncDiagnosticKind.EmptyRegistryRoster => "empty-registry-roster",
+            RegistrySyncDiagnosticKind.MissingScheduleDates => "missing-schedule-dates",
+            RegistrySyncDiagnosticKind.MissingAttendanceSheet => "missing-attendance-sheet",
+            RegistrySyncDiagnosticKind.AmbiguousRegistryAssessment => "ambiguous-registry-assessment",
+            RegistrySyncDiagnosticKind.MissingLessonTopics => "missing-lesson-topics",
+            RegistrySyncDiagnosticKind.RegistryLabRoutingUnresolved => "registry-lab-routing-unresolved",
+            RegistrySyncDiagnosticKind.RegistryLabFallbackPreserved => "registry-lab-fallback-preserved",
+            RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup => "unsafe-registry-lab-cleanup",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+}
+
+public sealed class RegistrySyncDiagnosticKindJsonConverter : WireNameJsonConverter<RegistrySyncDiagnosticKind>
+{
+    protected override string ToWire(RegistrySyncDiagnosticKind value) => value.ToWire();
+}
+
 public sealed record RegistrySyncDiagnostic(
-    string Kind,
+    RegistrySyncDiagnosticKind Kind,
     string? Course,
     string? Group,
     string Detail);
@@ -46,8 +129,8 @@ public sealed class RegistrySyncDiagnostics
         return string.Join(", ", parts);
     }
 
-    public void Add(
-        string kind,
+    private void Add(
+        RegistrySyncDiagnosticKind kind,
         string? course,
         string? group,
         string detail)
@@ -63,6 +146,82 @@ public sealed class RegistrySyncDiagnostics
             Reported?.Invoke(item);
         }
     }
+
+    /// <summary>A scheduled course is absent from the teacher's registry scope.</summary>
+    public void ReportMissingRegistryCourse(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.MissingRegistryCourse, course, group, detail);
+
+    /// <summary>No registry list matched the scheduled partition of a course.</summary>
+    public void ReportMissingRegistryGroup(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.MissingRegistryGroup, course, group, detail);
+
+    /// <summary>The registry has no course entry matching a scheduled course name.</summary>
+    public void ReportUnmatchedRegistryCourse(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.UnmatchedRegistryCourse, course, group, detail);
+
+    /// <summary>A registry group name could not be matched to the schedule.</summary>
+    public void ReportUnmatchedRegistryGroup(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.UnmatchedRegistryGroup, course, group, detail);
+
+    /// <summary>A registry group label could not be parsed into a schedule group.</summary>
+    public void ReportUnrecognizedRegistryGroup(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.UnrecognizedRegistryGroup, course, group, detail);
+
+    /// <summary>Equally specific registry lists compete for one lab audience.</summary>
+    public void ReportAmbiguousRegistryDestination(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.AmbiguousRegistryDestination, course, group, detail);
+
+    /// <summary>Attendance students were not found in any relevant registry roster.</summary>
+    public void ReportAttendanceStudentsNotInRegistry(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry, course, group, detail);
+
+    /// <summary>Registry students remained after all relevant rosters were considered.</summary>
+    public void ReportUnmatchedAttendanceStudents(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents, course, group, detail);
+
+    /// <summary>The registry destination has no matching schedule lessons for this teacher.</summary>
+    public void ReportRegistryAssignmentMismatch(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.RegistryAssignmentMismatch, course, group, detail);
+
+    /// <summary>No scheduled lesson matches the partition warmed by the registry destination.</summary>
+    public void ReportRegistryPartitionMismatch(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.RegistryPartitionMismatch, course, group, detail);
+
+    /// <summary>The registry refused a lesson deletion without retrying another POST.</summary>
+    public void ReportRegistryDeletionRefused(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.RegistryDeletionRefused, course, group, detail);
+
+    /// <summary>The registry destination has no student rows.</summary>
+    public void ReportEmptyRegistryRoster(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.EmptyRegistryRoster, course, group, detail);
+
+    /// <summary>The semester date range for a group's cohort is not configured.</summary>
+    public void ReportMissingScheduleDates(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.MissingScheduleDates, course, group, detail);
+
+    /// <summary>No attendance rows were loaded for a course/group partition.</summary>
+    public void ReportMissingAttendanceSheet(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.MissingAttendanceSheet, course, group, detail);
+
+    /// <summary>An assessment entry has no scope identifying its audience.</summary>
+    public void ReportAmbiguousRegistryAssessment(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.AmbiguousRegistryAssessment, course, group, detail);
+
+    /// <summary>Arranged lessons have no configured topic for a course/group partition.</summary>
+    public void ReportMissingLessonTopics(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.MissingLessonTopics, course, group, detail);
+
+    /// <summary>Unresolved lab routing prevents intake column cleanup.</summary>
+    public void ReportRegistryLabRoutingUnresolved(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.RegistryLabRoutingUnresolved, course, group, detail);
+
+    /// <summary>A list needed for scoped fallback keeps its lab columns and attendance.</summary>
+    public void ReportRegistryLabFallbackPreserved(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.RegistryLabFallbackPreserved, course, group, detail);
+
+    /// <summary>Intake cleanup selected unsafe laboratory columns for deletion.</summary>
+    public void ReportUnsafeRegistryLabCleanup(string? course, string? group, string detail) =>
+        Add(RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup, course, group, detail);
 }
 
 internal readonly record struct RegistryExpectedTarget(CourseId Course, GroupId Group, GroupPartitionKey Partition);
@@ -86,8 +245,7 @@ internal sealed class RegistryTargetCoverage(
                 return group2;
             }
 
-            diagnostics.Add(
-                kind: "missing-registry-course",
+            diagnostics.ReportMissingRegistryCourse(
                 course: schedule.Get(target.Course).FullName,
                 @group: CalculateGroup(),
                 detail: "Ask the registry administrator to assign this scheduled course to the teacher.");
@@ -295,8 +453,7 @@ internal sealed class RegistryTargetCoverage(
                 return group2;
             }
 
-            diagnostics.Add(
-                kind: "missing-registry-group",
+            diagnostics.ReportMissingRegistryGroup(
                 course: schedule.Get(course).FullName,
                 @group: CalculateGroup(),
                 detail:
