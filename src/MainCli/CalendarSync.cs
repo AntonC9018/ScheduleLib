@@ -561,4 +561,3 @@ public static class CalendarSync
         }
     }
 }
-
