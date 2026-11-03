@@ -166,19 +166,12 @@ public static class DriveSync
         string account,
         string folderId)
     {
-        string path1 = root;
-        var encoding = Encoding.UTF8;
-        string text = $"{account}\n{folderId}";
-        string s = text;
-        byte[] source = encoding.GetBytes(s);
-        byte[] inArray = SHA256.HashData(source);
-        string toHexString = Convert.ToHexString(inArray);
-        string text2 = $"{toHexString}.lock";
-        string path2 = text2;
-        string combine = Path.Combine(
-            path1,
-            path2);
-        return combine;
+        string destinationIdentity = $"{account}\n{folderId}";
+        byte[] identityBytes = Encoding.UTF8.GetBytes(destinationIdentity);
+        byte[] hashBytes = SHA256.HashData(identityBytes);
+        string destinationHash = Convert.ToHexString(hashBytes);
+        string lockFileName = $"{destinationHash}.lock";
+        return Path.Combine(root, lockFileName);
     }
 
     public static async Task<DriveSyncResult> Run(

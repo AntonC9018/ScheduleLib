@@ -106,9 +106,8 @@ public partial class RegistryCommands
                 var offeredYear = analysis.OfferedYears[yearIndex];
                 string line = $"Offered year {offeredYear}.";
                 cli.WriteHuman(line);
-                string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string text = $"year-{toString}";
-                string id2 = text;
+                string yearIndexText = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string id2 = $"year-{yearIndexText}";
                 var status2 = ActionState.Completed;
                 object item = new { year = offeredYear };
                 cli.EmitItem(
@@ -125,9 +124,8 @@ public partial class RegistryCommands
                     $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
                 cli.WriteHuman(
                     line2);
-                string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string text2 = $"candidate-{toString2}";
-                string id3 = text2;
+                string candidateIndexText = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string id3 = $"candidate-{candidateIndexText}";
                 var status3 = ActionState.Completed;
                 object item2 = new
                 {
@@ -145,9 +143,8 @@ public partial class RegistryCommands
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
                 string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
                 cli.WriteHuman(line3);
-                string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string text3 = $"unresolved-{toString3}";
-                string id4 = text3;
+                string unresolvedIndexText = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string id4 = $"unresolved-{unresolvedIndexText}";
                 var status4 = ActionState.Completed;
                 object item3 = new { reason = unresolved.Reason.ToString() };
                 cli.EmitItem(

@@ -9,12 +9,10 @@ public sealed class OwnedConversionDirectory : IDisposable
 
     public static OwnedConversionDirectory Create(string parent)
     {
-        string path1 = Path.GetFullPath(parent);
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $"schedulelib-doc-{toString}";
-        string path2 = text;
-        var path = Path.Combine(path1, path2);
+        string parentPath = Path.GetFullPath(parent);
+        string nonce = Guid.NewGuid().ToString("N");
+        string directoryName = $"schedulelib-doc-{nonce}";
+        var path = Path.Combine(parentPath, directoryName);
         Directory.CreateDirectory(path);
         return new OwnedConversionDirectory(path);
     }

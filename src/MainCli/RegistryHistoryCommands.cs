@@ -66,15 +66,8 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         CancellationToken token)
     {
         // A single destination-wide lease covers login and all reads, regardless of account/profile.
-        string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string path2 = "ScheduleLib";
-        string path3 = "locks";
-        string path4 = "registry-history-global.lock";
-        var lockPath = Path.Combine(
-            path1,
-            path2,
-            path3,
-            path4);
+        string dataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var lockPath = Path.Combine(dataDirectory, "ScheduleLib", "locks", "registry-history-global.lock");
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
         using var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
@@ -194,10 +187,8 @@ public partial class RegistryCommands
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
 
-            string path1 = directory;
-            string text = $"summary-{context.RunId}.json";
-            string path2 = text;
-            var path = Path.Combine(path1, path2);
+            string summaryFileName = $"summary-{context.RunId}.json";
+            var path = Path.Combine(directory, summaryFileName);
             // Unique files preserve existing authoritative topics and previous downloads.
             var options = new FileStreamOptions
             {

@@ -151,34 +151,24 @@ public sealed class MicrosoftAuthentication(
 
     private string ProfileDirectory(string profile)
     {
-        string path1 = _root;
-        string path2 = Key(profile);
-        string combine = Path.Combine(path1, path2);
-        return combine;
+        string profileKey = Key(profile);
+        return Path.Combine(_root, profileKey);
     }
 
     private string BindingFile(string profile)
     {
-        string path1 = ProfileDirectory(profile);
-        string path2 = "account.json";
-        string combine = Path.Combine(path1, path2);
-        return combine;
+        string profileDirectory = ProfileDirectory(profile);
+        return Path.Combine(profileDirectory, "account.json");
     }
 
     private string TokenFile(string profile, Binding binding)
     {
-        string path1 = ProfileDirectory(profile);
-        string text = $"{binding.TenantId}\n{binding.ClientId}";
-        string value = text;
-        string path2 = Key(value);
-        string key = Key(binding.AccountId);
-        string text2 = $"{key}.json";
-        string path3 = text2;
-        string combine = Path.Combine(
-            path1,
-            path2,
-            path3);
-        return combine;
+        string profileDirectory = ProfileDirectory(profile);
+        string clientIdentity = $"{binding.TenantId}\n{binding.ClientId}";
+        string clientKey = Key(clientIdentity);
+        string accountKey = Key(binding.AccountId);
+        string tokenFileName = $"{accountKey}.json";
+        return Path.Combine(profileDirectory, clientKey, tokenFileName);
     }
 
     // Consent failures (declined, cancelled in the browser, rejected grant) need a new login.
@@ -193,9 +183,8 @@ public sealed class MicrosoftAuthentication(
 
     private Task<LocalFileLock> Lease(string profile, CancellationToken token)
     {
-        string path1 = ProfileDirectory(profile);
-        string path2 = ".operation.lock";
-        string path = Path.Combine(path1, path2);
+        string profileDirectory = ProfileDirectory(profile);
+        string path = Path.Combine(profileDirectory, ".operation.lock");
         var acquire =
             LocalFileLock.Acquire(
                 path,

@@ -92,16 +92,9 @@ public sealed class RegistryAccountLock : IRegistryAccountLock
         // Coordinate both registry commands on the same real account and registry, across project/profile aliases.
         var hash = Convert.ToHexStringLower(
             SHA256.HashData(Encoding.UTF8.GetBytes($"{target.Destination.TrimEnd('/')}\n{target.Account}")));
-        string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string path2 = "ScheduleLib";
-        string path3 = "locks";
-        string text = $"registry-{hash}.lock";
-        string path4 = text;
-        var path = Path.Combine(
-            path1,
-            path2,
-            path3,
-            path4);
+        string dataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string lockFileName = $"registry-{hash}.lock";
+        var path = Path.Combine(dataDirectory, "ScheduleLib", "locks", lockFileName);
         return await LocalFileLock.Acquire(path, token);
     }
 }

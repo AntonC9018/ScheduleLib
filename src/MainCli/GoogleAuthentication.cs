@@ -180,20 +180,16 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
 
     private string TeacherDirectory(string teacher)
     {
-        string path1 = _root;
-        string path2 = Key(teacher);
-        string combine = Path.Combine(path1, path2);
-        return combine;
+        string teacherKey = Key(teacher);
+        return Path.Combine(_root, teacherKey);
     }
 
     private string AccountFile(string teacher, string clientId)
     {
-        string path1 = TeacherDirectory(teacher);
-        string key = Key(clientId);
-        string text = $"{key}.json";
-        string path2 = text;
-        string combine = Path.Combine(path1, path2);
-        return combine;
+        string teacherDirectory = TeacherDirectory(teacher);
+        string clientKey = Key(clientId);
+        string accountFileName = $"{clientKey}.json";
+        return Path.Combine(teacherDirectory, accountFileName);
     }
 
     public GoogleLoginBuilder Login(string teacher, IServiceProvider services)
