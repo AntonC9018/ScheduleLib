@@ -510,7 +510,7 @@ public sealed class CliJsonlTests
             Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: error);
             Assert.Contains(
                 expectedSubstring: "unknown",
-                actualString: output + error,
+                actualString: $"{output}{error}",
                 StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -538,7 +538,7 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: CliExit.InvalidArguments, actual: exit);
         Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: output);
         Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: error);
-        Assert.NotEmpty(output + error);
+        Assert.NotEmpty($"{output}{error}");
     }
 
     [Fact]
@@ -621,7 +621,7 @@ public sealed class CliJsonlTests
 
         Assert.Equal(expected: CliExit.InvalidArguments, actual: exit);
         Assert.Empty(output);
-        Assert.Equal(expected: CliOutput.ConflictingResultFormatsMessage + Environment.NewLine, actual: error);
+        Assert.Equal(expected: $"{CliOutput.ConflictingResultFormatsMessage}{Environment.NewLine}", actual: error);
     }
 
     [Fact]
