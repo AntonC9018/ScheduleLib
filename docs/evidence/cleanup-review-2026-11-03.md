@@ -121,10 +121,12 @@ conflicting specific patronymics differ. That relation is not transitive. Hashin
 and last names is necessary for its existing pairwise equality; adding patronymic to the hash
 would introduce a defect.
 
-The unresolved question is whether wildcard matching belongs in dictionary/set equality at all.
+The maintainer explicitly deferred this question to standalone [#273][name-equality-followup],
+**outside epic #269**. Keep the comparer and its callers unchanged. This issue is neither an
+epic child nor a blocker, and resolving it is not required for cleanup completion.
 Examples include [PublicApi/Attendance.cs:630][source-7] and
-[FmiWebsiteInterop/Theses.cs:105][source-8] (`GroupBy`).
-Choose an explicit ambiguous-match policy before replacing these collections or this comparer.
+[FmiWebsiteInterop/Theses.cs:105][source-8] (`GroupBy`). Any future policy change needs separate
+authorization.
 
 ### Failure boundaries (#246, distinct from the completed CLI catch-all fixes)
 
@@ -201,3 +203,5 @@ The older routing/action-kind examples have already been addressed; do not reope
 [analyzer-pr]: https://github.com/AntonC9018/CodingRules/pull/40
 
 [final-inventory]: analyzer-findings-follow-up-2026-11-03.csv
+
+[name-equality-followup]: https://github.com/AntonC9018/ScheduleLib/issues/273
