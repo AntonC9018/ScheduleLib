@@ -12,7 +12,9 @@ import tempfile
 from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parent.parent
-STYLE_DIAGNOSTICS = ['RCS0042', 'RCS1016', 'CR0800', 'CR0801', 'CR0802', 'CR0803', 'CR0804', 'CR0805']
+STYLE_DIAGNOSTICS = [
+    'RCS0042', 'RCS1016', 'CR0800', 'CR0801', 'CR0802', 'CR0803', 'CR0804', 'CR0805', 'CR0806',
+]
 WORKSPACE_SUFFIXES = {'.cs', '.csproj', '.sln', '.props', '.targets', '.globalconfig', '.resx', '.axaml', '.xaml'}
 WORKSPACE_NAMES = {'.editorconfig', 'NuGet.Config', 'nuget.config', 'global.json'}
 EXCLUDED_DIRECTORIES = {'.git', '.idea', '.registry-history', 'bin', 'obj', 'tmp', 'output', '__pycache__'}

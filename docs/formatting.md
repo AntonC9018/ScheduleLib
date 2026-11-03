@@ -37,10 +37,9 @@ implements those operations using standard and ReSharper EditorConfig settings;
 there is no custom syntax rewriter. The default layout command does not run
 Anton.CodingRules fixes or general code cleanup.
 
-`--style` explicitly adds only CR0800, CR0801, CR0802, RCS0042 and RCS1016:
-leading existing Boolean operators, multi-member initializer expansion, sole
-constructor-argument adjacency, compact auto-accessors and multiline-expression
-block bodies. It never selects operation extraction, argument naming, tuples,
+`--style` explicitly adds only CR0800–CR0806, RCS0042 and RCS1016: approved layout
+rules, compact auto-accessors and multiline-expression block bodies.
+It never selects operation extraction, argument naming, tuples,
 builders, interpolation, duplication or sealing fixes. The two upstream IDs
 have explicit per-file severities in `.editorconfig`; compact properties require
 `csharp_preserve_single_line_blocks=true`.
@@ -113,11 +112,12 @@ hide a questionable finding. Apply clear improvements; record contested findings
 and the maintainer's decision in GitHub. See
 the [CodingRules specification](https://github.com/AntonC9018/CodingRules/blob/main/docs/spec.md).
 
-The style allowlist also includes required braces, cast spacing and CR0805:
-every subsequent chained invocation starts on a new line, even for a short
-chain. Computation, naming, tuple and builder refactorings remain outside this
-formatting wrapper. The bounded semantic layout fixes can decline cases where
-implicit caller information or comments would change meaning.
+The style allowlist also includes required braces, cast spacing, CR0805 and CR0806.
+CR0805 accepts reviewed short chains and wraps longer chains. CR0806 puts the first
+argument of a chopped ordinary argument list below the opening parenthesis, preserving
+the lambda and sole-construction exceptions. Computation, naming, tuple and builder
+refactorings remain outside this formatting wrapper. The bounded semantic layout fixes
+can decline cases where implicit caller information or comments would change meaning.
 
 Run formatting as the final cleanup step after the source edits and focused
 checks stabilize. Select the changed files and the smallest project that covers

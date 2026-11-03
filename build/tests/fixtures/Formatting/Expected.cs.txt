@@ -57,12 +57,14 @@ internal static class Program
         {
             Console.WriteLine(text);
         }
-        Console.WriteLine(Sum(Step(3),
+        Console.WriteLine(Sum(
+            Step(3),
             Step(4),
             Step(5)));
         Console.WriteLine(Forward());
         /* Keep this block comment and both literal tokens. */
-        Console.WriteLine(string.Concat("first-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789",
+        Console.WriteLine(string.Concat(
+            "first-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789",
             "second-width-probe-abcdefghijklmnopqrstuvwxyz-0123456789"));
         Console.WriteLine($"{trace}:{payload.A}:{payload.B}:{values.Length}:{Multiline(-3)}");
         // Semantic cleanup must leave this concatenation alone (CR1100).

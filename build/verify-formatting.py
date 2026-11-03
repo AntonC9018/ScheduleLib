@@ -65,7 +65,7 @@ def main():
         assert 'if (Both(true, true))\n        {' in text, 'Braces'
         assert '\n            2,\n        ];' in text, 'Trailing comma'
         assert 'trace = trace * 10 + value;\n' in text, 'Statement layout'
-        assert 'Sum(Step(3),\n            Step(4),' in text, 'Argument-count wrapping'
+        assert 'Sum(\n            Step(3),\n            Step(4),' in text, 'Chopped first argument'
         assert '0123456789",\n' in text, 'Width wrapping'
         assert 'return Sum(\n            1,\n            2,\n            3);' in text, 'New block argument indentation'
         assert 'var text = "{ braces } // text, &&";' in text
