@@ -61,7 +61,8 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public void ExtractsOnlyDateTypeAndTopicWithoutAttendanceOrMutationLinks()
     {
-        var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons));
+        var lessonDocument = new HtmlParser().ParseDocument(Lessons);
+        var lessons = RegistryHistoryTopicsHtml.Lessons(lessonDocument);
         Assert.Equal(expected: 2, actual: lessons.Count);
 
         Assert.Equal(
@@ -112,7 +113,8 @@ public sealed class RegistryHistoryTopicsTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            return RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html));
+            var document = new HtmlParser().ParseDocument(html);
+            return RegistryHistoryTopicsHtml.Lessons(document);
         });
         Assert.Equal(expected: RegistryHistoryPhase.Lessons, actual: error.Phase);
         Assert.Equal(expected: RegistryHistoryDiagnostic.TopicTable, actual: error.Diagnostic);
@@ -872,6 +874,7 @@ public sealed class RegistryHistoryTopicsTests
         int semester,
         string group)
     {
+        var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons));
         return new(
             year,
             Course(
@@ -882,7 +885,7 @@ public sealed class RegistryHistoryTopicsTests
                 new(
                     group,
                     new Uri(Index, "LessonsList/1"),
-                    RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons))),
+                    lessons),
             ]);
     }
 

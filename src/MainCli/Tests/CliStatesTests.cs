@@ -44,7 +44,9 @@ public sealed class CliStatesTests
     public void ActionStatesSerializeAsTheirWireNames(ActionState state, string wire)
     {
         Assert.Equal(expected: wire, actual: state.ToWire());
-        Assert.Equal(expected: $"\"{wire}\"", actual: JsonSerializer.Serialize(state, JsonOptions));
+        var expectedJson = $"\"{wire}\"";
+        var serializedState = JsonSerializer.Serialize(state, JsonOptions);
+        Assert.Equal(expected: expectedJson, actual: serializedState);
     }
 
     [Theory]
@@ -59,7 +61,9 @@ public sealed class CliStatesTests
     public void RunStatusesSerializeAsTheirWireNames(RunStatus status, string wire)
     {
         Assert.Equal(expected: wire, actual: status.ToWire());
-        Assert.Equal(expected: $"\"{wire}\"", actual: JsonSerializer.Serialize(status, JsonOptions));
+        var expectedJson = $"\"{wire}\"";
+        var serializedStatus = JsonSerializer.Serialize(status, JsonOptions);
+        Assert.Equal(expected: expectedJson, actual: serializedStatus);
     }
 
     [Fact]

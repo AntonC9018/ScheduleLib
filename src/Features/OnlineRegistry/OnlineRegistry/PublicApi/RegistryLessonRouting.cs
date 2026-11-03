@@ -15,25 +15,25 @@ internal static class RegistryLessonRouting
         var lessons = MatchLessonHelper.MatchLessonCandidates(parameters)
             .Where(id =>
             {
+                var lesson = parameters.Schedule.Get(id).Lesson;
                 if (!IsCurrentLab(
                         config,
                         parameters.Schedule,
-                        parameters.Schedule.Get(id).Lesson))
+                        lesson))
                 {
                     return false;
                 }
 
-                if (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab)
+                if (lesson.Type != LessonType.Lab)
                 {
                     return true;
                 }
 
-                if (ContainsPartition(
-                        destination: filter.GroupPartition,
-                        source: ProjectPartition(
-                            config,
-                            parameters.Schedule,
-                            parameters.Schedule.Get(id).Lesson)))
+                var lessonPartition = ProjectPartition(
+                    config,
+                    parameters.Schedule,
+                    lesson);
+                if (ContainsPartition(destination: filter.GroupPartition, source: lessonPartition))
                 {
                     return true;
                 }
@@ -324,9 +324,15 @@ internal static class RegistryLessonRouting
                     {
                         hasUnresolvedAudience = true;
 
-                        diagnostics?.ReportAmbiguousRegistryDestination(
-                            course: schedule.Get(lesson.Course).FullName,
-                            @group: schedule.Get(parent).Name);
+                        if (diagnostics is not null)
+                        {
+                            var courseName = schedule.Get(lesson.Course).FullName;
+                            var groupName = schedule.Get(parent).Name;
+                            diagnostics.ReportAmbiguousRegistryDestination(
+                                course: courseName,
+                                @group: groupName);
+                        }
+
                         continue;
                     }
                     foreach (var destination in winners)

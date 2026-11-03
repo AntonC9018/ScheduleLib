@@ -5,7 +5,6 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
-using System.Text;
 
 namespace ScheduleLib.Topics.Tests;
 
@@ -65,12 +64,12 @@ public sealed class TopicSeriesTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                                            {"documents":[
-                                                                              {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
-                                                                              {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
-                                                                            ]}
-                                                                            """));
+            await using var input = new MemoryStream("""
+                                                     {"documents":[
+                                                       {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
+                                                       {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
+                                                     ]}
+                                                     """u8.ToArray());
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
@@ -170,16 +169,16 @@ public sealed class TopicSeriesTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                                            {"documents":[
-                                                                              {"path":"course.csv","series":"curs-ru","course":"Synthetic course","groups":"IA2601",
-                                                                               "wholeGroupOnly":true,"lessonType":"Curs","language":"Ru","allowMissingLessonTypes":true},
-                                                                              {"path":"course.csv","series":"lab-ru","course":"Synthetic course","groups":"IA2601",
-                                                                               "subGroup":"I","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
-                                                                              {"path":"course.csv","series":"lab-en","course":"Synthetic course","groups":"IA2602",
-                                                                               "wholeGroupOnly":true,"lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
-                                                                            ]}
-                                                                            """));
+            await using var input = new MemoryStream("""
+                                                     {"documents":[
+                                                       {"path":"course.csv","series":"curs-ru","course":"Synthetic course","groups":"IA2601",
+                                                        "wholeGroupOnly":true,"lessonType":"Curs","language":"Ru","allowMissingLessonTypes":true},
+                                                       {"path":"course.csv","series":"lab-ru","course":"Synthetic course","groups":"IA2601",
+                                                        "subGroup":"I","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
+                                                       {"path":"course.csv","series":"lab-en","course":"Synthetic course","groups":"IA2602",
+                                                        "wholeGroupOnly":true,"lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
+                                                     ]}
+                                                     """u8.ToArray());
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =

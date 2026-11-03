@@ -84,9 +84,10 @@ internal static class RegistryLabMerges
         RegistryLabMergeRule? found = null;
         foreach (var rule in rules)
         {
+            var courseName = schedule.Get(course).FullName;
             if (!string.Equals(
                     rule.Course,
-                    schedule.Get(course).FullName,
+                    courseName,
                     StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -178,7 +179,12 @@ internal static class RegistryLabMerges
                     return false;
                 }
 
-                return MatchesSurvivingLab();
+                if (MatchesSurvivingLab())
+                {
+                    return true;
+                }
+
+                return false;
             })
             .ToList();
         if (lessons.Count == 0)

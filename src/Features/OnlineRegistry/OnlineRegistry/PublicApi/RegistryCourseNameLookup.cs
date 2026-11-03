@@ -53,12 +53,18 @@ public static class RegistryCourseNameLookup
                 parsedName: parsed.Name,
                 mappedName: out var mappedName))
         {
-            return lookup.Course(
+            var result = lookup.Course(
                 mappedName.AsMemory(),
                 new()
                 {
                     IgnorePunctuation = true,
                 });
+            if (result is not null)
+            {
+                return result;
+            }
+
+            return null;
         }
 
         if (lookup.Course(
@@ -112,7 +118,12 @@ public static class RegistryCourseNameLookup
                     return false;
                 }
 
-                return Distance(first: normalized, second: course.Name) <= tolerance;
+                if (Distance(first: normalized, second: course.Name) <= tolerance)
+                {
+                    return true;
+                }
+
+                return false;
             })
             .Select(course => course.Id)
             .Distinct()
@@ -140,9 +151,10 @@ public static class RegistryCourseNameLookup
 
     private static int Distance(string first, string second)
     {
-        var previous = Enumerable.Range(start: 0, count: second.Length + 1)
+        var columnCount = second.Length + 1;
+        var previous = Enumerable.Range(start: 0, count: columnCount)
             .ToArray();
-        var current = new int[second.Length + 1];
+        var current = new int[columnCount];
         for (var i = 1; i <= first.Length; i++)
         {
             current[0] = i;

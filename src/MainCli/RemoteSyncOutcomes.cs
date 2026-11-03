@@ -20,7 +20,12 @@ internal static class RemoteSyncOutcomes
             return false;
         }
 
-        return error is OperationCanceledException or GooglePreSendTransportException;
+        if (error is OperationCanceledException or GooglePreSendTransportException)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public static bool IsUnauthorized(Google.GoogleApiException error)

@@ -112,7 +112,14 @@ public static class TeacherProfileScheduleLookup
         {
             return null;
         }
-        return lookup.Teacher(name);
+
+        var remappedTeacher = lookup.Teacher(name);
+        if (remappedTeacher is not null)
+        {
+            return remappedTeacher;
+        }
+
+        return null;
     }
 }
 

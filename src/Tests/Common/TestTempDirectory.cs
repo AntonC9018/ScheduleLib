@@ -5,9 +5,10 @@ public sealed class TestTempDirectory : IDisposable
     public TestTempDirectory(string namePrefix)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(namePrefix);
-        Path = System.IO.Path.Combine(
-            System.IO.Path.GetTempPath(),
-            $"{namePrefix}-{Guid.NewGuid():N}");
+        var temporaryDirectory = System.IO.Path.GetTempPath();
+        var uniqueId = Guid.NewGuid();
+        var directoryName = $"{namePrefix}-{uniqueId:N}";
+        Path = System.IO.Path.Combine(temporaryDirectory, directoryName);
         Directory.CreateDirectory(Path);
     }
 

@@ -628,7 +628,12 @@ public sealed class LessonParserTests
                 {
                     if (e.IsNull)
                     {
-                        return a.IsEmpty;
+                        if (a.IsEmpty)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }
 
                     var e1 = (e.Full ?? e.Short)!.AsSpan();

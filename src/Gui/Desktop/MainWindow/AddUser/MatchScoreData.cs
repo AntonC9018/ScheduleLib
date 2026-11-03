@@ -106,7 +106,8 @@ public readonly record struct MatchScore(
     {
         int full = FullMatch.SetCount;
         int partial = PartialMatch.SetCount;
-        return full + partial - UnmatchedCount;
+        int matchedCount = full + partial;
+        return matchedCount - UnmatchedCount;
     }
 
     public override string ToString()

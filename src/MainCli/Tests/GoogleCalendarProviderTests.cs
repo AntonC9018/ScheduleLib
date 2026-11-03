@@ -602,8 +602,14 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return scenario.EndsWith("real-deadline", StringComparison.Ordinal)
-                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal);
+
+                if (scenario.EndsWith("real-deadline", StringComparison.Ordinal)
+                    || scenario.EndsWith("real-cancel", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (IsRefreshInterrupted())
@@ -670,7 +676,13 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return request.Method == HttpMethod.Post;
+
+                if (request.Method == HttpMethod.Post)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (IsSentRequestDeadline())
@@ -694,7 +706,13 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return request.Method == HttpMethod.Post;
+
+                if (request.Method == HttpMethod.Post)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (IsSentRequestTimeout())
@@ -720,7 +738,12 @@ public sealed class GoogleCalendarProviderTests
                 }
                 if (scenario == "create-cancel")
                 {
-                    return request.Method == HttpMethod.Post;
+                    if (request.Method == HttpMethod.Post)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
                 if (scenario != "event-second-cancel")
                 {
@@ -730,7 +753,13 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return request.Method == HttpMethod.Post;
+
+                if (request.Method == HttpMethod.Post)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (IsSentRequestCancelled())
@@ -753,7 +782,13 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return createAttempts == 1;
+
+                if (createAttempts == 1)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (ShouldRejectAuthorization())
@@ -770,7 +805,12 @@ public sealed class GoogleCalendarProviderTests
             {
                 if (scenario == "create-503" && createAttempts == 1)
                 {
-                    return request.Method == HttpMethod.Post;
+                    if (request.Method == HttpMethod.Post)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
                 if (scenario != "event-503")
                 {
@@ -780,7 +820,13 @@ public sealed class GoogleCalendarProviderTests
                 {
                     return false;
                 }
-                return request.Method == HttpMethod.Post;
+
+                if (request.Method == HttpMethod.Post)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (ShouldReturnUnavailable())
@@ -1122,10 +1168,11 @@ public sealed class GoogleCalendarProviderTests
                             .GetInt32());
                     if (scenario == "event-second-cancel")
                     {
+                        var secondEventId = outcomes[1].GetProperty("eventId")
+                            .GetString();
                         Assert.Equal(
                             expected: "new-event",
-                            actual: outcomes[1].GetProperty("eventId")
-                                .GetString());
+                            actual: secondEventId);
                     }
                 }
             }

@@ -10,10 +10,11 @@ public sealed class PdfImportTests
     public void SourcePdfsMatchReviewedCellContentAndMembership(int year)
     {
         var source = $"orar{year}.pdf";
-        using var stream = File.OpenRead(Path.Combine(
+        var sourcePath = Path.Combine(
             AppContext.BaseDirectory,
             "Fixtures",
-            source));
+            source);
+        using var stream = File.OpenRead(sourcePath);
         // The fixtures were downloaded in September 2026; the reviewed cells include that
         // period's documented parity repairs.
         var fixturePeriodStart = new DateOnly(
@@ -26,11 +27,13 @@ public sealed class PdfImportTests
             source,
             parityRepairs);
 
+        var expectedCellsPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "expected-cells.json");
+        var expectedJson = File.ReadAllText(expectedCellsPath);
         var expected = JsonSerializer.Deserialize<PdfScheduleCell[]>(
-                File.ReadAllText(Path.Combine(
-                    AppContext.BaseDirectory,
-                    "Fixtures",
-                    "expected-cells.json")),
+                expectedJson,
                 new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,

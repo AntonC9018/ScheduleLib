@@ -369,16 +369,17 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
 
+        var cancelledExit = await new FixtureExport().FreeRooms(
+            new(),
+            new()
+            {
+                Directory = temp.Path,
+            },
+            new(),
+            new CancellationToken(canceled: true));
         Assert.Equal(
             expected: 130,
-            actual: await new FixtureExport().FreeRooms(
-                new(),
-                new()
-                {
-                    Directory = temp.Path,
-                },
-                new(),
-                new CancellationToken(canceled: true)));
+            actual: cancelledExit);
 
         Assert.Empty(Directory.EnumerateFileSystemEntries(temp.Path));
     }
@@ -418,7 +419,8 @@ public sealed class FreeRoomsTests
                 actual: result.RootElement.GetProperty("status")
                     .GetString());
 
-            Assert.False(File.Exists(Path.Combine(temp.Path, "schedulelib-manifest.json")));
+            var manifestPath = Path.Combine(temp.Path, "schedulelib-manifest.json");
+            Assert.False(File.Exists(manifestPath));
         }
         finally
         {

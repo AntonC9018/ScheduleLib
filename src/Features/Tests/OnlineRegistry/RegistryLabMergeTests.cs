@@ -33,21 +33,24 @@ public sealed class RegistryLabMergeTests
     public void UnconfiguredGroupsDoNotAcquireImplicitMergeBehavior()
     {
         var fixture = new Fixture();
-        Assert.Empty(fixture.Select([]).Lessons);
-        Assert.Empty(fixture.Select([
+        var noRulesSelection = fixture.Select([]);
+        Assert.Empty(noRulesSelection.Lessons);
+        var unregisteredCourseSelection = fixture.Select([
             new()
             {
                 Course = "Other course",
                 Group = "IA2601",
             },
-        ]).Lessons);
-        Assert.Empty(fixture.Select([
+        ]);
+        Assert.Empty(unregisteredCourseSelection.Lessons);
+        var unregisteredGroupSelection = fixture.Select([
             new()
             {
                 Course = "Synthetic course",
                 Group = "IA2602",
             },
-        ]).Lessons);
+        ]);
+        Assert.Empty(unregisteredGroupSelection.Lessons);
     }
 
     [Fact]
@@ -102,6 +105,7 @@ public sealed class RegistryLabMergeTests
             lessonTypeParser,
             subGroupRemapper,
             specializationRegistry);
+        var filteredSchedule = fixture.Schedule.Filter(new());
 
         parser.Parse(new(
             new()
@@ -109,7 +113,7 @@ public sealed class RegistryLabMergeTests
                 LabMerges = fixture.Rules,
             },
             attendance,
-            fixture.Schedule.Filter(new()),
+            filteredSchedule,
             workbook));
         var collection = attendance.Build(Attendance.Present);
         IEnumerable<KeyValuePair<
@@ -133,9 +137,10 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
+        var group = fixture.Group;
 
         var first = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("I"), Specialization.All),
             fixture.Course,
             LessonType.Lab));
@@ -145,7 +150,7 @@ public sealed class RegistryLabMergeTests
         first.HintMaxCount(1);
 
         var second = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("II"), Specialization.All),
             fixture.Course,
             LessonType.Lab));
@@ -155,13 +160,13 @@ public sealed class RegistryLabMergeTests
         student.Day(Attendance.MotivatedAbsent);
         student.Day(Attendance.NotPresent);
         var canonical = builder.Build(Attendance.Present);
+        var unmergedProjection = AttendanceLabMerges.Project(
+            canonical,
+            fixture.Schedule,
+            []);
         Assert.Equal(
             expected: 2,
-            actual: AttendanceLabMerges.Project(
-                    canonical,
-                    fixture.Schedule,
-                    [])
-                .Count());
+            actual: unmergedProjection.Count());
         var result = AttendanceLabMerges.Project(
             canonical,
             fixture.Schedule,
@@ -191,9 +196,10 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
+        var group = fixture.Group;
 
         var first = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("I"), Specialization.All),
             fixture.Course,
             LessonType.Lab));
@@ -216,7 +222,7 @@ public sealed class RegistryLabMergeTests
         alpha.Day(Attendance.MotivatedAbsent);
 
         var second = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("II"), Specialization.All),
             fixture.Course,
             LessonType.Lab));
@@ -284,9 +290,10 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
+        var group = fixture.Group;
 
         builder.List(new StudentsLookupKey(
-                [fixture.Group],
+                [group],
                 new GroupPartitionKey(new SubGroup("I"), Specialization.All),
                 fixture.Course,
                 LessonType.Lab))
@@ -294,7 +301,7 @@ public sealed class RegistryLabMergeTests
             .Day(Attendance.NotPresent);
 
         builder.List(new StudentsLookupKey(
-                [fixture.Group],
+                [group],
                 GroupPartitionKey.All,
                 fixture.Course,
                 LessonType.Lab))
@@ -309,10 +316,11 @@ public sealed class RegistryLabMergeTests
             schedule,
             rules);
         var merged = Assert.Single(result.Where(entry => entry.Key.GroupPartition == GroupPartitionKey.All));
+        var firstDayMarks = merged.Value.Attendance.Day(0)
+            .AsArray();
         Assert.Equal(
             expected: Attendance.MotivatedAbsent,
-            actual: Assert.Single(merged.Value.Attendance.Day(0)
-                .AsArray()));
+            actual: Assert.Single(firstDayMarks));
     }
 
     [Theory]
@@ -322,9 +330,10 @@ public sealed class RegistryLabMergeTests
     {
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
+        var group = fixture.Group;
 
         var first = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("I"), Specialization.All),
             fixture.Course,
             LessonType.Lab));
@@ -333,7 +342,7 @@ public sealed class RegistryLabMergeTests
             .Day(Attendance.NotPresent);
 
         var second = builder.List(new StudentsLookupKey(
-            [fixture.Group],
+            [group],
             new GroupPartitionKey(new SubGroup("II"), Specialization.All),
             fixture.Course,
             LessonType.Lab));

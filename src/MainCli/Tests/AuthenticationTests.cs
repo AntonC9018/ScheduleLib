@@ -195,9 +195,10 @@ public sealed class AuthenticationTests
                 .WithCredentials(fixture.Config)
                 .Execute(default));
         Assert.Same(expected: fixture.Tokens.ConsentError, actual: error.InnerException);
+        var classification = CliAuthenticationExecution.ClassifyGoogle(error);
         Assert.Equal(
             expected: CliExit.AuthenticationRequired,
-            actual: CliAuthenticationExecution.ClassifyGoogle(error).ExitCode);
+            actual: classification.ExitCode);
         Assert.DoesNotContain(expectedSubstring: "secret", actualString: error.Message);
         Assert.DoesNotContain(expectedSubstring: "secret", actualString: fixture.Log.All);
     }
@@ -470,13 +471,14 @@ public sealed class AuthenticationTests
     {
         using var fixture = new Fixture();
 
+        var missingUserFile = Path.Combine(fixture.Root, "missing-settings.json");
         using var settings = await CliSettings.Load(
             new()
             {
                 Profile = Teacher,
             },
             invocationDirectory: fixture.Root,
-            userFile: Path.Combine(fixture.Root, "missing-settings.json"));
+            userFile: missingUserFile);
         var services = new ServiceCollection();
         services.AddConfigsServices();
         services.AddOnlineRegistry();
@@ -525,22 +527,23 @@ public sealed class AuthenticationTests
         {
             Console.SetOut(output);
 
+            var cancelledStatus = await new AuthCommands().Status(
+                new()
+                {
+                    Provider = provider,
+                },
+                new()
+                {
+                    Profile = Teacher,
+                },
+                new()
+                {
+                    Json = true,
+                },
+                new CancellationToken(true));
             Assert.Equal(
                 expected: 130,
-                actual: await new AuthCommands().Status(
-                    new()
-                    {
-                        Provider = provider,
-                    },
-                    new()
-                    {
-                        Profile = Teacher,
-                    },
-                    new()
-                    {
-                        Json = true,
-                    },
-                    new CancellationToken(true)));
+                actual: cancelledStatus);
             using var json = JsonDocument.Parse(output.ToString());
             Assert.Equal(
                 expected: "cancelled",
@@ -550,7 +553,8 @@ public sealed class AuthenticationTests
                 expected: 130,
                 actual: json.RootElement.GetProperty("exitCode")
                     .GetInt32());
-            Assert.Equal(expected: JsonValueKind.Null, actual: json.RootElement.GetProperty("data").ValueKind);
+            var dataKind = json.RootElement.GetProperty("data").ValueKind;
+            Assert.Equal(expected: JsonValueKind.Null, actual: dataKind);
         }
         finally
         {

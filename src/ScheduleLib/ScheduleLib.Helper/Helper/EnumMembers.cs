@@ -13,9 +13,10 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     {
         get
         {
-            int enumAsInt = EnumAsInt(End);
-            int enumAsInt2 = EnumAsInt(Start);
-            return enumAsInt - enumAsInt2 + 1;
+            int lastValue = EnumAsInt(End);
+            int firstValue = EnumAsInt(Start);
+            int valueDistance = lastValue - firstValue;
+            return valueDistance + 1;
         }
     }
 
@@ -100,7 +101,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public Enumerator()
         {
-            _index = EnumAsInt(Start) - 1;
+            int firstValue = EnumAsInt(Start);
+            _index = firstValue - 1;
         }
 
         public bool MoveNext()
@@ -111,7 +113,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public void Reset()
         {
-            _index = EnumAsInt(Start) - 1;
+            int firstValue = EnumAsInt(Start);
+            _index = firstValue - 1;
         }
 
         public readonly T Current => IntAsEnum(_index);

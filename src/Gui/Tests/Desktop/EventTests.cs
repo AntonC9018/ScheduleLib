@@ -227,5 +227,6 @@ public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {
     public ObservableValueSource<ImmutableArray<Name>> NamesSource =
         new([], new ImmediateDispatcher<ImmutableArray<Name>>());
+
     public ObservableValue<ImmutableArray<Name>> Names => NamesSource.As();
 }

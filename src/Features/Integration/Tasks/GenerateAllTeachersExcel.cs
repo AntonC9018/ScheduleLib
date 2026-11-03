@@ -172,8 +172,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             for (uint dayIndex = 0; dayIndex < 6; dayIndex++)
             {
                 var merge = new MergeCell();
-                uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
-                uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
+                uint dayRowOffset = dayIndex * timeSlotCount;
+                uint rowIndexStart = initialRowIndex + dayRowOffset;
+                uint rowIndexEndExclusive = rowIndexStart + timeSlotCount;
+                uint rowIndexEnd = rowIndexEndExclusive - 1;
                 merge.Reference = ExcelRangeHelper.GetCellRange(new()
                 {
                     Start = new(Col: 0, Row: rowIndexStart),

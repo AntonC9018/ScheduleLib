@@ -141,16 +141,20 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 var hasUnresolvedLabRouting = destination.Selection.Lessons.Any(IsUnresolvedLabLesson);
                 if (hasUnresolvedLabRouting)
                 {
+                    var labCourseName = _schedule.Get(course.CourseId).FullName;
+                    var labGroupNames = group.Groups.Value.ToString(_schedule);
                     diagnostics.ReportRegistryLabRoutingUnresolved(
-                        course: _schedule.Get(course.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule));
+                        course: labCourseName,
+                        @group: labGroupNames);
                     continue;
                 }
                 if (routed[group.Uri].Keys.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab))
                 {
+                    var labCourseName = _schedule.Get(course.CourseId).FullName;
+                    var labGroupNames = group.Groups.Value.ToString(_schedule);
                     diagnostics.ReportRegistryLabFallbackPreserved(
-                        course: _schedule.Get(course.CourseId).FullName,
-                        @group: group.Groups.Value.ToString(_schedule));
+                        course: labCourseName,
+                        @group: labGroupNames);
                     continue;
                 }
                 var courseName = _schedule.Get(course.CourseId).FullName;

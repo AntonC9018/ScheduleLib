@@ -45,10 +45,10 @@ public sealed class GoogleDriveProviderTests
                     "{\"files\":[{\"id\":\"one\",\"name\":\"Configured\"},{\"id\":\"two\",\"name\":\"Configured\"}]}"));
             }
 
-            return Task.FromResult(Json(
-                call == 1
-                    ? "{\"nextPageToken\":\"next\",\"files\":[{\"id\":\"one\",\"name\":\"Configured\"}]}"
-                    : "{\"files\":[{\"id\":\"two\",\"name\":\"Configured\"}]}"));
+            var responseBody = call == 1
+                ? "{\"nextPageToken\":\"next\",\"files\":[{\"id\":\"one\",\"name\":\"Configured\"}]}"
+                : "{\"files\":[{\"id\":\"two\",\"name\":\"Configured\"}]}";
+            return Task.FromResult(Json(responseBody));
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
@@ -61,7 +61,8 @@ public sealed class GoogleDriveProviderTests
                 apply,
                 default,
                 lockRoot: directory));
-            Assert.Equal(expected: splitPages ? 2 : 1, actual: call);
+            var expectedCallCount = splitPages ? 2 : 1;
+            Assert.Equal(expected: expectedCallCount, actual: call);
             if (splitPages)
             {
                 Assert.Contains(expectedSubstring: "pageToken=next", actualString: handler.Requests.Last().Uri);
@@ -87,15 +88,16 @@ public sealed class GoogleDriveProviderTests
         var call = 0;
         using var handler = new Transport((_, _) =>
         {
-            if (++call == 1)
+            call++;
+            if (call == 1)
             {
                 return Task.FromResult(Json("{\"nextPageToken\":\"next\",\"files\":[]}"));
             }
 
-            return Task.FromResult(Json(
-                found
-                    ? "{\"files\":[{\"id\":\"only\",\"name\":\"Configured\"}]}"
-                    : "{\"files\":[]}"));
+            var responseBody = found
+                ? "{\"files\":[{\"id\":\"only\",\"name\":\"Configured\"}]}"
+                : "{\"files\":[]}";
+            return Task.FromResult(Json(responseBody));
         });
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
@@ -123,10 +125,11 @@ public sealed class GoogleDriveProviderTests
     {
         using var handler = new Transport((request, _) =>
         {
+            var errorBody = $"{{\"error\":{{\"code\":{(int) status},\"message\":\"Rejected\"}}}}";
             return Task.FromResult(new HttpResponseMessage(status)
             {
                 Content = new StringContent(
-                    $"{{\"error\":{{\"code\":{(int) status},\"message\":\"Rejected\"}}}}",
+                    errorBody,
                     Encoding.UTF8,
                     "application/json"),
             });
@@ -256,7 +259,8 @@ public sealed class GoogleDriveProviderTests
         Assert.Equal(expected: "folder-id", actual: (await provider.FindFolder("O'Brien", default)).Id);
         Assert.Equal(expected: 2, actual: (await provider.ListFiles("folder-id", default)).Count);
 
-        Assert.Contains(expectedSubstring: "O\\'Brien", actualString: Uri.UnescapeDataString(handler.Requests[1].Uri));
+        var folderQueryUri = Uri.UnescapeDataString(handler.Requests[1].Uri);
+        Assert.Contains(expectedSubstring: "O\\'Brien", actualString: folderQueryUri);
         Assert.Contains(expectedSubstring: "pageToken=next", actualString: handler.Requests[3].Uri);
         Assert.All(handler.Requests, x => Assert.Equal(expected: "GET", actual: x.Method));
     }
@@ -493,34 +497,35 @@ public sealed class GoogleDriveProviderTests
                 throw new Xunit.Sdk.XunitException("Refresh must be interrupted before the API request is sent.");
             }
 
-            if (request.RequestUri!.Host == "oauth2.googleapis.com"
-                && scenario.Contains("expired-refresh", StringComparison.Ordinal))
-            {
-                if (scenario.EndsWith("unavailable", StringComparison.Ordinal))
-                {
-                    return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
-                    {
-                        Content = new StringContent(
-                            "{\"error\":\"temporarily_unavailable\",\"error_description\":\"private-provider-diagnostic\"}",
-                            Encoding.UTF8,
-                            "application/json"),
-                    };
-                }
-
-                if (scenario.EndsWith("connection", StringComparison.Ordinal))
-                {
-                    throw new HttpRequestException("private-provider-diagnostic");
-                }
-
-                if (scenario.EndsWith("cancel", StringComparison.Ordinal))
-                {
-                    cancellation.Cancel();
-                    throw new OperationCanceledException(cancellation.Token);
-                }
-                throw new TaskCanceledException("private-provider-diagnostic", new TimeoutException());
-            }
             if (request.RequestUri!.Host == "oauth2.googleapis.com")
             {
+                if (scenario.Contains("expired-refresh", StringComparison.Ordinal))
+                {
+                    if (scenario.EndsWith("unavailable", StringComparison.Ordinal))
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                        {
+                            Content = new StringContent(
+                                "{\"error\":\"temporarily_unavailable\",\"error_description\":\"private-provider-diagnostic\"}",
+                                Encoding.UTF8,
+                                "application/json"),
+                        };
+                    }
+
+                    if (scenario.EndsWith("connection", StringComparison.Ordinal))
+                    {
+                        throw new HttpRequestException("private-provider-diagnostic");
+                    }
+
+                    if (scenario.EndsWith("cancel", StringComparison.Ordinal))
+                    {
+                        cancellation.Cancel();
+                        throw new OperationCanceledException(cancellation.Token);
+                    }
+
+                    throw new TaskCanceledException("private-provider-diagnostic", new TimeoutException());
+                }
+
                 if (scenario == "refresh-success")
                 {
                     return Json("{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"}");
@@ -661,15 +666,19 @@ public sealed class GoogleDriveProviderTests
             var folderQuery = Uri.UnescapeDataString(request.RequestUri.Query)
                 .Contains("mimeType", StringComparison.Ordinal);
 
-            if (!folderQuery && scenario.StartsWith("apply-expired", StringComparison.Ordinal))
+            if (!folderQuery)
             {
-                credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                if (scenario.StartsWith("apply-expired", StringComparison.Ordinal))
+                {
+                    credential!.Token.IssuedUtc = DateTime.UtcNow.AddHours(-2);
+                }
             }
             // One create then stop on failures; success uses an empty remote/local plan.
+            var responseBody = folderQuery
+                ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}"
+                : "{\"files\":[]}";
             return Json(
-                folderQuery
-                    ? "{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}"
-                    : "{\"files\":[]}");
+                responseBody);
         });
         using var flow = new GoogleAuthorizationCodeFlow(
             new GoogleAuthorizationCodeFlow.Initializer
@@ -797,10 +806,12 @@ public sealed class GoogleDriveProviderTests
                     return false;
                 }
 
+                var expectedState = IsOutcomeUncertain() ? "uncertain" : "failed";
+                var completedState = outcomes[completed].GetProperty("state")
+                    .GetString();
                 Assert.Equal(
-                    expected: IsOutcomeUncertain() ? "uncertain" : "failed",
-                    actual: outcomes[completed].GetProperty("state")
-                        .GetString());
+                    expected: expectedState,
+                    actual: completedState);
                 Assert.All(
                     outcomes.Skip(completed + 1),
                     x => Assert.Equal(
@@ -910,8 +921,9 @@ public sealed class GoogleDriveProviderTests
             }
 
             var scopeField = responseScope is null ? "" : $",\"scope\":\"{responseScope}\"";
-            return Task.FromResult(Json(
-                $"{{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"{scopeField}}}"));
+            var tokenResponse =
+                $"{{\"access_token\":\"fresh\",\"expires_in\":3600,\"token_type\":\"Bearer\"{scopeField}}}";
+            return Task.FromResult(Json(tokenResponse));
         });
         using var tokens = new SdkTokens(handler);
         using var auth = new GoogleAuthentication(directory, tokens);
@@ -982,8 +994,9 @@ public sealed class GoogleDriveProviderTests
                         default));
             }
 
+            var expectedDriveRequests = responseScope is null ? 2 : 1;
             Assert.Equal(
-                expected: responseScope is null ? 2 : 1,
+                expected: expectedDriveRequests,
                 actual: handler.Requests.Count(x => new Uri(x.Uri).Host != "oauth2.googleapis.com"));
             Assert.Single(handler.Requests.Where(x => new Uri(x.Uri).Host == "oauth2.googleapis.com"));
         }
@@ -1050,10 +1063,10 @@ public sealed class GoogleDriveProviderTests
                 return Task.FromResult(Json("{\"files\":[{\"id\":\"folder\",\"name\":\"Configured\"}]}"));
             }
 
-            return Task.FromResult(Json(
-                stage == "after-completed"
-                    ? "{\"files\":[{\"id\":\"obsolete\",\"name\":\"obsolete.pdf\"}]}"
-                    : "{\"files\":[]}"));
+            var responseBody = stage == "after-completed"
+                ? "{\"files\":[{\"id\":\"obsolete\",\"name\":\"obsolete.pdf\"}]}"
+                : "{\"files\":[]}";
+            return Task.FromResult(Json(responseBody));
         });
         using var tokens = new SdkTokens(handler, refreshToken: null);
         using var auth = new GoogleAuthentication(Path.Combine(directory, "auth"), tokens);
@@ -1117,16 +1130,18 @@ public sealed class GoogleDriveProviderTests
                 var failedIndex = stage == "after-completed" ? 1 : 0;
                 if (failedIndex == 1)
                 {
+                    var firstState = outcomes[0].GetProperty("state")
+                        .GetString();
                     Assert.Equal(
                         expected: "completed",
-                        actual: outcomes[0].GetProperty("state")
-                            .GetString());
+                        actual: firstState);
                 }
 
+                var failedState = outcomes[failedIndex].GetProperty("state")
+                    .GetString();
                 Assert.Equal(
                     expected: "failed",
-                    actual: outcomes[failedIndex].GetProperty("state")
-                        .GetString());
+                    actual: failedState);
                 Assert.All(
                     outcomes.Skip(failedIndex + 1),
                     x => Assert.Equal(

@@ -263,6 +263,10 @@ public sealed class AttendanceExcelTests
             course,
             LessonType.Lab);
 
+        var lessonDate = new DateTime(
+            year: 2026,
+            month: 10,
+            day: 12);
         var lessonAttendance = studentAttendance.Get(new AttendanceLookupKey(
             new FoundGroups
             {
@@ -273,10 +277,7 @@ public sealed class AttendanceExcelTests
             course,
             LessonType.Lab,
             dayIndex: 0,
-            dateTime: new DateTime(
-                year: 2026,
-                month: 10,
-                day: 12)));
+            dateTime: lessonDate));
         Assert.Equal(expected: 2, actual: lessonAttendance.StudentCount);
         var expected2 = Attendance.NotPresent;
         var actual2 = lessonAttendance.Student(0);
@@ -440,15 +441,24 @@ public sealed class AttendanceExcelTests
         var list = attendance.Build(Attendance.Present);
 
         // Columns are deliberately out of order: binding follows the header dates.
+        var septemberNinth = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 9);
+        var septemberSecond = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
+        var septemberSixteenth = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 16);
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 9)))
+                    septemberNinth))
                 .Student(0));
 
         Assert.Equal(
@@ -456,10 +466,7 @@ public sealed class AttendanceExcelTests
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2)))
+                    septemberSecond))
                 .Student(0));
 
         // A scheduled date with no attendance column leaves attendance unchanged.
@@ -468,10 +475,7 @@ public sealed class AttendanceExcelTests
             actual: list.Get(DateKey(
                 course,
                 group,
-                new DateTime(
-                    year: 2026,
-                    month: 9,
-                    day: 16))).StudentCount);
+                septemberSixteenth)).StudentCount);
     }
 
     [Fact]
@@ -495,15 +499,20 @@ public sealed class AttendanceExcelTests
                 workbook));
         var list = attendance.Build(Attendance.Present);
 
+        var septemberSecond = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
+        var previousYearsSeptemberSecond = new DateTime(
+            year: 2025,
+            month: 9,
+            day: 2);
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2)))
+                    septemberSecond))
                 .Student(0));
 
         Assert.Equal(
@@ -511,10 +520,7 @@ public sealed class AttendanceExcelTests
             actual: list.Get(DateKey(
                 course,
                 group,
-                new DateTime(
-                    year: 2025,
-                    month: 9,
-                    day: 2))).StudentCount);
+                previousYearsSeptemberSecond)).StudentCount);
     }
 
     [Fact]
@@ -588,15 +594,16 @@ public sealed class AttendanceExcelTests
         var list = attendance.Build(Attendance.Present);
 
         // Default date mode keeps order-based binding for compatibility.
+        var lessonDate = new DateTime(
+            year: 2026,
+            month: 10,
+            day: 12);
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 10,
-                        day: 12)))
+                    lessonDate))
                 .Student(0));
     }
 
@@ -701,15 +708,29 @@ public sealed class AttendanceExcelTests
                 workbook));
         var lists = attendance.Build(Attendance.Present);
 
+        var nativeLabDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 9);
+        var firstCursColumnDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
+        var secondCursColumnDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 9);
+        var previousYearsLabDate = new DateTime(
+            year: 2025,
+            month: 9,
+            day: 9);
+
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: lists.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 9)))
+                    nativeLabDate))
                 .Student(0));
 
         var lecture = new AttendanceLookupKey(
@@ -722,10 +743,7 @@ public sealed class AttendanceExcelTests
             course,
             LessonType.Curs,
             dayIndex: 0,
-            dateTime: new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2));
+            dateTime: firstCursColumnDate);
         Assert.Equal(
             expected: Attendance.MotivatedAbsent,
             actual: lists.Get(lecture)
@@ -741,10 +759,7 @@ public sealed class AttendanceExcelTests
             course,
             LessonType.Curs,
             dayIndex: 0,
-            dateTime: new DateTime(
-                year: 2026,
-                month: 9,
-                day: 9));
+            dateTime: secondCursColumnDate);
         Assert.Equal(
             expected: Attendance.NotApplicable,
             actual: lists.Get(laterLecture)
@@ -755,10 +770,7 @@ public sealed class AttendanceExcelTests
             actual: lists.Get(DateKey(
                 course,
                 group,
-                new DateTime(
-                    year: 2025,
-                    month: 9,
-                    day: 9))).StudentCount);
+                previousYearsLabDate)).StudentCount);
     }
 
     [Theory]
@@ -829,46 +841,49 @@ public sealed class AttendanceExcelTests
                 workbook));
         var list = attendance.Build(Attendance.Present);
 
+        var earlierLabTime = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2,
+            hour: 9,
+            minute: 45,
+            second: 0);
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2,
-                        hour: 9,
-                        minute: 45,
-                        second: 0)))
+                    earlierLabTime))
                 .Student(0));
 
+        var laterLabTime = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2,
+            hour: 11,
+            minute: 30,
+            second: 0);
         Assert.Equal(
             expected: Attendance.MotivatedAbsent,
             actual: list.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2,
-                        hour: 11,
-                        minute: 30,
-                        second: 0)))
+                    laterLabTime))
                 .Student(0));
 
+        var timeWithoutLabColumn = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2,
+            hour: 13,
+            minute: 15,
+            second: 0);
         Assert.Equal(
             expected: 0,
             actual: list.Get(DateKey(
                 course,
                 group,
-                new DateTime(
-                    year: 2026,
-                    month: 9,
-                    day: 2,
-                    hour: 13,
-                    minute: 15,
-                    second: 0))).StudentCount);
+                timeWithoutLabColumn)).StudentCount);
     }
 
     [Fact]
@@ -893,16 +908,17 @@ public sealed class AttendanceExcelTests
                 filtered,
                 workbook));
 
+        var lists = attendance.Build(Attendance.Present);
+        var duplicatedDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
         Assert.Equal(
             expected: 0,
-            actual: attendance.Build(Attendance.Present)
-                .Get(DateKey(
-                    course,
-                    group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2))).StudentCount);
+            actual: lists.Get(DateKey(
+                course,
+                group,
+                duplicatedDate)).StudentCount);
     }
 
     [Theory]
@@ -964,10 +980,10 @@ public sealed class AttendanceExcelTests
 
         sheet.Cell(row: firstStudentRow, column: nameColumn).Value = "Synthetic Alpha";
         sheet.Cell(row: firstStudentRow + 1, column: nameColumn).Value = "Synthetic Beta";
-        var firstAttendanceColumn = nameColumn + (hasHeader ? 2 : 1);
-        sheet.Cell(row: firstStudentRow, column: firstAttendanceColumn).Value = "a";
-        var secondAttendanceColumn = nameColumn + (hasHeader ? 4 : 2);
-        sheet.Cell(row: firstStudentRow + 1, column: secondAttendanceColumn).Value = "am";
+        int firstAttendanceColumnOffset = hasHeader ? 2 : 1;
+        sheet.Cell(row: firstStudentRow, column: nameColumn + firstAttendanceColumnOffset).Value = "a";
+        int secondAttendanceColumnOffset = hasHeader ? 4 : 2;
+        sheet.Cell(row: firstStudentRow + 1, column: nameColumn + secondAttendanceColumnOffset).Value = "am";
         var attendance = new AllStudentAttendanceListBuilder();
         var createParser = CreateParser(builder);
         ParseAttendanceListsExcelParams p = new(
@@ -1017,8 +1033,9 @@ public sealed class AttendanceExcelTests
                 attendance,
                 filtered,
                 workbook));
-
-        Assert.Single(Assert.Single(attendance.Build(Attendance.Present)).Value.StudentNames);
+        var lists = attendance.Build(Attendance.Present);
+        var list = Assert.Single(lists);
+        Assert.Single(list.Value.StudentNames);
     }
 
     [Fact]
@@ -1046,8 +1063,9 @@ public sealed class AttendanceExcelTests
                 attendance,
                 filtered,
                 workbook));
-
-        Assert.Single(Assert.Single(attendance.Build(Attendance.Present)).Value.StudentNames);
+        var lists = attendance.Build(Attendance.Present);
+        var list = Assert.Single(lists);
+        Assert.Single(list.Value.StudentNames);
     }
 
     [Theory]
@@ -1103,15 +1121,16 @@ public sealed class AttendanceExcelTests
         var lists = attendance.Build(Attendance.Present);
         Assert.Single(lists);
 
+        var headerDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
         Assert.Equal(
             expected: Attendance.NotPresent,
             actual: lists.Get(DateKey(
                     course,
                     group,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: 2)))
+                    headerDate))
                 .Student(0));
     }
 

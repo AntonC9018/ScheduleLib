@@ -108,15 +108,18 @@ public sealed class CombinedGroupMatchingTests
         fixture.Builder.WeeklyLessons.Ref(1).Data.Base.General.Type = LessonType.Curs;
         var schedule = fixture.Build();
 
+        var combinedGroups = new FoundGroups
+        {
+            IsWildcard = true,
+            Value = [new GroupId(0)],
+        };
+        var combinedPartition = new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        var filter = new LessonSearchFilter(
+            fixture.Course,
+            combinedGroups,
+            combinedPartition);
         var parameters = new LessonMatchParams(
-            new LessonSearchFilter(
-                fixture.Course,
-                new FoundGroups
-                {
-                    IsWildcard = true,
-                    Value = [new GroupId(0)],
-                },
-                new GroupPartitionKey(SubGroup.All, Specialization.DezvoltareaAplicatiilor)),
+            filter,
             fixture.Builder.LookupModule!.LessonsByCourse,
             schedule);
         var collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
@@ -180,14 +183,14 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401");
         fixture.Add("IA2402");
+        var romanianParents = Match(fixture, "I_IA24(SAWM)");
         Assert.Equal(
             expected: new[]
             {
                 new GroupId(0),
                 new GroupId(1),
             },
-            actual: Match(fixture, "I_IA24(SAWM)")
-                .ToArray());
+            actual: romanianParents.ToArray());
     }
 
     [Fact]
@@ -196,13 +199,13 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)", specialization: Specialization.All);
         fixture.Add("IA2402(ru)", specialization: Specialization.All);
+        var numberedMatch = Match(fixture, "I_IA2402ru");
         Assert.Equal(
             expected: new[]
             {
                 new GroupId(1),
             },
-            actual: Match(fixture, "I_IA2402ru")
-                .ToArray());
+            actual: numberedMatch.ToArray());
     }
 
     [Fact]
@@ -222,13 +225,13 @@ public sealed class CombinedGroupMatchingTests
         var fixture = new Fixture();
         fixture.Add("I2401(ru)");
         fixture.Add("IA2402");
+        var languageAwareMatch = Match(fixture, "I_IA24(SAWM)ru");
         Assert.Equal(
             expected: new[]
             {
                 new GroupId(0),
             },
-            actual: Match(fixture, "I_IA24(SAWM)ru")
-                .ToArray());
+            actual: languageAwareMatch.ToArray());
     }
 
     [Fact]
@@ -252,6 +255,7 @@ public sealed class CombinedGroupMatchingTests
             specialization: Specialization.GA2D,
             otherCourse: true);
         fixture.Add("IA2403(ru)");
+        var legacyParents = Match(fixture, "IA24(GA2D)ru");
         Assert.Equal(
             expected: new[]
             {
@@ -259,8 +263,7 @@ public sealed class CombinedGroupMatchingTests
                 new GroupId(1),
                 new GroupId(2),
             },
-            actual: Match(fixture, "IA24(GA2D)ru")
-                .ToArray());
+            actual: legacyParents.ToArray());
     }
 
     [Fact]
@@ -306,8 +309,9 @@ public sealed class CombinedGroupMatchingTests
         var result = matchLessonsInSchedule.ToArray();
         var lesson = Assert.Single(result);
 
+        var optionalPartition = new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All);
         Assert.Equal(
-            expected: new GroupPartitionKey(SpecialSubGroups.Optional, Specialization.All),
+            expected: optionalPartition,
             actual: schedule.Get(lesson).Lesson.GroupPartitionKey);
     }
 
@@ -581,21 +585,26 @@ public sealed class CombinedGroupMatchingTests
         var parsed = Parse(label);
         var parents = GroupsNavigator.FindGroupMatch(schedule, parsed);
 
-        var lessons = MatchLessonHelper.MatchLessonsInSchedule(new(
-                new LessonSearchFilter(
-                    fixture.Course,
-                    new FoundGroups
-                    {
-                        Value = parents,
-                        IsWildcard = false,
-                    },
-                    Resolver.Resolve(parsed)),
-                fixture.Builder.LookupModule!.LessonsByCourse,
-                schedule))
+        var parentGroups = new FoundGroups
+        {
+            Value = parents,
+            IsWildcard = false,
+        };
+        var parsedPartition = Resolver.Resolve(parsed);
+        var filter = new LessonSearchFilter(
+            fixture.Course,
+            parentGroups,
+            parsedPartition);
+        var parameters = new LessonMatchParams(
+            filter,
+            fixture.Builder.LookupModule!.LessonsByCourse,
+            schedule);
+        var lessons = MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .ToArray();
         var lesson = Assert.Single(lessons);
 
-        Assert.Equal(expected: SpecialSubGroups.FromLanguage(language), actual: schedule.Get(lesson).Lesson.SubGroup);
+        var expectedSubGroup = SpecialSubGroups.FromLanguage(language);
+        Assert.Equal(expected: expectedSubGroup, actual: schedule.Get(lesson).Lesson.SubGroup);
     }
 
     [Theory]

@@ -57,11 +57,13 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         }
         catch (CredentialsMissingException error)
         {
+            var failureLogger = RegistryCredentials.FailureLogger(services);
+            var authenticationFailure = new RegistryAuthenticationException(
+                missingCredentialsMessage,
+                error);
             throw TranslatedFailureLog.Translated(
-                RegistryCredentials.FailureLogger(services),
-                new RegistryAuthenticationException(
-                    missingCredentialsMessage,
-                    error));
+                failureLogger,
+                authenticationFailure);
         }
         if (!RegistryCredentials.HasLoginAndPassword(credentials))
         {
@@ -77,11 +79,13 @@ public sealed class ConfiguredRegistryGradePlanner : IRegistryGradePlanner
         }
         catch (ScrapingAuthenticationException error)
         {
+            var failureLogger = RegistryCredentials.FailureLogger(services);
+            var authenticationFailure = new RegistryAuthenticationException(
+                "Moodle authentication failed using configured credentials.",
+                error);
             throw TranslatedFailureLog.Translated(
-                RegistryCredentials.FailureLogger(services),
-                new RegistryAuthenticationException(
-                    "Moodle authentication failed using configured credentials.",
-                    error));
+                failureLogger,
+                authenticationFailure);
         }
         using (context)
         {

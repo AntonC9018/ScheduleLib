@@ -805,7 +805,13 @@ public static class LessonParsingHelper
                                 {
                                     return false;
                                 }
-                                return !context.State.LastModifiers.Specific.LastTeacher.IsNull;
+
+                                if (!context.State.LastModifiers.Specific.LastTeacher.IsNull)
+                                {
+                                    return true;
+                                }
+
+                                return false;
                             }
 
                             if (HasSpecificTeacherOrRoom(c))

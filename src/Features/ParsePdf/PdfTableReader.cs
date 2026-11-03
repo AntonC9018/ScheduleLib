@@ -301,7 +301,8 @@ public static class PdfTableReader
                 .ToArray();
             for (int row = 1; row < ys.Length; row++)
             {
-                var middle = (ys[row - 1] + ys[row]) / 2;
+                var adjacentBorderSum = ys[row - 1] + ys[row];
+                var middle = adjacentBorderSum / 2;
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
                     .Select(b => b.Position)
                     .Append(box.Left)
@@ -342,15 +343,20 @@ public static class PdfTableReader
         var end = letter.EndBaseLine;
         double dx = end.X - start.X;
         double dy = end.Y - start.Y;
-        double length = Math.Sqrt(dx * dx + dy * dy);
+        var squaredLength = dx * dx + dy * dy;
+        double length = Math.Sqrt(squaredLength);
         var direction = length > 0
             ? new PdfPoint(x: dx / length, y: dy / length)
             : new PdfPoint(x: 1, y: 0);
         // Lift the point off the baseline towards the glyph's x-height, perpendicular to the text.
         double lift = letter.PointSize / 3;
+        var midX = (start.X + end.X) / 2;
+        var midY = (start.Y + end.Y) / 2;
+        var normalOffsetX = direction.Y * lift;
+        var normalOffsetY = direction.X * lift;
         return new PdfPoint(
-            x: (start.X + end.X) / 2 - direction.Y * lift,
-            y: (start.Y + end.Y) / 2 + direction.X * lift);
+            x: midX - normalOffsetX,
+            y: midY + normalOffsetY);
     }
 
     private static string ReadText(Page page, PdfBox bounds)

@@ -107,7 +107,8 @@ public sealed class RegistryHistoryTests
     [Fact]
     public void YearNavigationUsesObservedGetFormAndEncodedValue()
     {
-        var years = RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(Years), Index);
+        var yearDocument = new HtmlParser().ParseDocument(Years);
+        var years = RegistryHistoryHtml.Years(yearDocument, Index);
         Assert.Equal(
             expected: new[]
             {
@@ -149,7 +150,8 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            return RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index);
+            var document = new HtmlParser().ParseDocument(html);
+            return RegistryHistoryHtml.Years(document, Index);
         });
         Assert.Equal(expected: phase, actual: error.Phase);
         Assert.Equal(expected: diagnostic, actual: error.Diagnostic);
@@ -163,7 +165,8 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            return RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index);
+            var document = new HtmlParser().ParseDocument(html);
+            return RegistryHistoryHtml.Groups(document, Index);
         });
         Assert.Equal(expected: RegistryHistoryPhase.Groups, actual: error.Phase);
         Assert.Contains(
@@ -180,12 +183,11 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            return RegistryHistoryHtml.Courses(
-                new HtmlParser().ParseDocument(
-                    """
-                    <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
-                    """),
-                Index);
+            var document = new HtmlParser().ParseDocument(
+                """
+                <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
+                """);
+            return RegistryHistoryHtml.Courses(document, Index);
         });
         Assert.Equal(expected: RegistryHistoryPhase.Index, actual: error.Phase);
         Assert.Equal(expected: RegistryHistoryDiagnostic.CourseLayout, actual: error.Diagnostic);
@@ -215,15 +217,14 @@ public sealed class RegistryHistoryTests
             },
             actual: courses.Select(x => x.Semester));
 
-        var groups = RegistryHistoryHtml.Groups(
-            new HtmlParser().ParseDocument(
-                """
-                <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
-                <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
-                <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
-                </div></div></div></form>
-                """),
-            Index);
+        var groupDocument = new HtmlParser().ParseDocument(
+            """
+            <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
+            <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
+            <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
+            </div></div></div></form>
+            """);
+        var groups = RegistryHistoryHtml.Groups(groupDocument, Index);
         string expected2 = "Repeat / unknown notation";
         var single = Assert.Single(groups);
         string actual2 = single.Name;

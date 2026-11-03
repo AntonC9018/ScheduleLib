@@ -127,7 +127,10 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                     BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(type)
                 .Invoke(this, [key]);
-            values.Add(key.Value, new((JsonNode?) value, ContributingSources(key.Value)));
+            var settingsValue = new SettingsValue(
+                Value: (JsonNode?) value,
+                Sources: ContributingSources(key.Value));
+            values.Add(key.Value, settingsValue);
         }
         return values;
     }
@@ -171,7 +174,12 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
                                 return true;
                             }
 
-                            return key.StartsWith($"{x}.", StringComparison.Ordinal);
+                            if (key.StartsWith($"{x}.", StringComparison.Ordinal))
+                            {
+                                return true;
+                            }
+
+                            return false;
                         })
                         .Order()
                         .ToArray(),
@@ -367,10 +375,11 @@ public static partial class CliSettings
                     .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
-                sources.Add(CodeSource(
+                var codeProfileSource = CodeSource(
                     $"code profile: {coded.Key}",
                     coded.Value,
-                    json));
+                    json);
+                sources.Add(codeProfileSource);
                 AddOverlay(
                     path,
                     sources,
@@ -482,7 +491,8 @@ public static partial class CliSettings
                 }
 
                 var node = new MutableNode();
-                new NodeBuilder(node, provider).GoogleCalendar()
+                _ = new NodeBuilder(node, provider)
+                    .GoogleCalendar()
                     .ConfigureValue(x => x.CalendarName = calendar);
                 path.Add(node);
                 sources.Add(new(
@@ -599,9 +609,17 @@ public static partial class CliSettings
             envelope,
             ["schemaVersion", "defaults", "profiles", "operations"],
             path);
-        if (envelope["schemaVersion"] is not JsonValue version
-            || !version.TryGetValue<int>(out var schema)
-            || schema != 1)
+        if (envelope["schemaVersion"] is not JsonValue version)
+        {
+            throw new UnsupportedSettingsSchemaVersionException(path);
+        }
+
+        if (!version.TryGetValue<int>(out var schema))
+        {
+            throw new UnsupportedSettingsSchemaVersionException(path);
+        }
+
+        if (schema != 1)
         {
             throw new UnsupportedSettingsSchemaVersionException(path);
         }
@@ -622,7 +640,8 @@ public static partial class CliSettings
                     throw new UnknownSettingsProfileException(profile: entry.Key, settingsPath: path);
                 }
 
-                profiles.Add(entry.Key, ReadBlock(entry.Value, $"profiles.{entry.Key}"));
+                var profileBlock = ReadBlock(entry.Value, $"profiles.{entry.Key}");
+                profiles.Add(entry.Key, profileBlock);
             }
         }
         var operations = ReadOperations(
@@ -650,10 +669,13 @@ public static partial class CliSettings
 
             foreach (var setting in values)
             {
-                if (location.StartsWith("profiles.", StringComparison.Ordinal)
-                    && setting.Key == "ScheduleDerivationConfig")
+                if (location.StartsWith("profiles.", StringComparison.Ordinal))
                 {
-                    throw new JsonException("ScheduleDerivationConfig is global and cannot be configured per profile.");
+                    if (setting.Key == "ScheduleDerivationConfig")
+                    {
+                        throw new JsonException(
+                            "ScheduleDerivationConfig is global and cannot be configured per profile.");
+                    }
                 }
 
                 var key = new NodeDataKey(setting.Key);
@@ -670,7 +692,8 @@ public static partial class CliSettings
                     json,
                     path);
 
-                ResolvePaths(setting.Value, Path.GetDirectoryName(Path.GetFullPath(path))!);
+                var settingsDirectory = Path.GetDirectoryName(Path.GetFullPath(path))!;
+                ResolvePaths(setting.Value, settingsDirectory);
                 // Separate CLI options; the desktop serializer's format and options remain unchanged.
                 try
                 {
@@ -756,9 +779,13 @@ public static partial class CliSettings
         {
             foreach (var entry in obj)
             {
-                if (IsSecret(entry.Key)
-                    || (entry.Key == "$type"
-                        && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource"))
+                if (IsSecret(entry.Key))
+                {
+                    throw new InlineSettingsSecretsUnsupportedException(file);
+                }
+
+                if (entry.Key == "$type"
+                    && entry.Value?.ToString() is "ValueCredentialsSource" or "ManualGoogleApiKeysSource")
                 {
                     throw new InlineSettingsSecretsUnsupportedException(file);
                 }
@@ -790,9 +817,10 @@ public static partial class CliSettings
                     throw new NullSettingsCollectionEntryException(file);
                 }
 
+                var elementType = type.GetGenericArguments()[0];
                 NormalizeInheritance(
                     item,
-                    type.GetGenericArguments()[0],
+                    elementType,
                     json,
                     file);
             }
@@ -901,7 +929,8 @@ public static partial class CliSettings
                     value.GetType(),
                     json);
                 var leaves = LeafKeys(serialized, config.Key.Value).ToArray();
-                keys.AddRange(leaves.Length == 0 ? [config.Key.Value] : leaves);
+                var configKeys = leaves.Length == 0 ? [config.Key.Value] : leaves;
+                keys.AddRange(configKeys);
             }
         }
         return new(
@@ -1290,6 +1319,9 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
     public override void Write(
         Utf8JsonWriter writer,
         Color value,
-        JsonSerializerOptions options) =>
-        writer.WriteStringValue(value.IsKnownColor ? value.Name : $"#{unchecked((uint) value.ToArgb()):X8}");
+        JsonSerializerOptions options)
+    {
+        var colorText = value.IsKnownColor ? value.Name : $"#{unchecked((uint) value.ToArgb()):X8}";
+        writer.WriteStringValue(colorText);
+    }
 }

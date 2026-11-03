@@ -83,9 +83,14 @@ public static class MicrosoftCliConfiguration
             .Build();
         try
         {
-            return configuration.GetRequiredSection("Microsoft")
-                    .Get<MicrosoftAuthConfig>()
-                ?? throw new InvalidOperationException("Microsoft section is empty.");
+            var microsoftAuthConfig = configuration.GetRequiredSection("Microsoft")
+                .Get<MicrosoftAuthConfig>();
+            if (microsoftAuthConfig is null)
+            {
+                throw new InvalidOperationException("Microsoft section is empty.");
+            }
+
+            return microsoftAuthConfig;
         }
         catch (InvalidOperationException)
         {

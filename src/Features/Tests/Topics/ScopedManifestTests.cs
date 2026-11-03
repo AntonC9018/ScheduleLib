@@ -5,7 +5,6 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
-using System.Text;
 
 namespace ScheduleLib.Topics.Tests;
 
@@ -87,10 +86,10 @@ public sealed class ScopedManifestTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                                            {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
-                                                                            "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                                                                            """));
+            await using var input = new MemoryStream("""
+                                                     {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
+                                                     "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
+                                                     """u8.ToArray());
             var manifest = await ManifestSerializer.Deserialize(input, default);
             manifest.Documents[0].AllowMissingLessonTypes = allowMissingLessonTypes;
             if (unspecifiedLanguage)
@@ -144,13 +143,14 @@ public sealed class ScopedManifestTests
                 group,
                 GroupPartitionKey.All));
             Assert.Equal(expected: expected3, actual: actual2);
-            Assert.Null(topics.Get(Key(
+            var cursKey = Key(
                     course,
                     group,
                     GroupPartitionKey.All) with
             {
                 LessonType = LessonType.Curs,
-            }));
+            };
+            Assert.Null(topics.Get(cursKey));
 
             string? objectValue = topics.Get(Key(
                 course,
@@ -166,10 +166,12 @@ public sealed class ScopedManifestTests
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
 
-            string? objectValue5 = topics.Get(Key(
+            var subGroupPartition = new GroupPartitionKey(new SubGroup("I"), Specialization.All);
+            var subGroupKey = Key(
                 course,
                 group,
-                new GroupPartitionKey(new SubGroup("I"), Specialization.All)));
+                subGroupPartition);
+            string? objectValue5 = topics.Get(subGroupKey);
             object? objectValue6 = objectValue5;
             Assert.Null(objectValue6);
         }

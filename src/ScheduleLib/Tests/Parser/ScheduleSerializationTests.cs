@@ -204,7 +204,7 @@ public sealed class ScheduleSerializationTests
     public async Task PrecancelledExecutionDoesNotTouchOutputAndCanBeRetried(bool usePath)
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
-        var previous = Encoding.UTF8.GetBytes("previous complete output");
+        var previous = "previous complete output"u8.ToArray();
         await File.WriteAllBytesAsync(CalculateSchedulePath(temp), previous);
         using var stream = new MemoryStream();
         stream.Write(previous);
@@ -267,8 +267,8 @@ public sealed class ScheduleSerializationTests
             .Input(Schedule.Empty)
             .Output(expected)
             .ExecuteAsync();
-        var prefix = Encoding.UTF8.GetBytes("prefix");
-        var suffix = Encoding.UTF8.GetBytes("suffix");
+        var prefix = "prefix"u8.ToArray();
+        var suffix = "suffix"u8.ToArray();
         using var stream = new MemoryStream();
         stream.Write(prefix);
         stream.Write(new byte[expected.Length]);

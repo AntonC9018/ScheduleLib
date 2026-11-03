@@ -17,12 +17,14 @@ internal static class WordConverterProtocol
         int pid,
         long startTicks)
     {
+        var processId = pid.ToString(CultureInfo.InvariantCulture);
+        var processStartTicks = startTicks.ToString(CultureInfo.InvariantCulture);
         return string.Join(
             "|",
             "WORD1",
             nonce,
-            pid.ToString(CultureInfo.InvariantCulture),
-            startTicks.ToString(CultureInfo.InvariantCulture));
+            processId,
+            processStartTicks);
     }
 
     internal static bool TryReadOwnership(

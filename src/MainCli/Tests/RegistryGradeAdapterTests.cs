@@ -29,8 +29,8 @@ public sealed class RegistryGradeAdapterTests
     {
         using var handler = new Handler((_, _) =>
         {
-            return Task.FromResult(
-                Response(HttpStatusCode.OK, $"<form method='post' action='/grades'>{inputs}</form>"));
+            var gradeForm = $"<form method='post' action='/grades'>{inputs}</form>";
+            return Task.FromResult(Response(HttpStatusCode.OK, gradeForm));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(

@@ -36,6 +36,9 @@ internal static class ColorHelper
         byte to,
         float t)
     {
-        return (int) (from + (to - from) * t);
+        var componentDistance = to - from;
+        var scaledDistance = componentDistance * t;
+        var component = from + scaledDistance;
+        return (int) component;
     }
 }

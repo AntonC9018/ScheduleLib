@@ -36,7 +36,8 @@ public sealed class GroupParseContext
 
     public Grade DetermineGrade(int year)
     {
-        int grade = CurrentStudyYear.Mod100 - year + 1;
+        int completedStudyYears = CurrentStudyYear.Mod100 - year;
+        int grade = completedStudyYears + 1;
         return new(grade);
     }
 }

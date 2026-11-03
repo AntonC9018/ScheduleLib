@@ -11,12 +11,23 @@ public sealed record PdfParityRepairRule(
 {
     public bool Matches(PdfScheduleCell cell)
     {
-        return cell.Groups.Length == 1
-            && cell.Groups[0] == Group
-            && cell.Day == Day
-            && cell.Start == Start
-            && cell.Text.Contains(Course)
-            && cell.Text.Contains(Teacher);
+        if (cell.Groups.Length != 1 || cell.Groups[0] != Group)
+        {
+            return false;
+        }
+        if (cell.Day != Day || cell.Start != Start)
+        {
+            return false;
+        }
+        if (!cell.Text.Contains(Course))
+        {
+            return false;
+        }
+        if (cell.Text.Contains(Teacher))
+        {
+            return true;
+        }
+        return false;
     }
 }
 

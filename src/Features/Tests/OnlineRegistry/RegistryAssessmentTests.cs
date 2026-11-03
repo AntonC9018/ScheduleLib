@@ -39,7 +39,8 @@ public sealed class RegistryAssessmentTests
         var commands = deriveCommands.ToArray();
         if (changedText)
         {
-            Assert.Equal(expected: LessonEquationCommandType.Update, actual: Assert.Single(commands).Type);
+            var firstCommand = Assert.Single(commands);
+            Assert.Equal(expected: LessonEquationCommandType.Update, actual: firstCommand.Type);
         }
         else
         {
@@ -426,26 +427,28 @@ public sealed class RegistryAssessmentTests
         System.Collections.IEnumerable collection6 = collection5;
         Assert.Empty(collection6);
 
+        var mismatchedSubGroupPartition = new GroupPartitionKey(new SubGroup("I"), Specialization.All);
         var collection9 = RegistryAssessments.Find(
             rules,
             schedule,
             course,
             [group],
-            new GroupPartitionKey(new SubGroup("I"), Specialization.All));
+            mismatchedSubGroupPartition);
         System.Collections.IEnumerable collection10 = collection9;
         Assert.Empty(collection10);
         var alternativeRule = Rule(Lessons()[0]);
         alternativeRule.Alternative = "Synthetic elective";
 
+        var alternativePartition = new GroupPartitionKey(
+            SubGroup.All,
+            Specialization.All,
+            new Alternative("Synthetic elective"));
         var collection11 = RegistryAssessments.Find(
             [alternativeRule],
             schedule,
             course,
             [group],
-            new GroupPartitionKey(
-                SubGroup.All,
-                Specialization.All,
-                new Alternative("Synthetic elective")));
+            alternativePartition);
         IEnumerable<RegistryAssessmentRule> collection12 = collection11;
         Assert.Single(collection12);
         var collection7 = RegistryAssessments.Find(

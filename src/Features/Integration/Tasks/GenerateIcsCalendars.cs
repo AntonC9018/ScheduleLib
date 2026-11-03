@@ -63,8 +63,9 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
         {
             var calendarName = GroupCalendarName(g.Item, semester);
 
+            var groupName = g.Item.Name;
             await WriteGroupCalendar(
-                fileName: $"{g.Item.Name}.ics",
+                fileName: $"{groupName}.ics",
                 calendarName: calendarName,
                 new()
                 {
@@ -328,7 +329,8 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
 
     private static int SemesterNumber(Grade grade, Semester semester)
     {
-        int firstSemester = grade.Value * 2 - 1;
+        int semestersThroughGrade = grade.Value * 2;
+        int firstSemester = semestersThroughGrade - 1;
         if (semester == Semester.Sem1)
         {
             return firstSemester;

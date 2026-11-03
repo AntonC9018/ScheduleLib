@@ -409,8 +409,12 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         {
             var result = await config.ApiKeysSource.Get(services, token);
 
-            if (string.IsNullOrWhiteSpace(result.ClientId)
-                || string.IsNullOrWhiteSpace(result.ClientSecret))
+            if (string.IsNullOrWhiteSpace(result.ClientId))
+            {
+                throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
+            }
+
+            if (string.IsNullOrWhiteSpace(result.ClientSecret))
             {
                 throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
             }

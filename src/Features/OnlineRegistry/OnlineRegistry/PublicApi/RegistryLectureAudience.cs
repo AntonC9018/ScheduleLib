@@ -47,7 +47,13 @@ internal static class RegistryLectureAudience
                 {
                     return false;
                 }
-                return oneTime.Date == otherOneTime.Date;
+
+                if (oneTime.Date == otherOneTime.Date)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             var sameTime = MatchesLessonDate();

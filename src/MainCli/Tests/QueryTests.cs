@@ -54,10 +54,12 @@ public sealed class QueryTests
         var first = all.GetProperty("data")[0];
         var room = first.GetProperty("room")
             .GetString()!;
-        var day = Enum.Parse<DayOfWeek>(first.GetProperty("day")
-            .GetString()!);
-        var parity = Enum.Parse<Parity>(first.GetProperty("parity")
-            .GetString()!);
+        string dayText = first.GetProperty("day")
+            .GetString()!;
+        var day = Enum.Parse<DayOfWeek>(dayText);
+        string parityText = first.GetProperty("parity")
+            .GetString()!;
+        var parity = Enum.Parse<Parity>(parityText);
         var filtered = await Execute(new()
         {
             Room = room,
@@ -79,13 +81,14 @@ public sealed class QueryTests
                 expected: day.ToString(),
                 actual: lesson.GetProperty("day")
                     .GetString());
-            Assert.True(Enum.Parse<Parity>(lesson.GetProperty("parity")
-                    .GetString()!)
-                .IsMatch(parity));
-            Assert.True(lesson.GetProperty("slot")
-                    .GetInt32()
-                <= first.GetProperty("slot")
-                    .GetInt32());
+            var lessonParity = Enum.Parse<Parity>(lesson.GetProperty("parity")
+                .GetString()!);
+            Assert.True(lessonParity.IsMatch(parity));
+            var lessonSlot = lesson.GetProperty("slot")
+                .GetInt32();
+            var firstSlot = first.GetProperty("slot")
+                .GetInt32();
+            Assert.True(lessonSlot <= firstSlot);
         }
         Assert.Empty((await Execute(new()
         {
@@ -177,13 +180,14 @@ public sealed class QueryTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
+        var cancelledExit = await new FixtureQuery().Lessons(
+            new(),
+            new(),
+            new(),
+            new CancellationToken(canceled: true));
         Assert.Equal(
             expected: 130,
-            actual: await new FixtureQuery().Lessons(
-                new(),
-                new(),
-                new(),
-                new CancellationToken(canceled: true)));
+            actual: cancelledExit);
     }
 
     [Fact]
@@ -452,11 +456,12 @@ public sealed class QueryTests
                     .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
 
+            var fixtureFiles = Directory.EnumerateFiles(
+                path: Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                searchPattern: "*schedule_*.json",
+                SearchOption.AllDirectories);
             Assert.Empty(
-                Directory.EnumerateFiles(
-                    path: Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                    searchPattern: "*schedule_*.json",
-                    SearchOption.AllDirectories));
+                fixtureFiles);
             return document.RootElement.Clone();
         }
         finally

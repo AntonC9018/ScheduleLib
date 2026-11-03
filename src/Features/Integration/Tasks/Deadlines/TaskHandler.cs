@@ -162,10 +162,12 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
 
                     int maxCols = scheduledLessons.Length;
 
+                    int taskRowEndExclusive = secondRowPos + maxRows;
+                    int lastTaskRow = taskRowEndExclusive - 1;
                     var dataRange = worksheet.Range(
                         firstCellRow: secondRowPos,
                         firstCellColumn: firstColPos,
-                        lastCellRow: secondRowPos + maxRows - 1,
+                        lastCellRow: lastTaskRow,
                         lastCellColumn: maxCols);
 
                     worksheet.ConditionalFormats.RemoveAll();
@@ -205,7 +207,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                         var labsRange = worksheet.Range(
                             firstCellRow: secondRowPos,
                             firstCellColumn: labCols,
-                            lastCellRow: secondRowPos + maxRows - 1,
+                            lastCellRow: lastTaskRow,
                             lastCellColumn: labCols);
                         foreach (var x in labsRange.Cells()
                                      .WithIndex())

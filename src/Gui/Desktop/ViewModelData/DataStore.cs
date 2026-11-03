@@ -153,7 +153,8 @@ public sealed class TreeEventDispatcher : IDispatcher
 
     public void Post<T>(PostArgs<T> args)
     {
-        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
+        var queueingState = Volatile.Read(ref _isQueueing);
+        if (queueingState == QueueingState.NotQueueing)
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
@@ -211,7 +212,8 @@ public sealed class TreeEventDispatcher : IDispatcher
                 return action;
             });
 
-        if (Volatile.Read(ref _isQueueing) == QueueingState.NotQueueing)
+        var finalQueueingState = Volatile.Read(ref _isQueueing);
+        if (finalQueueingState == QueueingState.NotQueueing)
         {
             // This is kind of the best we can do.
             _latestActions.TryRemove(key, out _);

@@ -272,47 +272,55 @@ public sealed class FreeHoursTests
             "Joi:8:00-9:30,15:00-20:00", "Vineri:8:00-9:30,16:45-20:00",
         ];
 
+        var parIa2301Optional = Block(
+            parity: "par",
+            @group: "IA2301",
+            true,
+            everyWeek);
+        var parIa2301 = Block(
+            parity: "par",
+            @group: "IA2301",
+            false,
+            everyWeek);
+        var parM2301Optional = Block(
+            parity: "par",
+            @group: "M2301",
+            true,
+            m2301Par);
+        var parM2301 = Block(
+            parity: "par",
+            @group: "M2301",
+            false,
+            m2301Par);
+        var imparIa2301Optional = Block(
+            parity: "impar",
+            @group: "IA2301",
+            true,
+            everyWeek);
+        var imparIa2301 = Block(
+            parity: "impar",
+            @group: "IA2301",
+            false,
+            everyWeek);
+        var imparM2301Optional = Block(
+            parity: "impar",
+            @group: "M2301",
+            true,
+            m2301Impar);
+        var imparM2301 = Block(
+            parity: "impar",
+            @group: "M2301",
+            false,
+            m2301Impar);
         var expected = string.Concat(
-            Block(
-                parity: "par",
-                @group: "IA2301",
-                true,
-                everyWeek),
-            Block(
-                parity: "par",
-                @group: "IA2301",
-                false,
-                everyWeek),
-            Block(
-                parity: "par",
-                @group: "M2301",
-                true,
-                m2301Par),
-            Block(
-                parity: "par",
-                @group: "M2301",
-                false,
-                m2301Par),
-            Block(
-                parity: "impar",
-                @group: "IA2301",
-                true,
-                everyWeek),
-            Block(
-                parity: "impar",
-                @group: "IA2301",
-                false,
-                everyWeek),
-            Block(
-                parity: "impar",
-                @group: "M2301",
-                true,
-                m2301Impar),
-            Block(
-                parity: "impar",
-                @group: "M2301",
-                false,
-                m2301Impar));
+            parIa2301Optional,
+            parIa2301,
+            parM2301Optional,
+            parM2301,
+            imparIa2301Optional,
+            imparIa2301,
+            imparM2301Optional,
+            imparM2301);
 
         Assert.Equal(
             expected: expected,
@@ -335,7 +343,8 @@ public sealed class FreeHoursTests
             expected: "failed",
             actual: result.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
+        var dataKind = result.GetProperty("data").ValueKind;
+        Assert.Equal(expected: JsonValueKind.Null, actual: dataKind);
         Assert.Equal(
             expected: 2,
             actual: result.GetProperty("exitCode")
@@ -418,12 +427,12 @@ public sealed class FreeHoursTests
             "zi");
         Directory.CreateDirectory(zi);
 
-        using (var workbook = new XLWorkbook(
-                   Path.Combine(
-                       FixtureDirectory(),
-                       "2025_sem2",
-                       "zi",
-                       "master.xlsx")))
+        var fixtureWorkbookPath = Path.Combine(
+            FixtureDirectory(),
+            "2025_sem2",
+            "zi",
+            "master.xlsx");
+        using (var workbook = new XLWorkbook(fixtureWorkbookPath))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
@@ -476,16 +485,17 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
+        var cancelledExit = await new FixtureQuery().FreeHours(
+            new()
+            {
+                Groups = ["IA2301"],
+            },
+            new(),
+            new(),
+            new CancellationToken(canceled: true));
         Assert.Equal(
             expected: 130,
-            actual: await new FixtureQuery().FreeHours(
-                new()
-                {
-                    Groups = ["IA2301"],
-                },
-                new(),
-                new(),
-                new CancellationToken(canceled: true)));
+            actual: cancelledExit);
     }
 
     [Fact]
@@ -558,7 +568,8 @@ public sealed class FreeHoursTests
             expected: "failed",
             actual: result.GetProperty("status")
                 .GetString());
-        Assert.Equal(expected: JsonValueKind.Null, actual: result.GetProperty("data").ValueKind);
+        var cancelledDataKind = result.GetProperty("data").ValueKind;
+        Assert.Equal(expected: JsonValueKind.Null, actual: cancelledDataKind);
         Assert.Equal(
             expected: new[]
             {

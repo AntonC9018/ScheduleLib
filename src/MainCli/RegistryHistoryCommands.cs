@@ -94,11 +94,13 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
         }
         catch (CredentialsMissingException error)
         {
+            var failureLogger = RegistryCredentials.FailureLogger(scope.ServiceProvider);
+            var authenticationFailure = new RegistryAuthenticationException(
+                missingCredentialsMessage,
+                error);
             throw TranslatedFailureLog.Translated(
-                RegistryCredentials.FailureLogger(scope.ServiceProvider),
-                new RegistryAuthenticationException(
-                    missingCredentialsMessage,
-                    error));
+                failureLogger,
+                authenticationFailure);
         }
         if (!RegistryCredentials.HasLoginAndPassword(credentials))
         {

@@ -588,7 +588,8 @@ public static class FilterHelper
             var min = FindMin();
             var max = FindMax();
 
-            var len = max.Index - min.Index + 1;
+            var slotDistance = max.Index - min.Index;
+            var len = slotDistance + 1;
             var ret = new TimeSlot[len];
             for (int i = min.Index; i <= max.Index; i++)
             {

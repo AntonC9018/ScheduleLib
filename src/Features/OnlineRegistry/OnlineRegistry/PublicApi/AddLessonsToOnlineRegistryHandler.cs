@@ -472,13 +472,17 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     .Concat(destinations.SelectMany(candidate =>
                     {
                         var lessonScopes = routed[candidate.Group.Uri].Select(entry =>
-                            RegistryTopicScope.Format(
+                        {
+                            var lessonData = _schedule.Get(entry.Key).Lesson;
+                            var partition = RegistryLessonRouting.ProjectPartition(
+                                config,
+                                _schedule,
+                                lessonData);
+                            return RegistryTopicScope.Format(
                                 _schedule,
                                 entry.Value,
-                                RegistryLessonRouting.ProjectPartition(
-                                    config,
-                                    _schedule,
-                                    _schedule.Get(entry.Key).Lesson)));
+                                partition);
+                        });
                         return lessonScopes;
                     }))
                     .Concat(destinations.SelectMany(candidate =>
@@ -530,10 +534,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return RegistryLectureAudience.Format(_schedule, local.LessonId);
                     }
 
+                    var topicGroups = TopicGroups(local);
+                    var partition = AttendancePartition(_schedule.Get(local.LessonId).Lesson);
                     return RegistryTopicScope.Format(
                         _schedule,
-                        TopicGroups(local),
-                        AttendancePartition(_schedule.Get(local.LessonId).Lesson));
+                        topicGroups,
+                        partition);
                 }
 
                 knownScopes = knownScopes.Concat(localInstances.Select(Scope))
@@ -853,9 +859,23 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             lessonType);
                     }
                     var date = command.HasAll ? command.Local.DateTime : command.Remote.DateTime;
-                    var enabled = explicitApply
-                        || config.CommandProcessingConfig.HasProcess(command.Type)
-                        && !config.CommandProcessingConfig.HasDryRun(command.Type);
+
+                    bool IsProcessingEnabled()
+                    {
+                        if (!config.CommandProcessingConfig.HasProcess(command.Type))
+                        {
+                            return false;
+                        }
+
+                        if (!config.CommandProcessingConfig.HasDryRun(command.Type))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    var enabled = explicitApply || IsProcessingEnabled();
                     string? omission = enabled ? null : "Disabled by configured processing flags.";
                     if (command.Type == LessonEquationCommandType.Delete)
                     {
@@ -899,14 +919,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             null),
                     };
 
+                    var courseName = _schedule.Get(courseLink.CourseId).FullName;
+                    var groupNames = group.Groups.Value.ToString(_schedule);
+                    var topic = ReportedLessonTopic();
+                    var attendanceCount = ReportedAttendanceCount();
                     actions.Add(new(
                         kind: actionKind,
                         destination: group.Uri.ToString(),
-                        course: _schedule.Get(courseLink.CourseId).FullName,
-                        groups: group.Groups.Value.ToString(_schedule),
+                        course: courseName,
+                        groups: groupNames,
                         date,
-                        topic: ReportedLessonTopic(),
-                        ReportedAttendanceCount(),
+                        topic: topic,
+                        attendanceCount,
                         enabled,
                         omission: omission,
                         async token =>

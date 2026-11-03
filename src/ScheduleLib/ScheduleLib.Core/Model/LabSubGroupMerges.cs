@@ -79,7 +79,12 @@ public static class LabSubGroupMerges
                         return false;
                     }
 
-                    return IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All;
+                    if (IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 })
                 || applicable.Zip(applicable.Skip(1))
                     .Any(pair =>
@@ -101,9 +106,14 @@ public static class LabSubGroupMerges
                         return false;
                     }
 
-                    return x.Lesson.Course == key.Course
+                    if (x.Lesson.Course == key.Course
                         && x.Lesson.Specialization == key.Specialization
-                        && x.Lesson.Alternative == key.Alternative;
+                        && x.Lesson.Alternative == key.Alternative)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }))
             {
                 Diagnose("Shared lab lessons require separate evidence for each parent group.");
@@ -161,7 +171,12 @@ public static class LabSubGroupMerges
                             return false;
                         }
 
-                        return IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All;
+                        if (IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All)
+                        {
+                            return true;
+                        }
+
+                        return false;
                     })
                     .ToArray();
                 var previousLabels = previousLabs.Where(x => IsNumeric(x.Lesson.SubGroup))
@@ -188,7 +203,13 @@ public static class LabSubGroupMerges
                     {
                         return false;
                     }
-                    return previousLabels[0] != labels[0];
+
+                    if (previousLabels[0] != labels[0])
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 if (BreaksSubgroupContinuity())

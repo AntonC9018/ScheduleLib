@@ -86,13 +86,17 @@ public static partial class CliSettings
 
                 RejectSecrets(action["item"], file);
 
-                ResolvePaths(action["item"], Path.GetDirectoryName(Path.GetFullPath(file))!);
+                var operationsDirectory = Path.GetDirectoryName(Path.GetFullPath(file))!;
+                ResolvePaths(action["item"], operationsDirectory);
             }
         }
     }
 
-    private static JsonArray? GetOperations(JsonObject? operations, string? profile) =>
-        (profile is null ? operations?["defaults"] : operations?["profiles"]?[profile]) as JsonArray;
+    private static JsonArray? GetOperations(JsonObject? operations, string? profile)
+    {
+        var scopedOperations = profile is null ? operations?["defaults"] : operations?["profiles"]?[profile];
+        return scopedOperations as JsonArray;
+    }
 
     private static OperationTarget OperationPath(
         string key,
@@ -207,7 +211,7 @@ public static partial class CliSettings
                     json,
                     file);
 
-                _ = item.Deserialize(path.Value.GetGenericArguments()[0], json)
+                _ = item.Deserialize(itemType, json)
                     ?? throw new JsonException("item cannot be null.");
             }
             catch (Exception error) when (error is JsonException
@@ -269,7 +273,8 @@ public static partial class CliSettings
 
         var descriptor = action["item"]!.DeepClone();
 
-        ResolvePaths(descriptor, Path.GetDirectoryName(file)!);
+        var settingsDirectory = Path.GetDirectoryName(file)!;
+        ResolvePaths(descriptor, settingsDirectory);
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
         if (values is null
@@ -338,7 +343,10 @@ public static partial class CliSettings
         var operation = action["operation"]!.GetValue<string>();
         if (members.Length == 0)
         {
-            updates.Add(operation == "remove" ? RemoveValueUpdater<T>.Instance : ResetValueUpdater<T>.Instance);
+            IUpdater<T> wholeValueUpdater = operation == "remove"
+                ? RemoveValueUpdater<T>.Instance
+                : ResetValueUpdater<T>.Instance;
+            updates.Add(wholeValueUpdater);
             return;
         }
         updates.Add(new DelegateUpdater<T>((sp, value) =>

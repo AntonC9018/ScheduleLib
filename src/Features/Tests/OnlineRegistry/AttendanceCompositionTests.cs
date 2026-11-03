@@ -81,6 +81,10 @@ public sealed class AttendanceCompositionTests
         Action<Attendance> action = value => Assert.Equal(expected: Attendance.None, actual: value);
         Assert.All(collection2, action);
 
+        var alphaLessonDate = new DateTime(
+            year: 2026,
+            month: 9,
+            day: 2);
         var inactive = list.Get(new AttendanceLookupKey(
             new FoundGroups
             {
@@ -91,10 +95,7 @@ public sealed class AttendanceCompositionTests
             course,
             LessonType.Lab,
             0,
-            new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2))
+            alphaLessonDate)
         {
             ActiveGroups = new LessonGroups { second },
         });
@@ -102,6 +103,10 @@ public sealed class AttendanceCompositionTests
 
         Attendance[] Day(int day)
         {
+            var lessonDate = new DateTime(
+                year: 2026,
+                month: 9,
+                day: day);
             return list.Get(new(
                     new FoundGroups
                     {
@@ -112,10 +117,7 @@ public sealed class AttendanceCompositionTests
                     course,
                     LessonType.Lab,
                     0,
-                    new DateTime(
-                        year: 2026,
-                        month: 9,
-                        day: day)))
+                    lessonDate))
                 .AsArray()
                 .ToArray();
         }
@@ -126,8 +128,9 @@ public sealed class AttendanceCompositionTests
             int day,
             Attendance attendance)
         {
+            var parentGroups = new LessonGroups { parent };
             var parentList = builder.List(new StudentsLookupKey(
-                new LessonGroups { parent },
+                parentGroups,
                 partition,
                 course,
                 LessonType.Lab));

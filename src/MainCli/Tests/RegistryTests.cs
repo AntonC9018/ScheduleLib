@@ -187,9 +187,20 @@ public sealed class RegistryTests
                 diagnostics.Items,
                 item =>
                 {
-                    return !(item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup)
-                        && !(item.Course != schedule.Get(lesson.Lesson.Course).FullName)
-                        && (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
+                    if (item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup)
+                    {
+                        return false;
+                    }
+                    if (item.Course != schedule.Get(lesson.Lesson.Course).FullName)
+                    {
+                        return false;
+                    }
+                    if (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 });
         }
     }

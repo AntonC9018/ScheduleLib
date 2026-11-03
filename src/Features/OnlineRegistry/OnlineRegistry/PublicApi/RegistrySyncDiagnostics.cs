@@ -421,9 +421,11 @@ internal sealed class RegistryTargetCoverage(
         foreach (var target in _remaining.Where(target => !courses.Contains(target.Course))
                      .ToArray())
         {
+            var courseName = schedule.Get(target.Course).FullName;
+            var groupName = schedule.Get(target.Group).Name;
             diagnostics.ReportMissingRegistryCourse(
-                course: schedule.Get(target.Course).FullName,
-                @group: schedule.Get(target.Group).Name);
+                course: courseName,
+                @group: groupName);
             _remaining.Remove(target);
         }
     }
@@ -619,9 +621,11 @@ internal sealed class RegistryTargetCoverage(
         foreach (var target in _remaining.Where(target => target.Course == course)
                      .ToArray())
         {
+            var courseName = schedule.Get(course).FullName;
+            var groupName = schedule.Get(target.Group).Name;
             diagnostics.ReportMissingRegistryGroup(
-                course: schedule.Get(course).FullName,
-                @group: schedule.Get(target.Group).Name,
+                course: courseName,
+                @group: groupName,
                 partition: target.Partition);
             _remaining.Remove(target);
         }

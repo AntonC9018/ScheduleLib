@@ -42,13 +42,21 @@ internal static class MatchLessonHelper
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
         return MatchLessonCandidates(p)
-            .Where(id => !IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson));
+            .Where(id =>
+            {
+                var lesson = p.Schedule.Get(id).Lesson;
+                return !IsUnsafeIntakeLab(p.Filter.Groups, lesson);
+            });
     }
 
     internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
     {
         return MatchLessonCandidates(p)
-            .Where(id => IsUnsafeIntakeLab(p.Filter.Groups, p.Schedule.Get(id).Lesson))
+            .Where(id =>
+            {
+                var lesson = p.Schedule.Get(id).Lesson;
+                return IsUnsafeIntakeLab(p.Filter.Groups, lesson);
+            })
             .ToList();
     }
 
@@ -58,7 +66,13 @@ internal static class MatchLessonHelper
         {
             return false;
         }
-        return groups.IsWildcard || !groups.Value.IsSingleGroup;
+
+        if (groups.IsWildcard || !groups.Value.IsSingleGroup)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)

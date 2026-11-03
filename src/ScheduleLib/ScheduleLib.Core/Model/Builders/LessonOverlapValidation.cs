@@ -123,7 +123,12 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
 
-        return pa == pb;
+        if (pa == pb)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool SplitDimensionsIntersect(in LessonBuilderGroupData a, in LessonBuilderGroupData b)
@@ -160,7 +165,12 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
 
-        return a == b;
+        if (a == b)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool Intersects(SubGroup a, SubGroup b)
@@ -237,7 +247,12 @@ public static partial class ScheduleBuilderHelper
             return true;
         }
 
-        return aName == entry.CourseB && bName == entry.CourseA;
+        if (aName == entry.CourseB && bName == entry.CourseA)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static string Describe(

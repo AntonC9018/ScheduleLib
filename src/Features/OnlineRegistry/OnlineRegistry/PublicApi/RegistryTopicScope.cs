@@ -65,8 +65,9 @@ internal static class RegistryTopicScope
                 return comparison;
             }
 
-            comparison = schedule.Get(a).Language
-                .CompareTo(schedule.Get(b).Language);
+            var languageA = schedule.Get(a).Language;
+            var languageB = schedule.Get(b).Language;
+            comparison = languageA.CompareTo(languageB);
             if (comparison != 0)
             {
                 return comparison;
@@ -250,7 +251,8 @@ internal static class RegistryTopicScope
         {
             return false;
         }
-        var inner = trimmed.Substring(startIndex: open + 1, length: trimmed.Length - open - 2)
+        var innerLength = trimmed.Length - open - 2;
+        var inner = trimmed.Substring(startIndex: open + 1, length: innerLength)
             .Trim();
         if (inner.Length == 0)
         {
@@ -363,7 +365,13 @@ internal static class RegistryTopicScope
                 {
                     return true;
                 }
-                return !char.IsLetterOrDigit(value[i + oldToken.Length]);
+
+                if (!char.IsLetterOrDigit(value[i + oldToken.Length]))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (MatchesTokenBoundary())

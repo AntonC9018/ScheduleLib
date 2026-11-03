@@ -88,8 +88,12 @@ public static class CalendarSync
         string? profile = null,
         Action<CalendarReport>? onOutcome = null)
     {
-        if (string.IsNullOrWhiteSpace(name)
-            || name.Equals("primary", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Primary calendars cannot be replaced; configure a named secondary calendar.");
+        }
+
+        if (name.Equals("primary", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Primary calendars cannot be replaced; configure a named secondary calendar.");
         }
@@ -300,8 +304,10 @@ public static class CalendarSync
         {
             var ev = desired[index];
 
+            string desiredEventIndexText = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string desiredEventId = $"desired-{desiredEventIndexText}";
             Report(
-                id: $"desired-{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                id: desiredEventId,
                 status: ActionState.Completed,
                 new
                 {
@@ -432,10 +438,9 @@ public static class CalendarSync
         catch (Exception)
         {
             AddCurrentOutcome(RemoteSyncOutcomes.InterruptedState(attempted, ActionState.Failed));
+            var effects = RemoteSyncOutcomes.AnyRemoteEffect(outcomes.Select(x => x.State));
             return Result(
-                CliExit.AfterEffects(
-                    CliExit.IoFailure,
-                    effects: RemoteSyncOutcomes.AnyRemoteEffect(outcomes.Select(x => x.State))),
+                CliExit.AfterEffects(CliExit.IoFailure, effects),
                 [
                     "Calendar application failed. An uncertain action may have completed remotely and was not retried; inspect the destination before another apply.",
                 ]);
@@ -458,9 +463,10 @@ public static class CalendarSync
         {
             var effects = AnyCompleted();
             AddCurrentOutcome(ActionState.Failed);
+            var authRequired = new AuthenticationRequiredException(provider: "google", teacher: profile ?? "");
             return Result(
                 CliExit.AfterEffects(CliExit.AuthenticationRequired, effects),
-                [new AuthenticationRequiredException(provider: "google", teacher: profile ?? "").Message]);
+                [authRequired.Message]);
         }
 
         CalendarSyncResult Result(

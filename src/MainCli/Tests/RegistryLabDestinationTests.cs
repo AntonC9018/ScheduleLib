@@ -62,7 +62,9 @@ public sealed class RegistryLabDestinationTests
             explicitApply);
 
         Assert.NotEmpty(plan);
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
+        Assert.DoesNotContain(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
         Assert.Contains(plan, action => action.Topic == "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)");
         Assert.Contains(plan, action => action.Topic == "lab (IA2404 (ru) /spec:DezvoltareaAplicatiilor)");
         if (ownLecture)
@@ -171,7 +173,9 @@ public sealed class RegistryLabDestinationTests
         Assert.Contains(navigator.Group.Uri, navigator.ReadUris);
 
         Assert.Contains(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
+        Assert.DoesNotContain(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
     }
 
     private sealed class Commands(Provider provider) : RegistryCommands
@@ -279,7 +283,8 @@ public sealed class RegistryLabDestinationTests
                 {
                     Apply = apply,
                 });
-            Assert.Equal(expected: failDelete ? 6 : 0, actual: exit);
+            var expectedExitCode = failDelete ? 6 : 0;
+            Assert.Equal(expected: expectedExitCode, actual: exit);
             using var result = System.Text.Json.JsonDocument.Parse(output.ToString());
             var outcomes = result.RootElement.GetProperty("data")
                 .GetProperty("outcomes")
@@ -359,7 +364,8 @@ public sealed class RegistryLabDestinationTests
             }
 
             Assert.Equal(expected: ExpectedDeleteCalls(), actual: navigator.DeleteCalls);
-            Assert.Equal(expected: apply && !failDelete ? 2 : 4, actual: navigator.Lessons.Count);
+            var expectedLessonCount = apply && !failDelete ? 2 : 4;
+            Assert.Equal(expected: expectedLessonCount, actual: navigator.Lessons.Count);
 
             Assert.DoesNotContain(new Uri("https://registry.test/explicit-group"), navigator.ReadUris);
         }
@@ -506,14 +512,15 @@ public sealed class RegistryLabDestinationTests
         Assert.All(
             plan,
             action => Assert.Equal(expected: RegistrySyncActionKind.Create, actual: action.Kind));
+        var expectedTopic = combined ? "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)" : "lab";
         Assert.All(
             plan,
-            action => Assert.Equal(
-                expected: combined ? "lab (IA2403 (ru) /spec:DezvoltareaAplicatiilor)" : "lab",
-                actual: action.Topic));
+            action => Assert.Equal(expected: expectedTopic, actual: action.Topic));
         Assert.All(plan, action => Assert.Equal(expected: "IA2403", actual: action.Groups));
         Assert.All(plan, action => Assert.Equal(expected: DayOfWeek.Tuesday, actual: action.Date.DayOfWeek));
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
+        Assert.DoesNotContain(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
     }
 
     [Theory]
@@ -529,7 +536,9 @@ public sealed class RegistryLabDestinationTests
             diagnostics,
             explicitApply: true);
 
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
+        Assert.DoesNotContain(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnsafeRegistryLabCleanup);
         if (ownLecture)
         {
             Assert.NotEmpty(plan);
@@ -543,7 +552,9 @@ public sealed class RegistryLabDestinationTests
         else
         {
             Assert.Empty(plan);
-            Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryAssignmentMismatch);
+            Assert.Contains(
+                diagnostics.Items,
+                item => item.Kind == RegistrySyncDiagnosticKind.RegistryAssignmentMismatch);
             Assert.Equal(expected: 0, actual: navigator.Reads);
         }
     }
@@ -568,7 +579,9 @@ public sealed class RegistryLabDestinationTests
         Assert.Equal(expected: 0, actual: navigator.Reads);
         Assert.Equal(expected: 0, actual: navigator.DeleteCalls);
         Assert.Equal(expected: 4, actual: navigator.Lessons.Count);
-        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabFallbackPreserved);
+        Assert.Contains(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabFallbackPreserved);
     }
 
     [Theory]
@@ -595,14 +608,17 @@ public sealed class RegistryLabDestinationTests
         Assert.StartsWith(expectedStartString: "Topic 2 (", actualString: secondParent[1].Topic);
         await secondParent[0].Execute(default);
 
+        var expectedFirstMark = existingOtherMark ? "9" : "";
         Assert.Equal(
             expected: new[]
             {
-                existingOtherMark ? "9" : "",
+                expectedFirstMark,
                 "am",
             },
             actual: Assert.Single(navigator.SubmittedMarks));
-        Assert.DoesNotContain(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
+        Assert.DoesNotContain(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
     }
 
     [Theory]
@@ -631,11 +647,13 @@ public sealed class RegistryLabDestinationTests
         var firstWednesday = plan.Where(action => action.Date.DayOfWeek == DayOfWeek.Wednesday)
             .OrderBy(action => action.Date)
             .First();
+        var expectedTuesdayPrefix = assessments ? "Atestare 1 (" : "Topic 1 (";
         Assert.StartsWith(
-            expectedStartString: assessments ? "Atestare 1 (" : "Topic 1 (",
+            expectedStartString: expectedTuesdayPrefix,
             actualString: firstTuesday.Topic);
+        var expectedWednesdayPrefix = assessments ? "Atestare 2 (" : "Topic 2 (";
         Assert.StartsWith(
-            expectedStartString: assessments ? "Atestare 2 (" : "Topic 2 (",
+            expectedStartString: expectedWednesdayPrefix,
             actualString: firstWednesday.Topic);
         Assert.Contains(expectedSubstring: "IA2403", actualString: firstTuesday.Topic);
         Assert.Contains(expectedSubstring: "IA2404", actualString: firstTuesday.Topic);
@@ -720,12 +738,28 @@ public sealed class RegistryLabDestinationTests
         Assert.Equal(expected: first.Topic, actual: se.Topic);
         await first.Execute(default);
         await se.Execute(default);
-        Assert.Equal(
-            expected: overlap ? new[] { "a", "am" } : new[] { "a" },
-            actual: navigator.SubmittedMarks[0]);
-        Assert.Equal(
-            expected: overlap ? new[] { "a", "am" } : new[] { "am" },
-            actual: navigator.SubmittedMarks[1]);
+        var expectedFirstMarks = overlap
+            ? new[]
+            {
+                "a",
+                "am",
+            }
+            : new[]
+            {
+                "a",
+            };
+        Assert.Equal(expected: expectedFirstMarks, actual: navigator.SubmittedMarks[0]);
+        var expectedSecondMarks = overlap
+            ? new[]
+            {
+                "a",
+                "am",
+            }
+            : new[]
+            {
+                "am",
+            };
+        Assert.Equal(expected: expectedSecondMarks, actual: navigator.SubmittedMarks[1]);
     }
 
     [Theory]
@@ -763,7 +797,8 @@ public sealed class RegistryLabDestinationTests
 
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents
+                or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         if (!failRead)
         {
             Assert.DoesNotContain(new Uri("https://registry.test/se-group"), navigator.ReadUris);
@@ -810,7 +845,9 @@ public sealed class RegistryLabDestinationTests
             _ => throw new InvalidOperationException("Unexpected cleanup"),
             default);
         Assert.Equal(expected: 0, actual: navigator.Reads);
-        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabRoutingUnresolved);
+        Assert.Contains(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.RegistryLabRoutingUnresolved);
     }
 
     [Fact]
@@ -837,10 +874,13 @@ public sealed class RegistryLabDestinationTests
             true,
             fixture.Attendance(sameAudience: true));
         Assert.NotEmpty(plan);
-        Assert.Contains(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination);
+        Assert.Contains(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.AmbiguousRegistryDestination);
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents
+                or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         Assert.DoesNotContain(ordinary.Uri, navigator.ReadUris);
 
         // Reusing a diagnostic collector must not make a repeated unresolved route look complete.
@@ -851,7 +891,8 @@ public sealed class RegistryLabDestinationTests
             fixture.Attendance(sameAudience: true));
         Assert.DoesNotContain(
             diagnostics.Items,
-            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
+            item => item.Kind is RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents
+                or RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -894,7 +935,8 @@ public sealed class RegistryLabDestinationTests
                 lesson.Type(LessonType.Curs);
                 lesson.DayOfWeek(DayOfWeek.Tuesday);
                 lesson.TimeSlot(TimeSlot.First);
-                lesson.Teacher(ownLecture ? teacher : other);
+                var lectureTeacher = ownLecture ? teacher : other;
+                lesson.Teacher(lectureTeacher);
             });
             foreach (var group in _parents)
             {
@@ -904,9 +946,12 @@ public sealed class RegistryLabDestinationTests
                     lesson.Group(group);
                     lesson.Specialization(_partition.Specialization);
                     lesson.Type(LessonType.Lab);
-                    lesson.DayOfWeek(group == _parents[0] || sameDayLabs ? DayOfWeek.Tuesday : DayOfWeek.Friday);
-                    lesson.TimeSlot(new TimeSlot(sameDayLabs && group == _parents[1] ? 2 : 1));
-                    lesson.Teacher(ownLabs ? teacher : other);
+                    var labDay = group == _parents[0] || sameDayLabs ? DayOfWeek.Tuesday : DayOfWeek.Friday;
+                    var labSlotIndex = sameDayLabs && group == _parents[1] ? 2 : 1;
+                    var labTeacher = ownLabs ? teacher : other;
+                    lesson.DayOfWeek(labDay);
+                    lesson.TimeSlot(new TimeSlot(labSlotIndex));
+                    lesson.Teacher(labTeacher);
                 });
             }
             if (separateLectureSources)
@@ -937,8 +982,7 @@ public sealed class RegistryLabDestinationTests
             services.AddSingleton(schedule);
             _provider = AppConfiguration.BuildServiceProvider(services);
             AppConfiguration.ConfigureLayeredConfig(_provider);
-            _scope = _provider.CreateMarkerScope(
-                marker => marker.TeacherName = NameHelper.Parse(TestProfiles.Owner));
+            _scope = _provider.CreateMarkerScope(marker => marker.TeacherName = NameHelper.Parse(TestProfiles.Owner));
         }
 
         public Navigator Navigator(

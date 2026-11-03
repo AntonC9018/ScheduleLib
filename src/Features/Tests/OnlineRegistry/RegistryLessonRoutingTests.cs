@@ -90,12 +90,13 @@ public sealed class RegistryLessonRoutingTests
         var obsolete = RegistryLessonRouting.Candidates(config3, parameters2);
         Assert.Empty(obsolete.Lessons);
         var survivor = Assert.Single(merged.Lessons);
+        var survivorLesson = schedule.Get(survivor).Lesson;
         Assert.Equal(
             expected: GroupPartitionKey.All,
             actual: RegistryLessonRouting.ProjectPartition(
                 config,
                 schedule,
-                schedule.Get(survivor).Lesson));
+                survivorLesson));
         Assert.Equal(expected: DayOfWeek.Monday, actual: schedule.Get(survivor).Weekly!.Value.Date.DayOfWeek);
     }
 
@@ -144,11 +145,13 @@ public sealed class RegistryLessonRoutingTests
             IsCombined = isCombined,
         };
 
+        var linkUri = new Uri(uri);
+        var evaluationUri = new Uri($"{uri}/evaluation");
         return new GroupLink(
             found,
             partition,
-            uri: new Uri(uri),
-            evaluationUri: new Uri($"{uri}/evaluation"),
+            uri: linkUri,
+            evaluationUri: evaluationUri,
             isAdditionalCourses);
     }
 
@@ -628,9 +631,10 @@ public sealed class RegistryLessonRoutingTests
         var subgroupEntry = Assert.Single(routed[subgroupLink.Uri]);
         var parentEntry = Assert.Single(routed[parentLink.Uri]);
 
-        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
+        Assert.Equal(expected: subGroup, actual: schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
 
-        Assert.Equal(expected: SubGroup.CreateNumeric(2), actual: schedule.Get(parentEntry.Key).Lesson.SubGroup);
+        var secondSubGroup = SubGroup.CreateNumeric(2);
+        Assert.Equal(expected: secondSubGroup, actual: schedule.Get(parentEntry.Key).Lesson.SubGroup);
         bool condition = subgroupEntry.Value.Contains(parent);
         Assert.True(condition);
         bool condition2 = parentEntry.Value.Contains(parent);

@@ -6,7 +6,8 @@ public sealed class WordConverterTests
     public void MissingComRegistrationBecomesCapabilityFailureAcrossProcessBoundary()
     {
         // Simulate the HRESULT from new Word.Application, then its process exit.
-        Assert.True(WordConverterProtocol.IsMissingWordActivation(unchecked((int) 0x80040154)));
+        var missingActivationHResult = unchecked((int) 0x80040154);
+        Assert.True(WordConverterProtocol.IsMissingWordActivation(missingActivationHResult));
         var error = Assert.Throws<PlatformNotSupportedException>(() =>
             DocToDocxConversionHelper.ClassifyConverterExit(WordConverterProtocol.MissingWordExitCode));
         Assert.Contains(expectedSubstring: "Microsoft Word", actualString: error.Message);
@@ -45,12 +46,12 @@ public sealed class WordConverterOwnershipTests
     [InlineData("WORD1|nonce|NaN|100")]
     public void InvalidOwnershipMessagesCannotAuthorizeTermination(string? message)
     {
-        Assert.False(
-            WordConverterProtocol.TryReadOwnership(
-                message: message,
-                nonce: "nonce",
-                out _,
-                out _));
+        var readOwnership = WordConverterProtocol.TryReadOwnership(
+            message: message,
+            nonce: "nonce",
+            out _,
+            out _);
+        Assert.False(readOwnership);
     }
 
     [Fact]

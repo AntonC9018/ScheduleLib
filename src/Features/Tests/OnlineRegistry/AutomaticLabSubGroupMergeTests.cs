@@ -333,9 +333,11 @@ public sealed class AutomaticLabSubGroupMergeTests
                 merged));
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
 
+        var survivorSubGroup = new SubGroup("II");
+        var autoMerge = Assert.Single(merged.AutomaticLabSubGroupMerges);
         Assert.Equal(
-            expected: new SubGroup("II"),
-            actual: Assert.Single(merged.AutomaticLabSubGroupMerges).SurvivingSubGroup);
+            expected: survivorSubGroup,
+            actual: autoMerge.SurvivingSubGroup);
         var id = Assert.Single(selection.Lessons);
         Assert.Equal(expected: SubGroup.All, actual: merged.Get(id).Lesson.SubGroup);
         var combined = new LessonSearchFilter(
@@ -347,14 +349,15 @@ public sealed class AutomaticLabSubGroupMergeTests
                 IsCombined = true,
             },
             GroupPartitionKey.All);
+        var combinedSelection = RegistryLabMerges.Select(
+            [],
+            new(
+                combined,
+                fixture.Builder.LookupModule.LessonsByCourse,
+                merged));
         Assert.Equal(
             expected: selection.Lessons,
-            actual: RegistryLabMerges.Select(
-                [],
-                new(
-                    combined,
-                    fixture.Builder.LookupModule.LessonsByCourse,
-                    merged)).Lessons);
+            actual: combinedSelection.Lessons);
 
         using var workbook = new XLWorkbook();
         var sheet = workbook.AddWorksheet("Synthetic course IA2601 (lab)");
@@ -379,9 +382,11 @@ public sealed class AutomaticLabSubGroupMergeTests
             merged.Filter(new()),
             workbook));
 
+        var parsedLists = attendance.Build(Attendance.Present);
+        var parsedList = Assert.Single(parsedLists);
         Assert.Equal(
             expected: GroupPartitionKey.All,
-            actual: Assert.Single(attendance.Build(Attendance.Present)).Key.GroupPartition);
+            actual: parsedList.Key.GroupPartition);
     }
 
     [Theory]

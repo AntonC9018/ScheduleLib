@@ -131,9 +131,11 @@ internal sealed class RegistryStudentCoverage(
                 continue;
             }
 
+            var courseName = schedule.Get(course).FullName;
+            var groupNames = key.Groups.ToString(schedule);
             diagnostics.ReportAttendanceStudentsNotInRegistry(
-                course: schedule.Get(course).FullName,
-                @group: key.Groups.ToString(schedule),
+                course: courseName,
+                @group: groupNames,
                 count: missing,
                 lessonType: key.LessonType,
                 partition: key.GroupPartition);
@@ -220,8 +222,9 @@ internal sealed class RegistryStudentCoverage(
                 sources.Keys.Select(key => key.LessonType)
                     .Distinct()
                     .Order());
+            var courseName = schedule.Get(course).FullName;
             diagnostics.ReportUnmatchedAttendanceStudents(
-                course: schedule.Get(course).FullName,
+                course: courseName,
                 @group: groups,
                 count: count,
                 lessonTypes: types,

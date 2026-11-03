@@ -228,8 +228,10 @@ public partial class RegistryCommands
             object item = outcome;
             Action renderHuman2 = () =>
             {
+                var outcomeMessage =
+                    $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
                 output.WriteHuman(
-                    $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}");
+                    outcomeMessage);
                 foreach (var grade in outcome.Grades)
                 {
                     string line2 =

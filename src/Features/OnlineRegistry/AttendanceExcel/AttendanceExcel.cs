@@ -188,7 +188,8 @@ public sealed partial class AttendanceListsExcelParser
                         }
                     case RepeatedCourseBehavior.Warn:
                         {
-                            Console.WriteLine($"Repeated course: {p.Schedule.Source.Get(lesson.Course).FullName}");
+                            var repeatedCourseName = p.Schedule.Source.Get(lesson.Course).FullName;
+                            Console.WriteLine($"Repeated course: {repeatedCourseName}");
                             break;
                         }
                     case RepeatedCourseBehavior.Replace:
@@ -1504,7 +1505,13 @@ public sealed partial class AttendanceListsExcelParser
         {
             return true;
         }
-        return IsGeneratedTableHeader(cell);
+
+        if (IsGeneratedTableHeader(cell))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsGeneratedTableHeader(IXLCell cell)

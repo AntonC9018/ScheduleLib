@@ -34,7 +34,7 @@ public sealed class FmiUpdateTests : IDisposable
         Assert.Equal(expected: checkpoint, actual: await File.ReadAllTextAsync(State));
         downloads[1] = downloads[1] with
         {
-            Content = Encoding.UTF8.GetBytes("changed bytes"),
+            Content = "changed bytes"u8.ToArray(),
         };
         Assert.True((await updater.RunAsync(State, Consume)).Updated);
         Assert.Equal(expected: 2, actual: calls);

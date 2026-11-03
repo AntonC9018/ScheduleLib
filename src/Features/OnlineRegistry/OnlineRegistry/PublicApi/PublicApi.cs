@@ -172,7 +172,10 @@ public sealed class GroupsNavigator
                 return ids;
             },
             ParseErrorHandler = c =>
-                _navigator.ErrorHandler.GroupParsingError(_schedule.Get(courseLink.CourseId).FullName, c),
+            {
+                var courseName = _schedule.Get(courseLink.CourseId).FullName;
+                _navigator.ErrorHandler.GroupParsingError(courseName, c);
+            },
         });
         return ret;
     }
@@ -902,7 +905,13 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                         {
                             return true;
                         }
-                        return path.EndsWith($"/Edit/{lessonId}", StringComparison.Ordinal);
+
+                        if (path.EndsWith($"/Edit/{lessonId}", StringComparison.Ordinal))
+                        {
+                            return true;
+                        }
+
+                        return false;
                     }))
                 {
                     throw new RegistryDeletionRefusedException();

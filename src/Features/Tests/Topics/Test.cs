@@ -51,10 +51,10 @@ public sealed class Test
             new Name(teacherName));
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
-        var filteredSchedule = schedule.Filter(
-            new ScheduleFilter()
-                .WithCourse(courseId)
-                .WithTeacher(teacherId));
+        var teacherCourseFilter = new ScheduleFilter()
+            .WithCourse(courseId)
+            .WithTeacher(teacherId);
+        var filteredSchedule = schedule.Filter(teacherCourseFilter);
 
         var builder =
             ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);

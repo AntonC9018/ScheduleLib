@@ -278,7 +278,8 @@ public struct ReverseSetBitIndicesEnumerator64 : IEnumerator<int>
         }
 
         int leadingZeroCount = BitOperations.LeadingZeroCount(_bits);
-        _current = sizeof(ulong) * 8 - leadingZeroCount - 1;
+        int occupiedWidth = BitArray64.MaxLength - leadingZeroCount;
+        _current = occupiedWidth - 1;
         _bits &= ~(1UL << _current);
         return true;
     }

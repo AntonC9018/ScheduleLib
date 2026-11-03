@@ -149,11 +149,13 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
             catch (CredentialsMissingException error)
             {
+                var failureLogger = RegistryCredentials.FailureLogger(scope.ServiceProvider);
+                var authenticationFailure = new RegistryAuthenticationException(
+                    missingCredentialsMessage,
+                    error);
                 throw TranslatedFailureLog.Translated(
-                    RegistryCredentials.FailureLogger(scope.ServiceProvider),
-                    new RegistryAuthenticationException(
-                        missingCredentialsMessage,
-                        error));
+                    failureLogger,
+                    authenticationFailure);
             }
             if (!RegistryCredentials.HasLoginAndPassword(credentials))
             {
@@ -169,11 +171,13 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
             catch (ScrapingAuthenticationException error)
             {
+                var failureLogger = RegistryCredentials.FailureLogger(scope.ServiceProvider);
+                var authenticationFailure = new RegistryAuthenticationException(
+                    "Registry authentication failed using configured credentials.",
+                    error);
                 throw TranslatedFailureLog.Translated(
-                    RegistryCredentials.FailureLogger(scope.ServiceProvider),
-                    new RegistryAuthenticationException(
-                        "Registry authentication failed using configured credentials.",
-                        error));
+                    failureLogger,
+                    authenticationFailure);
             }
             var provider2 = provider;
             var scope2 = scope;

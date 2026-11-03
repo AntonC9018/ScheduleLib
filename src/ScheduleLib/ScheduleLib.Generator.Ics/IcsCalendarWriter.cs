@@ -181,7 +181,10 @@ public static class IcsCalendarWriter
             return line;
         }
 
-        int capacity = line.Length + line.Length / 75 * 2 + 2;
+        int estimatedFoldCount = line.Length / 75;
+        int foldingOverhead = estimatedFoldCount * 2;
+        int foldedLength = line.Length + foldingOverhead;
+        int capacity = foldedLength + 2;
         var sb = new StringBuilder(capacity);
         int segmentStart = 0;
         int segmentOctets = 0;

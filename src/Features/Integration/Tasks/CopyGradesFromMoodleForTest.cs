@@ -239,7 +239,8 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {
-                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(name.ToString()));
+                            var expelledStudent = name.ToString();
+                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(expelledStudent));
                             continue;
                         }
                         if (!nameParser.IsEmpty)
@@ -280,10 +281,13 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     continue;
                 }
                 RegistryGradeForm.Validate(test1Doc);
+                var destination = testUrl.Href;
+                var courseName = _schedule.Get(course.CourseId).FullName;
+                var groupNames = string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name));
                 actions.Add(new(
-                    destination: testUrl.Href,
-                    course: _schedule.Get(course.CourseId).FullName,
-                    groups: string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)),
+                    destination: destination,
+                    course: courseName,
+                    groups: groupNames,
                     parsedPath.TestNumber,
                     changes,
                     async token =>

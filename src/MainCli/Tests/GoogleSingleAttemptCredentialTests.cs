@@ -63,9 +63,8 @@ public sealed class GoogleSingleAttemptCredentialTests
             context,
             TestProfiles.Owner,
             Messages);
-        Assert.Equal(
-            expected: requiresLogin ? CliExit.AuthenticationRequired : CliExit.IoFailure,
-            actual: failure.ExitCode);
+        var expectedExit = requiresLogin ? CliExit.AuthenticationRequired : CliExit.IoFailure;
+        Assert.Equal(expected: expectedExit, actual: failure.ExitCode);
         Assert.DoesNotContain(expectedSubstring: Secret, actualString: string.Join('\n', failure.Errors));
     }
 

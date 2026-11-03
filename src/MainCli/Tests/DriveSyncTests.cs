@@ -333,10 +333,10 @@ public sealed class DriveSyncTests
                                 "caller.pdf",
                                 StringComparison.Ordinal)))));
 
+            var icsPath = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics")[0];
             Assert.Contains(
                 expectedSubstring: "BEGIN:VEVENT",
-                actualString: await File.ReadAllTextAsync(
-                    Directory.GetFiles(path: temp.Path, searchPattern: "*.ics")[0]));
+                actualString: await File.ReadAllTextAsync(icsPath));
             if (apply)
             {
                 Assert.Equal(expected: actions.Length, actual: fake.Writes.Count);

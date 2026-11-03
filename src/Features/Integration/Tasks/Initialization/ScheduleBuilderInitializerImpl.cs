@@ -107,28 +107,44 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
 
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
-        loader.ConfigurationIdentity = string.Join(
-            "|",
-            "cache-v2",
-            typeof(ScheduleBuilderInitializer).Module.ModuleVersionId,
-            typeof(ScheduleBuilder).Module.ModuleVersionId,
-            _configureRemappings.Method.Module.ModuleVersionId,
-            studyYear.StudyYear,
-            studyYear.Semester,
-            opts.EnrichWithFullNames,
-            opts.LoadConsultations,
-            System.Text.Json.JsonSerializer.Serialize(
+        {
+            // Snapshot each input in the original argument order, before serialization runs.
+            var initializerVersion = typeof(ScheduleBuilderInitializer).Module.ModuleVersionId;
+            var builderVersion = typeof(ScheduleBuilder).Module.ModuleVersionId;
+            var remappingVersion = _configureRemappings.Method.Module.ModuleVersionId;
+            var identityStudyYear = studyYear.StudyYear;
+            var identitySemester = studyYear.Semester;
+            var enrichWithFullNames = opts.EnrichWithFullNames;
+            var loadConsultations = opts.LoadConsultations;
+            var timeConfiguration = System.Text.Json.JsonSerializer.Serialize(
                 context.TimeConfig,
                 new System.Text.Json.JsonSerializerOptions
                 {
                     IncludeFields = true,
-                }),
-            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings),
-            System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings),
-            string.Join(
+                });
+            var subGroupRemappings =
+                System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings);
+            var groupRemappings =
+                System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings);
+            var teacherRemappings = string.Join(
                 ";",
                 builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
-                    .Select(x => $"{x.Key}={x.Value}")));
+                    .Select(x => $"{x.Key}={x.Value}"));
+            loader.ConfigurationIdentity = string.Join(
+                "|",
+                "cache-v2",
+                initializerVersion,
+                builderVersion,
+                remappingVersion,
+                identityStudyYear,
+                identitySemester,
+                enrichWithFullNames,
+                loadConsultations,
+                timeConfiguration,
+                subGroupRemappings,
+                groupRemappings,
+                teacherRemappings);
+        }
         await loader.Load(
             context,
             cancellationToken,

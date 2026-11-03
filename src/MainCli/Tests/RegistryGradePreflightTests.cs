@@ -179,9 +179,11 @@ public sealed class RegistryGradePreflightTests
             var number = path.EndsWith('1') ? 1 : 2;
             if (path.StartsWith("/evaluation", StringComparison.Ordinal))
             {
+                var evaluationPage =
+                    $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>";
                 return Task.FromResult(
                     Response(
-                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>"));
+                        evaluationPage));
             }
 
             if (request.Method == HttpMethod.Post)
@@ -196,7 +198,13 @@ public sealed class RegistryGradePreflightTests
                     {
                         return false;
                     }
-                    return number == 2;
+
+                    if (number == 2)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 if (IsLostResponseScenario())
@@ -214,7 +222,13 @@ public sealed class RegistryGradePreflightTests
                     {
                         return false;
                     }
-                    return number == 2;
+
+                    if (number == 2)
+                    {
+                        return true;
+                    }
+
+                    return false;
                 }
 
                 if (IsCancellationScenario())
@@ -394,20 +408,20 @@ public sealed class RegistryGradePreflightTests
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
-            return Task.FromResult(
-                Enumerable.Range(start: 1, count: 2)
-                    .Select(i =>
-                    {
-                        return new GroupLink(
-                            new FoundGroups
-                            {
-                                IsWildcard = false,
-                                Value = groups,
-                            },
-                            partition,
-                            uri: new Uri($"https://registry.test/group{i}"),
-                            evaluationUri: new Uri($"https://registry.test/evaluation{i}"));
-                    }));
+            var groupLinks = Enumerable.Range(start: 1, count: 2)
+                .Select(i =>
+                {
+                    return new GroupLink(
+                        new FoundGroups
+                        {
+                            IsWildcard = false,
+                            Value = groups,
+                        },
+                        partition,
+                        uri: new Uri($"https://registry.test/group{i}"),
+                        evaluationUri: new Uri($"https://registry.test/evaluation{i}"));
+                });
+            return Task.FromResult(groupLinks);
         }
 
         public async Task<IDocument> GetHtml(Uri uri)

@@ -306,8 +306,10 @@ public partial class RegistryCommands
             object item = outcome;
             Action renderHuman2 = () =>
             {
+                var outcomeMessage =
+                    $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
                 output.WriteHuman(
-                    $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}");
+                    outcomeMessage);
             };
             cliCommandContext.StreamItem(
                 id: id2,

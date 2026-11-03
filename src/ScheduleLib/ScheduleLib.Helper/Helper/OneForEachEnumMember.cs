@@ -413,7 +413,8 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         writer.WriteStartObject();
         foreach (var (key, val) in value)
         {
-            writer.WritePropertyName(Enum.GetName(key)!);
+            var propertyName = Enum.GetName(key)!;
+            writer.WritePropertyName(propertyName);
             JsonSerializer.Serialize(
                 writer,
                 val,

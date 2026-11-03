@@ -82,9 +82,10 @@ internal static class RegistryAssessments
         var groupName = schedule.Get(groups[0]).Name;
         return rules.Where(rule =>
             {
+                var courseName = schedule.Get(course).FullName;
                 if (!string.Equals(
                         rule.Course,
-                        schedule.Get(course).FullName,
+                        courseName,
                         StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
@@ -98,11 +99,14 @@ internal static class RegistryAssessments
                     return false;
                 }
 
-                if (partition
-                    == new GroupPartitionKey(
-                        new SubGroup(rule.SubGroup),
-                        new Specialization(rule.Specialization),
-                        new Alternative(rule.Alternative)))
+                var ruleSubGroup = new SubGroup(rule.SubGroup);
+                var ruleSpecialization = new Specialization(rule.Specialization);
+                var ruleAlternative = new Alternative(rule.Alternative);
+                var rulePartition = new GroupPartitionKey(
+                    ruleSubGroup,
+                    ruleSpecialization,
+                    ruleAlternative);
+                if (partition == rulePartition)
                 {
                     return true;
                 }

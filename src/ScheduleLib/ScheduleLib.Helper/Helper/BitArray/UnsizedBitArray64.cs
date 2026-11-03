@@ -95,7 +95,8 @@ public record struct UnsizedBitArray64
         Debug.Assert(index < BitArray64.MaxLength);
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
-        var set = _bits & ~ignoredMask;
+        var remainingMask = ~ignoredMask;
+        var set = _bits & remainingMask;
         if (set == 0)
         {
             return -1;
@@ -116,8 +117,10 @@ public record struct UnsizedBitArray64
 
         var ignoredMask = index < 0 ? 0 : GetMask(index + 1).Bits;
         var allMask = GetMask(length).Bits;
-        var mask = ~ignoredMask & allMask;
-        var unset = ~_bits & mask;
+        var remainingMask = ~ignoredMask;
+        var mask = remainingMask & allMask;
+        var unsetBits = ~_bits;
+        var unset = unsetBits & mask;
         if (unset == 0)
         {
             return -1;
@@ -264,8 +267,9 @@ public record struct UnsizedBitArray64
             return new(0);
         }
 
-        int shift = sizeof(ulong) * 8 - length;
-        ulong bits = ~default(ulong) >> shift;
+        int shift = BitArray64.MaxLength - length;
+        const ulong allBits = ~default(ulong);
+        ulong bits = allBits >> shift;
         return new(bits);
     }
 

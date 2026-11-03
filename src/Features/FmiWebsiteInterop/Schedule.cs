@@ -280,6 +280,7 @@ public static class WebsiteJsonScheduleHelper
     {
         const int weekDayCount = 7;
         var offsetFromMonday = (int) day - (int) DayOfWeek.Monday;
-        return (offsetFromMonday + weekDayCount) % weekDayCount;
+        var nonNegativeOffset = offsetFromMonday + weekDayCount;
+        return nonNegativeOffset % weekDayCount;
     }
 }

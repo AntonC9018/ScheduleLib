@@ -145,7 +145,8 @@ public static class CliHost
                 details.Add(summary);
             }
 
-            WriteStartupResult(exit,
+            WriteStartupResult(
+                exit,
                 summary,
                 details);
             return exit;
@@ -180,7 +181,8 @@ public static class CliHost
 
             if (startupRequest.Jsonl)
             {
-                var output = new CliOutput("cli",
+                var output = new CliOutput(
+                    "cli",
                     Guid.NewGuid()
                         .ToString("N"),
                     false,
@@ -191,7 +193,8 @@ public static class CliHost
                     output.WriteError(detail);
                 }
 
-                output.EmitFinal(RunStatus.Failed,
+                output.EmitFinal(
+                    RunStatus.Failed,
                     exit,
                     [],
                     [error],
@@ -340,7 +343,8 @@ public static class CliHost
             var json = parseResult?.TargetCommand.HasInputValues("json") == true;
             var jsonl = parseResult?.TargetCommand.HasInputValues("jsonl") == true;
             var helpRequested = parseResult?.HelpWasRequested() == true;
-            return new(Json: json,
+            return new(
+                Json: json,
                 Jsonl: jsonl,
                 HelpRequested: helpRequested);
         }
@@ -552,15 +556,17 @@ public partial class QueryCommands
                 var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
 
                 var start = interval.Start.ToString("HH:mm");
+                var end = interval.End.ToString("HH:mm");
+                var courseName = schedule.Get(lesson.Lesson.Course).FullName;
 
                 var item = new LessonResult(
                     lesson.Date.DayOfWeek.ToString(),
                     lesson.Date.Parity.ToString(),
                     lesson.Date.TimeSlot.Index + 1,
                     start,
-                    interval.End.ToString("HH:mm"),
+                    end,
                     lesson.Lesson.Room.Id,
-                    schedule.Get(lesson.Lesson.Course).FullName,
+                    courseName,
                     lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
                             .ToString())
                         .ToArray());

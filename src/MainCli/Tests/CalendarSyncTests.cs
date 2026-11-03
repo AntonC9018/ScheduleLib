@@ -177,9 +177,10 @@ public sealed class CalendarSyncTests
 
             JsonValueKind expectedDateKind = missingDates ? JsonValueKind.Null : JsonValueKind.Array;
 
+            var recurrenceKind = item.GetProperty("recurrence").ValueKind;
             Assert.Equal(
                 expected: expectedDateKind,
-                actual: item.GetProperty("recurrence").ValueKind);
+                actual: recurrenceKind);
             object expected5 = desired;
             var actual6 = Assert.Single(result.DesiredEvents);
             object actual7 = actual6;

@@ -165,10 +165,10 @@ public sealed class StorageTests
                 expected: "succeeded",
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
-            Assert.True(json.RootElement.GetProperty("data")
-                    .GetProperty("teacherCount")
-                    .GetInt32()
-                > 0);
+            var teacherCount = json.RootElement.GetProperty("data")
+                .GetProperty("teacherCount")
+                .GetInt32();
+            Assert.True(teacherCount > 0);
         }
         foreach (var output in new[]
                  {
@@ -178,21 +178,18 @@ public sealed class StorageTests
         {
             using var workbook = new XLWorkbook(Path.Combine(output, "all-teachers.xlsx"));
 
-            Assert.Equal(expected: "main", actual: workbook.Worksheet(1).Name);
+            var worksheet = workbook.Worksheet(1);
+            Assert.Equal(expected: "main", actual: worksheet.Name);
             string separator = " ";
-            var worksheet3 = workbook.Worksheet(1);
-            var cellsUsed = worksheet3.CellsUsed();
+            var cellsUsed = worksheet.CellsUsed();
             Func<IXLCell, string> selector = x => x.GetFormattedString();
             var values = cellsUsed.Select(selector);
             var content = string.Join(separator, values);
             Assert.Contains(expectedSubstring: "423/4", actualString: content);
             Assert.Contains(expectedSubstring: "IA", actualString: content);
 
-            Assert.True(
-                workbook.Worksheet(1)
-                    .RowsUsed()
-                    .Count()
-                > 20);
+            var usedRowCount = worksheet.RowsUsed().Count();
+            Assert.True(usedRowCount > 20);
             string path2 = Path.Combine(output, "schedulelib-manifest.json");
             bool condition2 = File.Exists(path2);
             Assert.True(condition2);

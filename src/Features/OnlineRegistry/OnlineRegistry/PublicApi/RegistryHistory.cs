@@ -297,11 +297,17 @@ public static class RegistryHistoryHtml
         {
             return false;
         }
-        return !document.QuerySelectorAll("a[href]")
-            .Any(anchor =>
-                anchor.GetAttribute("href")
-                    ?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase)
-                == true);
+
+        if (!document.QuerySelectorAll("a[href]")
+                .Any(anchor =>
+                    anchor.GetAttribute("href")
+                        ?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase)
+                    == true))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     internal static string Root(Uri address)
@@ -487,7 +493,13 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                 {
                     return true;
                 }
-                return !AllowedRead(uri);
+
+                if (!AllowedRead(uri))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (IsDisallowedRequest())

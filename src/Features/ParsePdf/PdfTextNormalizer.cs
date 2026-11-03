@@ -72,7 +72,8 @@ public static class PdfTextNormalizer
                 .ToArray();
             var groups = cell.Groups.Where(g =>
                 {
-                    return names.Contains(g.Split('(')[0]);
+                    var groupName = g.Split('(')[0];
+                    return names.Contains(groupName);
                 })
                 .ToArray();
             if (groups.Length == 0 || groups.Length != names.Length)

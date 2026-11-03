@@ -78,9 +78,9 @@ public static class CombinationHelper
 
     public static IEnumerable<T[]> Generate<T>(T[] items, T[] resultMem)
     {
-        foreach (var x in Generate(
-                     items: new ArraySegment<T>(items),
-                     resultMem: new ArraySegment<T>(resultMem)))
+        var inputSegment = new ArraySegment<T>(items);
+        var resultSegment = new ArraySegment<T>(resultMem);
+        foreach (var x in Generate(items: inputSegment, resultMem: resultSegment))
         {
             _ = x;
             yield return resultMem;

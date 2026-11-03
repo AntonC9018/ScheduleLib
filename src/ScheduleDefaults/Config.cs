@@ -497,7 +497,9 @@ public static class Config
 
         for (int i = 1; i <= 10; i++)
         {
-            var from = $"{(char) ('a' + i - 1)}";
+            int aliasIndex = i - 1;
+            int letterCode = 'a' + aliasIndex;
+            var from = $"{(char) letterCode}";
             var to = NumberHelper.ToRoman(i);
             subgroup.Add(key: from, value: to);
         }
@@ -778,35 +780,33 @@ public static class Config
     {
         get
         {
-            return
-            [
-                new(new DateOnly(
-                    year: 2026,
-                    month: 10,
-                    day: 14)),
-                new(
-                    start: new DateOnly(
-                        year: 2027,
-                        month: 1,
-                        day: 1),
-                    endExclusive: new DateOnly(
-                        year: 2027,
-                        month: 1,
-                        day: 25)),
-                new(new DateOnly(
-                    year: 2027,
-                    month: 5,
-                    day: 1)),
-                new(
-                    start: new DateOnly(
-                        year: 2027,
-                        month: 5,
-                        day: 2),
-                    endExclusive: new DateOnly(
-                        year: 2027,
-                        month: 5,
-                        day: 11)),
-            ];
+            var octoberHoliday = new HolidayPeriod(new DateOnly(
+                year: 2026,
+                month: 10,
+                day: 14));
+            var januaryStart = new DateOnly(
+                year: 2027,
+                month: 1,
+                day: 1);
+            var januaryEnd = new DateOnly(
+                year: 2027,
+                month: 1,
+                day: 25);
+            var januaryHoliday = new HolidayPeriod(start: januaryStart, endExclusive: januaryEnd);
+            var mayHoliday = new HolidayPeriod(new DateOnly(
+                year: 2027,
+                month: 5,
+                day: 1));
+            var earlyMayStart = new DateOnly(
+                year: 2027,
+                month: 5,
+                day: 2);
+            var earlyMayEnd = new DateOnly(
+                year: 2027,
+                month: 5,
+                day: 11);
+            var earlyMayHoliday = new HolidayPeriod(start: earlyMayStart, endExclusive: earlyMayEnd);
+            return [octoberHoliday, januaryHoliday, mayHoliday, earlyMayHoliday];
         }
     }
 }

@@ -157,9 +157,10 @@ public sealed class MicrosoftTests
             Teacher,
             default));
         Assert.Same(expected: failure, actual: error.InnerException);
+        var classification = CliAuthenticationExecution.ClassifyMicrosoft(error, cancellationRequested: false);
         Assert.Equal(
             expected: CliExit.AuthenticationRequired,
-            actual: CliAuthenticationExecution.ClassifyMicrosoft(error, cancellationRequested: false).ExitCode);
+            actual: classification.ExitCode);
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: error.Message);
         Assert.Contains(expectedSubstring: $"(code {failure.ErrorCode})", actualString: log.All);
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
@@ -385,12 +386,13 @@ public sealed class MicrosoftTests
 
         private MicrosoftToken Value()
         {
+            var expiresOn = DateTimeOffset.UtcNow.AddHours(1);
             return new(
                 AccountId: AccountId,
                 AccessToken: "access-secret",
-                DateTimeOffset.UtcNow.AddHours(1),
+                expiresOn,
                 MicrosoftScopes.Required,
-                Encoding.UTF8.GetBytes("cache-secret"));
+                "cache-secret"u8.ToArray());
         }
 
         public Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)

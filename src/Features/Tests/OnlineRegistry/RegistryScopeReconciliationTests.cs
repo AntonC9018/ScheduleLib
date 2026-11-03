@@ -14,9 +14,10 @@ public sealed class RegistryScopeReconciliationTests
             Local(id: 0, hour: 9),
         };
 
+        var legacyRemoteStart = local[0].DateTime.AddHours(-1);
         var saved = Remote(
                 0,
-                local[0].DateTime.AddHours(-1),
+                legacyRemoteStart,
                 "Old") with
         {
             LessonType = LessonType.Unspecified,
@@ -39,7 +40,8 @@ public sealed class RegistryScopeReconciliationTests
                 new AnyDayDerivation(),
                 inferred)
             .ToArray();
-        Assert.Equal(expected: LessonEquationCommandType.Update, actual: Assert.Single(commands).Type);
+        var firstCommand = Assert.Single(commands);
+        Assert.Equal(expected: LessonEquationCommandType.Update, actual: firstCommand.Type);
         Assert.Equal(expected: saved.ViewUri, actual: commands[0].Remote.ViewUri);
     }
 
@@ -137,7 +139,8 @@ public sealed class RegistryScopeReconciliationTests
             [local[0]]);
         var deriveCommands = derivation.DeriveCommands(p);
         var first = deriveCommands.ToArray();
-        Assert.Equal(expected: LessonEquationCommandType.Create, actual: Assert.Single(first).Type);
+        var createCommand = Assert.Single(first);
+        Assert.Equal(expected: LessonEquationCommandType.Create, actual: createCommand.Type);
     }
 
     [Theory]

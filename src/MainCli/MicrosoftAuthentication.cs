@@ -232,13 +232,14 @@ public sealed class MicrosoftAuthentication(
             ClientId: config.ClientId,
             AccountId: authorization.AccountId);
 
+        var cachedAuthorization = new CachedAuthorization(
+            1,
+            authorization.Cache,
+            authorization.ExpiresOn,
+            authorization.Scopes);
         await Write(
             TokenFile(profile, binding),
-            new CachedAuthorization(
-                1,
-                authorization.Cache,
-                authorization.ExpiresOn,
-                authorization.Scopes),
+            cachedAuthorization,
             token);
         // Publish the binding last: cancelled login leaves the previous authorization selected.
         await Write(
@@ -315,13 +316,14 @@ public sealed class MicrosoftAuthentication(
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
+        var cachedAuthorization = new CachedAuthorization(
+            1,
+            authorization.Cache,
+            authorization.ExpiresOn,
+            authorization.Scopes);
         await Write(
             TokenFile(profile, binding),
-            new CachedAuthorization(
-                1,
-                authorization.Cache,
-                authorization.ExpiresOn,
-                authorization.Scopes),
+            cachedAuthorization,
             token);
         return authorization.AccessToken;
     }
@@ -424,8 +426,12 @@ public sealed class MicrosoftAuthentication(
 
     private static void Validate(MicrosoftAuthConfig config, string profile)
     {
-        if (string.IsNullOrWhiteSpace(config.TenantId)
-            || string.IsNullOrWhiteSpace(config.ClientId))
+        if (string.IsNullOrWhiteSpace(config.TenantId))
+        {
+            throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
+        }
+
+        if (string.IsNullOrWhiteSpace(config.ClientId))
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }

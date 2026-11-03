@@ -223,14 +223,16 @@ public sealed class RegistryGradeTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
+        var firstOutcomeStatus = outcomes[0].GetProperty("status")
+            .GetString();
         Assert.Equal(
             expected: status,
-            actual: outcomes[0].GetProperty("status")
-                .GetString());
+            actual: firstOutcomeStatus);
+        var secondOutcomeStatus = outcomes[1].GetProperty("status")
+            .GetString();
         Assert.Equal(
             expected: "not-attempted",
-            actual: outcomes[1].GetProperty("status")
-                .GetString());
+            actual: secondOutcomeStatus);
     }
 
     [Theory]
@@ -267,18 +269,21 @@ public sealed class RegistryGradeTests
         var outcomes = capture.Result()
             .GetProperty("data")
             .GetProperty("outcomes");
+        var firstOutcomeStatus = outcomes[0].GetProperty("status")
+            .GetString();
         Assert.Equal(
             expected: "completed",
-            actual: outcomes[0].GetProperty("status")
-                .GetString());
+            actual: firstOutcomeStatus);
+        var secondOutcomeStatus = outcomes[1].GetProperty("status")
+            .GetString();
         Assert.Equal(
             expected: status,
-            actual: outcomes[1].GetProperty("status")
-                .GetString());
+            actual: secondOutcomeStatus);
+        var thirdOutcomeStatus = outcomes[2].GetProperty("status")
+            .GetString();
         Assert.Equal(
             expected: "not-attempted",
-            actual: outcomes[2].GetProperty("status")
-                .GetString());
+            actual: thirdOutcomeStatus);
         Assert.Equal(expected: 2, actual: fake.Executions);
         int expected2;
         if (started)
@@ -426,6 +431,8 @@ public sealed class RegistryGradeTests
                 schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         var groupInfo = schedule.Get(lesson.Lesson.Groups[0]);
 
+        var groupUri = new Uri("https://registry.test/group");
+        var evaluationUri = new Uri("https://registry.test/evaluation");
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -435,8 +442,8 @@ public sealed class RegistryGradeTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: new Uri("https://registry.test/group"),
-                evaluationUri: new Uri("https://registry.test/evaluation")));
+                uri: groupUri,
+                evaluationUri: evaluationUri));
         var quiz = new QuizAttemptsPage
         {
             Path = new[]
@@ -515,7 +522,17 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                return !(x.Kind != RegistryGradeNoticeKind.Omitted) && (x.Detail.Contains("Earlier attempt"));
+                if (x.Kind != RegistryGradeNoticeKind.Omitted)
+                {
+                    return false;
+                }
+
+                if (x.Detail.Contains("Earlier attempt"))
+                {
+                    return true;
+                }
+
+                return false;
             });
         Assert.Contains(
             plan.Notices,

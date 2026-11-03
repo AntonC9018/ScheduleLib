@@ -249,8 +249,9 @@ public static class DriveSync
 
         DriveStreamingException StreamingFailure(Exception inner)
         {
+            var streamingFailureExit = RemoteSyncOutcomes.StreamingFailureExit(outcomes.Select(x => x.State));
             var partialResult = Result(
-                RemoteSyncOutcomes.StreamingFailureExit(outcomes.Select(x => x.State)),
+                streamingFailureExit,
                 [
                     "Output streaming failed. Completed actions remain applied; inspect Drive before another apply. No action was retried.",
                 ]);
@@ -263,10 +264,12 @@ public static class DriveSync
                 action,
                 State: ActionState.Planned,
                 ResultFileId: null);
+            var plannedId = PlanId(index);
+            var plannedHuman = $"{action.Action.ToWire()} {action.Name}: {planned.State.ToWire()}";
             Report(
-                id: PlanId(index),
+                id: plannedId,
                 planned,
-                human: $"{action.Action.ToWire()} {action.Name}: {planned.State.ToWire()}");
+                human: plannedHuman);
         }
 
         void AddOutcome(DriveOutcome outcome)
@@ -277,11 +280,13 @@ public static class DriveSync
             // catch blocks, which never re-catch their own throws), so a
             // rendering failure is never misclassified as provider uncertainty.
             outcomes.Add(outcome);
+            var outcomeId = PlanId(outcomes.Count - 1);
+            var outcomeHuman =
+                $"{outcome.Action.Action.ToWire()} {outcome.Action.Name}: {outcome.State.ToWire()}; id {outcome.ResultFileId}";
             Report(
-                id: PlanId(outcomes.Count - 1),
+                id: outcomeId,
                 outcome,
-                human:
-                $"{outcome.Action.Action.ToWire()} {outcome.Action.Name}: {outcome.State.ToWire()}; id {outcome.ResultFileId}");
+                human: outcomeHuman);
         }
 
         void AddTerminal(DriveAction action, ActionState state)
@@ -380,8 +385,9 @@ public static class DriveSync
             catch (GooglePreSendTransportException)
             {
                 AddTerminal(action, ActionState.Failed);
+                var effects = AnyCompleted();
                 return Result(
-                    CliExit.AfterEffects(CliExit.IoFailure, effects: AnyCompleted()),
+                    CliExit.AfterEffects(CliExit.IoFailure, effects),
                     [RemoteSyncOutcomes.CredentialRefreshTransportError]);
             }
             catch (Google.GoogleApiException e)
@@ -391,8 +397,9 @@ public static class DriveSync
                 var failureExit = RemoteSyncOutcomes.IsUnauthorized(e)
                     ? CliExit.AuthenticationRequired
                     : CliExit.IoFailure;
+                var effects = AnyCompleted();
                 return Result(
-                    CliExit.AfterEffects(failureExit, effects: AnyCompleted()),
+                    CliExit.AfterEffects(failureExit, effects),
                     ["Drive rejected the action. Completed actions remain applied; no action was retried."]);
             }
             catch (Exception)
