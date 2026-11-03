@@ -110,8 +110,12 @@ The maintainer chose separate guards for [RegistryHistory.cs:280][source-4]: fir
 one form, then require one child. The code now makes those independent requirements explicit,
 retaining short-circuit order and safe indexing. This resolves that concrete CR0202 case.
 These two concrete condition cases are resolved; other condition sites still require review.
-The [block projection][source-5] also still requests a named stage (CR0401).
-Keep these visible pending reconciliation.
+The maintainer rejected CR0401's automatic stage-extraction policy in case 11.
+CodingRules removes the diagnostic/fixer and its computed-local/nested-decision threshold.
+The [routed-topic block projection][source-5] stays inline; no consumer suppression or
+forced local-function extraction is needed. CR0400 composed expression projections and
+CR0402 collection selectors remain enabled. The corresponding package adoption is recorded
+in [the CR0401 removal evidence][cr0401-removal].
 
 ### Fuzzy identity used as equality (#246, new evidence in the equality cluster)
 
@@ -169,7 +173,8 @@ The shared converter now throws `OutputOnlyJsonReadException` with a `TargetType
 It derives directly from `Exception`, so `JsonSerializer` exposes the typed failure itself rather
 than wrapping a `NotSupportedException` to add JSON path text. Message content remains the same.
 Integration tests exercise real CLI and registry enum deserialization and inspect typed context.
-The remaining Drive invariant belongs to the recorded typed-exception work, not a new policy question.
+The remaining Drive invariant belongs to the recorded typed-exception work,
+not a new policy question.
 
 ### Architecture and incomplete implementations
 
@@ -217,3 +222,5 @@ The older routing/action-kind examples have already been addressed; do not reope
 [name-equality-followup]: https://github.com/AntonC9018/ScheduleLib/issues/273
 
 [typed-exceptions]: https://github.com/AntonC9018/ScheduleLib/issues/120
+
+[cr0401-removal]: cr0401-removal-2026-11-03.md
