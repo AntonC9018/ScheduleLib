@@ -521,13 +521,14 @@ public sealed class RegistryHistoryTests
     }
 
     [Fact]
-    public void DuplicateStudentDiagnosticDoesNotIncludeTheirName()
+    public void DuplicateStudentDiagnosticIncludesTheirName()
     {
         var builder = new StudentAttendanceListBuilder();
         var name = ScheduleLib.Parsing.NameHelper.Parse("Canary Student");
         builder.Student(name);
-        var error = Assert.Throws<InvalidOperationException>(() => builder.Student(name));
-        Assert.DoesNotContain(expectedSubstring: "Canary", actualString: error.Message);
+        var error = Assert.Throws<DuplicateAttendanceStudentException>(() => builder.Student(name));
+        Assert.Equal(expected: "Canary Student", actual: error.Student);
+        Assert.Contains(expectedSubstring: "Canary Student", actualString: error.Message);
     }
 
     [Fact]

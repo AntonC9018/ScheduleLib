@@ -283,7 +283,8 @@ Attendance is mapped separately to each roster from the common source, including
 students present in both lists. Student mismatch diagnostics are finalized only
 after all relevant lists for the course have been considered. They separately
 report registry students with no attendance row and attendance students absent
-from every relevant registry roster, using counts without student names.
+from every relevant registry roster, with counts and the unmatched student names
+(last and first name; patronymics are discarded when matching).
 Lecture and lab enrollment warnings remain separate; ordinary and SE rosters
 are considered together for each lesson type and scheduled audience. An
 interrupted course scan defers these reports; unrelated audiences do not hide

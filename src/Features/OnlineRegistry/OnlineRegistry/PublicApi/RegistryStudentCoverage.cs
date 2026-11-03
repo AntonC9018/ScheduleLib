@@ -125,8 +125,10 @@ internal sealed class RegistryStudentCoverage(
                     source.Matched);
             }
 
-            var missing = source.Names.Count(student => !source.Matched.Contains(student));
-            if (missing == 0)
+            var missing = source.Names
+                .Where(student => !source.Matched.Contains(student))
+                .ToList();
+            if (missing.Count == 0)
             {
                 continue;
             }
@@ -136,7 +138,7 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportAttendanceStudentsNotInRegistry(
                 course: courseName,
                 @group: groupNames,
-                count: missing,
+                students: missing,
                 lessonType: key.LessonType,
                 partition: key.GroupPartition);
         }
@@ -199,9 +201,9 @@ internal sealed class RegistryStudentCoverage(
                     unknown,
                     aliases);
             }
-            var count = unknown.Distinct(NameComparer)
-                .Count();
-            if (count == 0)
+            var unknownStudents = unknown.Distinct(NameComparer)
+                .ToList();
+            if (unknownStudents.Count == 0)
             {
                 continue;
             }
@@ -226,7 +228,7 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportUnmatchedAttendanceStudents(
                 course: courseName,
                 @group: groups,
-                count: count,
+                students: unknownStudents,
                 lessonTypes: types,
                 partitions: partitions);
         }

@@ -1268,7 +1268,7 @@ public sealed partial class AttendanceListsExcelParser
             }
 
             var parser = new SequenceReader(value);
-            if (NameHelper.TryParseName(ref parser) is not { } name)
+            if (StudentNameParser.TryParse(ref parser) is not { } name)
             {
                 break;
             }

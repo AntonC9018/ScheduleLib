@@ -185,7 +185,8 @@ public sealed class StudentAttendanceListBuilder()
     {
         if (!_allNames.Add(name))
         {
-            throw new InvalidOperationException("Duplicate student name in attendance data.");
+            var studentText = name.ToString();
+            throw new DuplicateAttendanceStudentException(studentText);
         }
         var s = new StudentAttendanceBuilder(name);
         _students.Add(s);
@@ -687,8 +688,8 @@ internal readonly struct StudentNameRemapHelper
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
         {
             var dictionary = aliases;
-            var key2 = NameHelper.Parse(alias.Key);
-            var value2 = NameHelper.Parse(alias.Value);
+            var key2 = StudentNameParser.Parse(alias.Key);
+            var value2 = StudentNameParser.Parse(alias.Value);
             dictionary.Add(key: key2, value: value2);
         }
 
@@ -699,11 +700,18 @@ internal readonly struct StudentNameRemapHelper
         for (int i = 0; i < namesInHtml.Length; i++)
         {
             var parser = new SequenceReader(namesInHtml[i].Name);
-            var name = NameHelper.Parse(ref parser);
+            var name = StudentNameParser.Parse(ref parser);
             var sourceName = aliases.GetValueOrDefault(key: name, defaultValue: name);
             var remappedIndex = namesInDb.NameToIndex(sourceName);
             if (!remappedIndex.IsInvalid)
             {
+                var previous = dbToHtmlIndexMap[remappedIndex.Value];
+                if (!previous.IsInvalid)
+                {
+                    throw new AmbiguousRegistryStudentException(
+                        firstStudent: namesInHtml[previous.Value].Name,
+                        secondStudent: namesInHtml[i].Name);
+                }
                 dbToHtmlIndexMap[remappedIndex.Value] = new(i);
                 matchedNames?.Add(sourceName);
             }

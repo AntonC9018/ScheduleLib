@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
 
@@ -237,32 +238,39 @@ public sealed class RegistrySyncDiagnostics
     public void ReportAttendanceStudentsNotInRegistry(
         string? course,
         string? group,
-        int count,
+        IReadOnlyCollection<Name> students,
         LessonType lessonType,
         GroupPartitionKey partition)
     {
+        var studentList = DescribeStudents(students);
         Add(
             RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry,
             course: course,
             @group: group,
             detail:
-            $"{count} attendance students have no matching student in any relevant registry roster for {lessonType} ({DescribePartition(partition)}). Check enrollment and name mappings.");
+            $"{students.Count} attendance students have no matching student in any relevant registry roster for {lessonType} ({DescribePartition(partition)}): {studentList}. Check enrollment and name mappings.");
     }
 
     /// <summary>Registry students remained after all relevant rosters were considered.</summary>
     public void ReportUnmatchedAttendanceStudents(
         string? course,
         string? group,
-        int count,
+        IReadOnlyCollection<Name> students,
         string lessonTypes,
         string partitions)
     {
+        var studentList = DescribeStudents(students);
         Add(
             RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents,
             course: course,
             @group: group,
             detail:
-            $"{count} registry students have no matching attendance row after all relevant rosters were considered for {lessonTypes} ({partitions}). Check attendance worksheets and name mappings.");
+            $"{students.Count} registry students have no matching attendance row after all relevant rosters were considered for {lessonTypes} ({partitions}): {studentList}. Check attendance worksheets and name mappings.");
+    }
+
+    private static string DescribeStudents(IEnumerable<Name> students)
+    {
+        return string.Join("; ", students.Select(student => student.ToString()));
     }
 
     /// <summary>The registry destination has no matching schedule lessons for this teacher.</summary>

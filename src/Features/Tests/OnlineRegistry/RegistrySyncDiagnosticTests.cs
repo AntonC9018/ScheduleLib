@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
 
@@ -77,21 +78,21 @@ public sealed class RegistrySyncDiagnosticTests
                     diagnostics => diagnostics.ReportAttendanceStudentsNotInRegistry(
                         course: "Synthetic course",
                         @group: "IA2501",
-                        2,
+                        [NameHelper.Parse("Popescu Ion"), NameHelper.Parse("Rusu Ana")],
                         LessonType.Lab,
                         GroupPartitionKey.All),
                     RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry,
-                    "2 attendance students have no matching student in any relevant registry roster for Lab (whole group). Check enrollment and name mappings."
+                    "2 attendance students have no matching student in any relevant registry roster for Lab (whole group): Popescu Ion; Rusu Ana. Check enrollment and name mappings."
                 },
                 {
                     diagnostics => diagnostics.ReportUnmatchedAttendanceStudents(
                         course: "Synthetic course",
                         @group: "IA2501",
-                        2,
+                        [NameHelper.Parse("Popescu Ion"), NameHelper.Parse("Rusu Ana")],
                         lessonTypes: "Lab",
                         partitions: "whole group"),
                     RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents,
-                    "2 registry students have no matching attendance row after all relevant rosters were considered for Lab (whole group). Check attendance worksheets and name mappings."
+                    "2 registry students have no matching attendance row after all relevant rosters were considered for Lab (whole group): Popescu Ion; Rusu Ana. Check attendance worksheets and name mappings."
                 },
                 {
                     diagnostics => diagnostics.ReportUnsafeRegistryLabCleanup(

@@ -49,7 +49,8 @@ Enrollment warnings remain separate for lectures and labs; a successful lab
 match cannot hide missing lecture enrollment. Actual source groups and partitions
 keep unrelated audiences from masking missing enrollment. Interrupted course scans do not finalize student coverage, and
 unavailable membership sources defer registry-to-attendance warnings.
-Diagnostics contain counts and course/group context, without student names.
+Diagnostics contain counts, course/group context and the unmatched student names,
+so mismatches can be corrected. Student matching discards patronymics on both sides.
 `Attendance.None` continues to
 preserve existing marks and leaves new nonmember fields blank. Exact shared
 lecture evidence can combine separately represented parent occurrences and their

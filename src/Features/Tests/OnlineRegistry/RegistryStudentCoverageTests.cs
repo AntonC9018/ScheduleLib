@@ -43,9 +43,8 @@ public sealed class RegistryStudentCoverageTests
             item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
         string actualString3 = single2.Detail;
         Assert.StartsWith(expectedStartString: expectedStartString3, actualString: actualString3);
-        Assert.All(
-            diagnostics.Items,
-            item => Assert.DoesNotContain(expectedSubstring: "Synthetic", actualString: item.Detail));
+        Assert.Contains(expectedSubstring: "Synthetic Elena", actualString: actualString2);
+        Assert.Contains(expectedSubstring: "Synthetic Dina", actualString: actualString3);
     }
 
     [Fact]
