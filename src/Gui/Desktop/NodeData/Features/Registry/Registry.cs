@@ -84,7 +84,11 @@ public static class ThingRegistryHelper
         public OptionsBuilder<ThingRegistryOptions<T>> AddRegistry<T>(
             Action<ThingRegistryOptions<T>>? configure = null)
         {
-            services.AddSingleton<Registry<T>>();
+            services.AddSingleton<Registry<T>>(static sp =>
+            {
+                var options = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
+                return new(options, optionKey: null);
+            });
             var ret = services.AddOptions<ThingRegistryOptions<T>>();
             if (configure != null)
             {
@@ -104,7 +108,8 @@ public static class ThingRegistryHelper
             RegistryKey<T> key,
             Action<ThingRegistryOptions<T>> configure)
         {
-            services.Configure(key.ToString(), configure);
+            var optionKey = key == default ? Options.DefaultName : key.ToString();
+            services.Configure(optionKey, configure);
         }
     }
 

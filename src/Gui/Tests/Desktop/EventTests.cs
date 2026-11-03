@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Anton.LayeredData;
 using Desktop.MainWindow;
 using Desktop.MvvmEssentials;
+using Desktop.NodeData.Common;
 using Desktop.ViewModelData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -180,6 +181,10 @@ public sealed class Context : IAsyncDisposable
         AppConfiguration.ConfigureServices(services);
         App.AddViewModels(services);
 
+        // These tests exercise layer/node events, not the unfinished property editor (#272).
+        // Its production display factory still throws during construction.
+        services.RemoveAll<IPropertySetViewModelFactory>();
+
         services.RemoveAll<IUiTreeOutputProvider>();
         services.AddSingleton<IUiTreeOutputProvider, MockUiTreeOutputProvider>();
 
@@ -220,6 +225,7 @@ public sealed class Context : IAsyncDisposable
 
 public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {
-    public ObservableValueSource<ImmutableArray<Name>> NamesSource;
+    public ObservableValueSource<ImmutableArray<Name>> NamesSource =
+        new([], new ImmediateDispatcher<ImmutableArray<Name>>());
     public ObservableValue<ImmutableArray<Name>> Names => NamesSource.As();
 }
