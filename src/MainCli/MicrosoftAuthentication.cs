@@ -122,7 +122,7 @@ public sealed class MicrosoftAuthentication(
 
     private readonly string _root = stateDirectory
         ?? Path.Combine(
-            CalculatePath1(),
+            LocalApplicationDataDirectory(),
             "ScheduleLib",
             "auth",
             "microsoft");
@@ -194,11 +194,10 @@ public sealed class MicrosoftAuthentication(
         string path1 = ProfileDirectory(profile);
         string path2 = ".operation.lock";
         string path = Path.Combine(path1, path2);
-        var token2 = token;
         var acquire =
             LocalFileLock.Acquire(
                 path,
-                token2);
+                token);
         return acquire;
     }
 
@@ -231,19 +230,13 @@ public sealed class MicrosoftAuthentication(
             ClientId: config.ClientId,
             AccountId: authorization.AccountId);
 
-        CachedAuthorization CalculateValue()
-        {
-            var value = new CachedAuthorization(
+        await Write(
+            TokenFile(profile, binding),
+            new CachedAuthorization(
                 1,
                 authorization.Cache,
                 authorization.ExpiresOn,
-                authorization.Scopes);
-            return value;
-        }
-
-        await Write(
-            TokenFile(profile, binding),
-            CalculateValue(),
+                authorization.Scopes),
             token);
         // Publish the binding last: cancelled login leaves the previous authorization selected.
         await Write(
@@ -320,19 +313,13 @@ public sealed class MicrosoftAuthentication(
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
 
-        CachedAuthorization CalculateValue()
-        {
-            var value = new CachedAuthorization(
+        await Write(
+            TokenFile(profile, binding),
+            new CachedAuthorization(
                 1,
                 authorization.Cache,
                 authorization.ExpiresOn,
-                authorization.Scopes);
-            return value;
-        }
-
-        await Write(
-            TokenFile(profile, binding),
-            CalculateValue(),
+                authorization.Scopes),
             token);
         return authorization.AccessToken;
     }
@@ -349,7 +336,7 @@ public sealed class MicrosoftAuthentication(
                 []);
         }
 
-        bool CheckCondition()
+        bool IsBindingInvalid()
         {
             if (binding.SchemaVersion != 1)
             {
@@ -374,7 +361,7 @@ public sealed class MicrosoftAuthentication(
             return false;
         }
 
-        if (CheckCondition())
+        if (IsBindingInvalid())
         {
             throw new IOException("Microsoft authorization binding is invalid; log in explicitly to reprovision it.");
         }
@@ -433,25 +420,8 @@ public sealed class MicrosoftAuthentication(
 
     private static void Validate(MicrosoftAuthConfig config, string profile)
     {
-        bool CalculateConditionResult()
-        {
-            if (string.IsNullOrWhiteSpace(config.TenantId))
-            {
-                return true;
-            }
-
-            if (string.IsNullOrWhiteSpace(config.ClientId))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (string.IsNullOrWhiteSpace(config.TenantId)
+            || string.IsNullOrWhiteSpace(config.ClientId))
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
@@ -459,7 +429,7 @@ public sealed class MicrosoftAuthentication(
 
     private static void EnsureUsable(MicrosoftToken authorization, string profile)
     {
-        bool CalculateConditionResult()
+        bool IsAuthorizationInvalid()
         {
             if (string.IsNullOrWhiteSpace(authorization.AccessToken))
             {
@@ -489,10 +459,7 @@ public sealed class MicrosoftAuthentication(
             return false;
         }
 
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (IsAuthorizationInvalid())
         {
             throw new AuthenticationRequiredException(provider: "microsoft", teacher: profile);
         }
@@ -538,7 +505,7 @@ public sealed class MicrosoftAuthentication(
             token);
     }
 
-    private static string CalculatePath1()
+    private static string LocalApplicationDataDirectory()
     {
         string path12 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return path12;

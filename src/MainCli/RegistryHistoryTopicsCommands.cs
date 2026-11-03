@@ -31,9 +31,8 @@ public sealed partial class ConfiguredRegistryHistoryProvider
                 Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
                 var registryHistoryTopicsReader =
                     new RegistryHistoryTopicsReader(client2, index);
-                var token2 = token;
                 var
-                    discover = registryHistoryTopicsReader.Discover(token2);
+                    discover = registryHistoryTopicsReader.Discover(token);
                 return discover;
             },
             token);
@@ -105,16 +104,14 @@ public partial class RegistryCommands
             for (var yearIndex = 0; yearIndex < analysis.OfferedYears.Count; yearIndex++)
             {
                 var offeredYear = analysis.OfferedYears[yearIndex];
-                var cliOutput = cli;
                 string line = $"Offered year {offeredYear}.";
-                cliOutput.WriteHuman(line);
-                var cliOutput2 = cli;
+                cli.WriteHuman(line);
                 string toString = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text = $"year-{toString}";
                 string id2 = text;
                 var status2 = ActionState.Completed;
                 object item = new { year = offeredYear };
-                cliOutput2.EmitItem(
+                cli.EmitItem(
                     id: id2,
                     status: status2,
                     item);
@@ -124,12 +121,10 @@ public partial class RegistryCommands
                 var candidate = analysis.Selection.Candidates[candidateIndex];
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
-                var cliOutput3 = cli;
                 string line2 =
                     $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
-                cliOutput3.WriteHuman(
+                cli.WriteHuman(
                     line2);
-                var cliOutput4 = cli;
                 string toString2 = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text2 = $"candidate-{toString2}";
                 string id3 = text2;
@@ -140,7 +135,7 @@ public partial class RegistryCommands
                     groups = groupCount,
                     lessons = lessonCount,
                 };
-                cliOutput4.EmitItem(
+                cli.EmitItem(
                     id: id3,
                     status: status3,
                     item2);
@@ -148,16 +143,14 @@ public partial class RegistryCommands
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
-                var cliOutput5 = cli;
                 string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
-                cliOutput5.WriteHuman(line3);
-                var cliOutput6 = cli;
+                cli.WriteHuman(line3);
                 string toString3 = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 string text3 = $"unresolved-{toString3}";
                 string id4 = text3;
                 var status4 = ActionState.Completed;
                 object item3 = new { reason = unresolved.Reason.ToString() };
-                cliOutput6.EmitItem(
+                cli.EmitItem(
                     id: id4,
                     status: status4,
                     item3);
@@ -241,10 +234,9 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        var cliOutput = cli;
                         string line =
                             $"Saved private download candidates: {courses} current courses, {candidates} historical matches, {unresolved} unresolved courses, {files} CSV files.";
-                        cliOutput.WriteHuman(
+                        cli.WriteHuman(
                             line);
                     }
                 },

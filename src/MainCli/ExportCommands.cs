@@ -82,9 +82,8 @@ public partial class ExportCommands
                 - lessonCount;
             if (omitted > 0)
             {
-                var list = warnings;
                 string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
-                list.Add(item);
+                warnings.Add(item);
             }
 
             if (teacherCount == 0)
@@ -96,18 +95,16 @@ public partial class ExportCommands
                 .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                var list2 = warnings;
                 string item2 = $"The teacher workbook omits {teacherless} weekly lessons with no teacher.";
-                list2.Add(item2);
+                warnings.Add(item2);
             }
 
             var sundays = schedule.EnumerateWeeklyLessons()
                 .Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
             if (sundays > 0)
             {
-                var list3 = warnings;
                 string item3 = $"The existing Monday-Saturday layout omits {sundays} Sunday lessons.";
-                list3.Add(item3);
+                warnings.Add(item3);
             }
 
             var seminar = scope.ServiceProvider.GetRequiredService<RegularSeminarDateProvider>()
@@ -117,10 +114,9 @@ public partial class ExportCommands
                     x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
             if (seminarLessons > 0)
             {
-                var list4 = warnings;
                 string item4 =
                     $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.";
-                list4.Add(
+                warnings.Add(
                     item4);
             }
 
@@ -170,19 +166,13 @@ public partial class ExportCommands
                 partial: paths.Length > 0,
                 cancellation: false);
 
-            TeachersExcelResult CalculateData()
-            {
-                TeachersExcelResult data = new(
-                    output?.DirectoryPath,
-                    LessonCount: lessonCount,
-                    TeacherCount: teacherCount);
-                return data;
-            }
-
             return context.Finish(new CliCompletion<TeachersExcelResult>(
                 exit,
                 errors,
-                CalculateData())
+                new TeachersExcelResult(
+                    output?.DirectoryPath,
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount))
             {
                 Summary = new
                 {
@@ -196,10 +186,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });

@@ -189,13 +189,7 @@ public sealed class MicrosoftTests
             Teacher,
             default);
 
-        string[] CalculateCollection()
-        {
-            string[] collection = Directory.GetDirectories(temp.Path);
-            return collection;
-        }
-
-        var directory = Assert.Single(CalculateCollection());
+        var directory = Assert.Single(Directory.GetDirectories(temp.Path));
         await using var lease = await LocalFileLock.Acquire(
             Path.Combine(directory, ".operation.lock"),
             default);
@@ -212,13 +206,7 @@ public sealed class MicrosoftTests
         using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
 
-        MicrosoftAuthentication CalculateAuthentication()
-        {
-            var authentication = new MicrosoftAuthentication(temp.Path, tokens);
-            return authentication;
-        }
-
-        var commands = new FakeAuth(CalculateAuthentication());
+        var commands = new FakeAuth(new MicrosoftAuthentication(temp.Path, tokens));
         using var capture = new Capture();
         Assert.Equal(
             expected: 0,
@@ -284,13 +272,7 @@ public sealed class MicrosoftTests
         using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
 
-        MicrosoftAuthentication CalculateAuthentication()
-        {
-            var authentication = new MicrosoftAuthentication(temp.Path, tokens);
-            return authentication;
-        }
-
-        var commands = new FakeAuth(CalculateAuthentication(), forbidConfig: true);
+        var commands = new FakeAuth(new MicrosoftAuthentication(temp.Path, tokens), forbidConfig: true);
         Assert.Equal(
             expected: 0,
             actual: await commands.Status(
@@ -369,24 +351,12 @@ public sealed class MicrosoftTests
 
         private MicrosoftToken Value()
         {
-            DateTimeOffset CalculateExpiresOn()
-            {
-                var expiresOn = DateTimeOffset.UtcNow.AddHours(1);
-                return expiresOn;
-            }
-
-            byte[] CalculateCache()
-            {
-                byte[] cache = Encoding.UTF8.GetBytes("cache-secret");
-                return cache;
-            }
-
             return new(
                 AccountId: AccountId,
                 AccessToken: "access-secret",
-                CalculateExpiresOn(),
+                DateTimeOffset.UtcNow.AddHours(1),
                 MicrosoftScopes.Required,
-                CalculateCache());
+                Encoding.UTF8.GetBytes("cache-secret"));
         }
 
         public Task<MicrosoftToken> Consent(MicrosoftAuthConfig config, CancellationToken token)
@@ -416,13 +386,7 @@ public sealed class MicrosoftTests
                 throw failure;
             }
 
-            string CalculateActual()
-            {
-                string actual2 = Encoding.UTF8.GetString(cache);
-                return actual2;
-            }
-
-            Assert.Equal(expected: "cache-secret", actual: CalculateActual());
+            Assert.Equal(expected: "cache-secret", actual: Encoding.UTF8.GetString(cache));
             return Task.FromResult(Value());
         }
     }

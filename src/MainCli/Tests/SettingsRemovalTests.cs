@@ -203,15 +203,7 @@ public sealed class SettingsRemovalTests
         Assert.NotEmpty(result.Error);
         Assert.Equal(expected: original, actual: await File.ReadAllTextAsync(files.ProjectFile));
 
-        bool CalculateCondition()
-        {
-            string text = $"{files.ProjectFile}.lock";
-            string path2 = text;
-            bool condition = File.Exists(path2);
-            return condition;
-        }
-
-        Assert.False(CalculateCondition());
+        Assert.False(File.Exists($"{files.ProjectFile}.lock"));
     }
 
     [Theory]
@@ -223,14 +215,7 @@ public sealed class SettingsRemovalTests
     {
         using var files = new SettingsWriteTests.Fixture();
 
-        string CalculateContents()
-        {
-            string text = $"{{\"schemaVersion\":1,\"operations\":{operations}}}";
-            string contents2 = text;
-            return contents2;
-        }
-
-        await File.WriteAllTextAsync(path: files.ProjectFile, contents: CalculateContents());
+        await File.WriteAllTextAsync(path: files.ProjectFile, contents: $"{{\"schemaVersion\":1,\"operations\":{operations}}}");
         Assert.Equal(expected: 3, actual: (await files.Run("validate")).Exit);
     }
 }

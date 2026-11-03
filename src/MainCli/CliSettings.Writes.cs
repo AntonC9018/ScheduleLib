@@ -47,25 +47,7 @@ public static partial class CliSettings
         ValidateEditKey(key, initial);
         JsonNode? parsed = null;
 
-        bool CalculateConditionResult()
-        {
-            if (unset)
-            {
-                return false;
-            }
-
-            if (operation is null)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (!unset && operation is null)
         {
             try
             {

@@ -134,7 +134,7 @@ public sealed class GoogleDriveProviderTests
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
 
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("artifact bytes"));
+        using var input = new MemoryStream("artifact bytes"u8.ToArray());
         await Assert.ThrowsAsync<Google.GoogleApiException>(async () =>
         {
             if (action == "delete")
@@ -208,7 +208,7 @@ public sealed class GoogleDriveProviderTests
         using var service = Service(handler);
         using var provider = new GoogleDriveSyncProvider(service);
 
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("fixture artifact bytes"));
+        using var input = new MemoryStream("fixture artifact bytes"u8.ToArray());
         Assert.Equal(
             expected: "created-id",
             actual: await provider.Create(

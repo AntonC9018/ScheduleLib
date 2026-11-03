@@ -51,11 +51,10 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
                 var registryHistoryReader =
                     new RegistryHistoryReader(client2, index);
                 string? year2 = year;
-                var token2 = token;
                 var discover =
                     registryHistoryReader.Discover(
                         year2,
-                        token2);
+                        token);
                 return discover;
             },
             token);
@@ -223,10 +222,8 @@ public partial class RegistryCommands
                 var year = summary[yearIndex];
                 var courseCount = year.Courses.Count;
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
-                var cliOutput = output;
                 string line = $"Year {year.Year}: {courseCount} courses, {groupCount} groups.";
-                cliOutput.WriteHuman(line);
-                var cliOutput2 = output;
+                output.WriteHuman(line);
                 string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var status2 = ActionState.Completed;
                 object item = new
@@ -235,7 +232,7 @@ public partial class RegistryCommands
                     courses = courseCount,
                     groups = groupCount,
                 };
-                cliOutput2.EmitItem(
+                output.EmitItem(
                     id: id2,
                     status: status2,
                     item);
@@ -245,7 +242,10 @@ public partial class RegistryCommands
                 null,
                 years: summary.Count,
                 courses: summary.Sum(x => x.Courses.Count),
-                groups: summary.Sum(x => x.Courses.Sum(c => c.Groups.Count)));
+                groups: summary.Sum(x =>
+                {
+                    return x.Courses.Sum(c => c.Groups.Count);
+                }));
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
@@ -318,9 +318,8 @@ public partial class RegistryCommands
                 {
                     if (exit == CliExit.Success)
                     {
-                        var cliOutput = output;
                         string line = $"Saved local summary: {years} years, {courses} courses, {groups} groups.";
-                        cliOutput.WriteHuman(
+                        output.WriteHuman(
                             line);
                     }
                 },

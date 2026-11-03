@@ -87,13 +87,7 @@ public sealed class FreeRoomsTests
                 .EnumerateArray()
                 .Select(x => x.GetString() ?? ""));
 
-        string CalculateFile()
-        {
-            string file = Path.Combine(temp.Path, "free-rooms.xlsx");
-            return file;
-        }
-
-        using var workbook = new XLWorkbook(CalculateFile());
+        using var workbook = new XLWorkbook(Path.Combine(temp.Path, "free-rooms.xlsx"));
         Assert.Equal(
             expected: new[]
             {
@@ -259,14 +253,8 @@ public sealed class FreeRoomsTests
             expected: expected6,
             actual: actual6);
 
-        string CalculatePath()
-        {
-            string path = Path.Combine(temp.Path, "schedulelib-manifest.json");
-            return path;
-        }
-
         using var manifest = JsonDocument.Parse(
-            await File.ReadAllTextAsync(CalculatePath()));
+            await File.ReadAllTextAsync(Path.Combine(temp.Path, "schedulelib-manifest.json")));
         Assert.Equal(
             expected: "export free-rooms",
             actual: manifest.RootElement.GetProperty("Command")
@@ -301,13 +289,7 @@ public sealed class FreeRoomsTests
             .GetProperty("outputDirectory")
             .GetString()!;
 
-        string CalculateExpected()
-        {
-            string expected2 = Path.Combine(temp.Path, "output");
-            return expected2;
-        }
-
-        string expected3 = CalculateExpected();
+        string expected3 = Path.Combine(temp.Path, "output");
         string? actual2 = Path.GetDirectoryName(directory);
         Assert.Equal(expected: expected3, actual: actual2);
         string path = Path.Combine(directory, "free-rooms.xlsx");
@@ -338,19 +320,13 @@ public sealed class FreeRoomsTests
             "zi");
         Directory.CreateDirectory(zi);
 
-        string CalculateFile()
-        {
-            string file = Path.Combine(
+        using (var workbook = new XLWorkbook(
+                   Path.Combine(
                 AppContext.BaseDirectory,
                 "fixtures",
                 "2025_sem2",
                 "zi",
-                "master.xlsx");
-            return file;
-        }
-
-        using (var workbook = new XLWorkbook(
-                   CalculateFile()))
+                "master.xlsx")))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
@@ -376,13 +352,7 @@ public sealed class FreeRoomsTests
                 .EnumerateArray()
                 .Select(x => x.GetString() ?? ""));
 
-        string CalculateFile2()
-        {
-            string file2 = Path.Combine(output.Path, "free-rooms.xlsx");
-            return file2;
-        }
-
-        using var book = new XLWorkbook(CalculateFile2());
+        using var book = new XLWorkbook(Path.Combine(output.Path, "free-rooms.xlsx"));
         Assert.Equal(
             expected: new[]
             {
@@ -399,12 +369,6 @@ public sealed class FreeRoomsTests
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
 
-        CancellationToken CalculateCancellationToken()
-        {
-            var cancellationToken = new CancellationToken(canceled: true);
-            return cancellationToken;
-        }
-
         Assert.Equal(
             expected: 130,
             actual: await new FixtureExport().FreeRooms(
@@ -414,15 +378,9 @@ public sealed class FreeRoomsTests
                     Directory = temp.Path,
                 },
                 new(),
-                CalculateCancellationToken()));
+                new CancellationToken(canceled: true)));
 
-        IEnumerable<string> CalculateCollection()
-        {
-            var collection = Directory.EnumerateFileSystemEntries(temp.Path);
-            return collection;
-        }
-
-        Assert.Empty(CalculateCollection());
+        Assert.Empty(Directory.EnumerateFileSystemEntries(temp.Path));
     }
 
     [Fact]
@@ -460,14 +418,7 @@ public sealed class FreeRoomsTests
                 actual: result.RootElement.GetProperty("status")
                     .GetString());
 
-            bool CalculateCondition()
-            {
-                string path = Path.Combine(temp.Path, "schedulelib-manifest.json");
-                bool condition = File.Exists(path);
-                return condition;
-            }
-
-            Assert.False(CalculateCondition());
+            Assert.False(File.Exists(Path.Combine(temp.Path, "schedulelib-manifest.json")));
         }
         finally
         {

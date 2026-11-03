@@ -43,18 +43,6 @@ public sealed class RegistryTests
             .First(item => item.Lesson.Groups.IsSingleGroup);
         schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualFr;
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -64,8 +52,8 @@ public sealed class RegistryTests
                     IsWildcard = false,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()));
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
             .Plan(new()
@@ -153,44 +141,17 @@ public sealed class RegistryTests
                 .First();
         var destinationGroups = singleDestination ? new LessonGroups { lesson.Lesson.Groups[0] } : lesson.Lesson.Groups;
 
-        bool CheckCondition2()
-        {
-            if (singleDestination)
-            {
-                return false;
-            }
-
-            if (!destinationGroups.IsSingleGroup)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
                 new FoundGroups
                 {
-                    IsWildcard = CheckCondition2(),
+                    IsWildcard = !(singleDestination) && (!destinationGroups.IsSingleGroup),
                     Value = destinationGroups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()));
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")));
         var diagnostics = new RegistrySyncDiagnostics();
         var topics = new RecordingTopics();
         var plan = await scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>()
@@ -218,13 +179,7 @@ public sealed class RegistryTests
             topics.Keys,
             key =>
             {
-                bool CalculateCondition()
-                {
-                    bool condition = key.Groups.Value.IsSubSetOf(destinationGroups);
-                    return condition;
-                }
-
-                Assert.True(CalculateCondition());
+                Assert.True(key.Groups.Value.IsSubSetOf(destinationGroups));
             });
         if (singleDestination)
         {
@@ -232,27 +187,7 @@ public sealed class RegistryTests
                 diagnostics.Items,
                 item =>
                 {
-                    bool CheckCondition()
-                    {
-                        if (item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup)
-                        {
-                            return false;
-                        }
-
-                        if (item.Course != schedule.Get(lesson.Lesson.Course).FullName)
-                        {
-                            return false;
-                        }
-
-                        if (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    return CheckCondition();
+                    return !(item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup) && !(item.Course != schedule.Get(lesson.Lesson.Course).FullName) && (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
                 });
         }
     }
@@ -291,18 +226,6 @@ public sealed class RegistryTests
             .EnumerateWeeklyLessons()
             .First();
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -312,8 +235,8 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()))
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")))
         {
             TwoGroups = true,
         };
@@ -410,36 +333,20 @@ public sealed class RegistryTests
         Assert.Equal(expected: !failSubmission, actual: fake.LaterScanStarted);
         var result = capture.Result();
 
-        string CalculateExpected()
-        {
-            if (apply)
-            {
-                return "partial";
-            }
-
-            return "failed";
-        }
+        string expectedStatus = apply ? "partial" : "failed";
 
         Assert.Equal(
-            expected: CalculateExpected(),
+            expected: expectedStatus,
             actual: result.GetProperty("status")
                 .GetString());
         var outcomes = result.GetProperty("data")
             .GetProperty("outcomes");
         Assert.Equal(expected: 1, actual: outcomes.GetArrayLength());
 
-        string CalculateExpected2()
-        {
-            if (actionStatus == "preview")
-            {
-                return "planned";
-            }
-
-            return actionStatus;
-        }
+        string expectedActionState = actionStatus == "preview" ? "planned" : actionStatus;
 
         Assert.Equal(
-            expected: CalculateExpected2(),
+            expected: expectedActionState,
             actual: outcomes[0].GetProperty("status")
                 .GetString());
     }
@@ -478,18 +385,6 @@ public sealed class RegistryTests
         var lesson = schedule.EnumerateWeeklyLessons()
             .First();
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -499,8 +394,8 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()));
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")));
         var handler = scope.ServiceProvider.GetRequiredService<AddLessonsToOnlineRegistryTaskHandler>();
         var parameters = new AddLessonsToOnlineRegistryTaskHandler.RunParams
         {
@@ -587,18 +482,6 @@ public sealed class RegistryTests
             .EnumerateWeeklyLessons()
             .First();
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new PreparationNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -608,8 +491,8 @@ public sealed class RegistryTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()))
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")))
         {
             InvalidFirstForm = false,
             ReadFailure = !submitted,
@@ -821,7 +704,7 @@ public sealed class RegistryTests
         int exit,
         string status)
     {
-        Exception CalculateInner()
+        Exception CreateSubmissionFailure()
         {
             if (submitted)
             {
@@ -835,7 +718,7 @@ public sealed class RegistryTests
         {
             ActionFailure = new RegistryActionExecutionException(
                 submitted,
-                CalculateInner()),
+                CreateSubmissionFailure()),
         };
         using var capture = new Capture();
         Assert.Equal(
@@ -943,17 +826,11 @@ public sealed class RegistryTests
     {
         await using var fake = new FakeProvider();
 
-        RegistrySyncDiagnostic CalculateItem()
-        {
-            RegistrySyncDiagnostic item = new(
+        fake.DiagnosticItems.Add(new RegistrySyncDiagnostic(
                 Kind: RegistrySyncDiagnosticKind.MissingRegistryGroup,
                 Course: "Synthetic course",
                 Group: "IA2502",
-                Detail: "Ask the registry administrator to add the English subgroup.");
-            return item;
-        }
-
-        fake.DiagnosticItems.Add(CalculateItem());
+                Detail: "Ask the registry administrator to add the English subgroup."));
         using var capture = new Capture();
         Assert.Equal(
             expected: 0,
@@ -1022,21 +899,15 @@ public sealed class RegistryTests
             Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
             CancellationToken token)
         {
-            DateTime CalculateDate()
-            {
-                DateTime date = new(
-                    year: 2026,
-                    month: 1,
-                    day: 1);
-                return date;
-            }
-
             var action = new RegistrySyncAction(
                 kind: RegistrySyncActionKind.Create,
                 destination: Target.Destination,
                 course: "course",
                 groups: "group",
-                CalculateDate(),
+                new DateTime(
+                    year: 2026,
+                    month: 1,
+                    day: 1),
                 topic: "topic",
                 0,
                 true,
@@ -1046,13 +917,7 @@ public sealed class RegistryTests
                     Submissions++;
                     if (FailSubmission)
                     {
-                        IOException CalculateInner()
-                        {
-                            var inner = new IOException("lost response");
-                            return inner;
-                        }
-
-                        throw new RegistryActionExecutionException(true, CalculateInner());
+                        throw new RegistryActionExecutionException(true, new IOException("lost response"));
                     }
 
                     return Task.CompletedTask;
@@ -1156,25 +1021,7 @@ public sealed class RegistryTests
                                 throw new InvalidOperationException("validation failure");
                             }
 
-                            bool CalculateConditionResult()
-                            {
-                                if (!CancelSecond)
-                                {
-                                    return false;
-                                }
-
-                                if (kind == RegistrySyncActionKind.Update)
-                                {
-                                    return true;
-                                }
-
-                                return false;
-                            }
-
-                            bool conditionResult = CalculateConditionResult();
-
-
-                            if (conditionResult)
+                            if (CancelSecond && (kind == RegistrySyncActionKind.Update))
                             {
                                 throw new OperationCanceledException();
                             }
@@ -1250,25 +1097,10 @@ public sealed class RegistryTests
         public int GroupReads;
         public bool TwoGroups;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
-        {
-            Uri CalculateUrl()
-            {
-                Uri url = new("https://registry.test/course");
-                return url;
-            }
-
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
-        }
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
-            Uri CalculateUri()
-            {
-                Uri uri2 = new("https://registry.test/group2");
-                return uri2;
-            }
-
             return Task.FromResult<IEnumerable<GroupLink>>(
                 TwoGroups
                     ?
@@ -1276,7 +1108,7 @@ public sealed class RegistryTests
                         group, new(
                             group.Groups,
                             group.GroupPartition,
-                            uri: CalculateUri(),
+                            uri: new Uri("https://registry.test/group2"),
                             evaluationUri: group.EvaluationUri),
                     ]
                     : [group]);
@@ -1290,7 +1122,7 @@ public sealed class RegistryTests
                 GroupReads++;
             }
 
-            string CalculateSource()
+            string GetRegistryPage()
             {
                 if (isGroup)
                 {
@@ -1302,7 +1134,7 @@ public sealed class RegistryTests
             }
 
             return await new HtmlParser().ParseDocumentAsync(
-                CalculateSource());
+                GetRegistryPage());
         }
 
         public Task SubmitLesson(IDocument document)
@@ -1327,16 +1159,7 @@ public sealed class RegistryTests
         public bool SubmissionFailure;
         private bool _initialFormRead;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester)
-        {
-            Uri CalculateUrl()
-            {
-                Uri url = new("https://registry.test/course");
-                return url;
-            }
-
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
-        }
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>
             Task.FromResult<IEnumerable<GroupLink>>([group]);
@@ -1360,25 +1183,10 @@ public sealed class RegistryTests
                 throw new InvalidOperationException("read failure");
             }
 
-            bool CalculateConditionResult()
-            {
-                if (!InvalidFirstForm)
-                {
-                    return false;
-                }
-
-                if (FormReads == 1)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
+            bool includeExtraStudent = InvalidFirstForm && FormReads == 1;
 
 
-            var extraStudent = conditionResult ? "<tr><td>Extra student</td></tr>" : "";
+            var extraStudent = includeExtraStudent ? "<tr><td>Extra student</td></tr>" : "";
             return await new HtmlParser().ParseDocumentAsync(
                 $"<form><input id='LessonDate'><select id='LessonMode'><option value='laborator'>Lab</option></select><table><tr><th>frecvența/nota</th></tr>{extraStudent}</table></form>");
         }

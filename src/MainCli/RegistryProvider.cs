@@ -172,13 +172,12 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                         "Registry authentication failed using configured credentials.",
                         error));
             }
-            var settings2 = resolved;
             var provider2 = provider;
             var scope2 = scope;
             var context2 = context;
             RegistryDestination target = new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl);
             var session = new Session(
-                settings2,
+                resolved,
                 provider2,
                 scope2,
                 context2,
@@ -237,11 +236,10 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                 .GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             var navigator = CreateNavigator(token);
             IRegistrySyncNavigator navigator2 = navigator;
-            var onGroupPlanned2 = onGroupPlanned;
             var cancellationToken = token;
             var planGroups = requiredService.PlanGroups(
                 navigator2,
-                onGroupPlanned2,
+                onGroupPlanned,
                 cancellationToken);
             return planGroups;
         }
@@ -253,11 +251,10 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             var requiredService = Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             var navigator = CreateNavigator(token);
             IRegistrySyncNavigator navigator2 = navigator;
-            var onGroupPlanned2 = onGroupPlanned;
             var cancellationToken = token;
             var planIntakeLabCleanup = requiredService.PlanIntakeLabCleanup(
                 navigator2,
-                onGroupPlanned2,
+                onGroupPlanned,
                 cancellationToken);
             return planIntakeLabCleanup;
         }

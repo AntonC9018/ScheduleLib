@@ -86,14 +86,7 @@ public static partial class CliSettings
 
                 RejectSecrets(action["item"], file);
 
-                string CalculateDirectory()
-                {
-                    string path = Path.GetFullPath(file);
-                    string directory = Path.GetDirectoryName(path)!;
-                    return directory;
-                }
-
-                ResolvePaths(action["item"], CalculateDirectory());
+                ResolvePaths(action["item"], Path.GetDirectoryName(Path.GetFullPath(file))!);
             }
         }
     }
@@ -206,26 +199,15 @@ public static partial class CliSettings
             try
             {
                 JsonNode node = item;
-                var genericArguments = path.Value.GetGenericArguments();
-                int int32 = 0;
-                var type = genericArguments[int32];
-                var json2 = json;
+                var itemType = path.Value.GetGenericArguments()[0];
                 string file = "operation item";
                 NormalizeInheritance(
                     node,
-                    type,
-                    json2,
+                    itemType,
+                    json,
                     file);
 
-                Type CalculateReturnType()
-                {
-                    var genericArguments2 = path.Value.GetGenericArguments();
-                    int int322 = 0;
-                    var returnType = genericArguments2[int322];
-                    return returnType;
-                }
-
-                _ = item.Deserialize(CalculateReturnType(), json)
+                _ = item.Deserialize(path.Value.GetGenericArguments()[0], json)
                     ?? throw new JsonException("item cannot be null.");
             }
             catch (Exception error) when (error is JsonException
@@ -287,13 +269,7 @@ public static partial class CliSettings
 
         var descriptor = action["item"]!.DeepClone();
 
-        string CalculateDirectory()
-        {
-            string directory = Path.GetDirectoryName(file)!;
-            return directory;
-        }
-
-        ResolvePaths(descriptor, CalculateDirectory());
+        ResolvePaths(descriptor, Path.GetDirectoryName(file)!);
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
         if (values is null

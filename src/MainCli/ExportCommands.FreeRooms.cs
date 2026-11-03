@@ -118,19 +118,13 @@ public partial class ExportCommands
                 partial: paths.Length > 0,
                 cancellation: false);
 
-            FreeRoomsResult CalculateData()
-            {
-                FreeRoomsResult data = new(
-                    output?.DirectoryPath,
-                    lessonCount,
-                    worksheets.ToArray());
-                return data;
-            }
-
             return context.Finish(new CliCompletion<FreeRoomsResult>(
                 exit,
                 errors,
-                CalculateData())
+                new FreeRoomsResult(
+                    output?.DirectoryPath,
+                    lessonCount,
+                    worksheets.ToArray()))
             {
                 Summary = new
                 {
@@ -144,10 +138,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {lessonCount} lessons, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });

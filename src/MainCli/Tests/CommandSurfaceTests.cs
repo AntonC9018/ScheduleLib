@@ -61,13 +61,7 @@ public sealed class CommandSurfaceTests
                 .ToArray();
             Assert.Equal(expected: 0, actual: await CliHost.Run(arguments));
 
-            string CalculateExpectedSubstring()
-            {
-                string expectedSubstring2 = $"schedulelib {operation}";
-                return expectedSubstring2;
-            }
-
-            Assert.Contains(expectedSubstring: CalculateExpectedSubstring(), actualString: output.ToString());
+            Assert.Contains(expectedSubstring: $"schedulelib {operation}", actualString: output.ToString());
             Assert.Contains(expectedSubstring: "--json", actualString: output.ToString());
             Assert.Equal(
                 expected: "invalid settings must not be loaded by help",

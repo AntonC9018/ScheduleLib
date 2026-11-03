@@ -20,37 +20,25 @@ public sealed class CalendarSyncTests
             "calendar sync",
             new(),
             default);
-        var failure = await Assert.ThrowsAsync<CalendarStreamingException>(() => CalendarSync.Run(
-            provider,
-            "Lessons",
-            [new()],
-            true,
-            default,
-            onOutcome: report =>
-            {
-                bool CheckCondition()
+        var failure = await Assert.ThrowsAsync<CalendarStreamingException>(() =>
+        {
+            return CalendarSync.Run(
+                provider,
+                "Lessons",
+                [new()],
+                true,
+                default,
+                onOutcome: report =>
                 {
-                    if (report.Id != "0")
+                    if (report.Id == "0" && report.Status.ToWire() == "completed")
                     {
-                        return false;
+                        context.StreamUpdate(report with
+                        {
+                            Human = new ThrowingMessage(),
+                        });
                     }
-
-                    if (report.Status.ToWire() == "completed")
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition())
-                {
-                    context.StreamUpdate(report with
-                    {
-                        Human = new ThrowingMessage(),
-                    });
-                }
-            }));
+                });
+        });
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         Assert.Equal(expected: 6, actual: failure.PartialResult.ExitCode);
         string expected2 = "completed";
@@ -78,12 +66,6 @@ public sealed class CalendarSyncTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
             using var provider = new Fake();
 
-            TimeSpan CalculateOffset()
-            {
-                var offset = TimeSpan.FromHours(3);
-                return offset;
-            }
-
             DateTimeOffset? start = missingDates
                 ? null
                 : new(
@@ -93,7 +75,7 @@ public sealed class CalendarSyncTests
                     hour: 9,
                     minute: 0,
                     second: 0,
-                    CalculateOffset());
+                    TimeSpan.FromHours(3));
             var end = start?.AddMinutes(90);
             var recurrence = new List<string>
             {
@@ -162,24 +144,12 @@ public sealed class CalendarSyncTests
             IEnumerable<string> actual4 = message.Recurrence;
             Assert.Equal(expected: expected3, actual: actual4);
 
-            string CalculateActual()
-            {
-                string actual2 = message.Format(CultureInfo.CurrentCulture);
-                return actual2;
-            }
-
-            Assert.Equal(expected: expected, actual: CalculateActual());
+            Assert.Equal(expected: expected, actual: message.Format(CultureInfo.CurrentCulture));
             var deleted = Assert.IsType<CalendarDeletedEventMessage>(reports.Single(x => x.Id == "deleted-0").Human);
             Assert.Equal(expected: "old-event", actual: deleted.Id);
             Assert.Equal(expected: "Old", actual: deleted.Summary);
 
-            string CalculateActual2()
-            {
-                string actual3 = deleted.Format(CultureInfo.CurrentCulture);
-                return actual3;
-            }
-
-            Assert.Equal(expected: "Delete event old-event: Old", actual: CalculateActual2());
+            Assert.Equal(expected: "Delete event old-event: Old", actual: deleted.Format(CultureInfo.CurrentCulture));
             Assert.Equal(
                 expected: ["0", "1", "2"],
                 actual: reports.Where(x => x.Status.ToWire() == "planned")
@@ -205,18 +175,10 @@ public sealed class CalendarSyncTests
                 actual: item.GetProperty("end")
                     .GetString());
 
-            JsonValueKind CalculateExpected()
-            {
-                if (missingDates)
-                {
-                    return JsonValueKind.Null;
-                }
-
-                return JsonValueKind.Array;
-            }
+            JsonValueKind expectedDateKind = missingDates ? JsonValueKind.Null : JsonValueKind.Array;
 
             Assert.Equal(
-                expected: CalculateExpected(),
+                expected: expectedDateKind,
                 actual: item.GetProperty("recurrence").ValueKind);
             object expected5 = desired;
             var actual6 = Assert.Single(result.DesiredEvents);
@@ -374,13 +336,7 @@ public sealed class CalendarSyncTests
         string actual3 = single.State.ToWire();
         Assert.Equal(expected: expected2, actual: actual3);
 
-        string CalculateActual()
-        {
-            string actual2 = Assert.Single(provider.Writes);
-            return actual2;
-        }
-
-        Assert.Equal(expected: "calendar", actual: CalculateActual());
+        Assert.Equal(expected: "calendar", actual: Assert.Single(provider.Writes));
     }
 
     [Fact]
@@ -696,14 +652,7 @@ public sealed class CalendarSyncTests
 
         public Task DeleteCalendar(string id, CancellationToken token)
         {
-            string CalculateItem()
-            {
-                string text = $"delete {id}";
-                string item = text;
-                return item;
-            }
-
-            Writes.Add(CalculateItem());
+            Writes.Add($"delete {id}");
             return Task.CompletedTask;
         }
 
@@ -741,35 +690,10 @@ public sealed class CalendarSyncTests
             Event ev,
             CancellationToken token)
         {
-            string CalculateItem()
-            {
-                string text = $"event {id}";
-                string item = text;
-                return item;
-            }
-
-            Writes.Add(CalculateItem());
+            Writes.Add($"event {id}");
             _events++;
 
-            bool CalculateConditionResult()
-            {
-                if (Fail != "cancel-second")
-                {
-                    return false;
-                }
-
-                if (_events == 2)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (!(Fail != "cancel-second") && (_events == 2))
             {
                 Cancellation!.Cancel();
                 throw new OperationCanceledException(token);

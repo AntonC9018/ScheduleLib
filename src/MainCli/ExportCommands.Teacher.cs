@@ -33,11 +33,10 @@ public partial class ExportCommands
             resultArgs,
             settings);
         var kind = TeacherExportKind.LabDeadlines;
-        var cancellationToken2 = cancellationToken;
         var teacherExport = TeacherExport(
             request,
             kind,
-            cancellationToken2);
+            cancellationToken);
         return teacherExport;
     }
 
@@ -57,11 +56,10 @@ public partial class ExportCommands
             resultArgs,
             settings);
         var kind = TeacherExportKind.PreDefense;
-        var cancellationToken2 = cancellationToken;
         var teacherExport = TeacherExport(
             request,
             kind,
-            cancellationToken2);
+            cancellationToken);
         return teacherExport;
     }
 
@@ -76,23 +74,10 @@ public partial class ExportCommands
         var settings = request.Settings;
         var preDefense = kind == TeacherExportKind.PreDefense;
 
-        string CalculateCommand()
-        {
-            string command2;
-            if (preDefense)
-            {
-                command2 = "export pre-defense";
-            }
-            else
-            {
-                command2 = "export lab-deadlines";
-            }
-
-            return command2;
-        }
+        string command = preDefense ? "export pre-defense" : "export lab-deadlines";
 
         using var context = new CliCommandContext(
-            CalculateCommand(),
+            command,
             resultArgs,
             cancellationToken);
         if (!context.Start())
@@ -116,25 +101,7 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
 
-            bool CalculateConditionResult()
-            {
-                if (preDefense)
-                {
-                    return false;
-                }
-
-                if (teacher is null)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (!preDefense && teacher is null)
             {
                 return await Finish(
                     CliExit.InvalidConfiguration,
@@ -223,14 +190,8 @@ public partial class ExportCommands
                 var workbooks = await handler.BuildWorkbooks(ThesisType.An, cancellation.Token);
                 foreach (var (number, students) in workbooks.OrderBy(x => x.Key))
                 {
-                    string CalculateName()
-                    {
-                        string name = $"comisia_{number}.xlsx";
-                        return name;
-                    }
-
                     await output.Publish(
-                        CalculateName(),
+                        $"comisia_{number}.xlsx",
                         async (stream, token) =>
                         {
                             await ListsForPredzashitaTaskHandler.WriteAsync(
@@ -335,19 +296,13 @@ public partial class ExportCommands
                 partial: paths.Length > 0,
                 cancellation: true);
 
-            TeacherExportResult CalculateData()
-            {
-                TeacherExportResult data = new(
-                    OutputDirectory: output?.DirectoryPath,
-                    Teacher: teacher,
-                    workbookCount);
-                return data;
-            }
-
             return context.Finish(new CliCompletion<TeacherExportResult>(
                 exit,
                 errors,
-                CalculateData())
+                new TeacherExportResult(
+                    OutputDirectory: output?.DirectoryPath,
+                    Teacher: teacher,
+                    workbookCount))
             {
                 Summary = new
                 {
@@ -361,10 +316,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {workbookCount} workbooks, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });
@@ -399,9 +353,8 @@ public partial class ExportCommands
         {
             if (IsEnabled(level))
             {
-                var list = warnings;
                 string item = formatter(state, exception);
-                list.Add(item);
+                warnings.Add(item);
             }
         }
     }

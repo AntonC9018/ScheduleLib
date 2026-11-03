@@ -154,18 +154,12 @@ public sealed class QueryTests
         Directory.CreateDirectory(zi);
         try
         {
-            string CalculateSourceFileName()
-            {
-                string sourceFileName2 = Path.Combine(
+            string sourceFileName3 = Path.Combine(
                     AppContext.BaseDirectory,
                     "fixtures",
                     "2025_sem2",
                     "zi",
                     "master.xlsx");
-                return sourceFileName2;
-            }
-
-            string sourceFileName3 = CalculateSourceFileName();
             string destFileName2 = Path.Combine(zi, "master.xlsx");
             File.Copy(
                 sourceFileName: sourceFileName3,
@@ -183,19 +177,13 @@ public sealed class QueryTests
     [Fact]
     public async Task CancelledQueryReturns130BeforeLoading()
     {
-        CancellationToken CalculateCancellationToken()
-        {
-            var cancellationToken = new CancellationToken(canceled: true);
-            return cancellationToken;
-        }
-
         Assert.Equal(
             expected: 130,
             actual: await new FixtureQuery().Lessons(
                 new(),
                 new(),
                 new(),
-                CalculateCancellationToken()));
+                new CancellationToken(canceled: true)));
     }
 
     [Fact]
@@ -464,20 +452,8 @@ public sealed class QueryTests
                     .GetString());
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
 
-            IEnumerable<string> CalculateCollection()
-            {
-                string path2 = Path.Combine(AppContext.BaseDirectory, "fixtures");
-                string searchPattern2 = "*schedule_*.json";
-                var searchOption = SearchOption.AllDirectories;
-                var collection = Directory.EnumerateFiles(
-                    path: path2,
-                    searchPattern: searchPattern2,
-                    searchOption);
-                return collection;
-            }
-
             Assert.Empty(
-                CalculateCollection());
+                Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fixtures"), "*schedule_*.json", SearchOption.AllDirectories));
             return document.RootElement.Clone();
         }
         finally

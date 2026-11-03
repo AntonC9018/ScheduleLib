@@ -457,18 +457,12 @@ public static class DriveSync
 
     public static bool IsScheduleArtifact(string name)
     {
-        string CalculateValue()
-        {
-            string value = Path.GetExtension(name);
-            return value;
-        }
-
         return name == Path.GetFileName(name)
             && new[]
             {
                 ".xlsx",
                 ".pdf",
                 ".ics",
-            }.Contains(CalculateValue(), StringComparer.OrdinalIgnoreCase);
+            }.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
     }
 }

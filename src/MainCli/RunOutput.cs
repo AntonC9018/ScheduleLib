@@ -168,7 +168,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
 
     private static void ValidateName(string name)
     {
-        bool CheckCondition()
+        bool IsInvalidArtifactName()
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -203,7 +203,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             return false;
         }
 
-        if (CheckCondition())
+        if (IsInvalidArtifactName())
         {
             throw new InvalidOwnedArtifactNameException(name);
         }

@@ -67,11 +67,10 @@ internal static class CliConfigExecution
                 {
                     for (var index = 0; index < profiles.Count; index++)
                     {
-                        var cliOutput = cli;
                         string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         var status2 = ActionState.Completed;
                         object item = new { profile = profiles[index] };
-                        cliOutput.EmitItem(
+                        cli.EmitItem(
                             id: id2,
                             status: status2,
                             item);
@@ -92,9 +91,8 @@ internal static class CliConfigExecution
                                 cli.WriteHuman(profile);
                             }
 
-                            var cliOutput = cli;
                             string line = $"succeeded: {profiles.Count} profiles.";
-                            cliOutput.WriteHuman(line);
+                            cli.WriteHuman(line);
                         },
                     });
                 }
@@ -113,9 +111,8 @@ internal static class CliConfigExecution
             {
                 if (data is not null)
                 {
-                    var cliOutput = cli;
                     string line = JsonSerializer.Serialize(data, HumanJson);
-                    cliOutput.WriteHuman(line);
+                    cli.WriteHuman(line);
                 }
             },
         });

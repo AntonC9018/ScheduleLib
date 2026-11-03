@@ -22,27 +22,7 @@ public static class CliExit
 
     public static int AfterEffects(int exit, bool effects)
     {
-        bool CheckCondition()
-        {
-            if (!effects)
-            {
-                return false;
-            }
-
-            if (exit == Success)
-            {
-                return false;
-            }
-
-            if (exit != Cancelled)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        if (CheckCondition())
+        if (effects && exit != Success && exit != Cancelled)
         {
             return Partial;
         }
@@ -111,25 +91,7 @@ public sealed class CliCommandContext : IDisposable
 
     public bool Start()
     {
-        bool CalculateConditionResult()
-        {
-            if (!Output.Json)
-            {
-                return false;
-            }
-
-            if (Output.Jsonl)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (Output.Json && Output.Jsonl)
         {
             Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
             return false;
@@ -146,25 +108,7 @@ public sealed class CliCommandContext : IDisposable
         bool partial = false,
         bool cancellation = true)
     {
-        bool CalculateConditionResult()
-        {
-            if (!cancellation)
-            {
-                return false;
-            }
-
-            if (exit == CliExit.Cancelled)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (cancellation && exit == CliExit.Cancelled)
         {
             return RunStatus.Cancelled;
         }
@@ -173,25 +117,7 @@ public sealed class CliCommandContext : IDisposable
             return success;
         }
 
-        bool CalculateConditionResult2()
-        {
-            if (partial)
-            {
-                return true;
-            }
-
-            if (exit == CliExit.Partial)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (partial || exit == CliExit.Partial)
         {
             return RunStatus.Partial;
         }
@@ -346,12 +272,11 @@ public sealed class CliCommandContext : IDisposable
             int index = _streamed++;
             var path = list[index];
             Output.WriteHuman(path);
-            var cliOutput = Output;
             string text = $"artifact:{path}";
             string id2 = text;
             var status2 = ActionState.Completed;
             object item = new { path };
-            cliOutput.EmitItem(
+            Output.EmitItem(
                 id: id2,
                 status: status2,
                 item);

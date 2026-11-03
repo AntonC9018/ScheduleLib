@@ -31,41 +31,13 @@ public sealed class CommandContextTests
             new(),
             CancellationToken.None);
 
-        int CalculateActual()
-        {
-            var classifyInputFailure = context.ClassifyInputFailure(new FileNotFoundException());
-            int actual2 = classifyInputFailure.ExitCode;
-            return actual2;
-        }
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
 
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual());
+        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new JsonException()).ExitCode);
 
-        int CalculateActual2()
-        {
-            var classifyInputFailure2 = context.ClassifyInputFailure(new JsonException());
-            int actual3 = classifyInputFailure2.ExitCode;
-            return actual3;
-        }
+        Assert.Equal(expected: CliExit.IoFailure, actual: context.ClassifyInputFailure(new IOException()).ExitCode);
 
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: CalculateActual2());
-
-        int CalculateActual3()
-        {
-            var classifyInputFailure3 = context.ClassifyInputFailure(new IOException());
-            int actual4 = classifyInputFailure3.ExitCode;
-            return actual4;
-        }
-
-        Assert.Equal(expected: CliExit.IoFailure, actual: CalculateActual3());
-
-        int CalculateActual4()
-        {
-            var classifyInputFailure4 = context.ClassifyInputFailure(new ArgumentException());
-            int actual5 = classifyInputFailure4.ExitCode;
-            return actual5;
-        }
-
-        Assert.Equal(expected: CliExit.InvalidArguments, actual: CalculateActual4());
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: context.ClassifyInputFailure(new ArgumentException()).ExitCode);
     }
 
     [Fact]
@@ -98,23 +70,11 @@ public sealed class CommandContextTests
                     },
                     CancellationToken.None);
 
-                IOException CalculateError()
-                {
-                    var error = new IOException("Disk failure.");
-                    return error;
-                }
-
-                var failure = context.ClassifyInputFailure(CalculateError(), export: true);
+                var failure = context.ClassifyInputFailure(new IOException("Disk failure."), export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: failure.ExitCode);
 
-                GeneralCliOutputStreamingException CalculateError2()
-                {
-                    var error2 = new GeneralCliOutputStreamingException("Output failed.");
-                    return error2;
-                }
-
                 var renderingFailure = context.ClassifyInputFailure(
-                    CalculateError2(),
+                    new GeneralCliOutputStreamingException("Output failed."),
                     export: true);
                 Assert.Equal(expected: CliExit.Partial, actual: renderingFailure.ExitCode);
                 var paths = await context.CompleteArtifacts(failure.ExitCode);
@@ -126,17 +86,11 @@ public sealed class CommandContextTests
                         .GetString());
             }
 
-            string CalculateRunId()
-            {
-                string runId2 = Guid.NewGuid()
-                    .ToString("N");
-                return runId2;
-            }
-
             using var next = await RunOutput.Create(
                 output: directory,
                 command: "test",
-                runId: CalculateRunId(),
+                runId: Guid.NewGuid()
+                    .ToString("N"),
                 CancellationToken.None);
         }
         finally

@@ -244,38 +244,20 @@ public sealed class RegistryHistoryTopicsCommandTests
                 throw new IOException("canary-password canary-student canary-topic");
             }
 
-            Uri CalculateUri()
-            {
-                Uri uri = new("https://private.test/groups/1");
-                return uri;
-            }
-
             var course = new RegistryHistoryCourse(
                 "canary-course",
                 1,
-                CalculateUri());
-
-            Uri CalculateUri2()
-            {
-                Uri uri2 = new("https://private.test/LessonsList/1");
-                return uri2;
-            }
-
-            DateTime CalculateDate()
-            {
-                var date = new DateTime(
-                    year: 2024,
-                    month: 10,
-                    day: 1);
-                return date;
-            }
+                new Uri("https://private.test/groups/1"));
 
             var group = new RegistryHistoryGroupTopics(
                 "canary-group",
-                CalculateUri2(),
+                new Uri("https://private.test/LessonsList/1"),
                 [
                     new(
-                        CalculateDate(),
+                        new DateTime(
+                    year: 2024,
+                    month: 10,
+                    day: 1),
                         ScheduleLib.LessonType.Curs,
                         "canary-historical-topic"),
                 ]);
@@ -284,21 +266,15 @@ public sealed class RegistryHistoryTopicsCommandTests
                 course,
                 [group]);
 
-            DateTime CalculateDate2()
-            {
-                var date2 = new DateTime(
-                    year: 2025,
-                    month: 10,
-                    day: 1);
-                return date2;
-            }
-
             var currentGroup = group with
             {
                 Lessons =
                 [
                     new(
-                        CalculateDate2(),
+                        new DateTime(
+                    year: 2025,
+                    month: 10,
+                    day: 1),
                         ScheduleLib.LessonType.Curs,
                         "canary-current-topic"),
                 ],

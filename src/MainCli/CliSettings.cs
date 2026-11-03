@@ -155,24 +155,27 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     private IReadOnlyList<SettingsSource> ContributingSources(string key)
     {
         return Sources
-            .Select(source => source with
+            .Select(source =>
             {
-                Keys = source.Keys.Where(x =>
-                    {
-                        if (x == key)
+                return source with
+                {
+                    Keys = source.Keys.Where(x =>
                         {
-                            return true;
-                        }
+                            if (x == key)
+                            {
+                                return true;
+                            }
 
-                        if (x.StartsWith($"{key}.", StringComparison.Ordinal))
-                        {
-                            return true;
-                        }
+                            if (x.StartsWith($"{key}.", StringComparison.Ordinal))
+                            {
+                                return true;
+                            }
 
-                        return key.StartsWith($"{x}.", StringComparison.Ordinal);
-                    })
-                    .Order()
-                    .ToArray(),
+                            return key.StartsWith($"{x}.", StringComparison.Ordinal);
+                        })
+                        .Order()
+                        .ToArray(),
+                };
             })
             .Where(source => source.Keys.Count != 0)
             .ToArray();

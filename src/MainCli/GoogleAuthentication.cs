@@ -146,15 +146,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         ILogger? logger = null)
     {
         _logger = logger ?? NullLogger.Instance;
-        string CalculatePath1()
-        {
-            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return path1;
-        }
-
         _root = stateDirectory
             ?? Path.Combine(
-                CalculatePath1(),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "ScheduleLib",
                 "auth",
                 "google");
@@ -407,25 +401,8 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         {
             var result = await config.ApiKeysSource.Get(services, token);
 
-            bool CalculateConditionResult()
-            {
-                if (string.IsNullOrWhiteSpace(result.ClientId))
-                {
-                    return true;
-                }
-
-                if (string.IsNullOrWhiteSpace(result.ClientSecret))
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (string.IsNullOrWhiteSpace(result.ClientId)
+                || string.IsNullOrWhiteSpace(result.ClientSecret))
             {
                 throw new AuthenticationRequiredException(provider: "google", teacher: teacher);
             }
@@ -542,15 +519,8 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
         CancellationToken token,
         bool preserveOmittedScopes)
     {
-        string CalculatePath()
-        {
-            string text = $"{path}.lock";
-            string path2 = text;
-            return path2;
-        }
-
         await using var lease = await LocalFileLock.Acquire(
-            CalculatePath(),
+            $"{path}.lock",
             token,
             wait: true);
         if (requireExisting && !File.Exists(path))
@@ -584,15 +554,8 @@ public sealed class AtomicTokenStore(string path, bool requireExisting = false) 
 
     public async Task DeleteAsync<T>(string key)
     {
-        string CalculatePath()
-        {
-            string text = $"{path}.lock";
-            string path2 = text;
-            return path2;
-        }
-
         await using var lease = await LocalFileLock.Acquire(
-            CalculatePath(),
+            $"{path}.lock",
             CancellationToken.None,
             wait: true);
         File.Delete(path);

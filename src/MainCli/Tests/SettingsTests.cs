@@ -89,17 +89,11 @@ public sealed class SettingsTests
         IEnumerable<LessonAttendanceSource> collection = get!.Sources;
         var source = Assert.Single(collection);
 
-        string CalculateExpected()
-        {
-            string expected2 = Path.Combine(
+        Assert.Equal(
+            expected: Path.Combine(
                 files.Root,
                 "project",
-                "private-attendance.xlsx");
-            return expected2;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected(),
+                "private-attendance.xlsx"),
             actual: source.FilePath);
     }
 
@@ -152,16 +146,10 @@ public sealed class SettingsTests
         string? actual3 = get!.CalendarName;
         Assert.Equal(expected: expected4, actual: actual3);
 
-        string CalculateExpected()
-        {
-            string expected2 = Path.Combine(
+        string expected5 = Path.Combine(
                 files.Root,
                 "user",
                 "user-tokens");
-            return expected2;
-        }
-
-        string expected5 = CalculateExpected();
         var get2 = global.Get(GoogleCalendarConfig.Key);
         string? actual4 = get2!.Credentials!.CredentialsPath;
         Assert.Equal(
@@ -234,15 +222,9 @@ public sealed class SettingsTests
             teacherLayerConfig.TeacherName = parse;
         });
 
-        GoogleDriveConfig? CalculateObjectValue()
-        {
-            var objectValue = other.ServiceProvider
+        Assert.Null(other.ServiceProvider
                 .GetRequiredService<DataProvider>()
-                .Get(GoogleDriveConfig.Key);
-            return objectValue;
-        }
-
-        Assert.Null(CalculateObjectValue());
+                .Get(GoogleDriveConfig.Key));
         string expected9 = "project";
         var get6 = other.ServiceProvider.GetRequiredService<DataProvider>()
             .Get(GoogleCalendarConfig.Key);
@@ -338,17 +320,11 @@ public sealed class SettingsTests
             invocationDirectory: Path.Combine(nested, "child"),
             userFile: files.UserFile);
 
-        string CalculateExpected()
-        {
-            string expected2 = Path.Combine(
+        Assert.Equal(
+            expected: Path.Combine(
                 files.Root,
                 "project",
-                "user");
-            return expected2;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected(),
+                "user"),
             actual: explicitRoot.ProjectDirectory);
         Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
     }
@@ -511,21 +487,12 @@ public sealed class SettingsTests
             actual: document.RootElement.GetProperty("command")
                 .GetString());
 
-        IEnumerable<string?> CalculateActual()
-        {
-            string path = Path.Combine(files.Root, "project");
-            string[] files2 = Directory.GetFiles(path);
-            Func<string, string?> selector = Path.GetFileName;
-            var actual2 = files2.Select(selector);
-            return actual2;
-        }
-
         Assert.Equal(
             expected: new[]
             {
                 CliSettings.FileName,
             },
-            actual: CalculateActual());
+            actual: Directory.GetFiles(Path.Combine(files.Root, "project")).Select(Path.GetFileName));
     }
 
     [Theory]
@@ -580,9 +547,14 @@ public sealed class SettingsTests
                 actual: await CliHost.RunCore(
                     ["config", "profiles", "--json"],
                     runner =>
-                        runner.Configure(builder => builder.UseMiddleware(
-                            (_, _) => throw new InvalidOperationException("startup failure"),
-                            CommandDotNet.Execution.MiddlewareSteps.InvokeCommand - 2))));
+                    {
+                        runner.Configure(builder =>
+                        {
+                            builder.UseMiddleware(
+                                (_, _) => throw new InvalidOperationException("startup failure"),
+                                CommandDotNet.Execution.MiddlewareSteps.InvokeCommand - 2);
+                        });
+                    }));
             using var document = JsonDocument.Parse(output.ToString());
             Assert.Equal(
                 expected: 1,
@@ -667,27 +639,15 @@ public sealed class SettingsTests
             });
         await files.Project(before);
 
-        TimeSpan CalculateDelay()
-        {
-            var delay = TimeSpan.FromSeconds(30);
-            return delay;
-        }
-
-        using var deadline = new CancellationTokenSource(CalculateDelay());
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         async Task Read()
         {
             for (var i = 0; i < 8; i++)
             {
-                string CalculateInvocationDirectory()
-                {
-                    string invocationDirectory2 = Path.Combine(files.Root, "project");
-                    return invocationDirectory2;
-                }
-
                 using var settings = await CliSettings.Load(
                     new(),
-                    invocationDirectory: CalculateInvocationDirectory(),
+                    invocationDirectory: Path.Combine(files.Root, "project"),
                     userFile: files.UserFile,
                     cancellationToken: deadline.Token);
                 Assert.Contains(

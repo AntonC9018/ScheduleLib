@@ -50,33 +50,39 @@ public static class CliHost
                 },
                 MiddlewareSteps.ParseInput + 1);
         });
-        runner.Configure(builder => builder.UseMiddleware(
-            (context, next) =>
-            {
-                invoked = true;
-                return next(context);
-            },
-            MiddlewareSteps.InvokeCommand - 1));
-        runner.Configure(builder => builder.UseMiddleware(
-            async (context, next) =>
-            {
-                var exit = await next(context);
-                if (!invoked)
+        runner.Configure(builder =>
+        {
+            builder.UseMiddleware(
+                (context, next) =>
                 {
-                    if (context.ParseResult?.ParseError is { } parseError)
+                    invoked = true;
+                    return next(context);
+                },
+                MiddlewareSteps.InvokeCommand - 1);
+        });
+        runner.Configure(builder =>
+        {
+            builder.UseMiddleware(
+                async (context, next) =>
+                {
+                    var exit = await next(context);
+                    if (!invoked)
                     {
-                        parseDetail = parseError.ToString();
+                        if (context.ParseResult?.ParseError is { } parseError)
+                        {
+                            parseDetail = parseError.ToString();
+                        }
                     }
-                }
 
-                if (startupRequest.ShouldSuppressFailureHelp(invoked, exit))
-                {
-                    context.ShowHelpOnExit = false;
-                }
+                    if (startupRequest.ShouldSuppressFailureHelp(invoked, exit))
+                    {
+                        context.ShowHelpOnExit = false;
+                    }
 
-                return exit;
-            },
-            MiddlewareSteps.Help.PrintHelpOnExit + 1));
+                    return exit;
+                },
+                MiddlewareSteps.Help.PrintHelpOnExit + 1);
+        });
         try
         {
             configure?.Invoke(runner);
@@ -595,9 +601,8 @@ public partial class QueryCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = output;
                     string line = $"{status}: {streamed} lessons.";
-                    cliOutput.WriteHuman(line);
+                    output.WriteHuman(line);
                 },
             });
         }

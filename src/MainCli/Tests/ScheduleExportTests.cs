@@ -29,12 +29,6 @@ public sealed class ScheduleExportTests
     {
         using var capture = new Capture();
 
-        CancellationToken CalculateToken()
-        {
-            var token = new CancellationToken(true);
-            return token;
-        }
-
         Assert.Equal(
             expected: 130,
             actual: await Execute(
@@ -42,7 +36,7 @@ public sealed class ScheduleExportTests
                 calendar,
                 new(),
                 new(),
-                CalculateToken()));
+                new CancellationToken(true)));
         var result = capture.Result();
         Assert.Equal(
             expected: 130,
@@ -194,16 +188,10 @@ public sealed class ScheduleExportTests
         await File.WriteAllTextAsync(path: notes, contents: "caller data");
         using var capture = new Capture();
 
-        FixtureExport CalculateExport()
-        {
-            var export = new FixtureExport(missingDates: true);
-            return export;
-        }
-
         Assert.Equal(
             expected: 0,
             actual: await Execute(
-                CalculateExport(),
+                new FixtureExport(missingDates: true),
                 true,
                 Source(),
                 new()
@@ -217,23 +205,10 @@ public sealed class ScheduleExportTests
             x => x.GetString()!
                 .StartsWith("Skipping calendar"));
 
-        string[] CalculateCollection()
-        {
-            string[] collection = Directory.GetFiles(path: temp.Path, searchPattern: "*.ics");
-            return collection;
-        }
-
-        Assert.Empty(CalculateCollection());
+        Assert.Empty(Directory.GetFiles(path: temp.Path, searchPattern: "*.ics"));
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(notes));
 
-        bool CalculateCondition()
-        {
-            string path2 = Path.Combine(temp.Path, "schedulelib-manifest.json");
-            bool condition = File.Exists(path2);
-            return condition;
-        }
-
-        Assert.True(CalculateCondition());
+        Assert.True(File.Exists(Path.Combine(temp.Path, "schedulelib-manifest.json")));
     }
 
     private static async Task<JsonElement> Export(bool calendar, string destination)
@@ -259,14 +234,7 @@ public sealed class ScheduleExportTests
                 .GetInt32()
             > 0);
 
-        bool CalculateCondition()
-        {
-            string path = Path.Combine(destination, "schedulelib-manifest.json");
-            bool condition = File.Exists(path);
-            return condition;
-        }
-
-        Assert.True(CalculateCondition());
+        Assert.True(File.Exists(Path.Combine(destination, "schedulelib-manifest.json")));
         return result;
     }
 

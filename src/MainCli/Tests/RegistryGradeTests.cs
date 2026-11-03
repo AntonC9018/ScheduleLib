@@ -169,7 +169,7 @@ public sealed class RegistryGradeTests
         int exit,
         string status)
     {
-        Exception CalculateInner()
+        Exception CreateSubmissionFailure()
         {
             if (rejected)
             {
@@ -184,7 +184,7 @@ public sealed class RegistryGradeTests
             FailAt = 1,
             Failure = new RegistryActionExecutionException(
                 started,
-                CalculateInner()),
+                CreateSubmissionFailure()),
         };
         using var capture = new Capture();
         Assert.Equal(
@@ -301,7 +301,7 @@ public sealed class RegistryGradeTests
     [InlineData(7)]
     public async Task BeforeSubmissionFailuresHaveDocumentedExits(int exit)
     {
-        Exception CalculateException()
+        Exception CreateActionFailure()
         {
             if (exit == 1)
             {
@@ -319,7 +319,7 @@ public sealed class RegistryGradeTests
         await using var fake = new Fake
         {
             PlanFailure =
-                CalculateException(),
+                CreateActionFailure(),
             Busy = exit == 7,
         };
         using var capture = new Capture();
@@ -426,18 +426,6 @@ public sealed class RegistryGradeTests
                 schedule.Get(x.Lesson.Groups[0]).QualificationType == QualificationType.Licenta);
         var groupInfo = schedule.Get(lesson.Lesson.Groups[0]);
 
-        Uri CalculateUri()
-        {
-            Uri uri2 = new("https://registry.test/group");
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            Uri evaluationUri2 = new("https://registry.test/evaluation");
-            return evaluationUri2;
-        }
-
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,
             new GroupLink(
@@ -447,8 +435,8 @@ public sealed class RegistryGradeTests
                     Value = lesson.Lesson.Groups,
                 },
                 lesson.Lesson.GroupPartitionKey,
-                uri: CalculateUri(),
-                evaluationUri: CalculateEvaluationUri()));
+                uri: new Uri("https://registry.test/group"),
+                evaluationUri: new Uri("https://registry.test/evaluation")));
         var quiz = new QuizAttemptsPage
         {
             Path = new[]
@@ -527,22 +515,7 @@ public sealed class RegistryGradeTests
             plan.Notices,
             x =>
             {
-                bool CheckCondition()
-                {
-                    if (x.Kind != RegistryGradeNoticeKind.Omitted)
-                    {
-                        return false;
-                    }
-
-                    if (x.Detail.Contains("Earlier attempt"))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                return CheckCondition();
+                return !(x.Kind != RegistryGradeNoticeKind.Omitted) && (x.Detail.Contains("Earlier attempt"));
             });
         Assert.Contains(
             plan.Notices,
@@ -729,14 +702,8 @@ public sealed class RegistryGradeTests
             var actions = Enumerable.Range(start: 1, count: 3)
                 .Select(i =>
                 {
-                    string CalculateDestination()
-                    {
-                        string destination2 = $"https://registry.test/test/{i}";
-                        return destination2;
-                    }
-
                     return new RegistryGradeAction(
-                        destination: CalculateDestination(),
+                        destination: $"https://registry.test/test/{i}",
                         course: "course",
                         groups: "group",
                         1,
@@ -816,13 +783,7 @@ public sealed class RegistryGradeTests
         {
             Assert.Equal(expected: Semester.Sem2, actual: semester);
 
-            Uri CalculateUrl()
-            {
-                Uri url = new("https://registry.test/course");
-                return url;
-            }
-
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
         }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>

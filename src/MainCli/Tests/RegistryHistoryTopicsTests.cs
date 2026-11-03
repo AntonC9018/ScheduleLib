@@ -61,29 +61,17 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public void ExtractsOnlyDateTypeAndTopicWithoutAttendanceOrMutationLinks()
     {
-        AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-        {
-            var document = new HtmlParser().ParseDocument(Lessons);
-            return document;
-        }
-
-        var lessons = RegistryHistoryTopicsHtml.Lessons(CalculateDocument());
+        var lessons = RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons));
         Assert.Equal(expected: 2, actual: lessons.Count);
 
-        DateTime CalculateExpected()
-        {
-            var expected2 = new DateTime(
+        Assert.Equal(
+            expected: new DateTime(
                 year: 2024,
                 month: 10,
                 day: 3,
                 hour: 9,
                 minute: 45,
-                second: 0);
-            return expected2;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected(),
+                second: 0),
             actual: lessons[0].Date);
         Assert.Equal(expected: LessonType.Lab, actual: lessons[0].LessonType);
         Assert.Equal(expected: "Synthetic first, \"quoted\" topic", actual: lessons[0].Topic);
@@ -124,13 +112,7 @@ public sealed class RegistryHistoryTopicsTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-            {
-                var document = new HtmlParser().ParseDocument(html);
-                return document;
-            }
-
-            return RegistryHistoryTopicsHtml.Lessons(CalculateDocument());
+            return RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(html));
         });
         Assert.Equal(expected: RegistryHistoryPhase.Lessons, actual: error.Phase);
         Assert.Equal(expected: RegistryHistoryDiagnostic.TopicTable, actual: error.Diagnostic);
@@ -236,46 +218,22 @@ public sealed class RegistryHistoryTopicsTests
     {
         using var inner = new FakeHandler();
 
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         if (allowed)
         {
-            Uri CalculateRequestUri()
-            {
-                var requestUri = new Uri(Index, path);
-                return requestUri;
-            }
-
-            using var response = await client.GetAsync(CalculateRequestUri());
+            using var response = await client.GetAsync(new Uri(Index, path));
         }
         else
         {
             await Assert.ThrowsAsync<RegistryHistoryException>(() =>
             {
-                Uri CalculateRequestUri()
-                {
-                    var requestUri = new Uri(Index, path);
-                    return requestUri;
-                }
-
-                return client.GetAsync(CalculateRequestUri());
+                return client.GetAsync(new Uri(Index, path));
             });
         }
 
@@ -352,22 +310,7 @@ public sealed class RegistryHistoryTopicsTests
                 imported,
                 x =>
                 {
-                    bool CheckCondition()
-                    {
-                        if (x.Name != "Synthetic first, \"quoted\" topic")
-                        {
-                            return false;
-                        }
-
-                        if (x.LessonType == LessonType.Lab)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    return CheckCondition();
+                    return !(x.Name != "Synthetic first, \"quoted\" topic") && (x.LessonType == LessonType.Lab);
                 });
             Assert.DoesNotContain(expectedSubstring: "language", actualString: csv);
             Assert.DoesNotContain(expectedSubstring: "faculty", actualString: original);
@@ -428,36 +371,17 @@ public sealed class RegistryHistoryTopicsTests
                 html = Lessons;
             }
 
-            string CalculateContent()
-            {
-                string text = $"{logout}{html}";
-                string content = text;
-                return content;
-            }
-
             return new(HttpStatusCode.OK)
             {
-                Content = new StringContent(CalculateContent()),
+                Content = new StringContent($"{logout}{html}"),
             };
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var analysis = await new RegistryHistoryTopicsReader(client, Index).Discover(default);
@@ -766,17 +690,9 @@ public sealed class RegistryHistoryTopicsTests
                         $"<option {(value == year ? "selected" : "")} value='{value}'>{value}</option>"))}</select></form><div id='nav-1'>{string.Concat(
                         courseIds.Select(id =>
                         {
-                            string CalculateText()
-                            {
-                                if (id >= 6)
-                                {
-                                    return "Other";
-                                }
+                            string courseName = id >= 6 ? "Other" : "Systems";
 
-                                return "Systems";
-                            }
-
-                            return $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{CalculateText()}</a></span></div>";
+                            return $"<div><span>1</span><span><a href='/studregistry/LessonAttendance/groups/{id}'>{courseName}</a></span></div>";
                         }))}</div><div id='nav-2'></div>";
             }
             else if (uri.AbsolutePath.Contains("/groups/", StringComparison.Ordinal))
@@ -798,36 +714,17 @@ public sealed class RegistryHistoryTopicsTests
                         : Lessons;
             }
 
-            string CalculateContent()
-            {
-                string text = $"{logout}{html}";
-                string content = text;
-                return content;
-            }
-
             return new(HttpStatusCode.OK)
             {
-                Content = new StringContent(CalculateContent()),
+                Content = new StringContent($"{logout}{html}"),
             };
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         return (await new RegistryHistoryTopicsReader(client, Index).Discover(default), requests);
@@ -836,33 +733,21 @@ public sealed class RegistryHistoryTopicsTests
     [Fact]
     public void EmptyLessonTableDoesNotRequestStudentOrCreateData()
     {
-        AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-        {
-            var document = new HtmlParser().ParseDocument(
-                "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr></table><table><tr><td>canary-student</td></tr></table>");
-            return document;
-        }
-
         var lessons = RegistryHistoryTopicsHtml.Lessons(
-            CalculateDocument());
+            new HtmlParser().ParseDocument(
+                "<table><tr><th>Data</th><th>Tema</th><th>Redactare</th></tr></table><table><tr><td>canary-student</td></tr></table>"));
         Assert.Empty(lessons);
     }
 
     [Fact]
     public void LatestYearWithoutTopicsFallsBackAndSemesterRemainsPartOfMatching()
     {
-        RegistryHistoryCourse CalculateCourse()
-        {
-            var course = Course(
-                name: "Systems",
-                1,
-                id: "empty");
-            return course;
-        }
-
         var empty = new RegistryHistoryCourseTopics(
             "2024/25",
-            CalculateCourse(),
+            Course(
+                name: "Systems",
+                1,
+                id: "empty"),
             []);
         var selection = RegistryHistoryTopicSelection.Select(
             "2025/26",
@@ -913,42 +798,24 @@ public sealed class RegistryHistoryTopicsTests
                 minute: 45,
                 second: 0);
 
-            Uri CalculateUri()
-            {
-                Uri uri = new(Index, "LessonsList/1");
-                return uri;
-            }
-
-            DateTime CalculateDate()
-            {
-                var date2 = date.AddDays(7);
-                return date2;
-            }
-
-            DateTime CalculateDate2()
-            {
-                var date3 = date.AddDays(14);
-                return date3;
-            }
-
             var historical = new RegistryHistoryCourseTopics(
                 "2024/25",
                 course,
                 [
                     new(
                         "IA2401",
-                        CalculateUri(),
+                        new Uri(Index, "LessonsList/1"),
                         [
                             new(
                                 date,
                                 LessonType.Curs,
                                 "Synthetic first"),
                             new(
-                                CalculateDate(),
+                                date.AddDays(7),
                                 LessonType.Curs,
                                 "Atestare 1"),
                             new(
-                                CalculateDate2(),
+                                date.AddDays(14),
                                 LessonType.Curs,
                                 "Synthetic second"),
                         ]),
@@ -993,19 +860,10 @@ public sealed class RegistryHistoryTopicsTests
         int semester,
         string id)
     {
-        Uri CalculateUri()
-        {
-            var baseUri = Index;
-            string text = $"groups/{id}";
-            string relativeUri = text;
-            Uri uri = new(baseUri, relativeUri);
-            return uri;
-        }
-
         return new(
             name,
             semester,
-            CalculateUri());
+            new Uri(Index, $"groups/{id}"));
     }
 
     private static RegistryHistoryCourseTopics Snapshot(
@@ -1014,37 +872,17 @@ public sealed class RegistryHistoryTopicsTests
         int semester,
         string group)
     {
-        RegistryHistoryCourse CalculateCourse()
-        {
-            var course = Course(
-                name: name,
-                semester,
-                id: group);
-            return course;
-        }
-
-        Uri CalculateUri()
-        {
-            Uri uri = new(Index, "LessonsList/1");
-            return uri;
-        }
-
-        IReadOnlyList<RegistryHistoryTopic> CalculateLessons()
-        {
-            var document = new HtmlParser().ParseDocument(Lessons);
-            AngleSharp.Dom.IDocument document2 = document;
-            var lessons = RegistryHistoryTopicsHtml.Lessons(document2);
-            return lessons;
-        }
-
         return new(
             year,
-            CalculateCourse(),
+            Course(
+                name: name,
+                semester,
+                id: group),
             [
                 new(
                     group,
-                    CalculateUri(),
-                    CalculateLessons()),
+                    new Uri(Index, "LessonsList/1"),
+                    RegistryHistoryTopicsHtml.Lessons(new HtmlParser().ParseDocument(Lessons))),
             ]);
     }
 
@@ -1064,13 +902,7 @@ public sealed class RegistryHistoryTopicsTests
                 return fromResult;
             }
 
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage(HttpStatusCode.OK);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         }
     }
 }

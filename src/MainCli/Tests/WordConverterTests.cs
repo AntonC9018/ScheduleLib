@@ -6,13 +6,7 @@ public sealed class WordConverterTests
     public void MissingComRegistrationBecomesCapabilityFailureAcrossProcessBoundary()
     {
         // Simulate the HRESULT from new Word.Application, then its process exit.
-        bool CalculateCondition()
-        {
-            bool condition = WordConverterProtocol.IsMissingWordActivation(unchecked((int) 0x80040154));
-            return condition;
-        }
-
-        Assert.True(CalculateCondition());
+        Assert.True(WordConverterProtocol.IsMissingWordActivation(unchecked((int) 0x80040154)));
         var error = Assert.Throws<PlatformNotSupportedException>(() =>
             DocToDocxConversionHelper.ClassifyConverterExit(WordConverterProtocol.MissingWordExitCode));
         Assert.Contains(expectedSubstring: "Microsoft Word", actualString: error.Message);
@@ -51,18 +45,12 @@ public sealed class WordConverterOwnershipTests
     [InlineData("WORD1|nonce|NaN|100")]
     public void InvalidOwnershipMessagesCannotAuthorizeTermination(string? message)
     {
-        bool CalculateCondition()
-        {
-            bool condition = WordConverterProtocol.TryReadOwnership(
+        Assert.False(
+            WordConverterProtocol.TryReadOwnership(
                 message: message,
                 nonce: "nonce",
                 out _,
-                out _);
-            return condition;
-        }
-
-        Assert.False(
-            CalculateCondition());
+                out _));
     }
 
     [Fact]
@@ -80,9 +68,8 @@ public sealed class WordConverterOwnershipTests
         Assert.True(
             condition7);
 
-        bool CalculateCondition()
-        {
-            bool condition = WordConverterProtocol.IsOwnedProcess(
+        Assert.True(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 100,
@@ -90,16 +77,10 @@ public sealed class WordConverterOwnershipTests
                 session: 1,
                 converterSession: 1,
                 "WINWORD",
-                false);
-            return condition;
-        }
+                false));
 
-        Assert.True(
-            CalculateCondition());
-
-        bool CalculateCondition2()
-        {
-            bool condition2 = WordConverterProtocol.IsOwnedProcess(
+        Assert.False(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 101,
@@ -107,16 +88,10 @@ public sealed class WordConverterOwnershipTests
                 session: 1,
                 converterSession: 1,
                 "WINWORD",
-                false);
-            return condition2;
-        }
+                false)); // recycled PID
 
         Assert.False(
-            CalculateCondition2()); // recycled PID
-
-        bool CalculateCondition3()
-        {
-            bool condition3 = WordConverterProtocol.IsOwnedProcess(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 100,
@@ -124,16 +99,10 @@ public sealed class WordConverterOwnershipTests
                 session: 1,
                 converterSession: 1,
                 "WINWORD",
-                true);
-            return condition3;
-        }
+                true)); // existing Word
 
         Assert.False(
-            CalculateCondition3()); // existing Word
-
-        bool CalculateCondition4()
-        {
-            bool condition4 = WordConverterProtocol.IsOwnedProcess(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 100,
@@ -141,16 +110,10 @@ public sealed class WordConverterOwnershipTests
                 session: 1,
                 converterSession: 1,
                 "WINWORD",
-                false);
-            return condition4;
-        }
+                false)); // older process
 
         Assert.False(
-            CalculateCondition4()); // older process
-
-        bool CalculateCondition5()
-        {
-            bool condition5 = WordConverterProtocol.IsOwnedProcess(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 100,
@@ -158,16 +121,10 @@ public sealed class WordConverterOwnershipTests
                 session: 2,
                 converterSession: 1,
                 "WINWORD",
-                false);
-            return condition5;
-        }
+                false)); // other session
 
         Assert.False(
-            CalculateCondition5()); // other session
-
-        bool CalculateCondition6()
-        {
-            bool condition6 = WordConverterProtocol.IsOwnedProcess(
+            WordConverterProtocol.IsOwnedProcess(
                 pid: pid,
                 reportedTicks: ticks,
                 actualTicks: 100,
@@ -175,12 +132,7 @@ public sealed class WordConverterOwnershipTests
                 session: 1,
                 converterSession: 1,
                 "other",
-                false);
-            return condition6;
-        }
-
-        Assert.False(
-            CalculateCondition6());
+                false));
     }
 
     [Theory]
@@ -269,22 +221,10 @@ public sealed class WordConverterOwnershipTests
         })!;
         try
         {
-            TimeSpan CalculateTimeout()
-            {
-                var timeout = TimeSpan.FromMilliseconds(50);
-                return timeout;
-            }
-
-            Assert.False(await DocToDocxConversionHelper.WaitForExitBounded(process, CalculateTimeout()));
+            Assert.False(await DocToDocxConversionHelper.WaitForExitBounded(process, TimeSpan.FromMilliseconds(50)));
             process.Kill();
 
-            TimeSpan CalculateTimeout2()
-            {
-                var timeout2 = TimeSpan.FromSeconds(2);
-                return timeout2;
-            }
-
-            Assert.True(await DocToDocxConversionHelper.WaitForExitBounded(process, CalculateTimeout2()));
+            Assert.True(await DocToDocxConversionHelper.WaitForExitBounded(process, TimeSpan.FromSeconds(2)));
         }
         finally
         {
@@ -330,13 +270,7 @@ public sealed class WordConverterOwnershipTests
         info.ArgumentList.Add(cancellationPath);
         using var process = System.Diagnostics.Process.Start(info)!;
 
-        TimeSpan CalculateDelay()
-        {
-            var delay = TimeSpan.FromMilliseconds(100);
-            return delay;
-        }
-
-        using var cancellation = new CancellationTokenSource(CalculateDelay());
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         try
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>

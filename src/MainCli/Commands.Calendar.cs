@@ -190,9 +190,8 @@ public class CalendarCommands
                 {
                     if (data is not null)
                     {
-                        var cliOutput = output;
                         string line = $"{status}: {data.Account} / {data.CalendarName}";
-                        cliOutput.WriteHuman(line);
+                        output.WriteHuman(line);
                     }
                 },
             });
@@ -208,19 +207,16 @@ public class CalendarCommands
         var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            var list = actions;
             var item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
             ICliMessage item2 = item;
-            list.Add(item2);
+            actions.Add(item2);
         }
-        var list2 = actions;
         var item3 = new CalendarCreateAction(data.CalendarName);
         ICliMessage item4 = item3;
-        list2.Add(item4);
-        var list3 = actions;
+        actions.Add(item4);
         var item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
         ICliMessage item6 = item5;
-        list3.Add(item6);
+        actions.Add(item6);
         return actions.ToArray();
     }
 }

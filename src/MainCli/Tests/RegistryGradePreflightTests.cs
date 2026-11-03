@@ -179,81 +179,44 @@ public sealed class RegistryGradePreflightTests
             var number = path.EndsWith('1') ? 1 : 2;
             if (path.StartsWith("/evaluation", StringComparison.Ordinal))
             {
-                HttpResponseMessage CalculateResult()
-                {
-                    string html =
-                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>";
-                    var result = Response(
-                        html);
-                    return result;
-                }
-
                 return Task.FromResult(
-                    CalculateResult());
+                    Response($"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>"));
             }
 
             if (request.Method == HttpMethod.Post)
             {
-                bool CheckCondition()
+                bool IsLostResponseScenario()
                 {
-                    bool CalculateConditionResult()
+                    if (defect == "lost-first")
                     {
-                        if (defect == "lost-first")
-                        {
-                            return true;
-                        }
-                        if (defect != "lost-later")
-                        {
-                            return false;
-                        }
-
-                        if (number == 2)
-                        {
-                            return true;
-                        }
-
+                        return true;
+                    }
+                    if (defect != "lost-later")
+                    {
                         return false;
                     }
-
-                    bool conditionResult = CalculateConditionResult();
-
-
-                    return conditionResult;
+                    return number == 2;
                 }
 
-                if (CheckCondition())
+                if (IsLostResponseScenario())
                 {
                     throw new IOException("In-flight response lost");
                 }
 
-                bool CheckCondition2()
+                bool IsCancellationScenario()
                 {
-                    bool CalculateConditionResult2()
+                    if (defect == "cancel-first")
                     {
-                        if (defect == "cancel-first")
-                        {
-                            return true;
-                        }
-                        if (defect != "cancel-later")
-                        {
-                            return false;
-                        }
-
-                        if (number == 2)
-                        {
-                            return true;
-                        }
-
+                        return true;
+                    }
+                    if (defect != "cancel-later")
+                    {
                         return false;
                     }
-
-                    bool conditionResult2 = CalculateConditionResult2();
-
-
-                    return conditionResult2;
+                    return number == 2;
                 }
 
-                if (CheckCondition2())
+                if (IsCancellationScenario())
                 {
                     entered.TrySetResult();
                     return pending.Task;
@@ -265,19 +228,11 @@ public sealed class RegistryGradePreflightTests
                 ? "<input type='text' name='grade[1]' value='5'>"
                 : "";
 
-            string CalculateText()
-            {
-                if (number == 1)
-                {
-                    return "Popescu Ion";
-                }
-
-                return "Ionescu Ana";
-            }
+            string studentName = number == 1 ? "Popescu Ion" : "Ionescu Ana";
 
             return Task.FromResult(
                 Response(
-                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{CalculateText()}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
+                    $"<form method='post' action='/grades{number}'><table><tr><th>Numele</th><th>Nota</th></tr><tr><td>{studentName}</td><td><input type='text' {name} value='{(saved.Contains(path) ? "8" : "5")}'></td></tr></table>{extra}</form>"));
         });
         using var client = new HttpClient(handler);
         using var transport = new HttpClientContext(
@@ -363,24 +318,12 @@ public sealed class RegistryGradePreflightTests
                 cancellation.Token);
             if (defect.StartsWith("cancel", StringComparison.Ordinal))
             {
-                TimeSpan CalculateTimeout()
-                {
-                    var timeout = TimeSpan.FromSeconds(5);
-                    return timeout;
-                }
-
-                await entered.Task.WaitAsync(CalculateTimeout());
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 Assert.True(accountLock.Held);
                 cancellation.Cancel();
             }
 
-            TimeSpan CalculateTimeout2()
-            {
-                var timeout2 = TimeSpan.FromSeconds(5);
-                return timeout2;
-            }
-
-            Assert.Equal(expected: exit, actual: await task.WaitAsync(CalculateTimeout2()));
+            Assert.Equal(expected: exit, actual: await task.WaitAsync(TimeSpan.FromSeconds(5)));
             Assert.Equal(expected: posts, actual: handler.Posts);
             Assert.False(accountLock.Held);
             Assert.True(session.Disposed);
@@ -391,7 +334,7 @@ public sealed class RegistryGradePreflightTests
                 actual: root.GetProperty("exitCode")
                     .GetInt32());
 
-            string CalculateExpected()
+            string GetExpectedRunState()
             {
                 if (exit == 130)
                 {
@@ -407,7 +350,7 @@ public sealed class RegistryGradePreflightTests
             }
 
             Assert.Equal(
-                expected: CalculateExpected(),
+                expected: GetExpectedRunState(),
                 actual: root.GetProperty("status")
                     .GetString());
             Assert.Equal(
@@ -445,13 +388,7 @@ public sealed class RegistryGradePreflightTests
         {
             Assert.Equal(expected: Semester.Sem2, actual: semester);
 
-            Uri CalculateUrl()
-            {
-                Uri url = new("https://registry.test/course");
-                return url;
-            }
-
-            return Task.FromResult<IEnumerable<CourseLink>>([new(course, CalculateUrl())]);
+            return Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
         }
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
@@ -460,20 +397,6 @@ public sealed class RegistryGradePreflightTests
                 Enumerable.Range(start: 1, count: 2)
                     .Select(i =>
                     {
-                        Uri CalculateUri()
-                        {
-                            string uriString = $"https://registry.test/group{i}";
-                            Uri uri2 = new(uriString);
-                            return uri2;
-                        }
-
-                        Uri CalculateEvaluationUri()
-                        {
-                            string uriString2 = $"https://registry.test/evaluation{i}";
-                            Uri evaluationUri2 = new(uriString2);
-                            return evaluationUri2;
-                        }
-
                         return new GroupLink(
                             new FoundGroups
                             {
@@ -481,8 +404,8 @@ public sealed class RegistryGradePreflightTests
                                 Value = groups,
                             },
                             partition,
-                            uri: CalculateUri(),
-                            evaluationUri: CalculateEvaluationUri());
+                            uri: new Uri($"https://registry.test/group{i}"),
+                            evaluationUri: new Uri($"https://registry.test/evaluation{i}"));
                     }));
         }
 

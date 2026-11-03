@@ -24,14 +24,8 @@ public sealed class TeacherExportTests
     {
         using var files = new Fixture();
 
-        string CalculatePath()
-        {
-            string path2 = Path.Combine(files.Path, "schedulelib.json");
-            return path2;
-        }
-
         await File.WriteAllTextAsync(
-            path: CalculatePath(),
+            path: Path.Combine(files.Path, "schedulelib.json"),
             contents: """
                       {"schemaVersion":1,"defaults":{"DeadlinesExcelConfig":{"maxTaskRows":9,"columnWidth":8}},
                        "profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":3,"columnWidth":12,"lessonDelayLimit":5},
@@ -167,13 +161,7 @@ public sealed class TeacherExportTests
             .EnumerateArray());
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
 
-        bool CalculateCondition()
-        {
-            bool condition = Directory.Exists(files.Output.Directory);
-            return condition;
-        }
-
-        Assert.False(CalculateCondition());
+        Assert.False(Directory.Exists(files.Output.Directory));
     }
 
     [Fact]
@@ -199,13 +187,7 @@ public sealed class TeacherExportTests
         Assert.Equal(expected: 3, actual: result.Exit);
         Assert.Equal(expected: 0, actual: files.Theses.Reads);
 
-        bool CalculateCondition()
-        {
-            bool condition = Directory.Exists(files.Output.Directory);
-            return condition;
-        }
-
-        Assert.False(CalculateCondition());
+        Assert.False(Directory.Exists(files.Output.Directory));
     }
 
     [Theory]
@@ -367,13 +349,7 @@ public sealed class TeacherExportTests
         }
         else
         {
-            bool CalculateCondition()
-            {
-                bool condition = Directory.Exists(files.Output.Directory);
-                return condition;
-            }
-
-            Assert.False(CalculateCondition());
+            Assert.False(Directory.Exists(files.Output.Directory));
         }
     }
 
@@ -390,16 +366,10 @@ public sealed class TeacherExportTests
         files.Export.RejectSourceReads = true;
         var settingsFile = Path.Combine(files.Path, "schedulelib.json");
 
-        string CalculateNewValue()
-        {
-            string newValue = rows.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            return newValue;
-        }
-
         var settings = """
                        {"schemaVersion":1,"defaults":{"DeadlinesExcelConfig":{"maxTaskRows":9}},
                         "profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":ROWS}}}}
-                       """.Replace("ROWS", CalculateNewValue());
+                       """.Replace("ROWS", rows.ToString(System.Globalization.CultureInfo.InvariantCulture));
         await File.WriteAllTextAsync(path: settingsFile, contents: settings);
         var originalSource = await File.ReadAllBytesAsync(files.SourceFile);
         var existingWorkbook = Path.Combine(files.Output.Directory!, "deadlines.xlsx");
@@ -440,13 +410,7 @@ public sealed class TeacherExportTests
         Assert.Contains(expectedSubstring: TestProfiles.Owner, actualString: error);
         Assert.Contains(expectedSubstring: "between 1 and 1048575", actualString: error);
 
-        string CalculateExpectedSubstring()
-        {
-            string expectedSubstring2 = $"resolved value is {rows}";
-            return expectedSubstring2;
-        }
-
-        Assert.Contains(expectedSubstring: CalculateExpectedSubstring(), actualString: error);
+        Assert.Contains(expectedSubstring: $"resolved value is {rows}", actualString: error);
         Assert.Contains(error!, result.Stderr);
         Assert.Empty(result.Json.GetProperty("outputs")
             .EnumerateArray());
@@ -476,13 +440,7 @@ public sealed class TeacherExportTests
         }
         else
         {
-            bool CalculateCondition()
-            {
-                bool condition = Directory.Exists(files.Output.Directory);
-                return condition;
-            }
-
-            Assert.False(CalculateCondition());
+            Assert.False(Directory.Exists(files.Output.Directory));
         }
     }
 
@@ -494,14 +452,8 @@ public sealed class TeacherExportTests
         using var files = new Fixture();
         if (rows == 1)
         {
-            string CalculatePath()
-            {
-                string path2 = Path.Combine(files.Path, "schedulelib.json");
-                return path2;
-            }
-
             await File.WriteAllTextAsync(
-                path: CalculatePath(),
+                path: Path.Combine(files.Path, "schedulelib.json"),
                 contents: """
                           {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"DeadlinesExcelConfig":{"maxTaskRows":1},
                            "LabTasksDatabaseConfig":{"sources":[]}}}}
@@ -568,13 +520,7 @@ public sealed class TeacherExportTests
             .GetProperty("outputDirectory")
             .GetString()!;
 
-        string CalculateExpected()
-        {
-            string expected2 = Path.Combine(files.Path, "output");
-            return expected2;
-        }
-
-        string expected3 = CalculateExpected();
+        string expected3 = Path.Combine(files.Path, "output");
         string? actual2 = Path.GetDirectoryName(directory);
         Assert.Equal(expected: expected3, actual: actual2);
         Assert.NotEqual(
@@ -648,13 +594,7 @@ public sealed class TeacherExportTests
         Assert.Equal(expected: 8, actual: result.Exit);
         Assert.Contains(expectedSubstring: "does not support", actualString: result.Stderr);
 
-        bool CalculateCondition()
-        {
-            bool condition = Directory.Exists(files.Output.Directory);
-            return condition;
-        }
-
-        Assert.False(CalculateCondition());
+        Assert.False(Directory.Exists(files.Output.Directory));
     }
 
     [Fact]
@@ -729,12 +669,6 @@ public sealed class TeacherExportTests
         }
         var cancelled = await Capture(() =>
         {
-            CancellationToken CalculateCancellationToken()
-            {
-                CancellationToken cancellationToken = new(canceled: true);
-                return cancellationToken;
-            }
-
             return files.Export.LabDeadlines(
                 files.Source,
                 files.Output,
@@ -743,7 +677,7 @@ public sealed class TeacherExportTests
                     Json = true,
                 },
                 files.Settings,
-                CalculateCancellationToken());
+                new CancellationToken(canceled: true));
         });
         Assert.Equal(expected: 130, actual: cancelled.Exit);
         Assert.Equal(
@@ -798,14 +732,7 @@ public sealed class TeacherExportTests
                 .EnumerateArray()
                 .Select(x => x.GetString()));
 
-        string CalculateJson()
-        {
-            string path = Path.Combine(directory, "schedulelib-manifest.json");
-            string json = File.ReadAllText(path);
-            return json;
-        }
-
-        using var manifest = JsonDocument.Parse(CalculateJson());
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "schedulelib-manifest.json")));
         Assert.Equal(
             expected: command,
             actual: manifest.RootElement.GetProperty("Command")
@@ -901,19 +828,13 @@ public sealed class TeacherExportTests
             string? sourceDirectory = System.IO.Path.GetDirectoryName(SourceFile);
             Directory.CreateDirectory(sourceDirectory!);
 
-            string CalculateFile()
-            {
-                string file = System.IO.Path.Combine(
+            using var book = new XLWorkbook(
+                System.IO.Path.Combine(
                     AppContext.BaseDirectory,
                     "fixtures",
                     "2025_sem2",
                     "zi",
-                    "master.xlsx");
-                return file;
-            }
-
-            using var book = new XLWorkbook(
-                CalculateFile());
+                    "master.xlsx"));
             var sheet = book.Worksheet(1);
             sheet.Range("D4:E18")
                 .Clear(XLClearOptions.Contents);
@@ -979,36 +900,18 @@ public sealed class TeacherExportTests
                 x.QualificationType(QualificationType.Master);
                 x.Semester(Semester.Sem1);
 
-                DateOnly CalculateStart()
-                {
-                    var start = new DateOnly(
+                x.LessonsStart(new DateOnly(
                         year: 2026,
                         month: 9,
-                        day: 1);
-                    return start;
-                }
+                        day: 1));
 
-                x.LessonsStart(CalculateStart());
-
-                DateOnly CalculateEnd()
-                {
-                    var end = new DateOnly(
+                x.LessonsEndInclusive(new DateOnly(
                         year: 2026,
                         month: 12,
-                        day: 13);
-                    return end;
-                }
-
-                x.LessonsEndInclusive(CalculateEnd());
-
-                Grade CalculateGrade()
-                {
-                    Grade grade = new(1);
-                    return grade;
-                }
+                        day: 13));
 
                 x.Range()
-                    .Grade(CalculateGrade());
+                    .Grade(new Grade(1));
             });
             services.AddSingleton(dates.Build());
             services.Configure<PreDefenseOptions>(x =>

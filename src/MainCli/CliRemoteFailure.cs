@@ -34,25 +34,8 @@ internal static class CliRemoteFailure
         GoogleFailureMessages messages,
         bool partialBundle = false)
     {
-        bool CalculateConditionResult()
-        {
-            if (!context.Cancellation.IsCancellationRequested)
-            {
-                return false;
-            }
-
-            if (error is OperationCanceledException or GooglePreSendTransportException)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (context.Cancellation.IsCancellationRequested
+            && error is OperationCanceledException or GooglePreSendTransportException)
         {
             return new(CliExit.Cancelled, ["Cancelled."]);
         }
@@ -61,7 +44,7 @@ internal static class CliRemoteFailure
             return new(CliExit.AuthenticationRequired, [authentication.Message]);
         }
 
-        bool CalculateConditionResult2()
+        bool RequiresGoogleLogin()
         {
             if (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException token
                 && GoogleTokenErrors.RequiresLogin(token))
@@ -77,10 +60,7 @@ internal static class CliRemoteFailure
             return false;
         }
 
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (RequiresGoogleLogin())
         {
             var authenticationError = new AuthenticationRequiredException(provider: "google", teacher: profile ?? "");
             return new(CliExit.AuthenticationRequired, [authenticationError.Message]);

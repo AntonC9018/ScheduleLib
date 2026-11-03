@@ -194,17 +194,11 @@ public sealed class DriveSyncTests
         using var temp = new TestTempDirectory("schedulelib-tests");
         using var fake = new Fake();
 
-        string CalculatePath()
-        {
-            string path = DriveSync.LockPath(
+        await using (var lease = await LocalFileLock.Acquire(
+                         DriveSync.LockPath(
                 root: temp.Path,
                 account: "actual-account",
-                folderId: "actual-folder");
-            return path;
-        }
-
-        await using (var lease = await LocalFileLock.Acquire(
-                         CalculatePath(),
+                folderId: "actual-folder"),
                          default))
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => DriveSync.Run(
@@ -263,13 +257,7 @@ public sealed class DriveSyncTests
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
 
-        string CalculatePath()
-        {
-            string path2 = Path.Combine(temp.Path, "caller.pdf");
-            return path2;
-        }
-
-        await File.WriteAllTextAsync(path: CalculatePath(), contents: "untouched");
+        await File.WriteAllTextAsync(path: Path.Combine(temp.Path, "caller.pdf"), contents: "untouched");
         using var fake = new Fake();
         var original = Console.Out;
         using var text = new StringWriter();
@@ -302,18 +290,10 @@ public sealed class DriveSyncTests
                     }));
             using var json = System.Text.Json.JsonDocument.Parse(text.ToString());
 
-            string CalculateExpected()
-            {
-                if (apply)
-                {
-                    return "applied";
-                }
-
-                return "preview";
-            }
+            string expectedStatus = apply ? "applied" : "preview";
 
             Assert.Equal(
-                expected: CalculateExpected(),
+                expected: expectedStatus,
                 actual: json.RootElement.GetProperty("status")
                     .GetString());
             var actions = json.RootElement.GetProperty("data")
@@ -357,13 +337,7 @@ public sealed class DriveSyncTests
                 Assert.Empty(fake.Writes);
             }
 
-            string CalculatePath3()
-            {
-                string path4 = Path.Combine(temp.Path, "caller.pdf");
-                return path4;
-            }
-
-            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(CalculatePath3()));
+            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(Path.Combine(temp.Path, "caller.pdf")));
         }
         finally
         {
@@ -492,20 +466,11 @@ public sealed class DriveSyncTests
 
         private int _folderCalls;
 
-        public Task<DriveAccount> GetAccount(CancellationToken token)
-        {
-            DriveAccount CalculateResult()
-            {
-                var result = new DriveAccount(Id: "actual-account", Email: "actual@example.test");
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
-        }
+        public Task<DriveAccount> GetAccount(CancellationToken token) => Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
         {
-            bool CheckCondition()
+            bool ShouldChangeFolder()
             {
                 if (!ChangeFolder)
                 {
@@ -522,7 +487,7 @@ public sealed class DriveSyncTests
             }
 
             string id;
-            if (CheckCondition())
+            if (ShouldChangeFolder())
             {
                 id = "changed-folder";
             }
@@ -547,14 +512,7 @@ public sealed class DriveSyncTests
 
         public Task Delete(string id, CancellationToken token)
         {
-            string CalculateItem()
-            {
-                string text = $"delete {id}";
-                string item = text;
-                return item;
-            }
-
-            Writes.Add(CalculateItem());
+            Writes.Add($"delete {id}");
             if (FailDelete)
             {
                 throw new Google.GoogleApiException(serviceName: "drive", message: "Rejected")
@@ -575,14 +533,7 @@ public sealed class DriveSyncTests
         {
             Assert.True(input.Length > 0);
 
-            string CalculateItem()
-            {
-                string text = $"create {name}";
-                string item = text;
-                return item;
-            }
-
-            Writes.Add(CalculateItem());
+            Writes.Add($"create {name}");
             if (Fail == "lost")
             {
                 throw new IOException("Lost response");
@@ -620,14 +571,7 @@ public sealed class DriveSyncTests
         {
             Assert.True(input.Length > 0);
 
-            string CalculateItem()
-            {
-                string text = $"update {id}";
-                string item = text;
-                return item;
-            }
-
-            Writes.Add(CalculateItem());
+            Writes.Add($"update {id}");
             return Task.FromResult(id);
         }
 

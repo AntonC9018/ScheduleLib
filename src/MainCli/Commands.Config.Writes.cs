@@ -91,20 +91,7 @@ public sealed partial class ConfigCommands
                     request.Verb);
             }
 
-            string? CalculateOperation()
-            {
-                string? operation2;
-                if (request.Verb is "remove" or "clear")
-                {
-                    operation2 = request.Verb;
-                }
-                else
-                {
-                    operation2 = null;
-                }
-
-                return operation2;
-            }
+            string? operation = request.Verb is "remove" or "clear" ? request.Verb : null;
 
             var result = await CliSettings.Edit(
                 request.Settings,
@@ -113,7 +100,7 @@ public sealed partial class ConfigCommands
                 value: request.Value,
                 request.Verb == "unset",
                 cancellation.Token,
-                operation: CalculateOperation(),
+                operation: operation,
                 item: request.Item);
             return CliConfigExecution.Finish(
                 context,

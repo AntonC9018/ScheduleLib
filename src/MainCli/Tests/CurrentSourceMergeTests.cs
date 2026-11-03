@@ -39,35 +39,30 @@ public sealed class CurrentSourceMergeTests
             var cloudLabs = raw.EnumerateWeeklyLessons()
                 .Where(x =>
                 {
-                    bool CheckCondition()
+                    if (x.Lesson.Type != LessonType.Lab)
                     {
-                        if (x.Lesson.Type != LessonType.Lab)
-                        {
-                            return false;
-                        }
-
-                        if (!x.Lesson.Groups.IsSingleGroup)
-                        {
-                            return false;
-                        }
-
-                        if (raw.Get(x.Lesson.Group).Name != "IA2402")
-                        {
-                            return false;
-                        }
-
-                        if (raw.Get(x.Lesson.Course).Names
-                            .Any(name => name.Contains(
-                                "Cloud",
-                                StringComparison.OrdinalIgnoreCase)))
-                        {
-                            return true;
-                        }
-
                         return false;
                     }
 
-                    return CheckCondition();
+                    if (!x.Lesson.Groups.IsSingleGroup)
+                    {
+                        return false;
+                    }
+
+                    if (raw.Get(x.Lesson.Group).Name != "IA2402")
+                    {
+                        return false;
+                    }
+
+                    if (raw.Get(x.Lesson.Course).Names
+                        .Any(name => name.Contains(
+                            "Cloud",
+                            StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 })
                 .ToArray();
             Assert.Contains(
@@ -143,11 +138,14 @@ public sealed class CurrentSourceMergeTests
 
             var ai = Assert.Single(
                 merged.AutomaticLabSubGroupMerges.Where(x =>
-                    merged.Get(x.Group).Name == "IA2404"
-                    && merged.Get(x.Course).Names
-                        .Any(name => name.StartsWith(
-                            "Intel",
-                            StringComparison.OrdinalIgnoreCase))));
+
+                    {
+                        return merged.Get(x.Group).Name == "IA2404"
+                        && merged.Get(x.Course).Names
+                            .Any(name => name.StartsWith(
+                                "Intel",
+                                StringComparison.OrdinalIgnoreCase));
+                    }));
             var labs = merged.EnumerateWeeklyLessons()
                 .Where(x =>
                 {
@@ -313,13 +311,7 @@ public sealed class CurrentSourceMergeTests
                 later,
                 x =>
                 {
-                    Alternative CalculateExpected()
-                    {
-                        var expected2 = new Alternative("Antreprenoriat inovativ");
-                        return expected2;
-                    }
-
-                    Assert.Equal(expected: CalculateExpected(), actual: x.Lesson.Alternative);
+                    Assert.Equal(expected: new Alternative("Antreprenoriat inovativ"), actual: x.Lesson.Alternative);
                 });
             Assert.Contains(
                 fresh.EnumerateWeeklyLessons(),

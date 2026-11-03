@@ -70,11 +70,10 @@ internal static class CliAuthenticationExecution
         for (var index = 0; index < data.Accounts.Count; index++)
         {
             var account = data.Accounts[index];
-            var cliOutput = cli;
             string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var status2 = ActionState.Completed;
             object item = account;
-            cliOutput.EmitItem(
+            cli.EmitItem(
                 id: id2,
                 status: status2,
                 item);
@@ -98,9 +97,8 @@ internal static class CliAuthenticationExecution
             {
                 foreach (var account in data.Accounts)
                 {
-                    var cliOutput = cli;
                     string line = $"{account.AccountId}: {account.State.ToWire()}";
-                    cliOutput.WriteHuman(line);
+                    cli.WriteHuman(line);
                 }
 
                 var provisioned = "provisioned";
@@ -108,9 +106,8 @@ internal static class CliAuthenticationExecution
                 {
                     provisioned = "not provisioned";
                 }
-                var cliOutput2 = cli;
                 string line2 = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
-                cliOutput2.WriteHuman(line2);
+                cli.WriteHuman(line2);
             },
         });
     }

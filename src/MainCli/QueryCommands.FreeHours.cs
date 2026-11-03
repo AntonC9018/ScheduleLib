@@ -92,7 +92,10 @@ public partial class QueryCommands
                 return Finish(CliExit.InvalidArguments, [UnknownGroups(unknown: unknown, known: known)]);
             }
 
-            var ambiguous = names.Where(name => known.Count(x => x == name) > 1)
+            var ambiguous = names.Where(name =>
+            {
+                return known.Count(x => x == name) > 1;
+            })
                 .ToArray();
             if (ambiguous.Length > 0)
             {
@@ -152,10 +155,9 @@ public partial class QueryCommands
                     output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
                     foreach (var day in section.Days)
                     {
-                        var cliOutput = output;
                         string line =
                             $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
-                        cliOutput.WriteHuman(
+                        output.WriteHuman(
                             line);
                     }
                 };

@@ -154,25 +154,7 @@ public sealed class CliOutput
 
     public void WriteHuman(string line)
     {
-        bool CalculateConditionResult()
-        {
-            if (Json)
-            {
-                return true;
-            }
-
-            if (Jsonl)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (Json || Jsonl)
         {
             return;
         }
@@ -186,25 +168,7 @@ public sealed class CliOutput
 
     public void WriteHuman<TMessage>(TMessage message) where TMessage : ICliMessage
     {
-        bool CalculateConditionResult()
-        {
-            if (Json)
-            {
-                return true;
-            }
-
-            if (Jsonl)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (Json || Jsonl)
         {
             return;
         }
@@ -445,7 +409,6 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                         collected.Add(scope?.ToString() ?? string.Empty);
                     },
                     scopes);
-            var cliOutput = output;
             var level = logLevel;
             string message2 = message;
             string? exception2 = exception?.ToString();
@@ -473,7 +436,7 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
             IReadOnlyList<string>? scopes3 = scopes2;
             string category2 = category;
             var timestamp = DateTimeOffset.UtcNow;
-            cliOutput.WriteStructuredLog(
+            output.WriteStructuredLog(
                 level,
                 message: message2,
                 exception: exception2,

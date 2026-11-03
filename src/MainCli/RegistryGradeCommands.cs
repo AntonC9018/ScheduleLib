@@ -12,27 +12,22 @@ public sealed class QuizArguments : IArgumentModel
     {
         get
         {
-            bool CheckCondition()
+            if (!(QuizId is { Length: > 0 }))
             {
-                if (!(QuizId is { Length: > 0 }))
-                {
-                    return false;
-                }
-
-                if (!QuizId.All(x => x is >= '0' and <= '9'))
-                {
-                    return false;
-                }
-
-                if (QuizId.Any(x => x != '0'))
-                {
-                    return true;
-                }
-
                 return false;
             }
 
-            return CheckCondition();
+            if (!QuizId.All(x => x is >= '0' and <= '9'))
+            {
+                return false;
+            }
+
+            if (QuizId.Any(x => x != '0'))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }
@@ -123,15 +118,13 @@ public partial class RegistryCommands
             notices.AddRange(plan.Notices);
             foreach (var notice in notices)
             {
-                var list = warnings;
                 string item = $"{notice.Kind.ToWire()}: {notice.Detail}";
-                list.Add(item);
+                warnings.Add(item);
             }
 
             foreach (var action in plan.Actions)
             {
                 actionIndexes.Add(action, outcomes.Count);
-                var action2 = action;
                 ActionState status3;
                 if (apply.Apply)
                 {
@@ -144,7 +137,7 @@ public partial class RegistryCommands
 
                 string? detail2 = null;
                 var initial = ToOutcome(
-                    action2,
+                    action,
                     status: status3,
                     detail: detail2);
                 outcomes.Add(initial);
@@ -235,21 +228,13 @@ public partial class RegistryCommands
             object item = outcome;
             Action renderHuman2 = () =>
             {
-                string CalculateLine()
-                {
-                    string line =
-                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
-                    return line;
-                }
-
                 output.WriteHuman(
-                    CalculateLine());
+                    $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}");
                 foreach (var grade in outcome.Grades)
                 {
-                    var cliOutput = output;
                     string line2 =
                         $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
-                    cliOutput.WriteHuman(
+                    output.WriteHuman(
                         line2);
                 }
             };
@@ -310,9 +295,8 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        var cliOutput = output;
                         string line = $"{status}: {target.Destination} (account {target.Account})";
-                        cliOutput.WriteHuman(line);
+                        output.WriteHuman(line);
                     }
                 },
             });

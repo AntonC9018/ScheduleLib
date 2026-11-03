@@ -49,15 +49,8 @@ public static class StorageProbe
         }
         if (args[0] == "interrupt")
         {
-            string CalculatePath()
-            {
-                string text = $"{args[1]}.lock";
-                string path = text;
-                return path;
-            }
-
             await using var lease = await LocalFileLock.Acquire(
-                CalculatePath(),
+                $"{args[1]}.lock",
                 CancellationToken.None,
                 wait: true);
             await AtomicFile.Publish(

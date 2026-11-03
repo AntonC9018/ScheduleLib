@@ -34,18 +34,10 @@ public sealed class RegistryLessonAdapterTests
         const string list = "/studregistry/LessonAttendance/LessonsList/1?groupId=2";
         const string detail = "/studregistry/LessonAttendance/LessonDetail/42";
 
-        string CalculateText()
-        {
-            if (scenario == "identity")
-            {
-                return "43";
-            }
-
-            return "42";
-        }
+        string submittedIdentity = scenario == "identity" ? "43" : "42";
 
         var details =
-            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{CalculateText()}'></form>";
+            $"<a href='{list}'>Back</a><form name='deleteLessonForm' method='post' action='/delete'><input name='lessonId' value='{submittedIdentity}'></form>";
         string text;
         if (scenario == "present")
         {
@@ -137,13 +129,7 @@ public sealed class RegistryLessonAdapterTests
             serviceProvider,
             cancellationToken);
 
-        Uri CalculateUri()
-        {
-            Uri uri = new("https://registry.test" + detail);
-            return uri;
-        }
-
-        var document = await navigator.GetHtml(CalculateUri());
+        var document = await navigator.GetHtml(new Uri("https://registry.test" + detail));
         if (scenario == "absent")
         {
             await navigator.SubmitDelete(document);
@@ -250,24 +236,19 @@ public sealed class RegistryLessonAdapterTests
             serviceProvider,
             cancellationToken);
 
-        Uri CalculateUri()
-        {
-            string text = $"https://registry.test/{kind}";
-            string uriString = text;
-            Uri uri = new(uriString);
-            return uri;
-        }
-
-        var document = await navigator.GetHtml(CalculateUri());
+        var document = await navigator.GetHtml(new Uri($"https://registry.test/{kind}"));
         var started = false;
-        var error = await Assert.ThrowsAnyAsync<Exception>(() => Submit(
-            navigator,
-            document,
-            kind,
-            () =>
-            {
-                started = true;
-            }));
+        var error = await Assert.ThrowsAnyAsync<Exception>(() =>
+        {
+            return Submit(
+                navigator,
+                document,
+                kind,
+                () =>
+                {
+                    started = true;
+                });
+        });
         Assert.Equal(expected: rejected, actual: error is RegistrySubmissionRejectedException);
         if (!rejected)
         {
@@ -331,15 +312,7 @@ public sealed class RegistryLessonAdapterTests
             serviceProvider,
             cancellationToken);
 
-        Uri CalculateUri()
-        {
-            string text = $"https://registry.test/{kind}";
-            string uriString = text;
-            Uri uri = new(uriString);
-            return uri;
-        }
-
-        var document = await navigator.GetHtml(CalculateUri());
+        var document = await navigator.GetHtml(new Uri($"https://registry.test/{kind}"));
         var started = false;
         await Submit(
             navigator,
@@ -398,24 +371,19 @@ public sealed class RegistryLessonAdapterTests
             serviceProvider,
             cancellationToken);
 
-        Uri CalculateUri()
-        {
-            string text = $"https://registry.test/{kind}";
-            string uriString = text;
-            Uri uri = new(uriString);
-            return uri;
-        }
-
-        var document = await navigator.GetHtml(CalculateUri());
+        var document = await navigator.GetHtml(new Uri($"https://registry.test/{kind}"));
         var started = false;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Submit(
-            navigator,
-            document,
-            kind,
-            () =>
-            {
-                started = true;
-            }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        {
+            return Submit(
+                navigator,
+                document,
+                kind,
+                () =>
+                {
+                    started = true;
+                });
+        });
         Assert.False(started);
         Assert.Equal(expected: 0, actual: handler.Posts);
     }
@@ -519,13 +487,7 @@ public sealed class RegistryLessonAdapterTests
             serviceProvider,
             cancellationToken);
 
-        Uri CalculateUri()
-        {
-            Uri uri = new("https://registry.test/create");
-            return uri;
-        }
-
-        var document = await navigator.GetHtml(CalculateUri());
+        var document = await navigator.GetHtml(new Uri("https://registry.test/create"));
         if (scenario is "match" or "topic-line-endings")
         {
             await navigator.SubmitLesson(document);
@@ -536,39 +498,27 @@ public sealed class RegistryLessonAdapterTests
         }
 
         Assert.Equal(expected: 1, actual: handler.Posts);
-        int expected2;
+        int expectedReads;
         if (scenario == "foreign")
         {
-            expected2 = 1;
+            expectedReads = 1;
+        }
+        else if (scenario is "missing" or "list-login")
+        {
+            expectedReads = 2;
+        }
+        else if (scenario == "duplicate")
+        {
+            expectedReads = 4;
         }
         else
         {
-            int int32;
-            if (scenario is "missing" or "list-login")
-            {
-                int32 = 2;
-            }
-            else
-            {
-                int int322;
-                if (scenario == "duplicate")
-                {
-                    int322 = 4;
-                }
-                else
-                {
-                    int322 = 3;
-                }
-
-                int32 = int322;
-            }
-
-            expected2 = int32;
+            expectedReads = 3;
         }
 
         int actual2 = handler.Reads;
         Assert.Equal(
-            expected: expected2,
+            expected: expectedReads,
             actual: actual2);
         Assert.Equal(expected: 0, actual: auth.Calls);
     }
@@ -620,13 +570,7 @@ public sealed class RegistryLessonAdapterTests
                 Reads++;
             }
 
-            HttpResponseMessage CalculateResult()
-            {
-                var result = send(request);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(send(request));
         }
     }
 }

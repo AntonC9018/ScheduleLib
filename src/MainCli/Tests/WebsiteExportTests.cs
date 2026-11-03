@@ -324,16 +324,10 @@ public sealed class WebsiteExportTests
     [InlineData("website-theses")]
     public async Task WebsiteExportsMapConnectionFailureToExit5(string command)
     {
-        HttpRequestException CalculateError()
-        {
-            var error = new HttpRequestException("connection refused");
-            return error;
-        }
-
         var fixture = new FixtureWebsite
         {
             UseFakeSlugProvider = false,
-            HttpHandlerOverride = new FakeThrowingHandler(CalculateError()),
+            HttpHandlerOverride = new FakeThrowingHandler(new HttpRequestException("connection refused")),
         };
         var teachers = await fixture.DiscoverTeachersAsync();
         fixture.ThesesXlsx = BuildThesesXlsx(mappedMentor: teachers.Display1, unmappedMentor: teachers.Display2);
@@ -696,12 +690,8 @@ public sealed class WebsiteExportTests
 
         for (var row = 0; row < rows.Length; row++)
         {
-            var iXLWorksheet = sheet;
-            int row2 = row + 2;
-            int column2 = 1;
-            var cell = iXLWorksheet.Cell(row: row2, column: column2);
-            int int32 = row + 1;
-            cell.Value = int32;
+            var cell = sheet.Cell(row: row + 2, column: 1);
+            cell.Value = row + 1;
             sheet.Cell(row: row + 2, column: 2).Value = rows[row].Group;
             sheet.Cell(row: row + 2, column: 3).Value = rows[row].Student;
             sheet.Cell(row: row + 2, column: 4).Value = rows[row].Mentor;
@@ -791,32 +781,14 @@ public sealed class WebsiteExportTests
 
     private sealed class FakeThesesFileProvider(byte[] bytes) : IThesesFileProvider
     {
-        public ValueTask<Stream> Open(CancellationToken cancellationToken)
-        {
-            MemoryStream CalculateResult()
-            {
-                var result = new MemoryStream(bytes, writable: false);
-                return result;
-            }
-
-            return ValueTask.FromResult<Stream>(CalculateResult());
-        }
+        public ValueTask<Stream> Open(CancellationToken cancellationToken) => ValueTask.FromResult<Stream>(new MemoryStream(bytes, writable: false));
     }
 
     private sealed class FakeFailingStatusHandler(HttpStatusCode status) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage(status);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
-        }
+            CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(status));
     }
 
     private sealed class FakeThrowingHandler(Exception error) : HttpMessageHandler
@@ -833,14 +805,8 @@ public sealed class WebsiteExportTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            TaskCanceledException CalculateException()
-            {
-                var exception = new TaskCanceledException(
-                    "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.");
-                return exception;
-            }
-
-            return Task.FromException<HttpResponseMessage>(CalculateException());
+            return Task.FromException<HttpResponseMessage>(new TaskCanceledException(
+                    "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing."));
         }
     }
 

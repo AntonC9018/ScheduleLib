@@ -111,18 +111,16 @@ public partial class ExportCommands
                 if (!slugLookup.TryGetValue(name, out var slug))
                 {
                     missingSlugs.Add(name.ToString());
-                    var list2 = warnings;
                     string item2 = $"No slug for '{name}'.";
-                    list2.Add(item2);
+                    warnings.Add(item2);
                     continue;
                 }
                 var model = WebsiteJsonScheduleHelper.CreateSerializationModel(filteredSchedule, displays);
                 if (model.ScheduleDaysDto.IsEmpty)
                 {
                     omittedEmpty.Add(name.ToString());
-                    var list3 = warnings;
                     string item3 = $"Teacher '{name}' has no website schedule entries and is omitted.";
-                    list3.Add(item3);
+                    warnings.Add(item3);
                     continue;
                 }
                 using var buffer = new MemoryStream();
@@ -221,10 +219,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });
@@ -309,15 +306,9 @@ public partial class ExportCommands
                     cancellation.Token.ThrowIfCancellationRequested();
                     var stagedName = Path.GetFileName(file.Path);
 
-                    string CalculatePath()
-                    {
-                        string path = staging.BuildPath(file.Path);
-                        return path;
-                    }
-
                     if (!files.TryAdd(
                             stagedName,
-                            await File.ReadAllBytesAsync(CalculatePath(), cancellation.Token)))
+                            await File.ReadAllBytesAsync(staging.BuildPath(file.Path), cancellation.Token)))
                     {
                         throw new DuplicateWebsiteArtifactNameException(stagedName);
                     }
@@ -417,10 +408,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {files.Count} files, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });

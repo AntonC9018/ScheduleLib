@@ -84,23 +84,10 @@ public partial class RegistryCommands
         bool cleanupIntakeLabs,
         CancellationToken cancellationToken)
     {
-        string CalculateCommand()
-        {
-            string command;
-            if (cleanupIntakeLabs)
-            {
-                command = "registry cleanup-intake-labs";
-            }
-            else
-            {
-                command = "registry sync";
-            }
-
-            return command;
-        }
+        string command = cleanupIntakeLabs ? "registry cleanup-intake-labs" : "registry sync";
 
         using var context = new CliCommandContext(
-            CalculateCommand(),
+            command,
             result,
             cancellationToken);
         if (!context.Start())
@@ -116,7 +103,6 @@ public partial class RegistryCommands
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = context.Warnings;
-        var list = warnings;
         string item2;
         if (cleanupIntakeLabs)
         {
@@ -128,7 +114,7 @@ public partial class RegistryCommands
             item2 = "Existing positional matching is used; updates are not a semantic minimum patch.";
         }
 
-        list.Add(
+        warnings.Add(
             item2);
         var attempted = false;
         var finalExit = CliExit.Unexpected;
@@ -184,7 +170,6 @@ public partial class RegistryCommands
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
-                    var action2 = action;
                     ActionState status2;
                     if (!action.Enabled)
                     {
@@ -207,7 +192,7 @@ public partial class RegistryCommands
 
                     string? detail2 = action.Omission;
                     var initial = ToOutcome(
-                        action2,
+                        action,
                         status: status2,
                         detail: detail2);
                     outcomes.Add(initial);
@@ -320,15 +305,8 @@ public partial class RegistryCommands
             object item = outcome;
             Action renderHuman2 = () =>
             {
-                string CalculateLine()
-                {
-                    string line =
-                        $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
-                    return line;
-                }
-
                 output.WriteHuman(
-                    CalculateLine());
+                    $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}");
             };
             cliCommandContext.StreamItem(
                 id: id2,
@@ -414,9 +392,8 @@ public partial class RegistryCommands
                 {
                     if (target is not null)
                     {
-                        var cliOutput = output;
                         string line = $"{status}: {target.Destination} (account {target.Account})";
-                        cliOutput.WriteHuman(line);
+                        output.WriteHuman(line);
                     }
                 },
             });

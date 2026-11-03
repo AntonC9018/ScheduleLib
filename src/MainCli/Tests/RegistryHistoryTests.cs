@@ -75,16 +75,9 @@ public sealed class RegistryHistoryTests
                     text3;
             }
 
-            string CalculateContent()
-            {
-                string text = $"<a href='/studregistry/Account/Logout'>Exit</a>{html}";
-                string content = text;
-                return content;
-            }
-
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(CalculateContent()),
+                Content = new StringContent($"<a href='/studregistry/Account/Logout'>Exit</a>{html}"),
             });
         });
         using var client = new HttpClient(inner);
@@ -114,13 +107,7 @@ public sealed class RegistryHistoryTests
     [Fact]
     public void YearNavigationUsesObservedGetFormAndEncodedValue()
     {
-        AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-        {
-            var document = new HtmlParser().ParseDocument(Years);
-            return document;
-        }
-
-        var years = RegistryHistoryHtml.Years(CalculateDocument(), Index);
+        var years = RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(Years), Index);
         Assert.Equal(
             expected: new[]
             {
@@ -162,13 +149,7 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-            {
-                var document = new HtmlParser().ParseDocument(html);
-                return document;
-            }
-
-            return RegistryHistoryHtml.Years(CalculateDocument(), Index);
+            return RegistryHistoryHtml.Years(new HtmlParser().ParseDocument(html), Index);
         });
         Assert.Equal(expected: phase, actual: error.Phase);
         Assert.Equal(expected: diagnostic, actual: error.Diagnostic);
@@ -182,13 +163,7 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-            {
-                var document = new HtmlParser().ParseDocument(html);
-                return document;
-            }
-
-            return RegistryHistoryHtml.Groups(CalculateDocument(), Index);
+            return RegistryHistoryHtml.Groups(new HtmlParser().ParseDocument(html), Index);
         });
         Assert.Equal(expected: RegistryHistoryPhase.Groups, actual: error.Phase);
         Assert.Contains(
@@ -205,17 +180,11 @@ public sealed class RegistryHistoryTests
     {
         var error = Assert.Throws<RegistryHistoryException>(() =>
         {
-            AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-            {
-                var document = new HtmlParser().ParseDocument(
+            return RegistryHistoryHtml.Courses(
+                new HtmlParser().ParseDocument(
                     """
                     <div id='nav-1'><a href='/studregistry/LessonAttendance/groups/1'>changed layout</a></div><div id='nav-2'></div>
-                    """);
-                return document;
-            }
-
-            return RegistryHistoryHtml.Courses(
-                CalculateDocument(),
+                    """),
                 Index);
         });
         Assert.Equal(expected: RegistryHistoryPhase.Index, actual: error.Phase);
@@ -246,20 +215,14 @@ public sealed class RegistryHistoryTests
             },
             actual: courses.Select(x => x.Semester));
 
-        AngleSharp.Html.Dom.IHtmlDocument CalculateDocument()
-        {
-            var document2 = new HtmlParser().ParseDocument(
+        var groups = RegistryHistoryHtml.Groups(
+            new HtmlParser().ParseDocument(
                 """
                 <form name='lesson'><div class='row'></div><div class='row'><div class='col'><div class='row'>
                 <a href='/studregistry/LessonAttendance/LessonsList/1?groupId=2'>Repeat / unknown notation</a>
                 <a href='/studregistry/Evaluation/Index/1?groupId=2'>grades</a>
                 </div></div></div></form>
-                """);
-            return document2;
-        }
-
-        var groups = RegistryHistoryHtml.Groups(
-            CalculateDocument(),
+                """),
             Index);
         string expected2 = "Repeat / unknown notation";
         var single = Assert.Single(groups);
@@ -305,32 +268,14 @@ public sealed class RegistryHistoryTests
     {
         using var inner = new FakeHandler((_, _) =>
         {
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage(HttpStatusCode.OK);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new(Index, "../Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         if (allowed)
@@ -365,32 +310,14 @@ public sealed class RegistryHistoryTests
     {
         using var inner = new FakeHandler((_, _) =>
         {
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage((HttpStatusCode) status);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(new HttpResponseMessage((HttpStatusCode) status));
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new(Index, "../Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -432,31 +359,19 @@ public sealed class RegistryHistoryTests
             }));
         var login = new Uri("https://registry.test/studregistry/Account/Login");
 
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
             login: login,
-            CalculateSpacing());
+            TimeSpan.FromMilliseconds(1));
         using var client = new HttpClient(guard);
         using var content = new StringContent("canary-password");
-
-        Uri CalculateRequestUri()
-        {
-            var requestUri = new Uri("https://registry.test/studregistry/LessonAttendance/groups/1");
-            return requestUri;
-        }
 
         var request = route switch
         {
             "login" => client.PostAsync(login, content),
             "index" => client.GetAsync(Index),
-            "groups" => client.GetAsync(CalculateRequestUri()),
+            "groups" => client.GetAsync(new Uri("https://registry.test/studregistry/LessonAttendance/groups/1")),
             _ => throw new ArgumentOutOfRangeException(nameof(route)),
         };
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() => request);
@@ -471,32 +386,14 @@ public sealed class RegistryHistoryTests
     {
         using var inner = new FakeHandler((_, _) =>
         {
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new(Index, "../Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.GetAsync(Index));
@@ -511,59 +408,25 @@ public sealed class RegistryHistoryTests
     {
         using var inner = new FakeHandler((_, _) =>
         {
-            HttpResponseMessage CalculateResult()
-            {
-                var result = new HttpResponseMessage(HttpStatusCode.OK);
-                return result;
-            }
-
-            return Task.FromResult(CalculateResult());
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
         });
-
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
 
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         using var content = new StringContent("synthetic");
         await Assert.ThrowsAsync<RegistryHistoryException>(() => client.PostAsync(Index, content));
         await Assert.ThrowsAsync<RegistryHistoryException>(() =>
         {
-            Uri CalculateRequestUri()
-            {
-                string text = $"{Index.AbsoluteUri}/groups/1";
-                string uriString = text;
-                var requestUri = new Uri(uriString);
-                return requestUri;
-            }
-
-            return client.DeleteAsync(CalculateRequestUri());
+            return client.DeleteAsync(new Uri($"{Index.AbsoluteUri}/groups/1"));
         });
         await Assert.ThrowsAsync<RegistryHistoryException>(() =>
         {
-            Uri CalculateRequestUri()
-            {
-                string text = $"{Index.AbsoluteUri}/Edit/1";
-                string uriString = text;
-                var requestUri = new Uri(uriString);
-                return requestUri;
-            }
-
-            return client.GetAsync(CalculateRequestUri());
+            return client.GetAsync(new Uri($"{Index.AbsoluteUri}/Edit/1"));
         });
         Assert.Equal(expected: 0, actual: inner.Calls);
     }
@@ -591,41 +454,17 @@ public sealed class RegistryHistoryTests
         using var innerA = new FakeHandler(Respond);
         using var innerB = new FakeHandler(Respond);
 
-        Uri CalculateLogin()
-        {
-            Uri login2 = new(Index, "../Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(30);
-            return spacing;
-        }
-
         using var guardA = new RegistryHistoryRequestHandler(
             innerA,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
-
-        Uri CalculateLogin2()
-        {
-            Uri login3 = new(Index, "../Account/Login");
-            return login3;
-        }
-
-        TimeSpan CalculateSpacing2()
-        {
-            var spacing2 = TimeSpan.FromMilliseconds(30);
-            return spacing2;
-        }
+            login: new Uri(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(30));
 
         using var guardB = new RegistryHistoryRequestHandler(
             innerB,
             index: Index,
-            login: CalculateLogin2(),
-            CalculateSpacing2());
+            login: new Uri(Index, "../Account/Login"),
+            TimeSpan.FromMilliseconds(30));
         using var first = new HttpClient(guardA);
         using var second = new HttpClient(guardB);
         // Intentionally race only synthetic transports to prove the shared gate.
@@ -643,27 +482,15 @@ public sealed class RegistryHistoryTests
         var log = new CaptureLogger();
         var logger = new RegistryErrorLogger(log);
 
-        StudentsInGroup CalculateStudents()
-        {
-            StudentsInGroup students = new(
+        logger.StudentsNotInDbButInRegistry(new StudentsInGroup(
                 PrivateStudents(),
                 null!,
                 default,
-                default);
-            return students;
-        }
+                default));
 
-        logger.StudentsNotInDbButInRegistry(CalculateStudents());
+        logger.LessonsDecidedErroneous(new ErroneousLesson("canary-student canary-password canary-token"));
 
-        ErroneousLesson CalculateLesson()
-        {
-            ErroneousLesson lesson = new("canary-student canary-password canary-token");
-            return lesson;
-        }
-
-        logger.LessonsDecidedErroneous(CalculateLesson());
-
-        GroupParseErrorContext CalculateContext()
+        GroupParseErrorContext CreatePublicGroupParseError()
         {
             // Group labels and course names are public schedule identifiers and may be logged;
             // only the exception message may carry private context.
@@ -673,18 +500,14 @@ public sealed class RegistryHistoryTests
             return context;
         }
 
-        logger.GroupParsingError(CalculateContext());
+        logger.GroupParsingError(CreatePublicGroupParseError());
         logger.GroupNotFound(courseName: "Cloud Computing", groupName: "IA2402");
         Assert.NotEmpty(log.Messages);
 
-        string CalculateActualString()
-        {
-            string actualString2 = string.Join("\n", log.Messages);
-            return actualString2;
-        }
+        string loggedText = string.Join("\n", log.Messages);
 
-        Assert.DoesNotContain(expectedSubstring: "canary", actualString: CalculateActualString());
-        Assert.Contains(expectedSubstring: "IA2402", actualString: CalculateActualString());
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: loggedText);
+        Assert.Contains(expectedSubstring: "IA2402", actualString: loggedText);
 
         static IEnumerable<ScheduleLib.Parsing.Name> PrivateStudents()
         {
@@ -712,22 +535,15 @@ public sealed class RegistryHistoryTests
         var log = new CaptureLogger();
         using var logs = LoggerFactory.Create(x =>
         {
-            CaptureProvider CalculateProvider()
-            {
-                var provider = new CaptureProvider(log);
-                return provider;
-            }
-
-            x.AddProvider(CalculateProvider());
+            x.AddProvider(new CaptureProvider(log));
         });
         var login = new Uri("https://registry.test/studregistry/Account/Login");
         var requests = new List<string>();
         using var inner = new FakeHandler(async (request, token) =>
         {
-            var list = requests;
             string text = $"{request.Method + " "}{request.RequestUri!.PathAndQuery}";
             string item = text;
-            list.Add(item);
+            requests.Add(item);
             if (request.Method == HttpMethod.Post)
             {
                 var body = await request.Content!.ReadAsStringAsync(token);
@@ -756,17 +572,11 @@ public sealed class RegistryHistoryTests
             };
         });
 
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
             login: login,
-            CalculateSpacing());
+            TimeSpan.FromMilliseconds(1));
         using var client = new HttpClient(guard);
         using var transport = new HttpClientContext(
             new AngleSharp.Io.MemoryCookieProvider(),
@@ -814,13 +624,7 @@ public sealed class RegistryHistoryTests
             },
             actual: requests);
 
-        string CalculateActualString()
-        {
-            string actualString2 = string.Join("\n", log.Messages);
-            return actualString2;
-        }
-
-        Assert.DoesNotContain(expectedSubstring: "canary", actualString: CalculateActualString());
+        Assert.DoesNotContain(expectedSubstring: "canary", actualString: string.Join("\n", log.Messages));
         string expectedSubstring2 = "canary-student";
         string actualString3 = System.Text.Json.JsonSerializer.Serialize(summary);
         Assert.DoesNotContain(expectedSubstring: expectedSubstring2, actualString: actualString3);
@@ -848,23 +652,11 @@ public sealed class RegistryHistoryTests
             return Task.FromResult(response);
         });
 
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var error = await Assert.ThrowsAsync<RegistryHistoryException>(() =>
@@ -908,23 +700,11 @@ public sealed class RegistryHistoryTests
             });
         });
 
-        Uri CalculateLogin()
-        {
-            Uri login2 = new("https://registry.test/studregistry/Account/Login");
-            return login2;
-        }
-
-        TimeSpan CalculateSpacing()
-        {
-            var spacing = TimeSpan.FromMilliseconds(1);
-            return spacing;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: Index,
-            login: CalculateLogin(),
-            CalculateSpacing());
+            login: new Uri("https://registry.test/studregistry/Account/Login"),
+            TimeSpan.FromMilliseconds(1));
         guard.CompleteAuthentication();
         using var client = new HttpClient(guard);
         var summary = Assert.Single(await new RegistryHistoryReader(client, Index).Discover("current", default));
@@ -981,16 +761,6 @@ public sealed class RegistryHistoryTests
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            string CalculateItem()
-            {
-                string invoke = formatter(state, exception);
-                string item = invoke + exception;
-                return item;
-            }
-
-            Messages.Add(CalculateItem());
-        }
+            Func<TState, Exception?, string> formatter) => Messages.Add(formatter(state, exception) + exception);
     }
 }

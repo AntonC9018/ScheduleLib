@@ -25,11 +25,10 @@ public partial class ExportCommands
             result,
             settings ?? new());
         var kind = ScheduleExportKind.Pdf;
-        var cancellationToken2 = cancellationToken;
         var exportSchedule = ExportSchedule(
             request,
             kind,
-            cancellationToken2);
+            cancellationToken);
         return exportSchedule;
     }
 
@@ -50,11 +49,10 @@ public partial class ExportCommands
             result,
             settings ?? new());
         var kind = ScheduleExportKind.Ics;
-        var cancellationToken2 = cancellationToken;
         var exportSchedule = ExportSchedule(
             request,
             kind,
-            cancellationToken2);
+            cancellationToken);
         return exportSchedule;
     }
 
@@ -69,23 +67,10 @@ public partial class ExportCommands
         var settings = request.Settings;
         var calendar = kind == ScheduleExportKind.Ics;
 
-        string CalculateCommand()
-        {
-            string command2;
-            if (calendar)
-            {
-                command2 = "export ics";
-            }
-            else
-            {
-                command2 = "export pdf";
-            }
-
-            return command2;
-        }
+        string command = calendar ? "export ics" : "export pdf";
 
         using var context = new CliCommandContext(
-            CalculateCommand(),
+            command,
             resultArgs,
             cancellationToken);
         if (!context.Start())
@@ -132,9 +117,8 @@ public partial class ExportCommands
                 - lessonCount;
             if (omitted > 0)
             {
-                var list = warnings;
                 string item = $"Latest-period selection omits {omitted} weekly lessons from other periods.";
-                list.Add(item);
+                warnings.Add(item);
             }
 
             if (teacherCount == 0)
@@ -204,19 +188,13 @@ public partial class ExportCommands
                 partial: paths.Length > 0,
                 cancellation: false);
 
-            ScheduleExportResult CalculateData()
-            {
-                ScheduleExportResult data = new(
-                    output?.DirectoryPath,
-                    LessonCount: lessonCount,
-                    TeacherCount: teacherCount);
-                return data;
-            }
-
             return context.Finish(new CliCompletion<ScheduleExportResult>(
                 exit,
                 errors,
-                CalculateData())
+                new ScheduleExportResult(
+                    output?.DirectoryPath,
+                    LessonCount: lessonCount,
+                    TeacherCount: teacherCount))
             {
                 Summary = new
                 {
@@ -230,10 +208,9 @@ public partial class ExportCommands
                 JsonStatus = jsonStatus,
                 RenderHuman = status =>
                 {
-                    var cliOutput = cli;
                     string line =
                         $"{status}: {lessonCount} lessons, {teacherCount} teachers, {paths.Length} artifacts in {output?.DirectoryPath}.";
-                    cliOutput.WriteHuman(
+                    cli.WriteHuman(
                         line);
                 },
             });

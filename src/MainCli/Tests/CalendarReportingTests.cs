@@ -42,35 +42,10 @@ public sealed class CalendarReportingTests
                 },
                 default);
 
-            CalendarReport CalculateUpdate()
-            {
-                string id = "desired-0";
-                var status = ActionState.Completed;
-                object item = new { index = 0 };
-                var human = new ProbeMessage(probe);
-                ICliMessage human2 = human;
-                var update = new CalendarReport(
-                    Id: id,
-                    Status: status,
-                    item,
-                    human2);
-                return update;
-            }
-
-            context.StreamUpdate(CalculateUpdate());
-
-            bool CheckCondition()
-            {
-                if (json)
-                {
-                    return true;
-                }
-
-                return jsonl;
-            }
+            context.StreamUpdate(new CalendarReport("desired-0", ActionState.Completed, new { index = 0 }, new ProbeMessage(probe)));
 
             int expected2;
-            if (CheckCondition())
+            if (json || jsonl)
             {
                 expected2 = 0;
             }
@@ -169,12 +144,6 @@ public sealed class CalendarReportingTests
     [Fact]
     public void RenderingUsesTheBoundaryCultureAndPreservesNullFields()
     {
-        TimeSpan CalculateOffset()
-        {
-            var offset = TimeSpan.FromHours(3);
-            return offset;
-        }
-
         var start = new DateTimeOffset(
             year: 2026,
             month: 10,
@@ -182,7 +151,7 @@ public sealed class CalendarReportingTests
             hour: 9,
             minute: 0,
             second: 0,
-            CalculateOffset());
+            TimeSpan.FromHours(3));
         var message = new CalendarDesiredEventMessage(
             0,
             null,

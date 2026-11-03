@@ -88,43 +88,20 @@ public static class CalendarSync
         string? profile = null,
         Action<CalendarReport>? onOutcome = null)
     {
-        bool CalculateConditionResult2()
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return true;
-            }
-
-            if (name.Equals("primary", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult2 = CalculateConditionResult2();
-
-
-        if (conditionResult2)
+        if (string.IsNullOrWhiteSpace(name)
+            || name.Equals("primary", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Primary calendars cannot be replaced; configure a named secondary calendar.");
         }
 
         var account = await provider.GetAccount(token);
 
-        string CalculatePath1()
-        {
-            string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return path1;
-        }
-
         await using var lease = apply
             ? await LocalFileLock.Acquire(
                 LockPath(
                     root: lockRoot
                     ?? Path.Combine(
-                        CalculatePath1(),
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                         "ScheduleLib",
                         "remote-locks",
                         "calendar"),
@@ -136,27 +113,7 @@ public static class CalendarSync
         var calendars = await provider.ListCalendars(token);
         var existing = calendars.FirstOrDefault(x => x.Summary == name);
 
-        bool CheckCondition()
-        {
-            if (existing?.Primary == true)
-            {
-                return true;
-            }
-
-            if (existing?.Id == account)
-            {
-                return true;
-            }
-
-            if (existing?.Id == "primary")
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        if (CheckCondition())
+        if (existing?.Primary == true || existing?.Id == account || existing?.Id == "primary")
         {
             throw new ArgumentException("The matching destination is the primary calendar; replacement is prohibited.");
         }
@@ -184,7 +141,6 @@ public static class CalendarSync
         var plan = new List<CalendarPlanStep>();
         if (existing is not null)
         {
-            var list = plan;
             string id2 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var action2 = CalendarActionKind.DeleteCalendar;
             string calendarId = existing.Id;
@@ -194,10 +150,9 @@ public static class CalendarSync
                 Action: action2,
                 CalendarId: calendarId,
                 DesiredEventIndex: desiredEventIndex);
-            list.Add(item2);
+            plan.Add(item2);
         }
 
-        var list2 = plan;
         string id3 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var action3 = CalendarActionKind.CreateCalendar;
         string? calendarId2 = null;
@@ -207,10 +162,9 @@ public static class CalendarSync
             Action: action3,
             CalendarId: calendarId2,
             DesiredEventIndex: desiredEventIndex2);
-        list2.Add(item3);
+        plan.Add(item3);
         for (var planIndex = 0; planIndex < desired.Count; planIndex++)
         {
-            var list3 = plan;
             string id4 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var action4 = CalendarActionKind.CreateEvent;
             string? calendarId3 = null;
@@ -220,7 +174,7 @@ public static class CalendarSync
                 Action: action4,
                 CalendarId: calendarId3,
                 DesiredEventIndex: desiredEventIndex3);
-            list3.Add(item4);
+            plan.Add(item4);
         }
 
         void Report<TMessage>(
@@ -231,17 +185,11 @@ public static class CalendarSync
         {
             try
             {
-                CalendarReport CalculateObj()
-                {
-                    CalendarReport obj = new(
+                onOutcome?.Invoke(new CalendarReport(
                         Id: id,
                         Status: status,
                         item,
-                        human);
-                    return obj;
-                }
-
-                onOutcome?.Invoke(CalculateObj());
+                        human));
             }
             catch (CliOutputStreamingException ex)
             {
@@ -352,16 +300,8 @@ public static class CalendarSync
         {
             var ev = desired[index];
 
-            string CalculateId()
-            {
-                string toString2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string text2 = $"desired-{toString2}";
-                string id6 = text2;
-                return id6;
-            }
-
             Report(
-                id: CalculateId(),
+                id: $"desired-{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 status: ActionState.Completed,
                 new
                 {

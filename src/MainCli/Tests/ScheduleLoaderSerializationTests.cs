@@ -62,13 +62,7 @@ public sealed class ScheduleLoaderSerializationTests
         await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
 
-        IEnumerable<string> CalculateCollection()
-        {
-            var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
-            return collection;
-        }
-
-        Assert.Empty(CalculateCollection());
+        Assert.Empty(Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp"));
     }
 
     [Theory]
@@ -116,13 +110,7 @@ public sealed class ScheduleLoaderSerializationTests
         using var input = new MemoryStream(previous);
         Assert.NotNull(await ScheduleSerializer.Deserialize(input, CancellationToken.None));
 
-        IEnumerable<string> CalculateCollection()
-        {
-            var collection = Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp");
-            return collection;
-        }
-
-        Assert.Empty(CalculateCollection());
+        Assert.Empty(Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp"));
         // Cancellation/failure releases the loader's cache lock as well.
         component.OnApply = null;
         await loader.Load(

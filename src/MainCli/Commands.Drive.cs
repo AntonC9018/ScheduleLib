@@ -199,12 +199,11 @@ public class DriveCommands
                 if (streamedArtifacts.Add(path))
                 {
                     cli.WriteHuman(path);
-                    var cliOutput = cli;
                     string text = $"artifact:{path}";
                     string id2 = text;
                     var status2 = ActionState.Completed;
                     object item = new { path };
-                    cliOutput.EmitItem(
+                    cli.EmitItem(
                         id: id2,
                         status: status2,
                         item);
@@ -281,10 +280,9 @@ public class DriveCommands
                 {
                     if (data is not null)
                     {
-                        var cliOutput = cli;
                         string line =
                             $"{status}: account {data.AccountEmail} ({data.Account}); folder {data.Folder.Name} ({data.Folder.Id})";
-                        cliOutput.WriteHuman(
+                        cli.WriteHuman(
                             line);
                     }
                 },
