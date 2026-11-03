@@ -514,12 +514,12 @@ public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 
     public override int GetHashCode()
     {
-        int hash = 17;
-        for (int i = 0; i < Capacity; i++)
+        var hash = new HashCode();
+        foreach (var group in this)
         {
-            hash = hash * 31 + this[i].GetHashCode();
+            hash.Add(group);
         }
-        return hash;
+        return hash.ToHashCode();
     }
 
     public static bool operator ==(in LessonGroups a, in LessonGroups b)
