@@ -157,9 +157,19 @@ The duplicate bases formerly in [CliStates.cs][source-10] and [RegistryGradePlan
 are consolidated directly into `ScheduleLib.Helper.JsonConverters.WireNameJsonConverter<T>`.
 All seven derived converters use that shared base without compatibility wrappers. Output-only
 serialization behavior is retained. Existing CLI state serialization tests pass (20 cases), as
-do the registry grade-notice and sync-diagnostic tests (62 cases), including dictionary keys. Its `Read` failure remains the existing CR1600 policy
-question: retain framework `NotSupportedException` or introduce typed context.
-The unreachable Drive action failure remains a separate invariant case.
+do the registry grade-notice and sync-diagnostic tests (62 cases), including dictionary keys.
+
+The maintainer subsequently settled the exception policy: always use meaningful
+application-specific typed exceptions and expose typed read-only context, including infrastructure
+and invariant failures. The old generic-invariant carve-out in coding standards is removed.
+[Issue #120][typed-exceptions] is reopened for the remaining generic throws; its historical
+infrastructure exemption is superseded.
+
+The shared converter now throws `OutputOnlyJsonReadException` with a `TargetType` property.
+It derives directly from `Exception`, so `JsonSerializer` exposes the typed failure itself rather
+than wrapping a `NotSupportedException` to add JSON path text. Message content remains the same.
+Integration tests exercise real CLI and registry enum deserialization and inspect typed context.
+The remaining Drive invariant belongs to the recorded typed-exception work, not a new policy question.
 
 ### Architecture and incomplete implementations
 
@@ -205,3 +215,5 @@ The older routing/action-kind examples have already been addressed; do not reope
 [final-inventory]: analyzer-findings-follow-up-2026-11-03.csv
 
 [name-equality-followup]: https://github.com/AntonC9018/ScheduleLib/issues/273
+
+[typed-exceptions]: https://github.com/AntonC9018/ScheduleLib/issues/120

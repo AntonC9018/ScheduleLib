@@ -12,7 +12,7 @@ public abstract class WireNameJsonConverter<T> : JsonConverter<T> where T : stru
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
-        => throw new NotSupportedException($"{typeof(T).Name} is written to output only.");
+        => throw new OutputOnlyJsonReadException(typeof(T));
 
     public override void Write(
         Utf8JsonWriter writer,

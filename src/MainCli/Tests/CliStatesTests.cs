@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ScheduleLib.Cli;
+using ScheduleLib.Helper.JsonConverters;
 using ScheduleLib.OnlineRegistry;
 
 public sealed class CliStatesTests
@@ -8,6 +9,19 @@ public sealed class CliStatesTests
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    [Theory]
+    [InlineData(typeof(ActionState), "\"completed\"")]
+    [InlineData(typeof(RegistrySyncActionKind), "\"create\"")]
+    public void ReadingOutputOnlyEnumsExposesTheTargetType(Type targetType, string json)
+    {
+        var error = Assert.Throws<OutputOnlyJsonReadException>(
+            () => JsonSerializer.Deserialize(json, targetType, JsonOptions));
+
+        Assert.Same(expected: targetType, actual: error.TargetType);
+        string expectedMessage = $"{targetType.Name} is written to output only.";
+        Assert.Equal(expected: expectedMessage, actual: error.Message);
+    }
 
     [Theory]
     [InlineData(RegistrySyncActionKind.Create, "create")]
