@@ -29,7 +29,10 @@ public sealed class MicrosoftTests
         using var temp = new TestTempDirectory("schedulelib-tests");
         var tokens = new FakeTokens();
         using var log = new DebugLogCapture();
-        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
+        var authentication = new MicrosoftAuthentication(
+            temp.Path,
+            tokens,
+            log);
         var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() =>
             authentication.Resolve(
                 Config,
@@ -63,19 +66,32 @@ public sealed class MicrosoftTests
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: failed.Message);
         Assert.Same(expected: tokens.SilentFailure, actual: failed.InnerException);
         Assert.Contains(
-            expectedSubstring: "AuthenticationRequiredException translated from MsalUiRequiredException (code invalid_grant)",
+            expectedSubstring:
+            "AuthenticationRequiredException translated from MsalUiRequiredException (code invalid_grant)",
             actualString: log.All);
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
         Assert.Equal(expected: 1, actual: tokens.Consents);
         Assert.Single((await authentication.Status(Teacher, default)).Accounts);
     }
 
-    public static TheoryData<MsalException> NonAuthenticationConsentFailures => new()
+    public static TheoryData<MsalException> NonAuthenticationConsentFailures
     {
-        new MsalServiceException(errorCode: "temporarily_unavailable", errorMessage: "provider exposed access-secret"),
-        new MsalServiceException(errorCode: MsalError.RequestTimeout, errorMessage: "provider exposed access-secret"),
-        new MsalClientException(errorCode: MsalError.InvalidClient, errorMessage: "provider exposed access-secret"),
-    };
+        get
+        {
+            return new()
+            {
+                new MsalServiceException(
+                    errorCode: "temporarily_unavailable",
+                    errorMessage: "provider exposed access-secret"),
+                new MsalServiceException(
+                    errorCode: MsalError.RequestTimeout,
+                    errorMessage: "provider exposed access-secret"),
+                new MsalClientException(
+                    errorCode: MsalError.InvalidClient,
+                    errorMessage: "provider exposed access-secret"),
+            };
+        }
+    }
 
     [Theory]
     [MemberData(nameof(NonAuthenticationConsentFailures))]
@@ -87,7 +103,10 @@ public sealed class MicrosoftTests
         {
             ConsentFailure = failure,
         };
-        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
+        var authentication = new MicrosoftAuthentication(
+            temp.Path,
+            tokens,
+            log);
         var error = await Assert.ThrowsAnyAsync<MsalException>(() => authentication.Login(
             Config,
             Teacher,
@@ -100,12 +119,24 @@ public sealed class MicrosoftTests
         Assert.DoesNotContain(expectedSubstring: "access-secret", actualString: log.All);
     }
 
-    public static TheoryData<MsalException> RejectedConsentFailures => new()
+    public static TheoryData<MsalException> RejectedConsentFailures
     {
-        new MsalClientException(errorCode: MsalError.AuthenticationCanceledError, errorMessage: "provider exposed access-secret"),
-        new MsalServiceException(errorCode: MsalError.AccessDenied, errorMessage: "provider exposed access-secret"),
-        new MsalUiRequiredException(errorCode: MsalError.InvalidGrantError, errorMessage: "provider exposed access-secret"),
-    };
+        get
+        {
+            return new()
+            {
+                new MsalClientException(
+                    errorCode: MsalError.AuthenticationCanceledError,
+                    errorMessage: "provider exposed access-secret"),
+                new MsalServiceException(
+                    errorCode: MsalError.AccessDenied,
+                    errorMessage: "provider exposed access-secret"),
+                new MsalUiRequiredException(
+                    errorCode: MsalError.InvalidGrantError,
+                    errorMessage: "provider exposed access-secret"),
+            };
+        }
+    }
 
     [Theory]
     [MemberData(nameof(RejectedConsentFailures))]
@@ -117,7 +148,10 @@ public sealed class MicrosoftTests
         {
             ConsentFailure = failure,
         };
-        var authentication = new MicrosoftAuthentication(temp.Path, tokens, log);
+        var authentication = new MicrosoftAuthentication(
+            temp.Path,
+            tokens,
+            log);
         var error = await Assert.ThrowsAsync<AuthenticationRequiredException>(() => authentication.Login(
             Config,
             Teacher,
@@ -431,6 +465,4 @@ public sealed class MicrosoftTests
             _errors.Dispose();
         }
     }
-
-
 }

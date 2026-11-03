@@ -81,19 +81,19 @@ public sealed class FmiScheduleUpdater(
                 }
 
                 if (previous.Sources.Any(s =>
-                {
-                    if (s.Sha256 is not { Length: 64 })
                     {
-                        return true;
-                    }
+                        if (s.Sha256 is not { Length: 64 })
+                        {
+                            return true;
+                        }
 
-                    if (s.Sha256.Any(c => !char.IsAsciiHexDigit(c)))
-                    {
-                        return true;
-                    }
+                        if (s.Sha256.Any(c => !char.IsAsciiHexDigit(c)))
+                        {
+                            return true;
+                        }
 
-                    return false;
-                }))
+                        return false;
+                    }))
                 {
                     return true;
                 }
@@ -126,7 +126,11 @@ public sealed class FmiScheduleUpdater(
             var contentHash = SHA256.HashData(download.Content);
             var hashText = Convert.ToHexStringLower(contentHash);
             var uploadDate = download.Link.UploadDate;
-            return new ScheduleSourceHash(year, url, hashText, uploadDate);
+            return new ScheduleSourceHash(
+                year,
+                Url: url,
+                Sha256: hashText,
+                uploadDate);
         }
 
         var sources = downloads.Select(DescribeSource)
@@ -134,7 +138,10 @@ public sealed class FmiScheduleUpdater(
         var changed = sources.Where(source =>
             {
                 var previousHash = previous?.Sources.SingleOrDefault(saved => saved.Year == source.Year)?.Sha256;
-                return !string.Equals(previousHash, source.Sha256, StringComparison.OrdinalIgnoreCase);
+                return !string.Equals(
+                    previousHash,
+                    source.Sha256,
+                    StringComparison.OrdinalIgnoreCase);
             })
             .ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)

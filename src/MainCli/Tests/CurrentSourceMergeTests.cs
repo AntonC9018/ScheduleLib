@@ -139,13 +139,13 @@ public sealed class CurrentSourceMergeTests
             var ai = Assert.Single(
                 merged.AutomaticLabSubGroupMerges.Where(x =>
 
-                    {
-                        return merged.Get(x.Group).Name == "IA2404"
+                {
+                    return merged.Get(x.Group).Name == "IA2404"
                         && merged.Get(x.Course).Names
                             .Any(name => name.StartsWith(
                                 "Intel",
                                 StringComparison.OrdinalIgnoreCase));
-                    }));
+                }));
             var labs = merged.EnumerateWeeklyLessons()
                 .Where(x =>
                 {

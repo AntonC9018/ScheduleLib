@@ -526,10 +526,12 @@ public sealed class Example
                 .Name("encapsulation_1")
                 .QuestionText("explain some stuff")
                 .DefaultGrade(1.0m))
-            .MultiChoice(q => {
+            .MultiChoice(q =>
+            {
                 q
                     .Name("magic_1")
-                    .QuestionText("Что из следующего является примером использования одного или нескольких magic значений?")
+                    .QuestionText(
+                        "Что из следующего является примером использования одного или нескольких magic значений?")
                     .DefaultGrade(1.0m)
                     .Answer(a => a.Code("var v = get_value(1, 2, true);")
                         .Fraction(1.0m))
@@ -537,7 +539,8 @@ public sealed class Example
                         .Code(
                             "var age = 1;\nvar child_count = 2;\nvar has_parents = false;\nvar v = get_value(age, child_count, has_parents);")
                         .Fraction(0.0m))
-                    .Answer(a => a.Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);")
+                    .Answer(a => a
+                        .Code("var age = 1;\nvar child_count = 2;\nvar v = get_value(age, child_count, false);")
                         .Fraction(1.0m))
                     .Answer(a => a.Code("var v = get_value(age: 1, child_count: 2, has_parents: true);")
                         .Fraction(0.0m));

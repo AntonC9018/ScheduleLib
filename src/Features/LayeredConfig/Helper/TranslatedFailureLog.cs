@@ -22,23 +22,26 @@ public static partial class TranslatedFailureLog
         {
             LogTranslated(
                 logger,
-                translated.GetType().Name,
-                DescribeCauses(translated),
-                causeCode ?? "none");
+                failure: translated.GetType().Name,
+                causes: DescribeCauses(translated),
+                causeCode: causeCode ?? "none");
         }
         return translated;
     }
 
     /// <summary>Logs a failure whose cause is classified but deliberately not echoed to the user.</summary>
-    public static void Unreported(ILogger logger, string operation, Exception cause)
+    public static void Unreported(
+        ILogger logger,
+        string operation,
+        Exception cause)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
             LogUnreported(
                 logger,
-                operation,
-                cause.GetType().Name,
-                DescribeCauses(cause));
+                operation: operation,
+                failure: cause.GetType().Name,
+                causes: DescribeCauses(cause));
         }
     }
 

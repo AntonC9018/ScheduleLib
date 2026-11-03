@@ -367,7 +367,10 @@ public static partial class CliSettings
                     .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
                 path.Add(coded.Value);
-                sources.Add(CodeSource($"code profile: {coded.Key}", coded.Value, json));
+                sources.Add(CodeSource(
+                    $"code profile: {coded.Key}",
+                    coded.Value,
+                    json));
                 AddOverlay(
                     path,
                     sources,
@@ -787,7 +790,11 @@ public static partial class CliSettings
                     throw new NullSettingsCollectionEntryException(file);
                 }
 
-                NormalizeInheritance(item, type.GetGenericArguments()[0], json, file);
+                NormalizeInheritance(
+                    item,
+                    type.GetGenericArguments()[0],
+                    json,
+                    file);
             }
             return;
         }

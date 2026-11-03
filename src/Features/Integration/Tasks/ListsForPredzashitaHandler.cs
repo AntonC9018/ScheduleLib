@@ -111,10 +111,11 @@ public sealed partial class ListsForPredzashitaTaskHandler
         return (_options.Commissions ?? Commissions).Select(commission =>
             {
                 var members = commission.Members.Select((member, index) =>
-                    ParseCommissionMember(
-                        commissionNumber: commission.Number,
-                        memberNumber: index + 1,
-                        member.Name)).ToArray();
+                        ParseCommissionMember(
+                            commissionNumber: commission.Number,
+                            memberNumber: index + 1,
+                            member.Name))
+                    .ToArray();
                 return new Commission<Name>
                 {
                     Members = members,

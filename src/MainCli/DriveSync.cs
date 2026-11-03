@@ -29,7 +29,10 @@ public static class DriveActionKindWireNames
             DriveActionKind.Delete => "delete",
             DriveActionKind.Create => "create",
             DriveActionKind.Update => "update",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                null),
         };
     }
 }
@@ -91,7 +94,10 @@ public sealed record DriveCreateAction : DriveAction
 
 public sealed record DriveUpdateAction : DriveAction
 {
-    public DriveUpdateAction(string name, string remoteFileId, string sourcePath) : base(name)
+    public DriveUpdateAction(
+        string name,
+        string remoteFileId,
+        string sourcePath) : base(name)
     {
         RemoteFileId = remoteFileId;
         SourcePath = sourcePath;
@@ -237,8 +243,7 @@ public static class DriveSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                throw StreamingFailure(
-                    new GeneralCliOutputStreamingException("Drive output streaming failed.", ex));
+                throw StreamingFailure(new GeneralCliOutputStreamingException("Drive output streaming failed.", ex));
             }
         }
 
@@ -281,10 +286,16 @@ public static class DriveSync
 
         void AddTerminal(DriveAction action, ActionState state)
         {
-            AddOutcome(new DriveOutcome(action, state, ResultFileId: null));
+            AddOutcome(new DriveOutcome(
+                action,
+                state,
+                ResultFileId: null));
             foreach (var remaining in actions.Skip(outcomes.Count))
             {
-                AddOutcome(new DriveOutcome(remaining, ActionState.NotAttempted, ResultFileId: null));
+                AddOutcome(new DriveOutcome(
+                    remaining,
+                    ActionState.NotAttempted,
+                    ResultFileId: null));
             }
         }
 
@@ -313,40 +324,43 @@ public static class DriveSync
                 switch (action)
                 {
                     case DriveDeleteAction delete:
-                    {
-                        attempted = true;
-                        await provider.Delete(delete.RemoteFileId, token);
-                        resultFileId = delete.RemoteFileId;
-                        break;
-                    }
+                        {
+                            attempted = true;
+                            await provider.Delete(delete.RemoteFileId, token);
+                            resultFileId = delete.RemoteFileId;
+                            break;
+                        }
                     case DriveCreateAction create:
-                    {
-                        await using var input = File.OpenRead(create.SourcePath);
-                        token.ThrowIfCancellationRequested();
-                        attempted = true;
-                        resultFileId = await provider.Create(
-                            folderId: folder.Id,
-                            name: create.Name,
-                            input,
-                            token);
-                        break;
-                    }
+                        {
+                            await using var input = File.OpenRead(create.SourcePath);
+                            token.ThrowIfCancellationRequested();
+                            attempted = true;
+                            resultFileId = await provider.Create(
+                                folderId: folder.Id,
+                                name: create.Name,
+                                input,
+                                token);
+                            break;
+                        }
                     case DriveUpdateAction update:
-                    {
-                        await using var input = File.OpenRead(update.SourcePath);
-                        token.ThrowIfCancellationRequested();
-                        attempted = true;
-                        resultFileId = await provider.Update(
-                            update.RemoteFileId,
-                            input,
-                            token);
-                        break;
-                    }
+                        {
+                            await using var input = File.OpenRead(update.SourcePath);
+                            token.ThrowIfCancellationRequested();
+                            attempted = true;
+                            resultFileId = await provider.Update(
+                                update.RemoteFileId,
+                                input,
+                                token);
+                            break;
+                        }
                     default:
                         throw new InvalidOperationException($"Unknown Drive action {action.GetType().Name}.");
                 }
 
-                AddOutcome(new DriveOutcome(action, ActionState.Completed, resultFileId));
+                AddOutcome(new DriveOutcome(
+                    action,
+                    ActionState.Completed,
+                    resultFileId));
             }
             catch (CliOutputStreamingException)
             {

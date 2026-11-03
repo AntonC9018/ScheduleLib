@@ -147,9 +147,9 @@ public sealed class SettingsTests
         Assert.Equal(expected: expected4, actual: actual3);
 
         string expected5 = Path.Combine(
-                files.Root,
-                "user",
-                "user-tokens");
+            files.Root,
+            "user",
+            "user-tokens");
         var get2 = global.Get(GoogleCalendarConfig.Key);
         string? actual4 = get2!.Credentials!.CredentialsPath;
         Assert.Equal(
@@ -223,8 +223,8 @@ public sealed class SettingsTests
         });
 
         Assert.Null(other.ServiceProvider
-                .GetRequiredService<DataProvider>()
-                .Get(GoogleDriveConfig.Key));
+            .GetRequiredService<DataProvider>()
+            .Get(GoogleDriveConfig.Key));
         string expected9 = "project";
         var get6 = other.ServiceProvider.GetRequiredService<DataProvider>()
             .Get(GoogleCalendarConfig.Key);
@@ -492,7 +492,8 @@ public sealed class SettingsTests
             {
                 CliSettings.FileName,
             },
-            actual: Directory.GetFiles(Path.Combine(files.Root, "project")).Select(Path.GetFileName));
+            actual: Directory.GetFiles(Path.Combine(files.Root, "project"))
+                .Select(Path.GetFileName));
     }
 
     [Theory]
@@ -758,6 +759,5 @@ public sealed class SettingsTests
         }
 
         public void Dispose() => _temp.Dispose();
-
     }
 }

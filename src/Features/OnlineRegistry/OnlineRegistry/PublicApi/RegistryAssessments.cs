@@ -270,7 +270,8 @@ internal static class RegistryAssessments
             })
             .GroupBy(lesson => lesson.LessonType)
             .ToDictionary(keySelector: group => group.Key,
-                elementSelector: group => {
+                elementSelector: group =>
+                {
                     var orderedTopics = group.OrderBy(lesson => lesson.DateTime)
                         .Select(lesson => lesson.Topic!)
                         .ToArray();

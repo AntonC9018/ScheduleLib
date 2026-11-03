@@ -395,7 +395,9 @@ public sealed class RegistryScrapingTests
         Assert.Equal(expected: 2, actual: result.Grade.Value);
         Assert.Equal(expected: Language.Ru, actual: result.Language);
 
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, specialization), actual: new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(
+            expected: new GroupPartitionKey(SubGroup.All, specialization),
+            actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
 
@@ -413,7 +415,9 @@ public sealed class RegistryScrapingTests
         Assert.Equal(expected: Language.Ru, actual: result.Language);
         Assert.Equal(expected: 2, actual: result.Grade.Value);
 
-        Assert.Equal(expected: new GroupPartitionKey(SubGroup.All, Specialization.GA2D), actual: new GroupPartitionResolver(null).Resolve(result));
+        Assert.Equal(
+            expected: new GroupPartitionKey(SubGroup.All, Specialization.GA2D),
+            actual: new GroupPartitionResolver(null).Resolve(result));
     }
 
     [Fact]

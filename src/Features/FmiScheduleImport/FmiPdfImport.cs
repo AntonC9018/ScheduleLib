@@ -34,7 +34,10 @@ public static class FmiPdfImport
             cancellationToken.ThrowIfCancellationRequested();
             using var pdf = new MemoryStream(source.Content, writable: false);
             string sourceName = $"orar{source.Link.Year}.pdf";
-            cells.AddRange(PdfScheduleImporter.Read(pdf, sourceName, parityRepairs));
+            cells.AddRange(PdfScheduleImporter.Read(
+                pdf,
+                sourceName,
+                parityRepairs));
         }
         if (cells.Count == 0)
         {

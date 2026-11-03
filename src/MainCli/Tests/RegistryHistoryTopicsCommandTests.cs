@@ -255,9 +255,9 @@ public sealed class RegistryHistoryTopicsCommandTests
                 [
                     new(
                         new DateTime(
-                    year: 2024,
-                    month: 10,
-                    day: 1),
+                            year: 2024,
+                            month: 10,
+                            day: 1),
                         ScheduleLib.LessonType.Curs,
                         "canary-historical-topic"),
                 ]);
@@ -272,9 +272,9 @@ public sealed class RegistryHistoryTopicsCommandTests
                 [
                     new(
                         new DateTime(
-                    year: 2025,
-                    month: 10,
-                    day: 1),
+                            year: 2025,
+                            month: 10,
+                            day: 1),
                         ScheduleLib.LessonType.Curs,
                         "canary-current-topic"),
                 ],

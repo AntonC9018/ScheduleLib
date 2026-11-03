@@ -314,7 +314,9 @@ public sealed class FreeHoursTests
                 false,
                 m2301Impar));
 
-        Assert.Equal(expected: expected, actual: builder.ToString()
+        Assert.Equal(
+            expected: expected,
+            actual: builder.ToString()
                 .Replace("\r\n", "\n"));
 
         static string Block(
@@ -418,10 +420,10 @@ public sealed class FreeHoursTests
 
         using (var workbook = new XLWorkbook(
                    Path.Combine(
-                FixtureDirectory(),
-                "2025_sem2",
-                "zi",
-                "master.xlsx")))
+                       FixtureDirectory(),
+                       "2025_sem2",
+                       "zi",
+                       "master.xlsx")))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
@@ -730,7 +732,6 @@ public sealed class FreeHoursTests
 
         return $"{group}/{parity}/{modeName}";
     }
-
 
 
     private abstract class FixtureQueryBase : QueryCommands

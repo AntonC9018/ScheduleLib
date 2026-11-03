@@ -265,7 +265,10 @@ public sealed class GroupsNavigator
             {
                 continue;
             }
-            if (MatchParentLanguageRule(schedule, parents, rule))
+            if (MatchParentLanguageRule(
+                    schedule,
+                    parents,
+                    rule))
             {
                 return GroupPartitionKey.All;
             }
@@ -695,20 +698,20 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 }
 
                 if (expectedAttendance.All(input =>
+                    {
+                        if (!(savedInputs.Count(actual => actual.Name == input.Name) == 1))
                         {
-                            if (!(savedInputs.Count(actual => actual.Name == input.Name) == 1))
-                            {
-                                return false;
-                            }
+                            return false;
+                        }
 
-                            if (!(savedInputs.Any(actual =>
-                                                        actual.Name == input.Name && actual.Value == input.Value)))
-                            {
-                                return false;
-                            }
+                        if (!(savedInputs.Any(actual =>
+                                actual.Name == input.Name && actual.Value == input.Value)))
+                        {
+                            return false;
+                        }
 
-                            return true;
-                        }))
+                        return true;
+                    }))
                 {
                     return true;
                 }
@@ -1039,19 +1042,19 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             }
 
             if (expected.Any(input =>
-            {
-                if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
                 {
+                    if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
+                    {
+                        return true;
+                    }
+
+                    if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
+                    {
+                        return false;
+                    }
+
                     return true;
-                }
-
-                if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
-                {
-                    return false;
-                }
-
-                return true;
-            }))
+                }))
             {
                 return true;
             }

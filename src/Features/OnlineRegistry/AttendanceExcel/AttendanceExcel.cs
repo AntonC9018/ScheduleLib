@@ -518,10 +518,10 @@ public sealed partial class AttendanceListsExcelParser
                                 schedule.Source,
                                 labMerges,
                                 new StudentsLookupKey(
-                                item.Lesson.Groups,
-                                key.GroupPartition,
-                                item.Lesson.Course,
-                                LessonType.Lab),
+                                    item.Lesson.Groups,
+                                    key.GroupPartition,
+                                    item.Lesson.Course,
+                                    LessonType.Lab),
                                 out _);
                     })
                     .Select(item => item.Lesson.Course)

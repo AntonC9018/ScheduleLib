@@ -17,10 +17,16 @@ public static class PdfScheduleImporter
     private static readonly Regex Group = new(@"^(?:DU-)?[A-Z]+\d{4}\((?:ro|ru|en)\)$");
     private static readonly Regex Time = new(@"^[IV]+\s+(\d{1,2}:\d{2})-\d{1,2}:\d{2}$");
 
-    public static IReadOnlyList<PdfScheduleCell> Read(Stream pdf, string source, PdfParityRepairs parityRepairs)
+    public static IReadOnlyList<PdfScheduleCell> Read(
+        Stream pdf,
+        string source,
+        PdfParityRepairs parityRepairs)
     {
         var tables = PdfTableReader.Read(pdf);
-        return Resolve(tables, source, parityRepairs);
+        return Resolve(
+            tables,
+            source,
+            parityRepairs);
     }
 
     public static void Import(
@@ -30,8 +36,14 @@ public static class PdfScheduleImporter
         PdfParityRepairs parityRepairs,
         ImportedLessonHandler? addLesson = null)
     {
-        var cells = Read(pdf, source, parityRepairs);
-        Import(context, cells, addLesson);
+        var cells = Read(
+            pdf,
+            source,
+            parityRepairs);
+        Import(
+            context,
+            cells,
+            addLesson);
     }
 
     public static IReadOnlyList<PdfScheduleCell> Resolve(

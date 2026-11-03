@@ -66,11 +66,11 @@ public sealed class TopicSeriesTests
             var schedule = scheduleBuilder.Build();
 
             await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                       {"documents":[
-                                                         {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
-                                                         {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
-                                                       ]}
-                                                       """));
+                                                                            {"documents":[
+                                                                              {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
+                                                                              {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
+                                                                            ]}
+                                                                            """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
@@ -171,15 +171,15 @@ public sealed class TopicSeriesTests
             var schedule = scheduleBuilder.Build();
 
             await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                       {"documents":[
-                                                         {"path":"course.csv","series":"curs-ru","course":"Synthetic course","groups":"IA2601",
-                                                          "wholeGroupOnly":true,"lessonType":"Curs","language":"Ru","allowMissingLessonTypes":true},
-                                                         {"path":"course.csv","series":"lab-ru","course":"Synthetic course","groups":"IA2601",
-                                                          "subGroup":"I","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
-                                                         {"path":"course.csv","series":"lab-en","course":"Synthetic course","groups":"IA2602",
-                                                          "wholeGroupOnly":true,"lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
-                                                       ]}
-                                                       """));
+                                                                            {"documents":[
+                                                                              {"path":"course.csv","series":"curs-ru","course":"Synthetic course","groups":"IA2601",
+                                                                               "wholeGroupOnly":true,"lessonType":"Curs","language":"Ru","allowMissingLessonTypes":true},
+                                                                              {"path":"course.csv","series":"lab-ru","course":"Synthetic course","groups":"IA2601",
+                                                                               "subGroup":"I","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
+                                                                              {"path":"course.csv","series":"lab-en","course":"Synthetic course","groups":"IA2602",
+                                                                               "wholeGroupOnly":true,"lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
+                                                                            ]}
+                                                                            """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
@@ -217,18 +217,18 @@ public sealed class TopicSeriesTests
                 second: "English lab two");
 
             string? objectValue = topics.Get(Key(
-                    russian,
-                    LessonType.Lab,
-                    GroupPartitionKey.All,
-                    0));
+                russian,
+                LessonType.Lab,
+                GroupPartitionKey.All,
+                0));
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
 
             string? objectValue3 = topics.Get(Key(
-                    english,
-                    LessonType.Curs,
-                    GroupPartitionKey.All,
-                    0));
+                english,
+                LessonType.Curs,
+                GroupPartitionKey.All,
+                0));
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
 
@@ -259,24 +259,24 @@ public sealed class TopicSeriesTests
                 string second)
             {
                 string? actual2 = topics.Get(Key(
-                        group,
-                        type,
-                        partition,
-                        0));
+                    group,
+                    type,
+                    partition,
+                    0));
                 Assert.Equal(expected: first, actual: actual2);
 
                 string? actual3 = topics.Get(Key(
-                        group,
-                        type,
-                        partition,
-                        1));
+                    group,
+                    type,
+                    partition,
+                    1));
                 Assert.Equal(expected: second, actual: actual3);
 
                 string? objectValue = topics.Get(Key(
-                        group,
-                        type,
-                        partition,
-                        2));
+                    group,
+                    type,
+                    partition,
+                    2));
                 object? objectValue2 = objectValue;
                 Assert.Null(objectValue2);
             }

@@ -137,7 +137,9 @@ public static class CommissionParser
                             }
                             int num = romanResult.Number;
 
-                            state.CommissionNumberMappings.AddAt(cell.Position, new SizedItem<int>(item: num, size: cell.Size));
+                            state.CommissionNumberMappings.AddAt(
+                                cell.Position,
+                                new SizedItem<int>(item: num, size: cell.Size));
                         }
                         if (state.CommissionNumberMappings.IsEmpty)
                         {

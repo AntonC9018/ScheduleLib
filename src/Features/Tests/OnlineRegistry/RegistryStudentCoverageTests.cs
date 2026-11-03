@@ -32,11 +32,15 @@ public sealed class RegistryStudentCoverageTests
             membershipKeys: [key]);
         var diagnostics = fixture.Report(coverage);
         string expectedStartString2 = "1 attendance students";
-        var single = Assert.Single(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
+        var single = Assert.Single(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         string actualString2 = single.Detail;
         Assert.StartsWith(expectedStartString: expectedStartString2, actualString: actualString2);
         string expectedStartString3 = "1 registry students";
-        var single2 = Assert.Single(diagnostics.Items, item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
+        var single2 = Assert.Single(
+            diagnostics.Items,
+            item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents);
         string actualString3 = single2.Detail;
         Assert.StartsWith(expectedStartString: expectedStartString3, actualString: actualString3);
         Assert.All(
@@ -220,7 +224,8 @@ public sealed class RegistryStudentCoverageTests
             membershipKeys: [lecture]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
-        Predicate<RegistrySyncDiagnostic> predicate = item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry;
+        Predicate<RegistrySyncDiagnostic> predicate = item =>
+            item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry;
         var missing = Assert.Single(collection, predicate);
         Assert.Contains(expectedSubstring: "Lab", actualString: missing.Detail);
     }
@@ -254,7 +259,9 @@ public sealed class RegistryStudentCoverageTests
             membershipKeys: [lecture]);
         var diagnostics = fixture.Report(coverage).Items;
         string expectedSubstring2 = "Curs";
-        var single = Assert.Single(diagnostics, item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
+        var single = Assert.Single(
+            diagnostics,
+            item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry);
         string actualString2 = single.Detail;
         Assert.Contains(expectedSubstring: expectedSubstring2, actualString: actualString2);
         var unknown = diagnostics.Where(item => item.Kind == RegistrySyncDiagnosticKind.UnmatchedAttendanceStudents)
@@ -368,7 +375,8 @@ public sealed class RegistryStudentCoverageTests
             membershipKeys: [second]);
         var report = fixture.Report(coverage);
         IEnumerable<RegistrySyncDiagnostic> collection = report.Items;
-        Predicate<RegistrySyncDiagnostic> predicate = item => item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry;
+        Predicate<RegistrySyncDiagnostic> predicate = item =>
+            item.Kind == RegistrySyncDiagnosticKind.AttendanceStudentsNotInRegistry;
         var missing = Assert.Single(collection, predicate);
         Assert.Contains(expectedSubstring: "subgroup I", actualString: missing.Detail);
     }

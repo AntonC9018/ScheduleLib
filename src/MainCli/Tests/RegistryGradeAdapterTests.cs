@@ -1021,7 +1021,9 @@ public sealed class RegistryGradeAdapterTests
         await using var provider = AppConfiguration.BuildServiceProvider(collection);
         await using var scope = provider.CreateAsyncScope();
         await using var session = new Session(scope.ServiceProvider);
-        var planner = new ConfiguredRegistryGradePlanner((_, _, _) =>
+        var planner = new ConfiguredRegistryGradePlanner((
+                _, _,
+                _) =>
             Task.FromException<MoodleScrapingContext>(failure));
         await planner.Plan(
             session,

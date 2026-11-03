@@ -426,6 +426,5 @@ public sealed class SettingsWriteTests
         }
 
         public void Dispose() => _temp.Dispose();
-
     }
 }

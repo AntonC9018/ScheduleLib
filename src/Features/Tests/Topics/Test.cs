@@ -74,12 +74,12 @@ public sealed class Test
         while (true)
         {
             var topic = result.Get(new AttendanceLookupKey(
-                    courseId: courseId,
-                    groups: groups,
-                    groupPartition: GroupPartitionKey.All,
-                    lessonType: LessonType.Lab,
-                    dayIndex: dayIndex,
-                    dateTime: default));
+                courseId: courseId,
+                groups: groups,
+                groupPartition: GroupPartitionKey.All,
+                lessonType: LessonType.Lab,
+                dayIndex: dayIndex,
+                dateTime: default));
             if (topic == null)
             {
                 break;

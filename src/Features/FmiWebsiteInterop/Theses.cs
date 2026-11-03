@@ -97,12 +97,14 @@ public sealed class ThesesConversionTaskHandler(
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
         var slugByName = await _teacherData.SlugMap(cancellationToken);
 
-        var forSerialization = theses.SelectMany(x => {
-            var indexedTheses = x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i));
-            return indexedTheses;
-        })
+        var forSerialization = theses.SelectMany(x =>
+            {
+                var indexedTheses = x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i));
+                return indexedTheses;
+            })
             .GroupBy(x => x.Item.TeacherName, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
-            .Select(x => {
+            .Select(x =>
+            {
                 var teacherTheses = (
                     Teacher: x.Key,
                     Theses: x

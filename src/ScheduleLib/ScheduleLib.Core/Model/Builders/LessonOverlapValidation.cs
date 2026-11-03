@@ -204,8 +204,8 @@ public static partial class ScheduleBuilderHelper
         foreach (var entry in allowlist)
         {
             if (!CoursesMatchEntry(
-                    aName,
-                    bName,
+                    aName: aName,
+                    bName: bName,
                     entry))
             {
                 continue;

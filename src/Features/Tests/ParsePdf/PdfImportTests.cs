@@ -16,12 +16,21 @@ public sealed class PdfImportTests
             source));
         // The fixtures were downloaded in September 2026; the reviewed cells include that
         // period's documented parity repairs.
-        var fixturePeriodStart = new DateOnly(2026, 9, 1);
+        var fixturePeriodStart = new DateOnly(
+            year: 2026,
+            month: 9,
+            day: 1);
         var parityRepairs = ScheduleLib.ScheduleDefaults.Config.PdfParityRepairsForPeriod(fixturePeriodStart);
-        var actual = PdfScheduleImporter.Read(stream, source, parityRepairs);
+        var actual = PdfScheduleImporter.Read(
+            stream,
+            source,
+            parityRepairs);
 
         var expected = JsonSerializer.Deserialize<PdfScheduleCell[]>(
-                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "expected-cells.json")),
+                File.ReadAllText(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "Fixtures",
+                    "expected-cells.json")),
                 new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,

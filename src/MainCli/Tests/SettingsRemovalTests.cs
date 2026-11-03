@@ -215,7 +215,9 @@ public sealed class SettingsRemovalTests
     {
         using var files = new SettingsWriteTests.Fixture();
 
-        await File.WriteAllTextAsync(path: files.ProjectFile, contents: $"{{\"schemaVersion\":1,\"operations\":{operations}}}");
+        await File.WriteAllTextAsync(
+            path: files.ProjectFile,
+            contents: $"{{\"schemaVersion\":1,\"operations\":{operations}}}");
         Assert.Equal(expected: 3, actual: (await files.Run("validate")).Exit);
     }
 }

@@ -54,7 +54,6 @@ public sealed class MoodleScrapingContext : IDisposable
     {
         _context.Dispose();
     }
-
 }
 
 public static class MoodleInterop

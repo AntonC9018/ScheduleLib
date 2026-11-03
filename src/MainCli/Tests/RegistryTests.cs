@@ -187,7 +187,9 @@ public sealed class RegistryTests
                 diagnostics.Items,
                 item =>
                 {
-                    return !(item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup) && !(item.Course != schedule.Get(lesson.Lesson.Course).FullName) && (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
+                    return !(item.Kind != RegistrySyncDiagnosticKind.MissingRegistryGroup)
+                        && !(item.Course != schedule.Get(lesson.Lesson.Course).FullName)
+                        && (item.Group == schedule.Get(lesson.Lesson.Groups[1]).Name);
                 });
         }
     }
@@ -561,11 +563,15 @@ public sealed class RegistryTests
                 .GetProperty("outcomes")
                 .GetArrayLength());
         var outcomes = result.GetProperty("data").GetProperty("outcomes");
-        var kinds = outcomes.EnumerateArray().Select(outcome => outcome.GetProperty("kind").GetString());
+        var kinds = outcomes.EnumerateArray()
+            .Select(outcome => outcome.GetProperty("kind")
+                .GetString());
         Assert.Equal(expected: ["create", "update", "delete"], actual: kinds);
         Assert.Equal(
             expected: ["create: planned", "update: planned", "delete: planned"],
-            actual: result.GetProperty("actions").EnumerateArray().Select(action => action.GetString()));
+            actual: result.GetProperty("actions")
+                .EnumerateArray()
+                .Select(action => action.GetString()));
     }
 
     [Fact]
@@ -606,7 +612,9 @@ public sealed class RegistryTests
         Assert.Equal(expected: fake.Target, actual: locks.Target);
         Assert.Equal(
             expected: ["create: completed", "update: completed", "delete: completed"],
-            actual: capture.Result().GetProperty("actions").EnumerateArray()
+            actual: capture.Result()
+                .GetProperty("actions")
+                .EnumerateArray()
                 .Select(action => action.GetString()));
         Assert.All(
             capture.Result()
@@ -827,10 +835,10 @@ public sealed class RegistryTests
         await using var fake = new FakeProvider();
 
         fake.DiagnosticItems.Add(new RegistrySyncDiagnostic(
-                Kind: RegistrySyncDiagnosticKind.MissingRegistryGroup,
-                Course: "Synthetic course",
-                Group: "IA2502",
-                Detail: "Ask the registry administrator to add the English subgroup."));
+            Kind: RegistrySyncDiagnosticKind.MissingRegistryGroup,
+            Course: "Synthetic course",
+            Group: "IA2502",
+            Detail: "Ask the registry administrator to add the English subgroup."));
         using var capture = new Capture();
         Assert.Equal(
             expected: 0,
@@ -1097,7 +1105,8 @@ public sealed class RegistryTests
         public int GroupReads;
         public bool TwoGroups;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
+            Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link)
         {
@@ -1159,7 +1168,8 @@ public sealed class RegistryTests
         public bool SubmissionFailure;
         private bool _initialFormRead;
 
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
+            Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>
             Task.FromResult<IEnumerable<GroupLink>>([group]);

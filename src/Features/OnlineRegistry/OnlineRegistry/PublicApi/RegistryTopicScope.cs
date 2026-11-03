@@ -331,7 +331,10 @@ internal static class RegistryTopicScope
             var oldPartition = "/" + number;
             var roman = NumberHelper.ToRoman(number);
             var newPartition = $"/{roman}";
-            result = ReplaceToken(value: result, oldToken: oldPartition, newToken: newPartition);
+            result = ReplaceToken(
+                value: result,
+                oldToken: oldPartition,
+                newToken: newPartition);
         }
         return result;
     }

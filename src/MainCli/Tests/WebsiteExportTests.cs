@@ -781,7 +781,8 @@ public sealed class WebsiteExportTests
 
     private sealed class FakeThesesFileProvider(byte[] bytes) : IThesesFileProvider
     {
-        public ValueTask<Stream> Open(CancellationToken cancellationToken) => ValueTask.FromResult<Stream>(new MemoryStream(bytes, writable: false));
+        public ValueTask<Stream> Open(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<Stream>(new MemoryStream(bytes, writable: false));
     }
 
     private sealed class FakeFailingStatusHandler(HttpStatusCode status) : HttpMessageHandler
@@ -806,7 +807,7 @@ public sealed class WebsiteExportTests
             CancellationToken cancellationToken)
         {
             return Task.FromException<HttpResponseMessage>(new TaskCanceledException(
-                    "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing."));
+                "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing."));
         }
     }
 
@@ -945,6 +946,4 @@ public sealed class WebsiteExportTests
             return string.Join(' ', items);
         }
     }
-
-
 }

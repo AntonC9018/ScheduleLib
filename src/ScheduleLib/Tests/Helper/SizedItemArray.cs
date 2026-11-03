@@ -184,11 +184,11 @@ public sealed class SizedItemArrayTests
         array.Add(new SizedItem<string>("C", 6));
 
         var result = array.ReplaceAtRange(
-        3,
-        [
-            new("D", 1),
-            new("E", 2),
-        ]);
+            3,
+            [
+                new("D", 1),
+                new("E", 2),
+            ]);
         Assert.Equal(expected: ReplaceItemStatus.PartlyReplaced, actual: result);
         Assert.Equal(expected: 15, actual: array.TotalSize);
         string expected2 = "A";

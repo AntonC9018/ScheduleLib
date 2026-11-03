@@ -93,7 +93,10 @@ public sealed class FmiScheduleClient(HttpClient http)
                 return;
             }
 
-            if (!Uri.TryCreate(page, href, out var uri))
+            if (!Uri.TryCreate(
+                    baseUri: page,
+                    href,
+                    result: out var uri))
             {
                 return;
             }
@@ -112,7 +115,10 @@ public sealed class FmiScheduleClient(HttpClient http)
             }
 
             var year = match.Groups[1].Value.Length;
-            FmiScheduleLink link = new(year, uri, ReadUploadDate(element));
+            FmiScheduleLink link = new(
+                year,
+                uri,
+                ReadUploadDate(element));
             if (!links.TryAdd(year, link))
             {
                 throw new AmbiguousFmiScheduleLinksException(year);

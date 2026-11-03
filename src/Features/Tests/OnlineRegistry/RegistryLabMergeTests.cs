@@ -122,7 +122,8 @@ public sealed class RegistryLabMergeTests
         Assert.Equal(expected: 2, actual: result.Value.Attendance.Values.Count());
         Assert.All(
             result.Value.Attendance.Values,
-            day => {
+            day =>
+            {
                 Assert.All(day.AsArray(), mark => Assert.Equal(expected: Attendance.NotPresent, actual: mark));
             });
     }
@@ -134,20 +135,20 @@ public sealed class RegistryLabMergeTests
         var builder = new AllStudentAttendanceListBuilder();
 
         var first = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("I"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
 
         first.Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.NotPresent);
         first.HintMaxCount(1);
 
         var second = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("II"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
         var studentAttendanceListBuilder = second;
         var name = Parsing.NameHelper.Parse("Synthetic Beta");
         var student = studentAttendanceListBuilder.Student(name);
@@ -192,10 +193,10 @@ public sealed class RegistryLabMergeTests
         var builder = new AllStudentAttendanceListBuilder();
 
         var first = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("I"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
         first.AddAttendanceDates([
             new()
             {
@@ -215,10 +216,10 @@ public sealed class RegistryLabMergeTests
         alpha.Day(Attendance.MotivatedAbsent);
 
         var second = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("II"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
         second.AddAttendanceDates([
             new()
             {
@@ -323,19 +324,19 @@ public sealed class RegistryLabMergeTests
         var builder = new AllStudentAttendanceListBuilder();
 
         var first = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("I"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
 
         first.Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.NotPresent);
 
         var second = builder.List(new StudentsLookupKey(
-                [fixture.Group],
-                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
-                fixture.Course,
-                LessonType.Lab));
+            [fixture.Group],
+            new GroupPartitionKey(new SubGroup("II"), Specialization.All),
+            fixture.Course,
+            LessonType.Lab));
 
         Parsing.Name NameForDuplicateScenario()
         {

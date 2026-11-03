@@ -12,13 +12,19 @@ public enum CalendarActionKind
 
 public static class CalendarActionKindExtensions
 {
-    public static string ToWire(this CalendarActionKind action) => action switch
+    public static string ToWire(this CalendarActionKind action)
     {
-        CalendarActionKind.DeleteCalendar => "delete calendar",
-        CalendarActionKind.CreateCalendar => "create calendar",
-        CalendarActionKind.CreateEvent => "create event",
-        _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
-    };
+        return action switch
+        {
+            CalendarActionKind.DeleteCalendar => "delete calendar",
+            CalendarActionKind.CreateCalendar => "create calendar",
+            CalendarActionKind.CreateEvent => "create event",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(action),
+                action,
+                null),
+        };
+    }
 }
 
 public sealed class CalendarActionKindJsonConverter : WireNameJsonConverter<CalendarActionKind>

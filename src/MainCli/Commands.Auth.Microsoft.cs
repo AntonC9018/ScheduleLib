@@ -7,6 +7,7 @@ public partial class AuthCommands
 {
     protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication(CliCommandContext context) =>
         new(logger: context.CreateLogger(typeof(MicrosoftAuthentication).FullName!));
+
     protected virtual MicrosoftAuthConfig LoadMicrosoftConfig() => MicrosoftCliConfiguration.Load();
 
     private async Task<int> ExecuteMicrosoft(
@@ -82,7 +83,8 @@ public static class MicrosoftCliConfiguration
             .Build();
         try
         {
-            return configuration.GetRequiredSection("Microsoft").Get<MicrosoftAuthConfig>()
+            return configuration.GetRequiredSection("Microsoft")
+                    .Get<MicrosoftAuthConfig>()
                 ?? throw new InvalidOperationException("Microsoft section is empty.");
         }
         catch (InvalidOperationException)

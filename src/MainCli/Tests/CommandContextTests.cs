@@ -31,13 +31,19 @@ public sealed class CommandContextTests
             new(),
             CancellationToken.None);
 
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
+        Assert.Equal(
+            expected: CliExit.InvalidConfiguration,
+            actual: context.ClassifyInputFailure(new FileNotFoundException()).ExitCode);
 
-        Assert.Equal(expected: CliExit.InvalidConfiguration, actual: context.ClassifyInputFailure(new JsonException()).ExitCode);
+        Assert.Equal(
+            expected: CliExit.InvalidConfiguration,
+            actual: context.ClassifyInputFailure(new JsonException()).ExitCode);
 
         Assert.Equal(expected: CliExit.IoFailure, actual: context.ClassifyInputFailure(new IOException()).ExitCode);
 
-        Assert.Equal(expected: CliExit.InvalidArguments, actual: context.ClassifyInputFailure(new ArgumentException()).ExitCode);
+        Assert.Equal(
+            expected: CliExit.InvalidArguments,
+            actual: context.ClassifyInputFailure(new ArgumentException()).ExitCode);
     }
 
     [Fact]

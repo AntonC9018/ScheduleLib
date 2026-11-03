@@ -134,7 +134,9 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportAttendanceStudentsNotInRegistry(
                 course: schedule.Get(course).FullName,
                 @group: key.Groups.ToString(schedule),
-                count: missing, lessonType: key.LessonType, partition: key.GroupPartition);
+                count: missing,
+                lessonType: key.LessonType,
+                partition: key.GroupPartition);
         }
 
         // Related lists share one diagnostic, while each roster is checked only against
@@ -221,7 +223,9 @@ internal sealed class RegistryStudentCoverage(
             diagnostics.ReportUnmatchedAttendanceStudents(
                 course: schedule.Get(course).FullName,
                 @group: groups,
-                count: count, lessonTypes: types, partitions: partitions);
+                count: count,
+                lessonTypes: types,
+                partitions: partitions);
         }
     }
 

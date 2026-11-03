@@ -112,7 +112,7 @@ public static class PdfTextNormalizer
                 continue;
             }
 
-            lines[0] = WithParityMarker(lines[0], rule.Parity);
+            lines[0] = WithParityMarker(line: lines[0], parity: rule.Parity);
             return cell with
             {
                 Text = string.Join('\n', lines),

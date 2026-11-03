@@ -43,7 +43,10 @@ public static class RegistryGradeNoticeKindExtensions
             RegistryGradeNoticeKind.Omitted => "omitted",
             RegistryGradeNoticeKind.Unsupported => "unsupported",
             RegistryGradeNoticeKind.Unmatched => "unmatched",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                null),
         };
     }
 }

@@ -10,15 +10,22 @@ public sealed class CalendarReportingTests
     [InlineData(CalendarActionKind.CreateEvent, "create event")]
     public void ActionKindsPreserveJsonAndHumanOutput(CalendarActionKind action, string wire)
     {
-        var outcome = new CalendarActionOutcome(action, null, null, ActionState.Planned);
+        var outcome = new CalendarActionOutcome(
+            action,
+            CalendarId: null,
+            EventId: null,
+            ActionState.Planned);
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(outcome));
-        Assert.Equal(wire, document.RootElement.GetProperty("Action").GetString());
         Assert.Equal(
-            $"{wire}: planned; calendar ; event ; desired index ",
-            new CalendarActionMessage(outcome).Format(CultureInfo.InvariantCulture));
+            expected: wire,
+            actual: document.RootElement.GetProperty("Action")
+                .GetString());
         Assert.Equal(
-            $"{wire}: not-attempted; desired index 2",
-            new CalendarNotAttemptedMessage(action, 2).Format(CultureInfo.InvariantCulture));
+            expected: $"{wire}: planned; calendar ; event ; desired index ",
+            actual: new CalendarActionMessage(outcome).Format(CultureInfo.InvariantCulture));
+        Assert.Equal(
+            expected: $"{wire}: not-attempted; desired index 2",
+            actual: new CalendarNotAttemptedMessage(action, 2).Format(CultureInfo.InvariantCulture));
     }
 
     [Theory]
@@ -42,7 +49,11 @@ public sealed class CalendarReportingTests
                 },
                 default);
 
-            context.StreamUpdate(new CalendarReport("desired-0", ActionState.Completed, new { index = 0 }, new ProbeMessage(probe)));
+            context.StreamUpdate(new CalendarReport(
+                "desired-0",
+                ActionState.Completed,
+                new { index = 0 },
+                new ProbeMessage(probe)));
 
             int expected2;
             if (json || jsonl)
@@ -172,7 +183,8 @@ public sealed class CalendarReportingTests
         }
         Assert.Equal(
             expected: "create event: not-attempted; desired index 2",
-            actual: new CalendarNotAttemptedMessage(CalendarActionKind.CreateEvent, 2).Format(CultureInfo.InvariantCulture));
+            actual: new CalendarNotAttemptedMessage(CalendarActionKind.CreateEvent, 2).Format(CultureInfo
+                .InvariantCulture));
     }
 
     private sealed class FormattingProbe

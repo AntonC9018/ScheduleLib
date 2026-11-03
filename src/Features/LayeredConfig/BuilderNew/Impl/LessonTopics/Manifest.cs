@@ -117,11 +117,11 @@ public static class ManifestFileSourceHelper
             Name teacherName)
         {
             return ActivatorUtilities.CreateInstance<ManifestFileSource>(
-            sp,
-            [
-                path,
-                teacherName,
-            ]);
+                sp,
+                [
+                    path,
+                    teacherName,
+                ]);
         }
 
         public ManifestSource CreateManifestSource(IManifestFileSource s)
@@ -134,11 +134,11 @@ public static class ManifestFileSourceHelper
             List<string> directories)
         {
             return ActivatorUtilities.CreateInstance<ManifestDirectoryTeacherSource>(
-            sp,
-            [
-                teacherName,
-                directories,
-            ]);
+                sp,
+                [
+                    teacherName,
+                    directories,
+                ]);
         }
     }
 }

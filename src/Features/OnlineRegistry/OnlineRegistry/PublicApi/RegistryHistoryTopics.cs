@@ -356,18 +356,20 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 
         var historical = new List<RegistryHistoryCourseTopics>();
         var pending = currentCourses.Where(course =>
-                {
-            var matchesCurrentCourse = currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
+            {
+                var hasUniqueCourseMatch = currentCourses.Count(other =>
+                        RegistryHistoryTopicSelection.Matches(current: course, historical: other))
                     == 1;
-            return matchesCurrentCourse;
-        })
+                return hasUniqueCourseMatch;
+            })
             .ToList();
         var ambiguousPending = currentCourses.Where(course =>
-                {
-            var matchesCurrentCourse = currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
+            {
+                var hasAmbiguousCourseMatch = currentCourses.Count(other =>
+                        RegistryHistoryTopicSelection.Matches(current: course, historical: other))
                     > 1;
-            return matchesCurrentCourse;
-        })
+                return hasAmbiguousCourseMatch;
+            })
             .Distinct(RegistryHistoryCourseIdentityComparer.Instance)
             .ToList();
         foreach (var year in previous)
@@ -390,21 +392,21 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 
             var yearCourses = RegistryHistoryHtml.Courses(document, index);
             var matching = yearCourses.Where(course =>
+                {
+                    if (pending.Any(currentCourse =>
+                            RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
                     {
-                        if (pending.Any(currentCourse =>
-                                                RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
-                        {
-                            return true;
-                        }
+                        return true;
+                    }
 
-                        if (ambiguousPending.Any(currentCourse =>
-                                                RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
-                        {
-                            return true;
-                        }
+                    if (ambiguousPending.Any(currentCourse =>
+                            RegistryHistoryTopicSelection.Matches(current: currentCourse, historical: course)))
+                    {
+                        return true;
+                    }
 
-                        return false;
-                    })
+                    return false;
+                })
                 .ToArray();
             var snapshots = new List<RegistryHistoryCourseTopics>();
             foreach (var course in matching)
@@ -434,58 +436,52 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
                         return false;
                     })));
             });
-            ambiguousPending.RemoveAll(course => {
-                var matchesCurrentCourse = snapshots.Any(snapshot =>
+            ambiguousPending.RemoveAll(course =>
+            {
+                var hasHistoricalTeachingTopics = snapshots.Any(snapshot =>
+                {
+                    if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
                     {
-                        if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
-                        {
-                            return false;
-                        }
+                        return false;
+                    }
 
-                        if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
-                                        {
-                                            if (string.IsNullOrWhiteSpace(lesson.Topic))
-                                            {
-                                                return false;
-                                            }
+                    if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
+                            {
+                                if (string.IsNullOrWhiteSpace(lesson.Topic))
+                                {
+                                    return false;
+                                }
 
-                                            if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
-                                            {
-                                                return true;
-                                            }
+                                if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+                                {
+                                    return true;
+                                }
 
-                                            return false;
-                                        }
+                                return false;
+                            }
                         ))))
-                        {
-                            return false;
-                        }
+                    {
+                        return false;
+                    }
 
-                        return true;
-                    });
-                return matchesCurrentCourse;
+                    return true;
+                });
+                return hasHistoricalTeachingTopics;
             });
         }
         var offered = years.Select(x => x.Value)
             .ToArray();
-        IReadOnlyList<string> offeredYears = offered;
-        IReadOnlyList<RegistryHistoryCourseTopics>
-            current2 = current;
         var selection =
             RegistryHistoryTopicSelection.Select(
                 currentYear,
                 offered,
                 currentCourses,
                 historical);
-        IReadOnlyList<RegistryHistoryCourseTopics>
-            historical2 = historical;
-        RegistryHistoryTopicsAnalysis registryHistoryTopicsAnalysis =
-            new(
-                offeredYears,
-                Current: current2,
-                selection,
-                Historical: historical2);
-        return registryHistoryTopicsAnalysis;
+        return new(
+            offered,
+            Current: current,
+            selection,
+            Historical: historical);
 
         async Task<RegistryHistoryCourseTopics> ReadCourse(string year, RegistryHistoryCourse course)
         {

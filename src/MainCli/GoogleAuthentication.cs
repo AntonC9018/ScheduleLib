@@ -155,9 +155,11 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         _tokens = tokens ?? new GoogleTokenProvider();
     }
 
-    public static void Register(IServiceCollection services) =>
+    public static void Register(IServiceCollection services)
+    {
         services.AddSingleton<IGoogleCredentialAuthorization>(sp =>
             new GoogleAuthentication(logger: sp.GetService<ILogger<GoogleAuthentication>>()));
+    }
 
     public void Dispose()
     {
@@ -380,8 +382,14 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         }
         var credentialPath = AccountFile(teacher: teacher, clientId: secrets.ClientId);
         var credentialStore = new AtomicTokenStore(credentialPath, requireExisting: true);
-        var tokenContext = new GoogleTokenContext(secrets, teacher, scopes);
-        return _tokens.CreateCredential(tokenContext, authorization, credentialStore);
+        var tokenContext = new GoogleTokenContext(
+            secrets,
+            teacher,
+            scopes);
+        return _tokens.CreateCredential(
+            tokenContext,
+            authorization,
+            credentialStore);
     }
 
     private static bool Usable(TokenResponse authorization, string[] scopes)
@@ -446,7 +454,9 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
             accounts.Add(new(
                 AccountId: Path.GetFileNameWithoutExtension(path),
                 State: authorization.IsStale
-                    ? string.IsNullOrEmpty(authorization.RefreshToken) ? AuthAccountState.Expired : AuthAccountState.Refreshable
+                    ? string.IsNullOrEmpty(authorization.RefreshToken)
+                        ? AuthAccountState.Expired
+                        : AuthAccountState.Refreshable
                     : AuthAccountState.Authorized,
                 authorization.Scope?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? []));
         }

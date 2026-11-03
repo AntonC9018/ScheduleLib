@@ -494,7 +494,8 @@ public readonly struct StudentAttendanceList
 
         return NamesInDb.Create([
             .. ParentLists(key)
-                .SelectMany(list => {
+                .SelectMany(list =>
+                {
                     var orderedNames = list.Attendance.StudentNames.OrderBy(student => student.Value)
                         .Select(student => student.Key);
                     return orderedNames;

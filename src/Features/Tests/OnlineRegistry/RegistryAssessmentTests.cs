@@ -442,7 +442,10 @@ public sealed class RegistryAssessmentTests
             schedule,
             course,
             [group],
-            new GroupPartitionKey(SubGroup.All, Specialization.All, new Alternative("Synthetic elective")));
+            new GroupPartitionKey(
+                SubGroup.All,
+                Specialization.All,
+                new Alternative("Synthetic elective")));
         IEnumerable<RegistryAssessmentRule> collection12 = collection11;
         Assert.Single(collection12);
         var collection7 = RegistryAssessments.Find(

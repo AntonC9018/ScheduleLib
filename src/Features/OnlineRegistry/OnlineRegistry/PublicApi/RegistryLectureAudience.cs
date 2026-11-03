@@ -33,7 +33,8 @@ internal static class RegistryLectureAudience
 
             bool MatchesLessonDate()
             {
-                if (source.Weekly is { } weekly && candidate.Weekly is { } otherWeekly
+                if (source.Weekly is { } weekly
+                    && candidate.Weekly is { } otherWeekly
                     && weekly.Date == otherWeekly.Date)
                 {
                     return true;

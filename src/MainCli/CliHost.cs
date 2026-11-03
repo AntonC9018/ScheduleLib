@@ -145,7 +145,9 @@ public static class CliHost
                 details.Add(summary);
             }
 
-            WriteStartupResult(exit, summary, details);
+            WriteStartupResult(exit,
+                summary,
+                details);
             return exit;
         }
         catch (Exception e)
@@ -178,14 +180,22 @@ public static class CliHost
 
             if (startupRequest.Jsonl)
             {
-                var output = new CliOutput("cli", Guid.NewGuid().ToString("N"), false, true);
+                var output = new CliOutput("cli",
+                    Guid.NewGuid()
+                        .ToString("N"),
+                    false,
+                    true);
                 output.EmitStart();
                 foreach (var detail in details)
                 {
                     output.WriteError(detail);
                 }
 
-                output.EmitFinal(RunStatus.Failed, exit, [], [error], null);
+                output.EmitFinal(RunStatus.Failed,
+                    exit,
+                    [],
+                    [error],
+                    null);
                 return;
             }
 
@@ -330,7 +340,9 @@ public static class CliHost
             var json = parseResult?.TargetCommand.HasInputValues("json") == true;
             var jsonl = parseResult?.TargetCommand.HasInputValues("jsonl") == true;
             var helpRequested = parseResult?.HelpWasRequested() == true;
-            return new(Json: json, Jsonl: jsonl, HelpRequested: helpRequested);
+            return new(Json: json,
+                Jsonl: jsonl,
+                HelpRequested: helpRequested);
         }
     }
 
@@ -441,6 +453,7 @@ public partial class QueryCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
+
             bool IsValidQuery()
             {
                 if (query.BeforeSlot is < 1 or > 7)

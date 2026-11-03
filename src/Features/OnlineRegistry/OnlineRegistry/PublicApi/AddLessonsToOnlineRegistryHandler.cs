@@ -318,17 +318,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     var studentNames = p.Attendance.StudentNames(new StudentsLookupKey(
-                            courseId: courseLink.CourseId,
-                            groups: key.Audience,
-                            groupPartition: key.Partition,
-                            lessonType: key.Type));
+                        courseId: courseLink.CourseId,
+                        groups: key.Audience,
+                        groupPartition: key.Partition,
+                        lessonType: key.Type));
 
                     if (p.HasAttendanceSources && studentNames.Count == 0)
                     {
                         p.Diagnostics?.ReportMissingAttendanceSheet(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule),
-                            lessonType: key.Type, partition: key.Partition);
+                            lessonType: key.Type,
+                            partition: key.Partition);
                     }
 
                     remapHelpers[key] = StudentNameRemapHelper.Create(
@@ -456,8 +457,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
 
                 LessonGroups TopicGroups(LessonInstance lesson) => audiences[lesson.LessonId].Ordered();
-                var knownScopes = destinations.SelectMany(candidate => {
-                    var lessonScopes = candidate.Selection.Lessons.Select(id =>
+                var knownScopes = destinations.SelectMany(candidate =>
+                    {
+                        var lessonScopes = candidate.Selection.Lessons.Select(id =>
                             RegistryTopicScope.Format(
                                 _schedule,
                                 _schedule.Get(id).Lesson.Groups,
@@ -465,9 +467,10 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     config,
                                     _schedule,
                                     _schedule.Get(id).Lesson)));
-                    return lessonScopes;
-                })
-                    .Concat(destinations.SelectMany(candidate => {
+                        return lessonScopes;
+                    })
+                    .Concat(destinations.SelectMany(candidate =>
+                    {
                         var lessonScopes = routed[candidate.Group.Uri].Select(entry =>
                             RegistryTopicScope.Format(
                                 _schedule,
@@ -478,7 +481,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     _schedule.Get(entry.Key).Lesson)));
                         return lessonScopes;
                     }))
-                    .Concat(destinations.SelectMany(candidate => {
+                    .Concat(destinations.SelectMany(candidate =>
+                    {
                         var lessonScopes = candidate.Selection.Lessons.Select(id =>
                             RegistryTopicScope.Format(
                                 _schedule,
@@ -807,7 +811,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     p.Diagnostics?.ReportMissingLessonTopics(
                         course: _schedule.Get(courseLink.CourseId).FullName,
                         @group: group.Groups.Value.ToString(_schedule),
-                        count: missingTopics, partition: matchedGroupPartition);
+                        count: missingTopics,
+                        partition: matchedGroupPartition);
                 }
 
                 var actions = new List<RegistrySyncAction>();
@@ -911,7 +916,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     captured,
                                     addLessonUri,
                                     scanResult.Students,
-                                    onSubmissionStarted).AsTask());
+                                    onSubmissionStarted)
+                                .AsTask());
                         }));
                 }
                 if (!(await onGroupPlanned(actions)))

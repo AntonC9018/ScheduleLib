@@ -460,8 +460,20 @@ public sealed class CliJsonlTests
     public async Task StartupParseErrorUsesOnlyFormatOptionsParsedBeforeTheError(bool jsonlBeforeError)
     {
         var arguments = jsonlBeforeError
-            ? new[] { "query", "lessons", "--jsonl", "--unknown-flag" }
-            : new[] { "query", "lessons", "--unknown-flag", "--jsonl" };
+            ? new[]
+            {
+                "query",
+                "lessons",
+                "--jsonl",
+                "--unknown-flag",
+            }
+            : new[]
+            {
+                "query",
+                "lessons",
+                "--unknown-flag",
+                "--jsonl",
+            };
         var (exit, output, error) = await CaptureHost(arguments);
 
         Assert.Equal(expected: 2, actual: exit);
@@ -490,9 +502,12 @@ public sealed class CliJsonlTests
         }
         else
         {
-            Assert.DoesNotContain("\"event\"", output);
-            Assert.DoesNotContain("\"event\"", error);
-            Assert.Contains("unknown", output + error, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: output);
+            Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: error);
+            Assert.Contains(
+                expectedSubstring: "unknown",
+                actualString: output + error,
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -503,8 +518,11 @@ public sealed class CliJsonlTests
             ["query", "lessons", "-?", "--jsonl", "--json"]);
 
         Assert.Equal(expected: CliExit.Success, actual: exit);
-        Assert.Contains("Usage:", output, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("\"event\"", output);
+        Assert.Contains(
+            expectedSubstring: "Usage:",
+            actualString: output,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: output);
         Assert.Empty(error);
     }
 
@@ -514,8 +532,8 @@ public sealed class CliJsonlTests
         var (exit, output, error) = await CaptureHost(["query", "lessons", "--", "--jsonl"]);
 
         Assert.Equal(expected: CliExit.InvalidArguments, actual: exit);
-        Assert.DoesNotContain("\"event\"", output);
-        Assert.DoesNotContain("\"event\"", error);
+        Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: output);
+        Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: error);
         Assert.NotEmpty(output + error);
     }
 
@@ -563,7 +581,7 @@ public sealed class CliJsonlTests
             });
 
         Assert.Equal(expected: CliExit.Unexpected, actual: exit);
-        Assert.Contains("failure after parsing", error);
+        Assert.Contains(expectedSubstring: "failure after parsing", actualString: error);
         if (mode == "jsonl")
         {
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -574,14 +592,17 @@ public sealed class CliJsonlTests
             {
                 using var record = JsonDocument.Parse(line);
             }
-            Assert.Contains("\"event\":\"final\"", output);
+            Assert.Contains(expectedSubstring: "\"event\":\"final\"", actualString: output);
             return;
         }
 
         if (mode == "json")
         {
             using var result = JsonDocument.Parse(output);
-            Assert.Equal(expected: CliExit.Unexpected, actual: result.RootElement.GetProperty("exitCode").GetInt32());
+            Assert.Equal(
+                expected: CliExit.Unexpected,
+                actual: result.RootElement.GetProperty("exitCode")
+                    .GetInt32());
             return;
         }
 
@@ -623,9 +644,9 @@ public sealed class CliJsonlTests
                 });
 
             Assert.Equal(expected: CliExit.Unexpected, actual: exit);
-            Assert.DoesNotContain("\"exitCode\"", stdout.ToString());
-            Assert.DoesNotContain("\"event\"", stdout.ToString());
-            Assert.Contains("failure after parsing", stderr.ToString());
+            Assert.DoesNotContain(expectedSubstring: "\"exitCode\"", actualString: stdout.ToString());
+            Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: stdout.ToString());
+            Assert.Contains(expectedSubstring: "failure after parsing", actualString: stderr.ToString());
         }
         finally
         {
@@ -659,8 +680,8 @@ public sealed class CliJsonlTests
 
             Assert.Equal(expected: CliExit.Unexpected, actual: exit);
             Assert.Empty(stdout.ToString());
-            Assert.Contains("failure before parsing", stderr.ToString());
-            Assert.DoesNotContain("\"event\"", stderr.ToString());
+            Assert.Contains(expectedSubstring: "failure before parsing", actualString: stderr.ToString());
+            Assert.DoesNotContain(expectedSubstring: "\"event\"", actualString: stderr.ToString());
         }
         finally
         {
@@ -988,7 +1009,8 @@ public sealed class CliJsonlTests
             actual: info.RootElement.GetProperty("category")
                 .GetString());
 
-        bool condition = !(!info.RootElement.TryGetProperty("timestamp", out var timestamp)) && (DateTimeOffset.TryParse(timestamp.GetString(), out _));
+        bool condition = !(!info.RootElement.TryGetProperty("timestamp", out var timestamp))
+            && (DateTimeOffset.TryParse(timestamp.GetString(), out _));
 
 
         Assert.True(
@@ -1233,7 +1255,10 @@ public sealed class CliJsonlTests
             expected: ["0", "1", "2", "3"],
             actual: previewUpdates.Where((update) => update.Status.ToWire() == "planned")
                 .Select((update) => update.Id));
-        Assert.Equal(expected: "planned", actual: previewUpdates.Single((update) => update.Id == "0").Status.ToWire());
+        Assert.Equal(
+            expected: "planned",
+            actual: previewUpdates.Single((update) => update.Id == "0").Status
+                .ToWire());
         var deleted = previewUpdates.Single((update) => update.Id == "deleted-0");
 
         Assert.Equal(
@@ -2170,7 +2195,6 @@ public sealed class CliJsonlTests
     private static TestTempDirectory NewHistoryDirectory() => new("registry-history-tests");
 
 
-
     private sealed class FixtureQuery : QueryCommands
     {
         protected override void ConfigureServices(IServiceCollection services)
@@ -2283,9 +2307,9 @@ public sealed class CliJsonlTests
                 [
                     new(
                         new DateTime(
-                    year: 2024,
-                    month: 10,
-                    day: 1),
+                            year: 2024,
+                            month: 10,
+                            day: 1),
                         LessonType.Curs,
                         "canary-historical-topic"),
                 ]);
@@ -2300,9 +2324,9 @@ public sealed class CliJsonlTests
                 [
                     new(
                         new DateTime(
-                    year: 2025,
-                    month: 10,
-                    day: 1),
+                            year: 2025,
+                            month: 10,
+                            day: 1),
                         LessonType.Curs,
                         "canary-current-topic"),
                 ],
@@ -2372,9 +2396,11 @@ public sealed class CliJsonlTests
     {
         public List<string> Writes { get; } = [];
 
-        public Task<DriveAccount> GetAccount(CancellationToken token) => Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
+        public Task<DriveAccount> GetAccount(CancellationToken token) =>
+            Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
 
-        public Task<DriveDestination> FindFolder(string name, CancellationToken token) => Task.FromResult(new DriveDestination(Id: "actual-folder", Name: "Actual folder"));
+        public Task<DriveDestination> FindFolder(string name, CancellationToken token) =>
+            Task.FromResult(new DriveDestination(Id: "actual-folder", Name: "Actual folder"));
 
         public Task<IReadOnlyList<DriveRemoteFile>> ListFiles(string id, CancellationToken token)
             => Task.FromResult<IReadOnlyList<DriveRemoteFile>>([new(Id: "old", Name: "obsolete.txt")]);
@@ -2750,7 +2776,8 @@ public sealed class CliJsonlTests
 
     private sealed class FixtureNavigator(CourseId course, GroupLink group) : IRegistrySyncNavigator
     {
-        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) => Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
+            Task.FromResult<IEnumerable<CourseLink>>([new(course, new Uri("https://registry.test/course"))]);
 
         public Task<IEnumerable<GroupLink>> GetGroups(CourseLink link) =>
             Task.FromResult<IEnumerable<GroupLink>>([group]);

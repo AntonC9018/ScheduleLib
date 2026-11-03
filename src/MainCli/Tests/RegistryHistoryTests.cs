@@ -483,10 +483,10 @@ public sealed class RegistryHistoryTests
         var logger = new RegistryErrorLogger(log);
 
         logger.StudentsNotInDbButInRegistry(new StudentsInGroup(
-                PrivateStudents(),
-                null!,
-                default,
-                default));
+            PrivateStudents(),
+            null!,
+            default,
+            default));
 
         logger.LessonsDecidedErroneous(new ErroneousLesson("canary-student canary-password canary-token"));
 

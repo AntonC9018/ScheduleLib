@@ -269,8 +269,14 @@ public sealed class CalendarSyncTests
             default);
         Assert.Equal(expected: 6, actual: result.ExitCode);
         Assert.Equal(expected: writes, actual: provider.Writes.Count);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State.ToWire());
-        Assert.Equal(expected: "completed", actual: result.Outcomes.First().State.ToWire());
+        Assert.Equal(
+            expected: "uncertain",
+            actual: result.Outcomes.Last().State
+                .ToWire());
+        Assert.Equal(
+            expected: "completed",
+            actual: result.Outcomes.First().State
+                .ToWire());
         string? expected2;
         if (fail == "calendar")
         {
@@ -312,7 +318,9 @@ public sealed class CalendarSyncTests
         Assert.DoesNotContain(expectedSubstring: "synthetic-private-detail", actualString: errors);
         if (exit == CliExit.IoFailure)
         {
-            Assert.Equal(expected: RemoteSyncOutcomes.CredentialRefreshTransportError, actual: Assert.Single(result.Errors));
+            Assert.Equal(
+                expected: RemoteSyncOutcomes.CredentialRefreshTransportError,
+                actual: Assert.Single(result.Errors));
         }
     }
 
@@ -379,7 +387,10 @@ public sealed class CalendarSyncTests
         Assert.Equal(expected: 130, actual: result.ExitCode);
         Assert.Equal(expected: "new", actual: result.CreatedCalendarId);
         Assert.Equal(expected: 3, actual: result.Outcomes.Count);
-        Assert.Equal(expected: "uncertain", actual: result.Outcomes.Last().State.ToWire());
+        Assert.Equal(
+            expected: "uncertain",
+            actual: result.Outcomes.Last().State
+                .ToWire());
         Assert.Equal(expected: 3, actual: provider.Writes.Count);
     }
 

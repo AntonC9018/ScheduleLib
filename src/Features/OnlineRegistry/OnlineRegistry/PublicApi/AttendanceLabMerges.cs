@@ -202,7 +202,8 @@ public static class AttendanceLabMerges
         }
 
         var names = NamesInDb.Create([
-            .. sources.SelectMany(source => {
+            .. sources.SelectMany(source =>
+            {
                 var orderedNames = source.StudentNames
                     .OrderBy(student => student.Value)
                     .Select(student => student.Key);

@@ -76,7 +76,8 @@ public sealed class AuthenticationTests
         await new AtomicTokenStore(file).Write(stored, default);
         Assert.Equal(
             expected: "refreshable",
-            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State.ToWire());
+            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State
+                .ToWire());
         var refreshed = await auth.Resolve(
             new GoogleCredentialRequest(
                 fixture.Config,
@@ -90,7 +91,8 @@ public sealed class AuthenticationTests
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
         Assert.Equal(
             expected: "authorized",
-            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State.ToWire());
+            actual: Assert.Single((await auth.Status(Teacher, default)).Accounts).State
+                .ToWire());
         Assert.Equal(
             expected: "refreshed-secret",
             actual: (await new AtomicTokenStore(file).GetAsync<TokenResponse>(Teacher)).AccessToken);
@@ -164,7 +166,11 @@ public sealed class AuthenticationTests
                 .WithCredentials(fixture.Config)
                 .Execute(default));
 
-        foreach (var error in new[] { refreshError, consentError })
+        foreach (var error in new[]
+                 {
+                     refreshError,
+                     consentError,
+                 })
         {
             Assert.Same(expected: failure, actual: error);
             var classified = CliAuthenticationExecution.ClassifyGoogle(error);
@@ -243,7 +249,8 @@ public sealed class AuthenticationTests
         Assert.DoesNotContain(expectedSubstring: "client-secret", actualString: error.Message);
         Assert.IsType<TokenResponseException>(error.InnerException);
         Assert.Contains(
-            expectedSubstring: "AuthenticationRequiredException translated from TokenResponseException (code invalid_grant)",
+            expectedSubstring:
+            "AuthenticationRequiredException translated from TokenResponseException (code invalid_grant)",
             actualString: fixture.Log.All);
         Assert.DoesNotContain(expectedSubstring: "secret", actualString: fixture.Log.All);
         Assert.Equal(expected: 1, actual: fixture.Tokens.Consents);
@@ -561,7 +568,16 @@ public sealed class AuthenticationTests
 
         public DebugLogCapture Log { get; } = new();
 
-        public GoogleAuthentication Auth => new(Root, Tokens, Log);
+        public GoogleAuthentication Auth
+        {
+            get
+            {
+                return new(
+                    Root,
+                    Tokens,
+                    Log);
+            }
+        }
 
         public ServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
 
@@ -585,7 +601,6 @@ public sealed class AuthenticationTests
             Services.Dispose();
             _temp.Dispose();
         }
-
     }
 
     private sealed class FakeTokens : IGoogleTokenProvider, IDisposable

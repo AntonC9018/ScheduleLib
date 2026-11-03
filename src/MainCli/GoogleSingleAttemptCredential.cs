@@ -88,7 +88,10 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
 
     private Google.GoogleApiException AuthorizationFailure(Exception? cause = null)
     {
-        return new(serviceName: api, message: "Google authorization failed.", cause)
+        return new(
+            serviceName: api,
+            message: "Google authorization failed.",
+            cause)
         {
             HttpStatusCode = System.Net.HttpStatusCode.Unauthorized,
         };

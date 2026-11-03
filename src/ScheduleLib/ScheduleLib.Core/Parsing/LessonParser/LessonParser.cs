@@ -790,6 +790,7 @@ public static class LessonParsingHelper
                         if (!c.State.CurrentSubLesson.Modifiers.IsEmpty)
                         {
                             c.StateStack.Push();
+
                             static bool HasSpecificTeacherOrRoom(ParsingContext context)
                             {
                                 if (!TryParsingUntilOutputOrTerminalState(context))

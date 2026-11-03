@@ -53,10 +53,10 @@ public sealed class AttendanceCompositionTests
         };
 
         var names = list.StudentNames(new StudentsLookupKey(
-                groups,
-                partition,
-                course,
-                LessonType.Lab));
+            groups,
+            partition,
+            course,
+            LessonType.Lab));
         Assert.Equal(expected: 2, actual: names.Count);
 
         Assert.Equal(expected: 0, actual: names.NameToIndex(NameHelper.Parse("Synthetic Alpha")).Value);
@@ -113,9 +113,9 @@ public sealed class AttendanceCompositionTests
                     LessonType.Lab,
                     0,
                     new DateTime(
-                    year: 2026,
-                    month: 9,
-                    day: day)))
+                        year: 2026,
+                        month: 9,
+                        day: day)))
                 .AsArray()
                 .ToArray();
         }
@@ -127,10 +127,10 @@ public sealed class AttendanceCompositionTests
             Attendance attendance)
         {
             var parentList = builder.List(new StudentsLookupKey(
-                    new LessonGroups { parent },
-                    partition,
-                    course,
-                    LessonType.Lab));
+                new LessonGroups { parent },
+                partition,
+                course,
+                LessonType.Lab));
             parentList.AddAttendanceDates([
                 new AttendanceDate
                 {

@@ -901,14 +901,14 @@ public sealed class TeacherExportTests
                 x.Semester(Semester.Sem1);
 
                 x.LessonsStart(new DateOnly(
-                        year: 2026,
-                        month: 9,
-                        day: 1));
+                    year: 2026,
+                    month: 9,
+                    day: 1));
 
                 x.LessonsEndInclusive(new DateOnly(
-                        year: 2026,
-                        month: 12,
-                        day: 13));
+                    year: 2026,
+                    month: 12,
+                    day: 13));
 
                 x.Range()
                     .Grade(new Grade(1));

@@ -93,9 +93,9 @@ public partial class QueryCommands
             }
 
             var ambiguous = names.Where(name =>
-            {
-                return known.Count(x => x == name) > 1;
-            })
+                {
+                    return known.Count(x => x == name) > 1;
+                })
                 .ToArray();
             if (ambiguous.Length > 0)
             {

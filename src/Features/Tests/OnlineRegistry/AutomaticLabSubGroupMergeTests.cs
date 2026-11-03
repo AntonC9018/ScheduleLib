@@ -43,7 +43,7 @@ public sealed class AutomaticLabSubGroupMergeTests
         Assert.Equal(expected: 3, actual: merged.WeeklyLessons.Length); // Stable raw lookup IDs.
 
         var filter2 = merged.Filter(FilterHelper.Builder()
-                .WithTeacher(fixture.OldTeacher));
+            .WithTeacher(fixture.OldTeacher));
         System.Collections.IEnumerable collection = filter2.Lessons;
         Assert.Empty(collection);
         Assert.Single(merged.Filter(FilterHelper.Builder()
@@ -379,7 +379,9 @@ public sealed class AutomaticLabSubGroupMergeTests
             merged.Filter(new()),
             workbook));
 
-        Assert.Equal(expected: GroupPartitionKey.All, actual: Assert.Single(attendance.Build(Attendance.Present)).Key.GroupPartition);
+        Assert.Equal(
+            expected: GroupPartitionKey.All,
+            actual: Assert.Single(attendance.Build(Attendance.Present)).Key.GroupPartition);
     }
 
     [Theory]
@@ -484,7 +486,9 @@ public sealed class AutomaticLabSubGroupMergeTests
             subGroupRemapper,
             specializationRegistry);
 
-        var filtered = selectedTeacher ? schedule.Filter(new()) : schedule.Filter(FilterHelper.Builder()
+        var filtered = selectedTeacher
+            ? schedule.Filter(new())
+            : schedule.Filter(FilterHelper.Builder()
                 .WithTeacher(fixture.OldTeacher));
         Assert.Throws<AttendanceLessonNotFoundException>(() => parser.Parse(new(
             new()

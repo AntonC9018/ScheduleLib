@@ -1130,7 +1130,8 @@ public sealed class GoogleCalendarProviderTests
                 }
             }
 
-            if ((expectedExit == 4) || (scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401"))
+            if ((expectedExit == 4)
+                || (scenario is "event-expired-invalid-grant" or "event-expired-no-refresh" or "event-401"))
             {
                 Assert.Contains(expectedSubstring: "auth login google", actualString: stderr.ToString());
             }

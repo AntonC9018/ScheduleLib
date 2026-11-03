@@ -188,7 +188,11 @@ public sealed class StorageTests
             Assert.Contains(expectedSubstring: "423/4", actualString: content);
             Assert.Contains(expectedSubstring: "IA", actualString: content);
 
-            Assert.True(workbook.Worksheet(1).RowsUsed().Count() > 20);
+            Assert.True(
+                workbook.Worksheet(1)
+                    .RowsUsed()
+                    .Count()
+                > 20);
             string path2 = Path.Combine(output, "schedulelib-manifest.json");
             bool condition2 = File.Exists(path2);
             Assert.True(condition2);
@@ -452,6 +456,4 @@ public sealed class StorageTests
         Assert.True(result.Exit == 0, result.Error);
         return result;
     }
-
-
 }

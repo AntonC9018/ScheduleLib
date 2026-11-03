@@ -209,7 +209,6 @@ public static class PdfTableReader
                         continue;
                     }
 
-                    var list = result;
                     PdfBox item = new(
                         Left: point.X,
                         Top: point.Y,
@@ -345,13 +344,13 @@ public static class PdfTableReader
         double dy = end.Y - start.Y;
         double length = Math.Sqrt(dx * dx + dy * dy);
         var direction = length > 0
-            ? new PdfPoint(dx / length, dy / length)
-            : new PdfPoint(1, 0);
+            ? new PdfPoint(x: dx / length, y: dy / length)
+            : new PdfPoint(x: 1, y: 0);
         // Lift the point off the baseline towards the glyph's x-height, perpendicular to the text.
         double lift = letter.PointSize / 3;
         return new PdfPoint(
-            (start.X + end.X) / 2 - direction.Y * lift,
-            (start.Y + end.Y) / 2 + direction.X * lift);
+            x: (start.X + end.X) / 2 - direction.Y * lift,
+            y: (start.Y + end.Y) / 2 + direction.X * lift);
     }
 
     private static string ReadText(Page page, PdfBox bounds)

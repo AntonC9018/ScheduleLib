@@ -52,7 +52,7 @@ public sealed class FmiUpdateTests : IDisposable
             Content = [42],
         };
         await Assert.ThrowsAsync<IOException>(() =>
-            {
+        {
             var update = updater.RunAsync(State, (_, _) => throw new IOException("generation failed"));
             return update;
         });
@@ -63,14 +63,16 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public async Task FirstFailureAndIncompleteDownloadDoNotCreateCheckpoint()
     {
-        await Assert.ThrowsAsync<FormatException>(() => {
+        await Assert.ThrowsAsync<FormatException>(() =>
+        {
             var update = Create(() => Downloads())
                 .RunAsync(State, (_, _) => throw new FormatException("bad PDF"));
             return update;
         });
         bool condition = File.Exists(State);
         Assert.False(condition);
-        await Assert.ThrowsAsync<FormatException>(() => {
+        await Assert.ThrowsAsync<FormatException>(() =>
+        {
             var update = Create(() => Downloads()[..2])
                 .RunAsync(State, (_, _) => Task.CompletedTask);
             return update;
@@ -133,7 +135,8 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task CancellationDoesNotCommitHashes()
     {
         using var cancellation = new CancellationTokenSource();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => {
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+        {
             var update = Create(() => Downloads())
                 .RunAsync(
                     State,
@@ -155,7 +158,8 @@ public sealed class FmiUpdateTests : IDisposable
         Directory.CreateDirectory(_directory);
         const string invalid = "{\"Version\":1,\"PeriodStart\":\"2026-09-17\",\"Sources\":[]}";
         await File.WriteAllTextAsync(path: State, contents: invalid);
-        await Assert.ThrowsAsync<FormatException>(() => {
+        await Assert.ThrowsAsync<FormatException>(() =>
+        {
             var update = Create(() => Downloads())
                 .RunAsync(
                     State,
@@ -169,14 +173,14 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task FutureUploadDateDoesNotCreateCheckpoint()
     {
         await Assert.ThrowsAsync<FutureScheduleUploadDateException>(() =>
-            {
+        {
             var update = Create(() => Downloads(new(
-                        year: 2026,
-                        month: 9,
-                        day: 26)))
-                    .RunAsync(
-                        State,
-                        (_, _) => throw new Exception("Consumer must not be called"));
+                    year: 2026,
+                    month: 9,
+                    day: 26)))
+                .RunAsync(
+                    State,
+                    (_, _) => throw new Exception("Consumer must not be called"));
             return update;
         });
         bool condition = File.Exists(State);
@@ -188,11 +192,11 @@ public sealed class FmiUpdateTests : IDisposable
     {
         var links = FmiScheduleClient.Discover(
             """
-                                               <p>Anul I Licenţă: <a href="/one.pdf" data-upload-date="2026-09-17">01.09.2026 - 14.12.2026</a></p>
-                                               <p>Anul II Licență: <a href="/two.pdf"><time datetime="2026-09-18T10:00:00">upload</time></a></p>
-                                               <p>Anul III Licenţă: <a href="/three.pdf">01.09.2026 - 14.12.2026</a></p>
-                                               Examene: <a href="/exams.pdf">exams</a>
-                                               """,
+            <p>Anul I Licenţă: <a href="/one.pdf" data-upload-date="2026-09-17">01.09.2026 - 14.12.2026</a></p>
+            <p>Anul II Licență: <a href="/two.pdf"><time datetime="2026-09-18T10:00:00">upload</time></a></p>
+            <p>Anul III Licenţă: <a href="/three.pdf">01.09.2026 - 14.12.2026</a></p>
+            Examene: <a href="/exams.pdf">exams</a>
+            """,
             FmiScheduleClient.SchedulePage);
         Assert.Equal(expected: 3, actual: links.Count);
         var expected2 = new Uri("https://fmi.usm.md/one.pdf");

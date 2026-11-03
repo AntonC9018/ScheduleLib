@@ -18,15 +18,21 @@ public sealed class GoogleSingleAttemptCredentialTests
         Unexpected = "unexpected",
     };
 
-    public static TheoryData<Exception, bool> Causes => new()
+    public static TheoryData<Exception, bool> Causes
     {
-        { TokenError("invalid_grant"), true },
-        { TokenError("access_denied"), true },
-        { TokenError("temporarily_unavailable"), false },
-        { TokenError("server_error"), false },
-        { new HttpRequestException(Secret), false },
-        { new OperationCanceledException(Secret), false },
-    };
+        get
+        {
+            return new()
+            {
+                { TokenError("invalid_grant"), true },
+                { TokenError("access_denied"), true },
+                { TokenError("temporarily_unavailable"), false },
+                { TokenError("server_error"), false },
+                { new HttpRequestException(Secret), false },
+                { new OperationCanceledException(Secret), false },
+            };
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Causes))]

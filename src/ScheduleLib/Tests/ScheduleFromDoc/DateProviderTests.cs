@@ -233,7 +233,7 @@ public sealed class DateProviderTests
             Assert.NotEqual(expected: weeks[i - 1].IsOddWeek, actual: weeks[i].IsOddWeek);
         }
 
-        Assert.All(weeks, week => Assert.Equal(DayOfWeek.Monday, week.MondayDate.DayOfWeek));
+        Assert.All(weeks, week => Assert.Equal(expected: DayOfWeek.Monday, actual: week.MondayDate.DayOfWeek));
         for (int i = 1; i < weeks.Length; i++)
         {
             var isSemesterBreak = i == 15;

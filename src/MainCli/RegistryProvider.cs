@@ -15,12 +15,15 @@ public sealed class RegistryAuthenticationException(string message, Exception? i
 
 internal static class RegistryCredentials
 {
-    public static ILogger FailureLogger(IServiceProvider services) =>
-        (ILogger?)services.GetService<ILogger<RegistryAuthenticationException>>()
-        ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+    public static ILogger FailureLogger(IServiceProvider services)
+    {
+        return (ILogger?) services.GetService<ILogger<RegistryAuthenticationException>>()
+            ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+    }
 
     public static bool HasLoginAndPassword(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] Scraping.Common.Credentials? credentials)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        Scraping.Common.Credentials? credentials)
     {
         if (credentials is null)
         {

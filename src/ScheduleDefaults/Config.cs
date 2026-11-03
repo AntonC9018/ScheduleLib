@@ -20,7 +20,7 @@ public static class Config
     /// <summary>Restores parity markers missing from the 2026 first-semester source PDFs.</summary>
     private static readonly PdfParityRepairs Sem1Of2026ParityRepairs = new(
         Reference:
-            "https://github.com/AntonC9018/ScheduleLib/blob/7e46e5bcfeaec550775243e610b34812475c4dcf/docs/wayfinder/2026-sem1-clash-fixes.md",
+        "https://github.com/AntonC9018/ScheduleLib/blob/7e46e5bcfeaec550775243e610b34812475c4dcf/docs/wayfinder/2026-sem1-clash-fixes.md",
         Rules:
         [
             new(
@@ -52,7 +52,16 @@ public static class Config
     /// </summary>
     public static PdfParityRepairs PdfParityRepairsForPeriod(DateOnly? periodStart)
     {
-        if (periodStart >= new DateOnly(2026, 8, 1) && periodStart < new DateOnly(2027, 2, 1))
+        if (periodStart
+            >= new DateOnly(
+                year: 2026,
+                month: 8,
+                day: 1)
+            && periodStart
+            < new DateOnly(
+                year: 2027,
+                month: 2,
+                day: 1))
         {
             return Sem1Of2026ParityRepairs;
         }
@@ -559,7 +568,10 @@ public static class Config
 
             // Reduced-attendance calendars have several short teaching blocks and do not fit
             // this single-range model. Keep the academic-year envelope until the model supports them.
-            x.LessonsStart(new DateOnly(year: 2026, month: 9, day: 1));
+            x.LessonsStart(new DateOnly(
+                year: 2026,
+                month: 9,
+                day: 1));
             var end = new DateOnly(
                 year: 2027,
                 month: 8,
@@ -591,35 +603,175 @@ public static class Config
     public static readonly ImmutableArray<StudyWeek> StudyWeeks =
     [
         // Semestrul I: 15 weeks starting with the Monday containing the first teaching day.
-        new(new DateOnly(2026, 8, 31), isOddWeek: false),
-        new(new DateOnly(2026, 9, 7), isOddWeek: true),
-        new(new DateOnly(2026, 9, 14), isOddWeek: false),
-        new(new DateOnly(2026, 9, 21), isOddWeek: true),
-        new(new DateOnly(2026, 9, 28), isOddWeek: false),
-        new(new DateOnly(2026, 10, 5), isOddWeek: true),
-        new(new DateOnly(2026, 10, 12), isOddWeek: false),
-        new(new DateOnly(2026, 10, 19), isOddWeek: true),
-        new(new DateOnly(2026, 10, 26), isOddWeek: false),
-        new(new DateOnly(2026, 11, 2), isOddWeek: true),
-        new(new DateOnly(2026, 11, 9), isOddWeek: false),
-        new(new DateOnly(2026, 11, 16), isOddWeek: true),
-        new(new DateOnly(2026, 11, 23), isOddWeek: false),
-        new(new DateOnly(2026, 11, 30), isOddWeek: true),
-        new(new DateOnly(2026, 12, 7), isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 8,
+                day: 31),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 9,
+                day: 7),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 9,
+                day: 14),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 9,
+                day: 21),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 9,
+                day: 28),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 10,
+                day: 5),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 10,
+                day: 12),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 10,
+                day: 19),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 10,
+                day: 26),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 11,
+                day: 2),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 11,
+                day: 9),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 11,
+                day: 16),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 11,
+                day: 23),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 11,
+                day: 30),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2026,
+                month: 12,
+                day: 7),
+            isOddWeek: false),
         // Semestrul II: 13 weeks, numbering continues from the fall term.
-        new(new DateOnly(2027, 2, 1), isOddWeek: true),
-        new(new DateOnly(2027, 2, 8), isOddWeek: false),
-        new(new DateOnly(2027, 2, 15), isOddWeek: true),
-        new(new DateOnly(2027, 2, 22), isOddWeek: false),
-        new(new DateOnly(2027, 3, 1), isOddWeek: true),
-        new(new DateOnly(2027, 3, 8), isOddWeek: false),
-        new(new DateOnly(2027, 3, 15), isOddWeek: true),
-        new(new DateOnly(2027, 3, 22), isOddWeek: false),
-        new(new DateOnly(2027, 3, 29), isOddWeek: true),
-        new(new DateOnly(2027, 4, 5), isOddWeek: false),
-        new(new DateOnly(2027, 4, 12), isOddWeek: true),
-        new(new DateOnly(2027, 4, 19), isOddWeek: false),
-        new(new DateOnly(2027, 4, 26), isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 2,
+                day: 1),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 2,
+                day: 8),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 2,
+                day: 15),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 2,
+                day: 22),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 3,
+                day: 1),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 3,
+                day: 8),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 3,
+                day: 15),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 3,
+                day: 22),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 3,
+                day: 29),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 4,
+                day: 5),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 4,
+                day: 12),
+            isOddWeek: true),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 4,
+                day: 19),
+            isOddWeek: false),
+        new(
+            new DateOnly(
+                year: 2027,
+                month: 4,
+                day: 26),
+            isOddWeek: true),
     ];
 
     public static HolidayPeriod[] HolidayPeriods
@@ -628,14 +780,32 @@ public static class Config
         {
             return
             [
-                new(new DateOnly(year: 2026, month: 10, day: 14)),
+                new(new DateOnly(
+                    year: 2026,
+                    month: 10,
+                    day: 14)),
                 new(
-                    start: new DateOnly(year: 2027, month: 1, day: 1),
-                    endExclusive: new DateOnly(year: 2027, month: 1, day: 25)),
-                new(new DateOnly(year: 2027, month: 5, day: 1)),
+                    start: new DateOnly(
+                        year: 2027,
+                        month: 1,
+                        day: 1),
+                    endExclusive: new DateOnly(
+                        year: 2027,
+                        month: 1,
+                        day: 25)),
+                new(new DateOnly(
+                    year: 2027,
+                    month: 5,
+                    day: 1)),
                 new(
-                    start: new DateOnly(year: 2027, month: 5, day: 2),
-                    endExclusive: new DateOnly(year: 2027, month: 5, day: 11)),
+                    start: new DateOnly(
+                        year: 2027,
+                        month: 5,
+                        day: 2),
+                    endExclusive: new DateOnly(
+                        year: 2027,
+                        month: 5,
+                        day: 11)),
             ];
         }
     }

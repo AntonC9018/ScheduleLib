@@ -85,7 +85,10 @@ public sealed class DriveSyncTests
         string state)
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
-        var files = await CreateArtifacts(temp, "first.pdf", "second.ics");
+        var files = await CreateArtifacts(
+            temp,
+            "first.pdf",
+            "second.ics");
         using var fake = new Fake
         {
             Fail = fail,
@@ -154,7 +157,10 @@ public sealed class DriveSyncTests
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
-            await CreateArtifacts(temp, "a.pdf", "b.pdf"),
+            await CreateArtifacts(
+                temp,
+                "a.pdf",
+                "b.pdf"),
             true,
             default,
             lockRoot: temp.Path);
@@ -178,7 +184,10 @@ public sealed class DriveSyncTests
         var result = await DriveSync.Run(
             fake,
             folderName: "Configured",
-            await CreateArtifacts(temp, "a.pdf", "b.pdf"),
+            await CreateArtifacts(
+                temp,
+                "a.pdf",
+                "b.pdf"),
             true,
             cancellation.Token,
             lockRoot: temp.Path);
@@ -196,9 +205,9 @@ public sealed class DriveSyncTests
 
         await using (var lease = await LocalFileLock.Acquire(
                          DriveSync.LockPath(
-                root: temp.Path,
-                account: "actual-account",
-                folderId: "actual-folder"),
+                             root: temp.Path,
+                             account: "actual-account",
+                             folderId: "actual-folder"),
                          default))
         {
             await Assert.ThrowsAsync<LocalOperationBusyException>(() => DriveSync.Run(
@@ -337,7 +346,9 @@ public sealed class DriveSyncTests
                 Assert.Empty(fake.Writes);
             }
 
-            Assert.Equal(expected: "untouched", actual: await File.ReadAllTextAsync(Path.Combine(temp.Path, "caller.pdf")));
+            Assert.Equal(
+                expected: "untouched",
+                actual: await File.ReadAllTextAsync(Path.Combine(temp.Path, "caller.pdf")));
         }
         finally
         {
@@ -351,7 +362,7 @@ public sealed class DriveSyncTests
     {
         foreach (var name in names)
         {
-            await File.WriteAllTextAsync(Path.Combine(temp.Path, name), "fixture bytes");
+            await File.WriteAllTextAsync(path: Path.Combine(temp.Path, name), contents: "fixture bytes");
         }
 
         return names.Select(name => new DriveArtifact(
@@ -466,7 +477,8 @@ public sealed class DriveSyncTests
 
         private int _folderCalls;
 
-        public Task<DriveAccount> GetAccount(CancellationToken token) => Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
+        public Task<DriveAccount> GetAccount(CancellationToken token) =>
+            Task.FromResult(new DriveAccount(Id: "actual-account", Email: "actual@example.test"));
 
         public Task<DriveDestination> FindFolder(string name, CancellationToken token)
         {
@@ -579,6 +591,4 @@ public sealed class DriveSyncTests
         {
         }
     }
-
-
 }

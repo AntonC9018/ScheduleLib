@@ -569,13 +569,22 @@ public static class HashHelper
             static int CompareScopes(ImplicitSplitScope x, ImplicitSplitScope y)
             {
                 return FirstDifference(
-                    () => Nullable.Compare(x.StudyYear?.Value, y.StudyYear?.Value),
-                    () => Nullable.Compare(x.Grade?.Value, y.Grade?.Value),
-                    () => string.Compare(x.Faculty?.Name, y.Faculty?.Name, StringComparison.Ordinal),
-                    () => Nullable.Compare(x.AttendanceMode, y.AttendanceMode),
-                    () => Nullable.Compare(x.Qualification, y.Qualification),
-                    () => CompareCourses(x.SpecializationCourses, y.SpecializationCourses, static s => s.Value),
-                    () => CompareCourses(x.AlternativeCourses, y.AlternativeCourses, static a => a.Value));
+                    () => Nullable.Compare(n1: x.StudyYear?.Value, n2: y.StudyYear?.Value),
+                    () => Nullable.Compare(n1: x.Grade?.Value, n2: y.Grade?.Value),
+                    () => string.Compare(
+                        strA: x.Faculty?.Name,
+                        strB: y.Faculty?.Name,
+                        StringComparison.Ordinal),
+                    () => Nullable.Compare(n1: x.AttendanceMode, n2: y.AttendanceMode),
+                    () => Nullable.Compare(n1: x.Qualification, n2: y.Qualification),
+                    () => CompareCourses(
+                        xs: x.SpecializationCourses,
+                        ys: y.SpecializationCourses,
+                        static s => s.Value),
+                    () => CompareCourses(
+                        xs: x.AlternativeCourses,
+                        ys: y.AlternativeCourses,
+                        static a => a.Value));
             }
 
             // Evaluates comparisons in order and stops at the first that tells the operands apart.

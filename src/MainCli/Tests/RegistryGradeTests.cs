@@ -735,7 +735,9 @@ public sealed class RegistryGradeTests
                         });
                 })
                 .ToArray();
-            return Task.FromResult(new RegistryGradePlan(actions, [RegistryGradeNotice.MoodleGradeMissing("Synthetic Ion")]));
+            return Task.FromResult(new RegistryGradePlan(
+                actions,
+                [RegistryGradeNotice.MoodleGradeMissing("Synthetic Ion")]));
         }
 
         public Task<IAsyncDisposable> Acquire(RegistryDestination target, CancellationToken token)

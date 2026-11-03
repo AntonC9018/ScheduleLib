@@ -155,11 +155,11 @@ public sealed class QueryTests
         try
         {
             string sourceFileName3 = Path.Combine(
-                    AppContext.BaseDirectory,
-                    "fixtures",
-                    "2025_sem2",
-                    "zi",
-                    "master.xlsx");
+                AppContext.BaseDirectory,
+                "fixtures",
+                "2025_sem2",
+                "zi",
+                "master.xlsx");
             string destFileName2 = Path.Combine(zi, "master.xlsx");
             File.Copy(
                 sourceFileName: sourceFileName3,
@@ -453,7 +453,10 @@ public sealed class QueryTests
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
 
             Assert.Empty(
-                Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fixtures"), "*schedule_*.json", SearchOption.AllDirectories));
+                Directory.EnumerateFiles(
+                    path: Path.Combine(AppContext.BaseDirectory, "fixtures"),
+                    searchPattern: "*schedule_*.json",
+                    SearchOption.AllDirectories));
             return document.RootElement.Clone();
         }
         finally

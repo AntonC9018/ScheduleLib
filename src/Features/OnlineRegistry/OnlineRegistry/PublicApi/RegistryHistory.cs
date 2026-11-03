@@ -98,7 +98,9 @@ public static class RegistryHistoryHtml
 
         var action = SafeUri(address, form.GetAttribute("action") ?? address.AbsoluteUri);
 
-        if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal) || action.Query.Length != 0 || action.Fragment.Length != 0)
+        if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal)
+            || action.Query.Length != 0
+            || action.Fragment.Length != 0)
         {
             throw new RegistryHistoryException(
                 "Academic-year form action is unsupported; navigation requires inspection.",
@@ -425,6 +427,7 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
             }
 
             var login = IsInitialLoginRequest();
+
             RegistryHistoryPhase RequestPhase()
             {
                 if (login)
@@ -453,6 +456,7 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
             }
 
             var phase = RequestPhase();
+
             bool IsDisallowedRequest()
             {
                 if (_stopped)

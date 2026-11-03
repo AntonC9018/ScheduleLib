@@ -84,7 +84,8 @@ public sealed class AttendanceExcelTests
             workbook: workbook));
         var lists = attendanceBuilder.Build(missingDaysFiller: Attendance.Present);
 
-        await Verify(lists.Select(x => {
+        await Verify(lists.Select(x =>
+        {
             var attendanceSummary = new
             {
                 Course = schedule.Get(x.Key.CourseId).FullName,
@@ -441,25 +442,36 @@ public sealed class AttendanceExcelTests
         // Columns are deliberately out of order: binding follows the header dates.
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 9)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 9)))
                 .Student(0));
 
         Assert.Equal(
             expected: Attendance.NotApplicable,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2)))
                 .Student(0));
 
         // A scheduled date with no attendance column leaves attendance unchanged.
-        Assert.Equal(expected: 0, actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 16))).StudentCount);
+        Assert.Equal(
+            expected: 0,
+            actual: list.Get(DateKey(
+                course,
+                group,
+                new DateTime(
+                    year: 2026,
+                    month: 9,
+                    day: 16))).StudentCount);
     }
 
     [Fact]
@@ -485,16 +497,24 @@ public sealed class AttendanceExcelTests
 
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2)))
                 .Student(0));
 
-        Assert.Equal(expected: 0, actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2025,
-                month: 9,
-                day: 2))).StudentCount);
+        Assert.Equal(
+            expected: 0,
+            actual: list.Get(DateKey(
+                course,
+                group,
+                new DateTime(
+                    year: 2025,
+                    month: 9,
+                    day: 2))).StudentCount);
     }
 
     [Fact]
@@ -570,10 +590,13 @@ public sealed class AttendanceExcelTests
         // Default date mode keeps order-based binding for compatibility.
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 10,
-                day: 12)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 10,
+                        day: 12)))
                 .Student(0));
     }
 
@@ -633,7 +656,8 @@ public sealed class AttendanceExcelTests
         Assert.Equal(expected: 13, actual: lists.Count(list => list.Key.LessonType == LessonType.Lab));
         Assert.Contains(
             lists,
-            list => {
+            list =>
+            {
                 var hasMissingDay = list.Value.Attendance.Values.Any(day => day.AsArray()
                     .Contains(Attendance.NotPresent));
                 return hasMissingDay;
@@ -679,10 +703,13 @@ public sealed class AttendanceExcelTests
 
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: lists.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 9)))
+            actual: lists.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 9)))
                 .Student(0));
 
         var lecture = new AttendanceLookupKey(
@@ -723,10 +750,15 @@ public sealed class AttendanceExcelTests
             actual: lists.Get(laterLecture)
                 .Student(0));
 
-        Assert.Equal(expected: 0, actual: lists.Get(DateKey(course, group, new DateTime(
-                year: 2025,
-                month: 9,
-                day: 9))).StudentCount);
+        Assert.Equal(
+            expected: 0,
+            actual: lists.Get(DateKey(
+                course,
+                group,
+                new DateTime(
+                    year: 2025,
+                    month: 9,
+                    day: 9))).StudentCount);
     }
 
     [Theory]
@@ -799,33 +831,44 @@ public sealed class AttendanceExcelTests
 
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2,
-                hour: 9,
-                minute: 45,
-                second: 0)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2,
+                        hour: 9,
+                        minute: 45,
+                        second: 0)))
                 .Student(0));
 
         Assert.Equal(
             expected: Attendance.MotivatedAbsent,
-            actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2,
-                hour: 11,
-                minute: 30,
-                second: 0)))
+            actual: list.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2,
+                        hour: 11,
+                        minute: 30,
+                        second: 0)))
                 .Student(0));
 
-        Assert.Equal(expected: 0, actual: list.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2,
-                hour: 13,
-                minute: 15,
-                second: 0))).StudentCount);
+        Assert.Equal(
+            expected: 0,
+            actual: list.Get(DateKey(
+                course,
+                group,
+                new DateTime(
+                    year: 2026,
+                    month: 9,
+                    day: 2,
+                    hour: 13,
+                    minute: 15,
+                    second: 0))).StudentCount);
     }
 
     [Fact]
@@ -853,10 +896,13 @@ public sealed class AttendanceExcelTests
         Assert.Equal(
             expected: 0,
             actual: attendance.Build(Attendance.Present)
-                .Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2))).StudentCount);
+                .Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2))).StudentCount);
     }
 
     [Theory]
@@ -1059,10 +1105,13 @@ public sealed class AttendanceExcelTests
 
         Assert.Equal(
             expected: Attendance.NotPresent,
-            actual: lists.Get(DateKey(course, group, new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2)))
+            actual: lists.Get(DateKey(
+                    course,
+                    group,
+                    new DateTime(
+                        year: 2026,
+                        month: 9,
+                        day: 2)))
                 .Student(0));
     }
 

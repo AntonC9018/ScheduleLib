@@ -88,9 +88,9 @@ public sealed class ScopedManifestTests
             var schedule = scheduleBuilder.Build();
 
             await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
-                                                       {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
-                                                       "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                                                       """));
+                                                                            {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
+                                                                            "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
+                                                                            """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             manifest.Documents[0].AllowMissingLessonTypes = allowMissingLessonTypes;
             if (unspecifiedLanguage)
@@ -140,9 +140,9 @@ public sealed class ScopedManifestTests
 
             string? expected3 = ExpectedTopic();
             string? actual2 = topics.Get(Key(
-                    course,
-                    group,
-                    GroupPartitionKey.All));
+                course,
+                group,
+                GroupPartitionKey.All));
             Assert.Equal(expected: expected3, actual: actual2);
             Assert.Null(topics.Get(Key(
                     course,
@@ -153,20 +153,23 @@ public sealed class ScopedManifestTests
             }));
 
             string? objectValue = topics.Get(Key(
-                    course,
-                    otherGroup,
-                    GroupPartitionKey.All));
+                course,
+                otherGroup,
+                GroupPartitionKey.All));
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
 
             string? objectValue3 = topics.Get(Key(
-                    otherCourse,
-                    group,
-                    GroupPartitionKey.All));
+                otherCourse,
+                group,
+                GroupPartitionKey.All));
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
 
-            string? objectValue5 = topics.Get(Key(course, group, new GroupPartitionKey(new SubGroup("I"), Specialization.All)));
+            string? objectValue5 = topics.Get(Key(
+                course,
+                group,
+                new GroupPartitionKey(new SubGroup("I"), Specialization.All)));
             object? objectValue6 = objectValue5;
             Assert.Null(objectValue6);
         }

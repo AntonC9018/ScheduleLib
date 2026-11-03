@@ -322,11 +322,11 @@ public sealed class FreeRoomsTests
 
         using (var workbook = new XLWorkbook(
                    Path.Combine(
-                AppContext.BaseDirectory,
-                "fixtures",
-                "2025_sem2",
-                "zi",
-                "master.xlsx")))
+                       AppContext.BaseDirectory,
+                       "fixtures",
+                       "2025_sem2",
+                       "zi",
+                       "master.xlsx")))
         {
             workbook.Worksheet(1)
                 .Rows(firstRow: 4, lastRow: 18)
@@ -481,7 +481,6 @@ public sealed class FreeRoomsTests
             Console.SetOut(original);
         }
     }
-
 
 
     private sealed class FixtureExport : ExportCommands

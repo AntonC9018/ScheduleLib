@@ -727,11 +727,11 @@ public sealed class CombinedGroupMatchingTests
         var group = Parse("DJ2502(en)");
 
         Assert.Empty(GroupsNavigator.FindGroupMatch(
-                fixture.Build(),
-                fixture.Course,
-                Resolver.Resolve(group),
-                group,
-                [EnglishRule]));
+            fixture.Build(),
+            fixture.Course,
+            Resolver.Resolve(group),
+            group,
+            [EnglishRule]));
 
         var other = new Fixture();
         other.Add("DJ2503(en)", specialization: Specialization.All);
@@ -744,11 +744,11 @@ public sealed class CombinedGroupMatchingTests
         };
 
         Assert.Empty(GroupsNavigator.FindGroupMatch(
-                other.Build(),
-                other.Course,
-                Resolver.Resolve(group),
-                group,
-                [rule]));
+            other.Build(),
+            other.Course,
+            Resolver.Resolve(group),
+            group,
+            [rule]));
         var explicitSubgroup = new Fixture();
         explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
         explicitSubgroup.Add("DJ2503(ru)", specialization: Specialization.All);
@@ -782,11 +782,11 @@ public sealed class CombinedGroupMatchingTests
         var group = Parse("DJ2502(en)");
 
         Assert.Empty(GroupsNavigator.FindGroupMatch(
-                fixture.Build(),
-                fixture.Course,
-                Resolver.Resolve(group),
-                group,
-                [EnglishRule]));
+            fixture.Build(),
+            fixture.Course,
+            Resolver.Resolve(group),
+            group,
+            [EnglishRule]));
     }
 
     [Fact]

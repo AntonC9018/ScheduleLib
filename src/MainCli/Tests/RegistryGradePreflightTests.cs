@@ -180,7 +180,8 @@ public sealed class RegistryGradePreflightTests
             if (path.StartsWith("/evaluation", StringComparison.Ordinal))
             {
                 return Task.FromResult(
-                    Response($"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>"));
+                    Response(
+                        $"<table><tr><td><a href='https://registry.test/grades{number}'>Testarea 1</a></td></tr></table>"));
             }
 
             if (request.Method == HttpMethod.Post)

@@ -162,9 +162,12 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 diagnostics.ReportUnsafeRegistryLabCleanup(
                     course: courseName,
                     @group: groupNames,
-                    columnCount: unwanted.Length, markCount: marks, destination: group.Uri);
-                var actions = unwanted.Select(lesson => {
-                    var deletion = new RegistrySyncAction(
+                    columnCount: unwanted.Length,
+                    markCount: marks,
+                    destination: group.Uri);
+                var actions = unwanted.Select(lesson =>
+                    {
+                        var deletion = new RegistrySyncAction(
                             kind: RegistrySyncActionKind.Delete,
                             destination: group.Uri.ToString(),
                             course: courseName,
@@ -221,8 +224,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                     }
                                 });
                             });
-                    return deletion;
-                })
+                        return deletion;
+                    })
                     .ToArray();
                 if (!(await onGroupPlanned(actions)))
                 {

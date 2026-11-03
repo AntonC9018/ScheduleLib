@@ -103,8 +103,8 @@ public sealed class MatchingContextTests
         var context = lists.CreateContext();
 
         context.UseUpMatch(new Mapping(
-                AllIndex: 1,
-                ExistingIndex: 2));
+            AllIndex: 1,
+            ExistingIndex: 2));
 
         var e = context.IteratePotentialMappings()
             .GetEnumerator();

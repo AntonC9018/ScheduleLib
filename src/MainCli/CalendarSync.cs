@@ -186,10 +186,10 @@ public static class CalendarSync
             try
             {
                 onOutcome?.Invoke(new CalendarReport(
-                        Id: id,
-                        Status: status,
-                        item,
-                        human));
+                    Id: id,
+                    Status: status,
+                    item,
+                    human));
             }
             catch (CliOutputStreamingException ex)
             {
@@ -405,7 +405,7 @@ public static class CalendarSync
         }
         // A refresh failure, including a provider response that keeps the grant, precedes sending.
         catch (Exception e) when (e is GooglePreSendTransportException
-            or Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
+                                      or Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
         {
             var effects = AnyCompleted();
             AddCurrentOutcome(ActionState.Failed);

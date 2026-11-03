@@ -16,11 +16,21 @@ public sealed class CliStatesTests
     public void RegistryActionsKeepTheirWireNames(RegistrySyncActionKind kind, string wire)
     {
         var outcome = new RegistryActionOutcome(
-            kind, "destination", "course", "group", default, null, null,
-            ActionState.Planned, null);
+            kind,
+            Destination: "destination",
+            Course: "course",
+            Groups: "group",
+            default,
+            Topic: null,
+            null,
+            ActionState.Planned,
+            Detail: null);
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(outcome, JsonOptions));
-        Assert.Equal(wire, document.RootElement.GetProperty("kind").GetString());
-        Assert.Equal(wire, kind.ToLowercaseValue());
+        Assert.Equal(
+            expected: wire,
+            actual: document.RootElement.GetProperty("kind")
+                .GetString());
+        Assert.Equal(expected: wire, actual: kind.ToLowercaseValue());
     }
 
     [Theory]
@@ -72,9 +82,15 @@ public sealed class CliStatesTests
         [
             new DriveDeleteAction(name: "old.pdf", remoteFileId: "r1"),
             new DriveCreateAction(name: "new.ics", sourcePath: "/out/new.ics"),
-            new DriveUpdateAction(name: "a.xlsx", remoteFileId: "r2", sourcePath: "/out/a.xlsx"),
+            new DriveUpdateAction(
+                name: "a.xlsx",
+                remoteFileId: "r2",
+                sourcePath: "/out/a.xlsx"),
         ];
-        var outcome = new DriveOutcome(actions[0], ActionState.Completed, ResultFileId: "r1");
+        var outcome = new DriveOutcome(
+            actions[0],
+            ActionState.Completed,
+            ResultFileId: "r1");
 
         Assert.Equal(
             expected:
