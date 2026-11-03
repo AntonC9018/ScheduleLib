@@ -41,19 +41,27 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
             return false;
         }
 
-        if (this == arr)
-        {
-            return true;
-        }
-
-        return false;
+        return Equals(arr);
     }
 
     public static bool operator !=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
         !(a == b);
 
     public static bool operator ==(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>
-        Equals(objA: a, objB: b);
+        a.Equals(b);
 
-    public override int GetHashCode() => Array.GetHashCode();
+    public override int GetHashCode()
+    {
+        if (Array.IsDefault)
+        {
+            return 0;
+        }
+
+        var hash = new HashCode();
+        foreach (var item in Array)
+        {
+            hash.Add(item);
+        }
+        return hash.ToHashCode();
+    }
 }
