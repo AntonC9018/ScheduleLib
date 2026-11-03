@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ScheduleLib.Helper.JsonConverters;
 
 namespace ScheduleLib.Cli;
 

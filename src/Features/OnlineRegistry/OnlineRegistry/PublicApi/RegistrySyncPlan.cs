@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using AngleSharp.Dom;
 using ScheduleLib.Dates;
+using ScheduleLib.Helper.JsonConverters;
 
 namespace ScheduleLib.OnlineRegistry;
 

@@ -140,11 +140,16 @@ logging or promote these failures without deciding noise and recovery policy.
 
 ### Shared converter contract and typed exception context (#246)
 
-[CliStates.cs][source-10] and [RegistryGradePlan.cs][source-11] each declare an identical public
-`WireNameJsonConverter<T>`. The serialization behavior appears shared, but consolidating it
-moves a public base type. Decide whether to preserve compatibility wrappers or move it directly
-to the helper JSON-converter namespace. Its output-only `Read` failure is also the existing
-CR1600 policy question: retain framework `NotSupportedException` or introduce typed context.
+The maintainer confirmed that ScheduleLib is unpublished and has no external consumers;
+backward compatibility is not required. Project `AGENTS.md` now explicitly rejects unrequested
+compatibility wrappers, aliases and migration shims.
+
+The duplicate bases formerly in [CliStates.cs][source-10] and [RegistryGradePlan.cs][source-11]
+are consolidated directly into `ScheduleLib.Helper.JsonConverters.WireNameJsonConverter<T>`.
+All seven derived converters use that shared base without compatibility wrappers. Output-only
+serialization behavior is retained. Existing CLI state serialization tests pass (20 cases), as
+do the registry grade-notice and sync-diagnostic tests (62 cases), including dictionary keys. Its `Read` failure remains the existing CR1600 policy
+question: retain framework `NotSupportedException` or introduce typed context.
 The unreachable Drive action failure remains a separate invariant case.
 
 ### Architecture and incomplete implementations

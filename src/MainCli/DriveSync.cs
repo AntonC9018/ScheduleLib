@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using ScheduleLib.Application.Core;
+using ScheduleLib.Helper.JsonConverters;
 
 namespace ScheduleLib.Cli;
 
