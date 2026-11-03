@@ -41,17 +41,32 @@ internal static class CliRegistryFailure
             PlatformNotSupportedException => new(CliExit.Unsupported, [error.Message]),
             IOException when grades => new(
                 ioExit,
-                ["Registry input/output operation failed. No automatic retry was performed."]),
+                [WithCause("Registry input/output operation failed. No automatic retry was performed.", error)]),
             HttpRequestException when grades => new(
                 ioExit,
-                ["Registry/Moodle remote read failed. No automatic retry was performed."]),
+                [WithCause("Registry/Moodle remote read failed. No automatic retry was performed.", error)]),
             InvalidOperationException when grades => new(
                 ioExit,
-                ["Registry/Moodle required form or report markup was unavailable. No automatic retry was performed."]),
+                [WithCause("Registry/Moodle required form or report markup was unavailable. No automatic retry was performed.", error)]),
             _ when grades => new(
                 unexpectedExit,
-                ["Unexpected registry operation failure. No automatic retry was performed."]),
-            _ => new(unexpectedExit, ["Registry operation failed. No automatic retry was performed."]),
+                [WithCause("Unexpected registry operation failure. No automatic retry was performed.", error)]),
+            _ => new(unexpectedExit, [WithCause("Registry operation failed. No automatic retry was performed.", error)]),
         };
+    }
+
+    /// <summary>
+    /// Appends the underlying exception so unclassified failures remain diagnosable.
+    /// Inner exceptions are included because wrappers often carry no useful message.
+    /// </summary>
+    private static string WithCause(string summary, Exception error)
+    {
+        var causes = new List<string>();
+        for (var current = error; current is not null; current = current.InnerException)
+        {
+            causes.Add($"{current.GetType().FullName}: {current.Message}");
+        }
+        var cause = string.Join(" ---> ", causes);
+        return $"{summary} Cause: {cause}";
     }
 }
