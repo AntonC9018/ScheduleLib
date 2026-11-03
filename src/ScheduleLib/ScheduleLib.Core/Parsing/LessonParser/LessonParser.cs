@@ -2025,12 +2025,20 @@ public sealed class RoomParser
                 }
                 var t = lexer.Current;
 
-                if (t.Type == LessonTokenType.Word && t.Value.Length == 1 && char.IsLetter(t.Value.Span[0]))
+                if (t.Type != LessonTokenType.Word)
                 {
-                    lexer.Move();
-                    return true;
+                    return false;
                 }
-                return false;
+                if (t.Value.Length != 1)
+                {
+                    return false;
+                }
+                if (!char.IsLetter(t.Value.Span[0]))
+                {
+                    return false;
+                }
+                lexer.Move();
+                return true;
             }
         }
     }

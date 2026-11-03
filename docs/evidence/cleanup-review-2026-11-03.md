@@ -94,11 +94,13 @@ above remains the historical inventory before this decision.
 
 ### Short conditions and pipeline classification (#246 / CodingRules #36)
 
-[LessonParser.cs:2028][source-3] checks token kind, length and `char.IsLetter` in order.
+The maintainer chose separate guards for [the single-letter token checks][source-3].
+`TryConsumeSingleLetter` now rejects a non-word token, a length other than one, then a
+non-letter, before moving the lexer. Evaluation order and safe indexing are preserved.
 The maintainer chose separate guards for [RegistryHistory.cs:280][source-4]: first require
 one form, then require one child. The code now makes those independent requirements explicit,
 retaining short-circuit order and safe indexing. This resolves that concrete CR0202 case.
-The token checks remain for review against the existing short-condition policy.
+These two concrete condition cases are resolved; other condition sites still require review.
 The [block projection][source-5] also still requests a named stage (CR0401).
 Keep these visible pending reconciliation.
 
