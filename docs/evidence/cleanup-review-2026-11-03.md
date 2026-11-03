@@ -86,6 +86,12 @@ Operation staging still flags compact algorithms such as
 names
 and preserve indexing/increment/exception timing. These belong to the old arithmetic cluster.
 
+The maintainer subsequently chose named boxed values for the sequence-equality assertions.
+Those tests now assign `object boxedSecond` / `object boxedReversed` before calling `Equals`,
+including the matching default-value case. All three focused equality tests pass. This resolves
+that concrete shape; the broader assertion and arithmetic cases still require review. The CSV
+above remains the historical inventory before this decision.
+
 ### Short conditions and pipeline classification (#246 / CodingRules #36)
 
 [LessonParser.cs:2028][source-3] checks token kind, length and `char.IsLetter` in order.
