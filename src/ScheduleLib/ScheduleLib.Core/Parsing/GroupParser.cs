@@ -47,14 +47,13 @@ public static class GroupHelper
     /// <summary>The parsed label of a group name and the flags that were recognized next to it.</summary>
     private readonly record struct GroupLabel(string Label, bool IsFR, bool IsMaster);
 
-    // Just do the lazy thing here for now.
     public static Group? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         try
         {
             return context.Parse(name);
         }
-        catch (Exception)
+        catch (InvalidGroupNameException)
         {
             return null;
         }
@@ -67,9 +66,12 @@ public static class GroupHelper
         // IAFR2403 R
         // SMMSPA 2401
         // MIA 2402 (ru)
-        if (name.Length < 5)
+        const int minimumNameLength = 5;
+        if (name.Length < minimumNameLength)
         {
-            throw new ArgumentException(message: "The minimum length of the name is 5", paramName: nameof(name));
+            throw InvalidGroupNameException.ForNameTooShort(
+                minimumLength: minimumNameLength,
+                actualLength: name.Length);
         }
 
         var baseParser = new SequenceReader(name);

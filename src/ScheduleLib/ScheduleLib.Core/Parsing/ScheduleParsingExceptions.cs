@@ -12,6 +12,11 @@ public abstract class InvalidGroupNameException : ScheduleBuildException
     {
     }
 
+    public static InvalidGroupNameException ForNameTooShort(int minimumLength, int actualLength)
+    {
+        return new NameTooShortException(minimumLength, actualLength);
+    }
+
     public static InvalidGroupNameException ForUnrecognizedLanguage(char value)
     {
         return new UnrecognizedLanguageException(value);
@@ -52,6 +57,19 @@ public abstract class InvalidGroupNameException : ScheduleBuildException
     public static InvalidGroupNameException ForInvalidYear()
     {
         return new GeneralException("Must be a valid year that has 2 letters.");
+    }
+
+    public sealed class NameTooShortException : InvalidGroupNameException
+    {
+        internal NameTooShortException(int minimumLength, int actualLength)
+            : base($"The minimum length of the name is {minimumLength}")
+        {
+            MinimumLength = minimumLength;
+            ActualLength = actualLength;
+        }
+
+        public int MinimumLength { get; }
+        public int ActualLength { get; }
     }
 
     public sealed class UnrecognizedLanguageException : InvalidGroupNameException

@@ -128,10 +128,17 @@ Choose an explicit ambiguous-match policy before replacing these collections or 
 
 ### Failure boundaries (#246, distinct from the completed CLI catch-all fixes)
 
-[GroupParser.cs:57][source-9] catches every `Exception` and returns null from `TryParse`,
-potentially
-hiding implementation failures as invalid input. Decide the intended parse-failure taxonomy
-before narrowing the catch; current parse helpers use multiple exception types.
+The maintainer chose a domain-only failure boundary for [group-name parsing][source-9].
+`TryParse` now catches only `InvalidGroupNameException`. The former short-name `ArgumentException`
+is now `NameTooShortException` within that hierarchy, exposing minimum and actual lengths.
+Existing malformed label/year/number/language failures already use the hierarchy. Unexpected
+failures propagate unchanged; no catch-all or wrapper remains.
+
+Regression tests first reproduced short names escaping the domain hierarchy and an unrelated
+label-comparer `ArgumentException` being swallowed. The tests cover malformed input returning
+null, valid group parsing, typed short-name context and propagation of that same failure instance.
+Validation: full parser suite 243 passed with three existing skips; registry group-parser suite
+48 passed. `git diff --check` passes.
 
 The conversion cleanup catches and cache-deserialization catches have different meanings:
 `OwnedConversionDirectory.Cleanup` explicitly preserves the primary conversion failure;

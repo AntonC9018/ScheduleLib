@@ -14,6 +14,65 @@ public sealed class GroupNameParserTests
     private Group Parse(string s) => _context.Parse(s.AsMemory());
 
     [Theory]
+    [InlineData("")]
+    [InlineData("IA24")]
+    [InlineData("24001")]
+    [InlineData("LABEL")]
+    [InlineData("IA 2 ")]
+    [InlineData("IAx401")]
+    [InlineData("IA24x")]
+    [InlineData("IA2401X")]
+    [InlineData("IA2401(xx)")]
+    [InlineData("IA2401(ru")]
+    public void InvalidNamesUseDomainFailuresAndTryParseReturnsNull(string name)
+    {
+        Assert.ThrowsAny<InvalidGroupNameException>(() => Parse(name));
+        Assert.Null(_context.TryParse(name.AsMemory()));
+    }
+
+    [Fact]
+    public void TryParseReturnsAValidGroup()
+    {
+        var group = _context.TryParse("IA2401(ru)".AsMemory());
+
+        Assert.NotNull(group);
+        Assert.Equal(expected: "IA2401", actual: group.Name);
+        Assert.Equal(expected: Language.Ru, actual: group.Language);
+    }
+
+    [Fact]
+    public void ShortNameFailureExposesItsLengthContext()
+    {
+        var error = Assert.Throws<InvalidGroupNameException.NameTooShortException>(() => Parse("IA"));
+
+        Assert.Equal(expected: 5, actual: error.MinimumLength);
+        Assert.Equal(expected: 2, actual: error.ActualLength);
+    }
+
+    [Fact]
+    public void TryParseDoesNotHideUnrelatedDependencyFailures()
+    {
+        var failure = new ArgumentException("Synthetic comparer failure");
+        var labels = new HashSet<string>(new FailingLabelComparer(failure)) { "IA" };
+        var context = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2024),
+            GroupLabelsThatAreMaster = new System.Collections.ObjectModel.ReadOnlySet<string>(labels),
+        });
+
+        var caught = Assert.Throws<ArgumentException>(() => context.TryParse("IA2401".AsMemory()));
+
+        Assert.Same(expected: failure, actual: caught);
+    }
+
+    private sealed class FailingLabelComparer(Exception failure) : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => throw failure;
+
+        public int GetHashCode(string obj) => 0;
+    }
+
+    [Theory]
     [InlineData("DU-IA2401(ro)",
         "IA",
         AttendanceMode.DualZi,
