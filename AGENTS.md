@@ -3,6 +3,9 @@
 Read and follow `.codingrules/agent-coding-rules.md` before changing C# code,
 reviewing duplication, messages or exceptions, or configuring builders.
 
+- **Compatibility:** ScheduleLib is not published as a package and has no external consumers.
+  Backward compatibility is not required. Update existing code directly when changing APIs;
+  do not add compatibility wrappers, obsolete aliases, or migration shims unless explicitly requested.
 - The default location for local ScheduleLib data is `~/.local/share/ScheduleLib`. Check there for user data such as topic CSVs and manifests when a task refers to local data; keep its contents private and out of repository commits.
 - **Tasks:** use [GitHub Issues](https://github.com/AntonC9018/ScheduleLib/issues) for all shared project work. See [docs/task-management.md](docs/task-management.md) for the `gh` workflow, dependencies, and agent coordination.
 - **CodingRules analyzer:** restore `Anton.CodingRules` from the local NuGet feed, not nuget.org.
