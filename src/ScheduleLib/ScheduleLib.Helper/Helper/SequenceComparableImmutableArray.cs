@@ -41,7 +41,11 @@ public readonly struct SequenceComparableImmutableArray<T> : IEquatable<Sequence
             return false;
         }
 
-        return Equals(arr);
+        if (Equals(arr))
+        {
+            return true;
+        }
+        return false;
     }
 
     public static bool operator !=(SequenceComparableImmutableArray<T> a, SequenceComparableImmutableArray<T> b) =>

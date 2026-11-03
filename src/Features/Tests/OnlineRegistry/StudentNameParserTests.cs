@@ -9,8 +9,8 @@ public sealed class StudentNameParserTests
     {
         var name = StudentNameParser.Parse("Cainar Anna Serghei");
 
-        Assert.Equal(default, name.Patronymic);
-        Assert.Equal("Cainar Anna", name.ToString(NameToStringParams.IncludeEverything));
+        Assert.Equal(expected: default, actual: name.Patronymic);
+        Assert.Equal(expected: "Cainar Anna", actual: name.ToString(NameToStringParams.IncludeEverything));
     }
 
     [Fact]
@@ -20,7 +20,7 @@ public sealed class StudentNameParserTests
 
         var index = names.NameToIndex(StudentNameParser.Parse("CAINAR ANNA Serghei"));
 
-        Assert.Equal(0, index.Value);
+        Assert.Equal(expected: 0, actual: index.Value);
     }
 }
 
@@ -37,7 +37,7 @@ public sealed class AmbiguousRegistryStudentTests
         var error = Assert.Throws<AmbiguousRegistryStudentException>(
             () => StudentNameRemapHelper.Create(roster, attendance, []));
 
-        Assert.Equal(first, error.FirstStudent);
-        Assert.Equal(second, error.SecondStudent);
+        Assert.Equal(expected: first, actual: error.FirstStudent);
+        Assert.Equal(expected: second, actual: error.SecondStudent);
     }
 }

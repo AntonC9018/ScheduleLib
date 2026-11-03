@@ -36,7 +36,10 @@ public static class StudentNameParser
 
     private static Name WithoutPatronymic(Name name)
     {
-        var fields = name.Fields with { Patronymic = default };
+        var fields = name.Fields with
+        {
+            Patronymic = default,
+        };
         return new Name(fields);
     }
 }

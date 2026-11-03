@@ -12,7 +12,7 @@ public sealed class SequenceComparableImmutableArrayTests
         var second = new SequenceComparableImmutableArray<int>(ImmutableArray.Create(item1: 1, item2: 2));
 
         Assert.True(first.Equals(second));
-        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.Equal(expected: first.GetHashCode(), actual: second.GetHashCode());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class SequenceComparableImmutableArrayTests
 
         Assert.True(first == second);
         Assert.True(first.Equals((object) second));
-        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.Equal(expected: first.GetHashCode(), actual: second.GetHashCode());
         Assert.True(first != empty);
         Assert.False(first.Equals(null));
         Assert.False(first.Equals(new object()));

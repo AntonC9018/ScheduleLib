@@ -27,9 +27,9 @@ public sealed partial class AttendanceWorkbookFileTests : IDisposable
         using var workbook = AttendanceWorkbookFile.OpenWithoutComments(_filePath);
 
         var cell = workbook.Worksheet("Sheet").Cell("A1");
-        Assert.Equal("Student", cell.GetString());
+        Assert.Equal(expected: "Student", actual: cell.GetString());
         Assert.False(cell.HasComment);
-        Assert.Equal(originalBytes, File.ReadAllBytes(_filePath));
+        Assert.Equal(expected: originalBytes, actual: File.ReadAllBytes(_filePath));
     }
 
     private static void WriteWorkbookWithNote(string filePath)
@@ -59,7 +59,7 @@ public sealed partial class AttendanceWorkbookFileTests : IDisposable
             var name = entry.FullName;
             entry.Delete();
             using var writer = new StreamWriter(archive.CreateEntry(name).Open());
-            writer.Write(VmlTextBox().Replace(vml, ""));
+            writer.Write(VmlTextBox().Replace(input: vml, replacement: ""));
         }
     }
 

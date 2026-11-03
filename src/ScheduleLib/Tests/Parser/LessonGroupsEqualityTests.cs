@@ -11,7 +11,7 @@ public sealed class LessonGroupsEqualityTests
         second[3] = new GroupId(42);
 
         Assert.True(first.Equals(second));
-        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.Equal(expected: first.GetHashCode(), actual: second.GetHashCode());
         var groups = new HashSet<LessonGroups> { first };
         Assert.Contains(second, groups);
     }
