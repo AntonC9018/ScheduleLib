@@ -277,7 +277,11 @@ public static class RegistryHistoryHtml
     {
         var forms = document.QuerySelectorAll("form[name='lesson']");
 
-        if (forms.Length != 1 || forms[0].Children.Length != 1)
+        if (forms.Length != 1)
+        {
+            return false;
+        }
+        if (forms[0].Children.Length != 1)
         {
             return false;
         }

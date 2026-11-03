@@ -95,9 +95,10 @@ above remains the historical inventory before this decision.
 ### Short conditions and pipeline classification (#246 / CodingRules #36)
 
 [LessonParser.cs:2028][source-3] checks token kind, length and `char.IsLetter` in order.
-[RegistryHistory.cs:280][source-4] checks array length before indexing it.
-Both fit existing short-condition discussions but still receive legacy condition diagnostics.
-Decide whether the old CR0201–CR0203 rules should share the accepted short-condition policy.
+The maintainer chose separate guards for [RegistryHistory.cs:280][source-4]: first require
+one form, then require one child. The code now makes those independent requirements explicit,
+retaining short-circuit order and safe indexing. This resolves that concrete CR0202 case.
+The token checks remain for review against the existing short-condition policy.
 The [block projection][source-5] also still requests a named stage (CR0401).
 Keep these visible pending reconciliation.
 
