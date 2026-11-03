@@ -31,64 +31,35 @@ internal static class RegistryLectureAudience
                 continue;
             }
 
-            bool CalculateConditionResult()
+            bool MatchesLessonDate()
             {
-                if (!(source.Weekly is { } weekly))
-                {
-                    return false;
-                }
-
-                if (!(candidate.Weekly is { } otherWeekly))
-                {
-                    return false;
-                }
-
-                if (weekly.Date == otherWeekly.Date)
+                if (source.Weekly is { } weekly && candidate.Weekly is { } otherWeekly
+                    && weekly.Date == otherWeekly.Date)
                 {
                     return true;
                 }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                if (source.OneTime is { } oneTime)
+                if (source.OneTime is not { } oneTime)
                 {
-                    if (candidate.OneTime is { } otherOneTime)
-                    {
-                        conditionResult = oneTime.Date == otherOneTime.Date;
-                    }
-                    else
-                    {
-                        conditionResult = false;
-                    }
+                    return false;
                 }
-                else
+                if (candidate.OneTime is not { } otherOneTime)
                 {
-                    conditionResult = false;
+                    return false;
                 }
+                return oneTime.Date == otherOneTime.Date;
             }
 
-            var sameTime = conditionResult;
+            var sameTime = MatchesLessonDate();
             if (!sameTime || candidate.Lesson.Groups.IsSetEquals(source.Lesson.Groups))
             {
                 continue;
             }
 
-            var list = scopes;
-            string item = RegistryTopicScope.Format(
+            string scope = RegistryTopicScope.Format(
                 schedule,
                 candidate.Lesson.Groups,
                 candidate.Lesson.GroupPartitionKey);
-            list.Add(item);
+            scopes.Add(scope);
         }
         return string.Join(
             ", ",

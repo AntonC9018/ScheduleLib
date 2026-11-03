@@ -86,18 +86,7 @@ public static partial class RegistryScraping
         }
 
         mainParser.SkipWhitespace();
-        bool conditionResult;
-        if (!mainParser.IsEmpty)
-        {
-            conditionResult = isRepeat;
-            conditionResult = !conditionResult;
-        }
-        else
-        {
-            conditionResult = false;
-        }
-
-        if (conditionResult)
+        if (!mainParser.IsEmpty && !isRepeat)
         {
             JustThrow("trailing group suffix");
         }

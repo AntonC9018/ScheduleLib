@@ -42,14 +42,8 @@ public sealed class AutomaticLabSubGroupMergeTests
                 .Count());
         Assert.Equal(expected: 3, actual: merged.WeeklyLessons.Length); // Stable raw lookup IDs.
 
-        ScheduleFilter CalculateFilter()
-        {
-            var filter = FilterHelper.Builder()
-                .WithTeacher(fixture.OldTeacher);
-            return filter;
-        }
-
-        var filter2 = merged.Filter(CalculateFilter());
+        var filter2 = merged.Filter(FilterHelper.Builder()
+                .WithTeacher(fixture.OldTeacher));
         System.Collections.IEnumerable collection = filter2.Lessons;
         Assert.Empty(collection);
         Assert.Single(merged.Filter(FilterHelper.Builder()
@@ -339,14 +333,8 @@ public sealed class AutomaticLabSubGroupMergeTests
                 merged));
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
 
-        SubGroup CalculateExpected()
-        {
-            var expected2 = new SubGroup("II");
-            return expected2;
-        }
-
         Assert.Equal(
-            expected: CalculateExpected(),
+            expected: new SubGroup("II"),
             actual: Assert.Single(merged.AutomaticLabSubGroupMerges).SurvivingSubGroup);
         var id = Assert.Single(selection.Lessons);
         Assert.Equal(expected: SubGroup.All, actual: merged.Get(id).Lesson.SubGroup);
@@ -391,13 +379,7 @@ public sealed class AutomaticLabSubGroupMergeTests
             merged.Filter(new()),
             workbook));
 
-        StudentAttendanceList CalculateCollection()
-        {
-            var collection = attendance.Build(Attendance.Present);
-            return collection;
-        }
-
-        Assert.Equal(expected: GroupPartitionKey.All, actual: Assert.Single(CalculateCollection()).Key.GroupPartition);
+        Assert.Equal(expected: GroupPartitionKey.All, actual: Assert.Single(attendance.Build(Attendance.Present)).Key.GroupPartition);
     }
 
     [Theory]
@@ -502,14 +484,8 @@ public sealed class AutomaticLabSubGroupMergeTests
             subGroupRemapper,
             specializationRegistry);
 
-        ScheduleFilter CalculateFilter()
-        {
-            var filter = FilterHelper.Builder()
-                .WithTeacher(fixture.OldTeacher);
-            return filter;
-        }
-
-        var filtered = selectedTeacher ? schedule.Filter(new()) : schedule.Filter(CalculateFilter());
+        var filtered = selectedTeacher ? schedule.Filter(new()) : schedule.Filter(FilterHelper.Builder()
+                .WithTeacher(fixture.OldTeacher));
         Assert.Throws<AttendanceLessonNotFoundException>(() => parser.Parse(new(
             new()
             {

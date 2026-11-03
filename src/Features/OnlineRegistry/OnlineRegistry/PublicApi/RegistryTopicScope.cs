@@ -65,15 +65,8 @@ internal static class RegistryTopicScope
                 return comparison;
             }
 
-            Language CalculateTarget()
-            {
-                var get3 = schedule.Get(b);
-                var target = get3.Language;
-                return target;
-            }
-
             comparison = schedule.Get(a).Language
-                .CompareTo(CalculateTarget());
+                .CompareTo(schedule.Get(b).Language);
             if (comparison != 0)
             {
                 return comparison;
@@ -257,12 +250,8 @@ internal static class RegistryTopicScope
         {
             return false;
         }
-        string text = trimmed;
-        int startIndex2 = open + 1;
-        int int32 = trimmed.Length - open;
-        int length2 = int32 - 2;
-        string substring = text.Substring(startIndex: startIndex2, length: length2);
-        var inner = substring.Trim();
+        var inner = trimmed.Substring(startIndex: open + 1, length: trimmed.Length - open - 2)
+            .Trim();
         if (inner.Length == 0)
         {
             return false;
@@ -339,16 +328,10 @@ internal static class RegistryTopicScope
             newToken: "/en");
         for (int number = 10; number >= 1; number--)
         {
-            string value2 = result;
-            string oldToken2 = "/" + number;
-            string toRoman = NumberHelper.ToRoman(number);
-            string text = $"/{toRoman}";
-            string newToken2 = text;
-            string replaceToken = ReplaceToken(
-                value: value2,
-                oldToken: oldToken2,
-                newToken: newToken2);
-            result = replaceToken;
+            var oldPartition = "/" + number;
+            var roman = NumberHelper.ToRoman(number);
+            var newPartition = $"/{roman}";
+            result = ReplaceToken(value: result, oldToken: oldPartition, newToken: newPartition);
         }
         return result;
     }
@@ -362,33 +345,25 @@ internal static class RegistryTopicScope
         int i = 0;
         while (i < value.Length)
         {
-            bool conditionResult;
-            if (i + oldToken.Length <= value.Length)
+            bool MatchesTokenBoundary()
             {
-                if (value.AsSpan(start: i, length: oldToken.Length)
-                    .Equals(oldToken, StringComparison.OrdinalIgnoreCase))
+                if (i + oldToken.Length > value.Length)
                 {
-                    if (i + oldToken.Length == value.Length)
-                    {
-                        conditionResult = true;
-                    }
-                    else
-                    {
-                        conditionResult = char.IsLetterOrDigit(value[i + oldToken.Length]);
-                        conditionResult = !conditionResult;
-                    }
+                    return false;
                 }
-                else
+                if (!value.AsSpan(start: i, length: oldToken.Length)
+                        .Equals(oldToken, StringComparison.OrdinalIgnoreCase))
                 {
-                    conditionResult = false;
+                    return false;
                 }
-            }
-            else
-            {
-                conditionResult = false;
+                if (i + oldToken.Length == value.Length)
+                {
+                    return true;
+                }
+                return !char.IsLetterOrDigit(value[i + oldToken.Length]);
             }
 
-            if (conditionResult)
+            if (MatchesTokenBoundary())
             {
                 result.Append(newToken);
                 i += oldToken.Length;

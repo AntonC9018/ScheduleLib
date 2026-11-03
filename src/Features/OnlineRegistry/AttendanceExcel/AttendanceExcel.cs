@@ -136,26 +136,20 @@ public sealed partial class AttendanceListsExcelParser
 
             StudentsLookupKey Key(in LessonGroups groups)
             {
-                LessonType CalculateLessonType()
+                LessonType LessonTypeForSheet()
                 {
-                    LessonType lessonType2;
                     if (header.HasDateLessonTypes)
                     {
-                        lessonType2 = LessonType.None;
+                        return LessonType.None;
                     }
-                    else
-                    {
-                        lessonType2 = lesson.Type;
-                    }
-
-                    return lessonType2;
+                    return lesson.Type;
                 }
 
                 return new(
                     courseId: lesson.Course,
                     groups: groups,
                     groupPartition: lesson.GroupPartition,
-                    lessonType: CalculateLessonType());
+                    lessonType: LessonTypeForSheet());
             }
 
             void Add(in LessonGroups groups)
@@ -482,7 +476,7 @@ public sealed partial class AttendanceListsExcelParser
                 _schedule,
                 lookupIgnoredFields);
 
-            bool CheckCondition()
+            bool CanFallBackToUnpartitionedLab()
             {
                 if (!(ret is null))
                 {
@@ -507,7 +501,7 @@ public sealed partial class AttendanceListsExcelParser
                 return false;
             }
 
-            if (CheckCondition())
+            if (CanFallBackToUnpartitionedLab())
             {
                 // Source subgroup sheets remain meaningful after their labs are projected away.
                 // Match the active destination, but keep the source key for row composition.
@@ -515,16 +509,6 @@ public sealed partial class AttendanceListsExcelParser
                 var candidates = schedule.EnumerateLessons()
                     .Where(item =>
                     {
-                        StudentsLookupKey CalculateSource()
-                        {
-                            StudentsLookupKey source = new(
-                                item.Lesson.Groups,
-                                key.GroupPartition,
-                                item.Lesson.Course,
-                                LessonType.Lab);
-                            return source;
-                        }
-
                         return item.Lesson.Type == LessonType.Lab
                             && (key.CourseId.IsInvalid || item.Lesson.Course == key.CourseId)
                             && item.Lesson.Groups == key.Groups
@@ -533,7 +517,11 @@ public sealed partial class AttendanceListsExcelParser
                             && AttendanceLabMerges.TryDestination(
                                 schedule.Source,
                                 labMerges,
-                                CalculateSource(),
+                                new StudentsLookupKey(
+                                item.Lesson.Groups,
+                                key.GroupPartition,
+                                item.Lesson.Course,
+                                LessonType.Lab),
                                 out _);
                     })
                     .Select(item => item.Lesson.Course)
@@ -606,25 +594,19 @@ public sealed partial class AttendanceListsExcelParser
                 l.Type = LessonType.None;
             }
 
-            GroupPartitionKey CalculateGroupPartition()
+            GroupPartitionKey AttendancePartition()
             {
-                GroupPartitionKey groupPartition;
                 if (merge is null)
                 {
-                    groupPartition = l.GroupPartitionKey;
+                    return l.GroupPartitionKey;
                 }
-                else
-                {
-                    groupPartition = GroupPartitionKey.All;
-                }
-
-                return groupPartition;
+                return GroupPartitionKey.All;
             }
 
             return new(
                 l.Type,
                 l.Groups,
-                CalculateGroupPartition(),
+                AttendancePartition(),
                 l.Course);
         }
 
@@ -995,10 +977,9 @@ public sealed partial class AttendanceListsExcelParser
             }
             if (context.Format == HeaderFormatType.Date)
             {
-                var iXLCell = cell;
                 string message =
                     $"Sheet '{sheet.Name}': expected a date (dd.MM or dd.MM.yyyy) in every attendance header column; got '{cell.Value}' ({cell.DataType})";
-                throw iXLCell.Exception(message);
+                throw cell.Exception(message);
             }
 
             if (!cell.Value.TryGetText(out string strValue))
@@ -1027,9 +1008,8 @@ public sealed partial class AttendanceListsExcelParser
                         if (!TryLessonType())
                         {
                             var examples = string.Join(",", headerDeps.LessonTypeParser.AllowedValuesExamples);
-                            var iXLCell2 = cell;
                             string message2 = $"{strValue} is an invalid lesson type. The valid values are: {examples}";
-                            throw iXLCell2.Exception(message2);
+                            throw cell.Exception(message2);
                         }
                         continue;
                     }
@@ -1516,33 +1496,15 @@ public sealed partial class AttendanceListsExcelParser
     private static bool IsEmptyCell(IXLCell cell)
     {
         var value = cell.Value;
-        bool conditionResult;
         if (value.IsBlank)
         {
-            conditionResult = true;
+            return true;
         }
-        else
+        if (value.TryGetText(out var text) && string.IsNullOrWhiteSpace(text))
         {
-            if (value.TryGetText(out var text))
-            {
-                conditionResult = string.IsNullOrWhiteSpace(text);
-            }
-            else
-            {
-                conditionResult = false;
-            }
-
-            if (conditionResult)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = IsGeneratedTableHeader(cell);
-            }
+            return true;
         }
-
-        return conditionResult;
+        return IsGeneratedTableHeader(cell);
     }
 
     private static bool IsGeneratedTableHeader(IXLCell cell)
@@ -1574,7 +1536,7 @@ public sealed partial class AttendanceListsExcelParser
 
             int fieldIndex = cell.Address.ColumnNumber - table.RangeAddress.FirstAddress.ColumnNumber;
 
-            bool CalculateConditionResult()
+            bool MatchesExpectedField()
             {
                 if (!(fieldIndex >= 0))
                 {
@@ -1599,10 +1561,7 @@ public sealed partial class AttendanceListsExcelParser
                 return false;
             }
 
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (MatchesExpectedField())
             {
                 return true;
             }

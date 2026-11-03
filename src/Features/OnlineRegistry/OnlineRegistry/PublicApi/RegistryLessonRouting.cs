@@ -15,36 +15,30 @@ internal static class RegistryLessonRouting
         var lessons = MatchLessonHelper.MatchLessonCandidates(parameters)
             .Where(id =>
             {
-                bool CalculateConditionResult()
+                if (!IsCurrentLab(
+                        config,
+                        parameters.Schedule,
+                        parameters.Schedule.Get(id).Lesson))
                 {
-                    if (!IsCurrentLab(
-                            config,
-                            parameters.Schedule,
-                            parameters.Schedule.Get(id).Lesson))
-                    {
-                        return false;
-                    }
-
-                    if (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab)
-                    {
-                        return true;
-                    }
-
-                    if (ContainsPartition(
-                            destination: filter.GroupPartition,
-                            source: ProjectPartition(
-                                config,
-                                parameters.Schedule,
-                                parameters.Schedule.Get(id).Lesson)))
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                bool conditionResult = CalculateConditionResult();
-                return conditionResult;
+                if (parameters.Schedule.Get(id).Lesson.Type != LessonType.Lab)
+                {
+                    return true;
+                }
+
+                if (ContainsPartition(
+                        destination: filter.GroupPartition,
+                        source: ProjectPartition(
+                            config,
+                            parameters.Schedule,
+                            parameters.Schedule.Get(id).Lesson)))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .ToHashSet();
         foreach (var id in parameters.Lookup[filter.CourseId])
@@ -78,7 +72,7 @@ internal static class RegistryLessonRouting
                 continue;
             }
 
-            bool CheckCondition()
+            bool HasUnrelatedWildcardAudience()
             {
                 if (!filter.Groups.IsWildcard)
                 {
@@ -98,7 +92,7 @@ internal static class RegistryLessonRouting
                 return false;
             }
 
-            if (CheckCondition())
+            if (HasUnrelatedWildcardAudience())
             {
                 continue;
             }
@@ -330,16 +324,9 @@ internal static class RegistryLessonRouting
                     {
                         hasUnresolvedAudience = true;
 
-                        string CalculateGroup()
-                        {
-                            var get = schedule.Get(parent);
-                            string group2 = get.Name;
-                            return group2;
-                        }
-
                         diagnostics?.ReportAmbiguousRegistryDestination(
                             course: schedule.Get(lesson.Course).FullName,
-                            @group: CalculateGroup());
+                            @group: schedule.Get(parent).Name);
                         continue;
                     }
                     foreach (var destination in winners)
@@ -373,76 +360,21 @@ internal static class RegistryLessonRouting
 
     private static int Specificity(GroupLink group)
     {
-        bool CalculateConditionResult()
-        {
-            if (group.Groups.IsWildcard)
-            {
-                return false;
-            }
-
-            if (group.Groups.IsCombined)
-            {
-                return false;
-            }
-
-            if (group.Groups.Value.IsSingleGroup)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        var explicitParent = conditionResult;
+        var explicitParent = (!group.Groups.IsWildcard && !group.Groups.IsCombined && group.Groups.Value.IsSingleGroup);
         var partition = group.GroupPartition;
-        int int32;
-        if (explicitParent)
-        {
-            int32 = 1000;
-        }
-        else
-        {
-            int32 = 0;
-        }
-
-        int int322 = int32;
-        int int323;
+        var specificity = explicitParent ? 1000 : 0;
         if (partition.SubGroup != SubGroup.All)
         {
-            int323 = 100;
+            specificity += 100;
         }
-        else
-        {
-            int323 = 0;
-        }
-
-        int int324 = int322 + int323;
-        int int325;
         if (partition.Specialization != Specialization.All)
         {
-            int325 = 10;
+            specificity += 10;
         }
-        else
-        {
-            int325 = 0;
-        }
-
-        int int326 = int324 + int325;
-        int int327;
         if (partition.Alternative != Alternative.All)
         {
-            int327 = 10;
+            specificity += 10;
         }
-        else
-        {
-            int327 = 0;
-        }
-
-        int int328 = int326 + int327;
-        int int329 = int328 - group.Groups.Value.Count;
-        return int329;
+        return specificity - group.Groups.Value.Count;
     }
 }

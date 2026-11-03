@@ -92,13 +92,7 @@ public static class DocToDocxConversionHelper
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
 
-                TimeSpan CalculateTimeout()
-                {
-                    var timeout = TimeSpan.FromSeconds(2);
-                    return timeout;
-                }
-
-                var converterExited = await WaitForExitBounded(process, CalculateTimeout());
+                var converterExited = await WaitForExitBounded(process, TimeSpan.FromSeconds(2));
                 // A blocked COM call cannot observe cooperative cancellation; a
                 // failing Quit can also leave Word behind after the converter exits.
                 // Never terminate an unknown, preexisting, or recycled PID.
@@ -113,13 +107,7 @@ public static class DocToDocxConversionHelper
                 {
                     TryKillConverter(process);
 
-                    TimeSpan CalculateTimeout2()
-                    {
-                        var timeout2 = TimeSpan.FromSeconds(3);
-                        return timeout2;
-                    }
-
-                    await WaitForExitBounded(process, CalculateTimeout2());
+                    await WaitForExitBounded(process, TimeSpan.FromSeconds(3));
                 }
                 throw;
             }

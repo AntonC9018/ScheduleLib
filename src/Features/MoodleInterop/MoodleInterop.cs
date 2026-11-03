@@ -22,7 +22,7 @@ public sealed class MoodleScrapingContext : IDisposable
     internal static readonly TokenNamesConfig Names = new()
     {
         BaseUrl = new(BaseUrl),
-        LoginUrl = new(CalculateUriString()),
+        LoginUrl = new($"{BaseUrl}/login/index.php"),
         TokenCookieName = new("MoodleSessionusmmd"),
     };
 
@@ -41,9 +41,7 @@ public sealed class MoodleScrapingContext : IDisposable
         HttpClientContext? httpContext = null)
     {
         var builder = new ScrapingContextBuilder();
-        var scrapingContextBuilder = builder;
-        var delay = TimeSpan.FromSeconds(0.4);
-        scrapingContextBuilder.Delay(delay);
+        builder.Delay(TimeSpan.FromSeconds(0.4));
         builder.AddConfig(Names);
         builder.AddConfig(TokenRetrieverConfig);
         builder.TokenAuth(f => f.PasswordLoginForm(credentials));
@@ -57,11 +55,6 @@ public sealed class MoodleScrapingContext : IDisposable
         _context.Dispose();
     }
 
-    private static string CalculateUriString()
-    {
-        string uriString = $"{BaseUrl}/login/index.php";
-        return uriString;
-    }
 }
 
 public static class MoodleInterop

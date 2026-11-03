@@ -122,25 +122,7 @@ public sealed class TreeIterationTests
         foreach (var x in e)
         {
             // Skip children when we process Root
-            bool CalculateConditionResult()
-            {
-                if (x.LayerName != "Root")
-                {
-                    return false;
-                }
-
-                if (x.State == DfsVisitationState.Process)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (x.LayerName == "Root" && x.State == DfsVisitationState.Process)
             {
                 x.Controller.Action = DfsAction.PreventRecursionOnce;
             }
@@ -173,25 +155,7 @@ public sealed class TreeIterationTests
         // Act
         foreach (var x in e)
         {
-            bool CalculateConditionResult()
-            {
-                if (x.LayerName != "Child1")
-                {
-                    return false;
-                }
-
-                if (x.State == DfsVisitationState.BeforeProcess)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (x.LayerName == "Child1" && x.State == DfsVisitationState.BeforeProcess)
             {
                 x.Controller.Action = DfsAction.KeepPreventingRecursion;
             }
@@ -215,13 +179,7 @@ public sealed class TreeIterationTests
         var children = Enumerable.Range(start: 1, count: 5)
             .Select(i =>
             {
-                string CalculateName()
-                {
-                    string name = $"Child{i}";
-                    return name;
-                }
-
-                return CreateLayer(CalculateName());
+                return CreateLayer($"Child{i}");
             })
             .ToArray();
         var root = CreateLayer("Root", children);
@@ -250,13 +208,7 @@ public sealed class TreeIterationTests
         // Arrange
         var leaf = CreateLayer("Leaf");
 
-        EnumerationContextCollection CalculateEnumerationContextCollection()
-        {
-            EnumerationContextCollection enumerationContextCollection = new([]);
-            return enumerationContextCollection;
-        }
-
-        using var enumerator = new DfsEnumerator(leaf, CalculateEnumerationContextCollection());
+        using var enumerator = new DfsEnumerator(leaf, new EnumerationContextCollection([]));
 
         // Act
         enumerator.MoveNext(); // BeforeProcess
@@ -349,14 +301,14 @@ file static class VisitSequence
         }
         if (filtered.Count != expected.Count)
         {
-            string CalculateText()
+            string FormatExpectedVisits()
             {
                 string join = string.Join(", ", expected);
                 string text = $" Expected: {join}.";
                 return text;
             }
 
-            string CalculateText2()
+            string FormatRecordedVisits()
             {
                 string join2 = string.Join(", ", actual);
                 string text2 = $" Recorded sequence: {join2}";
@@ -364,20 +316,20 @@ file static class VisitSequence
             }
 
             Assert.Fail(
-                $"{$"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."}{CalculateText()}{CalculateText2()}");
+                $"{$"The expected visits did not match exactly (expected {expected.Count}, recorded {filtered.Count})."}{FormatExpectedVisits()}{FormatRecordedVisits()}");
         }
         for (int i = 0; i < expected.Count; i++)
         {
             if (filtered[i] != expected[i])
             {
-                string CalculateText3()
+                string FormatExpectedVisits()
                 {
                     string join3 = string.Join(", ", expected);
                     string text3 = $" Expected: {join3}.";
                     return text3;
                 }
 
-                string CalculateText4()
+                string FormatRecordedVisits()
                 {
                     string join4 = string.Join(", ", actual);
                     string text4 = $" Recorded sequence: {join4}";
@@ -385,7 +337,7 @@ file static class VisitSequence
                 }
 
                 Assert.Fail(
-                    $"{$"The expected visits did not match exactly."}{$" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."}{CalculateText3()}{CalculateText4()}");
+                    $"{$"The expected visits did not match exactly."}{$" First mismatch: [{i}] expected {expected[i]} but was {filtered[i]}."}{FormatExpectedVisits()}{FormatRecordedVisits()}");
             }
         }
     }

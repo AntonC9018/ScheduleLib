@@ -144,25 +144,11 @@ public sealed class RegistryLessonRoutingTests
             IsCombined = isCombined,
         };
 
-        Uri CalculateUri()
-        {
-            var uri2 = new Uri(uri);
-            return uri2;
-        }
-
-        Uri CalculateEvaluationUri()
-        {
-            string text = $"{uri}/evaluation";
-            string uriString = text;
-            var evaluationUri2 = new Uri(uriString);
-            return evaluationUri2;
-        }
-
         return new GroupLink(
             found,
             partition,
-            uri: CalculateUri(),
-            evaluationUri: CalculateEvaluationUri(),
+            uri: new Uri(uri),
+            evaluationUri: new Uri($"{uri}/evaluation"),
             isAdditionalCourses);
     }
 
@@ -642,21 +628,9 @@ public sealed class RegistryLessonRoutingTests
         var subgroupEntry = Assert.Single(routed[subgroupLink.Uri]);
         var parentEntry = Assert.Single(routed[parentLink.Uri]);
 
-        SubGroup CalculateExpected()
-        {
-            var expected2 = SubGroup.CreateNumeric(1);
-            return expected2;
-        }
+        Assert.Equal(expected: SubGroup.CreateNumeric(1), actual: schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
 
-        Assert.Equal(expected: CalculateExpected(), actual: schedule.Get(subgroupEntry.Key).Lesson.SubGroup);
-
-        SubGroup CalculateExpected2()
-        {
-            var expected3 = SubGroup.CreateNumeric(2);
-            return expected3;
-        }
-
-        Assert.Equal(expected: CalculateExpected2(), actual: schedule.Get(parentEntry.Key).Lesson.SubGroup);
+        Assert.Equal(expected: SubGroup.CreateNumeric(2), actual: schedule.Get(parentEntry.Key).Lesson.SubGroup);
         bool condition = subgroupEntry.Value.Contains(parent);
         Assert.True(condition);
         bool condition2 = parentEntry.Value.Contains(parent);
@@ -788,7 +762,7 @@ public sealed class RegistryLessonRoutingTests
         {
             var lesson = schedule.Get(id).Lesson;
 
-            bool CheckCondition()
+            bool ContainsBothSelectedGroups()
             {
                 if (lesson.Groups.Count != 2)
                 {
@@ -808,13 +782,13 @@ public sealed class RegistryLessonRoutingTests
                 return false;
             }
 
-            if (CheckCondition())
+            if (ContainsBothSelectedGroups())
             {
                 valid = id;
                 foundValid = true;
             }
 
-            bool CheckCondition2()
+            bool ContainsSelectedAndOutsideGroups()
             {
                 if (lesson.Groups.Count != 2)
                 {
@@ -834,7 +808,7 @@ public sealed class RegistryLessonRoutingTests
                 return false;
             }
 
-            if (CheckCondition2())
+            if (ContainsSelectedAndOutsideGroups())
             {
                 tainted = id;
                 foundTainted = true;

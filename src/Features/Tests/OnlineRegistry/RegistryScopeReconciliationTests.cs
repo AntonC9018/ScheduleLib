@@ -14,15 +14,9 @@ public sealed class RegistryScopeReconciliationTests
             Local(id: 0, hour: 9),
         };
 
-        DateTime CalculateDate()
-        {
-            var date = local[0].DateTime.AddHours(-1);
-            return date;
-        }
-
         var saved = Remote(
                 0,
-                CalculateDate(),
+                local[0].DateTime.AddHours(-1),
                 "Old") with
         {
             LessonType = LessonType.Unspecified,
@@ -303,26 +297,14 @@ public sealed class RegistryScopeReconciliationTests
         DateTime date,
         string topic)
     {
-        string CalculateUriString()
-        {
-            string uriString = $"https://registry.test/view/{id}";
-            return uriString;
-        }
-
-        string CalculateUriString2()
-        {
-            string uriString2 = $"https://registry.test/edit/{id}";
-            return uriString2;
-        }
-
         return new()
         {
             DateTime = date,
             Topic = topic,
             LessonType = LessonType.Lab,
             Attendance = [Attendance.NotPresent],
-            ViewUri = new(CalculateUriString()),
-            EditUri = new(CalculateUriString2()),
+            ViewUri = new($"https://registry.test/view/{id}"),
+            EditUri = new($"https://registry.test/edit/{id}"),
         };
     }
 }

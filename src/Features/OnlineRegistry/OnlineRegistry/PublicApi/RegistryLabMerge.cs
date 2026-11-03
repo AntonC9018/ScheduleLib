@@ -55,32 +55,27 @@ internal static class RegistryLabMerges
         var group = groups[0];
         if (schedule.AutomaticLabSubGroupMerges.Any(merge =>
             {
-                bool CheckCondition()
+                if (!(merge.Course == course))
                 {
-                    if (!(merge.Course == course))
-                    {
-                        return false;
-                    }
-
-                    if (!(merge.Group == group))
-                    {
-                        return false;
-                    }
-
-                    if (!(merge.Specialization == partition.Specialization))
-                    {
-                        return false;
-                    }
-
-                    if (merge.Alternative == partition.Alternative)
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                return CheckCondition();
+                if (!(merge.Group == group))
+                {
+                    return false;
+                }
+
+                if (!(merge.Specialization == partition.Specialization))
+                {
+                    return false;
+                }
+
+                if (merge.Alternative == partition.Alternative)
+                {
+                    return true;
+                }
+
+                return false;
             }))
         {
             return null;
@@ -126,19 +121,8 @@ internal static class RegistryLabMerges
     {
         var filter = parameters.Filter;
 
-        bool CalculateConditionResult()
-        {
-            if (filter.Groups.IsWildcard)
-            {
-                return true;
-            }
-            return filter.Groups.IsCombined;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        var rule = conditionResult
+        var requiresResolvedAudience = filter.Groups.IsWildcard || filter.Groups.IsCombined;
+        var rule = requiresResolvedAudience
             ? null
             : Find(
                 rules,
@@ -169,7 +153,7 @@ internal static class RegistryLabMerges
 
                 var lesson = parameters.Schedule.Get(id).Lesson;
 
-                bool CalculateConditionResult()
+                bool MatchesSurvivingLab()
                 {
                     if (lesson.Type != LessonType.Lab)
                     {
@@ -194,10 +178,7 @@ internal static class RegistryLabMerges
                     return false;
                 }
 
-                bool conditionResult = CalculateConditionResult();
-
-
-                return conditionResult;
+                return MatchesSurvivingLab();
             })
             .ToList();
         if (lessons.Count == 0)

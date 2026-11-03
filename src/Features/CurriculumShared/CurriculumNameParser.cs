@@ -353,25 +353,7 @@ public static class CurriculumNameParser
                 }
             }
 
-            bool CalculateConditionResult()
-            {
-                if (!hasUnparsedItem)
-                {
-                    return false;
-                }
-
-                if (itemCount > 1)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (hasUnparsedItem && itemCount > 1)
             {
                 throw new NotSupportedException("'+' in the last segment without it parsing");
             }
@@ -1641,11 +1623,7 @@ internal static class SectionTypeHelper
         public bool MoveNext()
         {
             _index++;
-            bool conditionResult;
-            int conditionValue = _index;
-            int conditionValue2 = (int) SectionType.Count;
-            conditionResult = conditionValue < conditionValue2;
-            return conditionResult;
+            return _index < (int) SectionType.Count;
         }
 
         public void Reset() => _index = -1;

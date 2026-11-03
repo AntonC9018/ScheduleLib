@@ -87,16 +87,10 @@ public sealed class ScopedManifestTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            byte[] CalculateBuffer()
-            {
-                byte[] buffer = Encoding.UTF8.GetBytes("""
+            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
                                                        {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",
                                                        "semester":1,"wholeGroupOnly":true,"language":"Ro","lessonType":"Lab"}]}
-                                                       """);
-                return buffer;
-            }
-
-            await using var input = new MemoryStream(CalculateBuffer());
+                                                       """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             manifest.Documents[0].AllowMissingLessonTypes = allowMissingLessonTypes;
             if (unspecifiedLanguage)
@@ -135,32 +129,20 @@ public sealed class ScopedManifestTests
                     default);
             }
 
-            AttendanceLookupKey CalculateKey()
+            string? ExpectedTopic()
             {
-                var key = Key(
-                    course,
-                    group,
-                    GroupPartitionKey.All);
-                return key;
-            }
-
-            string? CalculateExpected()
-            {
-                string? expected2;
                 if (enabled)
                 {
-                    expected2 = "Synthetic topic";
+                    return "Synthetic topic";
                 }
-                else
-                {
-                    expected2 = null;
-                }
-
-                return expected2;
+                return null;
             }
 
-            string? expected3 = CalculateExpected();
-            string? actual2 = topics.Get(CalculateKey());
+            string? expected3 = ExpectedTopic();
+            string? actual2 = topics.Get(Key(
+                    course,
+                    group,
+                    GroupPartitionKey.All));
             Assert.Equal(expected: expected3, actual: actual2);
             Assert.Null(topics.Get(Key(
                     course,
@@ -170,47 +152,21 @@ public sealed class ScopedManifestTests
                 LessonType = LessonType.Curs,
             }));
 
-            AttendanceLookupKey CalculateKey2()
-            {
-                var key2 = Key(
+            string? objectValue = topics.Get(Key(
                     course,
                     otherGroup,
-                    GroupPartitionKey.All);
-                return key2;
-            }
-
-            string? objectValue = topics.Get(CalculateKey2());
+                    GroupPartitionKey.All));
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
 
-            AttendanceLookupKey CalculateKey3()
-            {
-                var key3 = Key(
+            string? objectValue3 = topics.Get(Key(
                     otherCourse,
                     group,
-                    GroupPartitionKey.All);
-                return key3;
-            }
-
-            string? objectValue3 = topics.Get(CalculateKey3());
+                    GroupPartitionKey.All));
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
 
-            AttendanceLookupKey CalculateKey4()
-            {
-                var courseId2 = course;
-                GroupId groupId2 = group;
-                var subGroup = new SubGroup("I");
-                var specialization = Specialization.All;
-                GroupPartitionKey partition2 = new(subGroup, specialization);
-                var key4 = Key(
-                    courseId2,
-                    groupId2,
-                    partition2);
-                return key4;
-            }
-
-            string? objectValue5 = topics.Get(CalculateKey4());
+            string? objectValue5 = topics.Get(Key(course, group, new GroupPartitionKey(new SubGroup("I"), Specialization.All)));
             object? objectValue6 = objectValue5;
             Assert.Null(objectValue6);
         }

@@ -36,7 +36,7 @@ public static class MoodleQuizScraper
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
 
-        MoodleBreadcrumbItem ProjectValue(IHtmlListItemElement x)
+        MoodleBreadcrumbItem ReadBreadcrumb(IHtmlListItemElement x)
         {
             var anchor = x.QuerySelector<IHtmlAnchorElement>("a");
             if (anchor != null)
@@ -51,7 +51,7 @@ public static class MoodleQuizScraper
             throw new InvalidOperationException("Expected span or anchor in path");
         }
 
-        var path = pathItems.Select(ProjectValue)
+        var path = pathItems.Select(ReadBreadcrumb)
             .ToList();
 
         // Set page size
@@ -302,13 +302,7 @@ public static class MoodleQuizScraper
 
         while (true)
         {
-            string CalculateKeys()
-            {
-                string keys = $"qsgrade{questionNum}";
-                return keys;
-            }
-
-            var cellResult = row.FindCell(CalculateKeys());
+            var cellResult = row.FindCell($"qsgrade{questionNum}");
             if (cellResult.Cell is not { } cell)
             {
                 break;
@@ -385,7 +379,7 @@ public static class MoodleQuizScraper
         var classList = classes.Split(' ');
         foreach (var cls in classList)
         {
-            bool CheckCondition()
+            bool IsQuestionStateClass()
             {
                 if (cls == "que")
                 {
@@ -425,7 +419,7 @@ public static class MoodleQuizScraper
                 return false;
             }
 
-            if (CheckCondition())
+            if (IsQuestionStateClass())
             {
                 continue;
             }

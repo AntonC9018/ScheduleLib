@@ -45,16 +45,10 @@ public sealed class Test
         var teacherName = schedule.Get(teacherId).PersonName
             .AsNameFields();
 
-        Name CalculateName()
-        {
-            var name = new Name(teacherName);
-            return name;
-        }
-
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
             helper.ServiceProvider,
             path,
-            CalculateName());
+            new Name(teacherName));
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
         var filteredSchedule = schedule.Filter(
@@ -79,19 +73,13 @@ public sealed class Test
         };
         while (true)
         {
-            AttendanceLookupKey CalculateKey()
-            {
-                AttendanceLookupKey key = new(
+            var topic = result.Get(new AttendanceLookupKey(
                     courseId: courseId,
                     groups: groups,
                     groupPartition: GroupPartitionKey.All,
                     lessonType: LessonType.Lab,
                     dayIndex: dayIndex,
-                    dateTime: default);
-                return key;
-            }
-
-            var topic = result.Get(CalculateKey());
+                    dateTime: default));
             if (topic == null)
             {
                 break;

@@ -103,14 +103,8 @@ public static class FmiPdfImport
         var output = new OutputDirectory(directory);
         output.Initialize();
 
-        string CalculatePath()
-        {
-            string path2 = Path.Combine(outputPath, "import-report.json");
-            return path2;
-        }
-
         await File.WriteAllTextAsync(
-            path: CalculatePath(),
+            path: Path.Combine(outputPath, "import-report.json"),
             contents: JsonSerializer.Serialize(
                 new
                 {

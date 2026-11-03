@@ -54,25 +54,7 @@ public static class CommissionParser
         {
             var row = rows.Current;
 
-            bool CalculateConditionResult()
-            {
-                if (!row.IsJump)
-                {
-                    return false;
-                }
-
-                if (state.Action == Action.NameRow)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (row.IsJump && state.Action == Action.NameRow)
             {
                 FinalizeCurrentCommissions();
                 state.Action = Action.Date;
@@ -89,13 +71,7 @@ public static class CommissionParser
                                 continue;
                             }
 
-                            SizedItem<DateOnly?> CalculateIt()
-                            {
-                                SizedItem<DateOnly?> it2 = new(date, cell.Size);
-                                return it2;
-                            }
-
-                            state.DateMappings.AddAt(cell.Position, CalculateIt());
+                            state.DateMappings.AddAt(cell.Position, new SizedItem<DateOnly?>(date, cell.Size));
                         }
                         if (!state.DateMappings.IsEmpty)
                         {
@@ -161,13 +137,7 @@ public static class CommissionParser
                             }
                             int num = romanResult.Number;
 
-                            SizedItem<int> CalculateIt2()
-                            {
-                                SizedItem<int> it3 = new(item: num, size: cell.Size);
-                                return it3;
-                            }
-
-                            state.CommissionNumberMappings.AddAt(cell.Position, CalculateIt2());
+                            state.CommissionNumberMappings.AddAt(cell.Position, new SizedItem<int>(item: num, size: cell.Size));
                         }
                         if (state.CommissionNumberMappings.IsEmpty)
                         {

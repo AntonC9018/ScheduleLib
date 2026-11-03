@@ -54,25 +54,11 @@ internal static class MatchLessonHelper
 
     private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
     {
-        bool conditionResult;
-        if (lesson.Type == LessonType.Lab)
+        if (lesson.Type != LessonType.Lab)
         {
-            if (groups.IsWildcard)
-            {
-                conditionResult = true;
-            }
-            else
-            {
-                conditionResult = groups.Value.IsSingleGroup;
-                conditionResult = !conditionResult;
-            }
+            return false;
         }
-        else
-        {
-            conditionResult = false;
-        }
-
-        return conditionResult;
+        return groups.IsWildcard || !groups.Value.IsSingleGroup;
     }
 
     internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
@@ -85,19 +71,7 @@ internal static class MatchLessonHelper
                 yielded = true;
             }
 
-            bool CalculateConditionResult()
-            {
-                if (yielded)
-                {
-                    return true;
-                }
-                return p.Filter.Groups.IsCombined;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (yielded || p.Filter.Groups.IsCombined)
             {
                 yield break;
             }
@@ -126,7 +100,7 @@ internal static class MatchLessonHelper
             return true;
         }
 
-        bool CheckCondition()
+        bool RequiresPartitionedMatch()
         {
             if (partition != GroupPartitionKey.All)
             {
@@ -151,7 +125,7 @@ internal static class MatchLessonHelper
             return false;
         }
 
-        if (CheckCondition())
+        if (RequiresPartitionedMatch())
         {
             return false;
         }
@@ -160,15 +134,8 @@ internal static class MatchLessonHelper
         if (lesson.SubGroup.IsLanguageSubGroup()
             && lesson.Groups.All(group =>
             {
-                Language CalculateLang()
-                {
-                    var get = schedule.Get(group);
-                    var lang = get.Language;
-                    return lang;
-                }
-
                 return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
-                    && SpecialSubGroups.FromLanguage(CalculateLang()) == lesson.SubGroup;
+                    && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup;
             }))
         {
             return true;
@@ -222,25 +189,9 @@ internal static class MatchLessonHelper
             }
             else if (g.IsWildcard)
             {
-                bool conditionResult;
-                if (lesson.Lesson.Groups.IsEmpty)
-                {
-                    conditionResult = true;
-                }
-                else
-                {
-                    if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
-                    {
-                        conditionResult = lesson.Lesson.Groups.IsSubSetOf(g.Value);
-                        conditionResult = !conditionResult;
-                    }
-                    else
-                    {
-                        conditionResult = false;
-                    }
-                }
-
-                if (conditionResult)
+                if (lesson.Lesson.Groups.IsEmpty
+                    || !g.Value.IsSubSetOf(lesson.Lesson.Groups)
+                    && !lesson.Lesson.Groups.IsSubSetOf(g.Value))
                 {
                     continue;
                 }

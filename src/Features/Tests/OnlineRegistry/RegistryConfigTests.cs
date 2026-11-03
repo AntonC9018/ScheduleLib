@@ -41,37 +41,32 @@ public sealed class RegistryConfigTests
             result,
             rule =>
             {
-                bool CheckCondition()
+                if (rule.Faculty != "DJ")
                 {
-                    if (rule.Faculty != "DJ")
-                    {
-                        return false;
-                    }
-
-                    if (rule.SubGroup != "eng")
-                    {
-                        return false;
-                    }
-
-                    if (rule.Language != Language.Ro)
-                    {
-                        return false;
-                    }
-
-                    if (rule.MatchByLanguage)
-                    {
-                        return false;
-                    }
-
-                    if (!rule.AllowParentGroup)
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                return CheckCondition();
+                if (rule.SubGroup != "eng")
+                {
+                    return false;
+                }
+
+                if (rule.Language != Language.Ro)
+                {
+                    return false;
+                }
+
+                if (rule.MatchByLanguage)
+                {
+                    return false;
+                }
+
+                if (!rule.AllowParentGroup)
+                {
+                    return true;
+                }
+
+                return false;
             });
         Assert.Contains(
             result,
@@ -190,16 +185,10 @@ public sealed class RegistryConfigTests
         using var inner = new StubHandler();
         var index = new Uri("https://registry.test/studregistry/LessonAttendance");
 
-        Uri CalculateLogin()
-        {
-            Uri login2 = new(index, "../Account/Login");
-            return login2;
-        }
-
         using var guard = new RegistryHistoryRequestHandler(
             inner,
             index: index,
-            login: CalculateLogin(),
+            login: new Uri(index, "../Account/Login"),
             TimeSpan.Zero);
         guard.CompleteAuthentication();
         Assert.NotNull(guard);

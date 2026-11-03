@@ -45,7 +45,7 @@ public static class RegistrationHelper
 
         bool ProcessSelf_CheckShouldProcessChildren()
         {
-            bool CheckCondition()
+            bool RequiresImmutableOperations()
             {
                 if (type == typeof(string))
                 {
@@ -70,7 +70,7 @@ public static class RegistrationHelper
                 return false;
             }
 
-            if (CheckCondition())
+            if (RequiresImmutableOperations())
             {
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(type);
                 var implType = typeof(ImmutableClassBasicOperations<>).MakeGenericType(type);

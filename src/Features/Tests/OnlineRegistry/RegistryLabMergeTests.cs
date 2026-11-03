@@ -103,19 +103,13 @@ public sealed class RegistryLabMergeTests
             subGroupRemapper,
             specializationRegistry);
 
-        FilteredSchedule CalculateSchedule()
-        {
-            var schedule = fixture.Schedule.Filter(new());
-            return schedule;
-        }
-
         parser.Parse(new(
             new()
             {
                 LabMerges = fixture.Rules,
             },
             attendance,
-            CalculateSchedule(),
+            fixture.Schedule.Filter(new()),
             workbook));
         var collection = attendance.Build(Attendance.Present);
         IEnumerable<KeyValuePair<
@@ -128,7 +122,9 @@ public sealed class RegistryLabMergeTests
         Assert.Equal(expected: 2, actual: result.Value.Attendance.Values.Count());
         Assert.All(
             result.Value.Attendance.Values,
-            day => Assert.All(day.AsArray(), mark => Assert.Equal(expected: Attendance.NotPresent, actual: mark)));
+            day => {
+                Assert.All(day.AsArray(), mark => Assert.Equal(expected: Attendance.NotPresent, actual: mark));
+            });
     }
 
     [Fact]
@@ -137,55 +133,21 @@ public sealed class RegistryLabMergeTests
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
 
-        GroupPartitionKey CalculateGroupPartition()
-        {
-            var subGroup = new SubGroup("I");
-            var specialization = Specialization.All;
-            GroupPartitionKey groupPartition = new(subGroup, specialization);
-            return groupPartition;
-        }
-
-        StudentsLookupKey CalculateKey()
-        {
-            StudentsLookupKey key = new(
+        var first = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition(),
+                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key;
-        }
+                LessonType.Lab));
 
-        var first = builder.List(CalculateKey());
-
-        Parsing.Name CalculateName()
-        {
-            var name2 = Parsing.NameHelper.Parse("Synthetic Alpha");
-            return name2;
-        }
-
-        first.Student(CalculateName())
+        first.Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.NotPresent);
         first.HintMaxCount(1);
 
-        GroupPartitionKey CalculateGroupPartition2()
-        {
-            var subGroup2 = new SubGroup("II");
-            var specialization2 = Specialization.All;
-            GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
-            return groupPartition2;
-        }
-
-        StudentsLookupKey CalculateKey2()
-        {
-            StudentsLookupKey key2 = new(
+        var second = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition2(),
+                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key2;
-        }
-
-        var second = builder.List(CalculateKey2());
+                LessonType.Lab));
         var studentAttendanceListBuilder = second;
         var name = Parsing.NameHelper.Parse("Synthetic Beta");
         var student = studentAttendanceListBuilder.Student(name);
@@ -229,25 +191,11 @@ public sealed class RegistryLabMergeTests
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
 
-        GroupPartitionKey CalculateGroupPartition()
-        {
-            var subGroup = new SubGroup("I");
-            var specialization = Specialization.All;
-            GroupPartitionKey groupPartition = new(subGroup, specialization);
-            return groupPartition;
-        }
-
-        StudentsLookupKey CalculateKey()
-        {
-            StudentsLookupKey key = new(
+        var first = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition(),
+                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key;
-        }
-
-        var first = builder.List(CalculateKey());
+                LessonType.Lab));
         first.AddAttendanceDates([
             new()
             {
@@ -266,25 +214,11 @@ public sealed class RegistryLabMergeTests
         alpha.Day(Attendance.NotPresent);
         alpha.Day(Attendance.MotivatedAbsent);
 
-        GroupPartitionKey CalculateGroupPartition2()
-        {
-            var subGroup2 = new SubGroup("II");
-            var specialization2 = Specialization.All;
-            GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
-            return groupPartition2;
-        }
-
-        StudentsLookupKey CalculateKey2()
-        {
-            StudentsLookupKey key2 = new(
+        var second = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition2(),
+                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key2;
-        }
-
-        var second = builder.List(CalculateKey2());
+                LessonType.Lab));
         second.AddAttendanceDates([
             new()
             {
@@ -350,52 +284,20 @@ public sealed class RegistryLabMergeTests
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
 
-        GroupPartitionKey CalculateGroupPartition()
-        {
-            var subGroup = new SubGroup("I");
-            var specialization = Specialization.All;
-            GroupPartitionKey groupPartition = new(subGroup, specialization);
-            return groupPartition;
-        }
-
-        StudentsLookupKey CalculateKey()
-        {
-            StudentsLookupKey key = new(
+        builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition(),
+                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key;
-        }
-
-        Parsing.Name CalculateName()
-        {
-            var name = Parsing.NameHelper.Parse("Synthetic Alpha");
-            return name;
-        }
-
-        builder.List(CalculateKey())
-            .Student(CalculateName())
+                LessonType.Lab))
+            .Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.NotPresent);
 
-        StudentsLookupKey CalculateKey2()
-        {
-            StudentsLookupKey key2 = new(
+        builder.List(new StudentsLookupKey(
                 [fixture.Group],
                 GroupPartitionKey.All,
                 fixture.Course,
-                LessonType.Lab);
-            return key2;
-        }
-
-        Parsing.Name CalculateName2()
-        {
-            var name2 = Parsing.NameHelper.Parse("Synthetic Alpha");
-            return name2;
-        }
-
-        builder.List(CalculateKey2())
-            .Student(CalculateName2())
+                LessonType.Lab))
+            .Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.MotivatedAbsent);
         var attendance = builder.Build(Attendance.Present);
         var schedule = fixture.Schedule;
@@ -420,56 +322,22 @@ public sealed class RegistryLabMergeTests
         var fixture = new Fixture();
         var builder = new AllStudentAttendanceListBuilder();
 
-        GroupPartitionKey CalculateGroupPartition()
-        {
-            var subGroup = new SubGroup("I");
-            var specialization = Specialization.All;
-            GroupPartitionKey groupPartition = new(subGroup, specialization);
-            return groupPartition;
-        }
-
-        StudentsLookupKey CalculateKey()
-        {
-            StudentsLookupKey key = new(
+        var first = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition(),
+                new GroupPartitionKey(new SubGroup("I"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key;
-        }
+                LessonType.Lab));
 
-        var first = builder.List(CalculateKey());
-
-        Parsing.Name CalculateName()
-        {
-            var name = Parsing.NameHelper.Parse("Synthetic Alpha");
-            return name;
-        }
-
-        first.Student(CalculateName())
+        first.Student(Parsing.NameHelper.Parse("Synthetic Alpha"))
             .Day(Attendance.NotPresent);
 
-        GroupPartitionKey CalculateGroupPartition2()
-        {
-            var subGroup2 = new SubGroup("II");
-            var specialization2 = Specialization.All;
-            GroupPartitionKey groupPartition2 = new(subGroup2, specialization2);
-            return groupPartition2;
-        }
-
-        StudentsLookupKey CalculateKey2()
-        {
-            StudentsLookupKey key2 = new(
+        var second = builder.List(new StudentsLookupKey(
                 [fixture.Group],
-                CalculateGroupPartition2(),
+                new GroupPartitionKey(new SubGroup("II"), Specialization.All),
                 fixture.Course,
-                LessonType.Lab);
-            return key2;
-        }
+                LessonType.Lab));
 
-        var second = builder.List(CalculateKey2());
-
-        Parsing.Name CalculateName2()
+        Parsing.Name NameForDuplicateScenario()
         {
             string s;
             if (duplicateName)
@@ -485,7 +353,7 @@ public sealed class RegistryLabMergeTests
             return name2;
         }
 
-        second.Student(CalculateName2())
+        second.Student(NameForDuplicateScenario())
             .Day(Attendance.MotivatedAbsent);
         if (!duplicateName)
         {

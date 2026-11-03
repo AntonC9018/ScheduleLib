@@ -38,24 +38,11 @@ public sealed class FmiScheduleUpdater(
     {
         stateFile = Path.GetFullPath(stateFile);
 
-        string CalculatePath()
-        {
-            string path = Path.GetDirectoryName(stateFile)!;
-            return path;
-        }
-
-        Directory.CreateDirectory(CalculatePath());
+        Directory.CreateDirectory(Path.GetDirectoryName(stateFile)!);
 
         // FileShare.None rejects concurrent writers before either starts downloading.
-        string CalculatePath2()
-        {
-            string text = $"{stateFile}.lock";
-            string path2 = text;
-            return path2;
-        }
-
         await using var gate = new FileStream(
-            CalculatePath2(),
+            $"{stateFile}.lock",
             FileMode.OpenOrCreate,
             FileAccess.ReadWrite,
             FileShare.None);
@@ -69,7 +56,7 @@ public sealed class FmiScheduleUpdater(
                     cancellationToken)
                 ?? throw new FormatException("Empty schedule hash checkpoint.");
 
-            bool CheckCondition()
+            bool IsInvalidCheckpoint()
             {
                 if (previous.Version != 1)
                 {
@@ -114,7 +101,7 @@ public sealed class FmiScheduleUpdater(
                 return false;
             }
 
-            if (CheckCondition())
+            if (IsInvalidCheckpoint())
             {
                 throw new FormatException("Invalid or unsupported schedule hash checkpoint.");
             }
@@ -132,29 +119,23 @@ public sealed class FmiScheduleUpdater(
             throw new FormatException("An update requires all three bachelor schedules.");
         }
 
-        ScheduleSourceHash ProjectValue(FmiScheduleDownload d)
+        ScheduleSourceHash DescribeSource(FmiScheduleDownload download)
         {
-            int operationValue = d.Link.Year;
-            string operationValue2 = d.Link.Url.AbsoluteUri;
-            byte[] operationValue3 = SHA256.HashData(d.Content);
-            byte[] operationValue4 = operationValue3;
-            string operationValue5 = Convert.ToHexStringLower(operationValue4);
-            string operationValue6 = operationValue5;
-            var operationValue7 = d.Link.UploadDate;
-            var operationValue8 = new ScheduleSourceHash(
-                operationValue,
-                Url: operationValue2,
-                Sha256: operationValue6,
-                operationValue7);
-            return operationValue8;
+            var year = download.Link.Year;
+            var url = download.Link.Url.AbsoluteUri;
+            var contentHash = SHA256.HashData(download.Content);
+            var hashText = Convert.ToHexStringLower(contentHash);
+            var uploadDate = download.Link.UploadDate;
+            return new ScheduleSourceHash(year, url, hashText, uploadDate);
         }
 
-        var sources = downloads.Select(ProjectValue)
+        var sources = downloads.Select(DescribeSource)
             .ToArray();
-        var changed = sources.Where(s => !string.Equals(
-                previous?.Sources.SingleOrDefault(p => p.Year == s.Year)?.Sha256,
-                s.Sha256,
-                StringComparison.OrdinalIgnoreCase))
+        var changed = sources.Where(source =>
+            {
+                var previousHash = previous?.Sources.SingleOrDefault(saved => saved.Year == source.Year)?.Sha256;
+                return !string.Equals(previousHash, source.Sha256, StringComparison.OrdinalIgnoreCase);
+            })
             .ToArray();
         if (changed.Length == 0 && previous?.Sources.Count == sources.Length)
         {

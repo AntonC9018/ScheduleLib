@@ -166,7 +166,7 @@ public static class RegistryGradeForm
         var inputs = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
             .ToArray();
 
-        bool CheckCondition()
+        bool HasInvalidOrDuplicateGradeInputs()
         {
             if (inputs.Length == 0)
             {
@@ -189,7 +189,7 @@ public static class RegistryGradeForm
             return false;
         }
 
-        if (CheckCondition())
+        if (HasInvalidOrDuplicateGradeInputs())
         {
             throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
         }

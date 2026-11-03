@@ -52,7 +52,10 @@ public sealed class FmiUpdateTests : IDisposable
             Content = [42],
         };
         await Assert.ThrowsAsync<IOException>(() =>
-            updater.RunAsync(State, (_, _) => throw new IOException("generation failed")));
+            {
+            var update = updater.RunAsync(State, (_, _) => throw new IOException("generation failed"));
+            return update;
+        });
         Assert.Equal(expected: checkpoint, actual: await File.ReadAllTextAsync(State));
         Assert.True((await updater.RunAsync(State, (_, _) => Task.CompletedTask)).Updated);
     }
@@ -60,12 +63,18 @@ public sealed class FmiUpdateTests : IDisposable
     [Fact]
     public async Task FirstFailureAndIncompleteDownloadDoNotCreateCheckpoint()
     {
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads())
-            .RunAsync(State, (_, _) => throw new FormatException("bad PDF")));
+        await Assert.ThrowsAsync<FormatException>(() => {
+            var update = Create(() => Downloads())
+                .RunAsync(State, (_, _) => throw new FormatException("bad PDF"));
+            return update;
+        });
         bool condition = File.Exists(State);
         Assert.False(condition);
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads()[..2])
-            .RunAsync(State, (_, _) => Task.CompletedTask));
+        await Assert.ThrowsAsync<FormatException>(() => {
+            var update = Create(() => Downloads()[..2])
+                .RunAsync(State, (_, _) => Task.CompletedTask);
+            return update;
+        });
         bool condition2 = File.Exists(State);
         Assert.False(condition2);
     }
@@ -79,17 +88,11 @@ public sealed class FmiUpdateTests : IDisposable
             day: 17));
         var updater = Create(() => downloads);
 
-        DateOnly CalculateExpected()
-        {
-            var expected2 = new DateOnly(
+        Assert.Equal(
+            expected: new DateOnly(
                 year: 2026,
                 month: 9,
-                day: 17);
-            return expected2;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected(),
+                day: 17),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
         downloads[0] = downloads[0] with
         {
@@ -103,17 +106,11 @@ public sealed class FmiUpdateTests : IDisposable
             },
         };
 
-        DateOnly CalculateExpected2()
-        {
-            var expected3 = new DateOnly(
+        Assert.Equal(
+            expected: new DateOnly(
                 year: 2026,
                 month: 9,
-                day: 23);
-            return expected3;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected2(),
+                day: 23),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
         downloads[1] = downloads[1] with
         {
@@ -124,17 +121,11 @@ public sealed class FmiUpdateTests : IDisposable
             },
         };
 
-        DateOnly CalculateExpected3()
-        {
-            var expected4 = new DateOnly(
+        Assert.Equal(
+            expected: new DateOnly(
                 year: 2026,
                 month: 9,
-                day: 25);
-            return expected4;
-        }
-
-        Assert.Equal(
-            expected: CalculateExpected3(),
+                day: 25),
             actual: (await updater.RunAsync(State, (_, _) => Task.CompletedTask)).PeriodStart);
     }
 
@@ -142,15 +133,18 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task CancellationDoesNotCommitHashes()
     {
         using var cancellation = new CancellationTokenSource();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Create(() => Downloads())
-            .RunAsync(
-                State,
-                (_, _) =>
-                {
-                    cancellation.Cancel();
-                    return Task.CompletedTask;
-                },
-                cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => {
+            var update = Create(() => Downloads())
+                .RunAsync(
+                    State,
+                    (_, _) =>
+                    {
+                        cancellation.Cancel();
+                        return Task.CompletedTask;
+                    },
+                    cancellation.Token);
+            return update;
+        });
         bool condition = File.Exists(State);
         Assert.False(condition);
     }
@@ -161,10 +155,13 @@ public sealed class FmiUpdateTests : IDisposable
         Directory.CreateDirectory(_directory);
         const string invalid = "{\"Version\":1,\"PeriodStart\":\"2026-09-17\",\"Sources\":[]}";
         await File.WriteAllTextAsync(path: State, contents: invalid);
-        await Assert.ThrowsAsync<FormatException>(() => Create(() => Downloads())
-            .RunAsync(
-                State,
-                (_, _) => throw new Exception("Consumer must not be called")));
+        await Assert.ThrowsAsync<FormatException>(() => {
+            var update = Create(() => Downloads())
+                .RunAsync(
+                    State,
+                    (_, _) => throw new Exception("Consumer must not be called"));
+            return update;
+        });
         Assert.Equal(expected: invalid, actual: await File.ReadAllTextAsync(State));
     }
 
@@ -172,13 +169,16 @@ public sealed class FmiUpdateTests : IDisposable
     public async Task FutureUploadDateDoesNotCreateCheckpoint()
     {
         await Assert.ThrowsAsync<FutureScheduleUploadDateException>(() =>
-            Create(() => Downloads(new(
-                    year: 2026,
-                    month: 9,
-                    day: 26)))
-                .RunAsync(
-                    State,
-                    (_, _) => throw new Exception("Consumer must not be called")));
+            {
+            var update = Create(() => Downloads(new(
+                        year: 2026,
+                        month: 9,
+                        day: 26)))
+                    .RunAsync(
+                        State,
+                        (_, _) => throw new Exception("Consumer must not be called"));
+            return update;
+        });
         bool condition = File.Exists(State);
         Assert.False(condition);
     }

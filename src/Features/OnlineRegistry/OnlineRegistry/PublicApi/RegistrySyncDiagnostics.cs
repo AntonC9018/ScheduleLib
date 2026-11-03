@@ -286,16 +286,9 @@ internal sealed class RegistryTargetCoverage(
         foreach (var target in _remaining.Where(target => !courses.Contains(target.Course))
                      .ToArray())
         {
-            string CalculateGroup()
-            {
-                var get = schedule.Get(target.Group);
-                string group2 = get.Name;
-                return group2;
-            }
-
             diagnostics.ReportMissingRegistryCourse(
                 course: schedule.Get(target.Course).FullName,
-                @group: CalculateGroup());
+                @group: schedule.Get(target.Group).Name);
             _remaining.Remove(target);
         }
     }
@@ -315,7 +308,7 @@ internal sealed class RegistryTargetCoverage(
             partition);
         Cover(target2);
 
-        bool CheckCondition()
+        bool IsNotSingleGroupLecture()
         {
             if (source.Lesson.Type is not (LessonType.Curs or LessonType.Prelegere))
             {
@@ -335,7 +328,7 @@ internal sealed class RegistryTargetCoverage(
             return false;
         }
 
-        if (CheckCondition())
+        if (IsNotSingleGroupLecture())
         {
             return;
         }
@@ -361,7 +354,7 @@ internal sealed class RegistryTargetCoverage(
         {
             var audience = schedule.Get(target.Group);
 
-            bool CheckCondition2()
+            bool IsNotParentLanguageProjection()
             {
                 if (!SameIntake(first: host, second: audience))
                 {
@@ -410,7 +403,7 @@ internal sealed class RegistryTargetCoverage(
                 return false;
             }
 
-            if (CheckCondition2())
+            if (IsNotParentLanguageProjection())
             {
                 continue;
             }
@@ -491,16 +484,9 @@ internal sealed class RegistryTargetCoverage(
         foreach (var target in _remaining.Where(target => target.Course == course)
                      .ToArray())
         {
-            string CalculateGroup()
-            {
-                var get = schedule.Get(target.Group);
-                string group2 = get.Name;
-                return group2;
-            }
-
             diagnostics.ReportMissingRegistryGroup(
                 course: schedule.Get(course).FullName,
-                @group: CalculateGroup(),
+                @group: schedule.Get(target.Group).Name,
                 partition: target.Partition);
             _remaining.Remove(target);
         }

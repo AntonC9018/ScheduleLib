@@ -12,12 +12,6 @@ public sealed class DateProviderTests
             month: 4,
             day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
 
-        DateOnly CalculateEndExclusive()
-        {
-            var endExclusive2 = monday.AddDays(5);
-            return endExclusive2;
-        }
-
         var provider = new ManualWeeklyScheduledDateProvider(
             studyWeeks:
             [
@@ -25,7 +19,7 @@ public sealed class DateProviderTests
             ],
             holidays:
             [
-                new HolidayPeriod(start: monday, endExclusive: CalculateEndExclusive()),
+                new HolidayPeriod(start: monday, endExclusive: monday.AddDays(5)),
             ]);
         var ret = provider.Dates(new()
         {

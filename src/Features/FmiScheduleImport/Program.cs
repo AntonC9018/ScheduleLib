@@ -1,24 +1,7 @@
 using FmiScheduleImport;
 using FmiWebsiteInterop;
 
-bool conditionResult;
-if (args.Length is < 2 or > 3)
-{
-    conditionResult = true;
-}
-else
-{
-    if (args.Length == 3)
-    {
-        conditionResult = args[2] != "--strict";
-    }
-    else
-    {
-        conditionResult = false;
-    }
-}
-
-if (conditionResult)
+if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] != "--strict")
 {
     Console.Error.WriteLine("Usage: FmiScheduleImport <hashes.json> <output-root> [--strict]");
     return 1;
@@ -43,28 +26,16 @@ var result = await updater.RunAsync(
     {
         var root = Path.GetFullPath(args[1]);
         Directory.CreateDirectory(root);
-        string path1 = root;
-        string toString = Guid.NewGuid()
-            .ToString("N");
-        string text = $".import-{toString}";
-        string path2 = text;
-        var staging = Path.Combine(path1, path2);
-
-        bool CalculateStrict()
-        {
-            bool strict = args.Contains("--strict");
-            return strict;
-        }
+        var stagingName = $".import-{Guid.NewGuid():N}";
+        var staging = Path.Combine(root, stagingName);
 
         await FmiPdfImport.GenerateAsync(
             update,
             staging,
-            CalculateStrict(),
+            args.Contains("--strict"),
             token);
-        string path12 = root;
-        string path22 = $"fmi-{update.PeriodStart:yyyy-MM-dd}-{Guid.NewGuid():N}";
-        string combine = Path.Combine(path12, path22);
-        generated = combine;
+        var snapshotName = $"fmi-{update.PeriodStart:yyyy-MM-dd}-{Guid.NewGuid():N}";
+        generated = Path.Combine(root, snapshotName);
         Directory.Move(sourceDirName: staging, destDirName: generated);
     },
     cancellation.Token);

@@ -93,25 +93,7 @@ public static class RegistryHistoryTopicsHtml
             var anchors = dateCell.Children.OfType<IHtmlAnchorElement>()
                 .ToArray();
 
-            bool CalculateConditionResult()
-            {
-                if (anchors.Length != 1)
-                {
-                    return true;
-                }
-
-                if (dateCell.Children.Length != 1)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (anchors.Length != 1 || dateCell.Children.Length != 1)
             {
                 throw InvalidMarkup();
             }
@@ -374,35 +356,23 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 
         var historical = new List<RegistryHistoryCourseTopics>();
         var pending = currentCourses.Where(course =>
-                currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
-                == 1)
+                {
+            var matchesCurrentCourse = currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
+                    == 1;
+            return matchesCurrentCourse;
+        })
             .ToList();
         var ambiguousPending = currentCourses.Where(course =>
-                currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
-                > 1)
+                {
+            var matchesCurrentCourse = currentCourses.Count(other => RegistryHistoryTopicSelection.Matches(current: course, historical: other))
+                    > 1;
+            return matchesCurrentCourse;
+        })
             .Distinct(RegistryHistoryCourseIdentityComparer.Instance)
             .ToList();
         foreach (var year in previous)
         {
-            bool CalculateConditionResult()
-            {
-                if (pending.Count != 0)
-                {
-                    return false;
-                }
-
-                if (ambiguousPending.Count == 0)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (pending.Count == 0 && ambiguousPending.Count == 0)
             {
                 break;
             }
@@ -464,34 +434,37 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
                         return false;
                     })));
             });
-            ambiguousPending.RemoveAll(course => snapshots.Any(snapshot =>
-                {
-                    if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
+            ambiguousPending.RemoveAll(course => {
+                var matchesCurrentCourse = snapshots.Any(snapshot =>
                     {
-                        return false;
-                    }
+                        if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
+                        {
+                            return false;
+                        }
 
-                    if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
-                                    {
-                                        if (string.IsNullOrWhiteSpace(lesson.Topic))
+                        if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
                                         {
+                                            if (string.IsNullOrWhiteSpace(lesson.Topic))
+                                            {
+                                                return false;
+                                            }
+
+                                            if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
+                                            {
+                                                return true;
+                                            }
+
                                             return false;
                                         }
+                        ))))
+                        {
+                            return false;
+                        }
 
-                                        if (!RegistryAssessmentTopics.IsAssessment(lesson.Topic))
-                                        {
-                                            return true;
-                                        }
-
-                                        return false;
-                                    }
-                    ))))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }));
+                        return true;
+                    });
+                return matchesCurrentCourse;
+            });
         }
         var offered = years.Select(x => x.Value)
             .ToArray();

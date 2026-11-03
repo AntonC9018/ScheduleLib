@@ -158,10 +158,12 @@ public sealed class PdfLessonImportTests
         var failure = new InvalidOperationException("Unexpected callback failure");
 
         var error = Assert.Throws<InvalidOperationException>(() =>
+            {
             PdfScheduleImporter.Import(
-                context,
-                [Cell()],
-                _ => throw failure));
+                    context,
+                    [Cell()],
+                    _ => throw failure);
+        });
 
         Assert.Same(expected: failure, actual: error);
     }

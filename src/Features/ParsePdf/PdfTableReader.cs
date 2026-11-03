@@ -31,7 +31,6 @@ public static class PdfTableReader
                 {
                     if (Math.Abs(line.From.X - line.To.X) < 1)
                     {
-                        var list = raw;
                         bool vertical = true;
                         double position = line.From.X;
                         double doubleValue = page.Height;
@@ -45,11 +44,10 @@ public static class PdfTableReader
                             Position: position,
                             Start: start,
                             End: end);
-                        list.Add(item);
+                        raw.Add(item);
                     }
                     else if (Math.Abs(line.From.Y - line.To.Y) < 1)
                     {
-                        var list2 = raw;
                         bool vertical2 = false;
                         double position2 = page.Height - line.From.Y;
                         double start2 = Math.Min(line.From.X, line.To.X);
@@ -59,7 +57,7 @@ public static class PdfTableReader
                             Position: position2,
                             Start: start2,
                             End: end2);
-                        list2.Add(item2);
+                        raw.Add(item2);
                     }
                 }
             }
@@ -76,20 +74,16 @@ public static class PdfTableReader
             throw new PdfScheduleTableNotFoundException(page.Number);
         }
 
-        PdfTableCell ProjectValue(PdfBox b)
+        PdfTableCell ReadCell(PdfBox b)
         {
-            var operationValue = b;
-            string operationValue2 = ReadText(page, b);
-            string operationValue3 = operationValue2;
-            var operationValue4 =
-                new PdfTableCell(operationValue, operationValue3);
-            return operationValue4;
+            var text = ReadText(page, b);
+            return new PdfTableCell(b, text);
         }
 
         return new(
             page.Number,
             borders,
-            boxes.Select(ProjectValue)
+            boxes.Select(ReadCell)
                 .ToArray());
     }
 
@@ -178,7 +172,7 @@ public static class PdfTableReader
 
                 foreach (var end in right)
                 {
-                    bool CheckCondition()
+                    bool HasMissingCellEdges()
                     {
                         if (!Connects(
                                 horizontal,
@@ -210,7 +204,7 @@ public static class PdfTableReader
                         return false;
                     }
 
-                    if (CheckCondition())
+                    if (HasMissingCellEdges())
                     {
                         continue;
                     }
@@ -221,7 +215,7 @@ public static class PdfTableReader
                         Top: point.Y,
                         Right: end.X,
                         Bottom: bottom.Y);
-                    list.Add(item);
+                    result.Add(item);
                     found = true;
                     break;
                 }
@@ -308,10 +302,7 @@ public static class PdfTableReader
                 .ToArray();
             for (int row = 1; row < ys.Length; row++)
             {
-                double[] value3 = ys;
-                int int323 = row - 1;
-                double doubleValue = value3[int323] + ys[row];
-                var middle = doubleValue / 2;
+                var middle = (ys[row - 1] + ys[row]) / 2;
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
                     .Select(b => b.Position)
                     .Append(box.Left)
@@ -321,13 +312,8 @@ public static class PdfTableReader
                     .ToArray();
                 for (int column = 1; column < xs.Length; column++)
                 {
-                    var list = result;
-                    double[] value = xs;
-                    int int32 = column - 1;
-                    double left = value[int32];
-                    double[] value2 = ys;
-                    int int322 = row - 1;
-                    double top = value2[int322];
+                    double left = xs[column - 1];
+                    double top = ys[row - 1];
                     double right = xs[column];
                     double bottom = ys[row];
                     PdfBox item = new(
@@ -335,7 +321,7 @@ public static class PdfTableReader
                         Top: top,
                         Right: right,
                         Bottom: bottom);
-                    list.Add(item);
+                    result.Add(item);
                 }
             }
         }

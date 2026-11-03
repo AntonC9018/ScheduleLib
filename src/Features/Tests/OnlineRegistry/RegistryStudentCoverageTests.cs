@@ -50,15 +50,8 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
 
-        StudentAttendanceList CalculateAttendance()
-        {
-            var attendance =
-                fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Ana", "Synthetic Boris"]));
-            return attendance;
-        }
-
         var coverage = new RegistryStudentCoverage(
-            CalculateAttendance(),
+            fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Ana", "Synthetic Boris"])),
             new Dictionary<string, string>
             {
                 ["Synthetic Anna"] = "Synthetic Ana",
@@ -84,14 +77,8 @@ public sealed class RegistryStudentCoverageTests
         var fixture = new Fixture();
         var key = fixture.Key(fixture.First);
 
-        StudentAttendanceList CalculateAttendance()
-        {
-            var attendance = fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Boris"]));
-            return attendance;
-        }
-
         var coverage = new RegistryStudentCoverage(
-            CalculateAttendance(),
+            fixture.Attendance(new Fixture.AttendanceSource(key, ["Synthetic Boris"])),
             new Dictionary<string, string>
             {
                 ["Synthetic Anna"] = "Synthetic Ana",

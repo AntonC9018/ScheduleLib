@@ -65,18 +65,12 @@ public sealed class TopicSeriesTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            byte[] CalculateBuffer()
-            {
-                byte[] buffer = Encoding.UTF8.GetBytes("""
+            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
                                                        {"documents":[
                                                          {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"Ru","allowMissingLessonTypes":true},
                                                          {"path":"course.csv","course":"Synthetic course","lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
                                                        ]}
-                                                       """);
-                return buffer;
-            }
-
-            await using var input = new MemoryStream(CalculateBuffer());
+                                                       """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
@@ -103,43 +97,19 @@ public sealed class TopicSeriesTests
                     default);
             }
 
-            AttendanceLookupKey CalculateKey()
-            {
-                var key = Key(russian, LessonType.Lab);
-                return key;
-            }
-
             string expected2 = "Russian lab";
-            string? actual2 = topics.Get(CalculateKey());
+            string? actual2 = topics.Get(Key(russian, LessonType.Lab));
             Assert.Equal(expected: expected2, actual: actual2);
 
-            AttendanceLookupKey CalculateKey2()
-            {
-                var key2 = Key(english, LessonType.Lab);
-                return key2;
-            }
-
             string expected3 = "English lab";
-            string? actual3 = topics.Get(CalculateKey2());
+            string? actual3 = topics.Get(Key(english, LessonType.Lab));
             Assert.Equal(expected: expected3, actual: actual3);
 
-            AttendanceLookupKey CalculateKey3()
-            {
-                var key3 = Key(russian, LessonType.Curs);
-                return key3;
-            }
-
-            string? objectValue = topics.Get(CalculateKey3());
+            string? objectValue = topics.Get(Key(russian, LessonType.Curs));
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
 
-            AttendanceLookupKey CalculateKey4()
-            {
-                var key4 = Key(english, LessonType.Curs);
-                return key4;
-            }
-
-            string? objectValue3 = topics.Get(CalculateKey4());
+            string? objectValue3 = topics.Get(Key(english, LessonType.Curs));
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
         }
@@ -200,9 +170,7 @@ public sealed class TopicSeriesTests
             var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
 
-            byte[] CalculateBuffer()
-            {
-                byte[] buffer = Encoding.UTF8.GetBytes("""
+            await using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
                                                        {"documents":[
                                                          {"path":"course.csv","series":"curs-ru","course":"Synthetic course","groups":"IA2601",
                                                           "wholeGroupOnly":true,"lessonType":"Curs","language":"Ru","allowMissingLessonTypes":true},
@@ -211,11 +179,7 @@ public sealed class TopicSeriesTests
                                                          {"path":"course.csv","series":"lab-en","course":"Synthetic course","groups":"IA2602",
                                                           "wholeGroupOnly":true,"lessonType":"Lab","language":"En","allowMissingLessonTypes":true}
                                                        ]}
-                                                       """);
-                return buffer;
-            }
-
-            await using var input = new MemoryStream(CalculateBuffer());
+                                                       """));
             var manifest = await ManifestSerializer.Deserialize(input, default);
             var schedule2 = schedule.Filter(new());
             Microsoft.Extensions.Logging.ILogger<AllLessonTopicsDatabaseBuilder> logger =
@@ -252,31 +216,19 @@ public sealed class TopicSeriesTests
                 first: "English lab one",
                 second: "English lab two");
 
-            AttendanceLookupKey CalculateKey()
-            {
-                var key = Key(
+            string? objectValue = topics.Get(Key(
                     russian,
                     LessonType.Lab,
                     GroupPartitionKey.All,
-                    0);
-                return key;
-            }
-
-            string? objectValue = topics.Get(CalculateKey());
+                    0));
             object? objectValue2 = objectValue;
             Assert.Null(objectValue2);
 
-            AttendanceLookupKey CalculateKey2()
-            {
-                var key2 = Key(
+            string? objectValue3 = topics.Get(Key(
                     english,
                     LessonType.Curs,
                     GroupPartitionKey.All,
-                    0);
-                return key2;
-            }
-
-            string? objectValue3 = topics.Get(CalculateKey2());
+                    0));
             object? objectValue4 = objectValue3;
             Assert.Null(objectValue4);
 
@@ -306,43 +258,25 @@ public sealed class TopicSeriesTests
                 string first,
                 string second)
             {
-                AttendanceLookupKey CalculateKey()
-                {
-                    var key = Key(
+                string? actual2 = topics.Get(Key(
                         group,
                         type,
                         partition,
-                        0);
-                    return key;
-                }
-
-                string? actual2 = topics.Get(CalculateKey());
+                        0));
                 Assert.Equal(expected: first, actual: actual2);
 
-                AttendanceLookupKey CalculateKey2()
-                {
-                    var key2 = Key(
+                string? actual3 = topics.Get(Key(
                         group,
                         type,
                         partition,
-                        1);
-                    return key2;
-                }
-
-                string? actual3 = topics.Get(CalculateKey2());
+                        1));
                 Assert.Equal(expected: second, actual: actual3);
 
-                AttendanceLookupKey CalculateKey3()
-                {
-                    var key3 = Key(
+                string? objectValue = topics.Get(Key(
                         group,
                         type,
                         partition,
-                        2);
-                    return key3;
-                }
-
-                string? objectValue = topics.Get(CalculateKey3());
+                        2));
                 object? objectValue2 = objectValue;
                 Assert.Null(objectValue2);
             }

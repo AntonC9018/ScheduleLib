@@ -64,17 +64,15 @@ public static class PdfScheduleImporter
                 .ToArray();
             if (headers.Length > 0)
             {
-                ColumnHeader ProjectValue(PdfTableCell c)
+                ColumnHeader PositionColumnHeader(PdfTableCell c)
                 {
-                    string operationValue = c.Text;
-                    double operationValue2 = c.Bounds.CenterX - left;
-                    double operationValue3 = operationValue2;
-                    double operationValue4 = right - left;
-                    double operationValue5 = operationValue3 / operationValue4;
-                    return new(operationValue, operationValue5);
+                    var text = c.Text;
+                    var offset = c.Bounds.CenterX - left;
+                    var width = right - left;
+                    return new(text, offset / width);
                 }
 
-                columns = headers.Select(ProjectValue)
+                columns = headers.Select(PositionColumnHeader)
                     .ToArray();
             }
             if (columns.Length == 0)
@@ -112,27 +110,7 @@ public static class PdfScheduleImporter
             {
                 var box = cell.Bounds;
 
-                bool CheckCondition()
-                {
-                    if (box.Left < left)
-                    {
-                        return true;
-                    }
-
-                    if (cell.Text.Length == 0)
-                    {
-                        return true;
-                    }
-
-                    if (Group.IsMatch(cell.Text))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition())
+                if (box.Left < left || cell.Text.Length == 0 || Group.IsMatch(cell.Text))
                 {
                     continue;
                 }
@@ -146,27 +124,7 @@ public static class PdfScheduleImporter
                     .Select(c => c.Name)
                     .ToArray();
 
-                bool CheckCondition2()
-                {
-                    if (day.Length != 1)
-                    {
-                        return true;
-                    }
-
-                    if (time.Length != 1)
-                    {
-                        return true;
-                    }
-
-                    if (groups.Length == 0)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition2())
+                if (day.Length != 1 || time.Length != 1 || groups.Length == 0)
                 {
                     throw new UnmappedPdfScheduleCellException(
                         source: source,

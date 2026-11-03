@@ -487,33 +487,18 @@ public readonly struct StudentAttendanceList
             return list.StudentNames;
         }
 
-        bool CalculateConditionResult()
-        {
-            if (key.Groups.IsSingleGroup)
-            {
-                return true;
-            }
-
-            if (key.Groups.IsEmpty)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty)
         {
             return NamesInDb.Empty;
         }
 
         return NamesInDb.Create([
             .. ParentLists(key)
-                .SelectMany(list => list.Attendance.StudentNames.OrderBy(student => student.Value)
-                    .Select(student => student.Key)),
+                .SelectMany(list => {
+                    var orderedNames = list.Attendance.StudentNames.OrderBy(student => student.Value)
+                        .Select(student => student.Key);
+                    return orderedNames;
+                }),
         ]);
     }
 
@@ -526,25 +511,7 @@ public readonly struct StudentAttendanceList
             yield break;
         }
 
-        bool CalculateConditionResult()
-        {
-            if (key.Groups.IsSingleGroup)
-            {
-                return true;
-            }
-
-            if (key.Groups.IsEmpty)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (key.Groups.IsSingleGroup || key.Groups.IsEmpty)
         {
             yield break;
         }
@@ -578,25 +545,7 @@ public readonly struct StudentAttendanceList
             return GetDay(key, list);
         }
 
-        bool CalculateConditionResult()
-        {
-            if (attendanceKey.Groups.IsSingleGroup)
-            {
-                return true;
-            }
-
-            if (attendanceKey.Groups.IsEmpty)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (attendanceKey.Groups.IsSingleGroup || attendanceKey.Groups.IsEmpty)
         {
             return new([]);
         }
@@ -607,25 +556,8 @@ public readonly struct StudentAttendanceList
             // Separate sheets require dates: a shared audience's ordinal does not identify a parent's day.
             var active = key.ActiveGroups is not { } activeGroups || activeGroups.Contains(parent.Parent);
 
-            bool CalculateConditionResult2()
-            {
-                if (!active)
-                {
-                    return false;
-                }
-
-                if (parent.Attendance.Dates is not null)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult2 = CalculateConditionResult2();
-
-
-            var day = conditionResult2
+            var hasDatedAttendance = active && parent.Attendance.Dates is not null;
+            var day = hasDatedAttendance
                 ? GetDay(key, parent.Attendance)
                     .AsArray()
                 : [];

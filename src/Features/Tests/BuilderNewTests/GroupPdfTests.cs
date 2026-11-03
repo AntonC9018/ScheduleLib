@@ -214,25 +214,7 @@ public sealed class GroupPdfTests
 
         public void Span(string str, bool isBold = false)
         {
-            bool CalculateConditionResult()
-            {
-                if (!isBold)
-                {
-                    return false;
-                }
-
-                if (BoldPrefix == "")
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (isBold && BoldPrefix == "")
             {
                 BoldPrefix = str;
             }

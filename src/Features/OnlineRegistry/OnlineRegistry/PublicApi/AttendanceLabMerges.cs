@@ -20,7 +20,7 @@ public static class AttendanceLabMerges
             SubGroup = SubGroup.All,
         };
 
-        bool CheckCondition()
+        bool IsUnsupportedLabSource()
         {
             if (source.LessonType != LessonType.Lab)
             {
@@ -45,7 +45,7 @@ public static class AttendanceLabMerges
             return false;
         }
 
-        if (CheckCondition())
+        if (IsUnsupportedLabSource())
         {
             return false;
         }
@@ -202,9 +202,12 @@ public static class AttendanceLabMerges
         }
 
         var names = NamesInDb.Create([
-            .. sources.SelectMany(source => source.StudentNames
-                .OrderBy(student => student.Value)
-                .Select(student => student.Key)),
+            .. sources.SelectMany(source => {
+                var orderedNames = source.StudentNames
+                    .OrderBy(student => student.Value)
+                    .Select(student => student.Key);
+                return orderedNames;
+            }),
         ]);
         ImmutableArray<AttendanceDate>? nullable;
         if (dated)

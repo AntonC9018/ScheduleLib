@@ -11,45 +11,15 @@ public sealed class LayerPathTests
         // var sp = services.BuildServiceProvider();
         var tree = new TreeBuilder(null!);
 
-        Layer CalculateLayer()
-        {
-            Layer layer = new("A");
-            return layer;
-        }
+        var a = tree.Defaults.AddLayer(new Layer("A"));
 
-        var a = tree.Defaults.AddLayer(CalculateLayer());
+        var b = tree.Defaults.AddLayer(new Layer("B"));
 
-        Layer CalculateLayer2()
-        {
-            Layer layer2 = new("B");
-            return layer2;
-        }
+        var c = a.AddLayer(new Layer("C"));
 
-        var b = tree.Defaults.AddLayer(CalculateLayer2());
+        var d = c.AddLayer(new Layer("D"));
 
-        Layer CalculateLayer3()
-        {
-            Layer layer3 = new("C");
-            return layer3;
-        }
-
-        var c = a.AddLayer(CalculateLayer3());
-
-        Layer CalculateLayer4()
-        {
-            Layer layer4 = new("D");
-            return layer4;
-        }
-
-        var d = c.AddLayer(CalculateLayer4());
-
-        Layer CalculateLayer5()
-        {
-            Layer layer5 = new("E");
-            return layer5;
-        }
-
-        var e = b.AddLayer(CalculateLayer5());
+        var e = b.AddLayer(new Layer("E"));
         var paths = tree.BaseNode
             .Dfs()
             .AddLayerPath()

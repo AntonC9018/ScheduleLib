@@ -260,15 +260,9 @@ public sealed class ThesisListParser(
             }
         }
 
-        EnumBitArray<Column> CalculateOther()
-        {
-            var other = GetRequiredHeaderColumns(targetThesisType);
-            return other;
-        }
-
         var missingRequiredColumns = presentColumns
             .Flipped
-            .Intersect(CalculateOther());
+            .Intersect(GetRequiredHeaderColumns(targetThesisType));
         if (missingRequiredColumns.AreAnySet)
         {
             return false;

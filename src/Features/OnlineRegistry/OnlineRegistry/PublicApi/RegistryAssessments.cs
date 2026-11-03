@@ -74,18 +74,7 @@ internal static class RegistryAssessments
         in LessonGroups groups,
         GroupPartitionKey partition)
     {
-        bool conditionResult;
-        if (groups.IsEmpty)
-        {
-            conditionResult = true;
-        }
-        else
-        {
-            conditionResult = groups.IsSingleGroup;
-            conditionResult = !conditionResult;
-        }
-
-        if (conditionResult)
+        if (groups.IsEmpty || !groups.IsSingleGroup)
         {
             return [];
         }
@@ -93,55 +82,32 @@ internal static class RegistryAssessments
         var groupName = schedule.Get(groups[0]).Name;
         return rules.Where(rule =>
             {
-                bool CheckCondition()
+                if (!string.Equals(
+                        rule.Course,
+                        schedule.Get(course).FullName,
+                        StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!string.Equals(
-                            rule.Course,
-                            schedule.Get(course).FullName,
-                            StringComparison.OrdinalIgnoreCase))
-                    {
-                        return false;
-                    }
-
-                    if (!string.Equals(
-                            rule.Group,
-                            groupName,
-                            StringComparison.OrdinalIgnoreCase))
-                    {
-                        return false;
-                    }
-
-                    SubGroup CalculateSubGroup()
-                    {
-                        var subGroup = new SubGroup(rule.SubGroup);
-                        return subGroup;
-                    }
-
-                    Specialization CalculateSpecialization()
-                    {
-                        var specialization = new Specialization(rule.Specialization);
-                        return specialization;
-                    }
-
-                    Alternative CalculateAlternative()
-                    {
-                        var alternative = new Alternative(rule.Alternative);
-                        return alternative;
-                    }
-
-                    if (partition
-                        == new GroupPartitionKey(
-                            CalculateSubGroup(),
-                            CalculateSpecialization(),
-                            CalculateAlternative()))
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                return CheckCondition();
+                if (!string.Equals(
+                        rule.Group,
+                        groupName,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (partition
+                    == new GroupPartitionKey(
+                        new SubGroup(rule.SubGroup),
+                        new Specialization(rule.Specialization),
+                        new Alternative(rule.Alternative)))
+                {
+                    return true;
+                }
+
+                return false;
             })
             .ToArray();
     }
@@ -154,7 +120,7 @@ internal static class RegistryAssessments
         Func<LessonInstance, int, string?> getTopic,
         Func<LessonInstance, LessonGroups>? getTopicGroups = null)
     {
-        RemoteLessonInstance ProjectValue(RemoteLessonInstance assessment)
+        RemoteLessonInstance NormalizeAssessmentType(RemoteLessonInstance assessment)
         {
             if (assessment.LessonType != LessonType.Unspecified
                 || !RegistryAssessmentTopics.IsAssessment(assessment.Topic))
@@ -196,7 +162,7 @@ internal static class RegistryAssessments
             };
         }
 
-        remote = remote.Select(ProjectValue)
+        remote = remote.Select(NormalizeAssessmentType)
             .ToArray();
         var reserved = new Dictionary<int, string>();
         var protectedRemote = new HashSet<int>();
@@ -242,9 +208,7 @@ internal static class RegistryAssessments
                 }
                 else
                 {
-                    string text = "Atestare ";
-                    int int32 = i + 1;
-                    value = text + int32;
+                    value = "Atestare " + (i + 1);
                 }
 
                 dictionary.Add(key, value);
@@ -306,9 +270,12 @@ internal static class RegistryAssessments
             })
             .GroupBy(lesson => lesson.LessonType)
             .ToDictionary(keySelector: group => group.Key,
-                elementSelector: group => group.OrderBy(lesson => lesson.DateTime)
-                    .Select(lesson => lesson.Topic!)
-                    .ToArray());
+                elementSelector: group => {
+                    var orderedTopics = group.OrderBy(lesson => lesson.DateTime)
+                        .Select(lesson => lesson.Topic!)
+                        .ToArray();
+                    return orderedTopics;
+                });
         for (int i = 0; i < local.Length; i++)
         {
             var lesson = local[i];
@@ -330,30 +297,7 @@ internal static class RegistryAssessments
                 var registryIndex = registryIndexes.GetValueOrDefault(lesson.RegistryLessonType);
                 var regularTopic = getTopic(lesson, index);
 
-                bool CalculateConditionResult2()
-                {
-                    if (registryIndex != 0)
-                    {
-                        return false;
-                    }
-
-                    if (!(regularTopic is null))
-                    {
-                        return false;
-                    }
-
-                    if (configuredTypes.Contains(lesson.RegistryLessonType))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult2 = CalculateConditionResult2();
-
-
-                if (conditionResult2)
+                if (registryIndex == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
                 {
                     useRegistryTopics.Add(lesson.RegistryLessonType);
                 }
@@ -365,7 +309,7 @@ internal static class RegistryAssessments
                         ?? "";
                 }
 
-                bool CalculateConditionResult3()
+                bool HasExistingAssessmentWithoutRegularTopic()
                 {
                     if (!(regularTopic is null))
                     {
@@ -401,10 +345,7 @@ internal static class RegistryAssessments
                     return false;
                 }
 
-                bool conditionResult3 = CalculateConditionResult3();
-
-
-                if (conditionResult3)
+                if (HasExistingAssessmentWithoutRegularTopic())
                 {
                     throw new InvalidOperationException(
                         "Moving an assessment requires a regular topic for the freed occurrence.");
@@ -428,9 +369,30 @@ internal static class RegistryAssessments
             var candidates = Enumerable.Range(start: 0, count: local.Length)
                 .Where(index =>
                 {
-                    bool CalculateConditionResult()
+                    if (!(local[index].DateTime == assessment.DateTime))
                     {
-                        if (!(local[index].DateTime == assessment.DateTime))
+                        return false;
+                    }
+
+                    if (assessment.LessonType == LessonType.Unspecified)
+                    {
+                        return true;
+                    }
+
+                    if (local[index].RegistryLessonType == assessment.LessonType)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                })
+                .ToArray();
+            if (candidates.Length == 0)
+            {
+                candidates = Enumerable.Range(start: 0, count: local.Length)
+                    .Where(index =>
+                    {
+                        if (!(local[index].DateTime.Date == assessment.DateTime.Date))
                         {
                             return false;
                         }
@@ -446,39 +408,6 @@ internal static class RegistryAssessments
                         }
 
                         return false;
-                    }
-
-                    bool conditionResult = CalculateConditionResult();
-                    return conditionResult;
-                })
-                .ToArray();
-            if (candidates.Length == 0)
-            {
-                candidates = Enumerable.Range(start: 0, count: local.Length)
-                    .Where(index =>
-                    {
-                        bool CalculateConditionResult()
-                        {
-                            if (!(local[index].DateTime.Date == assessment.DateTime.Date))
-                            {
-                                return false;
-                            }
-
-                            if (assessment.LessonType == LessonType.Unspecified)
-                            {
-                                return true;
-                            }
-
-                            if (local[index].RegistryLessonType == assessment.LessonType)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-
-                        bool conditionResult = CalculateConditionResult();
-                        return conditionResult;
                     })
                     .ToArray();
             }

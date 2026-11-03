@@ -52,34 +52,16 @@ public sealed class AttendanceCompositionTests
             second,
         };
 
-        StudentsLookupKey CalculateKey()
-        {
-            StudentsLookupKey key = new(
+        var names = list.StudentNames(new StudentsLookupKey(
                 groups,
                 partition,
                 course,
-                LessonType.Lab);
-            return key;
-        }
-
-        var names = list.StudentNames(CalculateKey());
+                LessonType.Lab));
         Assert.Equal(expected: 2, actual: names.Count);
 
-        Name CalculateName()
-        {
-            var name2 = NameHelper.Parse("Synthetic Alpha");
-            return name2;
-        }
+        Assert.Equal(expected: 0, actual: names.NameToIndex(NameHelper.Parse("Synthetic Alpha")).Value);
 
-        Assert.Equal(expected: 0, actual: names.NameToIndex(CalculateName()).Value);
-
-        Name CalculateName2()
-        {
-            var name3 = NameHelper.Parse("Synthetic Beta");
-            return name3;
-        }
-
-        Assert.Equal(expected: 1, actual: names.NameToIndex(CalculateName2()).Value);
+        Assert.Equal(expected: 1, actual: names.NameToIndex(NameHelper.Parse("Synthetic Beta")).Value);
         var expected2 = new[]
         {
             Attendance.NotPresent,
@@ -99,15 +81,6 @@ public sealed class AttendanceCompositionTests
         Action<Attendance> action = value => Assert.Equal(expected: Attendance.None, actual: value);
         Assert.All(collection2, action);
 
-        DateTime CalculateDateTime()
-        {
-            var dateTime = new DateTime(
-                year: 2026,
-                month: 9,
-                day: 2);
-            return dateTime;
-        }
-
         var inactive = list.Get(new AttendanceLookupKey(
             new FoundGroups
             {
@@ -118,7 +91,10 @@ public sealed class AttendanceCompositionTests
             course,
             LessonType.Lab,
             0,
-            CalculateDateTime())
+            new DateTime(
+                year: 2026,
+                month: 9,
+                day: 2))
         {
             ActiveGroups = new LessonGroups { second },
         });
@@ -126,15 +102,6 @@ public sealed class AttendanceCompositionTests
 
         Attendance[] Day(int day)
         {
-            DateTime CalculateDateTime()
-            {
-                var dateTime = new DateTime(
-                    year: 2026,
-                    month: 9,
-                    day: day);
-                return dateTime;
-            }
-
             return list.Get(new(
                     new FoundGroups
                     {
@@ -145,7 +112,10 @@ public sealed class AttendanceCompositionTests
                     course,
                     LessonType.Lab,
                     0,
-                    CalculateDateTime()))
+                    new DateTime(
+                    year: 2026,
+                    month: 9,
+                    day: day)))
                 .AsArray()
                 .ToArray();
         }
@@ -156,17 +126,11 @@ public sealed class AttendanceCompositionTests
             int day,
             Attendance attendance)
         {
-            StudentsLookupKey CalculateKey()
-            {
-                StudentsLookupKey key = new(
+            var parentList = builder.List(new StudentsLookupKey(
                     new LessonGroups { parent },
                     partition,
                     course,
-                    LessonType.Lab);
-                return key;
-            }
-
-            var parentList = builder.List(CalculateKey());
+                    LessonType.Lab));
             parentList.AddAttendanceDates([
                 new AttendanceDate
                 {
@@ -176,13 +140,7 @@ public sealed class AttendanceCompositionTests
                 },
             ]);
 
-            Name CalculateName()
-            {
-                var name2 = NameHelper.Parse(name);
-                return name2;
-            }
-
-            parentList.Student(CalculateName())
+            parentList.Student(NameHelper.Parse(name))
                 .Day(attendance);
         }
     }

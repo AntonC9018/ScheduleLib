@@ -24,14 +24,8 @@ public static class TestBuilderHelper
                     x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
                     x.CommandDerivation<AnyDayDerivation>();
 
-                    CommandProcessingConfig CalculateFlags()
-                    {
-                        var flags = CommandProcessingConfig.Process
-                            .WithLog(LessonEquationCommandTypes.All);
-                        return flags;
-                    }
-
-                    x.ProcessingFlags(CalculateFlags());
+                    x.ProcessingFlags(CommandProcessingConfig.Process
+                            .WithLog(LessonEquationCommandTypes.All));
                 });
 
             // Adds default source.
@@ -71,21 +65,9 @@ public static class TestBuilderHelper
                         x.ProcessingFlags(CommandProcessingConfig.None);
                     });
 
-                string CalculateFilePath()
-                {
-                    string path12 = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                    string path22 = "Desktop";
-                    string path32 = "lipse.xlsx";
-                    string filePath = Path.Join(
-                        path1: path12,
-                        path2: path22,
-                        path3: path32);
-                    return filePath;
-                }
-
                 t.LessonAttendance()
                     .Source(
-                        CalculateFilePath(),
+                        Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Desktop", "lipse.xlsx"),
                         attendance =>
                         {
                             attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;

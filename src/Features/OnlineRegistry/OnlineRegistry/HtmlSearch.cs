@@ -158,27 +158,7 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                bool CheckCondition()
-                {
-                    if (groupForSearch.IsRepeat)
-                    {
-                        return true;
-                    }
-
-                    if (groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-
-                    if (groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                if (CheckCondition())
+                if (groupForSearch.IsRepeat || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase) || groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
                 {
                     // Repeats and unconfirmed historical (S)/(D) markers are skipped
                     // before producing navigable links or accessing remote lessons.
@@ -190,25 +170,7 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                bool CalculateConditionResult()
-                {
-                    if (!groupForSearch.IsWildcard)
-                    {
-                        return false;
-                    }
-
-                    if (groups.Count == 0)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                bool conditionResult = CalculateConditionResult();
-
-
-                if (conditionResult)
+                if (groupForSearch.IsWildcard && groups.Count == 0)
                 {
                     throw new InvalidOperationException("Must match a single group if not wildcard.");
                 }
@@ -906,11 +868,7 @@ internal static class HtmlSearch
 
     internal static string? GetLessonTypeName(LessonType type)
     {
-        bool conditionResult;
-        int conditionValue = LessonTypeNames.Length;
-        int conditionValue2 = (int) type;
-        conditionResult = conditionValue <= conditionValue2;
-        if (conditionResult)
+        if (LessonTypeNames.Length <= (int) type)
         {
             return null;
         }

@@ -158,25 +158,22 @@ public sealed class RegistryAssessmentTests
             })
             .ToArray();
 
-        RemoteLessonInstance ProjectValue(LessonInstance lesson, int index)
+        RemoteLessonInstance ExistingRemoteLesson(LessonInstance lesson, int index)
         {
-            var operationValue = lesson;
-            string operationValue2;
+            string topic;
             if (index == 0)
             {
-                operationValue2 = "Atestare 1";
+                topic = "Atestare 1";
             }
             else
             {
-                operationValue2 = "Existing topic " + index;
+                topic = "Existing topic " + index;
             }
 
-            string operationValue3 = operationValue2;
-            var operationValue4 = Remote(operationValue, operationValue3);
-            return operationValue4;
+            return Remote(lesson, topic);
         }
 
-        var remote = lessons.Select(ProjectValue)
+        var remote = lessons.Select(ExistingRemoteLesson)
             .ToArray();
         var result = RegistryAssessments.Arrange(
             lessons,
@@ -337,27 +334,22 @@ public sealed class RegistryAssessmentTests
     {
         var lessons = Lessons();
 
-        RemoteLessonInstance ProjectValue(LessonInstance lesson, int index)
+        RemoteLessonInstance ExistingRemoteLesson(LessonInstance lesson, int index)
         {
-            var operationValue = lesson;
-            string operationValue2;
+            string topic;
             if (index < 2)
             {
-                string operationValue3 = "Atestare ";
-                int operationValue4 = index + 1;
-                operationValue2 = operationValue3 + operationValue4;
+                topic = "Atestare " + (index + 1);
             }
             else
             {
-                operationValue2 = "Synthetic old topic";
+                topic = "Synthetic old topic";
             }
 
-            string operationValue5 = operationValue2;
-            var operationValue6 = Remote(operationValue, operationValue5);
-            return operationValue6;
+            return Remote(lesson, topic);
         }
 
-        var remote = lessons.Select(ProjectValue)
+        var remote = lessons.Select(ExistingRemoteLesson)
             .ToArray();
         var result = RegistryAssessments.Arrange(
             lessons,
@@ -434,43 +426,23 @@ public sealed class RegistryAssessmentTests
         System.Collections.IEnumerable collection6 = collection5;
         Assert.Empty(collection6);
 
-        GroupPartitionKey CalculatePartition()
-        {
-            var subGroup = new SubGroup("I");
-            var specialization = Specialization.All;
-            GroupPartitionKey partition = new(subGroup, specialization);
-            return partition;
-        }
-
         var collection9 = RegistryAssessments.Find(
             rules,
             schedule,
             course,
             [group],
-            CalculatePartition());
+            new GroupPartitionKey(new SubGroup("I"), Specialization.All));
         System.Collections.IEnumerable collection10 = collection9;
         Assert.Empty(collection10);
         var alternativeRule = Rule(Lessons()[0]);
         alternativeRule.Alternative = "Synthetic elective";
-
-        GroupPartitionKey CalculatePartition2()
-        {
-            var subGroup2 = SubGroup.All;
-            var specialization2 = Specialization.All;
-            var alternative = new Alternative("Synthetic elective");
-            GroupPartitionKey partition2 = new(
-                subGroup2,
-                specialization2,
-                alternative);
-            return partition2;
-        }
 
         var collection11 = RegistryAssessments.Find(
             [alternativeRule],
             schedule,
             course,
             [group],
-            CalculatePartition2());
+            new GroupPartitionKey(SubGroup.All, Specialization.All, new Alternative("Synthetic elective")));
         IEnumerable<RegistryAssessmentRule> collection12 = collection11;
         Assert.Single(collection12);
         var collection7 = RegistryAssessments.Find(
@@ -488,25 +460,22 @@ public sealed class RegistryAssessmentTests
     {
         var lessons = Lessons();
 
-        RemoteLessonInstance ProjectValue(LessonInstance lesson, int index)
+        RemoteLessonInstance ExistingRemoteLesson(LessonInstance lesson, int index)
         {
-            var operationValue = lesson;
-            string operationValue2;
+            string topic;
             if (index == 0)
             {
-                operationValue2 = "Atestare 1";
+                topic = "Atestare 1";
             }
             else
             {
-                operationValue2 = "Existing topic " + index;
+                topic = "Existing topic " + index;
             }
 
-            string operationValue3 = operationValue2;
-            var operationValue4 = Remote(operationValue, operationValue3);
-            return operationValue4;
+            return Remote(lesson, topic);
         }
 
-        var remote = lessons.Select(ProjectValue)
+        var remote = lessons.Select(ExistingRemoteLesson)
             .ToArray();
         var result = RegistryAssessments.Arrange(
             lessons,

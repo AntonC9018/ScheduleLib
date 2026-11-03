@@ -10,11 +10,14 @@ public sealed class RegistryActionGuardTests
         var cancellation = new OperationCanceledException();
 
         var error = await Assert.ThrowsAsync<RegistryActionCancelledException>(
-            () => RegistryActionGuard.Run(onSubmissionStarted =>
-            {
-                onSubmissionStarted();
-                throw cancellation;
-            }));
+            () => {
+                var action = RegistryActionGuard.Run(onSubmissionStarted =>
+                {
+                    onSubmissionStarted();
+                    throw cancellation;
+                });
+                return action;
+            });
 
         Assert.True(error.SubmissionStarted);
         Assert.Same(cancellation, error.InnerException);
@@ -26,7 +29,10 @@ public sealed class RegistryActionGuardTests
         var failure = new InvalidOperationException("failed before submission");
 
         var error = await Assert.ThrowsAsync<RegistryActionExecutionException>(
-            () => RegistryActionGuard.Run(_ => Task.FromException(failure)));
+            () => {
+                var action = RegistryActionGuard.Run(_ => Task.FromException(failure));
+                return action;
+            });
 
         Assert.False(error.SubmissionStarted);
         Assert.Same(failure, error.InnerException);

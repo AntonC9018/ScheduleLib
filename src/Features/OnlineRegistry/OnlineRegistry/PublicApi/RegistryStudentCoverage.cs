@@ -45,7 +45,7 @@ internal sealed class RegistryStudentCoverage(
             var coveredGroups = matchingSources.SelectMany(source => source.Key.Groups)
                 .ToHashSet();
 
-            bool CheckCondition()
+            bool HasIncompleteAttendanceCoverage()
             {
                 if (matchingSources.Length == 0)
                 {
@@ -65,7 +65,7 @@ internal sealed class RegistryStudentCoverage(
                 return false;
             }
 
-            if (CheckCondition())
+            if (HasIncompleteAttendanceCoverage())
             {
                 complete = false;
             }
@@ -131,15 +131,9 @@ internal sealed class RegistryStudentCoverage(
                 continue;
             }
 
-            string CalculateGroup()
-            {
-                string group2 = key.Groups.ToString(schedule);
-                return group2;
-            }
-
             diagnostics.ReportAttendanceStudentsNotInRegistry(
                 course: schedule.Get(course).FullName,
-                @group: CalculateGroup(),
+                @group: key.Groups.ToString(schedule),
                 count: missing, lessonType: key.LessonType, partition: key.GroupPartition);
         }
 

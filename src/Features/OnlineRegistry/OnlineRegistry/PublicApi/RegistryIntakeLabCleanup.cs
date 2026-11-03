@@ -163,63 +163,66 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     course: courseName,
                     @group: groupNames,
                     columnCount: unwanted.Length, markCount: marks, destination: group.Uri);
-                var actions = unwanted.Select(lesson => new RegistrySyncAction(
-                        kind: RegistrySyncActionKind.Delete,
-                        destination: group.Uri.ToString(),
-                        course: courseName,
-                        groups: groupNames,
-                        lesson.DateTime,
-                        topic: lesson.Topic,
-                        lesson.Attendance.Count(IsRecordedMark),
-                        enabled: true,
-                        omission: null,
-                        async token =>
-                        {
-                            await RegistryActionGuard.Run(async onSubmissionStarted =>
+                var actions = unwanted.Select(lesson => {
+                    var deletion = new RegistrySyncAction(
+                            kind: RegistrySyncActionKind.Delete,
+                            destination: group.Uri.ToString(),
+                            course: courseName,
+                            groups: groupNames,
+                            lesson.DateTime,
+                            topic: lesson.Topic,
+                            lesson.Attendance.Count(IsRecordedMark),
+                            enabled: true,
+                            omission: null,
+                            async token =>
                             {
-                                token.ThrowIfCancellationRequested();
-                                // A changed date, type, topic or attendance requires a fresh preview.
-                                var current = (await ReadLessons(group.Uri))
-                                    .Where(candidate => candidate.ViewUri == lesson.ViewUri)
-                                    .ToArray();
-                                if (current.Length != 1 || !Unchanged(expected: lesson, actual: current[0]))
+                                await RegistryActionGuard.Run(async onSubmissionStarted =>
                                 {
-                                    throw new InvalidOperationException(
-                                        "Registry lab changed after cleanup planning; preview again before deleting it.");
-                                }
+                                    token.ThrowIfCancellationRequested();
+                                    // A changed date, type, topic or attendance requires a fresh preview.
+                                    var current = (await ReadLessons(group.Uri))
+                                        .Where(candidate => candidate.ViewUri == lesson.ViewUri)
+                                        .ToArray();
+                                    if (current.Length != 1 || !Unchanged(expected: lesson, actual: current[0]))
+                                    {
+                                        throw new InvalidOperationException(
+                                            "Registry lab changed after cleanup planning; preview again before deleting it.");
+                                    }
 
-                                var document = await navigator.GetHtml(lesson.ViewUri);
-                                token.ThrowIfCancellationRequested();
-                                Exception? submissionError = null;
-                                try
-                                {
-                                    await navigator.SubmitDelete(
-                                        document,
-                                        onSubmissionStarted);
-                                }
-                                catch (Exception error) when (error is IOException
-                                                                  or RegistrySubmissionRejectedException
-                                                                  or RegistryDeletionRefusedException)
-                                {
-                                    // A refused or unconfirmed response must be resolved through reads, never another POST.
-                                    submissionError = error;
-                                }
-                                var after = (await ReadLessons(group.Uri))
-                                    .Where(candidate => candidate.ViewUri == lesson.ViewUri)
-                                    .ToArray();
-                                if (after.Length == 1 && Unchanged(expected: lesson, actual: after[0]))
-                                {
-                                    throw new RegistryDeletionRefusedException();
-                                }
+                                    var document = await navigator.GetHtml(lesson.ViewUri);
+                                    token.ThrowIfCancellationRequested();
+                                    Exception? submissionError = null;
+                                    try
+                                    {
+                                        await navigator.SubmitDelete(
+                                            document,
+                                            onSubmissionStarted);
+                                    }
+                                    catch (Exception error) when (error is IOException
+                                                                      or RegistrySubmissionRejectedException
+                                                                      or RegistryDeletionRefusedException)
+                                    {
+                                        // A refused or unconfirmed response must be resolved through reads, never another POST.
+                                        submissionError = error;
+                                    }
+                                    var after = (await ReadLessons(group.Uri))
+                                        .Where(candidate => candidate.ViewUri == lesson.ViewUri)
+                                        .ToArray();
+                                    if (after.Length == 1 && Unchanged(expected: lesson, actual: after[0]))
+                                    {
+                                        throw new RegistryDeletionRefusedException();
+                                    }
 
-                                if (after.Length != 0)
-                                {
-                                    throw new IOException(
-                                        "Registry lab changed during deletion; inspect the destination before retrying.",
-                                        submissionError);
-                                }
+                                    if (after.Length != 0)
+                                    {
+                                        throw new IOException(
+                                            "Registry lab changed during deletion; inspect the destination before retrying.",
+                                            submissionError);
+                                    }
+                                });
                             });
-                        }))
+                    return deletion;
+                })
                     .ToArray();
                 if (!(await onGroupPlanned(actions)))
                 {

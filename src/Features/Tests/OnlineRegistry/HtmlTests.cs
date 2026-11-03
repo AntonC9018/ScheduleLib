@@ -104,21 +104,9 @@ public sealed class HtmlTests
         // Explicit null: no custom registry; only built-in specializations apply.
         var resolver = new GroupPartitionResolver(null);
 
-        GroupForSearch CalculateGroupForSearch()
-        {
-            var groupForSearch = MakeGroupForSearch("Spring");
-            return groupForSearch;
-        }
+        var specialization = resolver.Resolve(MakeGroupForSearch("Spring"));
 
-        var specialization = resolver.Resolve(CalculateGroupForSearch());
-
-        GroupForSearch CalculateGroupForSearch2()
-        {
-            var groupForSearch2 = MakeGroupForSearch("I");
-            return groupForSearch2;
-        }
-
-        var numeric = resolver.Resolve(CalculateGroupForSearch2());
+        var numeric = resolver.Resolve(MakeGroupForSearch("I"));
         var registryBuilder = new SpecializationRegistryBuilder();
         var futureSpecialization = new Specialization("Future track");
         registryBuilder.Set([futureSpecialization])

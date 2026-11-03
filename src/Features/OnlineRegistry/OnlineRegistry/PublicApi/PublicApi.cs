@@ -188,47 +188,42 @@ public sealed class GroupsNavigator
         var partition = new GroupPartitionKey(subGroup, specialization);
         return groups.Count(group =>
             {
-                bool CheckCondition()
+                if (!group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!group.FacultyName.Span.Equals(target.FacultyName.Span, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return false;
-                    }
-
-                    if (!(group.Grade == target.Grade))
-                    {
-                        return false;
-                    }
-
-                    if (group.AttendanceMode != target.AttendanceMode)
-                    {
-                        return false;
-                    }
-
-                    if (group.QualificationType != target.QualificationType)
-                    {
-                        return false;
-                    }
-
-                    if (group.IsDual != target.IsDual)
-                    {
-                        return false;
-                    }
-
-                    if (group.IsAdditionalCourses != target.IsAdditionalCourses)
-                    {
-                        return false;
-                    }
-
-                    if (resolver.Resolve(group) == partition)
-                    {
-                        return true;
-                    }
-
                     return false;
                 }
 
-                return CheckCondition();
+                if (!(group.Grade == target.Grade))
+                {
+                    return false;
+                }
+
+                if (group.AttendanceMode != target.AttendanceMode)
+                {
+                    return false;
+                }
+
+                if (group.QualificationType != target.QualificationType)
+                {
+                    return false;
+                }
+
+                if (group.IsDual != target.IsDual)
+                {
+                    return false;
+                }
+
+                if (group.IsAdditionalCourses != target.IsAdditionalCourses)
+                {
+                    return false;
+                }
+
+                if (resolver.Resolve(group) == partition)
+                {
+                    return true;
+                }
+
+                return false;
             })
             == 1;
     }
@@ -451,7 +446,7 @@ public sealed class GroupsNavigator
                         continue;
                     }
 
-                    bool CalculateConditionResult()
+                    bool MatchesRequestedPartition()
                     {
                         if (lesson.Lesson.GroupPartitionKey == partition)
                         {
@@ -475,10 +470,7 @@ public sealed class GroupsNavigator
                         return false;
                     }
 
-                    bool conditionResult = CalculateConditionResult();
-
-
-                    if (conditionResult)
+                    if (MatchesRequestedPartition())
                     {
                         eligible.Add(parent.Id);
                     }
@@ -674,7 +666,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             var savedForm = HtmlSearch.GetLessonForm(saved);
             var savedInputs = savedForm.QuerySelectorAll<IHtmlInputElement>("input[name]");
 
-            bool CalculateConditionResult()
+            bool SavedLessonMatchesRequest()
             {
                 if (!DateTime.TryParse(
                         savedForm.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value,
@@ -724,10 +716,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 return false;
             }
 
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (SavedLessonMatchesRequest())
             {
                 matches++;
             }
@@ -760,7 +749,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         static void RequireConfirmationPage(IDocument page)
         {
             // A failed read cannot prove rejection of the already-attempted POST.
-            bool CalculateConditionResult()
+            bool IsRejectedLessonPage()
             {
                 if (page.StatusCode != HttpStatusCode.OK)
                 {
@@ -779,10 +768,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 return false;
             }
 
-            bool conditionResult = CalculateConditionResult();
-
-
-            if (conditionResult)
+            if (IsRejectedLessonPage())
             {
                 throw new IOException("Registry lesson confirmation read failed.");
             }
@@ -871,7 +857,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
                 var list = await GetHtml(destination);
 
-                bool CalculateConditionResult2()
+                bool IsRejectedLessonList()
                 {
                     if (list.StatusCode != HttpStatusCode.OK)
                     {
@@ -890,10 +876,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     return false;
                 }
 
-                bool conditionResult2 = CalculateConditionResult2();
-
-
-                if (conditionResult2)
+                if (IsRejectedLessonList())
                 {
                     throw new IOException("Registry deletion confirmation read failed.");
                 }
@@ -911,33 +894,12 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
                     .Any(anchor =>
                     {
-                        bool conditionResult;
-                        if (new Uri(anchor.Href).AbsolutePath is var path)
+                        var path = new Uri(anchor.Href).AbsolutePath;
+                        if (path.EndsWith($"/LessonDetail/{lessonId}", StringComparison.Ordinal))
                         {
-                            string text = path;
-                            string text2 = $"/LessonDetail/{lessonId}";
-                            string value = text2;
-                            var comparisonType = StringComparison.Ordinal;
-                            if (text.EndsWith(value, comparisonType))
-                            {
-                                conditionResult = true;
-                            }
-                            else
-                            {
-                                string text3 = path;
-                                string text4 = $"/Edit/{lessonId}";
-                                string value2 = text4;
-                                var comparisonType2 = StringComparison.Ordinal;
-                                bool endsWith = text3.EndsWith(value2, comparisonType2);
-                                conditionResult = endsWith;
-                            }
+                            return true;
                         }
-                        else
-                        {
-                            conditionResult = false;
-                        }
-
-                        return conditionResult;
+                        return path.EndsWith($"/Edit/{lessonId}", StringComparison.Ordinal);
                     }))
                 {
                     throw new RegistryDeletionRefusedException();
@@ -1065,7 +1027,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var saved = await Context.Browser.OpenAsync(document.Url, token);
         var savedInputs = saved.QuerySelectorAll<IHtmlInputElement>("input[type=text]");
 
-        bool CalculateConditionResult()
+        bool IsRejectedGradeSubmission()
         {
             if (saved.StatusCode != HttpStatusCode.OK)
             {
@@ -1097,10 +1059,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
             return false;
         }
 
-        bool conditionResult = CalculateConditionResult();
-
-
-        if (conditionResult)
+        if (IsRejectedGradeSubmission())
         {
             throw new IOException("Registry saved grades could not be confirmed.");
         }

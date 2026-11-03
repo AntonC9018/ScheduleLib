@@ -20,18 +20,8 @@ public sealed class PdfImportTests
         var parityRepairs = ScheduleLib.ScheduleDefaults.Config.PdfParityRepairsForPeriod(fixturePeriodStart);
         var actual = PdfScheduleImporter.Read(stream, source, parityRepairs);
 
-        string CalculateJson()
-        {
-            string path = Path.Combine(
-                AppContext.BaseDirectory,
-                "Fixtures",
-                "expected-cells.json");
-            string json = File.ReadAllText(path);
-            return json;
-        }
-
         var expected = JsonSerializer.Deserialize<PdfScheduleCell[]>(
-                CalculateJson(),
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "expected-cells.json")),
                 new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,
@@ -50,26 +40,11 @@ public sealed class PdfImportTests
             .Except(expected.Select(Key))
             .ToArray();
 
-        bool CalculateConditionResult()
-        {
-            if (missing.Length != 0)
-            {
-                return false;
-            }
-
-            if (extra.Length == 0)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        bool conditionResult = CalculateConditionResult();
+        var matchesExpectedCells = missing.Length == 0 && extra.Length == 0;
 
 
         Assert.True(
-            conditionResult,
+            matchesExpectedCells,
             $"Missing:\n{string.Join("\n---\n", missing)}\nUnexpected:\n{string.Join("\n---\n", extra)}");
         Assert.Equal(expected: expected.Length, actual: actual.Count);
     }

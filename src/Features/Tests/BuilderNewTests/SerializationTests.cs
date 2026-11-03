@@ -26,13 +26,7 @@ public sealed class SerializationTests
         var sp = services.BuildServiceProvider();
         var t1 = sp.GetRequiredService<TreeBuilder>();
 
-        Layer CalculateLayer()
-        {
-            Layer layer3 = new("A");
-            return layer3;
-        }
-
-        var t1a = t1.Defaults.AddLayer(CalculateLayer());
+        var t1a = t1.Defaults.AddLayer(new Layer("A"));
 
         var t2 = sp.GetRequiredService<TreeBuilder>();
 
