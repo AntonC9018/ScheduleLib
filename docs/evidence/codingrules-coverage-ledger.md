@@ -13,11 +13,11 @@ Package identity and cache isolation are in
 not that every legacy finding was rewritten. **Manual** identifies an intentional
 human/agent decision or a diagnostic without a safe automatic migration.
 **Unresolved** remains policy work, never a suppressed rule or a clean-run claim.
-The explicit `--style` workflow applies only CR0800/CR0801/CR0802/RCS0042/RCS1016
+The explicit `--style` workflow applies only CR0800–CR0806/RCS0042/RCS1016
 alongside the retained restricted CleanupCode profile and whitespace layout.
-Package-only golden output proves that control-statement braces, trailing
-commas, splitting same-line statements and count/width-based wrapping still
-need CleanupCode. Its syntax-only project/solution is retained for that purpose;
+Package-only golden output covers control-statement braces. Trailing commas,
+splitting same-line statements and count/width-based wrapping still need CleanupCode.
+Its syntax-only project/solution is retained for that purpose;
 package fixes instead run in a snapshot of the real consumer binding context.
 Every architectural fix requires a separate review. No whole CR family is
 disabled for adoption. Rows describe the candidate's implementation boundary;

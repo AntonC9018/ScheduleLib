@@ -187,3 +187,10 @@ The [combined validation record](reconciliation-2026-11-02.md) integrates the #2
 branch, verifies the latest local CodingRules candidate, and records the first #246/#265
 readability batch. Its results supersede the earlier test baselines for this combined snapshot;
 the historical measurements above remain evidence for their original sources.
+
+## 2026-11-03: broad readability cleanup and Desktop baseline repair
+
+The [readability record](readability-cleanup-2026-11-03.md) documents the removal/renaming of
+744 generated helper definitions, the bounded formatting integration, exact saved-site inventory,
+remaining rule/policy clusters and final runtime results. It supersedes earlier inventories for
+the combined branch. The underlying candidate is unchanged; upstream publication is separate.
