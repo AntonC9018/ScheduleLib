@@ -84,9 +84,16 @@ The maintainer chose named insertion, deletion and replacement costs for the
 [Levenshtein recurrence][source-1], plus a named minimum insertion/deletion cost before the final
 `Math.Min`. This resolves that concrete operation-staging case without changing the recurrence.
 
-[RentedBuffer.cs:60][source-2], `buffer.Array[i++] = item`, remains for review. Extracting stages
-must justify the new names and preserve indexing/increment/exception timing. It belongs to the
-existing arithmetic cluster.
+The maintainer chose separate buffer writes and increments for both
+[indexed buffer writes][source-2]. `buffer.Array[i] = item; i++;` and
+`arr[written] = item; written++;` now count successful stores. The changed increment timing on
+failure is unobserved: neither failure path reads the local counter. The helper suite passes
+51 tests with one existing skip.
+
+The existing CR0302 analyzer already reports both original shapes. Four dedicated CodingRules
+regressions confirm findings for local-array and field-array index increments and acceptance
+of the separate statements. No analyzer binary or consumer package version change is needed.
+This resolves those concrete mutation cases; other arithmetic shapes remain for review.
 
 The maintainer subsequently chose named boxed values for the sequence-equality assertions.
 Those tests now assign `object boxedSecond` / `object boxedReversed` before calling `Equals`,
