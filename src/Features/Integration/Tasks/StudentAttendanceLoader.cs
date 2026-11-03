@@ -1,6 +1,5 @@
 using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
-using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Application.Config;
@@ -70,12 +69,7 @@ public sealed partial class StudentAttendanceLoader
                 }
             }
 
-            using var stream = new FileStream(
-                source.FilePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite);
-            using var workbook = new XLWorkbook(stream);
+            using var workbook = AttendanceWorkbookFile.OpenWithoutComments(source.FilePath);
             var parser = _parser;
             var attendanceListsExcelParser = parser;
             ParseAttendanceListsExcelParams p = new(
