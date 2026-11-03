@@ -161,11 +161,11 @@ public static class RegistryCourseNameLookup
             for (var j = 1; j <= second.Length; j++)
             {
                 var substitutionCost = first[i - 1] == second[j - 1] ? 0 : 1;
-                current[j] = Math.Min(
-                    Math.Min(
-                        current[j - 1] + 1,
-                        previous[j] + 1),
-                    previous[j - 1] + substitutionCost);
+                var insertionCost = current[j - 1] + 1;
+                var deletionCost = previous[j] + 1;
+                var replacementCost = previous[j - 1] + substitutionCost;
+                var insertionOrDeletionCost = Math.Min(insertionCost, deletionCost);
+                current[j] = Math.Min(insertionOrDeletionCost, replacementCost);
             }
 
             (previous, current) = (current, previous);

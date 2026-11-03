@@ -80,11 +80,13 @@ construction. For example, [LessonParserTests.cs:904][source-0] keeps `TryFromNa
 inside `Assert.True`. Decide whether these shapes need domain locals or analyzer acceptance.
 Do not apply a blanket assertion exemption or restore generated calculation wrappers.
 
-Operation staging still flags compact algorithms such as
-[RegistryCourseNameLookup.cs:164][source-1], the Levenshtein recurrence using nested `Math.Min`, and
-[RentedBuffer.cs:60][source-2], `buffer.Array[i++] = item`. Extracting stages must justify the new
-names
-and preserve indexing/increment/exception timing. These belong to the old arithmetic cluster.
+The maintainer chose named insertion, deletion and replacement costs for the
+[Levenshtein recurrence][source-1], plus a named minimum insertion/deletion cost before the final
+`Math.Min`. This resolves that concrete operation-staging case without changing the recurrence.
+
+[RentedBuffer.cs:60][source-2], `buffer.Array[i++] = item`, remains for review. Extracting stages
+must justify the new names and preserve indexing/increment/exception timing. It belongs to the
+existing arithmetic cluster.
 
 The maintainer subsequently chose named boxed values for the sequence-equality assertions.
 Those tests now assign `object boxedSecond` / `object boxedReversed` before calling `Equals`,
