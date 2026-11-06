@@ -15,7 +15,7 @@ public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
     {
         services.SetImmutable<Name>();
         services.RegisterBasicOperationsAndMergers<TeacherLayerConfig>();
-        services.AddConfigProvider(TeacherLayerConfig.Key);
+        services.AddConfigProvider(Key);
         services.ConfigureNodeDataJsonSerialization(opts =>
         {
             opts.Converters.Add(new NameJsonConverter());
@@ -25,7 +25,7 @@ public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
 
 public partial class Extensions
 {
-    extension (NodeBuilder builder)
+    extension(NodeBuilder builder)
     {
         public NodeBuilder TeacherLayer(
             string nameStr,

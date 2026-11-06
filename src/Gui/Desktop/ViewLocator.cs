@@ -35,21 +35,21 @@ public sealed partial class ViewLocator : IDataTemplate
         }
 
         var viewType = ViewAndViewModelConverter.TypeFromViewModelToView(t);
-        if (viewType != null)
+        if (!(viewType != null))
         {
-            if (_sp.GetService(viewType) is { } s)
-            {
-                return (Control?) s;
-            }
             return new TextBlock
             {
-                Text = $"Service not registered for type {viewType}",
+                Text = $"Not found view for type: {param.GetType()}",
             };
         }
 
+        if (_sp.GetService(viewType) is { } s)
+        {
+            return (Control?) s;
+        }
         return new TextBlock
         {
-            Text = $"Not found view for type: {param.GetType()}",
+            Text = $"Service not registered for type {viewType}",
         };
     }
 
@@ -87,7 +87,10 @@ public static class ViewAndViewModelConverter
         return TypeFromViewModelToView(typeof(T));
     }
 
-    private static Type? ConvertTypeByReplacingName(Type type, string remove, string add)
+    private static Type? ConvertTypeByReplacingName(
+        Type type,
+        string remove,
+        string add)
     {
         var a = type;
         var aName = a.FullName!;

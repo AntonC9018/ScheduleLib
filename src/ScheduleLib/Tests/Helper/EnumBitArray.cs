@@ -19,11 +19,14 @@ public sealed class EnumBitArrayTests
     public void SetAndIsSet()
     {
         var bitArray = new EnumBitArray<TestDay>();
-        Assert.False(bitArray.IsSet(TestDay.Monday));
+        bool condition = bitArray.IsSet(TestDay.Monday);
+        Assert.False(condition);
 
         bitArray.Set(TestDay.Monday);
-        Assert.True(bitArray.IsSet(TestDay.Monday));
-        Assert.False(bitArray.IsSet(TestDay.Tuesday));
+        bool condition2 = bitArray.IsSet(TestDay.Monday);
+        Assert.True(condition2);
+        bool condition3 = bitArray.IsSet(TestDay.Tuesday);
+        Assert.False(condition3);
     }
 
     [Fact]
@@ -33,10 +36,13 @@ public sealed class EnumBitArrayTests
         bitArray.Set(TestDay.Monday);
         bitArray.Set(TestDay.Wednesday);
 
-        Assert.True(bitArray.IsSet(TestDay.Monday));
+        bool condition = bitArray.IsSet(TestDay.Monday);
+        Assert.True(condition);
         bitArray.Clear(TestDay.Monday);
-        Assert.False(bitArray.IsSet(TestDay.Monday));
-        Assert.True(bitArray.IsSet(TestDay.Wednesday));
+        bool condition2 = bitArray.IsSet(TestDay.Monday);
+        Assert.False(condition2);
+        bool condition3 = bitArray.IsSet(TestDay.Wednesday);
+        Assert.True(condition3);
     }
 
     [Fact]
@@ -44,11 +50,12 @@ public sealed class EnumBitArrayTests
     {
         var bitArray = EnumBitArray<TestDay>.AllSet;
         Assert.True(bitArray.AreAllSet);
-        Assert.Equal(7, bitArray.SetCount);
+        Assert.Equal(expected: 7, actual: bitArray.SetCount);
 
         foreach (var day in new EnumMembers<TestDay>())
         {
-            Assert.True(bitArray.IsSet(day));
+            bool condition = bitArray.IsSet(day);
+            Assert.True(condition);
         }
     }
 
@@ -58,8 +65,10 @@ public sealed class EnumBitArrayTests
         var bitArray = new EnumBitArray<TestDay>();
         var modified = bitArray.WithSet(TestDay.Tuesday);
 
-        Assert.False(bitArray.IsSet(TestDay.Tuesday));
-        Assert.True(modified.IsSet(TestDay.Tuesday));
+        bool condition = bitArray.IsSet(TestDay.Tuesday);
+        Assert.False(condition);
+        bool condition2 = modified.IsSet(TestDay.Tuesday);
+        Assert.True(condition2);
     }
 
     [Fact]
@@ -68,8 +77,10 @@ public sealed class EnumBitArrayTests
         var bitArray = EnumBitArray<TestDay>.AllSet;
         var modified = bitArray.WithClear(TestDay.Friday);
 
-        Assert.True(bitArray.IsSet(TestDay.Friday));
-        Assert.False(modified.IsSet(TestDay.Friday));
+        bool condition = bitArray.IsSet(TestDay.Friday);
+        Assert.True(condition);
+        bool condition2 = modified.IsSet(TestDay.Friday);
+        Assert.False(condition2);
     }
 
     [Fact]
@@ -80,10 +91,14 @@ public sealed class EnumBitArrayTests
         bitArray.Set(TestDay.Wednesday);
 
         var flipped = bitArray.Flipped;
-        Assert.False(flipped.IsSet(TestDay.Monday));
-        Assert.True(flipped.IsSet(TestDay.Tuesday));
-        Assert.False(flipped.IsSet(TestDay.Wednesday));
-        Assert.True(flipped.IsSet(TestDay.Thursday));
+        bool condition = flipped.IsSet(TestDay.Monday);
+        Assert.False(condition);
+        bool condition2 = flipped.IsSet(TestDay.Tuesday);
+        Assert.True(condition2);
+        bool condition3 = flipped.IsSet(TestDay.Wednesday);
+        Assert.False(condition3);
+        bool condition4 = flipped.IsSet(TestDay.Thursday);
+        Assert.True(condition4);
     }
 
     [Fact]
@@ -100,10 +115,14 @@ public sealed class EnumBitArrayTests
         bitArray2.Set(TestDay.Sunday);
 
         var result = bitArray1.Intersect(bitArray2);
-        Assert.False(result.IsSet(TestDay.Monday));
-        Assert.True(result.IsSet(TestDay.Wednesday));
-        Assert.True(result.IsSet(TestDay.Friday));
-        Assert.False(result.IsSet(TestDay.Sunday));
+        bool condition = result.IsSet(TestDay.Monday);
+        Assert.False(condition);
+        bool condition2 = result.IsSet(TestDay.Wednesday);
+        Assert.True(condition2);
+        bool condition3 = result.IsSet(TestDay.Friday);
+        Assert.True(condition3);
+        bool condition4 = result.IsSet(TestDay.Sunday);
+        Assert.False(condition4);
     }
 
     [Fact]
@@ -114,7 +133,7 @@ public sealed class EnumBitArrayTests
 
         bitArray.Set(TestDay.Wednesday);
         bitArray.Set(TestDay.Friday);
-        Assert.Equal(TestDay.Wednesday, bitArray.GetFirstSet());
+        Assert.Equal(expected: TestDay.Wednesday, actual: bitArray.GetFirstSet());
     }
 
     [Fact]
@@ -125,18 +144,20 @@ public sealed class EnumBitArrayTests
         bitArray.Set(TestDay.Thursday);
         bitArray.Set(TestDay.Saturday);
 
-        var values = bitArray.SetValues().ToList();
-        Assert.Equal(3, values.Count);
-        Assert.Equal(TestDay.Tuesday, values[0]);
-        Assert.Equal(TestDay.Thursday, values[1]);
-        Assert.Equal(TestDay.Saturday, values[2]);
+        var values = bitArray.SetValues()
+            .ToList();
+        Assert.Equal(expected: 3, actual: values.Count);
+        Assert.Equal(expected: TestDay.Tuesday, actual: values[0]);
+        Assert.Equal(expected: TestDay.Thursday, actual: values[1]);
+        Assert.Equal(expected: TestDay.Saturday, actual: values[2]);
     }
 
     [Fact]
     public void SetValuesEmpty()
     {
         var bitArray = new EnumBitArray<TestDay>();
-        var values = bitArray.SetValues().ToList();
+        var values = bitArray.SetValues()
+            .ToList();
         Assert.Empty(values);
     }
 
@@ -148,7 +169,7 @@ public sealed class EnumBitArrayTests
 
         bitArray.ClearAll();
         Assert.True(bitArray.AreNoneSet);
-        Assert.Equal(0, bitArray.SetCount);
+        Assert.Equal(expected: 0, actual: bitArray.SetCount);
     }
 
     [Fact]
@@ -165,14 +186,14 @@ public sealed class EnumBitArrayTests
     public void SetCount()
     {
         var bitArray = new EnumBitArray<TestDay>();
-        Assert.Equal(0, bitArray.SetCount);
+        Assert.Equal(expected: 0, actual: bitArray.SetCount);
 
         bitArray.Set(TestDay.Monday);
-        Assert.Equal(1, bitArray.SetCount);
+        Assert.Equal(expected: 1, actual: bitArray.SetCount);
 
         bitArray.Set(TestDay.Wednesday);
         bitArray.Set(TestDay.Friday);
-        Assert.Equal(3, bitArray.SetCount);
+        Assert.Equal(expected: 3, actual: bitArray.SetCount);
     }
 
     [Fact]
@@ -191,6 +212,6 @@ public sealed class EnumBitArrayTests
 
         arr = arr.Remove(mask);
 
-        Assert.Equal(arr.SetValues(), [TestDay.Wednesday, TestDay.Friday]);
+        Assert.Equal(expected: arr.SetValues(), actual: [TestDay.Wednesday, TestDay.Friday]);
     }
 }

@@ -11,11 +11,11 @@ public static class EnumerableExtensions
 
         public IEnumerable<T> DebugAssertSingleUse()
         {
-            #if DEBUG
-                return new DebugAssertSingleUseEnumerable<T>(e);
-            #else
+#if DEBUG
+            return new DebugAssertSingleUseEnumerable<T>(e);
+#else
                 return e.AsSingleUse();
-            #endif
+#endif
         }
     }
 }
@@ -24,7 +24,7 @@ internal struct SingleUseItemHelper<T> where T : class
 {
     private T? _i;
     public SingleUseItemHelper(T e) => _i = e;
-    public T? Get() => Interlocked.Exchange(ref _i, null);
+    public T? Get() => Interlocked.Exchange(location1: ref _i, value: null);
 }
 
 public struct SingleUseEnumerable<T> : IEnumerable<T>

@@ -11,17 +11,28 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
     private const string WrittenFormat = "dd/MM/yyyy";
     private static readonly string[] AcceptedFormats = [WrittenFormat, "yyyy-MM-dd"];
 
-    public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override DateOnly Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.GetString() is not { } dateStr)
         {
             return DateOnly.MinValue;
         }
-        return DateOnly.ParseExact(dateStr, AcceptedFormats, CultureInfo.InvariantCulture);
+        return DateOnly.ParseExact(
+            dateStr,
+            AcceptedFormats,
+            CultureInfo.InvariantCulture);
     }
 
-    public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        DateOnly value,
+        JsonSerializerOptions options)
     {
-        writer.WriteStringValue(value.ToString(WrittenFormat, CultureInfo.InvariantCulture));
+        var utf8JsonWriter = writer;
+        string value2 = value.ToString(WrittenFormat, CultureInfo.InvariantCulture);
+        utf8JsonWriter.WriteStringValue(value2);
     }
 }

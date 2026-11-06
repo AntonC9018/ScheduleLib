@@ -26,7 +26,8 @@ public static class NumberHelper
         for (int i = 1; i <= 10; i++)
         {
             var num = ToRoman(i);
-            if (num.AsSpan().Equals(roman, StringComparison.Ordinal))
+            if (num.AsSpan()
+                .Equals(roman, StringComparison.Ordinal))
             {
                 return i;
             }

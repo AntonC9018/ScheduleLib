@@ -12,7 +12,8 @@ public static class LanguageHelper
         for (int i = 0; i < names.Length; i++)
         {
             var lang = (Language) i;
-            names[i] = lang.ToString().ToLower();
+            names[i] = lang.ToString()
+                .ToLower();
         }
         return names;
     }

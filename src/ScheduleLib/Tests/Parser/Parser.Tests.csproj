@@ -3,4 +3,7 @@
         <ProjectReference Include="..\..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
         <ProjectReference Include="..\..\ScheduleLib.Core\ScheduleLib.Core.csproj" />
     </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Tests/Common/Tests.Common.csproj" />
+  </ItemGroup>
 </Project>

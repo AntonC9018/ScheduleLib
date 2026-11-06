@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Anton.LayeredData;
 using Desktop.MainWindow;
 using Desktop.MvvmEssentials;
+using Desktop.NodeData.Common;
 using Desktop.ViewModelData;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -22,12 +23,12 @@ public sealed class EventTests
         c.RecorderSource
             .Expect(c.Tags.SelectedLevel)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(LayerLevel.UiUser, x));
+            .WithValue(x => Assert.Equal(expected: LayerLevel.UiUser, actual: x));
 
         c.RecorderSource
             .Expect(c.Tags.SelectedLayer)
             .SingleEvent()
-            .WithValue(x => Assert.Equal(UiLayerHelper.UiTeacherLayer, x));
+            .WithValue(x => Assert.Equal(expected: UiLayerHelper.UiTeacherLayer, actual: x));
 
         var mainEvents = c.RecorderSource.Expect(c.Tags.Main);
         mainEvents
@@ -110,7 +111,7 @@ public sealed class EventTests
             .Expect(c.Tags.TreeChangedRecorder)
             .SingleEvent();
 
-        Assert.Equal("Curmanschii Anton", c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
+        Assert.Equal(expected: "Curmanschii Anton", actual: c.Data.UiSelectedNodeViewModel.Value.Name.ToString());
     }
 }
 
@@ -180,6 +181,10 @@ public sealed class Context : IAsyncDisposable
         AppConfiguration.ConfigureServices(services);
         App.AddViewModels(services);
 
+        // These tests exercise layer/node events, not the unfinished property editor (#272).
+        // Its production display factory still throws during construction.
+        services.RemoveAll<IPropertySetViewModelFactory>();
+
         services.RemoveAll<IUiTreeOutputProvider>();
         services.AddSingleton<IUiTreeOutputProvider, MockUiTreeOutputProvider>();
 
@@ -194,10 +199,10 @@ public sealed class Context : IAsyncDisposable
             var recorderSource = new EventRecorderSource();
             var main = sp.GetRequiredService<MainWindowViewModel>();
 
-    #pragma warning disable CA2000
+#pragma warning disable CA2000
             var tags = new AllRecorders(recorderSource, main);
             _ = tags;
-    #pragma warning restore CA2000
+#pragma warning restore CA2000
 
             var treeOutputProvider = (MockUiTreeOutputProvider) sp.GetRequiredService<IUiTreeOutputProvider>();
             var teacherNamesProvider = (MockTeacherNamesProvider) sp.GetRequiredService<IAllTeacherNamesProvider>();
@@ -218,9 +223,10 @@ public sealed class Context : IAsyncDisposable
     }
 }
 
-
 public sealed class MockTeacherNamesProvider : IAllTeacherNamesProvider
 {
-    public ObservableValueSource<ImmutableArray<Name>> NamesSource;
+    public ObservableValueSource<ImmutableArray<Name>> NamesSource =
+        new([], new ImmediateDispatcher<ImmutableArray<Name>>());
+
     public ObservableValue<ImmutableArray<Name>> Names => NamesSource.As();
 }

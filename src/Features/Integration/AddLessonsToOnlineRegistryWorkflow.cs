@@ -14,6 +14,7 @@ namespace ScheduleLib.Application.Core;
 public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler
 {
     private readonly ContextProvider _context;
+    private readonly RegistrySyncDiagnostics _diagnostics;
     private readonly IOptions<StudyYearOptions> _studyYear;
     private readonly AddLessonsToOnlineRegistryTaskHandler _handler;
     private readonly StudentAttendanceLoader _attendanceLoader;
@@ -23,16 +24,44 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
     // Maybe make a builder, make it possible to override default stuff,
     // then execute from builder (so it's not forced for the current teacher only).
     // Do the same thing for
-    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(IRegistrySyncNavigator navigator, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RegistrySyncAction>> Plan(
+        IRegistrySyncNavigator navigator,
+        CancellationToken cancellationToken)
     {
-        return await _handler.Plan(new()
-        {
-            Navigator = navigator,
-            Attendance = _attendanceLoader.Load(),
-            LessonTopics = await _topicsLoader.Load(cancellationToken),
-            Semester = _studyYear.Value.Semester,
-            LessonFilter = _lessonFilterProvider.Get(),
-        }, cancellationToken, explicitApply: true);
+        return await _handler.Plan(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
+            cancellationToken,
+            explicitApply: true);
+    }
+
+    public async Task PlanGroups(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
+    {
+        await _handler.PlanGroups(
+            new()
+            {
+                Navigator = navigator,
+                Diagnostics = _diagnostics,
+                Attendance = _attendanceLoader.Load(),
+                HasAttendanceSources = _attendanceLoader.HasSources,
+                LessonTopics = await _topicsLoader.Load(cancellationToken),
+                Semester = _studyYear.Value.Semester,
+                LessonFilter = _lessonFilterProvider.Get(),
+            },
+            onGroupPlanned,
+            cancellationToken,
+            explicitApply: true);
     }
 
     public async ValueTask Execute(CancellationToken cancellationToken)
@@ -49,11 +78,27 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
         await handler.Run(new()
         {
             Navigator = navigator,
+            Diagnostics = _diagnostics,
             Attendance = attendance,
+            HasAttendanceSources = _attendanceLoader.HasSources,
             LessonTopics = topics,
             Semester = semester,
             LessonFilter = lessonFilter,
         });
+    }
+
+    public Task PlanIntakeLabCleanup(
+        IRegistrySyncNavigator navigator,
+        Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
+        CancellationToken cancellationToken)
+    {
+        return _handler.PlanIntakeLabCleanup(
+            navigator,
+            _studyYear.Value.Semester,
+            _lessonFilterProvider.Get(),
+            _diagnostics,
+            onGroupPlanned,
+            cancellationToken);
     }
 }
 
@@ -88,6 +133,7 @@ public sealed class ContextProvider(IServiceProvider sp) : IDisposable
 [AutoConstructor]
 public sealed partial class LessonTopicsOfCurrentTeacherLoader
 {
+    private readonly IOptions<StudyYearOptions> _studyYear;
     private readonly IServiceProvider _sp;
     private readonly DataProvider<LessonTopicsConfig> _lessonTopicsConfig;
     private readonly ScopeFilteredScheduleProvider _scheduleProvider;
@@ -102,6 +148,7 @@ public sealed partial class LessonTopicsOfCurrentTeacherLoader
 
         var filteredSchedule = _scheduleProvider.Get();
         var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(_sp, filteredSchedule);
+        builder.Semester = _studyYear.Value.Semester.AsOrdinal();
         foreach (var x in config1.Sources)
         {
             var source = x.Create(_sp);
@@ -124,7 +171,8 @@ public sealed partial class CurrentTeacherLessonFilterProvider
 
     public ILessonFilter Get()
     {
-        var b = _sp.LessonFilterBuilder().CurrentTeacher();
+        var b = _sp.LessonFilterBuilder()
+            .CurrentTeacher();
 
         if (_lessonFilterConfig.Get() is { } filterConfig)
         {

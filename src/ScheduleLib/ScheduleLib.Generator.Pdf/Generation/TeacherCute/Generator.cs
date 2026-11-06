@@ -32,6 +32,7 @@ public sealed class Generator : IDocument
     }
 
     private readonly record struct RowKey(TimeSlot Time);
+
     private readonly record struct ColumnKey(DayOfWeek Day);
 
     public void Compose(IDocumentContainer container)
@@ -39,7 +40,7 @@ public sealed class Generator : IDocument
         var mappings = MappingsCreationHelper.CreateCellMappings<RowKey, ColumnKey>(
             _schedule.EnumerateWeeklyLessons(),
             rowFunc: x => new RowKey(x.Date.TimeSlot),
-            colFunc: x => [ new ColumnKey(x.Date.DayOfWeek) ]);
+            colFunc: x => [new ColumnKey(x.Date.DayOfWeek)]);
 
         List<WeeklyLessonAccessor> Lessons(CellKey<RowKey, ColumnKey> cell)
         {
@@ -61,7 +62,8 @@ public sealed class Generator : IDocument
                     ColumnKey = col,
                     RowKey = row,
                 });
-                maxSize = (uint) Math.Max(lessons.Count, maxSize);
+                long max = Math.Max(lessons.Count, maxSize);
+                maxSize = (uint) max;
             }
             // Skip the row?
             if (maxSize == 0)
@@ -206,6 +208,7 @@ file record struct CellPos(uint X, uint Y)
         X = 0;
         Y += yOffset;
     }
+
     public void MoveToRow(uint y)
     {
         X = 0;

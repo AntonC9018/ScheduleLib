@@ -58,8 +58,11 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             ArraySegment<GroupId> CurrentColumns()
             {
                 var groups = Columns();
-                var count = int.Min(groups.Length - i, _sizesConfig.MaxAdditionalColumnsPerPage);
-                return new(groups, i, count);
+                var count = int.Min(x: groups.Length - i, y: _sizesConfig.MaxAdditionalColumnsPerPage);
+                return new(
+                    groups,
+                    offset: i,
+                    count: count);
             }
 
             var currentContext = new CurrentContext
@@ -155,9 +158,10 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                     continue;
                 }
 
-                SizeComputer SizeComputer(int lessonCount) => new(_cache.MaxRowsInOneCell, lessonCount);
+                SizeComputer SizeComputer(int lessonCount) =>
+                    new(maxRowsInOneCell: _cache.MaxRowsInOneCell, lessonCount: lessonCount);
 
-                if (_cache.SharedLayout is not {} layout)
+                if (_cache.SharedLayout is not { } layout)
                 {
                     var sizeComputer = SizeComputer(lessons.Count);
                     for (int index = 0; index < lessons.Count; index++)
@@ -181,7 +185,10 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                         x = x.Centered();
                         x.Text(text =>
                         {
-                            LessonText(text, lesson, columnWidth: 1);
+                            LessonText(
+                                text,
+                                lesson,
+                                columnWidth: 1);
                         });
                     }
                     continue;
@@ -208,7 +215,10 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                             x = x.Centered();
                             x.Text(text =>
                             {
-                                LessonText(text, t.Lesson, columnWidth: size);
+                                LessonText(
+                                    text,
+                                    t.Lesson,
+                                    columnWidth: size);
                             });
                         }
                     }
@@ -258,7 +268,10 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
                             var order = layout.LessonVerticalOrder[lesson.Id];
                             var rowSpan = sizeComputer.ComputeRowSpan((int) order);
-                            yield return new(lesson, order, rowSpan);
+                            yield return new(
+                                lesson,
+                                LessonOrder: order,
+                                RowSpan: rowSpan);
                         }
                     }
                 }
@@ -324,7 +337,8 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             timeCell.Column(2);
             timeCell.RowSpan(s.CellsPerTimeSlot);
 
-            IContainer x = timeCell.Row(s.RowGroupIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot);
+            uint row = s.RowGroupIter.Row + s.TimeSlotIndex * s.CellsPerTimeSlot;
+            IContainer x = timeCell.Row(row);
             x = x.CenteredBorderedThick();
             // ReSharper disable once AccessToModifiedClosure
             x.Text(x1 => TimeSlotTextBox(x1, s.TimeSlotIndex));
@@ -378,11 +392,17 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
         public uint CellsPerTimeSlot => RowGroupIter.CellsPerTimeSlot;
 
-        public DefaultRowKey Key => new()
+        public DefaultRowKey Key
         {
-            TimeSlot = TimeSlot,
-            DayOfWeek = RowGroupIter.Day,
-        };
+            get
+            {
+                return new()
+                {
+                    TimeSlot = TimeSlot,
+                    DayOfWeek = RowGroupIter.Day,
+                };
+            }
+        }
     }
 
     private IEnumerable<RowGroupIter> IterateRowGroups()
@@ -422,7 +442,11 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
             bottom = 2;
         }
 
-        var ret = descriptor.Border(bottom: bottom, top: top, left: 1, right: 1);
+        var ret = descriptor.Border(
+            bottom: bottom,
+            top: top,
+            left: 1,
+            right: 1);
         return ret;
     }
 
@@ -473,13 +497,15 @@ public static class PdfHelper
         return x;
     }
 
-    // Why in the world is this method private???
+    // QuestPDF's nonpublic border operation is bound below through CreateDelegate.
+    [CodingRules.ExternalSignature(typeof(BorderExtensions), "Border")]
     private delegate IContainer BorderDelegate(
         IContainer element,
         float top = 0,
         float bottom = 0,
         float left = 0,
         float right = 0);
+
     // ReSharper disable once ReplaceWithSingleCallToSingle
     private static readonly BorderDelegate ReflectedBorder = typeof(BorderExtensions)
         .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
@@ -494,7 +520,12 @@ public static class PdfHelper
         float left,
         float right)
     {
-        return ReflectedBorder(element, top, bottom, left, right);
+        return ReflectedBorder(
+            element,
+            top: top,
+            bottom: bottom,
+            left: left,
+            right: right);
     }
 }
 
@@ -507,7 +538,18 @@ public struct SchedulePdfSizesConfig()
     public float PageMargin = 15;
     public float FontSize = 10f;
 
-    public readonly float UsefulGroupsWidth => PageSize.Width - 2 * PageMargin - WeekDayColumnWidth - TimeSlotColumnWidth;
+    public readonly float UsefulGroupsWidth
+    {
+        get
+        {
+            float single = PageSize.Width;
+            float single2 = 2 * PageMargin;
+            float single3 = single - single2;
+            float single4 = single3 - WeekDayColumnWidth;
+            float single5 = single4 - TimeSlotColumnWidth;
+            return single5;
+        }
+    }
 }
 
 file record struct OwnedLesson(WeeklyLessonAccessor Lesson, uint LessonOrder, uint RowSpan);

@@ -11,4 +11,7 @@
     <ItemGroup>
         <None Include="topics\**\*" CopyToOutputDirectory="Always"/>
     </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Tests/Common/Tests.Common.csproj" />
+  </ItemGroup>
 </Project>

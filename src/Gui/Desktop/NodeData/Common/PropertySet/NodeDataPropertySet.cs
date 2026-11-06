@@ -43,9 +43,15 @@ public sealed class YYYPropertySetBuilder<T>
 
 public sealed class YYYPropertySetBuilderDefault
 {
+    /// <summary>A function registered for the child properties of a node type.</summary>
+    private readonly record struct PropertyRegistration(PropertyFilter Filter, Delegate Func);
+
+    /// <summary>A function registered for the parent of a node type.</summary>
+    private readonly record struct ParentRegistration(ParentFilter Filter, Delegate Func);
+
     public readonly IServiceCollection Services;
-    private readonly List<(PropertyFilter Filter, Delegate Func)> _propertiesConfigs = new();
-    private readonly List<(ParentFilter Filter, Delegate Func)> _parentConfigs = new();
+    private readonly List<PropertyRegistration> _propertiesConfigs = new();
+    private readonly List<ParentRegistration> _parentConfigs = new();
 
     public YYYPropertySetBuilderDefault(IServiceCollection services)
     {
@@ -56,7 +62,7 @@ public sealed class YYYPropertySetBuilderDefault
         Action<YYYPropertyBuilder2<TProperty, TProperty>> configure)
     {
         var filter = new PropertyFilter(typeof(TProperty));
-        _propertiesConfigs.Add((filter, configure));
+        _propertiesConfigs.Add(new(filter, configure));
     }
 
     public void Parent<TParent>(
@@ -64,17 +70,19 @@ public sealed class YYYPropertySetBuilderDefault
         where TParent : class
     {
         var filter = new ParentFilter(typeof(TParent));
-        _parentConfigs.Add((filter, configure));
+        _parentConfigs.Add(new(filter, configure));
     }
 }
 
 public readonly record struct ParentFilter(Type Interface);
+
 public readonly record struct PropertyFilter(Type Type);
 
 public readonly record struct OptionalNullValue(object? Boxed)
 {
     public bool IsUnspecified => Boxed is null;
 }
+
 public readonly record struct RegistryId(string? Name)
 {
 }
@@ -83,10 +91,12 @@ public readonly record struct OptionalViewId(Type? ViewType)
 {
     public bool IsNull => ViewType == null;
 }
+
 public readonly record struct ViewId(Type ViewType)
 {
     public static implicit operator OptionalViewId(ViewId id) => new(id.ViewType);
 }
+
 public readonly record struct ViewId<T>()
     where T : UserControl
 {
@@ -96,15 +106,16 @@ public readonly record struct OptionalViewModelId(Type? ViewModelType)
 {
     public bool IsNull => ViewModelType == null;
 }
+
 public readonly record struct ViewModelId(Type ViewModelType)
 {
     public static implicit operator OptionalViewModelId(ViewModelId id) => new(id.ViewModelType);
 }
+
 public readonly record struct ViewModelId<T>(ViewModelId Id)
     where T : INotifyPropertyChanged
 {
 }
-
 
 public sealed class YYYPropertyModel
 {
@@ -160,7 +171,7 @@ public sealed class YYYPropertyBuilder2<TSource, TDerived> : IYYYPropertyBuilder
 
 public static class YYYExtensions
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void ConfigurePropertySet<T>(
             NodeDataKey<T> key,
@@ -258,7 +269,8 @@ public static class YYYExtensions
         public YYYPropertyBuilder2<TSource, TDerived> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }
@@ -273,7 +285,8 @@ public static class YYYStructExtensions
         public YYYPropertyBuilder2<TSource, TDerived> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }
@@ -329,7 +342,8 @@ public static class YYYNullableStructExtensions
         public YYYPropertyBuilder2<TSource, TDerived?> UseRegistry(
             Action<ThingRegistryOptions<TDerived>>? configure = null)
         {
-            var key = new RegistryKey<TDerived>(new(builder.NodeDataKey, builder.Model.Id));
+            RegistryKey value = new(builder.NodeDataKey, builder.Model.Id);
+            var key = new RegistryKey<TDerived>(value);
             builder.Services.AddRegistry(key, configure);
             return builder;
         }

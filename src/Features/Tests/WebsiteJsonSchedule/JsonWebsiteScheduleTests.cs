@@ -15,12 +15,14 @@ public sealed class FmiWebsiteInteropTests
             name.LastName[0] = "Capcelea";
         }
         var schedule = await ScheduleTestHelper.CreateScheduleForTeacher(name);
-        var model = WebsiteJsonScheduleHelper.CreateSerializationModel(schedule, new()
-        {
-            ParityDisplay = new(),
-            LessonTypeDisplay = new(),
-            SubGroupNumberDisplay = new(),
-        });
+        var model = WebsiteJsonScheduleHelper.CreateSerializationModel(
+            schedule,
+            new()
+            {
+                ParityDisplay = new(),
+                LessonTypeDisplay = new(),
+                SubGroupNumberDisplay = new(),
+            });
         var stream = new MemoryStream();
         await WebsiteJsonScheduleHelper.Serialize(model, stream);
         stream.Position = 0;

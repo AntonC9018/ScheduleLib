@@ -1,5 +1,4 @@
 using Anton.LayeredData;
-using AutoConstructor.Attributes;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Scraping.Common;
@@ -14,29 +13,7 @@ public sealed class MoodleConfig : INodeData<MoodleConfig>, ICredentialsHolder
 
     public static void Register(IServiceCollection services)
     {
-        services.AddConfigProvider(MoodleConfig.Key);
+        services.AddConfigProvider(Key);
         services.RegisterBasicOperationsAndMergers<MoodleConfig>();
-    }
-}
-
-[AutoConstructor]
-public sealed partial class MoodleConfigHelper
-{
-    private readonly ICredentialsResolver _resolver;
-    private readonly DataProvider _configProvider;
-
-    public Credentials? GetCredentials()
-    {
-        var config = _configProvider.Get(MoodleConfig.Key);
-        if (config is null)
-        {
-            return null;
-        }
-        if (config.Credentials == null)
-        {
-            return null;
-        }
-        var ret = _resolver.Resolve(serviceKey: "Moodle", config.Credentials);
-        return ret;
     }
 }

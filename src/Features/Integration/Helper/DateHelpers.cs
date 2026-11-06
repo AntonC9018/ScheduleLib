@@ -6,6 +6,7 @@ public static class DateHelpers
     {
         return date.AddMonths(month - date.Month);
     }
+
     public static DateOnly SetDay(this DateOnly date, int day)
     {
         return date.AddDays(day - date.Day);

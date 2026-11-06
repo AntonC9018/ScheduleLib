@@ -50,7 +50,8 @@ public readonly record struct MatchScore(
                     {
                         var p = parsedPart[i];
                         var e = existingFieldValue[i];
-                        if (p == null && e == null)
+
+                        if (p is null && e is null)
                         {
                             exactlyEqual.Set(i);
                             partiallyEqual.Set(i);
@@ -105,12 +106,13 @@ public readonly record struct MatchScore(
     {
         int full = FullMatch.SetCount;
         int partial = PartialMatch.SetCount;
-        int ret = full + partial - UnmatchedCount;
-        return ret;
+        int matchedCount = full + partial;
+        return matchedCount - UnmatchedCount;
     }
 
     public override string ToString()
     {
-        return AsInt().ToString();
+        return AsInt()
+            .ToString();
     }
 }

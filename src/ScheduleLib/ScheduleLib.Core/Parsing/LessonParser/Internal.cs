@@ -46,17 +46,17 @@ public sealed class LessonTokenReader : ITokenReader
             case (char) LessonTokenType.ModifierGroupStart
                 or (char) LessonTokenType.ModifierGroupEnd
                 or (char) LessonTokenType.Star:
-            {
-                return (TokenType) ch;
-            }
+                {
+                    return (TokenType) ch;
+                }
             case ',' or '-' or ';' or ':' or '/':
-            {
-                return LessonTokenType.Separator;
-            }
+                {
+                    return LessonTokenType.Separator;
+                }
             default:
-            {
-                return TokenType.Invalid;
-            }
+                {
+                    return TokenType.Invalid;
+                }
         }
     }
 
@@ -64,6 +64,7 @@ public sealed class LessonTokenReader : ITokenReader
     {
         return reader.Skip(new SkipWhitespaceButNotUnderscore());
     }
+
     private struct SkipWhitespaceButNotUnderscore : IShouldSkip
     {
         public bool ShouldSkip(char ch)
@@ -72,10 +73,12 @@ public sealed class LessonTokenReader : ITokenReader
             {
                 return false;
             }
+
             if (char.IsWhiteSpace(ch))
             {
                 return true;
             }
+
             return false;
         }
     }
@@ -94,20 +97,22 @@ public sealed class LessonTokenReader : ITokenReader
     }
 
     private static readonly SearchValues<char> _regularChars = SearchValues.Create(@"\_+#@&");
+
     public static bool IsRegular(char ch)
     {
         if (char.IsLetter(ch))
         {
             return true;
         }
+
         if (_regularChars.Contains(ch))
         {
             return true;
         }
+
         return false;
     }
 }
-
 
 public static class LessonLexerHelper
 {
@@ -215,4 +220,3 @@ public ref struct ListEnumerator
 
     public readonly LimitedLexerScope Current => new(_lexer, _end);
 }
-

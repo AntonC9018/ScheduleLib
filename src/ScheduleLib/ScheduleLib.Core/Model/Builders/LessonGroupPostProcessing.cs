@@ -38,7 +38,9 @@ public static partial class ScheduleBuilderHelper
             if (group.Specialization != Specialization.All
                 && group.Specialization != specialization)
             {
-                throw ConflictingSpecializationException.ForConflictingValues(group.Specialization.Value, specialization.Value);
+                throw ConflictingSpecializationException.ForConflictingValues(
+                    first: group.Specialization.Value,
+                    second: specialization.Value);
             }
             group.Specialization = specialization;
             group.SubGroup = SubGroup.All;
@@ -56,7 +58,9 @@ public static partial class ScheduleBuilderHelper
         out Specialization specialization)
     {
         return Specializations.TryResolveSpecialization(
-            label.Value, s.SpecializationRegistry, out specialization);
+            label.Value,
+            s.SpecializationRegistry,
+            out specialization);
     }
 
     /// <summary>
@@ -79,11 +83,17 @@ public static partial class ScheduleBuilderHelper
             var subGroup = lesson.Base.Group.SubGroup;
             if (subGroup == SpecialSubGroups.Beginners)
             {
-                AddSplits(beginnerSplits, lesson, course);
+                AddSplits(
+                    beginnerSplits,
+                    lesson,
+                    course);
             }
             else if (subGroup == SpecialSubGroups.NonBeginners)
             {
-                AddSplits(normalizedSplits, lesson, course);
+                AddSplits(
+                    normalizedSplits,
+                    lesson,
+                    course);
             }
         }
         if (beginnerSplits.Count == 0)
@@ -112,7 +122,9 @@ public static partial class ScheduleBuilderHelper
             }
             if (splitGroups != lesson.Base.Group.Groups.Count)
             {
-                throw InconsistentLanguageSplitException.ForMixedSplit(GroupNames(s, lesson.Base.Group.Groups), CourseName(s, course));
+                string groups2 = GroupNames(s, lesson.Base.Group.Groups);
+                string course2 = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMixedSplit(groups: groups2, course: course2);
             }
 
             foreach (var g in lesson.Base.Group.Groups)
@@ -127,7 +139,9 @@ public static partial class ScheduleBuilderHelper
             if (!coveredSplits.Contains((group, course))
                 && !normalizedSplits.Contains((group, course)))
             {
-                throw InconsistentLanguageSplitException.ForMissingCounterpart(GroupName(s, group), CourseName(s, course));
+                string group2 = GroupName(s, group);
+                string course3 = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: group2, course: course3);
             }
         }
 
@@ -246,7 +260,13 @@ public static partial class ScheduleBuilderHelper
             {
                 if (!numbers.Contains(expected))
                 {
-                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(GroupName(s, groupId), expected, numbers[^1]);
+                    string groupName = GroupName(s, groupId);
+                    int missing2 = expected;
+                    int occurring2 = numbers[^1];
+                    throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(
+                        groupName,
+                        missing: missing2,
+                        occurring: occurring2);
                 }
             }
         }
@@ -264,7 +284,8 @@ public static partial class ScheduleBuilderHelper
             int languageCount = values.Count(SpecialSubGroups.IsLanguageSubGroup);
             if (languageCount == 1)
             {
-                throw InvalidSubGroupPartitionException.ForSingleLanguageSubgroup(GroupName(s, groupId));
+                string groupName = GroupName(s, groupId);
+                throw InvalidSubGroupPartitionException.ForSingleLanguageSubgroup(groupName);
             }
         }
     }

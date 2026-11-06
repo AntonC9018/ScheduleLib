@@ -7,7 +7,8 @@ public sealed class ComparerTests
     {
         var set = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         set.Add("Abc");
-        Assert.False(set.Add("abc"));
+        bool condition = set.Add("abc");
+        Assert.False(condition);
     }
 
     [Fact]
@@ -15,6 +16,7 @@ public sealed class ComparerTests
     {
         var set = new HashSet<string>(IgnoreDiacriticsAndCaseComparer.Instance);
         set.Add("A.Șchiopu");
-        Assert.False(set.Add("A.Schiopu"));
+        bool condition = set.Add("A.Schiopu");
+        Assert.False(condition);
     }
 }

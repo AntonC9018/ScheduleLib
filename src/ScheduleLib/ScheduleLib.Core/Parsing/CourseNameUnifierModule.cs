@@ -42,6 +42,7 @@ public sealed class CourseNameUnifierConfig
 {
     public required CourseNameParserConfig ParserConfig { get; init; }
     private ImmutableArray<FullyRenamedCourse> FullyRemappedNames { get; init; } = [];
+
     private CourseNameUnifierConfig()
     {
     }
@@ -60,14 +61,26 @@ public sealed class CourseNameUnifierConfig
 
     public static CourseNameUnifierConfig Create(
         CourseNameParserConfig config,
-        ReadOnlySpan<(string From, string To)> fullyRenamedNames)
+        ReadOnlySpan<CourseNameMapping> fullyRenamedNames)
     {
         var remappedNames = ImmutableArray.CreateBuilder<FullyRenamedCourse>(fullyRenamedNames.Length);
         foreach (var (from, to) in fullyRenamedNames)
         {
-            var fromParsed = config.Parse(from.AsMemory());
-            var toParsed = config.Parse(to.AsMemory());
-            remappedNames.Add(new FullyRenamedCourse(fromParsed, toParsed));
+            var fromParsed = config.Parse(
+                from.AsMemory(),
+                new()
+                {
+                    IgnorePunctuation = true,
+                });
+            var toParsed = config.Parse(
+                to.AsMemory(),
+                new()
+                {
+                    IgnorePunctuation = true,
+                });
+            var builder = remappedNames;
+            var item = new FullyRenamedCourse(From: fromParsed, To: toParsed);
+            builder.Add(item);
         }
         return new CourseNameUnifierConfig
         {
@@ -94,7 +107,8 @@ public sealed class CourseNameUnifierModule
         if (builder.LookupModule is not { } lookup)
         {
             Debug.Assert(false, "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
-            throw new InvalidOperationException("Lookup module must be enabled before refreshing CourseNameUnifierModule.");
+            throw new InvalidOperationException(
+                "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
         }
 
         for (int i = 0; i < courses.Count; i++)
@@ -124,7 +138,9 @@ public sealed class CourseNameUnifierModule
             },
         });
         parsedCourse = TryRemap(parsedCourse);
-        SlowCourses.Add(new(parsedCourse, id));
+        var list = SlowCourses;
+        SlowCourse item = new(parsedCourse, id);
+        list.Add(item);
     }
 
     public ref struct FindParams()
@@ -133,11 +149,17 @@ public sealed class CourseNameUnifierModule
         public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
-        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        internal readonly CourseNameForParsing CourseNameForParsing
         {
-            CourseName = CourseName,
-            ParseOptions = ParseOptions,
-        };
+            get
+            {
+                return new()
+                {
+                    CourseName = CourseName,
+                    ParseOptions = ParseOptions,
+                };
+            }
+        }
     }
 
     public CourseId? Find(FindParams p)
@@ -165,11 +187,17 @@ public sealed class CourseNameUnifierModule
         public required ReadOnlyMemory<char> CourseName;
         public CourseNameParseOptions ParseOptions = new();
 
-        internal readonly CourseNameForParsing CourseNameForParsing => new()
+        internal readonly CourseNameForParsing CourseNameForParsing
         {
-            CourseName = CourseName,
-            ParseOptions = ParseOptions,
-        };
+            get
+            {
+                return new()
+                {
+                    CourseName = CourseName,
+                    ParseOptions = ParseOptions,
+                };
+            }
+        }
     }
 
     public struct CourseNameForParsing

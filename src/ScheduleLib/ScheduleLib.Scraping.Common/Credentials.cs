@@ -27,7 +27,8 @@ public static class CredentialsHelper
         this IConfiguration config,
         string key)
     {
-        var ret = config.GetRequiredSection(key).Get<Credentials>();
+        var ret = config.GetRequiredSection(key)
+            .Get<Credentials>();
         if (ret == null)
         {
             return null;

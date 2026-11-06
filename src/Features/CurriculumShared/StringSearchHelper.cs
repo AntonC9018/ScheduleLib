@@ -8,11 +8,27 @@ namespace ScheduleLib.Curriculum;
 
 public static class StringSearchHelper
 {
+    // Inputs are values, so the ref-like reader and slice never escape or get captured.
+    private static ReadOnlyMemory<char> RemainingMatchText(
+        bool sectionExhausted,
+        ReadOnlyMemory<char> remainingText,
+        int matchedLength)
+    {
+        if (!sectionExhausted)
+        {
+            return default;
+        }
+        if (remainingText.Length <= matchedLength)
+        {
+            return default;
+        }
+        return remainingText[matchedLength..];
+    }
+
     public static SectionParseResult Search<TPreprocess>(
         Paragraph para,
         TPreprocess preprocess,
         ImmutableArray<string> strings)
-
         where TPreprocess : IPreprocess
     {
         var potentialSectionTypes = BitArray32.AllSet(strings.Length);
@@ -33,7 +49,8 @@ public static class StringSearchHelper
 
             preprocess.Preprocess(ref parser);
 
-            var remainingMem = parser.SourceUntilEnd().Trim();
+            var remainingMem = parser.SourceUntilEnd()
+                .Trim();
             var remainingSpan = remainingMem.Span;
             if (remainingSpan.Length == 0)
             {
@@ -60,7 +77,7 @@ public static class StringSearchHelper
                     shorter = t;
                 }
 
-                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(longer, shorter))
+                if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(x: longer, y: shorter))
                 {
                     // TODO: This is pretty hard to implement correctly.
                     // I need to get the character positions IN THE ORIGINAL string.
@@ -71,13 +88,12 @@ public static class StringSearchHelper
                     p.SkipWhitespace();
                     refStartIndex = p.Position.Index;
 
-                    if (p.IsEmpty && remainingMem.Length > currentSlice.Length)
+                    if (extraStuffFromMatch.Array[sectionIndex].IsEmpty)
                     {
-                        ref var x = ref extraStuffFromMatch.Array[sectionIndex];
-                        if (x.IsEmpty)
-                        {
-                            x = remainingMem[currentSlice.Length ..];
-                        }
+                        extraStuffFromMatch.Array[sectionIndex] = RemainingMatchText(
+                            p.IsEmpty,
+                            remainingMem,
+                            currentSlice.Length);
                     }
                 }
                 else
@@ -112,9 +128,13 @@ public static class StringSearchHelper
 
             if (str.Length != start)
             {
-                return SectionParseResult.CreatePartialMatch(
-                    sectionIndex,
-                    missingText: str.AsMemory(start));
+                int sectionType = sectionIndex;
+                var missingText2 = str.AsMemory(start);
+                var createPartialMatch =
+                    SectionParseResult.CreatePartialMatch(
+                        sectionType,
+                        missingText: missingText2);
+                return createPartialMatch;
             }
 
             var x = extraStuffFromMatch.Array[sectionIndex];
@@ -139,11 +159,11 @@ public static class StringSearchHelper
         }
         if (x.IsUnknown)
         {
-            throw new NotSupportedException($"Unrecognized heading '{x.UnmatchedText}'.");
+            throw new HeadingSearchException(HeadingSearchFailure.Unrecognized, x.UnmatchedText.ToString());
         }
         if (!x.MissingText.IsEmpty)
         {
-            throw new NotSupportedException($"Partially matched heading '{x.MissingText}'.");
+            throw new HeadingSearchException(HeadingSearchFailure.PartiallyMatched, x.MissingText.ToString());
         }
     }
 
@@ -164,12 +184,14 @@ public static class StringSearchHelper
             _builder[index] = str;
         }
     }
+
     public delegate void BuilderDelegate<T, U>(SearchArrayBuilder<T, U> builder) where T : struct, Enum;
 
     public static ImmutableArray<string> SetupSearchArray<T>(BuilderDelegate<T, string> f) where T : struct, Enum
     {
         return SetupSearchArray<T, string>(f);
     }
+
     public static ImmutableArray<U> SetupSearchArray<T, U>(BuilderDelegate<T, U> f) where T : struct, Enum
     {
         var builder = new SearchArrayBuilder<T, U>();

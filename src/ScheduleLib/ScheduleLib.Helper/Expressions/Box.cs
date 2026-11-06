@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
@@ -8,25 +8,40 @@ namespace ScheduleLib.Helper.Expressions;
 /// <typeparam name="T">The captured value type</typeparam>
 public sealed record class Box<T>(T Value)
 {
-    public (ConstantExpression Constant, MemberExpression Member) MakeExpressions()
+    /// <summary>The constant that holds this box and the member access that reads its value.</summary>
+    public readonly record struct Expressions(ConstantExpression Constant, MemberExpression Member);
+
+    public Expressions MakeExpressions()
     {
         var constant = Expression.Constant(this);
-        var member = Expression.MakeMemberAccess(constant, typeof(Box<T>)
-            .GetProperty(nameof(Value))!);
-        return (constant, member);
+
+        var valueProperty = typeof(Box<T>).GetProperty(nameof(Value))!;
+        var member = Expression.MakeMemberAccess(constant, valueProperty);
+        return new(constant, member);
     }
 }
 
 public sealed record class Box<T, U>(T Value1, U Value2)
 {
-    public (ConstantExpression Constant, MemberExpression Member1, MemberExpression Member2) MakeExpressions()
+    /// <summary>The constant that holds this box and the member accesses that read its values.</summary>
+    public readonly record struct Expressions(
+        ConstantExpression Constant,
+        MemberExpression Member1,
+        MemberExpression Member2);
+
+    public Expressions MakeExpressions()
     {
         var boxConstant = Expression.Constant(this);
-        var member1 = Expression.MakeMemberAccess(boxConstant, typeof(Box<T, U>)
-            .GetProperty(nameof(Value1))!);
-        var member2 = Expression.MakeMemberAccess(boxConstant, typeof(Box<T, U>)
-            .GetProperty(nameof(Value2))!);
-        return (boxConstant, member1, member2);
+
+        var value1Property = typeof(Box<T, U>).GetProperty(nameof(Value1))!;
+        var member1 = Expression.MakeMemberAccess(boxConstant, value1Property);
+
+        var value2Property = typeof(Box<T, U>).GetProperty(nameof(Value2))!;
+        var member2 = Expression.MakeMemberAccess(boxConstant, value2Property);
+        return new(
+            boxConstant,
+            Member1: member1,
+            Member2: member2);
     }
 }
 

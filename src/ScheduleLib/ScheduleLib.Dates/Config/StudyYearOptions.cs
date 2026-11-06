@@ -37,5 +37,3 @@ public static class StudyYearHelper
         return ret;
     }
 }
-
-

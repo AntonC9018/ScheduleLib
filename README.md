@@ -1,7 +1,7 @@
 # ScheduleLib
 
 ScheduleLib parses university schedule Word/Excel sources, generates timetable
-artifacts, and supports teacher registry, Calendar, Drive and curricula workflows.
+artifacts, and supports teacher registry, Calendar and Drive workflows.
 The `schedulelib` CLI runs one operation per invocation on Linux and Windows.
 Academic year, semester, teacher identities and source defaults remain in the
 existing C# `AppConfiguration`/`DefaultConfig`; optional JSON settings overlay
@@ -63,7 +63,6 @@ accepted only by applicable commands: inspect the operation's `--help`.
 | `calendar sync` | Preview named calendar replacement and event/ID changes | `--profile`, configured calendar and Google authorization |
 | `registry sync` | Preview positional lesson/topic/attendance reconciliation | `--profile` and configured registry credentials |
 | `registry import-grades` | Preview mapped/rounded Moodle quiz grades | `--profile`, positive `--quiz-id ID`, configured Moodle/registry credentials |
-| `curricula download` | Download from the coded 2024–2025 Microsoft source | `--profile` and Microsoft authorization |
 
 ```sh
 schedulelib query lessons --room 423/4 --day Tuesday --parity OddWeek --before-slot 6 --json
@@ -138,8 +137,8 @@ removes local authorization without cloud revocation. Ordinary commands use
 provisioned/refreshable credentials and fail with exit 4 and a login instruction
 when authorization is missing or unusable. Registry/Moodle use their configured
 credentials without consent. Tokens belong to OS user state, separated by
-teacher/client/account, and never appear in results. See [authorization and
-curricula prerequisites](src/MainCli/AUTH.md).
+teacher/client/account, and never appear in results. See [authorization
+prerequisites](src/MainCli/AUTH.md).
 
 `drive publish`, `calendar sync`, `registry sync` and `registry import-grades`
 **preview by default**. Preview may read remote state and generate local files,
@@ -171,7 +170,7 @@ completed artifacts and a `schedulelib-manifest.json` are reported. Existing
 caller directories are never recursively cleared. Replacement requires unchanged
 manifest-owned files from the same operation; unrelated/modified files cause a
 collision error. Schedule operations accept `--data-dir`, `--cache-dir` and
-`--no-cache`; pre-defense, curricula and configuration/auth operations do not
+`--no-cache`; pre-defense and configuration/auth operations do not
 accept irrelevant schedule options. Source layout and academic selection remain
 code-defined.
 

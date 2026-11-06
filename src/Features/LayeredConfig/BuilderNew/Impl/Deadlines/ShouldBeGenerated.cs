@@ -50,4 +50,3 @@ public sealed class DeadlinesExcelConfigMerger : IMerger<DeadlinesExcelConfig>
         return into;
     }
 }
-

@@ -28,7 +28,10 @@ public sealed class UiTreeOutputProvider : IUiTreeOutputProvider
 
     public Stream GetWrite(TreeBuilder tree)
     {
-        var output = new FileStream(_settings.DatabaseFilePath, FileMode.Create, FileAccess.Write);
+        var output = new FileStream(
+            _settings.DatabaseFilePath,
+            FileMode.Create,
+            FileAccess.Write);
         return output;
     }
 
@@ -36,7 +39,10 @@ public sealed class UiTreeOutputProvider : IUiTreeOutputProvider
     {
         try
         {
-            var output = new FileStream(_settings.DatabaseFilePath, FileMode.Open, FileAccess.Read);
+            var output = new FileStream(
+                _settings.DatabaseFilePath,
+                FileMode.Open,
+                FileAccess.Read);
             return output;
         }
         catch (FileNotFoundException)
@@ -71,7 +77,8 @@ public sealed class UiTreeSerializer
     public async ValueTask Serialize(TreeBuilder tree)
     {
         await using var output = _outputProvider.GetWrite(tree);
-        await _serializer.SerializeUiLayers(output, tree).ConfigureAwait(false);
+        await _serializer.SerializeUiLayers(output, tree)
+            .ConfigureAwait(false);
         if (_settings.OpenAfterSave)
         {
             ExplorerHelper.TryOpenExplorerAndSelectFile(_settings.DatabaseFilePath);
@@ -96,7 +103,8 @@ public sealed class UiTreeSerializer
         }
         await using (output)
         {
-            await _serializer.DeserializeUiLayers(output, tree).ConfigureAwait(false);
+            await _serializer.DeserializeUiLayers(output, tree)
+                .ConfigureAwait(false);
         }
     }
 }
