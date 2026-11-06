@@ -24,7 +24,7 @@
 
     <PropertyGroup>
         <MicrosoftPackagesVersion>10.0.1</MicrosoftPackagesVersion>
-        <AntonCodingRulesVersion>0.1.0-local.20261103.2</AntonCodingRulesVersion>
+        <AntonCodingRulesVersion>0.1.0-local.20261106.1</AntonCodingRulesVersion>
     </PropertyGroup>
 
     <!-- Keep existing CR findings visible while each rule is reviewed against legacy code.

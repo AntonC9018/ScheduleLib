@@ -95,6 +95,12 @@ regressions confirm findings for local-array and field-array index increments an
 of the separate statements. No analyzer binary or consumer package version change is needed.
 This resolves those concrete mutation cases; other arithmetic shapes remain for review.
 
+The maintainer subsequently moved arithmetic and bitwise formula decomposition to semantic
+agent review. CR03 no longer counts those operators; consumed mutations and logical-condition
+checks remain enabled. The shipped guidance requires meaningful calculation abstractions and
+useful intermediate concepts. [Package adoption and validation][calculation-policy] record this
+policy change; the consumer formulas still need their individual semantic review.
+
 The maintainer subsequently chose named boxed values for the sequence-equality assertions.
 Those tests now assign `object boxedSecond` / `object boxedReversed` before calling `Equals`,
 including the matching default-value case. All three focused equality tests pass. This resolves
@@ -224,3 +230,5 @@ The older routing/action-kind examples have already been addressed; do not reope
 [typed-exceptions]: https://github.com/AntonC9018/ScheduleLib/issues/120
 
 [cr0401-removal]: cr0401-removal-2026-11-03.md
+
+[calculation-policy]: calculation-policy-2026-11-06.md
