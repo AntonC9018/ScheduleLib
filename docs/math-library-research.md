@@ -1,7 +1,7 @@
 # Vector mathematics library research
 
-Checked 2026-11-07 for the calculation cleanup in #246. This is a recommendation;
-no dependency or runtime code has changed.
+Checked 2026-11-07 for the calculation cleanup in #246. Adopted for the reviewed
+PDF geometry and deadline color interpolation, with the midpoint decision below.
 
 ## Recommendation
 
@@ -37,24 +37,24 @@ package depends on `MathNet.Numerics` and `System.Diagnostics.Contracts`. It is 
 licensed; the latest stable package remains 0.6.0 from 2020. See
 [package metadata][math-package].
 
-## Proposed use in ScheduleLib
+## Use in ScheduleLib
 
 - In `PdfTableReader.LetterAnchor`, convert the PdfPig endpoints into `Vector2d`
   at the library boundary. Use `end - start`, `.Length`, scalar division and
   `.PerpendicularLeft` for displacement, direction and normal offset. Preserve
   the existing zero-length fallback to `Vector2d.UnitX`. Convert the result back
   to `PdfPoint` at the boundary.
-- Use `Vector2d.Lerp(start, end, 0.5)` for the baseline midpoint and
-  `MathHelper.Lerp(lower, upper, 0.5)` for the adjacent-border midpoint.
-  OpenTK has no dedicated midpoint API in these types; interpolation halfway
-  expresses that operation.
+- Use `Midpoint` extensions for vectors and scalar coordinates. The maintainer
+  selected exactly `(start + end) * 0.5`, preserving the existing sum-then-scale
+  calculation rather than using halfway interpolation.
 - `PdfBox.CenterX` and `CenterY` already name their geometric meaning. Their
-  generated numbered temporaries can become scalar halfway interpolation calls.
+  generated numbered temporaries are replaced by scalar midpoint extension calls.
 - In `ColorHelper.Interpolate`, use `MathHelper.Lerp((float) from, (float) to, t)`
   and preserve the final integer cast. Keep the existing clamp in `ColorHelper.Lerp`.
   This replaces the manual formula while retaining the color policy in its owner.
-- Reference the package directly from `ParsePdf` and `Integration`, which own
-  these uses. Do not spread PDF-specific conversion helpers into the core model.
+- The shared helper project references the package and owns the midpoint extensions
+  in `ScheduleLib.Mathematics`. `ParsePdf` and `Integration` receive the dependency
+  through their existing helper reference. PDF coordinate conversions stay in the importer.
 
 ## Numerical behavior to verify during implementation
 
@@ -63,9 +63,10 @@ clamping. This matches the current color formula's float operation sequence,
 including its truncating final conversion. Silk's vector interpolation instead
 uses `a * (1 - t) + b * t`. See the pinned interpolation sources above.
 
-Halfway interpolation can round differently from the old `(a + b) / 2` formula.
-Use existing PDF extraction tests to check the intended migration, especially
-letters near cell boundaries. Keep zero-length direction handling explicit.
+Halfway interpolation can round differently from the old `(a + b) / 2` formula;
+the selected midpoint extension avoids that change. Use existing PDF extraction
+tests to check the migration, especially letters near cell boundaries.
+Keep zero-length direction handling explicit.
 OpenTK normalization multiplies by a reciprocal; dividing the vector by its
 already-computed length preserves the current division sequence more directly.
 
@@ -75,9 +76,10 @@ avoid relying on it for memory layout. This does not invalidate the checked vect
 operations, but it is a reason to verify the particular APIs rather than assume
 every package member is correct.
 
-No package was installed, and no build or runtime comparison was performed for
-this research. Implementation should validate the PDF extraction suite and the
-existing consumers of deadline color interpolation.
+The research itself installed no packages and performed no runtime comparison.
+Adoption validation passes all 35 existing PDF tests and the Release CLI test-project
+build with zero errors. The changed call sites and new extensions introduce no
+analyzer findings; existing unrelated warnings remain visible.
 
 [open-package]: https://www.nuget.org/packages/OpenTK.Mathematics/4.9.4
 [open-project]:

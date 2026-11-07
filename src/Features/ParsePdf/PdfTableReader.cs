@@ -1,4 +1,6 @@
 using System.Text;
+using OpenTK.Mathematics;
+using ScheduleLib.Mathematics;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
@@ -301,8 +303,7 @@ public static class PdfTableReader
                 .ToArray();
             for (int row = 1; row < ys.Length; row++)
             {
-                var adjacentBorderSum = ys[row - 1] + ys[row];
-                var middle = adjacentBorderSum / 2;
+                var middle = ys[row - 1].Midpoint(ys[row]);
                 var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
                     .Select(b => b.Position)
                     .Append(box.Left)
@@ -339,24 +340,21 @@ public static class PdfTableReader
     /// </summary>
     private static PdfPoint LetterAnchor(Letter letter)
     {
-        var start = letter.StartBaseLine;
-        var end = letter.EndBaseLine;
-        double dx = end.X - start.X;
-        double dy = end.Y - start.Y;
-        var squaredLength = dx * dx + dy * dy;
-        double length = Math.Sqrt(squaredLength);
+        var start = new Vector2d(x: letter.StartBaseLine.X, y: letter.StartBaseLine.Y);
+        var end = new Vector2d(x: letter.EndBaseLine.X, y: letter.EndBaseLine.Y);
+        var displacement = end - start;
+        double length = displacement.Length;
         var direction = length > 0
-            ? new PdfPoint(x: dx / length, y: dy / length)
-            : new PdfPoint(x: 1, y: 0);
+            ? displacement / length
+            : Vector2d.UnitX;
         // Lift the point off the baseline towards the glyph's x-height, perpendicular to the text.
         double lift = letter.PointSize / 3;
-        var midX = (start.X + end.X) / 2;
-        var midY = (start.Y + end.Y) / 2;
-        var normalOffsetX = direction.Y * lift;
-        var normalOffsetY = direction.X * lift;
+        var midpoint = start.Midpoint(end);
+        var normalOffset = direction.PerpendicularLeft * lift;
+        var anchor = midpoint + normalOffset;
         return new PdfPoint(
-            x: midX - normalOffsetX,
-            y: midY + normalOffsetY);
+            x: anchor.X,
+            y: anchor.Y);
     }
 
     private static string ReadText(Page page, PdfBox bounds)

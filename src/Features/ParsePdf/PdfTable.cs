@@ -1,3 +1,5 @@
+using ScheduleLib.Mathematics;
+
 namespace ScheduleLib.Import.Pdf;
 
 /// <summary>PDF points with the origin at the top left of the page.</summary>
@@ -7,25 +9,9 @@ public readonly record struct PdfBox(
     double Right,
     double Bottom)
 {
-    public double CenterX
-    {
-        get
-        {
-            double doubleValue = Left + Right;
-            double doubleValue2 = doubleValue / 2;
-            return doubleValue2;
-        }
-    }
+    public double CenterX => Left.Midpoint(Right);
 
-    public double CenterY
-    {
-        get
-        {
-            double doubleValue3 = Top + Bottom;
-            double doubleValue4 = doubleValue3 / 2;
-            return doubleValue4;
-        }
-    }
+    public double CenterY => Top.Midpoint(Bottom);
 
     public bool Contains(double x, double y)
     {

@@ -1,4 +1,5 @@
 using System.Drawing;
+using OpenTK.Mathematics;
 
 namespace ScheduleLib.Application.Core;
 
@@ -36,9 +37,9 @@ internal static class ColorHelper
         byte to,
         float t)
     {
-        var componentDistance = to - from;
-        var scaledDistance = componentDistance * t;
-        var component = from + scaledDistance;
+        float componentStart = from;
+        float componentEnd = to;
+        var component = MathHelper.Lerp(start: componentStart, end: componentEnd, t: t);
         return (int) component;
     }
 }
