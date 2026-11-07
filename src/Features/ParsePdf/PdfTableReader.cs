@@ -12,65 +12,25 @@ public static class PdfTableReader
     /// <summary>The point where a vertical and a horizontal border cross.</summary>
     private readonly record struct BorderIntersection(double X, double Y);
 
-    private const double Tolerance = 3;
+    private static readonly PdfCoordinateTolerance BorderTolerance = new(3);
+    private static readonly PdfCoordinateTolerance AxisAlignmentTolerance = new(1);
+    private static readonly PdfCoordinateTolerance RecoveryTolerance = new(2);
+    private static readonly PdfCoordinateTolerance TextRowTolerance = new(3);
+    private const double RecoveryInset = 2;
+    private const double MinimumInternalOverlap = 5;
 
     public static IReadOnlyList<PdfScheduleTable> Read(Stream input)
     {
         using var document = PdfDocument.Open(input);
-        return document.GetPages()
-            .Select(ReadPage)
-            .ToArray();
+        return document.GetPages().Select(ReadPage).ToArray();
     }
 
     private static PdfScheduleTable ReadPage(Page page)
     {
-        var raw = new List<PdfBorder>();
-        foreach (var path in page.Paths)
-        {
-            foreach (var subpath in path)
-            {
-                foreach (var line in subpath.Commands.OfType<PdfSubpath.Line>())
-                {
-                    if (Math.Abs(line.From.X - line.To.X) < 1)
-                    {
-                        bool vertical = true;
-                        double position = line.From.X;
-                        double doubleValue = page.Height;
-                        double max = Math.Max(line.From.Y, line.To.Y);
-                        double start = doubleValue - max;
-                        double doubleValue2 = page.Height;
-                        double min = Math.Min(line.From.Y, line.To.Y);
-                        double end = doubleValue2 - min;
-                        PdfBorder item = new(
-                            vertical,
-                            Position: position,
-                            Start: start,
-                            End: end);
-                        raw.Add(item);
-                    }
-                    else if (Math.Abs(line.From.Y - line.To.Y) < 1)
-                    {
-                        bool vertical2 = false;
-                        double position2 = page.Height - line.From.Y;
-                        double start2 = Math.Min(line.From.X, line.To.X);
-                        double end2 = Math.Max(line.From.X, line.To.X);
-                        PdfBorder item2 = new(
-                            vertical2,
-                            Position: position2,
-                            Start: start2,
-                            End: end2);
-                        raw.Add(item2);
-                    }
-                }
-            }
-        }
-
+        var raw = ReadBorders(page);
         var borders = JoinBorders(raw.Where(b => b.End - b.Start >= 3));
-        var cells =
-            FindCells(borders);
-        IEnumerable<PdfBox> cells2 = cells;
-        var borders2 = borders;
-        var boxes = RecoverPartialBorders(cells2, borders2);
+        var cells = FindCells(borders);
+        var boxes = RecoverPartialBorders(cells, borders);
         if (boxes.Count == 0)
         {
             throw new PdfScheduleTableNotFoundException(page.Number);
@@ -85,8 +45,62 @@ public static class PdfTableReader
         return new(
             page.Number,
             borders,
-            boxes.Select(ReadCell)
-                .ToArray());
+            boxes.Select(ReadCell).ToArray());
+    }
+
+    private static IReadOnlyList<PdfBorder> ReadBorders(Page page)
+    {
+        var borders = new List<PdfBorder>();
+        foreach (var path in page.Paths)
+        {
+            foreach (var subpath in path)
+            {
+                foreach (var line in subpath.Commands.OfType<PdfSubpath.Line>())
+                {
+                    if (IsVertical(line))
+                    {
+                        borders.Add(CreateVerticalBorder(line, page.Height));
+                    }
+                    else if (IsHorizontal(line))
+                    {
+                        borders.Add(CreateHorizontalBorder(line, page.Height));
+                    }
+                }
+            }
+        }
+        return borders;
+    }
+
+    private static bool IsVertical(PdfSubpath.Line line)
+    {
+        return AxisAlignmentTolerance.AreClose(first: line.From.X, second: line.To.X);
+    }
+
+    private static bool IsHorizontal(PdfSubpath.Line line)
+    {
+        return AxisAlignmentTolerance.AreClose(first: line.From.Y, second: line.To.Y);
+    }
+
+    private static PdfBorder CreateVerticalBorder(PdfSubpath.Line line, double pageHeight)
+    {
+        double highestY = Math.Max(line.From.Y, line.To.Y);
+        double lowestY = Math.Min(line.From.Y, line.To.Y);
+        return new PdfBorder(
+            Vertical: true,
+            Position: line.From.X,
+            Start: pageHeight - highestY,
+            End: pageHeight - lowestY);
+    }
+
+    private static PdfBorder CreateHorizontalBorder(PdfSubpath.Line line, double pageHeight)
+    {
+        double left = Math.Min(line.From.X, line.To.X);
+        double right = Math.Max(line.From.X, line.To.X);
+        return new PdfBorder(
+            Vertical: false,
+            Position: pageHeight - line.From.Y,
+            Start: left,
+            End: right);
     }
 
     public static IReadOnlyList<PdfBorder> JoinBorders(IEnumerable<PdfBorder> borders)
@@ -97,7 +111,10 @@ public static class PdfTableReader
             var clusters = new List<List<PdfBorder>>();
             foreach (var border in orientation.OrderBy(b => b.Position))
             {
-                if (clusters.Count == 0 || border.Position - clusters[^1][^1].Position > Tolerance)
+                if (clusters.Count == 0
+                    || BorderTolerance.ExceedsGap(
+                        position: border.Position,
+                        previousPosition: clusters[^1][^1].Position))
                 {
                     clusters.Add([]);
                 }
@@ -110,7 +127,8 @@ public static class PdfTableReader
                 PdfBorder? current = null;
                 foreach (var border in cluster.OrderBy(b => b.Start))
                 {
-                    if (current is { } previous && border.Start <= previous.End + Tolerance)
+                    if (current is { } previous
+                        && BorderTolerance.IsAtMost(value: border.Start, upperBound: previous.End))
                     {
                         current = previous with
                         {
@@ -141,17 +159,10 @@ public static class PdfTableReader
 
     public static IReadOnlyList<PdfBox> FindCells(IReadOnlyList<PdfBorder> borders)
     {
-        var vertical = borders.Where(b => b.Vertical)
-            .ToArray();
-        var horizontal = borders.Where(b => !b.Vertical)
-            .ToArray();
-        var points = (from v in vertical
-                      from h in horizontal
-                      where v.Start <= h.Position + Tolerance
-                          && v.End >= h.Position - Tolerance
-                          && h.Start <= v.Position + Tolerance
-                          && h.End >= v.Position - Tolerance
-                      select new BorderIntersection(X: v.Position, Y: h.Position)).Distinct()
+        var vertical = borders.Where(b => b.Vertical).ToArray();
+        var horizontal = borders.Where(b => !b.Vertical).ToArray();
+        var points = vertical.SelectMany(v => FindIntersections(v, horizontal))
+            .Distinct()
             .OrderBy(p => p.X)
             .ThenBy(p => p.Y)
             .ToArray();
@@ -229,6 +240,40 @@ public static class PdfTableReader
         return result;
     }
 
+    private static IEnumerable<BorderIntersection> FindIntersections(
+        PdfBorder vertical,
+        IEnumerable<PdfBorder> horizontal)
+    {
+        return horizontal.Where(h => BordersCross(vertical: vertical, horizontal: h))
+            .Select(h => new BorderIntersection(X: vertical.Position, Y: h.Position));
+    }
+
+    private static bool BordersCross(PdfBorder vertical, PdfBorder horizontal)
+    {
+        if (!CoversRange(vertical, start: horizontal.Position, end: horizontal.Position))
+        {
+            return false;
+        }
+        if (CoversRange(horizontal, start: vertical.Position, end: vertical.Position))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private static bool CoversRange(PdfBorder border, double start, double end)
+    {
+        if (!BorderTolerance.IsAtMost(value: border.Start, upperBound: start))
+        {
+            return false;
+        }
+        if (BorderTolerance.IsAtLeast(value: border.End, lowerBound: end))
+        {
+            return true;
+        }
+        return false;
+    }
+
     private static bool Connects(
         IEnumerable<PdfBorder> borders,
         double position,
@@ -241,18 +286,59 @@ public static class PdfTableReader
             {
                 return false;
             }
-            if (!(b.Start <= start + Tolerance))
-            {
-                return false;
-            }
-
-            if (b.End >= end - Tolerance)
+            if (CoversRange(b, start: start, end: end))
             {
                 return true;
             }
-
             return false;
         });
+    }
+
+    private static bool IsInsideRecoveryWidth(double position, PdfBox box)
+    {
+        double left = box.Left + RecoveryInset;
+        double right = box.Right - RecoveryInset;
+        return left < position && position < right;
+    }
+
+    private static bool IsInternalBorder(PdfBorder border, PdfBox box)
+    {
+        if (!border.Vertical)
+        {
+            return false;
+        }
+        if (!IsInsideRecoveryWidth(border.Position, box))
+        {
+            return false;
+        }
+        double overlapStart = Math.Max(border.Start, box.Top);
+        double overlapEnd = Math.Min(border.End, box.Bottom);
+        double overlapLength = overlapEnd - overlapStart;
+        if (overlapLength > MinimumInternalOverlap)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private static bool IsInsideRecoveryHeight(double position, PdfBox box)
+    {
+        double top = box.Top + RecoveryInset;
+        double bottom = box.Bottom - RecoveryInset;
+        return top < position && position < bottom;
+    }
+
+    private static bool CoversRecoveryRow(PdfBorder border, double middle)
+    {
+        if (!RecoveryTolerance.IsAtLeast(value: middle, lowerBound: border.Start))
+        {
+            return false;
+        }
+        if (RecoveryTolerance.IsAtMost(value: middle, upperBound: border.End))
+        {
+            return true;
+        }
+        return false;
     }
 
     public static IReadOnlyList<PdfBox> RecoverPartialBorders(
@@ -262,29 +348,7 @@ public static class PdfTableReader
         var result = new List<PdfBox>();
         foreach (var box in cells)
         {
-            var internalBorders = borders.Where(b =>
-                {
-                    if (!b.Vertical)
-                    {
-                        return false;
-                    }
-                    if (!(box.Left + 2 < b.Position))
-                    {
-                        return false;
-                    }
-                    if (!(b.Position < box.Right - 2))
-                    {
-                        return false;
-                    }
-
-                    if (Math.Min(b.End, box.Bottom) - Math.Max(b.Start, box.Top) > 5)
-                    {
-                        return true;
-                    }
-
-                    return false;
-                })
-                .ToArray();
+            var internalBorders = borders.Where(b => IsInternalBorder(b, box)).ToArray();
             if (internalBorders.Length == 0)
             {
                 result.Add(box);
@@ -295,7 +359,7 @@ public static class PdfTableReader
                     b.Start,
                     b.End,
                 })
-                .Where(y => box.Top + 2 < y && y < box.Bottom - 2)
+                .Where(y => IsInsideRecoveryHeight(y, box))
                 .Append(box.Top)
                 .Append(box.Bottom)
                 .Distinct()
@@ -304,7 +368,7 @@ public static class PdfTableReader
             for (int row = 1; row < ys.Length; row++)
             {
                 var middle = ys[row - 1].Midpoint(ys[row]);
-                var xs = internalBorders.Where(b => b.Start - 2 <= middle && middle <= b.End + 2)
+                var xs = internalBorders.Where(b => CoversRecoveryRow(b, middle))
                     .Select(b => b.Position)
                     .Append(box.Left)
                     .Append(box.Right)
@@ -326,8 +390,7 @@ public static class PdfTableReader
                 }
             }
         }
-        return result.Distinct()
-            .ToArray();
+        return result.Distinct().ToArray();
     }
 
     /// <summary>
@@ -382,7 +445,10 @@ public static class PdfTableReader
         var rows = new List<List<Letter>>();
         foreach (var letter in letters.OrderByDescending(l => l.StartBaseLine.Y))
         {
-            if (rows.Count == 0 || Math.Abs(rows[^1][0].StartBaseLine.Y - letter.StartBaseLine.Y) > 3)
+            if (rows.Count == 0
+                || TextRowTolerance.AreSeparated(
+                    first: rows[^1][0].StartBaseLine.Y,
+                    second: letter.StartBaseLine.Y))
             {
                 rows.Add([]);
             }
@@ -405,8 +471,7 @@ public static class PdfTableReader
                             text.Append(letter.Value);
                             previous = letter;
                         }
-                        return text.ToString()
-                            .Trim();
+                        return text.ToString().Trim();
                     })
                     .Where(line => line.Length > 0))
             .Trim();
