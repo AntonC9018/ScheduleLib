@@ -381,9 +381,7 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             // but it's undetectable from here and literally cannot be prevented.
             ret.Dispose();
 
-            if (typeof(TValue).IsClass
-                && !typeof(TValue).IsSealed
-                && !typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            if (NeedsElementDisposal())
             {
                 foreach (var x in ret)
                 {
@@ -403,6 +401,23 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
             throw;
         }
         return ret!;
+
+        static bool NeedsElementDisposal()
+        {
+            if (!typeof(TValue).IsClass)
+            {
+                return false;
+            }
+            if (typeof(TValue).IsSealed)
+            {
+                return false;
+            }
+            if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            {
+                return false;
+            }
+            return true;
+        }
     }
 
     public override void Write(

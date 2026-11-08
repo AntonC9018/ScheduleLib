@@ -107,14 +107,16 @@ public static class IcsCalendarWriter
 
     private static string DefaultUid(IcsCalendar calendar, IcsEvent e)
     {
+        string startText = FormatLocal(e.Start);
+        string endText = FormatLocal(e.End);
         string content = string.Join(
             '|',
             calendar.Name,
             e.Summary,
             e.Description,
             e.Location,
-            FormatLocal(e.Start),
-            FormatLocal(e.End));
+            startText,
+            endText);
         byte[] source = Encoding.UTF8.GetBytes(content);
         byte[] hash = SHA256.HashData(source);
         string hashText = Convert.ToHexString(hash);
@@ -194,9 +196,7 @@ public static class IcsCalendarWriter
             int charLen = 1;
             int charOctets;
 
-            if (char.IsHighSurrogate(line[i])
-                && i + 1 < line.Length
-                && char.IsLowSurrogate(line[i + 1]))
+            if (IsSurrogatePair(line, i))
             {
                 charLen = 2;
                 charOctets = 4;
@@ -225,6 +225,24 @@ public static class IcsCalendarWriter
             startIndex: segmentStart,
             count: line.Length - segmentStart);
         return sb.ToString();
+
+        static bool IsSurrogatePair(string text, int index)
+        {
+            if (!char.IsHighSurrogate(text[index]))
+            {
+                return false;
+            }
+            int nextIndex = index + 1;
+            if (nextIndex >= text.Length)
+            {
+                return false;
+            }
+            if (char.IsLowSurrogate(text[nextIndex]))
+            {
+                return true;
+            }
+            return false;
+        }
 
         static int Octets(char c)
         {
