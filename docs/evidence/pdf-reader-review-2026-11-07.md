@@ -49,9 +49,11 @@ or fixer work. This consumer correction changes no analyzer binary or suppressio
 All 47 PDF tests pass: the original 35 and 12 boundary cases covering inclusive
 border/corner tolerance, strict recovery margins, minimum overlap and `NaN`.
 The tolerance type and geometry tests produce no analyzer findings. The compact
-`document.GetPages().Select(ReadPage).ToArray()` chain still produces two CR0805
-warnings: the analyzer requests line breaks despite the short-chain layout policy.
-Record that mismatch upstream; do not suppress it or restore unwanted formatting.
+`document.GetPages().Select(ReadPage).ToArray()` chain at
+[`PdfTableReader.cs:25`](../../src/Features/ParsePdf/PdfTableReader.cs#L25) still
+produces two CR0805 warnings, at columns 35 and 52. The analyzer requests line
+breaks despite the short-chain layout policy. Record that mismatch upstream; do
+not suppress it or restore unwanted formatting.
 Other existing unrelated warnings remain visible. `git diff --check` passes.
 
 [cleanup]: https://github.com/AntonC9018/ScheduleLib/issues/246

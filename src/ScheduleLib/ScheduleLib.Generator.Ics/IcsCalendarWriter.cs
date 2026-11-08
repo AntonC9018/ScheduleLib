@@ -183,6 +183,39 @@ public static class IcsCalendarWriter
             return line;
         }
 
+        static bool IsSurrogatePair(string text, int index)
+        {
+            if (!char.IsHighSurrogate(text[index]))
+            {
+                return false;
+            }
+            int nextIndex = index + 1;
+            if (nextIndex >= text.Length)
+            {
+                return false;
+            }
+            if (char.IsLowSurrogate(text[nextIndex]))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        static int Octets(char c)
+        {
+            // UTF-16 BMP characters encode to 1 octet up to U+007F, 2 up to
+            // U+07FF and 3 beyond; surrogate pairs are handled by the caller.
+            if (c <= '\x7F')
+            {
+                return 1;
+            }
+            if (c <= '\x7FF')
+            {
+                return 2;
+            }
+            return 3;
+        }
+
         int estimatedFoldCount = line.Length / 75;
         int foldingOverhead = estimatedFoldCount * 2;
         int foldedLength = line.Length + foldingOverhead;
@@ -225,39 +258,6 @@ public static class IcsCalendarWriter
             startIndex: segmentStart,
             count: line.Length - segmentStart);
         return sb.ToString();
-
-        static bool IsSurrogatePair(string text, int index)
-        {
-            if (!char.IsHighSurrogate(text[index]))
-            {
-                return false;
-            }
-            int nextIndex = index + 1;
-            if (nextIndex >= text.Length)
-            {
-                return false;
-            }
-            if (char.IsLowSurrogate(text[nextIndex]))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        static int Octets(char c)
-        {
-            // UTF-16 BMP characters encode to 1 octet up to U+007F, 2 up to
-            // U+07FF and 3 beyond; surrogate pairs are handled by the caller.
-            if (c <= '\x7F')
-            {
-                return 1;
-            }
-            if (c <= '\x7FF')
-            {
-                return 2;
-            }
-            return 3;
-        }
     }
 
     private static void WriteVTimeZone(StreamWriter writer, string timeZoneId)

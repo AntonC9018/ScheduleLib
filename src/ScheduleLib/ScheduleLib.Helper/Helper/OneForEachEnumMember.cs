@@ -359,6 +359,47 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
 
         var ret = OneForEach.Enum<TEnum>()
             .RentArray<TValue>();
+        ret.Clear();
+
+        static bool NeedsElementDisposal()
+        {
+            if (!typeof(TValue).IsClass)
+            {
+                return false;
+            }
+            if (typeof(TValue).IsSealed)
+            {
+                return false;
+            }
+            if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        void DisposeElements()
+        {
+            if (NeedsElementDisposal())
+            {
+                foreach (var x in ret)
+                {
+                    if (x.Value is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
+                }
+                return;
+            }
+            if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            {
+                foreach (var x in ret)
+                {
+                    ((IDisposable?) x.Value)?.Dispose();
+                }
+            }
+        }
+
         try
         {
             while (reader.Read())
@@ -379,45 +420,17 @@ public sealed class RentedOneForEachEnumMemberArrayConverter<TEnum, TValue>
         {
             // May still leak if it's a property inside another object,
             // but it's undetectable from here and literally cannot be prevented.
-            ret.Dispose();
-
-            if (NeedsElementDisposal())
+            try
             {
-                foreach (var x in ret)
-                {
-                    if (x.Value is IDisposable d)
-                    {
-                        d.Dispose();
-                    }
-                }
+                DisposeElements();
             }
-            else if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
+            finally
             {
-                foreach (var x in ret)
-                {
-                    ((IDisposable?) x.Value)?.Dispose();
-                }
+                ret.Dispose();
             }
             throw;
         }
         return ret!;
-
-        static bool NeedsElementDisposal()
-        {
-            if (!typeof(TValue).IsClass)
-            {
-                return false;
-            }
-            if (typeof(TValue).IsSealed)
-            {
-                return false;
-            }
-            if (typeof(TValue).IsAssignableTo(typeof(IDisposable)))
-            {
-                return false;
-            }
-            return true;
-        }
     }
 
     public override void Write(
