@@ -190,6 +190,37 @@ and the property-editor factory in #272. Enumerator `Reset` implementations that
 not automatic feature implementation. Ordinary TODO comments are not CR1700 identifiers.
 The older routing/action-kind examples have already been addressed; do not reopen stale evidence.
 
+## 2026-11-08 review batch
+
+The four analyzer errors that stopped a clean build are cleared in `69e47c44`
+(`IcsCalendarWriter` and `OneForEachEnumMember`). A GPT-6.1-Sol review of
+[PR #226][pr-226] then found a pre-existing disposal-ordering defect in the rented
+converter; `9fdca2b4` disposes parsed elements before returning the buffer and adds
+a regression test. See [rented-buffer disposal](rented-buffer-disposal-2026-11-08.md).
+
+The arithmetic and bitwise policy is merged upstream as CodingRules PRs #41, #43
+and #44; ScheduleLib keeps the package packed from that work. A full rebuild still
+reports 146 warning lines, which are 73 diagnostics printed twice:
+
+| Rule | Lines |
+|---|---|
+| CR0300 | 86 |
+| CR0203 | 14 |
+| CR0201 | 14 |
+| CR1400 | 12 |
+| CR0302 | 6 |
+| CR0202 | 6 |
+| CR0805 | 4 |
+| CR1600 | 2 |
+| CR0500 | 2 |
+
+Only the two CR0805 findings on the PDF page-reading chain affect files changed in
+this batch. The remaining clusters, including the 86 CR0300 sites and the unflagged
+identity aliases and condition trees, still need per-cluster review and are not part
+of this batch.
+
+[pr-226]: https://github.com/AntonC9018/ScheduleLib/pull/226
+
 [rollout]: https://github.com/AntonC9018/ScheduleLib/issues/246
 [readability]: https://github.com/AntonC9018/ScheduleLib/issues/265
 [epic]: https://github.com/AntonC9018/ScheduleLib/issues/269
