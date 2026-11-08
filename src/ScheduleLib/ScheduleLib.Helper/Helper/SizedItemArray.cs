@@ -105,7 +105,7 @@ public readonly struct SizedItemArray<T>
         for (int index = 0; index < _items.Count; index++)
         {
             var it = _items[index];
-            if (EqualityComparer<T>.Default.Equals(it.Item, item))
+            if (EqualityComparer<T>.Default.Equals(x: it.Item, y: item))
             {
                 return colIndex;
             }
@@ -119,18 +119,23 @@ public readonly struct SizedItemArray<T>
         _items.Add(it);
     }
 
-    public void AddAt(int position, SizedItem<T> it, T? fillerValue = default)
+    public void AddAt(
+        int position,
+        SizedItem<T> it,
+        T? fillerValue = default)
     {
         var totalSize = TotalSize;
         if (position < totalSize)
         {
-            throw new ArgumentException("Must be after the last element", nameof(position));
+            throw new ArgumentException(message: "Must be after the last element", paramName: nameof(position));
         }
 
         var diff = position - totalSize;
         if (diff > 0)
         {
-            _items.Add(new(fillerValue!, diff));
+            var list = _items;
+            SizedItem<T> item = new(fillerValue!, diff);
+            list.Add(item);
         }
 
         _items.Add(it);
@@ -138,10 +143,16 @@ public readonly struct SizedItemArray<T>
 
     public bool Replace(T oldItem, T newItem)
     {
-        if (FindPosition(oldItem) is { } index)
+        if (!(FindPosition(oldItem) is { } index))
         {
-            return ReplaceItem(index, newItem);
+            return false;
         }
+
+        if (ReplaceItem(index, newItem))
+        {
+            return true;
+        }
+
         return false;
     }
 
@@ -206,11 +217,12 @@ public readonly struct SizedItemArray<T>
         if (existingItemSize == sizeOfItems)
         {
             existingItemRef = items[0];
-            _items.InsertRange(existing.Index + 1, items[1 ..]);
+            _items.InsertRange(existing.Index + 1, items[1..]);
             return ReplaceItemStatus.FullyReplaced;
         }
 
         int remainingSizeEnd = availableSize - sizeOfItems;
+
         if (offset > 0 && remainingSizeEnd > 0)
         {
             existingItemRef = existingItemRef.WithSize(offset);
@@ -317,6 +329,7 @@ public readonly struct SizedItemArray<T>
         }
 
         public SizedItem<T> Current => _enumerator.Current;
+
         public bool MoveNext()
         {
             while (true)
@@ -326,7 +339,7 @@ public readonly struct SizedItemArray<T>
                     return false;
                 }
                 var v = Current;
-                if (EqualityComparer<T>.Default.Equals(v.Item, _empty))
+                if (EqualityComparer<T>.Default.Equals(x: v.Item, y: _empty))
                 {
                     continue;
                 }
@@ -347,6 +360,7 @@ public readonly struct SizedItemArray<T>
 
         public WithPositionEnumerator GetEnumerator() => new(_arr);
     }
+
     public struct WithPositionEnumerator
     {
         private Enumerator _enumerator;
@@ -376,13 +390,13 @@ public readonly record struct SizedItemWithPosition<T>(SizedItem<T> SizedItem, i
 
 public static class SizedItemArrayExtensions
 {
-    extension<T> (SizedItemArray<T> items)
+    extension<T>(SizedItemArray<T> items)
     {
         public int? FindPositionOfFirstOtherThan(T otherValue)
         {
             foreach (var e in items.EnumerateWithPosition())
             {
-                if (!EqualityComparer<T>.Default.Equals(e.Item, otherValue))
+                if (!EqualityComparer<T>.Default.Equals(x: e.Item, y: otherValue))
                 {
                     return e.Position;
                 }
@@ -392,11 +406,12 @@ public static class SizedItemArrayExtensions
 
         public int? FindCountAfterFirstOtherThan(T otherValue)
         {
-            if (FindPositionOfFirstOtherThan(items, otherValue) is { } pos)
+            if (!(FindPositionOfFirstOtherThan(items, otherValue) is { } pos))
             {
-                return items.Count - pos;
+                return 0;
             }
-            return 0;
+
+            return items.Count - pos;
         }
     }
 }

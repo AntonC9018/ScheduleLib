@@ -16,6 +16,9 @@ using Tests.ScheduleCommon;
 
 public sealed class IntegrationTest
 {
+    /// <summary>The service provider and layered tree builder shared by one integration fixture.</summary>
+    private readonly record struct FixtureSetup(ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder);
+
     [Fact]
     public async Task LessonTopicsMergeTest()
     {
@@ -54,13 +57,17 @@ public sealed class IntegrationTest
 
         await serviceProvider.InitializeSchedule(cancellationToken);
 
-        var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>().Get();
+        var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>()
+            .Get();
 
         var outputDirectory = new OutputDirectory("output");
         outputDirectory.Initialize();
 
         const string outputPath = "output.xlsx";
-        await using var outputFile = outputDirectory.OpenFile(outputPath, FileMode.Create, FileAccess.ReadWrite);
+        await using var outputFile = outputDirectory.OpenFile(
+            outputPath,
+            FileMode.Create,
+            FileAccess.ReadWrite);
 
         var task = ActivatorUtilities.GetServiceOrCreateInstance<GenerateAllTeachersExcelTaskHandler>(serviceProvider);
 
@@ -74,7 +81,7 @@ public sealed class IntegrationTest
         outputDirectory.TryOpenFileInExplorer(outputPath);
     }
 
-    private (ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder) Fixture()
+    private FixtureSetup Fixture()
     {
         var services = new ServiceCollection();
         services.AddAllServices();
@@ -90,10 +97,12 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
-        services.Replace(new(
-            typeof(IScheduleInitializer),
-            typeof(ScheduleBuilderInitializer),
-            ServiceLifetime.Singleton));
+        var serviceCollection = services;
+        ServiceDescriptor descriptor = new(
+            serviceType: typeof(IScheduleInitializer),
+            implementationType: typeof(ScheduleBuilderInitializer),
+            ServiceLifetime.Singleton);
+        serviceCollection.Replace(descriptor);
 
         var serviceProvider = services.BuildServiceProvider(options: new()
         {
@@ -103,7 +112,7 @@ public sealed class IntegrationTest
         var builder = serviceProvider.GetRequiredService<TreeBuilder>();
         TestBuilderHelper.Configure(builder);
 
-        return (serviceProvider, builder);
+        return new(serviceProvider, builder);
     }
 }
 

@@ -10,6 +10,7 @@ namespace Desktop.ViewModelData;
 public sealed record class UiNode
 {
     public readonly NodeBuilder Leaf;
+
     public UiNode(NodeBuilder leaf)
     {
         Leaf = leaf;
@@ -17,8 +18,34 @@ public sealed record class UiNode
 
     public static readonly UiNode Null = new(default(NodeBuilder));
     public bool IsNull => Leaf.IsNull;
-    public bool IsEditable => !IsNull && IsUiLayer;
-    public TeacherLayerConfig Marker => Leaf.Node.Get(TeacherLayerConfig.Key).Value.GetValue()!;
+
+    public bool IsEditable
+    {
+        get
+        {
+            if (IsNull)
+            {
+                return false;
+            }
+
+            if (IsUiLayer)
+            {
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    public TeacherLayerConfig Marker
+    {
+        get
+        {
+            return Leaf.Node.Get(TeacherLayerConfig.Key).Value
+                .GetValue()!;
+        }
+    }
+
     public Name Name => Marker.TeacherName;
     public bool IsUiLayer => Leaf.Node.IsOnEditableLayer();
     public override string ToString() => IsNull ? "No User" : Name.ToString();
@@ -55,7 +82,8 @@ public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable
                 .Process()
                 .Where(x => x.Value.Node.IsLeaf())
                 .Where(x => x.Node == value.Leaf.Node)
-                .Select(x => x.Get(LayerPathContext.Key).Path())
+                .Select(x => x.Get(LayerPathContext.Key)
+                    .Path())
                 .FirstOrDefault(path);
         }
         _path.NodePath.Set(path);
@@ -89,7 +117,6 @@ public sealed partial class UiSelectedNodeViewModel : ViewModelBase, IDisposable
         {
             return UiNode.Null;
         }
-        else
         {
             var b = _tree.CreateBuilder(leaf);
             return new(b);

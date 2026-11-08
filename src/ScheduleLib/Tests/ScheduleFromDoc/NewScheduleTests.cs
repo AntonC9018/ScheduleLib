@@ -18,18 +18,25 @@ public sealed class NewScheduleTests
             .Select(x => schedule.Get(x))
             .Where(x =>
             {
-                if (x.Weekly is { } w)
+                if (!(x.Weekly is { } w))
                 {
-                    return w.Date.Period == schedule.LatestPeriodId();
+                    return true;
                 }
-                return true;
+
+                if (w.Date.Period == schedule.LatestPeriodId())
+                {
+                    return true;
+                }
+
+                return false;
             })
             .Select(x =>
             {
                 var groups = x.Lesson.Groups;
                 var groupNames = groups.Select(g => schedule.Get(g).Name);
                 var teacher = x.Lesson.Teachers[0];
-                var teacherName = schedule.Get(teacher).PersonName.ToString();
+                var teacherName = schedule.Get(teacher).PersonName
+                    .ToString();
                 return new
                 {
                     Groups = groupNames,

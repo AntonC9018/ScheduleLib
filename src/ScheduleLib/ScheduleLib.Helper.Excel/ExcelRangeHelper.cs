@@ -97,14 +97,16 @@ public static class ExcelRangeHelper
         }
         else
         {
-            uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
-            pos = new((uint) (cell.Index + 1), rowIndex);
+            uint rowIndex = row.Item.RowIndex?.Value ?? (uint) row.Index + 1;
+            pos = new(Col: (uint) (cell.Index + 1), Row: rowIndex);
         }
         return pos;
     }
 
     public static CellPosition ParseCellPosition(this ref SequenceReader reader)
     {
+        const int ExcelColumnAlphabetRadix = 'Z' - 'A' + 1;
+
         uint col = 0;
         while (true)
         {
@@ -116,7 +118,7 @@ public static class ExcelRangeHelper
             {
                 break;
             }
-            col *= 'Z' - 'A' + 1;
+            col *= ExcelColumnAlphabetRadix;
             col += (uint) (char.ToUpperInvariant(reader.Current) - 'A' + 1);
             reader.Move();
         }
@@ -129,6 +131,6 @@ public static class ExcelRangeHelper
         uint row = uint.Parse(reader.PeekSpanUntilPosition(bparser.Position));
         reader.MoveTo(bparser.Position);
 
-        return new(col, row);
+        return new(Col: col, Row: row);
     }
 }

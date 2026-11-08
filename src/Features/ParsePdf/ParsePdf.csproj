@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <RootNamespace>ScheduleLib.Import.Pdf</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../../ScheduleLib/ScheduleLib.Core/ScheduleLib.Core.csproj" />
+        <PackageReference Include="PdfPig" Version="0.1.16" />
+    </ItemGroup>
+</Project>

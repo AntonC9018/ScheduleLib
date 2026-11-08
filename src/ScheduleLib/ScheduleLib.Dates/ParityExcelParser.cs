@@ -28,16 +28,20 @@ public static class DayHelper
     {
         return GetDayOfWeekFromMonday(d.MondayDate, day);
     }
+
     public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
     {
-        var monday = d.AddDays(-(int) d.DayOfWeek + (int) DayOfWeek.Monday);
+        int offsetToMonday = -(int) d.DayOfWeek + (int) DayOfWeek.Monday;
+        var monday = d.AddDays(offsetToMonday);
         return GetDayOfWeekFromMonday(monday, day);
     }
 
     private const int weekdayCount = 7;
+
     private static DateOnly GetDayOfWeekFromMonday(DateOnly monday, DayOfWeek day)
     {
-        var offset = (day - DayOfWeek.Monday + weekdayCount) % weekdayCount;
+        int daysFromMonday = day - DayOfWeek.Monday + weekdayCount;
+        var offset = daysFromMonday % weekdayCount;
         var ret = monday.AddDays(offset);
         return ret;
     }
@@ -57,7 +61,8 @@ public static class ParityExcelParser
             throw InvalidParityDocumentException.ForNoBody();
         }
 
-        var table = body.Descendants<Table>().First();
+        var table = body.Descendants<Table>()
+            .First();
         var rows = table.ChildElements.OfType<TableRow>();
         using var rowEnumerator = rows.GetEnumerator();
 
@@ -127,7 +132,6 @@ public static class ParityExcelParser
 
         yield break;
 
-
         void VerifyHeader()
         {
             bool hasHeader = rowEnumerator.MoveNext();
@@ -147,8 +151,9 @@ public static class ParityExcelParser
 
             bool CompareHeader(string expectedText)
             {
-                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan().Trim();
-                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(weekHeaderText, expectedText.AsSpan());
+                var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan()
+                    .Trim();
+                return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: weekHeaderText, y: expectedText.AsSpan());
             }
 
             {
@@ -217,6 +222,7 @@ public static class ParityExcelParser
             }
             return cells.Current;
         }
+
         static void NoNextCell(IEnumerator<TableCell> cells)
         {
             bool moved = cells.MoveNext();
@@ -256,13 +262,13 @@ public static class ParityExcelParser
         }
     }
 
-
     private static Month? ParseMonth(ReadOnlySpan<char> name)
     {
         for (int i = 0; i < MonthNames.Length; i++)
         {
             var monthName = MonthNames[i];
-            if (monthName.AsSpan().Equals(name, StringComparison.OrdinalIgnoreCase))
+            if (monthName.AsSpan()
+                .Equals(name, StringComparison.OrdinalIgnoreCase))
             {
                 var month = (Month) (i + 1);
                 return month;
@@ -281,10 +287,12 @@ public static class ParityExcelParser
             {
                 return true;
             }
+
             if (char.IsWhiteSpace(c))
             {
                 return true;
             }
+
             return false;
         }
     }

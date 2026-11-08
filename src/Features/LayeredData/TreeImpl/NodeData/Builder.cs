@@ -25,7 +25,7 @@ public readonly struct NodeDataBuilder<T>
 
 public static class BaseExtensions
 {
-    extension (NodeBuilder builder)
+    extension(NodeBuilder builder)
     {
         public NodeDataBuilder<T> Builder<T>()
             where T : class, INodeData<T>
@@ -36,13 +36,19 @@ public static class BaseExtensions
         public NodeDataBuilder<T> Builder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder, key, isReadOnly: false);
+            return new(
+                builder,
+                key,
+                isReadOnly: false);
         }
 
         public NodeDataBuilder<T> ReadOnlyBuilder<T>(NodeDataKey<T> key)
             where T : class
         {
-            return new(builder, key, isReadOnly: true);
+            return new(
+                builder,
+                key,
+                isReadOnly: true);
         }
 
         public void ClearData()
@@ -51,7 +57,7 @@ public static class BaseExtensions
         }
     }
 
-    extension<T> (NodeDataBuilder<T> builder)
+    extension<T>(NodeDataBuilder<T> builder)
         where T : class
     {
         public void MutableGuard()
@@ -74,7 +80,8 @@ public static class BaseExtensions
         {
             builder.MutableGuard();
             var x = builder.Enable();
-            value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Copy(value);
+            value = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>()
+                .Copy(value);
             x.SetValue(value);
             return value;
         }
@@ -85,10 +92,12 @@ public static class BaseExtensions
             var x = builder.Enable();
             if (x.GetValue() is not { } val)
             {
-                val = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>().Empty();
+                val = builder.SingletonServiceProvider.GetRequiredService<IBasicOperations<T>>()
+                    .Empty();
                 if (val is null)
                 {
-                    throw new InvalidOperationException("Root BasicOperations is supposed to create actual objects, not null.");
+                    throw new InvalidOperationException(
+                        "Root BasicOperations is supposed to create actual objects, not null.");
                 }
                 x.SetValue(val);
             }
@@ -102,11 +111,12 @@ public static class BaseExtensions
             {
                 return null;
             }
-            if (container.Value.GetValue() is { } val)
+            if (!(container.Value.GetValue() is { } val))
             {
-                return val;
+                return null;
             }
-            return null;
+
+            return val;
         }
 
         public NodeDataContainer<T> Enable()

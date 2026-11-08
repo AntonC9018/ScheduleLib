@@ -7,13 +7,19 @@ public sealed class DateProviderTests
     [Fact]
     public void TestHoliday()
     {
-        var monday = new DateOnly(year: 2025, month: 4, day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
+        var monday = new DateOnly(
+            year: 2025,
+            month: 4,
+            day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
+
         var provider = new ManualWeeklyScheduledDateProvider(
-            studyWeeks: [
+            studyWeeks:
+            [
                 new StudyWeek(monday, isOddWeek: true),
             ],
-            holidays: [
-                new HolidayPeriod(monday, monday.AddDays(5)),
+            holidays:
+            [
+                new HolidayPeriod(start: monday, endExclusive: monday.AddDays(5)),
             ]);
         var ret = provider.Dates(new()
         {
@@ -28,9 +34,13 @@ public sealed class DateProviderTests
     [Fact]
     public void TestNoHoliday()
     {
-        var monday = new DateOnly(year: 2025, month: 4, day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
+        var monday = new DateOnly(
+            year: 2025,
+            month: 4,
+            day: 25).GetDayOfThisWeek(DayOfWeek.Monday);
         var provider = new ManualWeeklyScheduledDateProvider(
-            studyWeeks: [
+            studyWeeks:
+            [
                 new StudyWeek(monday, isOddWeek: true),
             ],
             holidays: []);
@@ -48,4 +58,3 @@ public sealed class DateProviderTests
 file static class Extensions
 {
 }
-

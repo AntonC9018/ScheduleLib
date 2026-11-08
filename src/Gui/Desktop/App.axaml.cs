@@ -27,10 +27,11 @@ public sealed partial class App : Application
         services.AddSingleton<TreeContext>();
         services.AddSingleton<UiTreeSerializer>();
         services.AddSingleton<IUiTreeOutputProvider, UiTreeOutputProvider>();
-        services.AddOptions<UiTreeSerializerSettings>().Configure(x =>
-        {
-            x.OpenAfterSave = true;
-        });
+        services.AddOptions<UiTreeSerializerSettings>()
+            .Configure(x =>
+            {
+                x.OpenAfterSave = true;
+            });
         services.AddSingleton<ConfigTypesProvider>();
 
         services.AddTransient<MainWindowViewModel>();
@@ -101,7 +102,8 @@ public sealed partial class App : Application
     private void DisableAvaloniaDataAnnotationValidation()
     {
         var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>()
+                .ToArray();
 
         foreach (var plugin in dataValidationPluginsToRemove)
         {
@@ -112,7 +114,7 @@ public sealed partial class App : Application
 
 public static class ServiceProviderExtensions
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void ValidateViewsAreNotDisposable()
         {
@@ -122,13 +124,19 @@ public static class ServiceProviderExtensions
             var offending = services
                 .Where(d =>
                 {
-                    if (!disposableType.IsAssignableFrom(d.ImplementationType) &&
-                        !asyncDisposableType.IsAssignableFrom(d.ImplementationType))
+                    if (!disposableType.IsAssignableFrom(d.ImplementationType)
+                        && !asyncDisposableType.IsAssignableFrom(d.ImplementationType))
                     {
                         return false;
                     }
-                    return d.ImplementationType != null
-                        && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType);
+
+                    if (d.ImplementationType != null
+                        && typeof(ViewModelBase).IsAssignableFrom(d.ImplementationType))
+                    {
+                        return true;
+                    }
+
+                    return false;
                 })
                 .Select(d => d.ImplementationType!.FullName)
                 .ToList();
@@ -136,8 +144,7 @@ public static class ServiceProviderExtensions
             if (offending.Count > 0)
             {
                 var names = string.Join("\n  ", offending);
-                throw new InvalidOperationException(
-                    $"The following ViewModels implement a Dispose pattern, which is not allowed:\n  {names}");
+                throw new ViewModelsWithDisposePatternException(names);
             }
         }
 
@@ -157,7 +164,8 @@ public static class ServiceProviderExtensions
             // });
         }
     }
-    extension (IServiceProvider sp)
+
+    extension(IServiceProvider sp)
     {
         public T GetRequiredView<T>(bool setViewModel = false) where T : Control
         {
@@ -170,6 +178,7 @@ public static class ServiceProviderExtensions
         }
 
         public T GetRequiredViewModel<T>() where T : class => sp.GetRequiredNonDisposable<T>();
+
         public T GetRequiredNonDisposable<T>() where T : class
         {
             if (typeof(T).IsAssignableTo(typeof(IDisposable))
@@ -189,7 +198,8 @@ public static class ServiceProviderExtensions
         {
             var viewModelType = ViewAndViewModelConverter.TypeFromViewToViewModel(view.GetType());
             Debug.Assert(viewModelType != null);
-            var viewModel = (ViewModelBase) sp.GetRequiredService(viewModelType);
+            object requiredService = sp.GetRequiredService(viewModelType);
+            var viewModel = (ViewModelBase) requiredService;
             view.DataContext = viewModel;
             return viewModel;
         }

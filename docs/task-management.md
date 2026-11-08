@@ -26,12 +26,20 @@ gh issue edit NUMBER --repo AntonC9018/ScheduleLib --add-assignee @me --add-labe
 gh issue comment NUMBER --repo AntonC9018/ScheduleLib --body-file /tmp/work-claim.md
 ```
 
-A claim comment should identify the agent/thread, its scope, and any branch or
-worktree. Assignment and labels alone are not an atomic lock: concurrent agents
-may share a GitHub account. Re-read ownership before editing, coordinate with
-existing owners, and use separate worktrees for overlapping implementation.
+A claim comment should state the task scope and include a public branch or PR
+reference when useful. Assignment and labels alone are not an atomic lock:
+concurrent agents may share a GitHub account. Re-read ownership before editing,
+coordinate with existing owners, and use separate worktrees for overlapping
+implementation.
 
 ## Create and relate work
+
+Keep issue descriptions and comments concise: state the problem, expected behavior,
+useful decisions/blockers, and relevant validation. Write for readers who cannot
+access a contributor's computer. Never include machine-specific checkout/worktree
+paths, private storage locations, private account/profile details, thread/provider
+continuation history, or other personal setup context without project meaning.
+Use repository-relative source paths and commit/PR references when they help.
 
 Search existing issues before creating another one. Write multiline content to
 a file and pass it through `--body-file`; do not use an interactive editor.

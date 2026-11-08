@@ -41,6 +41,42 @@ internal static class MatchLessonHelper
 {
     internal static IEnumerable<AnyLessonId> MatchLessonsInSchedule(LessonMatchParams p)
     {
+        return MatchLessonCandidates(p)
+            .Where(id =>
+            {
+                var lesson = p.Schedule.Get(id).Lesson;
+                return !IsUnsafeIntakeLab(p.Filter.Groups, lesson);
+            });
+    }
+
+    internal static List<AnyLessonId> FindUnsafeIntakeLabs(LessonMatchParams p)
+    {
+        return MatchLessonCandidates(p)
+            .Where(id =>
+            {
+                var lesson = p.Schedule.Get(id).Lesson;
+                return IsUnsafeIntakeLab(p.Filter.Groups, lesson);
+            })
+            .ToList();
+    }
+
+    private static bool IsUnsafeIntakeLab(FoundGroups groups, LessonData lesson)
+    {
+        if (lesson.Type != LessonType.Lab)
+        {
+            return false;
+        }
+
+        if (groups.IsWildcard || !groups.Value.IsSingleGroup)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static IEnumerable<AnyLessonId> MatchLessonCandidates(LessonMatchParams p)
+    {
         {
             bool yielded = false;
             foreach (var x in MatchLessonsImpl(p, p.Filter.GroupPartition))
@@ -48,7 +84,8 @@ internal static class MatchLessonHelper
                 yield return x;
                 yielded = true;
             }
-            if (yielded)
+
+            if (yielded || p.Filter.Groups.IsCombined)
             {
                 yield break;
             }
@@ -67,6 +104,60 @@ internal static class MatchLessonHelper
         }
     }
 
+    internal static bool MatchesPartition(
+        Schedule schedule,
+        LessonData lesson,
+        GroupPartitionKey partition)
+    {
+        if (lesson.GroupPartitionKey == partition)
+        {
+            return true;
+        }
+
+        bool RequiresPartitionedMatch()
+        {
+            if (partition != GroupPartitionKey.All)
+            {
+                return true;
+            }
+
+            if (lesson.Specialization != Specialization.All)
+            {
+                return true;
+            }
+
+            if (lesson.Alternative != Alternative.All)
+            {
+                return true;
+            }
+
+            if (lesson.Groups.IsEmpty)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (RequiresPartitionedMatch())
+        {
+            return false;
+        }
+        // The ordinary registry destination represents the parent's teaching language;
+        // another language subgroup has its own destination.
+        if (lesson.SubGroup.IsLanguageSubGroup()
+            && lesson.Groups.All(group =>
+            {
+                return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
+                    && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup;
+            }))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private static IEnumerable<AnyLessonId> MatchLessonsImpl(
         LessonMatchParams p,
         GroupPartitionKey groupPartition)
@@ -74,17 +165,47 @@ internal static class MatchLessonHelper
         var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
         foreach (var lessonId in lessonsOfCourse)
         {
+            if (!p.Schedule.IsLessonActive(lessonId))
+            {
+                continue;
+            }
+
             var lesson = p.Schedule.Get(lessonId);
-            if (lesson.Lesson.GroupPartitionKey != groupPartition)
+            bool condition;
+            if (p.Filter.Groups.IsCombined)
+            {
+                condition = lesson.Lesson.GroupPartitionKey != groupPartition;
+            }
+            else
+            {
+                bool matchesPartition = MatchesPartition(
+                    p.Schedule,
+                    lesson.Lesson,
+                    groupPartition);
+                condition = !matchesPartition;
+            }
+
+            if (condition)
             {
                 continue;
             }
 
             ref readonly var g = ref p.Filter.Groups;
 
-            if (g.IsWildcard)
+            if (g.IsCombined)
             {
-                if (!g.Value.IsSubSetOf(lesson.Lesson.Groups))
+                // Combined registry cohorts can have separate parent-group lessons.
+                // A lesson must be entirely within the confirmed resolved parents.
+                if (lesson.Lesson.Groups.IsEmpty || !lesson.Lesson.Groups.IsSubSetOf(g.Value))
+                {
+                    continue;
+                }
+            }
+            else if (g.IsWildcard)
+            {
+                if (lesson.Lesson.Groups.IsEmpty
+                    || !g.Value.IsSubSetOf(lesson.Lesson.Groups)
+                    && !lesson.Lesson.Groups.IsSubSetOf(g.Value))
                 {
                     continue;
                 }

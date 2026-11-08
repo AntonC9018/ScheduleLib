@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Desktop.MvvmEssentials;
@@ -15,12 +15,22 @@ public abstract class ViewModelBase : ObservableObject
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
     {
         var id = new CallerIdentity(this);
-        _dispatcher.Post<PropertyChangedEventArgs>(new(id, x => base.OnPropertyChanged(x), e));
+        var iDispatcher = _dispatcher;
+        PostArgs<PropertyChangedEventArgs> args = new(
+            id,
+            x => base.OnPropertyChanged(x),
+            e);
+        iDispatcher.Post(args);
     }
+
     protected override void OnPropertyChanging(PropertyChangingEventArgs e)
     {
         var id = new CallerIdentity(this);
-        _dispatcher.Post<PropertyChangingEventArgs>(new(id, x => base.OnPropertyChanging(x), e));
+        var iDispatcher = _dispatcher;
+        PostArgs<PropertyChangingEventArgs> args = new(
+            id,
+            x => base.OnPropertyChanging(x),
+            e);
+        iDispatcher.Post(args);
     }
 }
-

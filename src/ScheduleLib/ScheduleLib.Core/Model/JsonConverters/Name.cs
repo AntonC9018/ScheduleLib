@@ -7,7 +7,10 @@ namespace ScheduleLib.JsonConverters;
 // Claude
 public sealed class NameJsonConverter : JsonConverter<Name>
 {
-    public override Name Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Name Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options)
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -31,11 +34,14 @@ public sealed class NameJsonConverter : JsonConverter<Name>
         }
         catch (InvalidOperationException ex)
         {
-            throw new JsonException($"Failed to parse name: {ex.Message}", ex);
+            throw new NameJsonConversionException(ex.Message, ex);
         }
     }
 
-    public override void Write(Utf8JsonWriter writer, Name value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        Name value,
+        JsonSerializerOptions options)
     {
         if (value == null)
         {
@@ -48,4 +54,10 @@ public sealed class NameJsonConverter : JsonConverter<Name>
 
         writer.WriteStringValue(stringValue);
     }
+}
+
+public sealed class NameJsonConversionException(string parseError, Exception innerException)
+    : JsonException($"Failed to parse name: {parseError}", innerException)
+{
+    public string ParseError { get; } = parseError;
 }

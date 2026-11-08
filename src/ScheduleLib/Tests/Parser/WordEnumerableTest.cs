@@ -8,20 +8,22 @@ public sealed class WordEnumerableTests
     public void CountTest()
     {
         var e = new WordEnumerable("hello world", opts: new());
-        Assert.Equal(2, e.Count());
+        Assert.Equal(expected: 2, actual: e.Count());
     }
 
     [Fact]
     public void BasicTest()
     {
-        var w = new WordEnumerable("hello world",
+        var w = new WordEnumerable(
+            "hello world",
             opts: new()
             {
                 IgnorePunctuation = false,
             });
-        Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+        Assert.Collection(
+            w.ToArray(),
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
@@ -29,7 +31,8 @@ public sealed class WordEnumerableTests
     {
         Assert.Throws<InvalidSeparatorException>(() =>
         {
-            var w = new WordEnumerable("hello world!",
+            var w = new WordEnumerable(
+                "hello world!",
                 opts: new()
                 {
                     IgnorePunctuation = false,
@@ -41,46 +44,53 @@ public sealed class WordEnumerableTests
     [Fact]
     public void PunctuationIgnored()
     {
-        var w = new WordEnumerable("hello world!",
+        var w = new WordEnumerable(
+            "hello world!",
             opts: new()
             {
                 IgnorePunctuation = true,
             });
-        Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+        Assert.Collection(
+            w.ToArray(),
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
     public void ConsecutiveIgnoredCharsSkipped()
     {
-        var w = new WordEnumerable("hello  world",
+        var w = new WordEnumerable(
+            "hello  world",
             opts: new()
             {
                 IgnorePunctuation = true,
             });
-        Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+        Assert.Collection(
+            w.ToArray(),
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
     public void IgnoredCharsInFrontSkipped()
     {
-        var w = new WordEnumerable("  hello world",
+        var w = new WordEnumerable(
+            "  hello world",
             opts: new()
             {
                 IgnorePunctuation = true,
             });
-        Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello", s1),
-            s2 => Assert.Equal("world", s2));
+        Assert.Collection(
+            w.ToArray(),
+            s1 => Assert.Equal(expected: "hello", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 
     [Fact]
     public void StringWithOnlyIgnoredCharsIsEmpty()
     {
-        var w = new WordEnumerable(" !,,  ",
+        var w = new WordEnumerable(
+            " !,,  ",
             opts: new()
             {
                 IgnorePunctuation = true,
@@ -91,14 +101,16 @@ public sealed class WordEnumerableTests
     [Fact]
     public void PeriodsAreConsideredValidWordCharacters()
     {
-        var w = new WordEnumerable("hello. world",
+        var w = new WordEnumerable(
+            "hello. world",
             opts: new()
             {
                 IgnorePunctuation = false,
             });
-        Assert.Collection(w.ToArray(),
-            s1 => Assert.Equal("hello.", s1),
-            s2 => Assert.Equal("world", s2));
+        Assert.Collection(
+            w.ToArray(),
+            s1 => Assert.Equal(expected: "hello.", actual: s1),
+            s2 => Assert.Equal(expected: "world", actual: s2));
     }
 }
 

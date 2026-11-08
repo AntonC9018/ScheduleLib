@@ -31,8 +31,17 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
     public async Task Run(RunParams p)
     {
         var quiz = await p.MoodleContext.ScrapeQuizAttempts(p.QuizId, cancellationToken: p.CancellationToken);
-        var plan = await Plan(new() { Quiz = quiz, RegistryNavigator = p.RegistryNavigator, Semester = p.Semester, CancellationToken = p.CancellationToken });
-        foreach (var action in plan.Actions) await action.Execute(p.CancellationToken);
+        var plan = await Plan(new()
+        {
+            Quiz = quiz,
+            RegistryNavigator = p.RegistryNavigator,
+            Semester = p.Semester,
+            CancellationToken = p.CancellationToken,
+        });
+        foreach (var action in plan.Actions)
+        {
+            await action.Execute(p.CancellationToken);
+        }
     }
 
     public readonly record struct PlanParams
@@ -42,6 +51,9 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         public required Semester Semester { get; init; }
         public required CancellationToken CancellationToken { get; init; }
     }
+
+    /// <summary>A grade form input field and the grade that will be submitted through it.</summary>
+    private readonly record struct GradeFormInput(IHtmlInputElement Element, int Grade);
 
     public async Task<RegistryGradePlan> Plan(PlanParams p)
     {
@@ -58,7 +70,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             var name = NameHelper.TryParseName(ref parser);
             if (name is null)
             {
-                notices.Add(new("omitted", $"Moodle name could not be parsed: {q.UserName}"));
+                notices.Add(RegistryGradeNotice.MoodleNameUnparsed(q.UserName));
                 continue;
             }
 
@@ -72,24 +84,43 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
             if (q.Grade is not { } grade1)
             {
-                notices.Add(new("omitted", $"Moodle student has no grade: {q.UserName}"));
+                notices.Add(RegistryGradeNotice.MoodleGradeMissing(q.UserName));
                 continue;
             }
-            if (!float.IsFinite(grade1) || (double) grade1 > int.MaxValue || (double) grade1 < int.MinValue)
+            if (!float.IsFinite(grade1)
+                || (double) grade1 > int.MaxValue
+                || (double) grade1 < int.MinValue)
             {
-                notices.Add(new("unsupported", $"Moodle grade is not a finite supported number: {q.UserName}"));
+                notices.Add(RegistryGradeNotice.MoodleGradeUnsupported(q.UserName));
                 continue;
             }
-            if (gradeByName.ContainsKey(name)) notices.Add(new("omitted", $"Earlier attempt replaced by the last graded attempt: {name}"));
+            if (gradeByName.ContainsKey(name))
+            {
+                notices.Add(RegistryGradeNotice.MoodleAttemptSuperseded(name));
+            }
+
             gradeByName[name] = grade1;
         }
 
         // determine course from path
-        var parsedPath = MoodlePathParser.TryParse(quiz.Path.Select(x => x.Name));
-        if (parsedPath is null || parsedPath.Grade == Grade.Invalid || parsedPath.TestNumber <= 0)
+        RegistryGradePlan UnsupportedPath()
         {
-            notices.Add(new("unsupported", "Moodle course/test path could not be parsed."));
+            notices.Add(RegistryGradeNotice.MoodlePathUnparsed());
             return new(actions, notices);
+        }
+
+        var parsedPath = MoodlePathParser.TryParse(quiz.Path.Select(x => x.Name));
+        if (parsedPath is null)
+        {
+            return UnsupportedPath();
+        }
+        if (parsedPath.Grade == Grade.Invalid)
+        {
+            return UnsupportedPath();
+        }
+        if (parsedPath.TestNumber <= 0)
+        {
+            return UnsupportedPath();
         }
 
         var courseId = _unifier.Find(new()
@@ -99,7 +130,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         });
         if (courseId is null)
         {
-            notices.Add(new("unsupported", "Moodle course name does not resolve in the configured schedule."));
+            notices.Add(RegistryGradeNotice.MoodleCourseUnresolved());
             return new(actions, notices);
         }
         var grade = parsedPath.Grade;
@@ -116,7 +147,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             {
                 if (group.Groups.IsWildcard || group.Groups.Value.Count == 0)
                 {
-                    notices.Add(new("unsupported", $"Wildcard or empty registry group is unsupported: {group.EvaluationUri}"));
+                    notices.Add(RegistryGradeNotice.RegistryGroupUnsupported(group.EvaluationUri));
                     continue;
                 }
                 var groupInfo = _schedule.Get(group.Groups.Value[0]);
@@ -156,12 +187,12 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 
                         var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
                         var number = int.Parse(numberSpan);
-                        if (parsedPath.TestNumber != number)
+                        if (parsedPath.TestNumber == number)
                         {
-                            return false;
+                            return true;
                         }
 
-                        return true;
+                        return false;
                     });
                     var header = matching.FirstOrDefault();
                     return header;
@@ -170,7 +201,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 var testUrl = TestAnchor();
                 if (testUrl is null)
                 {
-                    notices.Add(new("unsupported", $"Testarea {parsedPath.TestNumber} is missing for {group.EvaluationUri}"));
+                    notices.Add(RegistryGradeNotice.RegistryTestMissing(parsedPath.TestNumber, group.EvaluationUri));
                     continue;
                 }
                 var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
@@ -180,7 +211,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 int gradeColumnIndex = FindColumnIndex("Nota");
 
                 var changes = new List<RegistryGradeChange>();
-                var inputs = new List<(IHtmlInputElement Input, int Grade)>();
+                var inputs = new List<GradeFormInput>();
                 for (int i = 1; i < table.Rows.Length; i++)
                 {
                     p.CancellationToken.ThrowIfCancellationRequested();
@@ -193,7 +224,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         // A two-part name otherwise lets the name parser consume exmatr as a patronymic.
                         if (registryName.EndsWith(" exmatr", StringComparison.Ordinal))
                         {
-                            notices.Add(new("omitted", $"Expelled registry student: {registryName}"));
+                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(registryName));
                             continue;
                         }
                         var nameParser = new SequenceReader(registryName);
@@ -201,76 +232,106 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var parsedName = NameHelper.TryParseName(ref nameParser);
                         if (parsedName is null)
                         {
-                            notices.Add(new("unsupported", $"Registry name could not be parsed: {registryName}"));
+                            notices.Add(RegistryGradeNotice.RegistryNameUnparsed(registryName));
                             continue;
                         }
                         name = parsedName;
                         nameParser.SkipWhitespace();
                         if (nameParser.ConsumeExactString("exmatr"))
                         {
-                            notices.Add(new("omitted", $"Expelled registry student: {name}"));
+                            var expelledStudent = name.ToString();
+                            notices.Add(RegistryGradeNotice.RegistryStudentExpelled(expelledStudent));
                             continue;
                         }
                         if (!nameParser.IsEmpty)
                         {
-                            notices.Add(new("unsupported", $"Registry name contains unsupported trailing text: {registryName}"));
+                            notices.Add(RegistryGradeNotice.RegistryNameTrailingTextUnsupported(registryName));
                             continue;
                         }
                     }
 
                     if (!gradeByName.Remove(name, out float gradeInDb))
                     {
-                        notices.Add(new("unmatched", $"Registry student has no matching graded Moodle attempt: {name}"));
+                        notices.Add(RegistryGradeNotice.RegistryStudentUnmatched(name));
                         continue;
                     }
 
-                    var gradeRounded = (int) Math.Round(gradeInDb);
+                    double round = Math.Round(gradeInDb);
+                    var gradeRounded = (int) round;
 
                     {
                         var gradeCell = row.Cells[gradeColumnIndex];
                         var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
                             ?? throw new InvalidOperationException("No input found in grade cell");
-                        changes.Add(new(name.ToString(), gradeInDb, gradeRounded, input.Value));
-                        inputs.Add((input, gradeRounded));
+                        var
+                            list14 = changes;
+                        RegistryGradeChange item14 = new(
+                            Student: name.ToString(),
+                            gradeInDb,
+                            gradeRounded,
+                            PreviousGrade: input.Value);
+                        list14.Add(item14);
+                        inputs.Add(new(input, gradeRounded));
                     }
                 }
 
                 if (changes.Count == 0)
                 {
-                    notices.Add(new("omitted", $"No mapped grades to submit for {testUrl.Href}"));
+                    notices.Add(RegistryGradeNotice.NoGradesToSubmit(testUrl.Href));
                     continue;
                 }
                 RegistryGradeForm.Validate(test1Doc);
-                actions.Add(new(testUrl.Href, _schedule.Get(course.CourseId).FullName, string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name)), parsedPath.TestNumber, changes, async token =>
-                {
-                    var started = false;
-                    try
+                var destination = testUrl.Href;
+                var courseName = _schedule.Get(course.CourseId).FullName;
+                var groupNames = string.Join(", ", group.Groups.Value.Select(x => _schedule.Get(x).Name));
+                actions.Add(new(
+                    destination: destination,
+                    course: courseName,
+                    groups: groupNames,
+                    parsedPath.TestNumber,
+                    changes,
+                    async token =>
                     {
-                        token.ThrowIfCancellationRequested();
-                        foreach (var input in inputs) input.Input.Value = input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        token.ThrowIfCancellationRequested();
-                        await registryNav.SubmitGrades(test1Doc, token, () => started = true);
-                    }
-                    catch (OperationCanceledException e) { throw new RegistryActionCancelledException(started, e); }
-                    catch (Exception e) { throw new RegistryActionExecutionException(started, e); }
-                }));
+                        await RegistryActionGuard.Run(async onSubmissionStarted =>
+                        {
+                            token.ThrowIfCancellationRequested();
+                            foreach (var input in inputs)
+                            {
+                                input.Element.Value =
+                                    input.Grade.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            }
+
+                            token.ThrowIfCancellationRequested();
+                            await registryNav.SubmitGrades(
+                                test1Doc,
+                                token,
+                                onSubmissionStarted);
+                        });
+                    }));
                 continue;
 
                 int FindColumnIndex(string name)
                 {
-                    return table.Rows[0].Cells.WithIndex().Where(x =>
-                    {
-                        var t = x.Item.TextContent.AsSpan().Trim();
-                        return t.SequenceEqual(name);
-                    }).Single().Index;
+                    return table.Rows[0].Cells.WithIndex()
+                        .Where(x =>
+                        {
+                            var t = x.Item.TextContent.AsSpan()
+                                .Trim();
+                            return t.SequenceEqual(name);
+                        })
+                        .Single().Index;
                 }
             }
         }
 
-        if (actions.Count == 0) notices.Add(new("unmatched", "No registry test forms with supported mapped grades were planned."));
+        if (actions.Count == 0)
+        {
+            notices.Add(RegistryGradeNotice.NoTestFormsPlanned());
+        }
+
         foreach (var (name, value) in gradeByName)
         {
-            notices.Add(new("unmatched", $"Moodle student was not matched in registry: {name} ({value})"));
+            notices.Add(RegistryGradeNotice.MoodleStudentUnmatched(name, value));
         }
         return new(actions, notices);
     }

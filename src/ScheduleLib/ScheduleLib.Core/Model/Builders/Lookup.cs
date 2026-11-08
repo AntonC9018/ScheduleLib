@@ -46,10 +46,11 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         {
             CourseName = name,
             Lookup = s.LookupModule!,
-            ParseOptions = parseOptions ?? new()
-            {
-                IgnorePunctuation = false,
-            },
+            ParseOptions = parseOptions
+                ?? new()
+                {
+                    IgnorePunctuation = false,
+                },
         });
     }
 
@@ -64,7 +65,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
 
     public TeacherId? Teacher(LastName lastName)
     {
-        using var e = Teachers(lastName).GetEnumerator();
+        using var e = Teachers(lastName)
+            .GetEnumerator();
         if (!e.MoveNext())
         {
             return null;
@@ -87,8 +89,17 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
             }
             return new Word(part);
         });
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            s,
+            ids,
+            firstNameParts);
         return new(ids[i]);
+    }
+
+    /// <summary>Applies the schedule's teacher name remappings, as imported names are resolved.</summary>
+    public TeacherNameRemapStatus RemapTeacherName(ref TeacherBuilderModel.NameModel name)
+    {
+        return s.RemapTeacherName(ref name);
     }
 
     public TeacherId? Teacher(string firstName, string lastName)
@@ -99,7 +110,10 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         }
 
         var firstNameParts = ParseTeacherFirstName(firstName);
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(s, ids, firstNameParts);
+        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+            s,
+            ids,
+            firstNameParts);
         return new(ids[i]);
     }
 
@@ -108,7 +122,8 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
         var firstNameParts = default(NameParts<Word>);
         var firstNameSpan = firstName.AsSpan();
         var splitName = firstNameSpan.Split(NameConstants.DoubleNameSeparator);
-        var firstNameE = firstNameParts.AsRef().GetEnumerator();
+        var firstNameE = firstNameParts.AsRef()
+            .GetEnumerator();
 
         foreach (var partRange in splitName)
         {
@@ -182,7 +197,6 @@ public sealed class LookupFacade(ScheduleBuilder s, CourseNameUnifierModule unif
     }
 }
 
-
 public static partial class ScheduleBuilderHelper
 {
     public static LookupModule EnableLookupModule(this ScheduleBuilder s)
@@ -193,7 +207,7 @@ public static partial class ScheduleBuilderHelper
         }
 
         var lookupModule = s.LookupModule = new();
-        InitLookup(s, lookupModule);
+        s.InitLookup(lookupModule);
         s.LookupModule = lookupModule;
         return lookupModule;
     }
@@ -202,12 +216,12 @@ public static partial class ScheduleBuilderHelper
     {
         if (s.LookupModule is null)
         {
-            EnableLookupModule(s);
+            s.EnableLookupModule();
             return;
         }
 
         s.LookupModule.Clear();
-        InitLookup(s, s.LookupModule);
+        s.InitLookup(s.LookupModule);
     }
 
     private static void InitLookup(this ScheduleBuilder s, LookupModule lookup)
@@ -219,7 +233,10 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    coursesMap.Add(name, new(i));
+                    var dictionary = coursesMap;
+                    string key = name;
+                    CourseId value = new(i);
+                    dictionary.Add(key, value);
                 }
             }
         }
@@ -241,7 +258,10 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                groupsMap.Add(group.Name, new(i));
+                var dictionary2 = groupsMap;
+                string key2 = group.Name;
+                GroupId value2 = new(i);
+                dictionary2.Add(key2, value2);
             }
         }
         {
@@ -261,7 +281,9 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(new(LessonRegularity.Weekly, i));
+                var list2 = list;
+                AnyLessonId item = new(LessonRegularity.Weekly, i);
+                list2.Add(item);
             }
             for (int i = 0; i < s.OneTimeLessons.Count; i++)
             {
@@ -271,7 +293,9 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                list.Add(new(LessonRegularity.OneTime, i));
+                var list3 = list;
+                AnyLessonId item2 = new(LessonRegularity.OneTime, i);
+                list3.Add(item2);
             }
         }
     }

@@ -6,6 +6,7 @@ public static class StringCleanHelper
     {
         return new(s);
     }
+
     public static WordsSeparatedWithSpacesEnumerable WordsSeparatedWithSpaces(this ReadOnlySpan<char> s)
     {
         return new(s);
@@ -49,20 +50,36 @@ public readonly ref struct WordsSeparatedWithSpacesEnumerable
                 return true;
             }
 
-            bool isPrevPunctuation = _withoutSpaces.IsInitialized
-                && _withoutSpaces.Current is ',' or '.' or ':' or ';';
+            bool isPrevPunctuation = IsPreviousPunctuation();
             if (!_withoutSpaces.MoveNext())
             {
                 return false;
             }
 
             bool isCurrentSpace = _withoutSpaces.Current == ' ';
-            if (!isCurrentSpace && isPrevPunctuation)
+
+            if (isCurrentSpace)
+            {
+                return true;
+            }
+            if (isPrevPunctuation)
             {
                 _shouldOutputSpace = true;
             }
-
             return true;
+        }
+
+        private readonly bool IsPreviousPunctuation()
+        {
+            if (!_withoutSpaces.IsInitialized)
+            {
+                return false;
+            }
+            if (_withoutSpaces.Current is ',' or '.' or ':' or ';')
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
@@ -109,9 +126,12 @@ public readonly ref struct WithoutConsecutiveSpacesEnumerable
                 }
 
                 bool isCurrentSpace = Current is ' ' or '\t' or '\r' or '\n';
-                if (_isSpace && isCurrentSpace)
+                if (_isSpace)
                 {
-                    continue;
+                    if (isCurrentSpace)
+                    {
+                        continue;
+                    }
                 }
 
                 _isSpace = isCurrentSpace;

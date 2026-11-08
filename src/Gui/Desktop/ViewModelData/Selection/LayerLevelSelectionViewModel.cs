@@ -17,6 +17,7 @@ public enum LayerLevel
 public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDisposable
 {
     private static readonly OneForEachEnumMemberArray<LayerLevel, Layer> _mappings;
+
     static LayerLevelSelectionViewModel()
     {
         _mappings = new();
@@ -26,8 +27,7 @@ public sealed partial class LayerLevelSelectionViewModel : ViewModelBase, IDispo
         Debug.Assert(_mappings.All(x => x.Value != default));
     }
 
-    [ObservableProperty]
-    public partial LayerLevel LayerLevel { get; set; } = LayerLevel.Default;
+    [ObservableProperty] public partial LayerLevel LayerLevel { get; set; } = LayerLevel.Default;
     public EnumMembers<LayerLevel> AllLayerLevels => new();
 
     private readonly EventSource<LayerLevel> _layerLevelChanged;

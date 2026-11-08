@@ -14,6 +14,7 @@ public sealed class ObservableCredentials<T> : ObservableObject
     where T : class, ICredentialsHolder
 {
     private ConditionallyEditableData<T> _m;
+
     public void Set(ConditionallyEditableData<T> m)
     {
         _m = m;

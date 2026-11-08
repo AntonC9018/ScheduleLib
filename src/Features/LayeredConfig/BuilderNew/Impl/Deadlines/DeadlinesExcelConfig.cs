@@ -6,7 +6,8 @@ namespace ScheduleLib.Application.Core;
 
 public sealed class DeadlinesExcelConfig : INodeData<DeadlinesExcelConfig>
 {
-    public static NodeDataKey<DeadlinesExcelConfig> Key { get; } = NodeDataKey.Registry.Register<DeadlinesExcelConfig>();
+    public static NodeDataKey<DeadlinesExcelConfig> Key { get; } =
+        NodeDataKey.Registry.Register<DeadlinesExcelConfig>();
 
     public System.Drawing.Color? GoodColor { get; set; }
     public System.Drawing.Color? BadColor { get; set; }

@@ -24,18 +24,26 @@ public enum DfsVisitationState
 public sealed class DfsEnumerator() : IDfsEnumerator
 {
     public DfsAction Action { get; set; } = DfsAction.Recurse;
+
     private Value _current = new()
     {
         Node = null!,
         State = DfsVisitationState.Start,
     };
+
     private readonly EnumerationContextCollection _enumerationContextCollection;
     private readonly Stack<StackFrame> _stack = new();
 
-    public DfsEnumerationContext Current => new(
-        _current,
-        this,
-        _enumerationContextCollection);
+    public DfsEnumerationContext Current
+    {
+        get
+        {
+            return new(
+                _current,
+                this,
+                _enumerationContextCollection);
+        }
+    }
 
     internal DfsEnumerator(
         MutableNode root,
@@ -77,15 +85,16 @@ public sealed class DfsEnumerator() : IDfsEnumerator
 
     private bool TryConsumePreventRecursion()
     {
-        if (Action is DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce)
+        if (!(Action is DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce))
         {
-            if (Action == DfsAction.PreventRecursionOnce)
-            {
-                Action = DfsAction.Recurse;
-            }
-            return true;
+            return false;
         }
-        return false;
+
+        if (Action == DfsAction.PreventRecursionOnce)
+        {
+            Action = DfsAction.Recurse;
+        }
+        return true;
     }
 
     public bool MoveNext()
@@ -102,13 +111,13 @@ public sealed class DfsEnumerator() : IDfsEnumerator
             {
                 case DfsVisitationState.Process:
                 case DfsVisitationState.ProcessChild:
-                {
-                    if (TryConsumePreventRecursion())
                     {
-                        continue;
+                        if (TryConsumePreventRecursion())
+                        {
+                            continue;
+                        }
+                        break;
                     }
-                    break;
-                }
             }
 
             SetCurrent(frame);
@@ -116,76 +125,76 @@ public sealed class DfsEnumerator() : IDfsEnumerator
             switch (frame.State)
             {
                 case DfsVisitationState.BeforeProcess:
-                {
-                    _stack.Push(frame with
                     {
-                        State = DfsVisitationState.Process,
-                    });
-                    return true;
-                }
+                        _stack.Push(frame with
+                        {
+                            State = DfsVisitationState.Process,
+                        });
+                        return true;
+                    }
                 case DfsVisitationState.Process:
-                {
-                    _stack.Push(frame with
-                    {
-                        State = DfsVisitationState.AfterProcess,
-                    });
-
-                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
-                            State = DfsVisitationState.BeforeChildren,
+                            State = DfsVisitationState.AfterProcess,
                         });
+
+                        if (frame.Node.ChildNodes.Count > 0)
+                        {
+                            _stack.Push(frame with
+                            {
+                                State = DfsVisitationState.BeforeChildren,
+                            });
+                        }
+                        return true;
                     }
-                    return true;
-                }
                 case DfsVisitationState.BeforeChildren:
-                {
-                    _stack.Push(frame with
-                    {
-                        State = DfsVisitationState.AfterChildren,
-                    });
-
-                    if (frame.Node.ChildNodes.Count > 0)
                     {
                         _stack.Push(frame with
                         {
-                            ChildIndex = 0,
-                            State = DfsVisitationState.ProcessChild,
+                            State = DfsVisitationState.AfterChildren,
                         });
+
+                        if (frame.Node.ChildNodes.Count > 0)
+                        {
+                            _stack.Push(frame with
+                            {
+                                ChildIndex = 0,
+                                State = DfsVisitationState.ProcessChild,
+                            });
+                        }
+                        return true;
                     }
-                    return true;
-                }
                 case DfsVisitationState.ProcessChild:
-                {
-                    var nextChildIndex = frame.ChildIndex + 1;
-                    var childLayers = frame.Node.ChildNodes;
-                    if (nextChildIndex < childLayers.Count)
                     {
-                        _stack.Push(frame with
+                        var nextChildIndex = frame.ChildIndex + 1;
+                        var childLayers = frame.Node.ChildNodes;
+                        if (nextChildIndex < childLayers.Count)
                         {
-                            ChildIndex = nextChildIndex,
-                        });
-                    }
+                            _stack.Push(frame with
+                            {
+                                ChildIndex = nextChildIndex,
+                            });
+                        }
 
-                    var child = childLayers[frame.ChildIndex];
-                    _stack.Push(new StackFrame
-                    {
-                        Node = child,
-                        State = DfsVisitationState.BeforeProcess,
-                    });
-                    continue;
-                }
+                        var child = childLayers[frame.ChildIndex];
+                        _stack.Push(new StackFrame
+                        {
+                            Node = child,
+                            State = DfsVisitationState.BeforeProcess,
+                        });
+                        continue;
+                    }
                 case DfsVisitationState.AfterChildren:
                 case DfsVisitationState.AfterProcess:
-                {
-                    return true;
-                }
+                    {
+                        return true;
+                    }
 
                 default:
-                {
-                    throw Unreachable();
-                }
+                    {
+                        throw Unreachable();
+                    }
             }
         }
     }
@@ -193,6 +202,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
     public void Dispose()
     {
     }
+
     public void Reset()
     {
         throw new NotImplementedException();
@@ -208,8 +218,11 @@ public interface IDfsEnumerationContext : IEnumerationContext
 
 public readonly struct DfsEnumerable : IDfsEnumerable
 {
+    /// <summary>A context key with the factory that creates a context for it.</summary>
+    private readonly record struct ContextFactory(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory);
+
     private readonly MutableNode _root;
-    private readonly List<(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory)> _contextFactories = new();
+    private readonly List<ContextFactory> _contextFactories = new();
 
     public DfsEnumerable(MutableNode root)
     {
@@ -225,7 +238,7 @@ public readonly struct DfsEnumerable : IDfsEnumerable
         {
             return this;
         }
-        _contextFactories.Add((key.Value, factory));
+        _contextFactories.Add(new(key.Value, factory));
         return this;
     }
 
@@ -245,7 +258,6 @@ public readonly struct DfsEnumerable : IDfsEnumerable
     IEnumerator<DfsEnumerationContext> IEnumerable<DfsEnumerationContext>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
-
 
 public interface IDfsController
 {

@@ -41,9 +41,9 @@ Publishing does not distribute credentials or grant provider authorization.
 | Published Linux auth inspection | Google status succeeded locally for a coded teacher without consent or schedule initialization |
 | Published Linux errors | Inapplicable config schedule option returned exit 2 and one JSON object; unconfigured pre-defense returned prerequisite exit 3 |
 
-The command audit maps each of the fifteen `AppTask` values to a documented
-operation: eight exports, two queries, Drive, Calendar, registry synchronization,
-registry grades and curricula. Eight configuration verbs and three authorization
+The command audit maps each of the fourteen `AppTask` values to a documented
+operation: eight exports, two queries, Drive, Calendar, registry synchronization
+and registry grades. Eight configuration verbs and three authorization
 verbs complete the surface; authorization accepts both provider literals.
 Each command receives typed `IArgumentModel` inputs (`SettingsArguments`,
 `SourceArguments`, `ResultArguments`, `OutputArguments` and operation-specific
@@ -83,10 +83,10 @@ Windows cross-publishing proves package construction, not Windows execution or
 Word availability. Word cancellation uses cooperative shutdown and verified process ownership; a Word instance that blocks before reporting its identity cannot safely be terminated. Linux tests verify that unsupported legacy DOC conversion
 returns a capability error and preserves the original document.
 
-Live Google/Microsoft browser consent, actual organization/account access,
-production curricula sources and real registry/Calendar/Drive publication were
-not exercised. Fixture checks do not provision operational commissions, fix the
-coded 2024–2025 curricula source, or validate every historical schedule document.
+Live Google/Microsoft browser consent, actual organization/account access
+and real registry/Calendar/Drive publication were not exercised. Fixture checks
+do not provision operational commissions or validate every historical schedule
+document.
 Those prerequisites and retained matching/partition limitations appear in help
 and the specialized operation documents.
 

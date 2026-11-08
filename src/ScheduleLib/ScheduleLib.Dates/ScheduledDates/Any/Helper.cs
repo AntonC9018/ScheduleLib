@@ -36,11 +36,11 @@ public partial class AnyLessonSchedulingDateHelper
         this IWeeklyScheduledDateProvider dateProvider,
         GetProgrammedParams p)
     {
-        if (TryGetWeeklyParams(p) is { } datesParams)
+        if (p.TryGetWeeklyParams() is { } datesParams)
         {
             return dateProvider.Dates(datesParams);
         }
-        else if (TryGetSingleDate(p) is { } singleDate)
+        if (p.TryGetSingleDate() is { } singleDate)
         {
             if (singleDate.Date is { } d)
             {
@@ -48,10 +48,7 @@ public partial class AnyLessonSchedulingDateHelper
             }
             return [];
         }
-        else
-        {
-            throw Unreachable();
-        }
+        throw Unreachable();
     }
 }
 
