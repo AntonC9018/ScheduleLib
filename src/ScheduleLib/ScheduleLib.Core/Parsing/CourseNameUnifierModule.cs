@@ -107,8 +107,7 @@ public sealed class CourseNameUnifierModule
         if (builder.LookupModule is not { } lookup)
         {
             Debug.Assert(false, "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
-            throw new InvalidOperationException(
-                "Lookup module must be enabled before refreshing CourseNameUnifierModule.");
+            throw new MissingCourseLookupModuleException();
         }
 
         for (int i = 0; i < courses.Count; i++)

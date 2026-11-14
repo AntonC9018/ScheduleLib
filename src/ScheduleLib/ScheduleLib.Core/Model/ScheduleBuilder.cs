@@ -416,7 +416,7 @@ public static partial class ScheduleBuilderHelper
     {
         if (s.Teachers.Count > 0)
         {
-            throw new NotSupportedException("Remapping may only be configured before adding teachers.");
+            throw new RemappingsConfiguredAfterTeachersAddedException(s.Teachers.Count);
         }
         configure(s.Remappings);
     }

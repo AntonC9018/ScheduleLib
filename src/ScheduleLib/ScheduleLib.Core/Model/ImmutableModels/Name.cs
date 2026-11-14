@@ -82,7 +82,7 @@ public struct NameParts<T>() : IEquatable<NameParts<T>>
             }
         }
         Debug.Assert(false, "NameParts has fixed capacity; callers must not add more items than fit.");
-        throw new InvalidOperationException("No more space to add item");
+        throw new ScheduleLib.Builders.NamePartsCapacityExceededException(Length);
     }
 
     public bool Equals(NameParts<T> other)

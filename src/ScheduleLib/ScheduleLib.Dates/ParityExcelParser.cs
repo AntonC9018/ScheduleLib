@@ -88,14 +88,17 @@ public static class ParityExcelParser
                 parser.SkipWhitespace();
                 if (!parser.IsEmpty)
                 {
-                    throw new NotSupportedException("Invalid date range format.");
+                    throw ParityWeekIntervalException.ForTrailingText(weekText);
                 }
 
                 {
                     int dayCount = ret.End.DayNumber - ret.Start.DayNumber + 1;
                     if (dayCount != 6)
                     {
-                        throw new NotSupportedException("The date range must have 6 days in total");
+                        throw ParityWeekIntervalException.ForInvalidDayCount(
+                            weekText,
+                            start: ret.Start,
+                            end: ret.End);
                     }
                 }
 
@@ -104,13 +107,16 @@ public static class ParityExcelParser
                     var dayDiff = ret.Start.DayNumber - prevEnd.DayNumber;
                     if (dayDiff < 0)
                     {
-                        throw new NotSupportedException("The week intervals must be in order.");
+                        throw ParityWeekIntervalException.ForOutOfOrderWeek(
+                            weekText,
+                            start: ret.Start,
+                            previousEnd: prevEnd);
                     }
                 }
 
                 if (ret.Start.DayOfWeek != DayOfWeek.Monday)
                 {
-                    throw new NotSupportedException("The week interval must start on a Monday.");
+                    throw ParityWeekIntervalException.ForNotStartingOnMonday(weekText, ret.Start);
                 }
 
                 return ret;
@@ -124,7 +130,7 @@ public static class ParityExcelParser
                 parser.SkipWhitespace();
                 if (!parser.IsEmpty)
                 {
-                    throw new NotSupportedException("Invalid parity format.");
+                    throw InvalidParityValueException.ForTrailingText(parityText);
                 }
                 return ret;
             }
@@ -137,7 +143,7 @@ public static class ParityExcelParser
             bool hasHeader = rowEnumerator.MoveNext();
             if (!hasHeader)
             {
-                throw new NotSupportedException("No header found.");
+                throw ParityDocumentHeaderException.ForMissingHeaderRow();
             }
 
             // Check has 3 columns
@@ -149,10 +155,11 @@ public static class ParityExcelParser
             var headerCells = header.ChildElements.OfType<TableCell>();
             using var cellEnumerator = headerCells.GetEnumerator();
 
-            bool CompareHeader(string expectedText)
+            bool CompareHeader(string expectedText, out string trimmedHeaderText)
             {
                 var weekHeaderText = cellEnumerator.Current.InnerText.AsSpan()
                     .Trim();
+                trimmedHeaderText = weekHeaderText.ToString();
                 return IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: weekHeaderText, y: expectedText.AsSpan());
             }
 
@@ -160,20 +167,12 @@ public static class ParityExcelParser
                 bool moved = cellEnumerator.MoveNext();
                 if (!moved)
                 {
-                    throw new NotSupportedException("No row for the week string");
+                    throw ParityDocumentHeaderException.ForMissingWeekHeader();
                 }
 
-                if (!CompareHeader("Saptamana"))
+                if (!CompareHeader(expectedText: "Saptamana", trimmedHeaderText: out string actualHeaderText))
                 {
-                    throw new NotSupportedException("Week header should be first. It had unexpected name.");
-                }
-            }
-
-            {
-                bool moved = cellEnumerator.MoveNext();
-                if (!moved)
-                {
-                    throw new NotSupportedException("An insignificant column must follow after the week column.");
+                    throw ParityDocumentHeaderException.ForUnexpectedWeekHeaderName(actualHeaderText);
                 }
             }
 
@@ -181,12 +180,20 @@ public static class ParityExcelParser
                 bool moved = cellEnumerator.MoveNext();
                 if (!moved)
                 {
-                    throw new NotSupportedException("No row for the parity string");
+                    throw ParityDocumentHeaderException.ForMissingMiddleHeader();
+                }
+            }
+
+            {
+                bool moved = cellEnumerator.MoveNext();
+                if (!moved)
+                {
+                    throw ParityDocumentHeaderException.ForMissingParityHeader();
                 }
 
-                if (!CompareHeader("Paritatea"))
+                if (!CompareHeader(expectedText: "Paritatea", trimmedHeaderText: out string actualHeaderText))
                 {
-                    throw new NotSupportedException("Week header should be first. It had unexpected name.");
+                    throw ParityDocumentHeaderException.ForUnexpectedParityHeaderName(actualHeaderText);
                 }
             }
 
@@ -194,7 +201,7 @@ public static class ParityExcelParser
                 bool moved = cellEnumerator.MoveNext();
                 if (moved)
                 {
-                    throw new NotSupportedException("Must only have 3 columns");
+                    throw ParityDocumentHeaderException.ForUnexpectedExtraHeaderColumns();
                 }
             }
         }
@@ -218,7 +225,7 @@ public static class ParityExcelParser
             bool moved = cells.MoveNext();
             if (!moved)
             {
-                throw new NotSupportedException("Expected a cell??");
+                throw ParityRowCellException.ForMissingCell();
             }
             return cells.Current;
         }
@@ -228,7 +235,7 @@ public static class ParityExcelParser
             bool moved = cells.MoveNext();
             if (moved)
             {
-                throw new NotSupportedException("Expected no more cells.");
+                throw ParityRowCellException.ForUnexpectedExtraCell();
             }
         }
     }
@@ -334,12 +341,12 @@ public static class ParityExcelParser
             var skipResult = bparser.SkipNumbers();
             if (!skipResult.SkippedAny)
             {
-                throw new NotSupportedException("Day number expected");
+                throw ParityWeekIntervalException.ForMissingDayNumber(reader.ToString());
             }
             var daySpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (daySpan.Length > 2)
             {
-                throw new NotSupportedException("Day number too long (max 2 numbers)");
+                throw ParityWeekIntervalException.ForDayNumberTooLong(daySpan.ToString());
             }
             if (!uint.TryParse(daySpan, out uint day))
             {
@@ -356,12 +363,12 @@ public static class ParityExcelParser
             var skipResult = bparser.SkipLetters();
             if (!skipResult.SkippedAny)
             {
-                throw new NotSupportedException("Month name expected");
+                throw ParityWeekIntervalException.ForMissingMonthName(reader.ToString());
             }
             var monthSpan = reader.PeekSpanUntilPosition(bparser.Position);
             if (ParseMonth(monthSpan) is not { } month)
             {
-                throw new NotSupportedException("Month name not recognized");
+                throw ParityWeekIntervalException.ForUnknownMonthName(monthSpan.ToString());
             }
             reader.MoveTo(bparser.Position);
             return month;
@@ -372,7 +379,7 @@ public static class ParityExcelParser
             var yearResult = reader.ConsumePositiveInt(4);
             if (yearResult.Status != ConsumeIntStatus.Ok)
             {
-                throw new NotSupportedException("Year not parsed");
+                throw ParityWeekIntervalException.ForInvalidYear(reader.ToString());
             }
             return (int) yearResult.Value;
         }
@@ -399,7 +406,7 @@ public static class ParityExcelParser
             reader.MoveTo(bparser.Position);
             return true;
         }
-        throw new NotSupportedException("Parity not recognized");
+        throw InvalidParityValueException.ForUnrecognizedValue(span.ToString());
     }
 }
 

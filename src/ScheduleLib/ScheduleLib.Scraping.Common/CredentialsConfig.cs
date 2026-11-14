@@ -112,7 +112,20 @@ public interface ICredentialsResolver
         CredentialsSource source);
 }
 
-public sealed class CredentialsMissingException(string message) : InvalidOperationException(message);
+public enum CredentialsField
+{
+    Login,
+    Password,
+}
+
+public sealed class CredentialsMissingException(
+    string message,
+    string? configKey = null,
+    CredentialsField? missingField = null) : InvalidOperationException(message)
+{
+    public string? ConfigKey { get; } = configKey;
+    public CredentialsField? MissingField { get; } = missingField;
+}
 
 [AutoConstructor]
 public sealed partial class CredentialsResolver : ICredentialsResolver
@@ -134,7 +147,9 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
                         return credentials;
                     }
                     {
-                        throw new CredentialsMissingException("Credentials must be given as per configuration");
+                        throw new CredentialsMissingException(
+                            message: "Credentials must be given as per configuration",
+                            configKey: serviceKey);
                     }
                 }
             case ValueCredentialsSource v:
@@ -163,7 +178,9 @@ public sealed partial class CredentialsResolver<T>
         var config = _provider.Get();
         if (config is null)
         {
-            throw new CredentialsMissingException("No credential config found");
+            throw new CredentialsMissingException(
+                message: "No credential config found",
+                configKey: _serviceKey);
         }
         var source = _sourceGetter(config);
         var ret = _generalResolver.Resolve(_serviceKey, source);

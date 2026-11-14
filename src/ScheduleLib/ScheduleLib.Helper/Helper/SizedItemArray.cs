@@ -322,7 +322,7 @@ public readonly struct SizedItemArray<T>
         {
             if (arr.IsEmpty)
             {
-                throw new InvalidOperationException("Array is empty");
+                throw new EmptySizedItemArrayException(typeof(T));
             }
             _enumerator = arr.GetEnumerator();
             _empty = empty;

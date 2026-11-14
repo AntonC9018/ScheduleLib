@@ -126,7 +126,7 @@ public static class WordScheduleParser
                         // }
                         if (!UpdateSizesByInspectingFutureCells())
                         {
-                            throw new NotImplementedException("A more intelligent way to figure out the widths");
+                            throw new UnsupportedWordTableWidthLayoutException(state.ColumnCounts?.Total);
                         }
                         break;
 
@@ -316,7 +316,9 @@ public static class WordScheduleParser
                     int countLeft = state.ColumnCounts!.Value.Total - cell.ColumnSizeCounter;
                     if (countLeft < cell.ColSpan)
                     {
-                        throw new NotSupportedException("The column count is off");
+                        throw new WordTableColumnCountOverflowException(
+                            remainingColumns: countLeft,
+                            cellColSpan: cell.ColSpan);
                     }
 
                     continue;
@@ -325,7 +327,7 @@ public static class WordScheduleParser
                     {
                         if (cell.Cell.TableCellProperties?.VerticalMerge is not { } mergeStart)
                         {
-                            throw new NotSupportedException("Invalid format");
+                            throw new MissingDayVerticalMergeException(cell.Cell.InnerText);
                         }
 
                         if (mergeStart.Val is not { } mergeStartVal
@@ -335,7 +337,7 @@ public static class WordScheduleParser
                             {
                                 return v;
                             }
-                            throw new NotSupportedException("Expected the day");
+                            throw new MissingMergedCellBaselineException(MergedCellBaselineColumn.DayOfWeek);
                         }
 
                         if (mergeStart.Val != MergedCellValues.Restart)
@@ -345,7 +347,7 @@ public static class WordScheduleParser
 
                         if (cell.Cell.InnerText is not { } dayNameText)
                         {
-                            throw new NotSupportedException("The day name column must include the day name");
+                            throw new MissingScheduleDayNameException();
                         }
 
                         if (c.DayNameParser.Map(dayNameText) is not { } day)
@@ -366,7 +368,7 @@ public static class WordScheduleParser
                                 {
                                     if (currentTime is not { } v)
                                     {
-                                        throw new NotSupportedException("Expected the time slot");
+                                        throw new MissingMergedCellBaselineException(MergedCellBaselineColumn.TimeSlot);
                                     }
                                     return v;
                                 }
@@ -387,7 +389,7 @@ public static class WordScheduleParser
                                 .GetEnumerator();
                             if (!paragraphs.MoveNext())
                             {
-                                throw new NotSupportedException("Invalid time slot cell");
+                                throw new EmptyTimeSlotCellException(cell.Cell.InnerText);
                             }
                         }
 
@@ -399,13 +401,15 @@ public static class WordScheduleParser
                             var maybeNum = parser.ReadRoman();
                             if (maybeNum.Status != ReadRomanStatus.Ok)
                             {
-                                throw new NotSupportedException("The time slot number should be a roman numeral");
+                                throw new InvalidTimeSlotRomanNumeralException(timeSlotCellText);
                             }
                             int currentOrdinal = currentTime?.TimeSlotOrdinal ?? 0;
                             int num = maybeNum.Number;
                             if (num != currentOrdinal + 1)
                             {
-                                throw new NotSupportedException("The time slot number must be in order");
+                                throw new OutOfOrderTimeSlotOrdinalException(
+                                    expectedOrdinal: currentOrdinal + 1,
+                                    actualOrdinal: num);
                             }
 
                             newTimeSlotOrdinal = num;
@@ -423,7 +427,9 @@ public static class WordScheduleParser
                             int timeSlotIndex = NextTimeSlotIndex();
                             if (timeStarts[timeSlotIndex] != parsedTime.Start)
                             {
-                                throw new NotSupportedException("The time slots must follow each other");
+                                throw new NonConsecutiveTimeSlotException(
+                                    expectedStart: timeStarts[timeSlotIndex],
+                                    actualStart: parsedTime.Start);
                             }
 
                             var expectedEndTime = parsedTime.Start.Add(c.TimeConfig.LessonDuration);
@@ -526,7 +532,7 @@ public static class WordScheduleParser
     [DoesNotReturn]
     private static void TimeSlotError()
     {
-        throw new NotSupportedException("The time slot must contain the time range second");
+        throw new MissingTimeRangeInTimeSlotException();
     }
 
     private static void AddOrMergeLesson(
@@ -572,7 +578,7 @@ public static class WordScheduleParser
                 .GetEnumerator();
             if (!cellEnumerator.MoveNext())
             {
-                throw new NotSupportedException("Empty table not supported");
+                throw new EmptyWordScheduleTableException();
             }
 
             // empties    group names
@@ -626,7 +632,7 @@ public static class WordScheduleParser
         {
             if (!cellEnumerator.MoveNext())
             {
-                throw new NotSupportedException("Header columns expected after the left header");
+                throw new MissingWordHeaderGroupColumnsException();
             }
         }
 
@@ -668,13 +674,15 @@ public static class WordScheduleParser
 
             if (!cellEnumerator.MoveNext())
             {
-                throw new NotSupportedException("Expected the second row");
+                throw new MissingSecondHeaderRowException();
             }
 
             var width = cellEnumerator.Current.GetWidth();
             if (width != skippedWidth)
             {
-                throw new NotSupportedException("The second row must have the same width as the first row");
+                throw new MismatchedHeaderColumnWidthException(
+                    expectedWidth: skippedWidth,
+                    actualWidth: width);
             }
 
             MoveToNextCellForGroupRow();
@@ -700,7 +708,7 @@ public static class WordScheduleParser
             }
             if (!paragraphs.MoveNext())
             {
-                throw new NotSupportedException("Expected the interval");
+                throw new MissingSecondFormatDateIntervalException(semNumber);
             }
 
             {

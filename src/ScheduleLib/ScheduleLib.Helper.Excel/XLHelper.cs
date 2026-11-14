@@ -84,7 +84,7 @@ public interface ICellProcessor<TColumn>
 
 public sealed class ExcelSheetException : NotSupportedException
 {
-    public string SheetName { get; set; }
+    public string SheetName { get; }
 
     public ExcelSheetException(
         string sheetName,
@@ -98,7 +98,7 @@ public sealed class ExcelSheetException : NotSupportedException
 
 public sealed class ExcelRangeException : NotSupportedException
 {
-    public string CellRange { get; set; }
+    public string CellRange { get; }
 
     public ExcelRangeException(
         string cellRange,

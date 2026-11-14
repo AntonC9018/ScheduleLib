@@ -137,7 +137,7 @@ public readonly struct ColumnSearchRules<TColumn>
         Array = array;
         if (array.Storage.Any(x => x == default))
         {
-            throw new InvalidOperationException("Keys for some columns are missing.");
+            throw new MissingColumnSearchRulesException(typeof(TColumn));
         }
     }
 }

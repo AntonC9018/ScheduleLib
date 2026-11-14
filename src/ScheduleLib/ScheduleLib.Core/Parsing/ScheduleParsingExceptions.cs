@@ -170,6 +170,59 @@ public abstract class InvalidScheduleDocumentException : ScheduleBuildException
         return new GeneralException("Roman numeral after sem must be the last thing");
     }
 
+    public static InvalidScheduleDocumentException ForMissingDateIntervalSeparator(string text)
+    {
+        return new InvalidDateIntervalSyntaxException(
+            rawText: text,
+            error: DateIntervalError.MissingSeparator);
+    }
+
+    public static InvalidScheduleDocumentException ForInvalidIntervalEndpointDate(
+        DateIntervalEndpoint endpoint,
+        string dateText,
+        string format)
+    {
+        return new InvalidIntervalEndpointDateException(
+            endpoint: endpoint,
+            dateText: dateText,
+            expectedFormat: format);
+    }
+
+    public static InvalidScheduleDocumentException ForInvertedDateInterval(DateTime start, DateTime end)
+    {
+        return new InvertedDateIntervalException(
+            start: start,
+            end: end);
+    }
+
+    public static InvalidScheduleDocumentException ForMissingTimeRangeStart(string remainingText)
+    {
+        return new InvalidTimeIntervalSyntaxException(
+            error: TimeIntervalError.MissingStart,
+            remainingText: remainingText);
+    }
+
+    public static InvalidScheduleDocumentException ForMissingTimeRangeSeparator(string remainingText)
+    {
+        return new InvalidTimeIntervalSyntaxException(
+            error: TimeIntervalError.MissingSeparator,
+            remainingText: remainingText);
+    }
+
+    public static InvalidScheduleDocumentException ForMissingTimeRangeEnd(string remainingText)
+    {
+        return new InvalidTimeIntervalSyntaxException(
+            error: TimeIntervalError.MissingEnd,
+            remainingText: remainingText);
+    }
+
+    public static InvalidScheduleDocumentException ForTrailingTimeRangeText(string remainingText)
+    {
+        return new InvalidTimeIntervalSyntaxException(
+            error: TimeIntervalError.TrailingText,
+            remainingText: remainingText);
+    }
+
     public sealed class UnknownTimeSlotException : InvalidScheduleDocumentException
     {
         internal UnknownTimeSlotException(TimeOnly start)
@@ -203,6 +256,88 @@ public abstract class InvalidScheduleDocumentException : ScheduleBuildException
         public string RemainingDateText { get; }
     }
 
+    public sealed class InvalidDateIntervalSyntaxException : InvalidScheduleDocumentException
+    {
+        internal InvalidDateIntervalSyntaxException(
+            string rawText,
+            DateIntervalError error)
+            : base(CreateMessage(rawText, error))
+        {
+            RawText = rawText;
+            Error = error;
+        }
+
+        public string RawText { get; }
+        public DateIntervalError Error { get; }
+
+        private static string CreateMessage(string rawText, DateIntervalError error)
+        {
+            return error switch
+            {
+                DateIntervalError.MissingSeparator => $"Expected interval separator in '{rawText}'.",
+                _ => $"Invalid date interval syntax '{rawText}' ({error}).",
+            };
+        }
+    }
+
+    public sealed class InvalidIntervalEndpointDateException : InvalidScheduleDocumentException
+    {
+        internal InvalidIntervalEndpointDateException(
+            DateIntervalEndpoint endpoint,
+            string dateText,
+            string expectedFormat)
+            : base($"Invalid {endpoint} date '{dateText}' for format '{expectedFormat}'.")
+        {
+            Endpoint = endpoint;
+            DateText = dateText;
+            ExpectedFormat = expectedFormat;
+        }
+
+        public DateIntervalEndpoint Endpoint { get; }
+        public string DateText { get; }
+        public string ExpectedFormat { get; }
+    }
+
+    public sealed class InvertedDateIntervalException : InvalidScheduleDocumentException
+    {
+        internal InvertedDateIntervalException(DateTime start, DateTime end)
+            : base($"The start date ({start}) must be before the end date ({end}).")
+        {
+            Start = start;
+            End = end;
+        }
+
+        public DateTime Start { get; }
+        public DateTime End { get; }
+    }
+
+    public sealed class InvalidTimeIntervalSyntaxException : InvalidScheduleDocumentException
+    {
+        internal InvalidTimeIntervalSyntaxException(
+            TimeIntervalError error,
+            string remainingText)
+            : base(CreateMessage(error, remainingText))
+        {
+            Error = error;
+            RemainingText = remainingText;
+        }
+
+        public TimeIntervalError Error { get; }
+        public string RemainingText { get; }
+
+        private static string CreateMessage(TimeIntervalError error, string remainingText)
+        {
+            return error switch
+            {
+                TimeIntervalError.MissingStart => $"Expected time range start in '{remainingText}'.",
+                TimeIntervalError.MissingSeparator => $"Expected '-' after start time in '{remainingText}'.",
+                TimeIntervalError.MissingEnd => $"Expected time range end in '{remainingText}'.",
+                TimeIntervalError.TrailingText => $"Time range not consumed fully; trailing '{remainingText}'.",
+                _ => $"Invalid time range '{remainingText}' ({error}).",
+            };
+        }
+    }
+
     public sealed class GeneralException : InvalidScheduleDocumentException
     {
         internal GeneralException(string message)
@@ -210,6 +345,25 @@ public abstract class InvalidScheduleDocumentException : ScheduleBuildException
         {
         }
     }
+}
+
+public enum DateIntervalError
+{
+    MissingSeparator,
+}
+
+public enum DateIntervalEndpoint
+{
+    Start,
+    End,
+}
+
+public enum TimeIntervalError
+{
+    MissingStart,
+    MissingSeparator,
+    MissingEnd,
+    TrailingText,
 }
 
 /// <summary>

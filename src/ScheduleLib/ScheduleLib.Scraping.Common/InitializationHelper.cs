@@ -74,7 +74,7 @@ public sealed class ScrapingContextBuilder
 
         if (ConfigurationSection is null)
         {
-            throw new InvalidOperationException();
+            throw new MissingScrapingConfigurationSectionException(typeof(T));
         }
 
         var optsConfig = _services
@@ -162,11 +162,11 @@ public sealed class ScrapingContextBuilder
         {
             if (_cached && !_password)
             {
-                throw new NotSupportedException();
+                throw InvalidTokenAuthConfigurationException.ForCachingWithoutPasswordLogin();
             }
             if (!_password)
             {
-                throw new NotSupportedException();
+                throw InvalidTokenAuthConfigurationException.ForMissingPasswordLogin();
             }
         }
     }

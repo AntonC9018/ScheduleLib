@@ -264,7 +264,10 @@ internal sealed class HttpClientRequester : BaseRequester
             {
                 if (failedOnce)
                 {
-                    throw new InvalidOperationException("Failed to use the password to log in once.");
+                    throw new ScrapingAuthenticationException(
+                        "Failed to use the password to log in once.",
+                        httpResponse.StatusCode,
+                        request.Address);
                 }
 
                 await _authHandler.Authenticate(cancel);
@@ -366,7 +369,14 @@ internal sealed class HttpClientRequester : BaseRequester
 
 /// <summary>A mutation redirect whose destination was deliberately not requested.</summary>
 /// <summary>The site rejected the configured credentials or its login form could not be used.</summary>
-public sealed class ScrapingAuthenticationException(string message) : InvalidOperationException(message);
+public sealed class ScrapingAuthenticationException(
+    string message,
+    HttpStatusCode? statusCode = null,
+    Uri? requestUri = null) : InvalidOperationException(message)
+{
+    public HttpStatusCode? StatusCode { get; } = statusCode;
+    public Uri? RequestUri { get; } = requestUri;
+}
 
 public sealed class FormSubmissionRedirectException(Uri? location, HttpStatusCode statusCode)
     : IOException("Form submission redirected; the mutation result is unconfirmed.")

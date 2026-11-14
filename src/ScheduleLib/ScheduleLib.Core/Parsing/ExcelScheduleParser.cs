@@ -86,7 +86,7 @@ public static class ExcelScheduleParser
             .GetEnumerator();
         if (!rowE.MoveNext())
         {
-            throw new NotSupportedException("Expected header row!");
+            throw ws.Exception("Expected header row!");
         }
 
         var previousResult = ParsingIterResult.None;
@@ -184,7 +184,7 @@ public static class ExcelScheduleParser
         {
             if (!rowE.MoveNext())
             {
-                throw new NotSupportedException("Expected a bullshit row!");
+                throw ExcelScheduleMissingSectionException.ForMissingMetadataSeparatorRow();
             }
         }
 
@@ -346,7 +346,7 @@ public static class ExcelScheduleParser
 
             if (!cellE.MoveNext())
             {
-                throw new NotSupportedException("No date column found");
+                throw row.Exception("No date column found");
             }
 
             {
@@ -362,7 +362,7 @@ public static class ExcelScheduleParser
 
             if (!cellE.MoveNext())
             {
-                throw new NotSupportedException("No time slot cell");
+                throw row.Exception("No time slot cell");
             }
 
             {
@@ -739,7 +739,7 @@ public static class ExcelScheduleParser
     {
         if (!rowE.MoveNext())
         {
-            throw new NotSupportedException("No groups row found.");
+            throw ExcelScheduleMissingSectionException.ForMissingGroupsHeaderRow();
         }
         var outputCount = grades.Count;
         if (outputCount == 0)
@@ -829,7 +829,9 @@ public static class ExcelScheduleParser
 
             if (groupIndex != outputCount)
             {
-                throw new NotSupportedException("Not all columns covered by year are covered by groups");
+                throw new IncompleteExcelGroupHeaderException(
+                    expectedGroupCount: outputCount,
+                    actualGroupCount: groupIndex);
             }
         }
         catch

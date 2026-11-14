@@ -69,7 +69,7 @@ public static class LanguageSearch
 
             if (before != _values)
             {
-                throw NotSupportedMultiLang();
+                throw new MultiLanguageLessonNotSupportedException(_values);
             }
         }
 
@@ -77,19 +77,18 @@ public static class LanguageSearch
         {
             if (_values.GetFirstSet() is not { } onlyLang)
             {
-                throw NoLanguage();
+                throw new UndeterminedLessonLanguageException();
             }
             return onlyLang;
         }
     }
-
-    private static NotSupportedException NotSupportedMultiLang()
-    {
-        return new NotSupportedException("Multi-language courses not allowed.");
-    }
-
-    private static NotSupportedException NoLanguage()
-    {
-        return new NotSupportedException("Language could not be determined for these lessons.");
-    }
 }
+
+public sealed class MultiLanguageLessonNotSupportedException(EnumBitArray<Language> languages)
+    : NotSupportedException($"Multi-language courses not allowed ({languages}).")
+{
+    public EnumBitArray<Language> Languages { get; } = languages;
+}
+
+public sealed class UndeterminedLessonLanguageException()
+    : NotSupportedException("Language could not be determined for these lessons.");

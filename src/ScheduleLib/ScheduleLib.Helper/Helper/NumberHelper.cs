@@ -16,7 +16,7 @@ public static class NumberHelper
             8 => "VIII",
             9 => "IX",
             10 => "X",
-            _ => throw new NotImplementedException("Unimplemented for higher time slots."),
+            _ => throw new UnsupportedRomanNumeralException(num),
         };
         return romanLetter;
     }

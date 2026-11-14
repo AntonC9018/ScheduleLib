@@ -538,7 +538,7 @@ public static class LessonBuilderHelper
         if (builder.Id != UninitializedId)
         {
             Debug.Assert(false, "Attach must only be called on a detached builder.");
-            throw new InvalidOperationException("Can only attach a detached builder.");
+            throw new LessonBuilderAlreadyAttachedException(new WeeklyLessonId(builder.Id));
         }
         var x = builder.Schedule.WeeklyLessons.New();
         x.Value = builder.Model;

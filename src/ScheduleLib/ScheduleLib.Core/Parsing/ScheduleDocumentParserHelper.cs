@@ -33,26 +33,28 @@ public static class ScheduleDocumentParserHelper
             var skipped = bparser.SkipUntilAny(['–', '-', '—']);
             if (skipped.EndOfInput)
             {
-                throw new NotSupportedException("Expected interval separator");
+                throw InvalidScheduleDocumentException.ForMissingDateIntervalSeparator(reader.ToString());
             }
 
             var startSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            var startDate = ParseDateTime(startSpan, "Invalid start date");
+            var startDate = ParseDateTime(startSpan, DateIntervalEndpoint.Start);
 
             bparser.Move();
             reader.MoveTo(bparser.Position);
 
             var endSpan = reader.PeekSpanUntilEnd();
-            var endDate = ParseDateTime(endSpan, "Invalid end date");
+            var endDate = ParseDateTime(endSpan, DateIntervalEndpoint.End);
 
             if (startDate >= endDate)
             {
-                throw new NotSupportedException("The start date must be before the end date");
+                throw InvalidScheduleDocumentException.ForInvertedDateInterval(
+                    start: startDate,
+                    end: endDate);
             }
 
             return new(Start: startDate, End: endDate);
 
-            DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
+            DateTime ParseDateTime(ReadOnlySpan<char> s, DateIntervalEndpoint endpoint)
             {
                 var culture = CultureInfo.CurrentCulture;
                 Debug.Assert(
@@ -66,7 +68,10 @@ public static class ScheduleDocumentParserHelper
                         style: default,
                         result: out var date))
                 {
-                    throw new NotSupportedException(error);
+                    throw InvalidScheduleDocumentException.ForInvalidIntervalEndpointDate(
+                        endpoint: endpoint,
+                        dateText: s.ToString(),
+                        format: format);
                 }
                 return date;
             }
@@ -78,7 +83,7 @@ public static class ScheduleDocumentParserHelper
             reader.SkipWhitespace();
             if (ParserHelper.ParseTime(ref reader) is not { } startTime)
             {
-                throw new NotSupportedException("Expected time range start");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeStart(reader.ToString());
             }
             if (!HasTimeRangeSeparator(ref reader))
             {
@@ -86,20 +91,20 @@ public static class ScheduleDocumentParserHelper
                 {
                     return TimeInterval.CreateOpenInterval(startTime);
                 }
-                throw new NotSupportedException("Expected '-' after start time");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeSeparator(reader.ToString());
             }
             reader.Move();
 
             if (ParserHelper.ParseTime(ref reader) is not { } endTime)
             {
-                throw new NotSupportedException("Expected time range end");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeEnd(reader.ToString());
             }
 
             reader.SkipWhitespace();
 
             if (!reader.IsEmpty)
             {
-                throw new NotSupportedException("Time range not consumed fully");
+                throw InvalidScheduleDocumentException.ForTrailingTimeRangeText(reader.ToString());
             }
 
             return new(Start: startTime, End: endTime);

@@ -30,7 +30,7 @@ public static class DebugHelper
             {
                 IXmlDocument => "xml",
                 IHtmlDocument => "html",
-                _ => throw new InvalidOperationException(),
+                _ => throw new UnsupportedDebugDocumentTypeException(doc.GetType()),
             };
         }
 

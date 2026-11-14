@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using ScheduleLib.Helper;
 
 namespace ScheduleLib;
 
@@ -167,19 +168,19 @@ public static class EnumerableExtensions
             [DoesNotReturn]
             void ThrowFirst()
             {
-                throw new InvalidOperationException("Sequence contains no elements");
+                throw SequencePairCountException.Empty(typeof(T));
             }
 
             [DoesNotReturn]
             void ThrowSecond()
             {
-                throw new InvalidOperationException("Sequence contains only 1 element");
+                throw SequencePairCountException.SingleElement(typeof(T));
             }
 
             [DoesNotReturn]
             void ThrowMore()
             {
-                throw new InvalidOperationException("Sequence contains more than 2 items");
+                throw SequencePairCountException.MoreThanTwoElements(typeof(T));
             }
         }
 
@@ -212,7 +213,10 @@ public static class EnumerableExtensions
                         }
                         index++;
                     }
-                    throw new InvalidOperationException("The list was too short");
+                    throw new SequenceTooShortException(
+                        elementType: typeof(T),
+                        requestedIndex: i,
+                        actualCount: index);
                 }
             }
         }
@@ -351,8 +355,7 @@ public static class EnumerableExtensions
                         }
                     case MergeDuplicateBehavior.Fail:
                         {
-                            throw new InvalidOperationException(
-                                "Merging two sequences with duplicates not allowed");
+                            throw new DuplicateMergedSequenceItemException(typeof(T));
                         }
                     default:
                         {

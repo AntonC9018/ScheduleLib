@@ -107,7 +107,7 @@ public static partial class ScheduleBuilderHelper
                 // lesson (consultations included). Throws so release builds fail
                 // loudly instead of silently skipping the lesson.
                 Debug.Assert(false, "ValidateLessons guarantees a course on every lesson.");
-                throw new InvalidOperationException("The lesson course must be initialized.");
+                throw UninitializedScheduleModelException.ForLessonCourseNotInitialized();
             }
             Debug.Assert(
                 courseId.Id >= 0 && courseId.Id < s.Courses.Count,
@@ -232,8 +232,7 @@ public static partial class ScheduleBuilderHelper
                         break;
                     default:
                         Debug.Assert(false, "All lesson model kinds are covered above.");
-                        throw new InvalidOperationException(
-                            "Unknown lesson model kind: cannot split the lesson.");
+                        throw new UnknownLessonModelKindException(lesson.GetType());
                 }
             }
 

@@ -92,7 +92,7 @@ public static class ExcelRangeHelper
             pos = parser.ParseCellPosition();
             if (!parser.IsEmpty)
             {
-                throw new InvalidOperationException("Expected valid cell position syntax.");
+                throw InvalidExcelCellPositionException.ForTrailingContent(val);
             }
         }
         else
@@ -112,7 +112,7 @@ public static class ExcelRangeHelper
         {
             if (reader.IsEmpty)
             {
-                throw new InvalidOperationException("Invalid cell position");
+                throw InvalidExcelCellPositionException.ForUnexpectedEnd(reader.ToString());
             }
             if (!char.IsLetter(reader.Current))
             {
@@ -126,7 +126,7 @@ public static class ExcelRangeHelper
         var bparser = reader.BufferedView();
         if (!bparser.SkipNumbers().SkippedAny)
         {
-            throw new InvalidOperationException("Expected number after the letter");
+            throw InvalidExcelCellPositionException.ForMissingRowNumber(reader.ToString());
         }
         uint row = uint.Parse(reader.PeekSpanUntilPosition(bparser.Position));
         reader.MoveTo(bparser.Position);

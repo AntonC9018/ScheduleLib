@@ -503,7 +503,9 @@ public sealed class Lexer : ILexer
         {
             return _queue[offset - 1];
         }
-        throw new InvalidOperationException("Not enough tokens");
+        throw new LexerEndOfInputException(
+            requestedOffset: offset,
+            bufferedTokenCount: _queue.Count);
     }
 
     public void Move(int amount = 1)
@@ -774,8 +776,7 @@ public static class LexerHelper
                 var source = t.Value;
                 if (FindOffset(a: source.Span, b: reader.PeekSpanUntilEnd()) is not { } offset)
                 {
-                    throw new InvalidOperationException(
-                        "Cannot apply displacement to this parser, because the lexer is on a different line now");
+                    throw new LexerScopeDisplacementMismatchException(source.ToString());
                 }
 
                 reader.Move(offset);

@@ -64,7 +64,9 @@ public readonly struct ParsedStringTable(List<string> strings)
 
         if (HasNonTextCellValue())
         {
-            throw new InvalidOperationException("Expected a string");
+            throw ExcelCellStringValueException.ForNonTextCellType(
+                cell.CellReference?.Value,
+                dt.Value);
         }
         if (dt == CellValues.InlineString)
         {
@@ -75,7 +77,9 @@ public readonly struct ParsedStringTable(List<string> strings)
             var index = cell.CellValue!.Text;
             if (!int.TryParse(index, out int i))
             {
-                throw new InvalidOperationException("Invalid shared string index.");
+                throw ExcelCellStringValueException.ForInvalidSharedStringIndex(
+                    cellReference: cell.CellReference?.Value,
+                    rawSharedStringIndex: index);
             }
             return _strings[i];
         }
@@ -83,6 +87,8 @@ public readonly struct ParsedStringTable(List<string> strings)
         {
             return cell.CellValue!.Text;
         }
-        throw new InvalidOperationException("Invalid type");
+        throw ExcelCellStringValueException.ForUnsupportedCellDataType(
+            cell.CellReference?.Value,
+            dt.Value);
     }
 }
