@@ -31,9 +31,7 @@ public sealed class ElectiveCohorts
                     alternatives = [];
                     _byGroup.Add(id, alternatives);
                 }
-                var hashSet = alternatives;
-                Alternative item = new(cell.Alternative!);
-                hashSet.Add(item);
+                alternatives.Add(new Alternative(cell.Alternative!));
             }
         }
         SplitConfig = CreateSplitConfig(context.Schedule.ImplicitSplitConfig ?? Config.ImplicitSplitConfig);

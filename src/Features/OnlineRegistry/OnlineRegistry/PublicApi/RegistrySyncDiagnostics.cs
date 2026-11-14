@@ -130,23 +130,17 @@ public sealed class RegistrySyncDiagnostics
         var parts = new List<string>();
         if (partition.SubGroup != SubGroup.All)
         {
-            var list = parts;
-            string item = $"subgroup {partition.SubGroup.Value}";
-            list.Add(item);
+            parts.Add($"subgroup {partition.SubGroup.Value}");
         }
 
         if (partition.Specialization != Specialization.All)
         {
-            var list2 = parts;
-            string item2 = $"specialization {partition.Specialization.Value}";
-            list2.Add(item2);
+            parts.Add($"specialization {partition.Specialization.Value}");
         }
 
         if (partition.Alternative != Alternative.All)
         {
-            var list3 = parts;
-            string item3 = $"alternative {partition.Alternative.Value}";
-            list3.Add(item3);
+            parts.Add($"alternative {partition.Alternative.Value}");
         }
 
         return string.Join(", ", parts);
@@ -450,11 +444,10 @@ internal sealed class RegistryTargetCoverage(
         IReadOnlyList<RegistryGroupMatchRule> rules)
     {
         var source = schedule.Get(lessonId);
-        RegistryExpectedTarget target2 = new(
+        Cover(new RegistryExpectedTarget(
             source.Lesson.Course,
             parent,
-            partition);
-        Cover(target2);
+            partition));
 
         bool IsNotSingleGroupLecture()
         {

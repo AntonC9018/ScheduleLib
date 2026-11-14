@@ -281,14 +281,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         var gradeCell = row.Cells[gradeColumnIndex];
                         var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
                             ?? throw new InvalidOperationException("No input found in grade cell");
-                        var
-                            list14 = changes;
-                        RegistryGradeChange item14 = new(
+                        changes.Add(new RegistryGradeChange(
                             Student: name.ToString(),
                             gradeInDb,
                             gradeRounded,
-                            PreviousGrade: input.Value);
-                        list14.Add(item14);
+                            PreviousGrade: input.Value));
                         inputs.Add(new(input, gradeRounded));
                     }
                 }

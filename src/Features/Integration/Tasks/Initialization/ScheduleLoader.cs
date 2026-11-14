@@ -361,9 +361,7 @@ public sealed class ConsultationsLoaderComponent(
 
                         if (!parser.IsEmpty || name is null)
                         {
-                            var iXLCell = cell;
-                            string message = $"'{t}' did not parser as a name";
-                            throw iXLCell.Exception(message);
+                            throw cell.Exception($"'{t}' did not parser as a name");
                         }
                         Data.Name = name;
                         return true;
@@ -375,10 +373,9 @@ public sealed class ConsultationsLoaderComponent(
                         {
                             var startTime = new TimeOnly(hour: time.Hours, minute: time.Minutes);
                             var consultationDuration = _timeConfig.LessonDuration;
-                            var start = startTime;
-                            var end = startTime.Add(consultationDuration);
-                            TimeInterval timeInterval = new(Start: start, End: end);
-                            interval = timeInterval;
+                            interval = new TimeInterval(
+                                Start: startTime,
+                                End: startTime.Add(consultationDuration));
                         }
                         else
                         {
@@ -401,9 +398,7 @@ public sealed class ConsultationsLoaderComponent(
                     {
                         if (_dayParser.Map(t) is not { } day)
                         {
-                            var iXLCell2 = cell;
-                            string message2 = $"Unknown day of week '{t}'";
-                            throw iXLCell2.Exception(message2);
+                            throw cell.Exception($"Unknown day of week '{t}'");
                         }
                         Data.Day = day;
                         return true;
@@ -451,9 +446,7 @@ public sealed class ConsultationsLoaderComponent(
             var notSetRows = setRows.Flipped;
             if (!notSetRows.IsEmpty)
             {
-                var iXLRow = dataRow;
-                string message = $"The following rows were not set: '{notSetRows}'";
-                throw iXLRow.Exception(message);
+                throw dataRow.Exception($"The following rows were not set: '{notSetRows}'");
             }
 
             ref var data = ref processor.Data;
@@ -561,8 +554,7 @@ public static class HashHelper
                 foreach (var (name, v) in courses.OrderBy(x => x.Key, StringComparer.Ordinal))
                 {
                     AppendString(name);
-                    string? value2 = value(v);
-                    AppendString(value2);
+                    AppendString(value(v));
                 }
             }
 
@@ -625,14 +617,12 @@ public static class HashHelper
                     {
                         return c;
                     }
-                    string? strA2 = value(xe.Current.Value);
-                    string? strB2 = value(ye.Current.Value);
-                    var comparisonType = StringComparison.Ordinal;
-                    int compare = string.Compare(
-                        strA: strA2,
-                        strB: strB2,
-                        comparisonType);
-                    c = compare;
+                    string? leftValue = value(xe.Current.Value);
+                    string? rightValue = value(ye.Current.Value);
+                    c = string.Compare(
+                        strA: leftValue,
+                        strB: rightValue,
+                        StringComparison.Ordinal);
                     if (c != 0)
                     {
                         return c;

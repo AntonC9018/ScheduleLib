@@ -38,9 +38,8 @@ public sealed partial class DataProvider
     private object? GetWrapper<T>(NodeDataKey key)
         where T : class
     {
-        NodeDataKey<T> key2 = new(key);
-        var get = Get(key2);
-        return get;
+        var typedKey = new NodeDataKey<T>(key);
+        return Get(typedKey);
     }
 
     public T? Get<T>(NodeDataKey<T> key)

@@ -56,17 +56,9 @@ var result = await updater.RunAsync(
         Directory.Move(sourceDirName: staging, destDirName: generated);
     },
     cancellation.Token);
-string value;
-if (result.Updated)
-{
-    string text2 = $"Imported period {result.PeriodStart:yyyy-MM-dd} into {generated}. Hash checkpoint saved.";
-    value = text2;
-}
-else
-{
-    string text3 = $"Schedules unchanged. Skipped import; previous period is {result.PeriodStart:yyyy-MM-dd}.";
-    value = text3;
-}
+string message = result.Updated
+    ? $"Imported period {result.PeriodStart:yyyy-MM-dd} into {generated}. Hash checkpoint saved."
+    : $"Schedules unchanged. Skipped import; previous period is {result.PeriodStart:yyyy-MM-dd}.";
 
-Console.WriteLine(value);
+Console.WriteLine(message);
 return 0;

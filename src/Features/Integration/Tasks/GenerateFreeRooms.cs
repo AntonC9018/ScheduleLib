@@ -65,9 +65,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                 {
                     var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
                     var intervalText = _timeSlotDisplay.IntervalDisplay(interval);
-                    var list = dataCells;
-                    DataCell item = new(intervalText);
-                    list.Add(item);
+                    dataCells.Add(new DataCell(intervalText));
 
                     var lessons = lessonsThisDay
                         .Where(x => x.Date.TimeSlot == timeSlot
@@ -85,9 +83,7 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                     });
                     foreach (var freeRoom in orderedFreeRooms)
                     {
-                        var list2 = dataCells;
-                        DataCell item2 = new(freeRoom.Id!);
-                        list2.Add(item2);
+                        dataCells.Add(new DataCell(freeRoom.Id!));
                     }
 
                     await spreadsheet.AddRowAsync(dataCells, p.CancellationToken);

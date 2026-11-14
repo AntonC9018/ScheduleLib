@@ -109,9 +109,7 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
         {
             var portion = value.CreatePortion(t);
 
-            var stringBuilder = sb;
-            string? value2 = Enum.GetName(t);
-            stringBuilder.Append(value2);
+            sb.Append(Enum.GetName(t));
             sb.Append('{');
 
             if (portion.AreAllSet)

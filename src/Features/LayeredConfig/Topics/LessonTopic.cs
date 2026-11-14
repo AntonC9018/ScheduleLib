@@ -68,14 +68,11 @@ public static class LessonTopicCsvSerializer
         csvReader.ReadHeader();
         var hasLessonType = csvReader.HeaderRecord?.Contains("lessonType", StringComparer.Ordinal) == true;
         var hasLanguage = csvReader.HeaderRecord?.Contains("language", StringComparer.Ordinal) == true;
-        var csvContext = csvReader.Context;
-        var map =
-            new LessonTopicMap(
-                defaults,
-                hasLessonType: hasLessonType,
-                hasLanguage: hasLanguage);
-        ClassMap map2 = map;
-        csvContext.RegisterClassMap(map2);
+        var map = new LessonTopicMap(
+            defaults,
+            hasLessonType: hasLessonType,
+            hasLanguage: hasLanguage);
+        csvReader.Context.RegisterClassMap(map);
         var ret = csvReader.GetRecordsAsync<LessonTopic>(cancellationToken);
         await foreach (var x in ret)
         {
@@ -553,9 +550,7 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
                 it.AllowMissingLessonTypes);
 
             var builtKey = new ClassifiedTopicsKey(it.Key.GroupsKey, it.Key.CourseKey);
-            var builder = b;
-            ClassifiedTopicsProviders item2 = new(builtKey, p.Providers);
-            builder.Add(item2);
+            b.Add(new ClassifiedTopicsProviders(builtKey, p.Providers));
         }
         return new LessonTopicsFromDatabase(b.MoveToImmutable());
     }
@@ -1015,16 +1010,12 @@ file struct TopicsByLanguage()
         bool allowMissingLessonTypes)
     {
         _partition = partition;
-        var
-            allLessonTopicsDatabaseBuilder = self;
-        var courseKey2 = _courseKey;
-        TopicsGroupsKey groupsKey2 = new(groups, partition);
-        var language2 = language;
-        TopicsBuilderKey key = new(
-            courseKey: courseKey2,
-            groupsKey: groupsKey2,
-            language: language2);
-        var topics = allLessonTopicsDatabaseBuilder.Topics(key);
+        var groupsKey = new TopicsGroupsKey(groups, partition);
+        var key = new TopicsBuilderKey(
+            courseKey: _courseKey,
+            groupsKey: groupsKey,
+            language: language);
+        var topics = self.Topics(key);
         topics.AllowMissingLessonTypes |= allowMissingLessonTypes;
         _arr[language] = topics;
     }
@@ -1054,18 +1045,12 @@ file struct TopicsByLanguage()
                 allGroups.Add(group);
             }
 
-            var allLessonTopicsDatabaseBuilder =
-                self;
-            var courseKey2 = _courseKey;
-            TopicsGroupsKey groupsKey2 = new(allGroups, _partition);
-            var language2 = Language.None;
-            TopicsBuilderKey key = new(
-                courseKey: courseKey2,
-                groupsKey: groupsKey2,
-                language: language2);
-            var topics =
-                allLessonTopicsDatabaseBuilder.Topics(key);
-            _fallback = topics;
+            var groupsKey = new TopicsGroupsKey(allGroups, _partition);
+            var key = new TopicsBuilderKey(
+                courseKey: _courseKey,
+                groupsKey: groupsKey,
+                language: Language.None);
+            _fallback = self.Topics(key);
         }
         return _fallback;
     }

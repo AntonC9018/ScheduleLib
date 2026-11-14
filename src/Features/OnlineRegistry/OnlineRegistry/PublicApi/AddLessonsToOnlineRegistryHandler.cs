@@ -196,21 +196,18 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         courseLink.CourseId,
                         group.Groups,
                         group.GroupPartition);
-                    var config2 = config;
-                    LessonMatchParams parameters = new(
+                    var parameters = new LessonMatchParams(
                         filter,
                         _lookup.LessonsByCourse,
                         _schedule);
-                    var candidates = RegistryLessonRouting.Candidates(config2, parameters);
+                    var candidates = RegistryLessonRouting.Candidates(config, parameters);
                     var validity = p.LessonFilter.Filter(new(
                         filter,
                         _schedule,
                         candidates.Lessons));
                     if (validity.Decision == LessonValidityDecision.Error)
                     {
-                        var iRegistryErrorHandler = _errorHandler;
-                        ErroneousLesson lessons2 = new(validity.ErrorContext);
-                        iRegistryErrorHandler.LessonsDecidedErroneous(lessons2);
+                        _errorHandler.LessonsDecidedErroneous(new ErroneousLesson(validity.ErrorContext));
                         p.Diagnostics?.ReportRegistryAssignmentMismatch(
                             course: _schedule.Get(courseLink.CourseId).FullName,
                             @group: group.Groups.Value.ToString(_schedule));
@@ -601,21 +598,13 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         .ToArray();
                     var atTime = migrated.Where(local => local.DateTime == remote.DateTime)
                         .ToArray();
-                    LessonInstance[] value;
-                    if (atTime.Length == 0)
-                    {
-                        value = migrated;
-                    }
-                    else
-                    {
-                        value = atTime;
-                    }
+                    var matchingLessons = atTime.Length == 0
+                        ? migrated
+                        : atTime;
 
-                    var value2 = value;
-                    Func<LessonInstance, string> selector = Scope;
-                    var select = value2.Select(selector);
-                    var distinct = select.Distinct();
-                    var scopes = distinct.ToArray();
+                    var scopes = matchingLessons.Select(Scope)
+                        .Distinct()
+                        .ToArray();
                     if (scopes.Length != 1)
                     {
                         return null;

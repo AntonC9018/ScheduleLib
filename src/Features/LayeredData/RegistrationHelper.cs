@@ -140,10 +140,9 @@ public static class RegistrationHelper
         {
             var properties = type
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            var asEnumerable = properties.AsEnumerable<MemberInfo>();
-            var second = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-            IEnumerable<MemberInfo> second2 = second;
-            var members = asEnumerable.Concat(second2);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            var members = properties.AsEnumerable<MemberInfo>()
+                .Concat(fields);
             foreach (var m in members)
             {
                 Type mtype;

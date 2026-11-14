@@ -33,10 +33,10 @@ public static class CallMergerHelper
             into is null || into.GetType().IsAssignableTo(typeof(T)),
             "A non-null destination value must match the merger input type.");
 
-        var merger1 = (IMerger<T>) merger;
-        var from1 = (T) from;
-        var into1 = (T?) into;
-        var ret = merger1.Merge(@from: from1, @into: into1);
+        var typedMerger = (IMerger<T>) merger;
+        var source = (T) from;
+        var destination = (T?) into;
+        var ret = typedMerger.Merge(@from: source, @into: destination);
         return ret!;
     }
 
@@ -99,9 +99,9 @@ public static class CallCopyHelper
         Debug.Assert(
             from.GetType().IsAssignableTo(typeof(T)),
             "The source value must match the merger input type.");
-        var operations1 = (IBasicOperations<T>) operations;
-        var from1 = (T) from;
-        var ret = operations1.Copy(from1);
+        var typedOperations = (IBasicOperations<T>) operations;
+        var source = (T) from;
+        var ret = typedOperations.Copy(source);
         return ret!;
     }
 

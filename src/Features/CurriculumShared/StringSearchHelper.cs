@@ -128,13 +128,10 @@ public static class StringSearchHelper
 
             if (str.Length != start)
             {
-                int sectionType = sectionIndex;
-                var missingText2 = str.AsMemory(start);
-                var createPartialMatch =
-                    SectionParseResult.CreatePartialMatch(
-                        sectionType,
-                        missingText: missingText2);
-                return createPartialMatch;
+                var missingText = str.AsMemory(start);
+                return SectionParseResult.CreatePartialMatch(
+                    sectionIndex,
+                    missingText: missingText);
             }
 
             var x = extraStuffFromMatch.Array[sectionIndex];

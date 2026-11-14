@@ -28,9 +28,7 @@ public sealed class FmiScheduleClient(HttpClient http)
                 throw new FmiScheduleLinkDidNotReturnPdfException(link.Url);
             }
 
-            var list = downloads;
-            FmiScheduleDownload item = new(link, bytes);
-            list.Add(item);
+            downloads.Add(new FmiScheduleDownload(link, bytes));
         }
         return downloads;
     }

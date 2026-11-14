@@ -416,33 +416,26 @@ public readonly struct AllStudentAttendanceListBuilder()
                     var perLessonBuilder = perLessonTypeBuilders[lessonType];
                     Debug.Assert(perLessonBuilder != null);
 
-                    var key1 = key with
+                    var lessonKey = key with
                     {
                         LessonType = lessonType,
                     };
 
-                    AttendanceLists attendance =
-                        new(perLessonBuilder.DrainToImmutable());
-                    var studentNames = namesDb;
-                    ImmutableArray<
-                        AttendanceDate>? dates2;
+                    var attendance = new AttendanceLists(perLessonBuilder.DrainToImmutable());
+                    ImmutableArray<AttendanceDate>? filteredDates = null;
                     if (x.Dates is { } dates)
                     {
-                        dates2 = lessonTypes.Select((type, index) => (Type: type, Index: index))
+                        filteredDates = lessonTypes.Select((type, index) => (Type: type, Index: index))
                             .Where(column => column.Type == lessonType)
                             .Select(column => dates[column.Index])
                             .ToImmutableArray();
                     }
-                    else
-                    {
-                        dates2 = null;
-                    }
 
                     var value = new StudentAttendanceList.BetterAttendances(
                         Attendance: attendance,
-                        StudentNames: studentNames,
-                        Dates: dates2);
-                    map.Add(key1, value);
+                        StudentNames: namesDb,
+                        Dates: filteredDates);
+                    map.Add(lessonKey, value);
                 }
             }
             else
@@ -687,10 +680,9 @@ internal readonly struct StudentNameRemapHelper
         var aliases = new Dictionary<Name, Name>(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var alias in studentNames ?? new Dictionary<string, string>())
         {
-            var dictionary = aliases;
-            var key2 = StudentNameParser.Parse(alias.Key);
-            var value2 = StudentNameParser.Parse(alias.Value);
-            dictionary.Add(key: key2, value: value2);
+            var aliasKey = StudentNameParser.Parse(alias.Key);
+            var aliasValue = StudentNameParser.Parse(alias.Value);
+            aliases.Add(key: aliasKey, value: aliasValue);
         }
 
         var dbToHtmlIndexMap = new OptionalIndex[namesInDb.Count];

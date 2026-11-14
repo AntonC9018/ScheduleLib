@@ -65,15 +65,10 @@ public sealed partial class AttendanceListsExcelParser
             if (p.ParseParameters.HeaderFormat.FormatType != HeaderFormatType.Nothing
                 && sheet.FirstRowUsed(XLCellsUsedOptions.Contents) is { } firstRow)
             {
-                var hashSet = contentColumns;
-                var cellsUsed = firstRow.CellsUsed(XLCellsUsedOptions.Contents);
-                Func<IXLCell, bool> predicate = cell =>
-                    IsIrrelevantColumnHeader(cell.Value);
-                var where =
-                    cellsUsed.Where(predicate);
-                Func<IXLCell, int> selector = cell => cell.Address.ColumnNumber;
-                var other = where.Select(selector);
-                hashSet.ExceptWith(other);
+                var irrelevantColumns = firstRow.CellsUsed(XLCellsUsedOptions.Contents)
+                    .Where(cell => IsIrrelevantColumnHeader(cell.Value))
+                    .Select(cell => cell.Address.ColumnNumber);
+                contentColumns.ExceptWith(irrelevantColumns);
             }
             if (contentColumns.Count == 0)
             {
@@ -853,40 +848,21 @@ public sealed partial class AttendanceListsExcelParser
             Debug.Assert(!_built);
             _built = true;
 #endif
-            RentedBuffer<LessonType> lessons;
-            if (_lessons.IsValid)
-            {
-                var withLen = _lessons.WithLen(_count);
-                lessons = withLen;
-            }
-            else
-            {
-                lessons = default;
-            }
+            var lessons = _lessons.IsValid
+                ? _lessons.WithLen(_count)
+                : default;
 
-            RentedBuffer<AttendanceDate> dates;
-            if (_headerType == HeaderType.Date)
-            {
-                var withLen2 =
-                    _dates.WithLen(_count);
-                dates = withLen2;
-            }
-            else
-            {
-                dates = default;
-            }
+            var dates = _headerType == HeaderType.Date
+                ? _dates.WithLen(_count)
+                : default;
 
-            var offset = columnOffset;
-            var headerType = _headerType;
-            int len = _count;
-            int[] columns = _columns.ToArray();
             var ret = new ParsedHeaderInfo(
                 lessons,
                 dates,
-                offset,
-                headerType,
-                len,
-                columns);
+                columnOffset,
+                _headerType,
+                _count,
+                _columns.ToArray());
             // Move into info so it can be disposed.
             _lessons = default;
             _dates = default;
@@ -1009,8 +985,7 @@ public sealed partial class AttendanceListsExcelParser
                         if (!TryLessonType())
                         {
                             var examples = string.Join(",", headerDeps.LessonTypeParser.AllowedValuesExamples);
-                            string message2 = $"{strValue} is an invalid lesson type. The valid values are: {examples}";
-                            throw cell.Exception(message2);
+                            throw cell.Exception($"{strValue} is an invalid lesson type. The valid values are: {examples}");
                         }
                         continue;
                     }
@@ -1474,8 +1449,7 @@ public sealed partial class AttendanceListsExcelParser
 
         foreach (var column in contentColumns.Order())
         {
-            var cell2 = firstRow.Cell(column);
-            var value = cell2.Value;
+            var value = firstRow.Cell(column).Value;
             if (IsIrrelevantColumnHeader(value))
             {
                 continue;

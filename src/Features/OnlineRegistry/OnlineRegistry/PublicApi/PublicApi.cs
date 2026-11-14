@@ -1178,15 +1178,12 @@ public static partial class RegistryScraping
                 CookieContainer = cookieProvider.Container,
                 AllowAutoRedirect = false,
             };
-            var inner = handler;
-            Uri index2 = new(BaseUrl + "LessonAttendance");
-            var login2 = DefaultTokenNames.LoginUrl;
-            var spacing2 = spacing;
+            var indexUri = new Uri(BaseUrl + "LessonAttendance");
             var guard = new RegistryHistoryRequestHandler(
-                inner,
-                index: index2,
-                login: login2,
-                spacing2);
+                handler,
+                index: indexUri,
+                login: DefaultTokenNames.LoginUrl,
+                spacing);
             handler = guard;
             client = new HttpClient(guard);
             transport = new HttpClientContext(

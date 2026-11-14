@@ -169,14 +169,10 @@ public static class RegistryHistoryHtml
         var result = new List<RegistryHistoryCourse>();
         for (var semester = 1; semester <= 2; semester++)
         {
-            var iDocument = document;
-            string selectors = $"#nav-{semester} > div > span:nth-of-type(2) > a";
-            var expected = iDocument.QuerySelectorAll(selectors);
-            var iDocument2 = document;
-            string selectors2 = $"#nav-{semester} a[href]";
-            var querySelectorAll =
-                iDocument2.QuerySelectorAll(selectors2);
-            if (querySelectorAll.Length != expected.Length)
+            var expectedSelector = $"#nav-{semester} > div > span:nth-of-type(2) > a";
+            var expected = document.QuerySelectorAll(expectedSelector);
+            var allLinksSelector = $"#nav-{semester} a[href]";
+            if (document.QuerySelectorAll(allLinksSelector).Length != expected.Length)
             {
                 throw new RegistryHistoryException(
                     "Course container layout is unsupported; historical markup requires inspection.",
@@ -186,9 +182,8 @@ public static class RegistryHistoryHtml
 
             foreach (var anchor in expected)
             {
-                var address2 = address;
                 string? href = anchor.GetAttribute("href");
-                var uri = SafeUri(address2, href);
+                var uri = SafeUri(address, href);
                 if (!uri.AbsolutePath.StartsWith(
                         $"{Root(address)}LessonAttendance/groups/",
                         StringComparison.Ordinal))
@@ -210,13 +205,10 @@ public static class RegistryHistoryHtml
 
                 if (!result.Any(x => x.Uri == uri && x.Semester == semester))
                 {
-                    var
-                        list = result;
-                    RegistryHistoryCourse item = new(
+                    result.Add(new RegistryHistoryCourse(
                         name,
                         semester,
-                        uri);
-                    list.Add(item);
+                        uri));
                 }
             }
         }
@@ -259,9 +251,8 @@ public static class RegistryHistoryHtml
                     diagnostic: RegistryHistoryDiagnostic.GroupRowLinks);
             }
 
-            var address2 = address;
             string? href = anchors[0].GetAttribute("href");
-            var uri = SafeUri(address2, href);
+            var uri = SafeUri(address, href);
             if (!uri.AbsolutePath.StartsWith(
                     $"{Root(address)}LessonAttendance/LessonsList/",
                     StringComparison.Ordinal))
@@ -283,10 +274,7 @@ public static class RegistryHistoryHtml
 
             if (!result.Any(x => x.Uri == uri))
             {
-                var list =
-                    result;
-                RegistryHistoryGroup item = new(name, uri);
-                list.Add(item);
+                result.Add(new(name, uri));
             }
         }
         return result;
@@ -821,27 +809,16 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
             var courses = new List<RegistryHistoryCourseSummary>();
             foreach (var course in RegistryHistoryHtml.Courses(document, index))
             {
-                using var groups = await Read(course.Uri, token);
-                var
-                    list = courses;
-                string name = course.Name;
-                int semester = course.Semester;
-                var groups2 =
-                    RegistryHistoryHtml.Groups(groups, course.Uri);
-                Func<RegistryHistoryGroup, string> selector = x =>
-                    x.Name;
-                var select = groups2.Select(selector);
-                IReadOnlyList<string> groups3 = select.ToArray();
-                RegistryHistoryCourseSummary item = new(
-                    name,
-                    semester,
-                    groups3);
-                list.Add(item);
+                using var groupsDocument = await Read(course.Uri, token);
+                var groupNames = RegistryHistoryHtml.Groups(groupsDocument, course.Uri)
+                    .Select(x => x.Name)
+                    .ToArray();
+                courses.Add(new(
+                    course.Name,
+                    course.Semester,
+                    groupNames));
             }
-            var
-                list2 = summaries;
-            RegistryHistoryYearSummary item2 = new(selected.Value, courses);
-            list2.Add(item2);
+            summaries.Add(new(selected.Value, courses));
         }
         return summaries;
     }
@@ -851,18 +828,12 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
         using var response = await client.GetAsync(uri, token);
         if (!response.IsSuccessStatusCode)
         {
-            string message = "History page request failed.";
-            var failure = RegistryHistoryFailure.AccessRejected;
-            var phase = Phase(uri);
-            int? statusCode = (int) response.StatusCode;
-            var diagnostic2 =
-                RegistryHistoryDiagnostic.HttpRejected;
             throw new RegistryHistoryException(
-                message,
-                failure,
-                phase,
-                statusCode,
-                diagnostic2);
+                "History page request failed.",
+                RegistryHistoryFailure.AccessRejected,
+                Phase(uri),
+                (int) response.StatusCode,
+                RegistryHistoryDiagnostic.HttpRejected);
         }
 
         await using var stream = await response.Content.ReadAsStreamAsync(token);
@@ -874,48 +845,29 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
                     == true))
         {
             document.Dispose();
-            string message2 = "History page did not confirm authentication; discovery stopped.";
-            var failure2 =
-                RegistryHistoryFailure.AuthenticationNotConfirmed;
-            var phase2 = Phase(uri);
-            var diagnostic3 =
-                RegistryHistoryDiagnostic.AuthenticationPage;
             throw new RegistryHistoryException(
-                message2,
-                failure2,
-                phase2,
-                diagnostic: diagnostic3);
+                "History page did not confirm authentication; discovery stopped.",
+                RegistryHistoryFailure.AuthenticationNotConfirmed,
+                Phase(uri),
+                diagnostic: RegistryHistoryDiagnostic.AuthenticationPage);
         }
         return document;
     }
 
     private RegistryHistoryPhase Phase(Uri uri)
     {
-        RegistryHistoryPhase registryHistoryPhase;
         if (uri.AbsolutePath == index.AbsolutePath)
         {
-            registryHistoryPhase = RegistryHistoryPhase.Index;
+            return RegistryHistoryPhase.Index;
         }
-        else
+
+        var root = RegistryHistoryHtml.Root(index);
+        var groupsPathPrefix = $"{root}LessonAttendance/groups/";
+        if (uri.AbsolutePath.StartsWith(groupsPathPrefix, StringComparison.Ordinal))
         {
-            string text = uri.AbsolutePath;
-            string root = RegistryHistoryHtml.Root(index);
-            string text2 = $"{root}LessonAttendance/groups/";
-            string value = text2;
-            var comparisonType = StringComparison.Ordinal;
-            RegistryHistoryPhase registryHistoryPhase2;
-            if (text.StartsWith(value, comparisonType))
-            {
-                registryHistoryPhase2 = RegistryHistoryPhase.Groups;
-            }
-            else
-            {
-                registryHistoryPhase2 = RegistryHistoryPhase.Lessons;
-            }
-
-            registryHistoryPhase = registryHistoryPhase2;
+            return RegistryHistoryPhase.Groups;
         }
 
-        return registryHistoryPhase;
+        return RegistryHistoryPhase.Lessons;
     }
 }

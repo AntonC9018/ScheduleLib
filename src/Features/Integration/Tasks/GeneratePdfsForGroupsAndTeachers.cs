@@ -101,9 +101,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
             var sb = new StringBuilder();
             for (int teacherId = 0; teacherId < _schedule.Teachers.Length; teacherId++)
             {
-                int teacherId1 = teacherId;
-
-                var teacherName = _schedule.Teachers[teacherId1].PersonName;
+                var teacherName = _schedule.Teachers[teacherId].PersonName;
                 TeacherNameHelper.AsFileName(sb, teacherName);
                 sb.Append(".pdf");
 
@@ -116,7 +114,7 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
                     {
                         TeacherFilter = new()
                         {
-                            IncludeIds = [new(teacherId1)],
+                            IncludeIds = [new(teacherId)],
                         },
                     }));
             }

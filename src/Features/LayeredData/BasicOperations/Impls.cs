@@ -140,17 +140,7 @@ public sealed class ReflectionMerger<T> : IMerger<T>
         }
         if (to == null)
         {
-            string paramName2;
-            if (from == null)
-            {
-                paramName2 = nameof(from);
-            }
-            else
-            {
-                paramName2 = nameof(to);
-            }
-
-            throw new ArgumentNullException(paramName2);
+            throw new ArgumentNullException(nameof(to));
         }
 
         foreach (var property in _writableProperties)
@@ -162,9 +152,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
             }
 
             var targetValue = property.GetValue(to);
-            var iServiceProvider = _serviceProvider;
-            var serviceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
-            var merger = iServiceProvider.GetService(serviceType);
+            var mergerServiceType = typeof(IMerger<>).MakeGenericType(property.PropertyType);
+            var merger = _serviceProvider.GetService(mergerServiceType);
             if (merger != null)
             {
                 targetValue = CallMergerHelper.Merge(
@@ -175,9 +164,8 @@ public sealed class ReflectionMerger<T> : IMerger<T>
                 continue;
             }
 
-            var iServiceProvider2 = _serviceProvider;
-            var serviceType2 = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
-            var copier = iServiceProvider2.GetService(serviceType2);
+            var copierServiceType = typeof(IBasicOperations<>).MakeGenericType(property.PropertyType);
+            var copier = _serviceProvider.GetService(copierServiceType);
             if (copier != null)
             {
                 targetValue = CallCopyHelper.Copy(operations: copier, @from: sourceValue);

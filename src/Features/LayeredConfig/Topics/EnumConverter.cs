@@ -126,12 +126,7 @@ public static class EnumConverterExtensions
         var opts = new EnumConverterOptions<TMember>();
         configure?.Invoke(opts);
 
-        var memberMap = map;
-        var typeConverter =
-            new ConfigurableEnumConverter<TMember>(opts);
-        ITypeConverter typeConverter2 = typeConverter;
-        var typeConverter3 =
-            memberMap.TypeConverter(typeConverter2);
-        return typeConverter3;
+        var converter = new ConfigurableEnumConverter<TMember>(opts);
+        return map.TypeConverter(converter);
     }
 }

@@ -247,10 +247,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 ErrorHandler = _errorHandler,
                 GetAddLessonDocument = () =>
                 {
-                    var iRegistrySyncNavigator = navigator;
-                    var uri = HtmlSearch.ScanForLessonAddLink(document);
-                    var html = iRegistrySyncNavigator.GetHtml(uri);
-                    return html;
+                    var addUri = HtmlSearch.ScanForLessonAddLink(document);
+                    return navigator.GetHtml(addUri);
                 },
             });
             return scan.Lessons.ToArray();

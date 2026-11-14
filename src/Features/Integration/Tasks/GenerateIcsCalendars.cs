@@ -89,13 +89,13 @@ public sealed partial class GenerateIcsCalendarsTaskHandler
             }
         }
 
-        var sb1 = new StringBuilder();
+        var teacherFileNameBuilder = new StringBuilder();
         for (int teacherId = 0; teacherId < _schedule.Teachers.Length; teacherId++)
         {
             var teacher = _schedule.Teachers[teacherId];
-            TeacherNameHelper.AsFileName(sb1, teacher.PersonName);
-            sb1.Append(".ics");
-            var fileName = sb1.ToStringAndClear();
+            TeacherNameHelper.AsFileName(teacherFileNameBuilder, teacher.PersonName);
+            teacherFileNameBuilder.Append(".ics");
+            var fileName = teacherFileNameBuilder.ToStringAndClear();
 
             await WriteCalendar(
                 fileName: fileName,

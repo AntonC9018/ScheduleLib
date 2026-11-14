@@ -173,20 +173,15 @@ public static class AttendanceLabMerges
 
             if (!sources.TryGetValue(key, out var lists))
             {
-                var dictionary = sources;
-                var key2 = key;
-                var value = lists = [];
-                dictionary.Add(key2, value);
+                lists = [];
+                sources.Add(key, lists);
             }
 
             lists.Add(entry.Value);
         }
         foreach (var entry in sources)
         {
-            var dictionary2 = result;
-            var key3 = entry.Key;
-            var value2 = Combine(entry.Value);
-            dictionary2.Add(key3, value2);
+            result.Add(entry.Key, Combine(entry.Value));
         }
 
         return new(result);
@@ -210,10 +205,10 @@ public static class AttendanceLabMerges
                 return orderedNames;
             }),
         ]);
-        ImmutableArray<AttendanceDate>? nullable;
+        ImmutableArray<AttendanceDate>? dates = null;
         if (dated)
         {
-            nullable =
+            dates =
             [
                 .. sources.SelectMany(source => source.Dates!.Value)
                     .Distinct()
@@ -223,12 +218,7 @@ public static class AttendanceLabMerges
                     .ThenBy(date => date.Time),
             ];
         }
-        else
-        {
-            nullable = null;
-        }
 
-        var dates = nullable;
         var dayCount = dates?.Length ?? sources.Max(source => source.Attendance.DayCount);
         var days = ImmutableArray.CreateBuilder<DayAttendanceList>(dayCount);
         for (int index = 0; index < dayCount; index++)
@@ -255,17 +245,12 @@ public static class AttendanceLabMerges
                     marks.AddRange(Enumerable.Repeat(Attendance.None, source.StudentNames.Count));
                 }
             }
-            var builder = days;
-            DayAttendanceList item = new(marks.MoveToImmutable());
-            builder.Add(item);
+            days.Add(new DayAttendanceList(marks.MoveToImmutable()));
         }
-        AttendanceLists attendance = new(days.MoveToImmutable());
-        var studentNames = names;
-        var dates2 = dates;
-        StudentAttendanceList.BetterAttendances betterAttendances = new(
+        var attendance = new AttendanceLists(days.MoveToImmutable());
+        return new StudentAttendanceList.BetterAttendances(
             attendance,
-            studentNames,
-            dates2);
-        return betterAttendances;
+            names,
+            dates);
     }
 }

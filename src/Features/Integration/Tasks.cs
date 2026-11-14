@@ -133,9 +133,9 @@ public static class TasksHelper
             var firstWeeklyLesson = context.Schedule.WeeklyLessons.Count;
             var firstOneTimeLesson = context.Schedule.OneTimeLessons.Count;
             foreach (var filePath in Directory.EnumerateFiles(
-                         path: dirName,
-                         searchPattern: "*.doc",
-                         SearchOption.TopDirectoryOnly)
+                             path: dirName,
+                             searchPattern: "*.doc",
+                             SearchOption.TopDirectoryOnly)
                          .Order(StringComparer.Ordinal))
             {
                 // CA2000 misses using-declaration disposal inside this async local function.
@@ -143,40 +143,37 @@ public static class TasksHelper
                 using var stagingOwner = OwnedConversionDirectory.Create(Path.GetTempPath());
 #pragma warning restore CA2000
                 var stagingDirectory = stagingOwner.DirectoryPath;
+                var fileName = Path.GetFileName(filePath);
+                var stagedInput = Path.Combine(stagingDirectory, fileName);
+                File.Copy(sourceFileName: filePath, destFileName: stagedInput);
+                var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
+                if (!(await DocToDocxConversionHelper.TryConvertFile(
+                        inputPath: stagedInput,
+                        outputPath: outputPath,
+                        cancellationToken)))
                 {
-                    string path1 = stagingDirectory;
-                    string path2 = Path.GetFileName(filePath);
-                    var stagedInput = Path.Combine(path1, path2);
-                    File.Copy(sourceFileName: filePath, destFileName: stagedInput);
-                    var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
-                    if (!(await DocToDocxConversionHelper.TryConvertFile(
-                            inputPath: stagedInput,
-                            outputPath: outputPath,
-                            cancellationToken)))
-                    {
-                        throw new IOException(
-                            "Could not convert doc to docx. Windows with Microsoft Word is required.");
-                    }
-
-                    using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
-                    context.SetPeriod(period);
-                    WordScheduleParser.ParseToSchedule(new()
-                    {
-                        Context = context,
-                        Document = document,
-                    });
+                    throw new IOException(
+                        "Could not convert doc to docx. Windows with Microsoft Word is required.");
                 }
+
+                using var document = WordprocessingDocument.Open(outputPath, isEditable: false);
+                context.SetPeriod(period);
+                WordScheduleParser.ParseToSchedule(new()
+                {
+                    Context = context,
+                    Document = document,
+                });
             }
 
             foreach (var filePath in Directory.EnumerateFiles(
-                         path: dirName,
-                         searchPattern: "*.docx",
-                         SearchOption.TopDirectoryOnly)
+                             path: dirName,
+                             searchPattern: "*.docx",
+                             SearchOption.TopDirectoryOnly)
                          .Order(StringComparer.Ordinal))
             {
                 // A paired legacy source was already parsed from its staged conversion.
-                string path3 = Path.ChangeExtension(path: filePath, @extension: ".doc");
-                if (File.Exists(path3))
+                string legacyDocPath = Path.ChangeExtension(path: filePath, @extension: ".doc");
+                if (File.Exists(legacyDocPath))
                 {
                     continue;
                 }
@@ -215,7 +212,10 @@ public static class TasksHelper
                 cancellationToken.ThrowIfCancellationRequested();
                 using var stream = File.OpenRead(filePath);
                 string source = Path.GetFileName(filePath);
-                cells.AddRange(PdfScheduleImporter.Read(stream, source, parityRepairs));
+                cells.AddRange(PdfScheduleImporter.Read(
+                    stream,
+                    source,
+                    parityRepairs));
             }
             if (cells.Count == 0)
             {

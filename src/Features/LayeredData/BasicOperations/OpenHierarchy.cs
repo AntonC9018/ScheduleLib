@@ -324,10 +324,10 @@ internal static class KeyEqualityCallHelper
         Debug.Assert(
             y.GetType().IsAssignableTo(typeof(T)),
             "The y value must support the T contract.");
-        var comparer1 = (IKeyEqualityComparer<T>) comparer;
-        var x1 = (T) x;
-        var y1 = (T) y;
-        var ret = comparer1.Equals(x: x1, y: y1);
+        var typedComparer = (IKeyEqualityComparer<T>) comparer;
+        var left = (T) x;
+        var right = (T) y;
+        var ret = typedComparer.Equals(x: left, y: right);
         return ret!;
     }
 
@@ -348,9 +348,9 @@ internal static class KeyEqualityCallHelper
         Debug.Assert(
             x.GetType().IsAssignableTo(typeof(T)),
             "The x value must support the T contract.");
-        var comparer1 = (IKeyEqualityComparer<T>) comparer;
-        var x1 = (T) x;
-        var ret = comparer1.GetHashCode(x1);
+        var typedComparer = (IKeyEqualityComparer<T>) comparer;
+        var typedValue = (T) x;
+        var ret = typedComparer.GetHashCode(typedValue);
         return ret!;
     }
 

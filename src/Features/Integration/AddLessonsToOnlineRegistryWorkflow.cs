@@ -106,7 +106,7 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
 public sealed class ContextProvider(IServiceProvider sp) : IDisposable
 {
     // Don't even reuse for now.
-    private RegistryScrapingContext _c1;
+    private RegistryScrapingContext _scrapingContext;
 
     private ValueTask<RegistryScrapingContext> MakeRegistryContext(CancellationToken cancellationToken)
     {
@@ -115,17 +115,17 @@ public sealed class ContextProvider(IServiceProvider sp) : IDisposable
 
     public async ValueTask<OnlineRegistryNavigator> CreateRegistryNavigator(CancellationToken cancellationToken)
     {
-        Debug.Assert(_c1.IsNull);
-        _c1 = await MakeRegistryContext(cancellationToken);
-        var ret = _c1.Navigator(sp, cancellationToken);
+        Debug.Assert(_scrapingContext.IsNull);
+        _scrapingContext = await MakeRegistryContext(cancellationToken);
+        var ret = _scrapingContext.Navigator(sp, cancellationToken);
         return ret;
     }
 
     public void Dispose()
     {
-        if (!_c1.IsNull)
+        if (!_scrapingContext.IsNull)
         {
-            _c1.Dispose();
+            _scrapingContext.Dispose();
         }
     }
 }
@@ -140,8 +140,8 @@ public sealed partial class LessonTopicsOfCurrentTeacherLoader
 
     public async ValueTask<ILessonTopics> Load(CancellationToken cancellationToken)
     {
-        var config1 = _lessonTopicsConfig.Get();
-        if (config1 == null)
+        var config = _lessonTopicsConfig.Get();
+        if (config == null)
         {
             return NoLessonTopics.Instance;
         }
@@ -149,12 +149,12 @@ public sealed partial class LessonTopicsOfCurrentTeacherLoader
         var filteredSchedule = _scheduleProvider.Get();
         var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(_sp, filteredSchedule);
         builder.Semester = _studyYear.Value.Semester.AsOrdinal();
-        foreach (var x in config1.Sources)
+        foreach (var x in config.Sources)
         {
             var source = x.Create(_sp);
             await source.Configure(builder, cancellationToken);
         }
-        foreach (var x in config1.FallbackProviders)
+        foreach (var x in config.FallbackProviders)
         {
             builder.FallbackProvider(x.LessonType, x.Provider);
         }

@@ -153,26 +153,18 @@ public static class PdfScheduleImporter
                         text: cell.Text);
                 }
 
-                string source2 = source;
-                int page = table.Page;
-                string[] groups2 = groups;
-                string day2 = day[0].Text;
                 var match = Time.Match(time[0].Text);
-                var groupCollection = match.Groups;
-                int groupnum = 1;
-                string start = groupCollection[groupnum].Value;
-                string text = PdfTextNormalizer.Normalize(cell.Text);
-                string rawText = cell.Text;
-                var bounds = box;
+                string start = match.Groups[1].Value;
+                string normalizedText = PdfTextNormalizer.Normalize(cell.Text);
                 var resolved = new PdfScheduleCell(
-                    Source: source2,
-                    page,
-                    groups2,
-                    Day: day2,
+                    Source: source,
+                    table.Page,
+                    groups,
+                    Day: day[0].Text,
                     Start: start,
-                    Text: text,
-                    RawText: rawText,
-                    Bounds: bounds);
+                    Text: normalizedText,
+                    RawText: cell.Text,
+                    Bounds: box);
                 var repaired = PdfTextNormalizer.ExpandCohorts(resolved)
                     .Select(c => PdfTextNormalizer.RepairMissingParity(c, parityRepairs));
                 result.AddRange(repaired);
@@ -210,16 +202,12 @@ public static class PdfScheduleImporter
                     }
                     var groups = names.Select(g => context.Schedule.Group(g).Id)
                         .ToArray();
-                    var lesson2 = lesson;
-                    var day2 = day;
-                    var timeSlot = time;
-                    IReadOnlyList<GroupId> groups2 = groups;
-                    Alternative alternative = new(cell.Alternative);
+                    var alternative = new Alternative(cell.Alternative);
                     var input = new ImportedLessonInput(
-                        lesson2,
-                        day2,
-                        timeSlot,
-                        groups2,
+                        lesson,
+                        day,
+                        time,
+                        groups,
                         alternative);
                     if (addLesson is null)
                     {

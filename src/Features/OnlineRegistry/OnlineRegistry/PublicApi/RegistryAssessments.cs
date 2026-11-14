@@ -35,9 +35,7 @@ public static class RegistryAssessmentTopics
 
             if (char.IsLetter(c))
             {
-                var stringBuilder = word;
-                char value = char.ToLowerInvariant(c);
-                stringBuilder.Append(value);
+                word.Append(char.ToLowerInvariant(c));
             }
             else
             {
@@ -203,28 +201,17 @@ internal static class RegistryAssessments
                         "An assessment date must identify exactly one scheduled lesson of its type.");
                 }
 
-                var dictionary = reserved;
-                int key = candidates[0];
-                string value;
-                if (i < existing.Length)
-                {
-                    value = existing[i].Topic!;
-                }
-                else
-                {
-                    value = "Atestare " + (i + 1);
-                }
-
-                dictionary.Add(key, value);
+                string topic = i < existing.Length
+                    ? existing[i].Topic!
+                    : "Atestare " + (i + 1);
+                reserved.Add(candidates[0], topic);
             }
             // Unconfigured additional assessments retain their original dates.
             foreach (var extra in existing.Skip(dates.Length))
             {
                 if (!ReserveExisting(extra))
                 {
-                    var hashSet = protectedRemote;
-                    int item = Array.IndexOf(remote, extra);
-                    hashSet.Add(item);
+                    protectedRemote.Add(Array.IndexOf(remote, extra));
                 }
             }
             // Moving an assessment outside the known timetable could leave an orphaned entry.

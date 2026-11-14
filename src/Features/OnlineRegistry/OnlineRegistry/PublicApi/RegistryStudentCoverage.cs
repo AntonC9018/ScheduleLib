@@ -25,10 +25,8 @@ internal sealed class RegistryStudentCoverage(
                 var audience = source.Key;
                 if (!_sources.TryGetValue(audience, out var coverage))
                 {
-                    var dictionary = _sources;
-                    var key2 = audience;
-                    var value = coverage = new();
-                    dictionary.Add(key2, value);
+                    coverage = new();
+                    _sources.Add(audience, coverage);
                 }
 
                 coverage.Names.UnionWith(source.Names.Select(student => student.Key));
@@ -73,32 +71,27 @@ internal sealed class RegistryStudentCoverage(
             foreach (var source in matchingSources)
             {
                 var audience = source.Key;
-                var dictionary2 = sources;
-                var key3 = audience;
                 NamesInDb namesInDb;
                 if (sources.TryGetValue(audience, out var known))
                 {
-                    var create = NamesInDb.Create([
+                    namesInDb = NamesInDb.Create([
                         .. known.Concat(source.Names)
                             .Select(student => student.Key)
                             .Distinct(NameComparer),
                     ]);
-                    namesInDb = create;
                 }
                 else
                 {
                     namesInDb = source.Names;
                 }
 
-                dictionary2[key3] = namesInDb;
+                sources[audience] = namesInDb;
             }
         }
-        var list = _rosters;
-        RosterCoverage item = new(
+        _rosters.Add(new RosterCoverage(
             students,
             sources,
-            complete);
-        list.Add(item);
+            complete));
     }
 
     // Called only after every relevant list for the course was processed successfully.
@@ -184,14 +177,11 @@ internal sealed class RegistryStudentCoverage(
                 var names = NamesInDb.Create([
                     .. roster.Sources.SelectMany(source =>
                         {
-                            var select = source.Value.Select(student => student.Key);
-                            HashSet<Name> second;
-                            if (_sources.TryGetValue(source.Key, out var coverage)) { second = coverage.Names; }
-                            else { second = []; }
-                            IEnumerable<Name> second2 = second;
-                            var concat = select.Concat(
-                                second2);
-                            return concat;
+                            var sourceNames = source.Value.Select(student => student.Key);
+                            var coveredNames = _sources.TryGetValue(source.Key, out var coverage)
+                                ? (IEnumerable<Name>) coverage.Names
+                                : [];
+                            return sourceNames.Concat(coveredNames);
                         })
                         .Distinct(NameComparer),
                 ]);

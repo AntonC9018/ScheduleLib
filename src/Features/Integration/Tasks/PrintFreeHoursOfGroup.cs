@@ -87,14 +87,12 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
                          })
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var list = sections;
-                    var item = Section(
+                    sections.Add(Section(
                         group,
                         parity,
                         mode,
                         lessons,
-                        cancellationToken);
-                    list.Add(item);
+                        cancellationToken));
                 }
             }
         }

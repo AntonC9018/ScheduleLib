@@ -247,11 +247,9 @@ public static class RegistryHistoryTopicSelection
         {
             if (currentCourses.Count(x => Matches(current: course, historical: x)) != 1)
             {
-                var list = unresolved;
-                RegistryHistoryUnresolvedCourse item = new(
+                unresolved.Add(new RegistryHistoryUnresolvedCourse(
                     course,
-                    RegistryHistoryTopicMappingFailure.AmbiguousCourse);
-                list.Add(item);
+                    RegistryHistoryTopicMappingFailure.AmbiguousCourse));
                 continue;
             }
             var found = false;
@@ -269,11 +267,9 @@ public static class RegistryHistoryTopicSelection
                 found = true;
                 if (matches.Length > 1)
                 {
-                    var list2 = unresolved;
-                    RegistryHistoryUnresolvedCourse item2 = new(
+                    unresolved.Add(new RegistryHistoryUnresolvedCourse(
                         course,
-                        RegistryHistoryTopicMappingFailure.AmbiguousCourse);
-                    list2.Add(item2);
+                        RegistryHistoryTopicMappingFailure.AmbiguousCourse));
                     resolved = true;
                     break;
                 }
@@ -293,28 +289,16 @@ public static class RegistryHistoryTopicSelection
                     continue;
                 }
 
-                var list3 = candidates;
-                RegistryHistoryTopicCandidate item3 = new(course, matches[0]);
-                list3.Add(item3);
+                candidates.Add(new RegistryHistoryTopicCandidate(course, matches[0]));
                 resolved = true;
                 break;
             }
             if (!resolved)
             {
-                var list4 = unresolved;
-                var currentCourse = course;
-                RegistryHistoryTopicMappingFailure reason;
-                if (found)
-                {
-                    reason = RegistryHistoryTopicMappingFailure.NoTopics;
-                }
-                else
-                {
-                    reason = RegistryHistoryTopicMappingFailure.NoHistoricalCourse;
-                }
-
-                RegistryHistoryUnresolvedCourse item4 = new(currentCourse, reason);
-                list4.Add(item4);
+                var reason = found
+                    ? RegistryHistoryTopicMappingFailure.NoTopics
+                    : RegistryHistoryTopicMappingFailure.NoHistoricalCourse;
+                unresolved.Add(new RegistryHistoryUnresolvedCourse(course, reason));
             }
         }
         return new(
@@ -490,17 +474,11 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             foreach (var group in RegistryHistoryHtml.Groups(document, course.Uri))
             {
                 using var lessons = await reader.Read(group.Uri, token);
-                var
-                    list = groups;
-                string name = group.Name;
-                var uri = group.Uri;
-                var lessons2 =
-                    RegistryHistoryTopicsHtml.Lessons(lessons);
-                RegistryHistoryGroupTopics item = new(
-                    name,
-                    uri,
-                    lessons2);
-                list.Add(item);
+                var groupLessons = RegistryHistoryTopicsHtml.Lessons(lessons);
+                groups.Add(new RegistryHistoryGroupTopics(
+                    group.Name,
+                    group.Uri,
+                    groupLessons));
             }
             return new(
                 year,

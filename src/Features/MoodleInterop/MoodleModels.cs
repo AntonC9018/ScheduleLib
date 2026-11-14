@@ -442,10 +442,8 @@ public sealed class MultiChoiceQuestionBuilder
             {
                 // Scale negative fractions by the same factor, capped at -100
                 var scaledNegative = answer.Fraction * scale;
-                decimal val1 = -100;
-                decimal val2 = RoundToStandardPercentage(scaledNegative);
-                decimal max = Math.Max(val1, val2);
-                fraction = max;
+                decimal roundedNegative = RoundToStandardPercentage(scaledNegative);
+                fraction = Math.Max(-100m, roundedNegative);
             }
             else
             {

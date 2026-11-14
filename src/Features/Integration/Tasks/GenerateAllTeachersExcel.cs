@@ -269,8 +269,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         var id = new SharedStringItemId(firstTimeSlotStringId.Value + timeSlotIndex);
                         var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        var formatId2 = styles.TimeSlot.Get(option);
-                        cell.SetStyle(formatId2);
+                        var timeSlotFormatId = styles.TimeSlot.Get(option);
+                        cell.SetStyle(timeSlotFormatId);
                     }
 
                     bool isSeminarDate = day == seminarDate.Day && timeSlot == seminarDate.TimeSlot;
@@ -290,8 +290,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        var formatId3 = styles.Lesson.Get(option);
-                        cell.SetStyle(formatId3);
+                        var lessonFormatId = styles.Lesson.Get(option);
+                        cell.SetStyle(lessonFormatId);
 
                         var cellKey = rowKey.DefaultCellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -299,15 +299,12 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        {
-                            var sb = stringBuilder;
-                            FormatLessons(sb, lessons);
-                            Debug.Assert(sb.Length > 0);
+                        FormatLessons(stringBuilder, lessons);
+                        Debug.Assert(stringBuilder.Length > 0);
 
-                            var str = sb.ToStringAndClear();
-                            var stringId = strings.GetOrAddString(str);
-                            cell.SetSharedStringValue(stringId);
-                        }
+                        var str = stringBuilder.ToStringAndClear();
+                        var stringId = strings.GetOrAddString(str);
+                        cell.SetSharedStringValue(stringId);
                     }
                 }
             }
@@ -368,8 +365,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 }
                 for (int index = 0; index < lessons.Count - 1; index++)
                 {
-                    var l0 = lessons[index];
-                    var l1 = lessons[index + 1];
+                    var current = lessons[index];
+                    var next = lessons[index + 1];
 
                     var diffMask = new LessonModelDiffMask
                     {
@@ -378,8 +375,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         Room = true,
                     };
                     var diff = LessonBuilderHelper.Diff(
-                        a: l0,
-                        b: l1,
+                        a: current,
+                        b: next,
                         diffMask);
                     if (diff.TheyDiffer)
                     {
@@ -464,13 +461,13 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     return false;
                 }
 
-                var l0 = lessons[0];
-                var l1 = lessons[1];
-                var checkGroups = l0.Lesson.Groups.IsSingleGroup
-                    && l0.Lesson.Groups.IsSingleGroup;
+                var first = lessons[0];
+                var second = lessons[1];
+                var checkGroups = first.Lesson.Groups.IsSingleGroup
+                    && first.Lesson.Groups.IsSingleGroup;
                 var diff = LessonBuilderHelper.Diff(
-                    a: l0,
-                    b: l1,
+                    a: first,
+                    b: second,
                     new()
                     {
                         Course = true,
@@ -490,22 +487,22 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 }
 
                 var listBuilder = new ListStringBuilder(sb);
-                AppendCourse(listBuilder, l0.Ref);
+                AppendCourse(listBuilder, first.Ref);
 
                 if (!diff.LessonType)
                 {
-                    AppendLessonTypeName(listBuilder, l0.Ref);
+                    AppendLessonTypeName(listBuilder, first.Ref);
                 }
                 if (!diff.Room)
                 {
-                    AppendRoom(listBuilder, l0.Ref);
+                    AppendRoom(listBuilder, first.Ref);
                 }
                 if (!diff.OneGroup)
                 {
                     bool subgroupsDiffer = diff.SubGroup;
                     AppendGroup(
                         listBuilder,
-                        l0.Ref,
+                        first.Ref,
                         appendSubgroup: !subgroupsDiffer);
                 }
 

@@ -67,10 +67,8 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
                 var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                 var date = timeEvent.Event.First;
                 var dateTime = new DateTime(date, time);
-                var dateTime2 = dateTime;
                 var offset = zone.GetUtcOffset(dateTime);
-                DateTimeOffset dateTimeOffset = new(dateTime2, offset);
-                return dateTimeOffset;
+                return new DateTimeOffset(dateTime, offset);
             }
 
             var notRichText = new NotRichText();

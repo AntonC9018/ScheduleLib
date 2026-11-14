@@ -174,10 +174,8 @@ public sealed partial class ManifestFileSource : IManifestFileSource
                 TeacherNameMismatchLog(Expected: _teacherName, Found: manifest.Teacher);
             }
         }
-        var manifest2 = manifest;
         string? directoryPath = Path.GetDirectoryName(_path);
-        ManifestAtLocation manifestAtLocation = new(manifest2, directoryPath);
-        return manifestAtLocation;
+        return new ManifestAtLocation(manifest, directoryPath);
     }
 
     [LoggerMessage(LogLevel.Warning,

@@ -49,29 +49,18 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             byte[] source = encoding.GetBytes(s);
             byte[] inArray = System.Security.Cryptography.SHA256.HashData(source);
             var rootIdentity = Convert.ToHexStringLower(inArray);
-            var scheduleLoader = loader;
-            string path1 = opts.CacheDirectory ?? opts.DataDirectory;
-            string path2 =
+            string cacheDir = opts.CacheDirectory ?? opts.DataDirectory;
+            string cacheFileName =
                 $"{rootIdentity}_schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
-            string combine = Path.Combine(path1, path2);
-            scheduleLoader.CachedPath = combine;
+            loader.CachedPath = Path.Combine(cacheDir, cacheFileName);
         }
 
         {
-            TruePath.LocalPath path3 = new(opts.DataDirectory);
-            var discoverDirectories =
-                ScheduleDirectoryDiscovery.DiscoverDirectories(path: path3);
-            Func<ScheduleDirectoryDescriptor,
-                StudyYear> keySelector = x => x.StudyYear;
-            var
-                orderBy = discoverDirectories.OrderBy(keySelector);
-            Func<ScheduleDirectoryDescriptor,
-                Semester> keySelector2 = x => x.Semester;
-            var
-                thenBy = orderBy.ThenBy(keySelector2);
-            Func<ScheduleDirectoryDescriptor,
-                AttendanceMode> keySelector3 = x => x.AttendanceMode;
-            var scheduleDirs = thenBy.ThenBy(keySelector3);
+            var rootPath = new TruePath.LocalPath(opts.DataDirectory);
+            var scheduleDirs = ScheduleDirectoryDiscovery.DiscoverDirectories(path: rootPath)
+                .OrderBy(x => x.StudyYear)
+                .ThenBy(x => x.Semester)
+                .ThenBy(x => x.AttendanceMode);
             var matchingDirs = scheduleDirs.MatchingStudyYear(studyYear)
                 .ToArray();
             if (matchingDirs.Length == 0)

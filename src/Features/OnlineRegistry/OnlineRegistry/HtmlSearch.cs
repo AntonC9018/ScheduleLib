@@ -597,17 +597,9 @@ internal static class HtmlSearch
             .Take(2)
             .ToArray();
         var lessonTable = new EditableLessonsHelper(tables[0], p.ErrorHandler);
-        IHtmlTableElement? table2;
-        if (tables.Length > 1)
-        {
-            table2 = tables[1];
-        }
-        else
-        {
-            table2 = null;
-        }
+        IHtmlTableElement? studentTableElement = tables.Length > 1 ? tables[1] : null;
 
-        var attendanceTable = new AttendanceTableHelper(table2);
+        var attendanceTable = new AttendanceTableHelper(studentTableElement);
 
         HtmlStudent[] studentNames = [];
         if (attendanceTable.StudentCount != 0)
@@ -739,9 +731,9 @@ internal static class HtmlSearch
                             return parsedStudent;
                         }
 
-                        var expected1 = ParseStudent(expected);
-                        var actual1 = ParseStudent(actual);
-                        if (!(expected1 != actual1
+                        var expectedName = ParseStudent(expected);
+                        var actualName = ParseStudent(actual);
+                        if (!(expectedName != actualName
                                 || expected.IsExpelled != actual.IsExpelled))
                         {
                             return null;

@@ -18,9 +18,9 @@ public static class DataMapCallHelper
 
     private static object MapGeneric<T1, T2>(IDataMapperBase mapper, object from)
     {
-        var m1 = (IDataMapper<T1, T2>) mapper;
-        var from1 = (T1) from;
-        var ret = m1.Map(from1);
+        var typedMapper = (IDataMapper<T1, T2>) mapper;
+        var typedInput = (T1) from;
+        var ret = typedMapper.Map(typedInput);
         return ret!;
     }
 
@@ -73,10 +73,7 @@ public sealed class DataMappingRegistry
                 {
                     throw new InvalidOperationException("Can't have a mapper between the same types.");
                 }
-                var dictionary = _mappers;
-                var key = to;
-                DataMapping value = new(m, from);
-                bool added = dictionary.TryAdd(key, value);
+                bool added = _mappers.TryAdd(to, new DataMapping(m, from));
                 if (!added)
                 {
                     throw new ConfigMapperAlreadyRegisteredException(to);

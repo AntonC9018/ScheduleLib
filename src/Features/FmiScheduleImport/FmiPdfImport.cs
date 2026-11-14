@@ -139,14 +139,13 @@ public static class FmiPdfImport
         var timeSlotDisplay = new TimeSlotDisplayHandler();
         var dayNameProvider = new DayNameProvider();
         var specializationRegistry = Config.SpecializationRegistry;
-        var schedule2 = schedule;
         var handler = new GeneratePdfsForGroupsAndTeachersTaskHandler(
             lessonTextDisplayServices,
             lessonTimeConfig,
             timeSlotDisplay,
             dayNameProvider,
             specializationRegistry,
-            schedule2);
+            schedule);
         await handler.Run(new()
         {
             CancellationToken = cancellationToken,

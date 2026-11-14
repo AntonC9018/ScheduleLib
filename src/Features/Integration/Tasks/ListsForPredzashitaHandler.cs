@@ -133,10 +133,8 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         try
         {
-            var iNameRemapper = _nameRemapper;
-            var name2 = NameHelper.Parse(name);
-            var remapName = iNameRemapper.RemapName(name2);
-            return remapName;
+            var parsedName = NameHelper.Parse(name);
+            return _nameRemapper.RemapName(parsedName);
         }
         catch (NameParsingException e)
         {
@@ -182,10 +180,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
-            var hashSet =
-                avrLookup;
-            NameAndGroup item = new(name, x.Group);
-            hashSet.Add(item);
+            avrLookup.Add(new NameAndGroup(name, x.Group));
         }
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
@@ -198,12 +193,10 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
-            var list2 = list;
-            ThesisRecord item2 = new(
+            list.Add(new ThesisRecord(
                 studentName,
                 Group: group,
-                ThesisName: thesisName);
-            list2.Add(item2);
+                ThesisName: thesisName));
         }
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
@@ -229,31 +222,25 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var (teacher, commision) in commissionByTeacher)
         {
             var list = thesesOfCommision[commision.Number];
-            if (!studentByTeacher.TryGetValue(teacher, out var theses1))
+            if (!studentByTeacher.TryGetValue(teacher, out var teacherTheses))
             {
                 _logger.LogWarning("Teacher {Teacher} is in a commission but has no students!", teacher.ToString());
                 continue;
             }
-            foreach (var t in theses1)
+            foreach (var t in teacherTheses)
             {
                 string? practicaPlace = null;
-                var hashSet2 =
-                    avrLookup;
-                NameAndGroup item3 = new(t.StudentName, t.Group);
-                if (hashSet2.Contains(item3))
+                if (avrLookup.Contains(new NameAndGroup(t.StudentName, t.Group)))
                 {
                     practicaPlace = "Laborator AVR";
                 }
 
-                var
-                    list3 = list;
-                StudentThesisRecord item4 = new(
+                list.Add(new StudentThesisRecord(
                     StudentName: t.StudentName,
                     TeacherName: teacher,
                     Group: t.Group,
                     ThesisName: t.ThesisName,
-                    PracticaPlace: practicaPlace);
-                list3.Add(item4);
+                    PracticaPlace: practicaPlace));
             }
         }
 

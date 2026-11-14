@@ -150,21 +150,19 @@ public static class DocToDocxConversionHelper
             // Opening the handle before reading identity keeps it attached to this
             // process object even if the PID is subsequently recycled.
             _ = word.SafeHandle;
-            int pid2 = pid;
-            long reportedTicks2 = ticks;
-            long actualTicks2 = word.StartTime.ToUniversalTime().Ticks;
-            long converterTicks2 = converter.StartTime.ToUniversalTime().Ticks;
-            int session2 = word.SessionId;
-            int converterSession2 = converter.SessionId;
+            long actualTicks = word.StartTime.ToUniversalTime().Ticks;
+            long converterTicks = converter.StartTime.ToUniversalTime().Ticks;
+            int session = word.SessionId;
+            int converterSession = converter.SessionId;
             string processName = word.ProcessName;
             bool existedBeforeConversion = existingWord.Contains(pid);
             if (WordConverterProtocol.IsOwnedProcess(
-                    pid: pid2,
-                    reportedTicks: reportedTicks2,
-                    actualTicks: actualTicks2,
-                    converterTicks: converterTicks2,
-                    session: session2,
-                    converterSession: converterSession2,
+                    pid: pid,
+                    reportedTicks: ticks,
+                    actualTicks: actualTicks,
+                    converterTicks: converterTicks,
+                    session: session,
+                    converterSession: converterSession,
                     processName,
                     existedBeforeConversion))
             {

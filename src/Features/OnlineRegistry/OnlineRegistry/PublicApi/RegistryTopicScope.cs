@@ -51,15 +51,12 @@ internal static class RegistryTopicScope
         }
         ids.Sort((a, b) =>
         {
-            var get = schedule.Get(a);
-            string strA2 = get.Name;
-            var get2 = schedule.Get(b);
-            string strB2 = get2.Name;
-            var comparisonType = StringComparison.Ordinal;
+            var nameA = schedule.Get(a).Name;
+            var nameB = schedule.Get(b).Name;
             int comparison = string.Compare(
-                strA: strA2,
-                strB: strB2,
-                comparisonType);
+                strA: nameA,
+                strB: nameB,
+                StringComparison.Ordinal);
             if (comparison != 0)
             {
                 return comparison;
@@ -81,9 +78,8 @@ internal static class RegistryTopicScope
             var group = schedule.Get(id);
             if (group.Language is Language.Ro or Language.Ru or Language.En)
             {
-                var list = parents;
-                string item = $"{group.Name} ({group.Language.GetName()})";
-                list.Add(item);
+                var languageLabel = group.Language.GetName();
+                parents.Add($"{group.Name} ({languageLabel})");
             }
             else
             {
@@ -95,23 +91,16 @@ internal static class RegistryTopicScope
         var tokens = new List<string>(3);
         if (!string.IsNullOrEmpty(partition.Alternative.Value))
         {
-            var list2 = tokens;
-            string text = $"/alt:{partition.Alternative.Value}";
-            string item2 = text;
-            list2.Add(item2);
+            tokens.Add($"/alt:{partition.Alternative.Value}");
         }
         if (!string.IsNullOrEmpty(partition.Specialization.Value))
         {
-            var list3 = tokens;
-            string text2 = $"/spec:{partition.Specialization.Value}";
-            string item3 = text2;
-            list3.Add(item3);
+            tokens.Add($"/spec:{partition.Specialization.Value}");
         }
         if (!string.IsNullOrEmpty(partition.SubGroup.Value))
         {
-            var list4 = tokens;
-            string item4 = FormatSubGroupToken(partition.SubGroup.Value!);
-            list4.Add(item4);
+            var subGroupToken = FormatSubGroupToken(partition.SubGroup.Value!);
+            tokens.Add(subGroupToken);
         }
 
         if (tokens.Count == 0)
@@ -151,9 +140,7 @@ internal static class RegistryTopicScope
                 if (arabic <= 10)
                 {
                     string toRoman = NumberHelper.ToRoman(arabic);
-                    string text = $"/{toRoman}";
-                    string text2 = text;
-                    return text2;
+                    return $"/{toRoman}";
                 }
             }
         }

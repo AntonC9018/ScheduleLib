@@ -88,12 +88,12 @@ public static class ItUsmWebsiteApi
                 {
                     parser.Load(s.AsMemory());
                     var lexer = parser.Scope();
-                    var ret1 = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
+                    var parsed = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
                     if (isIncompleteDoubleName)
                     {
                         throw new InvalidDoubleNameOnWebsiteException(s);
                     }
-                    return ret1;
+                    return parsed;
                 }
             }
             return ret;
