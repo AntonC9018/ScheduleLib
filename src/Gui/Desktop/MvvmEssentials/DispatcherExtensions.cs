@@ -25,7 +25,7 @@ public static class DispatcherExtensions
                 .GetResult();
             return;
         }
-        throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
+        throw new AsyncDelegateExecutionException();
     }
 
     public static T EnsureCompletedSync<T>(this ValueTask<T> task)
@@ -35,6 +35,6 @@ public static class DispatcherExtensions
             return task.GetAwaiter()
                 .GetResult();
         }
-        throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
+        throw new AsyncDelegateExecutionException();
     }
 }

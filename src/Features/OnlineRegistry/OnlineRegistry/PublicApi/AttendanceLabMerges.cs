@@ -193,7 +193,7 @@ public static class AttendanceLabMerges
         var dated = sources[0].Dates is not null;
         if (sources.Any(source => source.Dates is not null != dated))
         {
-            throw new InvalidOperationException("Merged lab attendance cannot mix dated and ordinal sources.");
+            throw new MixedLabAttendanceSourcesException();
         }
 
         var names = NamesInDb.Create([

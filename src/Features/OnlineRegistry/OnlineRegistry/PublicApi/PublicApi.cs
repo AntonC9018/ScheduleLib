@@ -785,7 +785,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
     public Task SubmitDelete(IDocument document, Action? onSubmissionStarted)
     {
         var form = document.QuerySelector<IHtmlFormElement>("""form[name="deleteLessonForm"]""")
-            ?? throw new InvalidOperationException("Registry delete form is missing.");
+            ?? throw new RegistryDeleteFormMissingException();
         return SubmitDeletion();
 
         async Task SubmitDeletion()
@@ -959,7 +959,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
         if (!form.Method.Equals("post", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Registry mutation form must use POST.");
+            throw new RegistryMutationFormMethodNotPostException(form.Method);
         }
 
         try

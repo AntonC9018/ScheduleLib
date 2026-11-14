@@ -1263,7 +1263,7 @@ public sealed partial class AttendanceListsExcelParser
 
                 if (!cells.Current!.TryGetValue(out string attendanceStr))
                 {
-                    throw new InvalidOperationException("Expecting a string in cell");
+                    throw new ExpectedStringAttendanceCellException(cells.Current!.Address.ToString()!);
                 }
 
                 if (header.IsApplicable)

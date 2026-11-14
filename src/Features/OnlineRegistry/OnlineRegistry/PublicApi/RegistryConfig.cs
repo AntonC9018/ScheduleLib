@@ -71,12 +71,12 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
         var delay = input.HttpCallDelay ?? BuiltRegistryConfig.DefaultHttpCallDelay;
         if (delay < TimeSpan.Zero)
         {
-            throw new InvalidOperationException("Registry HttpCallDelay must be nonnegative.");
+            throw new InvalidRegistryHttpCallDelayException(delay);
         }
 
         if (input.CourseNameMaxDistance is < 0)
         {
-            throw new InvalidOperationException("Registry CourseNameMaxDistance must be nonnegative.");
+            throw new InvalidCourseNameMaxDistanceException(input.CourseNameMaxDistance.Value);
         }
 
         return new()
@@ -86,10 +86,10 @@ public sealed class RegistryConfigMapper : IDataMapper<RegistryConfig, BuiltRegi
             Assessments = input.Assessments,
             ExtraLessonInstanceAction = input.ExtraLessonInstanceAction ?? ExtraLessonInstanceAction.LeaveAlone,
             CommandProcessingConfig = input.CommandProcessingConfig ?? CommandProcessingConfig.DryRun,
-            Credentials = input.Credentials ?? throw new InvalidOperationException("No credentials configured"),
+            Credentials = input.Credentials ?? throw new MissingRegistryCredentialsConfigException(),
             EquationCommandsDerivation =
                 input.EquationCommandsDerivation
-                ?? throw new InvalidOperationException("No command derivation configured"),
+                ?? throw new MissingRegistryCommandDerivationConfigException(),
             HttpCallDelay = delay,
             CourseNames = input.CourseNames ?? new Dictionary<string, string>(),
             StudentNames = input.StudentNames ?? new Dictionary<string, string>(),
@@ -121,7 +121,7 @@ public static class ConfigExtensions
                     .Get();
                 if (config is null)
                 {
-                    throw new InvalidOperationException("Registry not enabled.");
+                    throw new OnlineRegistryNotEnabledException();
                 }
                 var ret = ActivatorUtilities.CreateInstance<RegistryErrorLogger>(sp);
                 ret.ExtraLessonAction = config.ExtraLessonInstanceAction;

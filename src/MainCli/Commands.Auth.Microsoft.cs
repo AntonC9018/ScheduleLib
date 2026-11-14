@@ -91,7 +91,7 @@ public static class MicrosoftCliConfiguration
                 .Get<MicrosoftAuthConfig>();
             if (microsoftAuthConfig is null)
             {
-                throw new InvalidOperationException("Microsoft section is empty.");
+                throw new EmptyMicrosoftAuthSectionException();
             }
 
             return microsoftAuthConfig;

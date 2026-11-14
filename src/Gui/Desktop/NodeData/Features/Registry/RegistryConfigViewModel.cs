@@ -133,7 +133,7 @@ public sealed class RegistryConfigViewModel(
             var v = _helper.EditableData;
             if (v == null)
             {
-                throw new InvalidOperationException("Cannot set DryRun when no node selected");
+                throw new RegistryConfigNodeNotSelectedException();
             }
 
             CommandProcessingConfigBuilder b;

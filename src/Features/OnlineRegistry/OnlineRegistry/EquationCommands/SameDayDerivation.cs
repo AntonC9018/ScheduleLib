@@ -170,11 +170,17 @@ internal struct Matches
     {
         if (allLen > BitArray32.MaxLength)
         {
-            throw new NotSupportedException("At most 32 lessons per day are supported.");
+            throw new TooManySameDayLessonsException(
+                "scheduled",
+                lessonCount: allLen,
+                maxSupported: BitArray32.MaxLength);
         }
         if (existingLen > BitArray32.MaxLength)
         {
-            throw new NotSupportedException("At most 32 lessons per day are supported.");
+            throw new TooManySameDayLessonsException(
+                "existing",
+                lessonCount: existingLen,
+                maxSupported: BitArray32.MaxLength);
         }
         AllMapped = BitArray32.Empty(allLen);
         ExistingMapped = BitArray32.Empty(existingLen);

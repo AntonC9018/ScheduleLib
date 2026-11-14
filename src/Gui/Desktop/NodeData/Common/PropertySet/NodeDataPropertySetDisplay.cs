@@ -42,7 +42,7 @@ public sealed class PropertySetDisplayFactoryBuilder
 
     public PropertySetDisplayFactory CreateFactory()
     {
-        throw new NotImplementedException();
+        throw new PropertySetDisplayNotImplementedException(nameof(CreateFactory));
     }
 }
 
@@ -50,7 +50,7 @@ public sealed class PropertySetDisplayFactory
 {
     public NodeDataViewModelResult BuildVm(NodeDataVMCreateParams p)
     {
-        throw new NotImplementedException();
+        throw new PropertySetDisplayNotImplementedException(nameof(BuildVm));
     }
 }
 

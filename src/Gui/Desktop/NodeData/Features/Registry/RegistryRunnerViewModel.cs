@@ -44,7 +44,7 @@ public sealed partial class CurrentUserServiceProvider : IAsyncDisposable, IServ
         var sp = _scope.ServiceProvider;
         if (sp is null)
         {
-            throw new InvalidOperationException("The scope must be initialized before use.");
+            throw new Desktop.NodeData.Common.CurrentUserScopeNotInitializedException();
         }
         var ret = sp.GetService(serviceType);
         return ret;
@@ -66,13 +66,12 @@ public sealed partial class CurrentUserServiceProvider : IAsyncDisposable, IServ
         var markerContainer = nodePath.Leaf.Get(TeacherLayerConfig.Key);
         if (!markerContainer.Exists)
         {
-            throw new InvalidOperationException(
-                "Cannot reset scope when selected path doesn't contain marker node data.");
+            throw new Desktop.NodeData.Common.MissingTeacherMarkerNodeDataException();
         }
         var value = markerContainer.Value.GetValue();
         if (value is null)
         {
-            throw new InvalidOperationException("Expected the marker node to have the value directly.");
+            throw new Desktop.NodeData.Common.MissingTeacherMarkerValueException();
         }
 
         var scope = _rootSp.CreateMarkerScope(value);

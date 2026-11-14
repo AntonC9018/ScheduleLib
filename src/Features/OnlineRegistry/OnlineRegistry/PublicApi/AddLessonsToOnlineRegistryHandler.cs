@@ -31,7 +31,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
             if (other.Length != combined.Length)
             {
-                throw new InvalidOperationException("Shared lecture attendance roster lengths differ.");
+                throw new SharedLectureRosterLengthMismatchException(
+                    expectedLength: combined.Length,
+                    actualLength: other.Length);
             }
 
             for (int index = 0; index < combined.Length; index++)
@@ -42,8 +44,9 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 }
                 else if (other[index] != Attendance.None && other[index] != combined[index])
                 {
-                    throw new InvalidOperationException(
-                        "Shared lecture attendance sources disagree for the same occurrence.");
+                    throw new SharedLectureAttendanceDisagreementException(
+                        lesson.DateTime,
+                        index);
                 }
             }
         }
@@ -163,7 +166,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         var config = _configProvider.Get();
         if (config is null)
         {
-            throw new InvalidOperationException("Online registry not configured.");
+            throw new OnlineRegistryNotConfiguredException();
         }
 
         var courseLinks = (await p.Navigator.GetCourses(p.Semester))
@@ -1156,7 +1159,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
             }
             a = a switch
             {
-                Attendance.Grade => throw new NotImplementedException(),
+                Attendance.Grade => throw new UnsupportedGradeAttendanceUpdateException(),
                 Attendance.NotApplicable => Attendance.Present,
                 _ => a,
             };

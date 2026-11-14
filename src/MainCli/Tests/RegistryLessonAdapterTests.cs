@@ -373,7 +373,7 @@ public sealed class RegistryLessonAdapterTests
 
         var document = await navigator.GetHtml(new Uri($"https://registry.test/{kind}"));
         var started = false;
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<RegistryMutationFormMethodNotPostException>(() =>
         {
             return Submit(
                 navigator,

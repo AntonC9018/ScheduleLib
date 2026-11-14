@@ -103,12 +103,16 @@ internal static class RegistryLabMerges
 
             if (found is not null)
             {
-                throw new InvalidOperationException("Duplicate registry lab merge rules.");
+                throw new DuplicateRegistryLabMergeRuleException(
+                    course: rule.Course,
+                    group: rule.Group);
             }
 
             if (string.IsNullOrWhiteSpace(rule.SourceSubGroup))
             {
-                throw new InvalidOperationException("Registry lab merge requires a surviving subgroup.");
+                throw new MissingRegistryLabMergeSurvivingSubGroupException(
+                    course: rule.Course,
+                    group: rule.Group);
             }
 
             found = rule;
@@ -189,7 +193,10 @@ internal static class RegistryLabMerges
             .ToList();
         if (lessons.Count == 0)
         {
-            throw new InvalidOperationException("Surviving registry lab merge lessons not found.");
+            throw new SurvivingRegistryLabMergeLessonsNotFoundException(
+                filter.CourseId,
+                filter.Groups.Value[0],
+                subGroup);
         }
         // A registry course can contain lectures as well as the merged labs.
         lessons.AddRange(MatchLessonHelper.MatchLessonsInSchedule(parameters)

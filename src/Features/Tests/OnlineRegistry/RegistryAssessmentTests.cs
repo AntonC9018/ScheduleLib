@@ -273,7 +273,7 @@ public sealed class RegistryAssessmentTests
     public void InvalidConfiguredDateStopsBeforeProducingCommands()
     {
         var lessons = Lessons();
-        Assert.Throws<InvalidOperationException>(() => RegistryAssessments.Arrange(
+        Assert.Throws<AmbiguousAssessmentDateLessonException>(() => RegistryAssessments.Arrange(
             lessons,
             [],
             [
@@ -283,7 +283,7 @@ public sealed class RegistryAssessmentTests
                 }),
             ],
             Topic));
-        Assert.Throws<InvalidOperationException>(() => RegistryAssessments.Arrange(
+        Assert.Throws<DuplicateAssessmentDatesException>(() => RegistryAssessments.Arrange(
             lessons,
             [],
             [Rule(lessons[0], lessons[0])],

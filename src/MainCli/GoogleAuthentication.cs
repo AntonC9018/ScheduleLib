@@ -233,7 +233,7 @@ public sealed class GoogleAuthentication : IGoogleCredentialAuthorization, IDisp
         {
             if (_configurations is null)
             {
-                throw new InvalidOperationException("Configure Google login credentials before execution.");
+                throw new MissingGoogleLoginCredentialsException();
             }
             return _authentication.LoginConfigured(
                 _configurations,

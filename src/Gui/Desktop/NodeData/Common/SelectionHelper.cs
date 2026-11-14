@@ -57,7 +57,7 @@ public sealed class SelectionHelper<TParent, TProperty> : SelectionHelper<TPrope
         {
             if (_accessor.EditableData is not { } data)
             {
-                throw new InvalidOperationException("Data is not editable.");
+                throw new SelectionDataNotEditableException();
             }
 
             AnyNullable<TProperty> setVal;
@@ -120,7 +120,7 @@ internal static class PropertyAccess
     {
         if (typeof(TProperty).IsGenericType && typeof(TProperty).GetGenericTypeDefinition() == typeof(Nullable<>))
         {
-            throw new InvalidOperationException("Must call the nullable struct overload!");
+            throw new NullableStructPropertyAccessRequiredException(typeof(TProperty));
         }
 
         Expression<Func<TProperty?, AnyNullable<TProperty>>> getterTemplate;

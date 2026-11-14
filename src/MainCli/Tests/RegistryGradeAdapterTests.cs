@@ -51,7 +51,7 @@ public sealed class RegistryGradeAdapterTests
 
         var document = await navigator.GetHtml(new Uri("https://registry.test/grades"));
         var started = false;
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<RegistryGradeFieldsUnidentifiableException>(() =>
         {
             return navigator.SubmitGrades(
                 document,

@@ -146,16 +146,14 @@ internal static class RegistryAssessments
             {
                 if (rules.Count != 0)
                 {
-                    throw new InvalidOperationException(
-                        "An assessment outside the timetable with no lesson type cannot be assigned a configured date.");
+                    throw new UnscheduledAssessmentWithoutLessonTypeException(assessment.DateTime);
                 }
 
                 return assessment;
             }
             if (types.Length != 1)
             {
-                throw new InvalidOperationException(
-                    "An assessment without a lesson type requires an unambiguous scheduled lesson type.");
+                throw new AmbiguousAssessmentLessonTypeException(assessment.DateTime);
             }
 
             return assessment with
@@ -173,14 +171,14 @@ internal static class RegistryAssessments
         {
             if (rule.LessonType == LessonType.Unspecified || !configuredTypes.Add(rule.LessonType))
             {
-                throw new InvalidOperationException("Assessment rules require one explicit lesson type per scope.");
+                throw new InvalidAssessmentRuleLessonTypeException(rule.LessonType);
             }
 
             if (rule.Dates.Count
                 != rule.Dates.Distinct()
                     .Count())
             {
-                throw new InvalidOperationException("Assessment dates must be distinct within a scope.");
+                throw new DuplicateAssessmentDatesException(rule.LessonType);
             }
 
             var existing = remote.Where(x =>
@@ -197,8 +195,10 @@ internal static class RegistryAssessments
                     .ToArray();
                 if (candidates.Length != 1)
                 {
-                    throw new InvalidOperationException(
-                        "An assessment date must identify exactly one scheduled lesson of its type.");
+                    throw new AmbiguousAssessmentDateLessonException(
+                        rule.LessonType,
+                        dates[i],
+                        candidates.Length);
                 }
 
                 string topic = i < existing.Length
@@ -219,8 +219,9 @@ internal static class RegistryAssessments
             {
                 if (!local.Any(x => x.DateTime.Date == moved.DateTime.Date && x.RegistryLessonType == moved.LessonType))
                 {
-                    throw new InvalidOperationException(
-                        "Moving an assessment requires its original lesson in the selected timetable.");
+                    throw new MovedAssessmentOriginalLessonMissingException(
+                        moved.DateTime,
+                        moved.LessonType);
                 }
             }
         }
@@ -356,8 +357,9 @@ internal static class RegistryAssessments
 
                 if (HasExistingAssessmentWithoutRegularTopic())
                 {
-                    throw new InvalidOperationException(
-                        "Moving an assessment requires a regular topic for the freed occurrence.");
+                    throw new MovedAssessmentRegularTopicMissingException(
+                        lesson.DateTime,
+                        lesson.RegistryLessonType);
                 }
 
                 local[i] = lesson with
@@ -428,7 +430,9 @@ internal static class RegistryAssessments
 
             if (candidates.Length != 1 || reserved.ContainsKey(candidates[0]))
             {
-                throw new InvalidOperationException("Multiple assessments identify the same scheduled lesson.");
+                throw new MultipleAssessmentsForSameLessonException(
+                    assessment.DateTime,
+                    assessment.LessonType);
             }
 
             reserved.Add(candidates[0], assessment.Topic!);

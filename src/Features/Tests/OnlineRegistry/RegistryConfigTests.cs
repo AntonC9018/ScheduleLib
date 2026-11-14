@@ -126,7 +126,7 @@ public sealed class RegistryConfigTests
     {
         var input = ValidConfig();
         input.HttpCallDelay = TimeSpan.FromSeconds(-1);
-        Assert.Throws<InvalidOperationException>(() => new RegistryConfigMapper().Map(input));
+        Assert.Throws<InvalidRegistryHttpCallDelayException>(() => new RegistryConfigMapper().Map(input));
     }
 
     private static RegistryConfig ValidConfig()

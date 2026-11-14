@@ -55,7 +55,7 @@ public interface IRegistrySession : IAsyncDisposable
     Task PlanIntakeLabCleanup(
         Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
         CancellationToken token)
-        => throw new NotSupportedException("Intake lab cleanup is not supported by this registry session.");
+        => throw new IntakeLabCleanupNotSupportedException();
 
     async Task PlanGroups(Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned, CancellationToken token)
     {

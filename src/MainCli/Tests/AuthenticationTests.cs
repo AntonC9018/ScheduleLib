@@ -21,7 +21,7 @@ public sealed class AuthenticationTests
         using var fixture = new Fixture();
         using var auth = fixture.Auth;
         var builder = auth.Login(Teacher, fixture.Services);
-        Assert.Throws<InvalidOperationException>(() => { _ = builder.Execute(default); });
+        Assert.Throws<MissingGoogleLoginCredentialsException>(() => { _ = builder.Execute(default); });
         Assert.Equal(expected: 0, actual: fixture.Tokens.Consents);
     }
 

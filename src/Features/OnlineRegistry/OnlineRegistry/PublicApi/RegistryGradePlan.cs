@@ -141,7 +141,7 @@ public static class RegistryGradeForm
     public static IHtmlFormElement Validate(IDocument document)
     {
         var form = document.QuerySelector<IHtmlFormElement>("form")
-            ?? throw new InvalidOperationException("Registry grade form is missing.");
+            ?? throw new RegistryGradeFormMissingException();
         var inputs = form.QuerySelectorAll<IHtmlInputElement>("input[type=text]")
             .ToArray();
 
@@ -170,7 +170,7 @@ public static class RegistryGradeForm
 
         if (HasInvalidOrDuplicateGradeInputs())
         {
-            throw new InvalidOperationException("Registry grade fields cannot be identified for confirmation.");
+            throw new RegistryGradeFieldsUnidentifiableException();
         }
 
         return form;

@@ -184,12 +184,12 @@ public static class ServiceProviderExtensions
             if (typeof(T).IsAssignableTo(typeof(IDisposable))
                 || typeof(T).IsAssignableTo(typeof(IAsyncDisposable)))
             {
-                throw new InvalidOperationException("Tried to instantiate a disposable service from the root scope");
+                throw new RootScopeDisposableServiceTypeException(typeof(T));
             }
             var service = sp.GetRequiredService<T>();
             if (service is IDisposable or IAsyncDisposable)
             {
-                throw new InvalidOperationException("We've got a memory leak!");
+                throw new RootScopeDisposableServiceInstanceException(typeof(T));
             }
             return service;
         }

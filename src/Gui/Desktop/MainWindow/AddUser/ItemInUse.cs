@@ -51,7 +51,7 @@ public struct ItemOwner<T>
             comparand: false);
         if (wasInUse)
         {
-            throw new InvalidOperationException("Cannot get this, it's being used already.");
+            throw new BorrowedItemAlreadyInUseException();
         }
 
         return _item;
@@ -65,7 +65,7 @@ public struct ItemOwner<T>
             comparand: true);
         if (!wasInUse)
         {
-            throw new InvalidOperationException("Trying to return item not in use.");
+            throw new ReturnedItemNotInUseException();
         }
     }
 }

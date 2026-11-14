@@ -47,7 +47,7 @@ internal struct MatchedLessonData
             LessonProperty.Attendance => AttendanceEquals(),
             LessonProperty.Date => DateEquals(),
             LessonProperty.DateTime => DateTimeEquals(),
-            _ => throw new NotSupportedException(),
+            _ => throw new UnsupportedLessonPropertyException(criterion),
         };
     }
 

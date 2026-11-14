@@ -13,7 +13,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
         Func<IReadOnlyList<RegistrySyncAction>, Task<bool>> onGroupPlanned,
         CancellationToken cancellationToken = default)
     {
-        var config = _configProvider.Get() ?? throw new InvalidOperationException("Online registry not configured.");
+        var config = _configProvider.Get() ?? throw new OnlineRegistryNotConfiguredException();
         foreach (var assignments in (await navigator.GetCourses(semester))
                  .GroupBy(course => course.CourseId))
         {
@@ -192,8 +192,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                         .ToArray();
                                     if (current.Length != 1 || !Unchanged(expected: lesson, actual: current[0]))
                                     {
-                                        throw new InvalidOperationException(
-                                            "Registry lab changed after cleanup planning; preview again before deleting it.");
+                                        throw new RegistryLabChangedAfterCleanupPlanningException(lesson.ViewUri);
                                     }
 
                                     var document = await navigator.GetHtml(lesson.ViewUri);

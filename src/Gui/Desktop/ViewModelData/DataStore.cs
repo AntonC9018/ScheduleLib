@@ -114,13 +114,13 @@ public sealed class TreeEventDispatcher : IDispatcher
             comparand: QueueingState.Queueing);
         if (prevQueueing != QueueingState.Queueing)
         {
-            throw new InvalidOperationException("Cannot end queueing while not queueing");
+            throw new EventQueueNotActiveException();
         }
         try
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                throw new InvalidOperationException("Can only end queueing on the UI thread");
+                throw new EventQueueWrongThreadException("end queueing");
             }
 
             while (true)
@@ -158,7 +158,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                throw new InvalidOperationException("Cannot execute action immediately when not on UI thread");
+                throw new EventQueueWrongThreadException("execute action immediately");
             }
             args.Invoke();
             return;
@@ -217,7 +217,7 @@ public sealed class TreeEventDispatcher : IDispatcher
         {
             // This is kind of the best we can do.
             _latestActions.TryRemove(key, out _);
-            throw new InvalidOperationException("Queueing ended before the final message was processed");
+            throw new EventQueueClosedBeforePostCompletedException();
         }
     }
 }

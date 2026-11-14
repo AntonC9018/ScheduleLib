@@ -254,8 +254,9 @@ public sealed class StudentAttendanceListBuilder()
         {
             if (maxDayCount > _lessonTypesPerDay.Count)
             {
-                throw new InvalidOperationException(
-                    "If LessonTypes are specified, there must not be more attendances than that.");
+                throw new ExceededLessonTypesCountException(
+                    attendanceDayCount: maxDayCount,
+                    lessonTypeCount: _lessonTypesPerDay.Count);
             }
         }
 
@@ -263,8 +264,9 @@ public sealed class StudentAttendanceListBuilder()
         {
             if (maxDayCount > _datesPerDay.Count)
             {
-                throw new InvalidOperationException(
-                    "If attendance dates are specified, there must not be more attendances than that.");
+                throw new ExceededAttendanceDatesCountException(
+                    attendanceDayCount: maxDayCount,
+                    dateCount: _datesPerDay.Count);
             }
         }
 
@@ -272,7 +274,7 @@ public sealed class StudentAttendanceListBuilder()
         {
             if (student.Name is null)
             {
-                throw new InvalidOperationException("Student name not set");
+                throw new MissingAttendanceStudentNameException();
             }
             if (student.Attendances.Count != maxDayCount)
             {
@@ -382,8 +384,7 @@ public readonly struct AllStudentAttendanceListBuilder()
                 var lessonTypesSpecified = x.LessonTypes != null;
                 if (lessonTypeNotInKey != lessonTypesSpecified)
                 {
-                    throw new InvalidOperationException(
-                        "LessonType in the builder key must be null only if specifying the lesson types per lesson");
+                    throw new AttendanceKeyLessonTypeMismatchException(key, lessonTypesSpecified);
                 }
             }
 

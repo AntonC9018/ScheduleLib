@@ -24,7 +24,7 @@ public sealed class Registry<T>
         var x = _values.FirstOrDefault(x => _comparer.Equals(x: x.Value, y: value));
         if (x is null)
         {
-            throw new NotImplementedException("Implement the proper registry system!");
+            throw new UnregisteredPropertyValueException(value);
         }
 
         return x;

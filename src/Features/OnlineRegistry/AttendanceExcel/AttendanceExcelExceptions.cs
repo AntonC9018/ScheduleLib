@@ -59,3 +59,9 @@ public sealed class InvalidAttendanceCellValueException(string value)
 {
     public string Value { get; } = value;
 }
+
+public sealed class ExpectedStringAttendanceCellException(string cellAddress)
+    : InvalidOperationException($"Expecting a string in cell {cellAddress}.")
+{
+    public string CellAddress { get; } = cellAddress;
+}

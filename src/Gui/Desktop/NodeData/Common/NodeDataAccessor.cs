@@ -62,7 +62,7 @@ public sealed class NodeDataAccessor<T> : IDisposable
     {
         if (!IsEditable)
         {
-            throw new InvalidOperationException("Node is not editable.");
+            throw new NodeDataNotEditableException();
         }
         return _CreateBuilder();
     }

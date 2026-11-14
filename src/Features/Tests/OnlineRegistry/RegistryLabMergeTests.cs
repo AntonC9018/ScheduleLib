@@ -67,7 +67,7 @@ public sealed class RegistryLabMergeTests
     public void MissingSurvivingSubgroupStopsInsteadOfChoosingAnotherLesson()
     {
         var fixture = new Fixture();
-        Assert.Throws<InvalidOperationException>(() => fixture.Select(
+        Assert.Throws<SurvivingRegistryLabMergeLessonsNotFoundException>(() => fixture.Select(
         [
             new()
             {
@@ -324,7 +324,7 @@ public sealed class RegistryLabMergeTests
     }
 
     [Theory]
-    [InlineData(false, typeof(InvalidOperationException))]
+    [InlineData(false, typeof(MixedLabAttendanceSourcesException))]
     [InlineData(true, typeof(DuplicateAttendanceNameException))]
     public void ConflictingSubgroupSourcesAreRejected(bool duplicateName, Type expectedException)
     {

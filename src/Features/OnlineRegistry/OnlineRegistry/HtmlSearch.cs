@@ -119,7 +119,7 @@ internal static class HtmlSearch
             {
                 Semester.Sem1 => "1",
                 Semester.Sem2 => "2",
-                _ => throw new InvalidOperationException("??"),
+                _ => throw new UnsupportedSemesterException(session),
             };
         }
     }
@@ -134,7 +134,9 @@ internal static class HtmlSearch
                 .ToArray();
             if (urls.Length != 2)
             {
-                throw new InvalidOperationException("Expected 2 urls");
+                throw new UnexpectedGroupLinkCountException(
+                    actualCount: urls.Length,
+                    expectedCount: 2);
             }
 
             Uri groupUri;
@@ -190,7 +192,7 @@ internal static class HtmlSearch
 
                 if (groupForSearch.IsWildcard && groups.Count == 0)
                 {
-                    throw new InvalidOperationException("Must match a single group if not wildcard.");
+                    throw new NonWildcardGroupMatchRequiredException();
                 }
                 groupPartition = p.GroupPartitionResolver.Resolve(in groupForSearch);
                 groupUri = new Uri(url);
@@ -285,7 +287,9 @@ internal static class HtmlSearch
                     _indexNonEditable++;
                     if (_indexNonEditable >= _e._attendanceTable.LessonCount)
                     {
-                        throw new InvalidOperationException("Attendance and lesson count mismatch");
+                        throw new AttendanceLessonCountMismatchException(
+                            editableIndex: _indexEditable,
+                            attendanceLessonCount: _e._attendanceTable.LessonCount);
                     }
 
                     var info = _e._attendanceTable.GetLesson(_indexNonEditable);
@@ -440,7 +444,9 @@ internal static class HtmlSearch
                     result: out dateTime);
                 if (!success)
                 {
-                    throw new NotSupportedException("The date time didn't parse properly");
+                    throw new RegistryDateTimeParseException(
+                        value: span.ToString(),
+                        expectedFormat: format);
                 }
             }
 
@@ -551,7 +557,7 @@ internal static class HtmlSearch
                 var skipResult = bparser.SkipUntilAny([',']);
                 if (!skipResult.SkippedAny)
                 {
-                    throw new NotSupportedException("Unsupported format of date in attendance table");
+                    throw new UnsupportedAttendanceHeaderDateFormatException(cell.TextContent);
                 }
 
                 var dateTimeSpan = parser.PeekSpanUntilPosition(bparser.Position);
@@ -564,7 +570,9 @@ internal static class HtmlSearch
                     result: out dateTime);
                 if (!success)
                 {
-                    throw new NotSupportedException("The date time didn't parse properly");
+                    throw new RegistryDateTimeParseException(
+                        value: dateTimeSpan.ToString(),
+                        expectedFormat: format);
                 }
                 parser.MoveTo(bparser.Position);
             }
@@ -645,7 +653,7 @@ internal static class HtmlSearch
     internal static IHtmlFormElement GetLessonForm(IDocument doc)
     {
         var lessonDateBox = doc.GetElementById("LessonDate") as IHtmlInputElement;
-        return lessonDateBox?.Form ?? throw new InvalidOperationException("Registry lesson form is missing.");
+        return lessonDateBox?.Form ?? throw new RegistryLessonFormMissingException();
     }
 
     internal static void UpdateForm(SendUpdatedFormParams p)
@@ -698,10 +706,12 @@ internal static class HtmlSearch
         {
             var table = FindAttendanceTable(p.Document);
             int firstIndex = 1;
-            if (attendance.Length != table.Rows.Length - firstIndex)
+            int htmlStudentCount = table.Rows.Length - firstIndex;
+            if (attendance.Length != htmlStudentCount)
             {
-                throw new InvalidOperationException(
-                    "Attendance length does not match the number of students in the HTML");
+                throw new RegistryFormAttendanceCountMismatchException(
+                    attendanceCount: attendance.Length,
+                    studentRowCount: htmlStudentCount);
             }
             var actualStudents = FindStudents(table);
 
@@ -722,7 +732,7 @@ internal static class HtmlSearch
                 {
                     var expected = p.ExpectedStudents[i];
 
-                    string? CheckStudentsEqual()
+                    bool AreStudentsEqual()
                     {
                         Name? ParseStudent(HtmlStudent s)
                         {
@@ -735,15 +745,18 @@ internal static class HtmlSearch
                         var actualName = ParseStudent(actual);
                         if (expectedName == actualName && expected.IsExpelled == actual.IsExpelled)
                         {
-                            return null;
+                            return true;
                         }
 
-                        return $"Student mismatch at index {i}.";
+                        return false;
                     }
 
-                    if (CheckStudentsEqual() is { } err)
+                    if (!AreStudentsEqual())
                     {
-                        throw new InvalidOperationException(err);
+                        throw new RegistryFormStudentMismatchException(
+                            i,
+                            expectedName: expected.Name,
+                            actualName: actual.Name);
                     }
                 }
 
@@ -766,7 +779,7 @@ internal static class HtmlSearch
                         return i;
                     }
                 }
-                throw new InvalidOperationException("Could not find attendance/grade column");
+                throw new RegistryFormAttendanceColumnMissingException();
             }
         }
     }
@@ -849,7 +862,7 @@ internal static class HtmlSearch
         parser.SkipWhitespace();
         if (!parser.IsEmpty)
         {
-            throw new NotSupportedException("Lesson type not parsed fully.");
+            throw new RegistryLessonTypeNotParsedFullyException(s);
         }
         return lessonType;
     }
