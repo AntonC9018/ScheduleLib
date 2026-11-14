@@ -93,12 +93,11 @@ public sealed class EventSource<T>
         if (_impl != null)
         {
             var callerId = new CallerIdentity(this);
-            var iDispatcher = _dispatcher;
             PostArgs<T> args = new(
                 callerId,
                 _impl,
                 val);
-            iDispatcher.Post(args);
+            _dispatcher.Post(args);
         }
     }
 

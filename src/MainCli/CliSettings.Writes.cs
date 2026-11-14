@@ -188,9 +188,8 @@ public static partial class CliSettings
     private static void ValidateEditKey(string key, ResolvedSettings settings)
     {
         var parts = key.Split('.');
-        var nodeDataKeyRegistry = NodeDataKey.Registry;
-        NodeDataKey key2 = new(parts[0]);
-        var type = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
+        NodeDataKey blockKey = new(parts[0]);
+        var type = NodeDataKey.Registry.TryGetTypeFromKey(blockKey);
         if (type is null)
         {
             throw new UnsupportedSettingKeyException(key);
@@ -231,26 +230,9 @@ public static partial class CliSettings
         bool unset)
     {
         var parts = key.Split('.');
-        string[] value2;
-        if (profile is null)
-        {
-            value2 = new[]
-                {
-                    "defaults",
-                }.Concat(parts)
-                .ToArray();
-        }
-        else
-        {
-            value2 = new[]
-                {
-                    "profiles",
-                    profile,
-                }.Concat(parts)
-                .ToArray();
-        }
-
-        var path = value2;
+        string[] path = profile is null
+            ? ["defaults", .. parts]
+            : ["profiles", profile, .. parts];
         var current = envelope;
         var parents = new List<SettingsParent>();
         foreach (var part in path.SkipLast(1))

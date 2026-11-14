@@ -41,27 +41,12 @@ public static class CliRuntime
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;
-            var
-                scheduleBuilderInitializerOptions = x;
-            string text;
-            if (source.CacheDirectory is { } cache)
-            {
-                string resolvePath = ResolvePath(cache);
-                text = resolvePath;
-            }
-            else
-            {
-                string path1 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string path2 = "ScheduleLib";
-                string path3 = "cache";
-                string combine = Path.Combine(
-                    path1,
-                    path2,
-                    path3);
-                text = combine;
-            }
-
-            scheduleBuilderInitializerOptions.CacheDirectory = text;
+            x.CacheDirectory = source.CacheDirectory is { } cache
+                ? ResolvePath(cache)
+                : Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "ScheduleLib",
+                    "cache");
             x.UseCache = !source.NoCache;
         });
         return services;

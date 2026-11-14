@@ -63,19 +63,11 @@ public static class CalendarSync
         string account,
         string name)
     {
-        string path1 = root;
-        var encoding = Encoding.UTF8;
-        string text = $"{account}\n{name}";
-        string s = text;
-        byte[] source = encoding.GetBytes(s);
-        byte[] inArray = SHA256.HashData(source);
-        string toHexString = Convert.ToHexString(inArray);
-        string text2 = $"{toHexString}.lock";
-        string path2 = text2;
-        string combine = Path.Combine(
-            path1,
-            path2);
-        return combine;
+        var payload = $"{account}\n{name}";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
+        var hashHex = Convert.ToHexString(hashBytes);
+        var lockFileName = $"{hashHex}.lock";
+        return Path.Combine(root, lockFileName);
     }
 
     public static async Task<CalendarSyncResult> Run(
@@ -145,40 +137,28 @@ public static class CalendarSync
         var plan = new List<CalendarPlanStep>();
         if (existing is not null)
         {
-            string id2 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var action2 = CalendarActionKind.DeleteCalendar;
-            string calendarId = existing.Id;
-            int? desiredEventIndex = null;
-            CalendarPlanStep item2 = new(
-                Id: id2,
-                Action: action2,
-                CalendarId: calendarId,
-                DesiredEventIndex: desiredEventIndex);
-            plan.Add(item2);
+            var deleteStepId = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            plan.Add(new(
+                Id: deleteStepId,
+                Action: CalendarActionKind.DeleteCalendar,
+                CalendarId: existing.Id,
+                DesiredEventIndex: null));
         }
 
-        string id3 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var action3 = CalendarActionKind.CreateCalendar;
-        string? calendarId2 = null;
-        int? desiredEventIndex2 = null;
-        CalendarPlanStep item3 = new(
-            Id: id3,
-            Action: action3,
-            CalendarId: calendarId2,
-            DesiredEventIndex: desiredEventIndex2);
-        plan.Add(item3);
+        var createStepId = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        plan.Add(new(
+            Id: createStepId,
+            Action: CalendarActionKind.CreateCalendar,
+            CalendarId: null,
+            DesiredEventIndex: null));
         for (var planIndex = 0; planIndex < desired.Count; planIndex++)
         {
-            string id4 = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var action4 = CalendarActionKind.CreateEvent;
-            string? calendarId3 = null;
-            int? desiredEventIndex3 = planIndex;
-            CalendarPlanStep item4 = new(
-                Id: id4,
-                Action: action4,
-                CalendarId: calendarId3,
-                DesiredEventIndex: desiredEventIndex3);
-            plan.Add(item4);
+            var eventStepId = plan.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            plan.Add(new(
+                Id: eventStepId,
+                Action: CalendarActionKind.CreateEvent,
+                CalendarId: null,
+                DesiredEventIndex: planIndex));
         }
 
         void Report<TMessage>(
@@ -201,10 +181,8 @@ public static class CalendarSync
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                var inner =
-                    new GeneralCliOutputStreamingException("Calendar output streaming failed.", ex);
-                Exception inner2 = inner;
-                throw StreamingFailure(inner2);
+                var streamingError = new GeneralCliOutputStreamingException("Calendar output streaming failed.", ex);
+                throw StreamingFailure(streamingError);
             }
         }
 
@@ -215,16 +193,11 @@ public static class CalendarSync
             [
                 "Output streaming failed. Completed actions remain applied; inspect the destination before another apply.",
             ];
-            bool reportRemaining2 = false;
             var partialResult = Result(
                 exit,
                 errors,
-                reportRemaining: reportRemaining2);
-            var inner2 = inner;
-            CalendarStreamingException calendarStreamingException = new(
-                partialResult,
-                inner2);
-            return calendarStreamingException;
+                reportRemaining: false);
+            return new(partialResult, inner);
         }
 
         void ReportPlanned(CalendarPlanStep step)
@@ -235,15 +208,11 @@ public static class CalendarSync
                 EventId: null,
                 State: ActionState.Planned,
                 step.DesiredEventIndex);
-            string id2 = step.Id;
-            var status2 = outcome.State;
-            object item = outcome;
-            var human = new CalendarActionMessage(outcome);
             Report(
-                id: id2,
-                status: status2,
-                item,
-                human);
+                id: step.Id,
+                status: outcome.State,
+                outcome,
+                new CalendarActionMessage(outcome));
         }
 
         void AddOutcome(CalendarActionOutcome outcome)
@@ -251,15 +220,12 @@ public static class CalendarSync
             // The completed remote outcome is recorded before rendering so a
             // rendering failure cannot change it or trigger another mutation.
             outcomes.Add(outcome);
-            string id2 = PlanId(outcome);
-            var status2 = outcome.State;
-            object item = outcome;
-            var human = new CalendarActionMessage(outcome);
+            var stepId = PlanId(outcome);
             Report(
-                id: id2,
-                status: status2,
-                item,
-                human);
+                id: stepId,
+                status: outcome.State,
+                outcome,
+                new CalendarActionMessage(outcome));
         }
 
         string PlanId(CalendarActionOutcome outcome)
@@ -287,18 +253,13 @@ public static class CalendarSync
         for (var deletedIndex = 0; deletedIndex < deleted.Count; deletedIndex++)
         {
             var identity = deleted[deletedIndex];
-            string toString = deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string text = $"deleted-{toString}";
-            string id5 = text;
-            var status3 = ActionState.Completed;
-            object item5 = identity;
-            var human2 =
-                new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary);
+            var deletedIndexText = deletedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var deletedId = $"deleted-{deletedIndexText}";
             Report(
-                id: id5,
-                status: status3,
-                item5,
-                human2);
+                id: deletedId,
+                status: ActionState.Completed,
+                identity,
+                new CalendarDeletedEventMessage(Id: identity.Id, Summary: identity.Summary));
         }
         for (var index = 0; index < desired.Count; index++)
         {

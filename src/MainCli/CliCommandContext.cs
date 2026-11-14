@@ -268,18 +268,14 @@ public sealed class CliCommandContext : IDisposable
         }
         while (_streamed < Artifacts.PublishedPaths.Count)
         {
-            var list = Artifacts.PublishedPaths;
-            int index = _streamed++;
-            var path = list[index];
+            var index = _streamed++;
+            var path = Artifacts.PublishedPaths[index];
             Output.WriteHuman(path);
-            string text = $"artifact:{path}";
-            string id2 = text;
-            var status2 = ActionState.Completed;
-            object item = new { path };
+            var artifactId = $"artifact:{path}";
             Output.EmitItem(
-                id: id2,
-                status: status2,
-                item);
+                id: artifactId,
+                status: ActionState.Completed,
+                new { path });
         }
     }
 
@@ -299,9 +295,7 @@ public sealed class CliCommandContext : IDisposable
                         }
                         catch (Exception error)
                         {
-                            var list = Warnings;
-                            string item = $"Could not publish partial output manifest: {error.Message}";
-                            list.Add(item);
+                            Warnings.Add($"Could not publish partial output manifest: {error.Message}");
                         }
                         StreamArtifacts();
                     }

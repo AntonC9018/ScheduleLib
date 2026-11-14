@@ -125,21 +125,11 @@ public partial class RegistryCommands
             foreach (var action in plan.Actions)
             {
                 actionIndexes.Add(action, outcomes.Count);
-                ActionState status3;
-                if (apply.Apply)
-                {
-                    status3 = ActionState.NotAttempted;
-                }
-                else
-                {
-                    status3 = ActionState.Planned;
-                }
-
-                string? detail2 = null;
+                var initialStatus = apply.Apply ? ActionState.NotAttempted : ActionState.Planned;
                 var initial = ToOutcome(
                     action,
-                    status: status3,
-                    detail: detail2);
+                    status: initialStatus,
+                    detail: null);
                 outcomes.Add(initial);
                 StreamOutcome(outcomes.Count - 1, initial);
             }
@@ -222,29 +212,23 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryGradeOutcome outcome)
         {
-            var cliCommandContext = context;
-            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var status2 = outcome.Status;
-            object item = outcome;
-            Action renderHuman2 = () =>
-            {
-                var outcomeMessage =
-                    $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
-                output.WriteHuman(
-                    outcomeMessage);
-                foreach (var grade in outcome.Grades)
+            var outcomeId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            context.StreamItem(
+                id: outcomeId,
+                status: outcome.Status,
+                outcome,
+                renderHuman: () =>
                 {
-                    string line2 =
-                        $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
-                    output.WriteHuman(
-                        line2);
-                }
-            };
-            cliCommandContext.StreamItem(
-                id: id2,
-                status: status2,
-                item,
-                renderHuman: renderHuman2);
+                    var outcomeMessage =
+                        $"Testarea {outcome.TestNumber} {outcome.Course} ({outcome.Groups}) {outcome.Destination}: {outcome.Status.ToWire()} {outcome.Detail}";
+                    output.WriteHuman(outcomeMessage);
+                    foreach (var grade in outcome.Grades)
+                    {
+                        var gradeLine =
+                            $"  {grade.Student}: {grade.SourceGrade} -> {grade.RoundedGrade} (previous {grade.PreviousGrade})";
+                        output.WriteHuman(gradeLine);
+                    }
+                });
         }
 
         int Finish(int exit, string[] errors)

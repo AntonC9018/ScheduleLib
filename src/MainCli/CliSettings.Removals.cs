@@ -103,9 +103,8 @@ public static partial class CliSettings
         JsonSerializerOptions json)
     {
         var parts = key.Split('.');
-        var nodeDataKeyRegistry = NodeDataKey.Registry;
-        NodeDataKey key2 = new(parts[0]);
-        var block = nodeDataKeyRegistry.TryGetTypeFromKey(key2);
+        NodeDataKey blockKey = new(parts[0]);
+        var block = NodeDataKey.Registry.TryGetTypeFromKey(blockKey);
         if (block is null || !SupportedBlocks.Contains(parts[0]))
         {
             throw new UnsupportedSettingKeyException(key);
@@ -151,7 +150,7 @@ public static partial class CliSettings
         }
 
         var path = OperationPath(key, json);
-        var list = path.Value.IsGenericType && path.Value.GetGenericTypeDefinition() == typeof(List<>);
+        var isList = path.Value.IsGenericType && path.Value.GetGenericTypeDefinition() == typeof(List<>);
         var hasItem = action.ContainsKey("item");
 
         bool RemovesWholeBlock()
@@ -179,7 +178,7 @@ public static partial class CliSettings
             return;
         }
 
-        if (!list)
+        if (!isList)
         {
             throw new UnsupportedSettingsOperationException(operation: operation, settingKey: key);
         }
@@ -258,9 +257,8 @@ public static partial class CliSettings
         }
 
         var element = path.Value.GetGenericArguments()[0];
-        var iServiceProvider = settings.Services;
         var serviceType = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
-        var comparer = iServiceProvider.GetService(serviceType);
+        var comparer = settings.Services.GetService(serviceType);
         if (comparer is null)
         {
             throw new JsonException("Collection has no registered item key.");
@@ -378,8 +376,8 @@ public static partial class CliSettings
             else
             {
                 var element = members[^1].PropertyType.GetGenericArguments()[0];
-                var serviceType2 = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
-                var comparer = sp.GetRequiredService(serviceType2);
+                var comparerServiceType = typeof(IKeyEqualityComparer<>).MakeGenericType(element);
+                var comparer = sp.GetRequiredService(comparerServiceType);
                 var item = action["item"]!.Deserialize(element, json)!;
                 for (var i = list.Count - 1; i >= 0; i--)
                 {

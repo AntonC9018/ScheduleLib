@@ -57,9 +57,7 @@ public static class MappingsHelper
                 var notFoundColumns = foundColumns.Flipped;
                 if (!notFoundColumns.IsEmpty)
                 {
-                    var iXLRow = headerRow;
-                    string message = $"Columns '{notFoundColumns}' not found in the header";
-                    throw iXLRow.Exception(message);
+                    throw headerRow.Exception($"Columns '{notFoundColumns}' not found in the header");
                 }
             }
         }

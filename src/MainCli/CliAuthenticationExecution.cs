@@ -70,13 +70,11 @@ internal static class CliAuthenticationExecution
         for (var index = 0; index < data.Accounts.Count; index++)
         {
             var account = data.Accounts[index];
-            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var status2 = ActionState.Completed;
-            object item = account;
+            var accountId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             cli.EmitItem(
-                id: id2,
-                status: status2,
-                item);
+                id: accountId,
+                status: ActionState.Completed,
+                account);
         }
 
         return context.Finish(new CliCompletion<AuthStatus?>(
@@ -97,17 +95,13 @@ internal static class CliAuthenticationExecution
             {
                 foreach (var account in data.Accounts)
                 {
-                    string line = $"{account.AccountId}: {account.State.ToWire()}";
-                    cli.WriteHuman(line);
+                    var stateWire = account.State.ToWire();
+                    cli.WriteHuman($"{account.AccountId}: {stateWire}");
                 }
 
-                var provisioned = "provisioned";
-                if (data.Accounts.Count == 0)
-                {
-                    provisioned = "not provisioned";
-                }
-                string line2 = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
-                cli.WriteHuman(line2);
+                var provisioned = data.Accounts.Count == 0 ? "not provisioned" : "provisioned";
+                var statusLine = $"{providerDisplay} authorization for {data.Profile}: {provisioned}";
+                cli.WriteHuman(statusLine);
             },
         });
     }

@@ -168,7 +168,10 @@ public sealed class MicrosoftAuthentication(
         string clientKey = Key(clientIdentity);
         string accountKey = Key(binding.AccountId);
         string tokenFileName = $"{accountKey}.json";
-        return Path.Combine(profileDirectory, clientKey, tokenFileName);
+        return Path.Combine(
+            profileDirectory,
+            clientKey,
+            tokenFileName);
     }
 
     // Consent failures (declined, cancelled in the browser, rejected grant) need a new login.
@@ -504,9 +507,6 @@ public sealed class MicrosoftAuthentication(
             token);
     }
 
-    private static string LocalApplicationDataDirectory()
-    {
-        string path12 = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return path12;
-    }
+    private static string LocalApplicationDataDirectory() =>
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 }

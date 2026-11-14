@@ -199,14 +199,11 @@ public class DriveCommands
                 if (streamedArtifacts.Add(path))
                 {
                     cli.WriteHuman(path);
-                    string text = $"artifact:{path}";
-                    string id2 = text;
-                    var status2 = ActionState.Completed;
-                    object item = new { path };
+                    var artifactId = $"artifact:{path}";
                     cli.EmitItem(
-                        id: id2,
-                        status: status2,
-                        item);
+                        id: artifactId,
+                        status: ActionState.Completed,
+                        new { path });
                 }
             }
         }

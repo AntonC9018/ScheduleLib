@@ -62,9 +62,8 @@ public sealed class NodeDataViewModelResolver
 
         try
         {
-            var iPropertySetViewModelFactory = factory;
             NodeDataVMCreateParams p = new(scope.ServiceProvider, dataStore);
-            var ret = iPropertySetViewModelFactory.Create(p);
+            var ret = factory.Create(p);
             return new(scope, ret);
         }
         catch

@@ -158,28 +158,27 @@ public static partial class ScheduleBuilderHelper
                 return;
             }
 
-            string text;
+            string groupContext;
             if (groups.Count == 0)
             {
-                text = "no group";
+                groupContext = "no group";
             }
             else
             {
-                text = string.Join("; ", groups.Select(DescribeGroup));
+                groupContext = string.Join("; ", groups.Select(DescribeGroup));
             }
 
-            var groupContext = text;
-            string text2;
+            string registryContext;
             if (s.SpecializationRegistry is { } registry)
             {
-                text2 = string.Join("; ", groups.Select(groupId => DescribeRegistryContext(registry, groupId)));
+                registryContext = string.Join(
+                    "; ",
+                    groups.Select(groupId => DescribeRegistryContext(registry, groupId)));
             }
             else
             {
-                text2 = "no specialization registry configured";
+                registryContext = "no specialization registry configured";
             }
-
-            var registryContext = text2;
             throw UnknownSubGroupException.ForInvalid(
                 subGroupValue: subGroup.Value,
                 groupContext: groupContext,

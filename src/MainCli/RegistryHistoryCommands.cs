@@ -46,16 +46,11 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
             settings,
             client =>
             {
-                var client2 = client;
                 Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                var registryHistoryReader =
-                    new RegistryHistoryReader(client2, index);
-                string? year2 = year;
-                var discover =
-                    registryHistoryReader.Discover(
-                        year2,
-                        token);
-                return discover;
+                var registryHistoryReader = new RegistryHistoryReader(client, index);
+                return registryHistoryReader.Discover(
+                    year,
+                    token);
             },
             token);
     }
@@ -67,7 +62,11 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
     {
         // A single destination-wide lease covers login and all reads, regardless of account/profile.
         string dataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var lockPath = Path.Combine(dataDirectory, "ScheduleLib", "locks", "registry-history-global.lock");
+        var lockPath = Path.Combine(
+            dataDirectory,
+            "ScheduleLib",
+            "locks",
+            "registry-history-global.lock");
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
         using var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
@@ -215,20 +214,18 @@ public partial class RegistryCommands
                 var year = summary[yearIndex];
                 var courseCount = year.Courses.Count;
                 var groupCount = year.Courses.Sum((course) => course.Groups.Count);
-                string line = $"Year {year.Year}: {courseCount} courses, {groupCount} groups.";
-                output.WriteHuman(line);
-                string id2 = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                var status2 = ActionState.Completed;
-                object item = new
+                output.WriteHuman($"Year {year.Year}: {courseCount} courses, {groupCount} groups.");
+                var yearId = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var yearItem = new
                 {
                     year = year.Year,
                     courses = courseCount,
                     groups = groupCount,
                 };
                 output.EmitItem(
-                    id: id2,
-                    status: status2,
-                    item);
+                    id: yearId,
+                    status: ActionState.Completed,
+                    yearItem);
             }
             return Finish(
                 exit: CliExit.Success,
@@ -257,13 +254,11 @@ public partial class RegistryCommands
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            int exit2 = CliExit.IoFailure;
-            string error2 =
+            var errorMessage =
                 $"Registry history stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
-            int finish = Finish(
-                exit2,
-                error2);
-            return finish;
+            return Finish(
+                CliExit.IoFailure,
+                errorMessage);
         }
         catch (LocalOperationBusyException)
         {

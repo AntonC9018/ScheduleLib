@@ -93,9 +93,7 @@ public partial class ExportCommands
                 .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                var list = warnings;
-                string item = $"The website schedule export omits {teacherless} weekly lessons with no teacher.";
-                list.Add(item);
+                warnings.Add($"The website schedule export omits {teacherless} weekly lessons with no teacher.");
             }
 
             var displays = new WebsiteJsonScheduleHelper.Services
@@ -111,25 +109,21 @@ public partial class ExportCommands
                 if (!slugLookup.TryGetValue(name, out var slug))
                 {
                     missingSlugs.Add(name.ToString());
-                    string item2 = $"No slug for '{name}'.";
-                    warnings.Add(item2);
+                    warnings.Add($"No slug for '{name}'.");
                     continue;
                 }
                 var model = WebsiteJsonScheduleHelper.CreateSerializationModel(filteredSchedule, displays);
                 if (model.ScheduleDaysDto.IsEmpty)
                 {
                     omittedEmpty.Add(name.ToString());
-                    string item3 = $"Teacher '{name}' has no website schedule entries and is omitted.";
-                    warnings.Add(item3);
+                    warnings.Add($"Teacher '{name}' has no website schedule entries and is omitted.");
                     continue;
                 }
                 using var buffer = new MemoryStream();
                 await WebsiteJsonScheduleHelper.Serialize(model, buffer);
-                var dictionary = files;
-                string key = $"{slug}.json";
-                byte[] value = buffer.ToArray();
-                bool tryAdd = dictionary.TryAdd(key, value);
-                if (!tryAdd)
+                var key = $"{slug}.json";
+                var value = buffer.ToArray();
+                if (!files.TryAdd(key, value))
                 {
                     throw new DuplicateWebsiteArtifactNameException(artifactName: slug, suffix: ".json");
                 }
@@ -285,9 +279,9 @@ public partial class ExportCommands
             var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
                 .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));
-            string path1 = Path.GetTempPath();
-            string path2 = $"schedulelib-theses-{context.RunId}";
-            var stagingRoot = Path.Combine(path1, path2);
+            var stagingRoot = Path.Combine(
+                Path.GetTempPath(),
+                $"schedulelib-theses-{context.RunId}");
             try
             {
                 string directory = Path.Combine(stagingRoot, "theses");
@@ -323,9 +317,8 @@ public partial class ExportCommands
             }
             foreach (var warning in thesisWarnings.Messages)
             {
-                var list = missingSlugs;
-                string item = ExtractTeacher(warning);
-                list.Add(item);
+                var teacher = ExtractTeacher(warning);
+                missingSlugs.Add(teacher);
                 warnings.Add(warning);
             }
             ValidateWebsiteArtifactNames(files.Keys);
@@ -596,9 +589,8 @@ public partial class ExportCommands
 
             lock (collector)
             {
-                var list = collector.Messages;
-                string item = formatter(state, exception);
-                list.Add(item);
+                var message = formatter(state, exception);
+                collector.Messages.Add(message);
             }
         }
     }

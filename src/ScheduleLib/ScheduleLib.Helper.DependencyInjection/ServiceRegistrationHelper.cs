@@ -123,12 +123,11 @@ public static class ServiceRegistrationHelper
         where TImpl : class, TService
     {
         _ = service;
-        var iServiceCollection = builder._services;
         ServiceDescriptor item = new(
             typeof(TService),
             static sp => sp.GetRequiredService<TImpl>(),
             builder._lifetime);
-        iServiceCollection.Add(item);
+        builder._services.Add(item);
         return builder;
     }
 }

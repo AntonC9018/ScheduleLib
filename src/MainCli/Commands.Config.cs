@@ -123,17 +123,13 @@ public sealed partial class ConfigCommands
                 settings,
                 cancellationToken: cancellation.Token,
                 overrides: overrides);
-            int exit = CliExit.Success;
-            string[] errors = [];
-            object data = inspect(resolved);
-            string verb2 = verb;
-            int finish = CliConfigExecution.Finish(
+            var data = inspect(resolved);
+            return CliConfigExecution.Finish(
                 context,
-                exit,
-                errors,
+                CliExit.Success,
+                [],
                 data,
-                verb2);
-            return finish;
+                verb);
         }
         catch (Exception error)
         {

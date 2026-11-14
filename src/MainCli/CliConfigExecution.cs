@@ -67,13 +67,11 @@ internal static class CliConfigExecution
                 {
                     for (var index = 0; index < profiles.Count; index++)
                     {
-                        string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        var status2 = ActionState.Completed;
-                        object item = new { profile = profiles[index] };
+                        var profileId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         cli.EmitItem(
-                            id: id2,
-                            status: status2,
-                            item);
+                            id: profileId,
+                            status: ActionState.Completed,
+                            new { profile = profiles[index] });
                     }
 
                     return context.Finish(new CliCompletion<T>(

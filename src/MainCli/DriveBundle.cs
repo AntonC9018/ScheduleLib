@@ -51,11 +51,8 @@ public static class DriveBundle
         // Only this invocation's successfully published schedule artifacts, never directory enumeration or prior manifest entries.
         DriveArtifact ProjectValue(string x)
         {
-            string operationValue = Path.GetFileName(x);
-            string operationValue2 = operationValue;
-            string operationValue3 = x;
-            var operationValue4 = new DriveArtifact(Name: operationValue2, Path: operationValue3);
-            return operationValue4;
+            var name = Path.GetFileName(x);
+            return new DriveArtifact(Name: name, Path: x);
         }
 
         return output.PublishedPaths.Where(x =>

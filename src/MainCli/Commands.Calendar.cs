@@ -207,16 +207,10 @@ public class CalendarCommands
         var actions = new List<ICliMessage>();
         if (data.ReplacedCalendar is { } calendar)
         {
-            var item = new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count);
-            ICliMessage item2 = item;
-            actions.Add(item2);
+            actions.Add(new CalendarDeleteAction(calendar.Id, data.DeletedEvents.Count));
         }
-        var item3 = new CalendarCreateAction(data.CalendarName);
-        ICliMessage item4 = item3;
-        actions.Add(item4);
-        var item5 = new CalendarCreateEventsAction(data.DesiredEvents.Count);
-        ICliMessage item6 = item5;
-        actions.Add(item6);
+        actions.Add(new CalendarCreateAction(data.CalendarName));
+        actions.Add(new CalendarCreateEventsAction(data.DesiredEvents.Count));
         return actions.ToArray();
     }
 }

@@ -94,7 +94,11 @@ public sealed class RegistryAccountLock : IRegistryAccountLock
             SHA256.HashData(Encoding.UTF8.GetBytes($"{target.Destination.TrimEnd('/')}\n{target.Account}")));
         string dataDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string lockFileName = $"registry-{hash}.lock";
-        var path = Path.Combine(dataDirectory, "ScheduleLib", "locks", lockFileName);
+        var path = Path.Combine(
+            dataDirectory,
+            "ScheduleLib",
+            "locks",
+            lockFileName);
         return await LocalFileLock.Acquire(path, token);
     }
 }
@@ -172,17 +176,13 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                     failureLogger,
                     authenticationFailure);
             }
-            var provider2 = provider;
-            var scope2 = scope;
-            var context2 = context;
             RegistryDestination target = new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl);
-            var session = new Session(
+            return new Session(
                 resolved,
-                provider2,
-                scope2,
-                context2,
+                provider,
+                scope,
+                context,
                 target);
-            return session;
         }
         catch
         {
@@ -222,10 +222,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             var requiredService = scope.ServiceProvider
                 .GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             var navigator = CreateNavigator(token);
-            IRegistrySyncNavigator navigator2 = navigator;
-            var cancellationToken = token;
-            var plan = requiredService.Plan(navigator2, cancellationToken);
-            return plan;
+            return requiredService.Plan(navigator, token);
         }
 
         public Task PlanGroups(
@@ -235,13 +232,10 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             var requiredService = scope.ServiceProvider
                 .GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             var navigator = CreateNavigator(token);
-            IRegistrySyncNavigator navigator2 = navigator;
-            var cancellationToken = token;
-            var planGroups = requiredService.PlanGroups(
-                navigator2,
+            return requiredService.PlanGroups(
+                navigator,
                 onGroupPlanned,
-                cancellationToken);
-            return planGroups;
+                token);
         }
 
         public Task PlanIntakeLabCleanup(
@@ -250,13 +244,10 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         {
             var requiredService = Services.GetRequiredService<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             var navigator = CreateNavigator(token);
-            IRegistrySyncNavigator navigator2 = navigator;
-            var cancellationToken = token;
-            var planIntakeLabCleanup = requiredService.PlanIntakeLabCleanup(
-                navigator2,
+            return requiredService.PlanIntakeLabCleanup(
+                navigator,
                 onGroupPlanned,
-                cancellationToken);
-            return planIntakeLabCleanup;
+                token);
         }
 
         public async ValueTask DisposeAsync()

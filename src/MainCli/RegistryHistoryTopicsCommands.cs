@@ -27,13 +27,9 @@ public sealed partial class ConfiguredRegistryHistoryProvider
             settings,
             client =>
             {
-                var client2 = client;
                 Uri index = new(RegistryScraping.BaseUrl + "LessonAttendance");
-                var registryHistoryTopicsReader =
-                    new RegistryHistoryTopicsReader(client2, index);
-                var
-                    discover = registryHistoryTopicsReader.Discover(token);
-                return discover;
+                var registryHistoryTopicsReader = new RegistryHistoryTopicsReader(client, index);
+                return registryHistoryTopicsReader.Discover(token);
             },
             token);
     }
@@ -104,53 +100,45 @@ public partial class RegistryCommands
             for (var yearIndex = 0; yearIndex < analysis.OfferedYears.Count; yearIndex++)
             {
                 var offeredYear = analysis.OfferedYears[yearIndex];
-                string line = $"Offered year {offeredYear}.";
-                cli.WriteHuman(line);
-                string yearIndexText = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string id2 = $"year-{yearIndexText}";
-                var status2 = ActionState.Completed;
-                object item = new { year = offeredYear };
+                cli.WriteHuman($"Offered year {offeredYear}.");
+                var yearIndexText = yearIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var itemId = $"year-{yearIndexText}";
                 cli.EmitItem(
-                    id: id2,
-                    status: status2,
-                    item);
+                    id: itemId,
+                    status: ActionState.Completed,
+                    new { year = offeredYear });
             }
             for (var candidateIndex = 0; candidateIndex < analysis.Selection.Candidates.Count; candidateIndex++)
             {
                 var candidate = analysis.Selection.Candidates[candidateIndex];
                 var lessonCount = candidate.Historical.Groups.Sum((group) => group.Lessons.Count);
                 var groupCount = candidate.Historical.Groups.Count;
-                string line2 =
+                var summaryLine =
                     $"Candidate {candidateIndex}: {groupCount} groups, {lessonCount} lessons in {candidate.Historical.Year}.";
-                cli.WriteHuman(
-                    line2);
-                string candidateIndexText = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string id3 = $"candidate-{candidateIndexText}";
-                var status3 = ActionState.Completed;
-                object item2 = new
+                cli.WriteHuman(summaryLine);
+                var candidateIndexText = candidateIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var itemId = $"candidate-{candidateIndexText}";
+                var summaryItem = new
                 {
                     historicalYear = candidate.Historical.Year,
                     groups = groupCount,
                     lessons = lessonCount,
                 };
                 cli.EmitItem(
-                    id: id3,
-                    status: status3,
-                    item2);
+                    id: itemId,
+                    status: ActionState.Completed,
+                    summaryItem);
             }
             for (var unresolvedIndex = 0; unresolvedIndex < analysis.Selection.Unresolved.Count; unresolvedIndex++)
             {
                 var unresolved = analysis.Selection.Unresolved[unresolvedIndex];
-                string line3 = $"Unresolved {unresolvedIndex}: {unresolved.Reason}.";
-                cli.WriteHuman(line3);
-                string unresolvedIndexText = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                string id4 = $"unresolved-{unresolvedIndexText}";
-                var status4 = ActionState.Completed;
-                object item3 = new { reason = unresolved.Reason.ToString() };
+                cli.WriteHuman($"Unresolved {unresolvedIndex}: {unresolved.Reason}.");
+                var unresolvedIndexText = unresolvedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var itemId = $"unresolved-{unresolvedIndexText}";
                 cli.EmitItem(
-                    id: id4,
-                    status: status4,
-                    item3);
+                    id: itemId,
+                    status: ActionState.Completed,
+                    new { reason = unresolved.Reason.ToString() });
             }
             return Finish(
                 exit: CliExit.Success,
@@ -177,13 +165,11 @@ public partial class RegistryCommands
             var status = error.StatusCode is { } code
                 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 : "unknown";
-            int exit2 = CliExit.IoFailure;
-            string error2 =
+            var errorMessage =
                 $"Registry history topics stopped: {error.Failure}; phase {error.Phase}; diagnostic {error.Diagnostic}; HTTP {status}.";
-            int finish = Finish(
-                exit2,
-                error2);
-            return finish;
+            return Finish(
+                CliExit.IoFailure,
+                errorMessage);
         }
         catch (LocalOperationBusyException)
         {

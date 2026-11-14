@@ -241,9 +241,8 @@ public sealed class PasswordLoginFormTokenRetriever : ITokenRetriever
 
         IHtmlInputElement? GetInput(string name)
         {
-            var iDocument = html;
             string selectors = $"""input[name="{name}"]""";
-            var ret = iDocument.QuerySelector<IHtmlInputElement>(selectors);
+            var ret = html.QuerySelector<IHtmlInputElement>(selectors);
             if (ret is null)
             {
                 ErrorNotFoundInPage(name);

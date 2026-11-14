@@ -409,41 +409,16 @@ public sealed class CliJsonlLoggerProvider(CliOutput output) : ILoggerProvider, 
                         collected.Add(scope?.ToString() ?? string.Empty);
                     },
                     scopes);
-            var level = logLevel;
-            string message2 = message;
-            string? exception2 = exception?.ToString();
-            Dictionary<string, object?>? properties2;
-            if (properties.Count > 0)
-            {
-                properties2 = properties;
-            }
-            else
-            {
-                properties2 = null;
-            }
-
-            IReadOnlyDictionary<string, object?>? properties3 = properties2;
-            List<string>? scopes2;
-            if (scopes.Count > 0)
-            {
-                scopes2 = scopes;
-            }
-            else
-            {
-                scopes2 = null;
-            }
-
-            IReadOnlyList<string>? scopes3 = scopes2;
-            string category2 = category;
-            var timestamp = DateTimeOffset.UtcNow;
+            IReadOnlyDictionary<string, object?>? structuredProperties = properties.Count > 0 ? properties : null;
+            IReadOnlyList<string>? logScopes = scopes.Count > 0 ? scopes : null;
             output.WriteStructuredLog(
-                level,
-                message: message2,
-                exception: exception2,
-                properties3,
-                scopes3,
-                category: category2,
-                timestamp);
+                logLevel,
+                message: message,
+                exception: exception?.ToString(),
+                structuredProperties,
+                logScopes,
+                category: category,
+                timestamp: DateTimeOffset.UtcNow);
         }
 
         private static IReadOnlyDictionary<string, object?>? ExtractProperties<TState>(TState state)
@@ -477,10 +452,7 @@ public static class CliLogging
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
-            var iLoggingBuilder = builder;
-            var provider = new CliJsonlLoggerProvider(output);
-            ILoggerProvider provider2 = provider;
-            iLoggingBuilder.AddProvider(provider2);
+            builder.AddProvider(new CliJsonlLoggerProvider(output));
         });
     }
 }

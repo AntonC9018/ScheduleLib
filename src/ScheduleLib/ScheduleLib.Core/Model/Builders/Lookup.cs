@@ -233,10 +233,7 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    var dictionary = coursesMap;
-                    string key = name;
-                    CourseId value = new(i);
-                    dictionary.Add(key, value);
+                    coursesMap.Add(name, new(i));
                 }
             }
         }

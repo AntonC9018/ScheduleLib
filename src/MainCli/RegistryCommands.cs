@@ -104,19 +104,11 @@ public partial class RegistryCommands
         var streamedWarnings = new HashSet<string>(StringComparer.Ordinal);
         var actionIndexes = new Dictionary<RegistrySyncAction, int>();
         var warnings = context.Warnings;
-        string item2;
-        if (cleanupIntakeLabs)
-        {
-            item2 =
-                "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected.";
-        }
-        else
-        {
-            item2 = "Existing positional matching is used; updates are not a semantic minimum patch.";
-        }
+        var warningMessage = cleanupIntakeLabs
+            ? "Deleting a laboratory column also deletes its attendance marks. Only unsafe intake-wide laboratory columns are selected."
+            : "Existing positional matching is used; updates are not a semantic minimum patch.";
 
-        warnings.Add(
-            item2);
+        warnings.Add(warningMessage);
         var attempted = false;
         var finalExit = CliExit.Unexpected;
         string[] finalErrors = ["Unexpected registry failure."];
@@ -171,31 +163,16 @@ public partial class RegistryCommands
                 foreach (var action in plan)
                 {
                     actionIndexes.Add(action, outcomes.Count);
-                    ActionState status2;
-                    if (!action.Enabled)
+                    var initialStatus = ActionState.Omitted;
+                    if (action.Enabled)
                     {
-                        status2 = ActionState.Omitted;
-                    }
-                    else
-                    {
-                        ActionState text;
-                        if (apply.Apply)
-                        {
-                            text = ActionState.NotAttempted;
-                        }
-                        else
-                        {
-                            text = ActionState.Planned;
-                        }
-
-                        status2 = text;
+                        initialStatus = apply.Apply ? ActionState.NotAttempted : ActionState.Planned;
                     }
 
-                    string? detail2 = action.Omission;
                     var initial = ToOutcome(
                         action,
-                        status: status2,
-                        detail: detail2);
+                        status: initialStatus,
+                        detail: action.Omission);
                     outcomes.Add(initial);
                     StreamOutcome(outcomes.Count - 1, initial);
                 }
@@ -300,22 +277,17 @@ public partial class RegistryCommands
 
         void StreamOutcome(int index, RegistryActionOutcome outcome)
         {
-            var cliCommandContext = context;
-            string id2 = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var status2 = outcome.Status;
-            object item = outcome;
-            Action renderHuman2 = () =>
-            {
-                var outcomeMessage =
-                    $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
-                output.WriteHuman(
-                    outcomeMessage);
-            };
-            cliCommandContext.StreamItem(
-                id: id2,
-                status: status2,
-                item,
-                renderHuman: renderHuman2);
+            var outcomeId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            context.StreamItem(
+                id: outcomeId,
+                status: outcome.Status,
+                outcome,
+                renderHuman: () =>
+                {
+                    var outcomeMessage =
+                        $"{outcome.Kind.ToLowercaseValue()} {outcome.Date:yyyy-MM-dd HH:mm} {outcome.Course} ({outcome.Groups}): {outcome.Status.ToWire()} {outcome.Detail}";
+                    output.WriteHuman(outcomeMessage);
+                });
         }
 
         void StreamDiagnostic(RegistrySyncDiagnostic diagnostic)

@@ -95,16 +95,14 @@ public partial class ExportCommands
                 .Count(x => !x.Lesson.Teachers.Any());
             if (teacherless > 0)
             {
-                string item2 = $"The teacher workbook omits {teacherless} weekly lessons with no teacher.";
-                warnings.Add(item2);
+                warnings.Add($"The teacher workbook omits {teacherless} weekly lessons with no teacher.");
             }
 
             var sundays = schedule.EnumerateWeeklyLessons()
                 .Count(x => x.Date.DayOfWeek == DayOfWeek.Sunday);
             if (sundays > 0)
             {
-                string item3 = $"The existing Monday-Saturday layout omits {sundays} Sunday lessons.";
-                warnings.Add(item3);
+                warnings.Add($"The existing Monday-Saturday layout omits {sundays} Sunday lessons.");
             }
 
             var seminar = scope.ServiceProvider.GetRequiredService<RegularSeminarDateProvider>()
@@ -114,10 +112,8 @@ public partial class ExportCommands
                     x.Date.DayOfWeek == seminar.Day && x.Date.TimeSlot == seminar.TimeSlot);
             if (seminarLessons > 0)
             {
-                string item4 =
-                    $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.";
                 warnings.Add(
-                    item4);
+                    $"The existing seminar display replaces {seminarLessons} lessons at the configured seminar slot.");
             }
 
             var handler = scope.ServiceProvider.GetRequiredService<GenerateAllTeachersExcelTaskHandler>();

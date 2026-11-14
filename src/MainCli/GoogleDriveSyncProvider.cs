@@ -167,20 +167,17 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         using var content = new StreamContent(input);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         multipart.Add(content);
-        string text;
+        string filePathSegment;
         if (fileId is null)
         {
-            text = "";
+            filePathSegment = "";
         }
         else
         {
-            string escapeDataString = Uri.EscapeDataString(fileId);
-            string text2 = $"/{escapeDataString}";
-            text = text2;
+            var escapedFileId = Uri.EscapeDataString(fileId);
+            filePathSegment = $"/{escapedFileId}";
         }
-
-        string text3 = $"https://www.googleapis.com/upload/drive/v3/files{text}?uploadType=multipart&fields=id";
-        var uri = text3;
+        var uri = $"https://www.googleapis.com/upload/drive/v3/files{filePathSegment}?uploadType=multipart&fields=id";
         using var request = new HttpRequestMessage(method, uri)
         {
             Content = multipart,
