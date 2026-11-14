@@ -73,11 +73,11 @@ internal static class RegistryScopeReconciliation
                 {
                     return false;
                 }
-                if (!(scope == getScope(lesson)))
+                if (scope != getScope(lesson))
                 {
                     return false;
                 }
-                if (!(row.DateTime == lesson.DateTime))
+                if (row.DateTime != lesson.DateTime)
                 {
                     return false;
                 }

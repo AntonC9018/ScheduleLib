@@ -53,12 +53,12 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
             if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
                 .Any(course =>
                 {
-                    if (!(course.Count() > 1))
+                    if (course.Count() <= 1)
                     {
                         return false;
                     }
 
-                    if (!(course.Any(x => x.Key.Partition == GroupPartitionKey.All)))
+                    if (!course.Any(x => x.Key.Partition == GroupPartitionKey.All))
                     {
                         return false;
                     }

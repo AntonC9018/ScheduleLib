@@ -83,12 +83,12 @@ public sealed class ImplicitSplitScope
             return false;
         }
 
-        if (!(Qualification is { } q && qualificationType != q))
+        if (Qualification is { } q && qualificationType != q)
         {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
 }
 

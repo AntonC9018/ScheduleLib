@@ -196,7 +196,7 @@ public sealed class GroupsNavigator
                     return false;
                 }
 
-                if (!(group.Grade == target.Grade))
+                if (group.Grade != target.Grade)
                 {
                     return false;
                 }
@@ -614,12 +614,11 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var expectedDate = form.QuerySelector<IHtmlInputElement>("#LessonDate")?.Value;
         var expectedMode = form.QuerySelector<IHtmlSelectElement>("#LessonMode")?.Value;
         var expectedTopic = form.QuerySelector<IHtmlTextAreaElement>("#LessonTopic")?.Value;
-        bool conditionValue = DateTime.TryParse(
-            expectedDate,
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None,
-            out var date);
-        if (!conditionValue)
+        if (!DateTime.TryParse(
+                expectedDate,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var date))
         {
             throw new IOException("Registry lesson confirmation fields are unavailable.");
         }
@@ -645,7 +644,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         var dateText = date.ToString("dd.MM.yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         var editLinks = table.Rows.Where(row =>
             {
-                if (!(row.Cells.Length >= 3))
+                if (row.Cells.Length < 3)
                 {
                     return false;
                 }
@@ -683,7 +682,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     return false;
                 }
 
-                if (!(savedDate == date))
+                if (savedDate != date)
                 {
                     return false;
                 }
@@ -702,13 +701,13 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
                 if (expectedAttendance.All(input =>
                     {
-                        if (!(savedInputs.Count(actual => actual.Name == input.Name) == 1))
+                        if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
                         {
                             return false;
                         }
 
-                        if (!(savedInputs.Any(actual =>
-                                actual.Name == input.Name && actual.Value == input.Value)))
+                        if (!savedInputs.Any(actual =>
+                                actual.Name == input.Name && actual.Value == input.Value))
                         {
                             return false;
                         }

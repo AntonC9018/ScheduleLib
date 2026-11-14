@@ -49,7 +49,7 @@ public sealed class LessonTimeConfig
                 return 1;
             }
             var endTime = startTime.Add(_duration);
-            if (!(search > endTime))
+            if (search <= endTime)
             {
                 return 0;
             }

@@ -474,7 +474,7 @@ public sealed partial class AttendanceListsExcelParser
 
             bool CanFallBackToUnpartitionedLab()
             {
-                if (!(ret is null))
+                if (ret is not null)
                 {
                     return false;
                 }
@@ -484,7 +484,7 @@ public sealed partial class AttendanceListsExcelParser
                     return false;
                 }
 
-                if (!(key.GroupPartition.SubGroup != SubGroup.All))
+                if (key.GroupPartition.SubGroup == SubGroup.All)
                 {
                     return false;
                 }
@@ -1505,8 +1505,7 @@ public sealed partial class AttendanceListsExcelParser
     private static bool IsGeneratedTableHeader(IXLCell cell)
     {
         // ClosedXML fills empty Excel table header cells with ColumnN on load.
-        bool conditionValue = cell.Value.TryGetText(out var text);
-        if (!conditionValue)
+        if (!cell.Value.TryGetText(out var text))
         {
             return false;
         }
@@ -1516,8 +1515,7 @@ public sealed partial class AttendanceListsExcelParser
             return false;
         }
 
-        bool conditionValue2 = int.TryParse(text.AsSpan(6), out var number);
-        if (!conditionValue2)
+        if (!int.TryParse(text.AsSpan(6), out var number))
         {
             return false;
         }
@@ -1533,12 +1531,12 @@ public sealed partial class AttendanceListsExcelParser
 
             bool MatchesExpectedField()
             {
-                if (!(fieldIndex >= 0))
+                if (fieldIndex < 0)
                 {
                     return false;
                 }
 
-                if (!(fieldIndex < table.Fields.Count()))
+                if (fieldIndex >= table.Fields.Count())
                 {
                     return false;
                 }

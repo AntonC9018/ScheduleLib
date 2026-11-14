@@ -31,7 +31,7 @@ public record struct OptionalNamePart
     {
         get
         {
-            if (!(Full is null))
+            if (Full is not null)
             {
                 return false;
             }

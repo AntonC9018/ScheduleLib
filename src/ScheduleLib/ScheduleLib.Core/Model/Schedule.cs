@@ -24,20 +24,18 @@ public sealed class Schedule
 
     public bool IsLessonActive(AnyLessonId id)
     {
-        bool condition;
         if (id.Regularity != LessonRegularity.Weekly)
         {
-            condition = true;
-        }
-        else
-        {
-            var immutableHashSet = SuppressedWeeklyLessons;
-            WeeklyLessonId item = new(id.Id);
-            bool contains = immutableHashSet.Contains(item);
-            condition = !contains;
+            return true;
         }
 
-        return condition;
+        WeeklyLessonId item = new(id.Id);
+        if (SuppressedWeeklyLessons.Contains(item))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     public static readonly Schedule Empty = new()
@@ -1160,20 +1158,18 @@ public static class AttendanceModeFlagsHelper
 {
     public static bool Has(this AttendanceModeFlags flags, AttendanceMode mode)
     {
-        if (!(mode >= AttendanceMode.Zi))
+        if (mode < AttendanceMode.Zi)
         {
             return false;
         }
 
-        if (!(mode < AttendanceMode.Count))
+        if (mode >= AttendanceMode.Count)
         {
             return false;
         }
 
-        var conditionValue = flags;
-        int conditionValue2 = (int) mode;
-        var conditionValue3 = (AttendanceModeFlags) (1 << conditionValue2);
-        if ((conditionValue & conditionValue3) != 0)
+        var modeFlag = (AttendanceModeFlags) (1 << (int) mode);
+        if ((flags & modeFlag) != 0)
         {
             return true;
         }

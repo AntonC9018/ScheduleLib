@@ -633,38 +633,33 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                             return true;
                         }
 
-                        bool conditionValue;
                         if (RegistryTopicScope.TrySplit(
                                 topic: remote.Topic,
                                 knownScopes,
                                 baseTopic: out _,
                                 scope: out var scope))
                         {
-                            conditionValue = ResolveScope(remote, scope!) is not null;
-                        }
-                        else
-                        {
-                            bool PreserveRemoteLesson()
+                            if (ResolveScope(remote, scope!) is not null)
                             {
-                                if (!movedTimes.Contains(remote.DateTime))
-                                {
-                                    return true;
-                                }
-
-                                if (localInstances.Any(local =>
-                                        local.RegistryLessonType == LessonType.Lab
-                                        && local.DateTime == remote.DateTime))
-                                {
-                                    return true;
-                                }
-
-                                return false;
+                                return true;
                             }
 
-                            conditionValue = PreserveRemoteLesson();
+                            return false;
                         }
 
-                        return conditionValue;
+                        if (!movedTimes.Contains(remote.DateTime))
+                        {
+                            return true;
+                        }
+
+                        if (localInstances.Any(local =>
+                                local.RegistryLessonType == LessonType.Lab
+                                && local.DateTime == remote.DateTime))
+                        {
+                            return true;
+                        }
+
+                        return false;
                     })
                     .OrderBy(remote => remote.DateTime)
                     .ToArray();
@@ -723,7 +718,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
 
                     if (unresolvedAssessments.Any(assessment => audience.Any(lesson =>
                         {
-                            if (!(assessment.DateTime.Date == lesson.DateTime.Date))
+                            if (assessment.DateTime.Date != lesson.DateTime.Date)
                             {
                                 return false;
                             }
@@ -936,7 +931,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                                 .AsTask());
                         }));
                 }
-                if (!(await onGroupPlanned(actions)))
+                if (!await onGroupPlanned(actions))
                 {
                     return;
                 }

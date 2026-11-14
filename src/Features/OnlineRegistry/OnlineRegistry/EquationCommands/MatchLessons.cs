@@ -182,21 +182,17 @@ internal static class MatchLessonHelper
             }
 
             var lesson = p.Schedule.Get(lessonId);
-            bool condition;
             if (p.Filter.Groups.IsCombined)
             {
-                condition = lesson.Lesson.GroupPartitionKey != groupPartition;
+                if (lesson.Lesson.GroupPartitionKey != groupPartition)
+                {
+                    continue;
+                }
             }
-            else
-            {
-                bool matchesPartition = MatchesPartition(
-                    p.Schedule,
-                    lesson.Lesson,
-                    groupPartition);
-                condition = !matchesPartition;
-            }
-
-            if (condition)
+            else if (!MatchesPartition(
+                         p.Schedule,
+                         lesson.Lesson,
+                         groupPartition))
             {
                 continue;
             }

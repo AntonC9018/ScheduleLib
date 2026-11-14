@@ -35,7 +35,7 @@ public sealed partial class ViewLocator : IDataTemplate
         }
 
         var viewType = ViewAndViewModelConverter.TypeFromViewModelToView(t);
-        if (!(viewType != null))
+        if (viewType is null)
         {
             return new TextBlock
             {

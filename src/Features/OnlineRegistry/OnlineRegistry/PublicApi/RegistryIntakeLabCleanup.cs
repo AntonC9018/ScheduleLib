@@ -231,7 +231,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return deletion;
                     })
                     .ToArray();
-                if (!(await onGroupPlanned(actions)))
+                if (!await onGroupPlanned(actions))
                 {
                     return;
                 }
@@ -269,7 +269,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                 return false;
             }
 
-            if (!(actual.DateTime == expected.DateTime))
+            if (actual.DateTime != expected.DateTime)
             {
                 return false;
             }

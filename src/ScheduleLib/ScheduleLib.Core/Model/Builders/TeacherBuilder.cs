@@ -390,7 +390,7 @@ public static class TeacherBuilderHelper
                 .Map(x => new Word(x ?? ""));
             if (longer.All(x => x == Word.Empty))
             {
-                if (!(lookup.Count > 0))
+                if (lookup.Count == 0)
                 {
                     return null;
                 }

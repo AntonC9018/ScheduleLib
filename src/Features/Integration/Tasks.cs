@@ -147,10 +147,11 @@ public static class TasksHelper
                 var stagedInput = Path.Combine(stagingDirectory, fileName);
                 File.Copy(sourceFileName: filePath, destFileName: stagedInput);
                 var outputPath = Path.ChangeExtension(path: stagedInput, @extension: ".docx");
-                if (!(await DocToDocxConversionHelper.TryConvertFile(
-                        inputPath: stagedInput,
-                        outputPath: outputPath,
-                        cancellationToken)))
+                var converted = await DocToDocxConversionHelper.TryConvertFile(
+                    inputPath: stagedInput,
+                    outputPath: outputPath,
+                    cancellationToken);
+                if (!converted)
                 {
                     throw new IOException(
                         "Could not convert doc to docx. Windows with Microsoft Word is required.");

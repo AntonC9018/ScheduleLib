@@ -733,8 +733,7 @@ internal static class HtmlSearch
 
                         var expectedName = ParseStudent(expected);
                         var actualName = ParseStudent(actual);
-                        if (!(expectedName != actualName
-                                || expected.IsExpelled != actual.IsExpelled))
+                        if (expectedName == actualName && expected.IsExpelled == actual.IsExpelled)
                         {
                             return null;
                         }

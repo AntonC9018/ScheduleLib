@@ -55,17 +55,17 @@ internal static class RegistryLabMerges
         var group = groups[0];
         if (schedule.AutomaticLabSubGroupMerges.Any(merge =>
             {
-                if (!(merge.Course == course))
+                if (merge.Course != course)
                 {
                     return false;
                 }
 
-                if (!(merge.Group == group))
+                if (merge.Group != group)
                 {
                     return false;
                 }
 
-                if (!(merge.Specialization == partition.Specialization))
+                if (merge.Specialization != partition.Specialization)
                 {
                     return false;
                 }
@@ -161,7 +161,7 @@ internal static class RegistryLabMerges
                         return false;
                     }
 
-                    if (!(lesson.GroupPartitionKey == survivingPartition))
+                    if (lesson.GroupPartitionKey != survivingPartition)
                     {
                         return false;
                     }

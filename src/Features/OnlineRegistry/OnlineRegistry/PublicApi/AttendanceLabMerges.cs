@@ -67,7 +67,7 @@ public static class AttendanceLabMerges
                 return false;
             }
 
-            if (!(merge.Alternative != partition.Alternative))
+            if (merge.Alternative == partition.Alternative)
             {
                 return true;
             }
@@ -88,7 +88,7 @@ public static class AttendanceLabMerges
         // Do not invent a source partition merely because a merge exists.
         if (schedule.WeeklyLessons.Any(item =>
             {
-                if (!(item.Base.Data.Course == source.CourseId))
+                if (item.Base.Data.Course != source.CourseId)
                 {
                     return false;
                 }
@@ -96,7 +96,7 @@ public static class AttendanceLabMerges
                 {
                     return false;
                 }
-                if (!(item.Base.Data.Groups[0] == group))
+                if (item.Base.Data.Groups[0] != group)
                 {
                     return false;
                 }
@@ -113,19 +113,19 @@ public static class AttendanceLabMerges
             })
             || schedule.AutomaticLabSubGroupMerges.Any(merge =>
             {
-                if (!(merge.Course == source.CourseId))
+                if (merge.Course != source.CourseId)
                 {
                     return false;
                 }
-                if (!(merge.Group == group))
+                if (merge.Group != group)
                 {
                     return false;
                 }
-                if (!(merge.Specialization == partition.Specialization))
+                if (merge.Specialization != partition.Specialization)
                 {
                     return false;
                 }
-                if (!(merge.Alternative == partition.Alternative))
+                if (merge.Alternative != partition.Alternative)
                 {
                     return false;
                 }

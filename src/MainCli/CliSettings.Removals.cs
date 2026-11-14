@@ -155,7 +155,7 @@ public static partial class CliSettings
 
         bool RemovesWholeBlock()
         {
-            if (!(operation is "remove" or "reset"))
+            if (operation is not ("remove" or "reset"))
             {
                 return false;
             }

@@ -192,22 +192,20 @@ public static class RegistryHistoryTopicSelection
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         }
 
-        bool conditionValue = int.TryParse(
-            year.AsSpan(start: 0, length: 4),
-            NumberStyles.None,
-            CultureInfo.InvariantCulture,
-            out var start);
-        if (!conditionValue)
+        if (!int.TryParse(
+                year.AsSpan(start: 0, length: 4),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var start))
         {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         }
 
-        bool conditionValue2 = int.TryParse(
-            year.AsSpan(start: 5, length: 2),
-            NumberStyles.None,
-            CultureInfo.InvariantCulture,
-            out var end);
-        if (!conditionValue2)
+        if (!int.TryParse(
+                year.AsSpan(start: 5, length: 2),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var end))
         {
             throw new RegistryHistoryException("Academic-year value cannot be ordered safely; inspection is required.");
         }
@@ -424,12 +422,12 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
             {
                 var hasHistoricalTeachingTopics = snapshots.Any(snapshot =>
                 {
-                    if (!(RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course)))
+                    if (!RegistryHistoryTopicSelection.Matches(current: course, historical: snapshot.Course))
                     {
                         return false;
                     }
 
-                    if (!(snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
+                    if (!snapshot.Groups.Any(group => group.Lessons.Any(lesson =>
                             {
                                 if (string.IsNullOrWhiteSpace(lesson.Topic))
                                 {
@@ -443,7 +441,7 @@ public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 
                                 return false;
                             }
-                        ))))
+                        )))
                     {
                         return false;
                     }

@@ -192,8 +192,7 @@ public sealed class GoogleDriveSyncProvider : IDriveSyncProvider
         }
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
-        bool conditionValue = document.RootElement.TryGetProperty("id", out var id);
-        if (!conditionValue)
+        if (!document.RootElement.TryGetProperty("id", out var id))
         {
             throw new IOException("Drive upload completed without a file identity; outcome is uncertain.");
         }

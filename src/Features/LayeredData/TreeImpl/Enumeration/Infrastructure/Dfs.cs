@@ -85,7 +85,7 @@ public sealed class DfsEnumerator() : IDfsEnumerator
 
     private bool TryConsumePreventRecursion()
     {
-        if (!(Action is DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce))
+        if (Action is not (DfsAction.KeepPreventingRecursion or DfsAction.PreventRecursionOnce))
         {
             return false;
         }

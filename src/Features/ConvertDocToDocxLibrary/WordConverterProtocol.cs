@@ -36,7 +36,7 @@ internal static class WordConverterProtocol
         pid = 0;
         startTicks = 0;
         var fields = message?.Split('|');
-        if (!(fields is { Length: 4 }))
+        if (fields is not { Length: 4 })
         {
             return false;
         }
@@ -60,7 +60,7 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!(pid > 0))
+        if (pid <= 0)
         {
             return false;
         }
@@ -92,7 +92,7 @@ internal static class WordConverterProtocol
         string processName,
         bool existedBeforeConversion)
     {
-        if (!(pid > 0))
+        if (pid <= 0)
         {
             return false;
         }
@@ -107,7 +107,7 @@ internal static class WordConverterProtocol
             return false;
         }
 
-        if (!(actualTicks >= converterTicks))
+        if (actualTicks < converterTicks)
         {
             return false;
         }

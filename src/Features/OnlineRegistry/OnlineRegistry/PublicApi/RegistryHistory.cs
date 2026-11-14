@@ -430,7 +430,7 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
                     return false;
                 }
 
-                if (!(request.Method == HttpMethod.Post))
+                if (request.Method != HttpMethod.Post)
                 {
                     return false;
                 }

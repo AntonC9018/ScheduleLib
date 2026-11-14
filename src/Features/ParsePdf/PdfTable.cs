@@ -15,6 +15,7 @@ public readonly record struct PdfBox(
 
     public bool Contains(double x, double y)
     {
+        // Keep negated comparisons so NaN coordinates return false.
         if (!(Left <= x))
         {
             return false;

@@ -60,7 +60,7 @@ public static class LessonTopicCsvSerializer
             config = c(config);
         }
         using var csvReader = new CsvReader(input, config);
-        if (!(await csvReader.ReadAsync()))
+        if (!await csvReader.ReadAsync())
         {
             yield break;
         }

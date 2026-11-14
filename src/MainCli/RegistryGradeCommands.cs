@@ -12,7 +12,7 @@ public sealed class QuizArguments : IArgumentModel
     {
         get
         {
-            if (!(QuizId is { Length: > 0 }))
+            if (QuizId is not { Length: > 0 })
             {
                 return false;
             }

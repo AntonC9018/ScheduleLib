@@ -70,7 +70,7 @@ public sealed class GoogleTokenProvider : IGoogleTokenProvider, IDisposable
             flow,
             context.Teacher,
             authorization);
-        if (!(await credential.RefreshTokenAsync(token)))
+        if (!await credential.RefreshTokenAsync(token))
         {
             return null;
         }

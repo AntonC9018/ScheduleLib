@@ -30,7 +30,7 @@ public sealed class ParentContext() : IDfsEnumerationContext
     {
         get
         {
-            if (!(_stack.Count > 0))
+            if (_stack.Count == 0)
             {
                 return null;
             }

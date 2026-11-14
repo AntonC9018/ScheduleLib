@@ -577,7 +577,7 @@ internal sealed class RegistryTargetCoverage(
             return false;
         }
 
-        if (!(first.Grade == second.Grade))
+        if (first.Grade != second.Grade)
         {
             return false;
         }

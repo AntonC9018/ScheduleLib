@@ -24,7 +24,7 @@ public sealed class SameGenericArgsConverterFactory : JsonConverterFactory
             return false;
         }
         var t = typeToConvert.GetGenericTypeDefinition();
-        if (!(t != _genericType))
+        if (t == _genericType)
         {
             return true;
         }

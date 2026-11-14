@@ -22,12 +22,12 @@ public readonly record struct SemesterDateRange
             return false;
         }
 
-        if (!(date > EndInclusive))
+        if (date > EndInclusive)
         {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
 }
 

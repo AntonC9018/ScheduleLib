@@ -104,12 +104,12 @@ internal sealed class GoogleSingleAttemptCredential(IHttpExecuteInterceptor cred
         // condition, never arbitrary InvalidOperationException or credential messages.
         var declaringType = error.TargetSite?.DeclaringType;
 
-        if (!(credential is UserCredential))
+        if (credential is not UserCredential)
         {
             return false;
         }
 
-        if (!(declaringType?.Assembly == typeof(UserCredential).Assembly))
+        if (declaringType?.Assembly != typeof(UserCredential).Assembly)
         {
             return false;
         }

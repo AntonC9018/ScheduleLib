@@ -320,7 +320,7 @@ internal static class RegistryAssessments
 
                 bool HasExistingAssessmentWithoutRegularTopic()
                 {
-                    if (!(regularTopic is null))
+                    if (regularTopic is not null)
                     {
                         return false;
                     }
@@ -332,7 +332,7 @@ internal static class RegistryAssessments
 
                     if (remote.Any(existing =>
                         {
-                            if (!(existing.DateTime.Date == lesson.DateTime.Date))
+                            if (existing.DateTime.Date != lesson.DateTime.Date)
                             {
                                 return false;
                             }
@@ -378,7 +378,7 @@ internal static class RegistryAssessments
             var candidates = Enumerable.Range(start: 0, count: local.Length)
                 .Where(index =>
                 {
-                    if (!(local[index].DateTime == assessment.DateTime))
+                    if (local[index].DateTime != assessment.DateTime)
                     {
                         return false;
                     }
@@ -401,7 +401,7 @@ internal static class RegistryAssessments
                 candidates = Enumerable.Range(start: 0, count: local.Length)
                     .Where(index =>
                     {
-                        if (!(local[index].DateTime.Date == assessment.DateTime.Date))
+                        if (local[index].DateTime.Date != assessment.DateTime.Date)
                         {
                             return false;
                         }

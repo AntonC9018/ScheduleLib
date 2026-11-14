@@ -759,7 +759,7 @@ public sealed class CurriculumCache
                 }
 
                 var lesson = p.Schedule.Get(p.LessonId);
-                if (!(courseId != lesson.Lesson.Course))
+                if (courseId == lesson.Lesson.Course)
                 {
                     return true;
                 }
@@ -2149,7 +2149,7 @@ internal static class DisciplineProvisionsProcessing
                         return false;
                     }
 
-                    if (!(merge.Val != MergedCellValues.Continue))
+                    if (merge.Val == MergedCellValues.Continue)
                     {
                         return true;
                     }

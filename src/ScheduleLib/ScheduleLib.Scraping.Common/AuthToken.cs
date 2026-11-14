@@ -408,7 +408,7 @@ public sealed class CachingPasswordTokenRetriever : ITokenRetriever
 
     public async Task<bool> RecreateToken(CancellationToken cancellationToken)
     {
-        if (!(await _fields.UnderlyingRetriever.InitializeToken(cancellationToken)))
+        if (!await _fields.UnderlyingRetriever.InitializeToken(cancellationToken))
         {
             return false;
         }

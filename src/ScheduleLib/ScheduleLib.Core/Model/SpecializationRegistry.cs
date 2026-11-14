@@ -38,13 +38,13 @@ public readonly record struct GroupCategorySelector(
             return false;
         }
 
-        if (!(Qualification is { } qualification
-                && group.QualificationType != qualification))
+        if (Qualification is { } qualification
+            && group.QualificationType != qualification)
         {
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
 }
 
