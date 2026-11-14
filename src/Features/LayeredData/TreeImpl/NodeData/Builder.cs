@@ -96,8 +96,7 @@ public static class BaseExtensions
                     .Empty();
                 if (val is null)
                 {
-                    throw new InvalidOperationException(
-                        "Root BasicOperations is supposed to create actual objects, not null.");
+                    throw new NullBasicOperationsValueException(typeof(T));
                 }
                 x.SetValue(val);
             }

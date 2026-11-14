@@ -48,7 +48,7 @@ public static class MoodleQuizScraper
             {
                 return new(Name: span.TextContent.Trim(), Href: null);
             }
-            throw new InvalidOperationException("Expected span or anchor in path");
+            throw new InvalidMoodleBreadcrumbException();
         }
 
         var path = pathItems.Select(ReadBreadcrumb)
@@ -68,7 +68,7 @@ public static class MoodleQuizScraper
         var attemptsElement = page.QuerySelector("table#attempts");
         if (attemptsElement is not IHtmlTableElement attemptsTable)
         {
-            throw new InvalidOperationException("Attempts table not found");
+            throw new MoodleAttemptsTableNotFoundException();
         }
 
         // Parse the table
@@ -85,7 +85,7 @@ public static class MoodleQuizScraper
         var attempts = new List<QuizAttempt>();
         if (MappedTableHelper.Create(table) is not { } helper)
         {
-            throw new InvalidOperationException("Failed to find table in html.");
+            throw new MoodleAttemptsTableHeaderNotFoundException();
         }
 
         // Parse data rows
@@ -149,7 +149,7 @@ public static class MoodleQuizScraper
             var questionGrades = ExtractQuestionGrades(rowSearch);
             if (reviewLink is null)
             {
-                throw new InvalidOperationException("This is the only thing that must be there - the review link!");
+                throw new MoodleAttemptReviewLinkMissingException(id);
             }
 
             var attempt = new QuizAttempt
@@ -321,7 +321,7 @@ public static class MoodleQuizScraper
                 Grade = ParseFloatOrNull(gradeSpan.MaybeExtractText()),
                 Status = ParseQuestionStatus(gradeSpan?.GetAttribute("class")),
                 ReviewLink = link?.GetAttribute("href")
-                    ?? throw new InvalidOperationException("Expecting a review link"),
+                    ?? throw new MoodleQuestionReviewLinkMissingException(questionNum),
             });
             questionNum++;
         }

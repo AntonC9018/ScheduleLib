@@ -33,11 +33,13 @@ internal sealed class CallHelper<TDelegate> where TDelegate : Delegate
                         interfaceType: _interfaceType);
                 }
                 var types = inter.GetGenericArguments();
-                if (types.Length
-                    != _methodInfo.GetGenericMethodDefinition()
-                        .GetGenericArguments().Length)
+                int expectedCount = _methodInfo.GetGenericMethodDefinition()
+                    .GetGenericArguments().Length;
+                if (types.Length != expectedCount)
                 {
-                    throw new InvalidOperationException("Argument count mismatch");
+                    throw new GenericDelegateArgumentCountMismatchException(
+                        expectedCount: expectedCount,
+                        actualCount: types.Length);
                 }
                 var genericMethod = _methodInfo.MakeGenericMethod(types);
                 return genericMethod.CreateDelegate<TDelegate>();

@@ -30,7 +30,7 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
         var deadlinesExcelConfig = _deadlinesExcelConfigProvider.Get();
         if (deadlinesExcelConfig is null)
         {
-            throw new InvalidOperationException("Can't use the deadlines feature unless it's been configured.");
+            throw new DeadlinesConfigMissingException();
         }
 
         var labsValue = await _labsProvider.Get();
@@ -50,8 +50,8 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                 .GroupBy(x => (Partition: x.Lesson.GroupPartitionKey, x.Lesson.Course))
                 .ToArray();
 
-            if (lessonsBySubgroup.GroupBy(x => x.Key.Course)
-                .Any(course =>
+            var sharedCourse = lessonsBySubgroup.GroupBy(x => x.Key.Course)
+                .FirstOrDefault(course =>
                 {
                     if (course.Count() <= 1)
                     {
@@ -64,9 +64,10 @@ public sealed partial class GenerateDeadlinesExcelTaskHandler
                     }
 
                     return true;
-                }))
+                });
+            if (sharedCourse is not null)
             {
-                throw new NotImplementedException("Shared labs not implemented");
+                throw new SharedLabsDeadlinesNotImplementedException(sharedCourse.Key);
             }
 
             foreach (var l in lessonsBySubgroup)

@@ -122,11 +122,11 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         var config = _configProvider.Get();
         if (config is null)
         {
-            throw new InvalidOperationException("No google drive config found.");
+            throw new GoogleCalendarConfigMissingException();
         }
         if (config.CalendarName == "primary")
         {
-            throw new InvalidOperationException("Primary calendar not supported!");
+            throw new PrimaryGoogleCalendarSyncNotSupportedException();
         }
 
         var credential = await _helper.CredentialResolver.Resolve(

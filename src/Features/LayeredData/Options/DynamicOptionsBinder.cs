@@ -46,7 +46,9 @@ public sealed class DynamicOptionsBinder<T>
         var value = section.Get<T>();
         if (value is null)
         {
-            throw new InvalidOperationException("Failed to bind for some reason.");
+            throw new OptionsBindingNullException(
+                sectionPath: section.Path,
+                optionsType: typeof(T));
         }
 
         var failures = new List<string>();

@@ -60,7 +60,7 @@ public static class ItUsmWebsiteApi
             }
             if (!responseModel.Last)
             {
-                throw new NotImplementedException("Multipage responses");
+                throw new ItUsmWebsiteMultipageNotSupportedException();
             }
 
             var remoteTeachers = responseModel.Content;
@@ -104,6 +104,9 @@ public static class ItUsmWebsiteApi
 public sealed class ItUsmWebsiteHttpException : ItUsmWebsiteException
 {
 }
+
+public sealed class ItUsmWebsiteMultipageNotSupportedException()
+    : ItUsmWebsiteException("Multipage responses are not supported.");
 
 public sealed class ItUsmWebsiteLogicException : ItUsmWebsiteException
 {

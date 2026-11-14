@@ -33,13 +33,13 @@ public sealed class GoogleDriveConfigMapper : IDataMapper<GoogleDriveConfig, Bui
     {
         if (input.Credentials is null)
         {
-            throw new InvalidOperationException("No credentials config");
+            throw new GoogleDriveCredentialsMissingException();
         }
         return new()
         {
             Credentials = input.Credentials.Build(),
             DriveFolderName =
-                input.DriveFolderName ?? throw new InvalidOperationException("No drive folder configured"),
+                input.DriveFolderName ?? throw new GoogleDriveFolderMissingException(),
         };
     }
 }

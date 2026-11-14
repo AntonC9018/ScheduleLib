@@ -333,7 +333,7 @@ public static class CurriculumNameParser
                 var flag = (AttendanceModeFlags) (1 << (int) mode);
                 if ((ret & flag) == flag)
                 {
-                    throw new NotSupportedException("The same attendance mode specified a second time");
+                    throw new DuplicateCurriculumAttendanceModeException(mode);
                 }
                 ret |= flag;
                 continue;
@@ -355,7 +355,7 @@ public static class CurriculumNameParser
 
             if (hasUnparsedItem && itemCount > 1)
             {
-                throw new NotSupportedException("'+' in the last segment without it parsing");
+                throw new UnparsedCurriculumGroupSegmentPlusException(lastSpan.ToString());
             }
 
             return ret;
@@ -378,7 +378,7 @@ public static class CurriculumNameParser
                 return QualificationType.Master;
             }
 
-            throw new NotSupportedException("Unknown qualification");
+            throw new UnknownCurriculumQualificationException(s.ToString());
         }
     }
 
@@ -389,11 +389,11 @@ public static class CurriculumNameParser
         var skipResult = bparser.SkipNumbers();
         if (!skipResult.SkippedAny)
         {
-            throw new NotSupportedException("Expected code");
+            throw new InvalidProgramCodeSyntaxException(ProgramCodeSyntaxError.MissingCode);
         }
         if (skipResult.EndOfInput)
         {
-            throw new NotSupportedException("Expected '.' after first part of code");
+            throw new InvalidProgramCodeSyntaxException(ProgramCodeSyntaxError.MissingSeparatorAfterPrefix);
         }
         if (bparser.Current == '.')
         {
@@ -402,7 +402,7 @@ public static class CurriculumNameParser
             var secondPartSkipResult = bparser.SkipNumbers();
             if (!secondPartSkipResult.SkippedAny)
             {
-                throw new NotSupportedException("Expected number after '.'");
+                throw new InvalidProgramCodeSyntaxException(ProgramCodeSyntaxError.MissingNumberAfterSeparator);
             }
         }
 
@@ -435,11 +435,10 @@ public static class CurriculumNameParser
 
         static ReadOnlyMemory<char> Course(ref SequenceReader reader)
         {
-            var error = "There must be the short course name following the year";
-            var ret = NextSegmentUntilSep(ref reader, error);
+            var ret = NextSegmentUntilSep(ref reader, CurriculumKeySyntaxError.MissingCourseSegment);
             if (!reader.ConsumeExactString("_"))
             {
-                throw new NotSupportedException("Expected _ after the course name.");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingCourseSeparator);
             }
             return ret;
         }
@@ -448,18 +447,18 @@ public static class CurriculumNameParser
         {
             if (!reader.ConsumeExactString("an"))
             {
-                throw new NotSupportedException("Expected 'anX' where X is the year after the specialty");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingGradePrefix);
             }
             if (reader.IsEmpty || !char.IsDigit(reader.Current))
             {
-                throw new NotSupportedException("A number must follow 'an'");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingGradeNumber);
             }
             var grade = reader.Current - '0';
             reader.Move();
 
             if (!reader.ConsumeExactString("_"))
             {
-                throw new NotSupportedException("Expected _ after the grade.");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingGradeSeparator);
             }
             return grade;
         }
@@ -490,7 +489,7 @@ public static class CurriculumNameParser
             var consumeIntResult = reader.ConsumePositiveInt(length: 4);
             if (consumeIntResult.Status != ConsumeIntStatus.Ok)
             {
-                throw new NotSupportedException("Expecting year at the end.");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingYear);
             }
             return (int) consumeIntResult.Value;
         }
@@ -507,7 +506,7 @@ public static class CurriculumNameParser
             var nums = reader.PeekSpanUntilPosition(bparser.Position);
             if (!int.TryParse(nums, out int ret))
             {
-                throw new NotSupportedException("Number in front too large");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.LeadingNumberTooLarge);
             }
 
             reader.MoveTo(bparser.Position);
@@ -521,22 +520,21 @@ public static class CurriculumNameParser
 
         static ReadOnlyMemory<char> Specialty(ref SequenceReader reader)
         {
-            var error = "There must be the short specialty name following the initial numbers";
-            var ret = NextSegmentUntilSep(ref reader, error);
+            var ret = NextSegmentUntilSep(ref reader, CurriculumKeySyntaxError.MissingSpecialtySegment);
             if (!reader.ConsumeExactString("_"))
             {
-                throw new NotSupportedException("Expected _ after the specialty.");
+                throw new InvalidCurriculumKeySyntaxException(CurriculumKeySyntaxError.MissingSpecialtySeparator);
             }
             return ret;
         }
 
-        static ReadOnlyMemory<char> NextSegmentUntilSep(ref SequenceReader reader, string error)
+        static ReadOnlyMemory<char> NextSegmentUntilSep(ref SequenceReader reader, CurriculumKeySyntaxError error)
         {
             var bparser = reader.BufferedView();
             var result = bparser.SkipUntilAny(['_']);
             if (!result.SkippedAny)
             {
-                throw new NotSupportedException(error);
+                throw new InvalidCurriculumKeySyntaxException(error);
             }
 
             var ret = reader.SourceUntilExclusive(bparser.Position);
@@ -587,7 +585,7 @@ public static class CurriculumDirectoryHelper
             var groupKey = CurriculumNameParser.ParseGroupKey(ref parser);
             if (!parser.IsEmpty)
             {
-                throw new InvalidOperationException("Directory name not parsed fully.");
+                throw new UnparsedCurriculumDirectoryNameException(dirFullPath);
             }
 
             var d = new CurriculumGroupDirectory(dirFullPath);
@@ -815,7 +813,7 @@ public sealed class CurriculumCache
 
         if (candidateFiles.Count != 1)
         {
-            throw new InvalidOperationException("Could not narrow down the curriculum.");
+            throw new CurriculumSelectionFailedException(candidateFiles.Count);
         }
 
         var ret = await ThesisName.ReadFile(candidateFiles[0]);
@@ -840,11 +838,11 @@ internal static class ThesisName
         // Program / Specialitatea: 0613.4 Informatică, 0613.5 Informatică Aplicată
         if (word.MainDocumentPart?.Document is not { } document)
         {
-            throw new InvalidOperationException("No document found.");
+            throw new MissingCurriculumDocumentException(file.FilePath);
         }
         if (document.Body is not { } body)
         {
-            throw new InvalidOperationException("No body found.");
+            throw new MissingCurriculumDocumentBodyException(file.FilePath);
         }
 
         // ReSharper disable once GenericEnumeratorNotDisposed
@@ -886,7 +884,7 @@ internal static class ThesisName
         {
             if (parsingState.ProcessedSections.IsSet((int) newSectionType))
             {
-                throw new NotSupportedException("The same section appears twice, which is not allowed");
+                throw new DuplicateCurriculumSectionException(newSectionType.ToString());
             }
             parsingState.CurrentSectionType = newSectionType;
             parsingState.ProcessedSections.Set((int) newSectionType);
@@ -1104,12 +1102,14 @@ internal static class ThesisName
     {
         if (!SkipUntilCurriculum())
         {
-            throw new InvalidOperationException("Document does not contain CURRICULUM");
+            throw new InvalidCurriculumGeneralInfoException(
+                CurriculumGeneralInfoStructureError.MissingCurriculumHeading);
         }
 
         if (!paragraphs.MoveNext())
         {
-            throw new InvalidOperationException("No paragraphs found after CURRICULUM");
+            throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                .MissingParagraphAfterCurriculum);
         }
 
         {
@@ -1117,13 +1117,14 @@ internal static class ThesisName
             const string expected = "la unitatea de curs / modulul";
             if (t != expected)
             {
-                throw new InvalidOperationException("Expected string la unitatea de curs / modulul");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .ExpectedCourseModuleLabel);
             }
         }
 
         if (!paragraphs.MoveNext())
         {
-            throw new InvalidOperationException("Expected the course name to follow");
+            throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError.MissingCourseName);
         }
 
         string realFullCourseName;
@@ -1133,7 +1134,8 @@ internal static class ThesisName
 
         if (!paragraphs.MoveNext())
         {
-            throw new InvalidOperationException("Expected the year and qualification to follow");
+            throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                .MissingYearAndQualification);
         }
 
         YearAndQualificationType yearAndQualificationType;
@@ -1144,7 +1146,8 @@ internal static class ThesisName
 
         if (!paragraphs.MoveNext())
         {
-            throw new InvalidOperationException("Expected the program & specialty after year");
+            throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                .MissingProgramAndSpecialty);
         }
 
         List<Program> programs;
@@ -1155,7 +1158,7 @@ internal static class ThesisName
 
         if (!paragraphs.MoveNext())
         {
-            throw new InvalidOperationException("Expected author after the program");
+            throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError.MissingAuthorSection);
         }
 
         while (true)
@@ -1169,7 +1172,8 @@ internal static class ThesisName
 
             if (!paragraphs.MoveNext())
             {
-                throw new InvalidOperationException("Expected AUTOR:");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .ExpectedAutorPrefix);
             }
         }
 
@@ -1178,7 +1182,8 @@ internal static class ThesisName
         {
             if (!paragraphs.MoveNext())
             {
-                throw new InvalidOperationException("Expected author name paragraph");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .MissingAuthorNameParagraph);
             }
 
             var p = paragraphs.Current;
@@ -1187,7 +1192,8 @@ internal static class ThesisName
             {
                 if (authorNames.Count == 0)
                 {
-                    throw new InvalidOperationException("No author name specified");
+                    throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                        .MissingAuthorName);
                 }
                 break;
             }
@@ -1214,7 +1220,8 @@ internal static class ThesisName
             }
             if (lastParagraph is null)
             {
-                throw new InvalidCastException("Expected more stuff after the author");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .MissingTrailingContentAfterAuthor);
             }
         }
         uint year;
@@ -1224,18 +1231,21 @@ internal static class ThesisName
             // TODO: Support ignore diacritics (annoying)
             if (!parser.ConsumeExactString("Chișinău", StringComparison.CurrentCultureIgnoreCase))
             {
-                throw new InvalidOperationException("Expected the city-year line as the last line");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .MissingCityYearLine);
             }
 
             if (!parser.SkipWhitespace().SkippedAny)
             {
-                throw new InvalidOperationException("Expected year after city on the last line");
+                throw new InvalidCurriculumGeneralInfoException(
+                    CurriculumGeneralInfoStructureError.MissingYearAfterCity);
             }
 
             var yearResult = parser.ConsumePositiveInt(length: 4);
             if (yearResult.Status != ConsumeIntStatus.Ok)
             {
-                throw new InvalidOperationException("The year must be 4 digits");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .InvalidYearDigitCount);
             }
 
             year = yearResult.Value;
@@ -1257,7 +1267,8 @@ internal static class ThesisName
                 const string programPrefix = "Program / Specialitatea:";
                 if (!parser.ConsumeExactString(programPrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("Expected string Program / Specialitatea:");
+                    throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                        .ExpectedProgramLabel);
                 }
             }
 
@@ -1268,7 +1279,8 @@ internal static class ThesisName
                     var r = parser.SkipWhitespace();
                     if (!r.SkippedAny)
                     {
-                        throw new InvalidOperationException("Expected whitespace around programs");
+                        throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                            .ExpectedWhitespaceAroundPrograms);
                     }
                 }
 
@@ -1288,7 +1300,8 @@ internal static class ThesisName
                 var nextResult = bparser.SkipUntilAny([',']);
                 if (!nextResult.SkippedAny)
                 {
-                    throw new InvalidOperationException("Expected specialty name after the code");
+                    throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                        .MissingSpecialtyNameAfterCode);
                 }
 
                 var specialty = parser.SourceUntilExclusive(bparser.Position);
@@ -1314,11 +1327,13 @@ internal static class ThesisName
 
             if (!parser.ConsumeExactString(","))
             {
-                throw new InvalidOperationException("Expected the qualification type after the year");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .ExpectedCommaAfterYear);
             }
             if (!parser.SkipWhitespace().SkippedAny)
             {
-                throw new InvalidOperationException("Expected the qualification type after the year");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .ExpectedWhitespaceBeforeQualification);
             }
 
             var qualificationType = ParseQualificationType(ref parser);
@@ -1332,19 +1347,22 @@ internal static class ThesisName
             {
                 if (!reader.ConsumeExactString(ciclul, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("Expected the year string to start with 'Ciclul'");
+                    throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                        .ExpectedCiclulPrefix);
                 }
             }
             if (!reader.SkipWhitespace().SkippedAny)
             {
-                throw new InvalidOperationException("Did not expect the string to end after 'Ciclul'");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .MissingContentAfterCiclul);
             }
 
             {
                 var romanReadStatus = reader.ReadRoman();
                 if (romanReadStatus.Status != ReadRomanStatus.Ok)
                 {
-                    throw new InvalidOperationException("Roman number must follow after 'Ciclul'");
+                    throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                        .MissingRomanNumberAfterCiclul);
                 }
 
                 return romanReadStatus.Number;
@@ -1357,7 +1375,8 @@ internal static class ThesisName
             var r = bparser.SkipNotWhitespace();
             if (!r.EndOfInput)
             {
-                throw new InvalidOperationException("Expected only one qualification type");
+                throw new InvalidCurriculumGeneralInfoException(CurriculumGeneralInfoStructureError
+                    .MultipleQualificationTypes);
             }
 
             var name = reader.PeekSpanUntilPosition(bparser.Position);
@@ -1374,7 +1393,7 @@ internal static class ThesisName
                 {
                     return QualificationType.Master;
                 }
-                throw new InvalidOperationException("Unknown qualification type");
+                throw new UnknownCurriculumQualificationTypeException(name.ToString());
             }
 
             static bool Equals1(ReadOnlySpan<char> name, ReadOnlySpan<char> label)
@@ -1702,7 +1721,7 @@ internal static class PreliminarySectionProcessing
         {
             if (it is not Paragraph para)
             {
-                throw new InvalidOperationException("Only expected paragraphs in the preliminary");
+                throw new NonParagraphElementInPreliminaryException(it.GetType());
             }
             var parseResult = ParseFieldType(para);
             if (parseResult.IsNotEmpty)
@@ -1742,7 +1761,7 @@ internal static class PreliminarySectionProcessing
             var str = accumulator.ToStringAndClear();
             if (str.Length == 0)
             {
-                throw new NotSupportedException("Subsections in preliminary must not be empty");
+                throw new EmptyPreliminarySubsectionException(state.Field);
             }
 
             state.Preliminary.Set(state.Field, str);
@@ -1931,7 +1950,7 @@ internal static class DisciplineProvisionsProcessing
             .GetEnumerator();
         if (!rowsEnumerator.MoveNext())
         {
-            throw new NotSupportedException("Expected rows in the table.");
+            throw new InvalidDisciplineProvisionsTableException(DisciplineProvisionsTableDataError.MissingRows);
         }
 
         HeaderState headerState;
@@ -1951,7 +1970,7 @@ internal static class DisciplineProvisionsProcessing
             bool moved = rowsEnumerator.MoveNext();
             if (!moved)
             {
-                throw new NotSupportedException("Table without data");
+                throw new InvalidDisciplineProvisionsTableException(DisciplineProvisionsTableDataError.MissingDataRows);
             }
 
             if (IsCurrentColumnNotHeader())
@@ -1997,13 +2016,15 @@ internal static class DisciplineProvisionsProcessing
                             StringSearchHelper.DefaultHandleError(attendanceResult);
                             if (attendanceResult.IsNotEmpty)
                             {
-                                throw new NotSupportedException("Attendance mode must not be empty");
+                                throw new InvalidCurriculumAttendanceModeException(CurriculumAttendanceModeParseError
+                                    .Empty);
                             }
 
                             // Possible?
                             if (attendanceResult.MatchIndex == -1)
                             {
-                                throw new NotSupportedException("Unrecognized attendance mode");
+                                throw new InvalidCurriculumAttendanceModeException(CurriculumAttendanceModeParseError
+                                    .Unrecognized);
                             }
 
                             state.AttendanceMode = (AttendanceMode) attendanceResult.MatchIndex;
@@ -2012,7 +2033,7 @@ internal static class DisciplineProvisionsProcessing
                     case Column.CourseName:
                         {
                             //TODO:
-                            throw null!;
+                            throw new CurriculumColumnParsingNotImplementedException(nameof(Column.CourseName));
                         }
                 }
             }
@@ -2115,8 +2136,9 @@ internal static class DisciplineProvisionsProcessing
                             if (itemThereCurrently is not Column.Unknown
                                 and not Column.DistributionHeader)
                             {
-                                throw new NotSupportedException(
-                                    "The distribution columns must be either standalone, or inside an hours column.");
+                                throw new InvalidDisciplineDistributionColumnPlacementException(
+                                    columnName: columnType.ToString(),
+                                    existingColumnName: itemThereCurrently.ToString());
                             }
                             ReplaceItem(ref state);
                             break;
@@ -2126,7 +2148,9 @@ internal static class DisciplineProvisionsProcessing
                             var itemThereCurrently = state.ColumnMappings.Find(colPosition);
                             if (itemThereCurrently != Column.Unknown)
                             {
-                                throw new NotSupportedException("Something weird with the columns?");
+                                throw new DuplicateDisciplineHeaderColumnOverlapException(
+                                    columnName: columnType.ToString(),
+                                    existingColumnName: itemThereCurrently.ToString());
                             }
                             ReplaceItem(ref state);
                             break;
@@ -2210,13 +2234,15 @@ internal static class DisciplineProvisionsProcessing
                 }
                 if (ret is not null)
                 {
-                    throw new InvalidOperationException("Expected only one table in the discipline provisions");
+                    throw new DisciplineProvisionsTablePresenceException(DisciplineProvisionsTablePresenceError
+                        .MultipleTables);
                 }
                 ret = t;
             }
             if (ret is null)
             {
-                throw new InvalidOperationException("Expected a table in the discipline provisions");
+                throw new DisciplineProvisionsTablePresenceException(
+                    DisciplineProvisionsTablePresenceError.MissingTable);
             }
             return ret;
         }

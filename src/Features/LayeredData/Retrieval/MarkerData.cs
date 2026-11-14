@@ -25,7 +25,9 @@ public abstract class MarkerDataHelperBase<T> : IMarkerDataHelper
     {
         if (data.Value is not T c)
         {
-            throw new InvalidOperationException("Marker config type mismatch.");
+            throw new MarkerConfigTypeMismatchException(
+                expectedType: typeof(T),
+                actualType: data.Value.GetType());
         }
         var ret = GetCurrentPath(c);
         return ret;

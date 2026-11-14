@@ -61,3 +61,59 @@ public sealed class NodeDataKeyNotFoundException(string key)
 {
     public string Key { get; } = key;
 }
+
+public sealed class NodeNotChildException()
+    : InvalidOperationException("This node is not a child");
+
+public sealed class NullBasicOperationsValueException(Type targetType)
+    : InvalidOperationException(
+        $"Root BasicOperations for `{targetType.Name}` is supposed to create actual objects, not null.")
+{
+    public Type TargetType { get; } = targetType;
+}
+
+public sealed class NodeDataValueMissingException(Type valueType)
+    : InvalidOperationException($"Node data of type `{valueType.Name}` does not exist!")
+{
+    public Type ValueType { get; } = valueType;
+}
+
+public sealed class OptionsBindingNullException(string sectionPath, Type optionsType)
+    : InvalidOperationException($"Failed to bind options `{optionsType.Name}` from section `{sectionPath}`.")
+{
+    public string SectionPath { get; } = sectionPath;
+    public Type OptionsType { get; } = optionsType;
+}
+
+public sealed class NodeNotInPathException()
+    : InvalidOperationException("Node not found in the path");
+
+public sealed class NoMatchingConfigurationPathException(Type configType)
+    : InvalidOperationException($"No matching path found for the current configuration (`{configType.Name}`).")
+{
+    public Type ConfigType { get; } = configType;
+}
+
+public sealed class SelfReferentialDataMappingException(Type configType)
+    : InvalidOperationException($"Can't have a mapper between the same type `{configType.Name}`.")
+{
+    public Type ConfigType { get; } = configType;
+}
+
+public sealed class MarkerConfigTypeMismatchException(Type expectedType, Type actualType)
+    : InvalidOperationException(
+        $"Marker config type mismatch: expected `{expectedType.Name}`, got `{actualType.Name}`.")
+{
+    public Type ExpectedType { get; } = expectedType;
+    public Type ActualType { get; } = actualType;
+}
+
+public sealed class SingleUseEnumerableReusedException()
+    : InvalidOperationException("This enumerable may only be enumerated once");
+
+public sealed class GenericDelegateArgumentCountMismatchException(int expectedCount, int actualCount)
+    : InvalidOperationException($"Argument count mismatch: expected {expectedCount}, got {actualCount}.")
+{
+    public int ExpectedCount { get; } = expectedCount;
+    public int ActualCount { get; } = actualCount;
+}

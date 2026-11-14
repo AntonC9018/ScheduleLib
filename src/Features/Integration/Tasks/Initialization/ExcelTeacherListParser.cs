@@ -115,7 +115,7 @@ public static class ExcelTeacherListParser
                                 var teacherName = stringTable.GetStringValue(cell);
                                 if (teacherName is null)
                                 {
-                                    throw new NotSupportedException("Expected a teacher name in the cell.");
+                                    throw new MissingExcelTeacherNameException();
                                 }
                                 var parsedName = ParseTeacherName(teacherName);
                                 var model = new TeacherBuilderModel.NameModel();
@@ -186,7 +186,9 @@ public static class ExcelTeacherListParser
             var r = bparser.SkipUntilAny([' ']);
             if (!r.Satisfied)
             {
-                throw new NotSupportedException("Wrong teacher name format");
+                throw new InvalidExcelTeacherNameFormatException(
+                    error: ExcelTeacherNameError.MissingLastNameSeparator,
+                    rawText: s);
             }
         }
         {
@@ -203,11 +205,15 @@ public static class ExcelTeacherListParser
             parser.MoveTo(bparser.Position);
             if (parser.IsEmpty)
             {
-                throw new NotSupportedException("Expected first name after maiden name");
+                throw new InvalidExcelTeacherNameFormatException(
+                    error: ExcelTeacherNameError.MissingFirstNameAfterMaidenName,
+                    rawText: s);
             }
             if (parser.Current != ' ')
             {
-                throw new NotSupportedException("A space must follow the maiden name.");
+                throw new InvalidExcelTeacherNameFormatException(
+                    error: ExcelTeacherNameError.MissingSpaceAfterMaidenName,
+                    rawText: s);
             }
             parser.Move();
         }
@@ -217,7 +223,9 @@ public static class ExcelTeacherListParser
             var r = bparser.SkipNotWhitespace();
             if (!r.EndOfInput)
             {
-                throw new NotSupportedException("No spaces should follow the first name.");
+                throw new InvalidExcelTeacherNameFormatException(
+                    error: ExcelTeacherNameError.UnexpectedWhitespaceAfterFirstName,
+                    rawText: s);
             }
 
             var firstName = parser.SourceUntilExclusive(bparser);

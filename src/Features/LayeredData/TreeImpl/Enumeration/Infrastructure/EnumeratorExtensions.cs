@@ -36,7 +36,7 @@ public struct SingleUseEnumerable<T> : IEnumerable<T>
     {
         if (_helper.Get() is not { } e)
         {
-            throw new InvalidOperationException("This enumerable may only be enumerated once");
+            throw new SingleUseEnumerableReusedException();
         }
         return e.GetEnumerator();
     }

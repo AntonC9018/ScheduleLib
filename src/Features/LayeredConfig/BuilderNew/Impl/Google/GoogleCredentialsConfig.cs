@@ -53,13 +53,13 @@ public sealed class GoogleCredentialsConfig
         {
             if (CredentialsPath == null)
             {
-                throw new InvalidOperationException("No credentials path with SaveCredentials configured");
+                throw new GoogleCredentialsPathMissingException();
             }
             credentialsPath = CredentialsPath;
         }
         return new()
         {
-            ApiKeysSource = ApiKeysSource ?? throw new InvalidOperationException("No API keys source configured"),
+            ApiKeysSource = ApiKeysSource ?? throw new GoogleApiKeysSourceMissingException(),
             CredentialsPath = credentialsPath,
         };
     }

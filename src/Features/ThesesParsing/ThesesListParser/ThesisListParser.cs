@@ -142,7 +142,7 @@ public sealed class ThesisListParser(
 
         if (sheet is null)
         {
-            throw new InvalidOperationException("Sheet not found");
+            throw new ThesisListSheetNotFoundException(targetThesisType);
         }
 
         var state = new State();
@@ -200,7 +200,7 @@ public sealed class ThesisListParser(
                             if (thesis.TeacherName is null
                                 || thesis.TeacherName.Count == 0)
                             {
-                                throw new InvalidOperationException("Teacher name is required");
+                                throw new ThesisTeacherNameMissingException();
                             }
                             foreach (var teacherName in thesis.TeacherName)
                             {
@@ -208,7 +208,7 @@ public sealed class ThesisListParser(
                                 state.Result.Add(new()
                                 {
                                     GroupName =
-                                        thesis.GroupName ?? throw new InvalidOperationException("Group name is required"),
+                                        thesis.GroupName ?? throw new ThesisGroupNameMissingException(),
                                     StudentName = studentName,
                                     TeacherName = mappedTeacherName,
                                     ThesisNames = thesis.ThesisNames,
@@ -222,7 +222,7 @@ public sealed class ThesisListParser(
         }
         if (state.Action != Action.Data)
         {
-            throw new InvalidOperationException("Header row not found");
+            throw new ThesisListHeaderRowNotFoundException(targetThesisType);
         }
         return new ThesisList
         {
@@ -352,7 +352,7 @@ public sealed class ThesisListParser(
                     }
                     if (!parser.IsEmpty)
                     {
-                        throw new InvalidOperationException("Parser not empty after student name");
+                        throw new TrailingThesisStudentNameTextException(parser.ToString());
                     }
                     if (state.StudentNames.Count == 0)
                     {
@@ -443,7 +443,7 @@ public sealed class ThesisListParser(
             }
             if (!parser.IsEmpty)
             {
-                throw new InvalidOperationException("Parser not empty after name");
+                throw new TrailingThesisMentorNameTextException(parser.ToString());
             }
             return ret;
         }

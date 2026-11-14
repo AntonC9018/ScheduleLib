@@ -100,8 +100,9 @@ public sealed partial class DefaultDriveFileLoaderConfigureOptions : IConfigureO
 
     public void Configure(DriveFileLoaderOptions options)
     {
-        options.GoogleApiKey = _config.GetRequiredSection("Google:ApiKey")
+        const string key = "Google:ApiKey";
+        options.GoogleApiKey = _config.GetRequiredSection(key)
                 .Get<string>()
-            ?? throw new InvalidOperationException("Expected to find Google:ApiKey in the configuration");
+            ?? throw new MissingGoogleApiKeyConfigurationException(key);
     }
 }

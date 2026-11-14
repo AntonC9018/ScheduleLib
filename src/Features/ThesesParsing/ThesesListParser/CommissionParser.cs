@@ -37,7 +37,7 @@ public static class CommissionParser
         var workbook = excel.WorkbookPart;
         if (workbook is null)
         {
-            throw new InvalidOperationException("Excel is wrong");
+            throw new CommissionWorkbookMissingException();
         }
         var worksheetPart = workbook.WorksheetParts.First();
         var worksheet = worksheetPart.Worksheet;
@@ -100,7 +100,7 @@ public static class CommissionParser
 
                             if (cell.DataType?.Value == CellValues.Date)
                             {
-                                throw new NotImplementedException("How tf is this stored??");
+                                throw new UnsupportedCommissionExcelDateCellException(cell.CellReference?.Value);
                             }
                             var str = stringTable.GetStringValue(cell);
                             if (str is null)
@@ -124,16 +124,22 @@ public static class CommissionParser
                             var parser = new SequenceReader(text);
                             if (!parser.ConsumeExactString("Comisia"))
                             {
-                                throw new InvalidOperationException("Expected text 'Comisia'");
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedComisia,
+                                    text);
                             }
                             if (!parser.SkipWhitespace().SkippedAny)
                             {
-                                throw new InvalidOperationException("Expected whitespace after 'Comisia'");
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedWhitespaceAfterComisia,
+                                    text);
                             }
                             var romanResult = parser.ReadRoman();
                             if (romanResult.Status != ReadRomanStatus.Ok)
                             {
-                                throw new InvalidOperationException("Expected roman number after 'Comisia'");
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedRomanNumberAfterComisia,
+                                    text);
                             }
                             int num = romanResult.Number;
 
@@ -215,7 +221,7 @@ public static class CommissionParser
                             var students = state.StudentColumns.Find(x.Cell.Position);
                             if (students is null)
                             {
-                                throw new InvalidOperationException("Students must start immediately");
+                                throw new UnexpectedCommissionStudentColumnException(x.Cell.Position);
                             }
                             students.Add(studentName);
                         }
@@ -250,7 +256,7 @@ public static class CommissionParser
                 var date = state.DateMappings.Find(it.Position);
                 if (date is null)
                 {
-                    throw new InvalidOperationException("Student column with no date");
+                    throw new MissingCommissionColumnDateException(it.Position);
                 }
                 ret.Add(new()
                 {

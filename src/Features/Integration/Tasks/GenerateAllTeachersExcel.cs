@@ -410,7 +410,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         default:
                             {
                                 Debug.Fail("??");
-                                throw new InvalidOperationException("??");
+                                throw new UnexpectedLessonParityException(lesson.Date.Parity);
                             }
                     }
                 }

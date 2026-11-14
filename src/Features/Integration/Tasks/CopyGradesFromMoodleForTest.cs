@@ -224,7 +224,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 }
                 var test1Doc = await registryNav.GetHtml(new(testUrl.Href));
                 var table = test1Doc.QuerySelector<IHtmlTableElement>("table")
-                    ?? throw new InvalidOperationException("No table found");
+                    ?? throw new RegistryGradeTableNotFoundException();
                 int nameColumnIndex = FindColumnIndex("Numele");
                 int gradeColumnIndex = FindColumnIndex("Nota");
 
@@ -280,7 +280,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                     {
                         var gradeCell = row.Cells[gradeColumnIndex];
                         var input = gradeCell.QuerySelector<IHtmlInputElement>("""input[type="text"]""")
-                            ?? throw new InvalidOperationException("No input found in grade cell");
+                            ?? throw new RegistryGradeInputMissingException();
                         changes.Add(new RegistryGradeChange(
                             Student: name.ToString(),
                             gradeInDb,

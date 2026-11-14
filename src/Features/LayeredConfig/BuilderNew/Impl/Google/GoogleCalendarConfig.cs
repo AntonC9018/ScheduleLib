@@ -34,7 +34,7 @@ public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfi
     {
         if (input.Credentials is not { } credentials)
         {
-            throw new InvalidOperationException("Credentials not provided for Calendar");
+            throw new GoogleCalendarCredentialsMissingException();
         }
         if (input.CalendarName is not { } calendarName)
         {
@@ -42,7 +42,7 @@ public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfi
         }
         else if (calendarName == "primary")
         {
-            throw new InvalidOperationException("Using `primary` calendar might clear all your events! Don't");
+            throw new PrimaryGoogleCalendarNotAllowedException();
         }
 
         return new()

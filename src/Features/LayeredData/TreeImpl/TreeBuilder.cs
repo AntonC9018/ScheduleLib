@@ -71,7 +71,7 @@ public readonly struct NodeBuilder : IEquatable<NodeBuilder>
     {
         if (!Node._childNodes.Contains(node))
         {
-            throw new InvalidOperationException("This node is not a child");
+            throw new NodeNotChildException();
         }
         return new(node, SingletonServiceProvider);
     }

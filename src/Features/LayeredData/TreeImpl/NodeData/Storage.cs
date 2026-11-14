@@ -144,9 +144,7 @@ public readonly struct MaybeNodeDataContainer<T>
             {
                 return new(value);
             }
-            {
-                throw new InvalidOperationException("Does not exist!");
-            }
+            throw new NodeDataValueMissingException(typeof(T));
         }
     }
 }

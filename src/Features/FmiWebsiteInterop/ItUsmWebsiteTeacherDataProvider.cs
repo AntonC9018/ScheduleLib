@@ -26,7 +26,7 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
     {
         if (_data is not null)
         {
-            throw new InvalidOperationException("Tried to initialize the provider a second time!");
+            throw new TeacherDataProviderAlreadyInitializedException();
         }
         _data = await _client.GetAllTeachers(cancellationToken);
     }
@@ -63,7 +63,10 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
                 out bool exists);
             if (exists && t != slug)
             {
-                throw new InvalidOperationException("Something wrong, slugs don't match for a duplicate? teacher");
+                throw new ConflictingTeacherSlugException(
+                    teacherName: name,
+                    existingSlug: t!,
+                    newSlug: slug);
             }
 
             t = slug;

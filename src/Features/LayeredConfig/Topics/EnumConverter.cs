@@ -3,6 +3,7 @@
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Helper;
 using static System.Enum;
 
@@ -17,7 +18,9 @@ public sealed class EnumConverterOptions<T> where T : struct, Enum
     {
         if (Ignored != null)
         {
-            throw new InvalidOperationException("Cannot include when ignoring");
+            throw new ConflictingEnumConverterFilterException(
+                EnumFilterConflictKind.IncludeWhileIgnoring,
+                typeof(T));
         }
         Included ??= new();
         Included.Add(value);
@@ -27,7 +30,9 @@ public sealed class EnumConverterOptions<T> where T : struct, Enum
     {
         if (Included != null)
         {
-            throw new InvalidOperationException("Cannot ignore when including");
+            throw new ConflictingEnumConverterFilterException(
+                EnumFilterConflictKind.IgnoreWhileIncluding,
+                typeof(T));
         }
         Ignored ??= new();
         Ignored.Add(value);

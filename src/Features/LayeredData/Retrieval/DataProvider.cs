@@ -68,7 +68,7 @@ public sealed partial class DataProvider
 
         if (_helper.GetCurrentPath(markerConfig) is not { } path)
         {
-            throw new InvalidOperationException("No matching path found for the current configuration.");
+            throw new NoMatchingConfigurationPathException(typeof(T));
         }
 
         {

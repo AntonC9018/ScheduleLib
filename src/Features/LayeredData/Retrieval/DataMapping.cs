@@ -71,7 +71,7 @@ public sealed class DataMappingRegistry
                 // May add something like "can handle type" and run a check through each?
                 if (from == to)
                 {
-                    throw new InvalidOperationException("Can't have a mapper between the same types.");
+                    throw new SelfReferentialDataMappingException(from);
                 }
                 bool added = _mappers.TryAdd(to, new DataMapping(m, from));
                 if (!added)

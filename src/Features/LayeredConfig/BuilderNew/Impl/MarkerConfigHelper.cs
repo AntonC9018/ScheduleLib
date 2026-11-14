@@ -69,7 +69,7 @@ public static class MarkerConfigExtension
                 var value = config.Value.GetValue();
                 if (value == null)
                 {
-                    throw new InvalidOperationException("Teacher layer config must be explicitly set!");
+                    throw new TeacherLayerConfigMissingException();
                 }
                 var nodeBuilder = b.CreateBuilder(x.Node);
                 return new(value, nodeBuilder);

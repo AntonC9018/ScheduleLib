@@ -13,7 +13,7 @@ public readonly record struct NodePath(ImmutableArray<MutableNode> Path)
         var i = Path.IndexOf(selectedNode);
         if (i <= 0)
         {
-            throw new InvalidOperationException("Node not found in the path");
+            throw new NodeNotInPathException();
         }
         return new(Path[..(i + 1)]);
     }

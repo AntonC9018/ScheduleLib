@@ -36,7 +36,7 @@ public sealed partial class StudentAttendanceLoader
         {
             if (source.FilePath == null)
             {
-                throw new InvalidOperationException("Misconfigured source with a null path.");
+                throw new AttendanceSourcePathMissingException();
             }
             var parseParams = new WorksheetParseParameters
             {
