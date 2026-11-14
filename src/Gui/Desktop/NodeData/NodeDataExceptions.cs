@@ -3,10 +3,36 @@ namespace Desktop.NodeData.Common;
 public sealed class RegistryConfigNodeNotSelectedException()
     : InvalidOperationException("Cannot set DryRun when no node is selected.");
 
-public sealed class UnregisteredPropertyValueException(object? value)
-    : NotImplementedException($"Registry item was not found for value '{value}'. Implement the proper registry system!")
+public sealed class UnregisteredPropertyValueException(
+    Type propertyType,
+    Type? valueType,
+    string? valueText = null)
+    : NotImplementedException(FormatMessage(
+        propertyType: propertyType,
+        valueType: valueType,
+        valueText: valueText))
 {
-    public object? Value { get; } = value;
+    public Type PropertyType { get; } = propertyType;
+    public Type? ValueType { get; } = valueType;
+    public string? ValueText { get; } = valueText;
+
+    private static string FormatMessage(
+        Type propertyType,
+        Type? valueType,
+        string? valueText)
+    {
+        if (valueText is not null)
+        {
+            return
+                $"Registry item was not found for {propertyType} value '{valueText}'. Implement the proper registry system!";
+        }
+        if (valueType is not null)
+        {
+            return
+                $"Registry item was not found for {propertyType} value of runtime type {valueType}. Implement the proper registry system!";
+        }
+        return $"Registry item was not found for null {propertyType} value. Implement the proper registry system!";
+    }
 }
 
 public sealed class CurrentUserScopeNotInitializedException()

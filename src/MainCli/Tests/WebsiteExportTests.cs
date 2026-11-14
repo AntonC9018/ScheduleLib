@@ -721,6 +721,50 @@ public sealed class WebsiteExportTests
         }
     }
 
+    [Fact]
+    public async Task DuplicateTeacherSlugConflictSnapshotsTeacherNameFields()
+    {
+        TeacherIdentity[] teachers =
+        [
+            new(
+                FirstName: "Ion",
+                LastName: "Popescu",
+                Slug: "ion-popescu-1"),
+            new(
+                FirstName: "Ion",
+                LastName: "Popescu",
+                Slug: "ion-popescu-2"),
+        ];
+        using var handler = new FakeWebsiteHttpHandler(teachers);
+        using var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://it.usm.md/api/"),
+        };
+        var client = new ItUsmWebsiteHttpClient(http);
+        var provider = new ItUsmWebsiteTeacherDataProvider(client, new IdentityNameRemapper());
+
+        var cached = await provider.Get(CancellationToken.None);
+        var error = await Assert.ThrowsAsync<ConflictingTeacherSlugException>(() =>
+            provider.SlugMap(CancellationToken.None).AsTask());
+
+        var expectedFields = cached[0].Name.Fields;
+        var originalMessage = error.Message;
+        var mutatedFirstName = new NameParts<string?>();
+        mutatedFirstName[0] = "Mutated";
+        cached[0].Name.FirstName = mutatedFirstName;
+
+        Assert.Equal(expected: expectedFields, actual: error.TeacherName);
+        Assert.NotEqual(expected: cached[0].Name.Fields, actual: error.TeacherName);
+        Assert.Equal(expected: "ion-popescu-1", actual: error.ExistingSlug);
+        Assert.Equal(expected: "ion-popescu-2", actual: error.NewSlug);
+        Assert.Equal(expected: originalMessage, actual: error.Message);
+    }
+
+    private sealed class IdentityNameRemapper : INameRemapper
+    {
+        public Name RemapName(Name name) => name;
+    }
+
     private sealed record TeacherDiscovery(
         string Display1,
         Name ScheduleKey1,

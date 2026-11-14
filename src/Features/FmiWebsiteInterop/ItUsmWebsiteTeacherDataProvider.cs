@@ -64,7 +64,7 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
             if (exists && t != slug)
             {
                 throw new ConflictingTeacherSlugException(
-                    teacherName: name,
+                    teacherName: name.Fields,
                     existingSlug: t!,
                     newSlug: slug);
             }

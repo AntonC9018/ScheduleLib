@@ -753,10 +753,12 @@ internal static class HtmlSearch
 
                     if (!AreStudentsEqual())
                     {
+                        var expectedSnapshot = new RegistryFormStudent(expected.Name, expected.IsExpelled);
+                        var actualSnapshot = new RegistryFormStudent(actual.Name, actual.IsExpelled);
                         throw new RegistryFormStudentMismatchException(
-                            i,
-                            expectedName: expected.Name,
-                            actualName: actual.Name);
+                            index: i,
+                            expected: expectedSnapshot,
+                            actual: actualSnapshot);
                     }
                 }
 
@@ -798,7 +800,7 @@ internal static class HtmlSearch
             .ToArray();
         if (validationErrors.Length != 0)
         {
-            throw new RegistryFormValidationRejectedException();
+            throw new RegistryFormValidationRejectedException(validationErrors);
         }
     }
 

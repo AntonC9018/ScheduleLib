@@ -55,4 +55,56 @@ public sealed class RegistryTests
             expected: namedRegistry,
             actual: provider.GetRequiredKeyedService<Registry<string>>(optionKey));
     }
+
+    [Fact]
+    public void FindThrowsUnregisteredPropertyValueExceptionForStringAndEnum()
+    {
+        var services = new ServiceCollection();
+        services.AddRegistry<string>(options => options.Add(name: "Known", value: "known"));
+        services.AddRegistry<DayOfWeek>(options => options.Add(name: "Monday", value: DayOfWeek.Monday));
+
+        using var provider = AppConfiguration.BuildServiceProvider(services);
+        var stringRegistry = provider.GetRequiredService<Registry<string>>();
+        var enumRegistry = provider.GetRequiredService<Registry<DayOfWeek>>();
+
+        var stringError = Assert.Throws<UnregisteredPropertyValueException>(() => stringRegistry.Find("missing"));
+        Assert.Equal(expected: typeof(string), actual: stringError.PropertyType);
+        Assert.Equal(expected: typeof(string), actual: stringError.ValueType);
+        Assert.Equal(expected: "missing", actual: stringError.ValueText);
+
+        var nullError = Assert.Throws<UnregisteredPropertyValueException>(() => stringRegistry.Find(null!));
+        Assert.Equal(expected: typeof(string), actual: nullError.PropertyType);
+        Assert.Null(nullError.ValueType);
+        Assert.Null(nullError.ValueText);
+
+        var enumError = Assert.Throws<UnregisteredPropertyValueException>(() => enumRegistry.Find(DayOfWeek.Friday));
+        Assert.Equal(expected: typeof(DayOfWeek), actual: enumError.PropertyType);
+        Assert.Equal(expected: typeof(DayOfWeek), actual: enumError.ValueType);
+        Assert.Equal(expected: "Friday", actual: enumError.ValueText);
+    }
+
+    [Fact]
+    public void FindThrowsWithoutInvokingArbitraryToStringOnUnregisteredObject()
+    {
+        var services = new ServiceCollection();
+        services.AddRegistry<object>(options => options.Add(name: "Known", value: new object()));
+
+        using var provider = AppConfiguration.BuildServiceProvider(services);
+        var registry = provider.GetRequiredService<Registry<object>>();
+        var throwingValue = new ThrowingFormattableValue();
+
+        var error = Assert.Throws<UnregisteredPropertyValueException>(() => registry.Find(throwingValue));
+        var expectedTypeText = typeof(ThrowingFormattableValue).ToString();
+        Assert.Equal(expected: typeof(object), actual: error.PropertyType);
+        Assert.Equal(expected: typeof(ThrowingFormattableValue), actual: error.ValueType);
+        Assert.Null(error.ValueText);
+        Assert.Contains(
+            expectedSubstring: expectedTypeText,
+            actualString: error.Message);
+    }
+
+    private sealed class ThrowingFormattableValue
+    {
+        public override string ToString() => throw new InvalidOperationException("ToString should not be called.");
+    }
 }

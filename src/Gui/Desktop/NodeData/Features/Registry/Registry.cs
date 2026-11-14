@@ -24,7 +24,21 @@ public sealed class Registry<T>
         var x = _values.FirstOrDefault(x => _comparer.Equals(x: x.Value, y: value));
         if (x is null)
         {
-            throw new UnregisteredPropertyValueException(value);
+            string? valueText = null;
+            if (value is string s)
+            {
+                valueText = s;
+            }
+            else if (value is Enum e)
+            {
+                valueText = e.ToString();
+            }
+
+            var valueType = value?.GetType();
+            throw new UnregisteredPropertyValueException(
+                propertyType: typeof(T),
+                valueType: valueType,
+                valueText: valueText);
         }
 
         return x;

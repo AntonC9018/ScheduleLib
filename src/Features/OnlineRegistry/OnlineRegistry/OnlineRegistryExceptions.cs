@@ -50,12 +50,22 @@ public sealed class RegistryFormAttendanceCountMismatchException(int attendanceC
     public int StudentRowCount { get; } = studentRowCount;
 }
 
-public sealed class RegistryFormStudentMismatchException(int index, string expectedName, string actualName)
-    : InvalidOperationException($"Student mismatch at index {index}: expected '{expectedName}', found '{actualName}'.")
+public readonly record struct RegistryFormStudent(
+    string Name,
+    bool IsExpelled)
+{
+    public override string ToString() => $"'{Name}' (expelled: {IsExpelled})";
+}
+
+public sealed class RegistryFormStudentMismatchException(
+    int index,
+    RegistryFormStudent expected,
+    RegistryFormStudent actual)
+    : InvalidOperationException($"Student mismatch at index {index}: expected {expected}, found {actual}.")
 {
     public int Index { get; } = index;
-    public string ExpectedName { get; } = expectedName;
-    public string ActualName { get; } = actualName;
+    public RegistryFormStudent Expected { get; } = expected;
+    public RegistryFormStudent Actual { get; } = actual;
 }
 
 public sealed class RegistryFormAttendanceColumnMissingException()
