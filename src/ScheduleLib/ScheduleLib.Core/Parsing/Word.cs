@@ -83,9 +83,9 @@ public static class WordHelper
     public static CompareShortenedWordsResult Compare(this ShortenedWordSpan a, ShortenedWordSpan b)
     {
         int len = int.Min(x: a.Value.Length, y: b.Value.Length);
-        var a1 = a.Value[..len];
-        var b1 = b.Value[..len];
-        if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: a1, y: b1))
+        var aPrefix = a.Value[..len];
+        var bPrefix = b.Value[..len];
+        if (!IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: aPrefix, y: bPrefix))
         {
             return CompareShortenedWordsResult.NotEqual;
         }

@@ -45,9 +45,7 @@ public sealed class SubGroupPrefixMatcher
         builder.Add(SpecialSubGroups.Eng);
         foreach (var specialization in Specializations.AllKnown)
         {
-            var builder2 = builder;
-            SubGroup item = new(specialization.Value!);
-            builder2.Add(item);
+            builder.Add(new(specialization.Value!));
         }
         builder.AddRange(SpecialSubGroups.Legacy);
         // MoveToImmutable would only work while the item count happens to equal the

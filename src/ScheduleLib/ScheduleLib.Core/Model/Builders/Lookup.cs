@@ -258,10 +258,7 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                var dictionary2 = groupsMap;
-                string key2 = group.Name;
-                GroupId value2 = new(i);
-                dictionary2.Add(key2, value2);
+                groupsMap.Add(group.Name, new(i));
             }
         }
         {
@@ -281,9 +278,7 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                var list2 = list;
-                AnyLessonId item = new(LessonRegularity.Weekly, i);
-                list2.Add(item);
+                list.Add(new(LessonRegularity.Weekly, i));
             }
             for (int i = 0; i < s.OneTimeLessons.Count; i++)
             {
@@ -293,9 +288,7 @@ public static partial class ScheduleBuilderHelper
                     continue;
                 }
                 var list = lookup.LessonsByCourse[courseId.Id];
-                var list3 = list;
-                AnyLessonId item2 = new(LessonRegularity.OneTime, i);
-                list3.Add(item2);
+                list.Add(new(LessonRegularity.OneTime, i));
             }
         }
     }

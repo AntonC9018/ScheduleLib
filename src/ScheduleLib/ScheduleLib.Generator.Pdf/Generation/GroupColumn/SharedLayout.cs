@@ -113,9 +113,9 @@ public static class ColumnArrangementHelper
         }
 
         {
-            var columnOrder1 = columnOrder.Build();
-            var ret = SharedLayout.Create(schedule.EnumerateWeeklyLessons(), columnOrder1);
-            return new(columnOrder1, ret);
+            var builtColumnOrder = columnOrder.Build();
+            var ret = SharedLayout.Create(schedule.EnumerateWeeklyLessons(), builtColumnOrder);
+            return new(builtColumnOrder, ret);
         }
     }
 
@@ -234,7 +234,7 @@ public static class ColumnArrangementHelper
         // 1 index existing -> Find positions conjoined to the index
         // more than 1 existing -> must be conjoined or reachable, fill the gap in all ways,
         //                         then spill to left or right.
-        ArrangementGenerationContext CreateContext1(ref SearchContext context)
+        ArrangementGenerationContext CreateArrangementContext(ref SearchContext context)
         {
             var permutation = new int[addedMask.SetCount];
 
@@ -243,18 +243,17 @@ public static class ColumnArrangementHelper
             var occupiedPositionsWithoutIncludedGroups =
                 context.OccupiedGroupPositions.Intersect(maskOfIncludedGroups.Flipped);
 
-            var context1 = new ArrangementGenerationContext
+            return new ArrangementGenerationContext
             {
                 AllowedIndices = permutation,
                 IdArray = idArray,
                 IncludedGroupPositionsMask = occupiedPositionsWithoutIncludedGroups,
                 OccupiedPositionsWithoutIncludedGroups = occupiedPositionsWithoutIncludedGroups,
             };
-            return context1;
         }
 
-        var context1 = CreateContext1(ref context);
-        var permutations = context1.GeneratePermutations();
+        var arrangementContext = CreateArrangementContext(ref context);
+        var permutations = arrangementContext.GeneratePermutations();
 
         foreach (var indexPermutation in permutations)
         {

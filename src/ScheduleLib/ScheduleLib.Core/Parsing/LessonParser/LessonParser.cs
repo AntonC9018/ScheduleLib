@@ -47,14 +47,11 @@ public struct WhiteSpaceContext
     // TODO: refine these
     public readonly WhiteSpaceResult DefaultOnce(bool skipLaterProcessing = false)
     {
-        var action = WhiteSpaceAction.Default;
-        var start2 = StartPosition;
-        var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(
-            action,
-            start: start2,
-            end: end2);
-        return create;
+        var end = EndPosition(skipLaterProcessing);
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.Default,
+            start: StartPosition,
+            end: end);
     }
 
     public readonly WhiteSpaceResult DefaultAll()
@@ -67,14 +64,11 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult InsertOnce(bool skipLaterProcessing = false)
     {
-        var action = WhiteSpaceAction.Insert;
-        var start2 = StartPosition;
-        var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(
-            action,
-            start: start2,
-            end: end2);
-        return create;
+        var end = EndPosition(skipLaterProcessing);
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.Insert,
+            start: StartPosition,
+            end: end);
     }
 
     public readonly WhiteSpaceResult InsertAll()
@@ -87,14 +81,11 @@ public struct WhiteSpaceContext
 
     public readonly WhiteSpaceResult DontInsertOnce(bool skipLaterProcessing = false)
     {
-        var action = WhiteSpaceAction.DontInsert;
-        var start2 = StartPosition;
-        var end2 = EndPosition(skipLaterProcessing);
-        var create = WhiteSpaceResult.Create(
-            action,
-            start: start2,
-            end: end2);
-        return create;
+        var end = EndPosition(skipLaterProcessing);
+        return WhiteSpaceResult.Create(
+            WhiteSpaceAction.DontInsert,
+            start: StartPosition,
+            end: end);
     }
 
     public readonly WhiteSpaceResult DontInsertAll(bool inclusive = true)
@@ -1346,14 +1337,14 @@ public static class LessonParsingHelper
                     {
                         var copy = lexer;
 
-                        var name1 = Name(ref copy);
-                        if (name1 == default)
+                        var firstNamePart = Name(ref copy);
+                        if (firstNamePart == default)
                         {
                             return false;
                         }
                         if (onlyAllowFullForm)
                         {
-                            var n = name1.LastNotEmpty();
+                            var n = firstNamePart.LastNotEmpty();
                             if (n.Length > 3)
                             {
                                 return false;
@@ -1375,7 +1366,7 @@ public static class LessonParsingHelper
                             return true;
                         }
 
-                        res.LastName = name1;
+                        res.LastName = firstNamePart;
 
                         if (WhitespaceHandling_IsDone(c, ref copy))
                         {
@@ -1387,8 +1378,8 @@ public static class LessonParsingHelper
                             return false;
                         }
 
-                        var name2 = Name(ref copy);
-                        if (name2 == default)
+                        var secondNamePart = Name(ref copy);
+                        if (secondNamePart == default)
                         {
                             if (FullFormReturn(ref lexer))
                             {
@@ -1400,15 +1391,15 @@ public static class LessonParsingHelper
 
                         if (onlyAllowFullForm)
                         {
-                            if (name2[0].Span[^1] == WordHelper.ShortenedWordCharacter)
+                            if (secondNamePart[0].Span[^1] == WordHelper.ShortenedWordCharacter)
                             {
                                 return false;
                             }
                         }
 
                         lexer.MoveTo(copy.Position);
-                        res.FirstName = name1;
-                        res.LastName = name2;
+                        res.FirstName = firstNamePart;
+                        res.LastName = secondNamePart;
                         return true;
 
                         static bool WhitespaceHandling_IsDone(ParsingContext c, ref LexerScope lexer)
@@ -1467,10 +1458,8 @@ public static class LessonParsingHelper
                 {
                     if (ShouldRefreshWhiteSpace())
                     {
-                        var processSpaces2 = processSpaces;
                         WhiteSpaceContext context = new(lexer);
-                        var invoke = processSpaces2(context);
-                        whiteSpaceResult = invoke;
+                        whiteSpaceResult = processSpaces(context);
                     }
                     if (!ProcessCurrentToken())
                     {

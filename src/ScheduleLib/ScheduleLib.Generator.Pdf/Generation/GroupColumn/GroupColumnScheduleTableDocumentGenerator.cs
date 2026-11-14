@@ -542,12 +542,10 @@ public struct SchedulePdfSizesConfig()
     {
         get
         {
-            float single = PageSize.Width;
-            float single2 = 2 * PageMargin;
-            float single3 = single - single2;
-            float single4 = single3 - WeekDayColumnWidth;
-            float single5 = single4 - TimeSlotColumnWidth;
-            return single5;
+            float horizontalMargins = 2 * PageMargin;
+            float fixedColumnsWidth = WeekDayColumnWidth + TimeSlotColumnWidth;
+            float contentWidth = PageSize.Width - horizontalMargins;
+            return contentWidth - fixedColumnsWidth;
         }
     }
 }

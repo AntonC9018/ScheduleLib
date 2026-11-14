@@ -363,8 +363,8 @@ public static partial class ScheduleBuilderHelper
         var status = Impl(s, ref name);
         if (status != TeacherNameRemapStatus.None)
         {
-            var status1 = Impl(s, ref name);
-            if (status1 != TeacherNameRemapStatus.None)
+            var remappedStatus = Impl(s, ref name);
+            if (remappedStatus != TeacherNameRemapStatus.None)
             {
                 // Maybe allow 1 recursion level?
                 throw ConflictingTeacherNameRemapException.ForRecursive();

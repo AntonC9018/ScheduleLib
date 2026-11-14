@@ -85,9 +85,8 @@ public readonly struct SizedCellEnumerable : IEnumerable<CellInfo>
                     continue;
                 }
 
-                Indexed<Cell> cell2 = new(_colIndex, cell);
-                var row = _row;
-                var pos = ExcelRangeHelper.GetPosition(cell2, row);
+                Indexed<Cell> indexedCell = new(_colIndex, cell);
+                var pos = ExcelRangeHelper.GetPosition(indexedCell, _row);
                 if (pos.Col != _colIndex)
                 {
                     _colIndex = (int) pos.Col;

@@ -31,8 +31,7 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
         DateOnly value,
         JsonSerializerOptions options)
     {
-        var utf8JsonWriter = writer;
-        string value2 = value.ToString(WrittenFormat, CultureInfo.InvariantCulture);
-        utf8JsonWriter.WriteStringValue(value2);
+        var formatted = value.ToString(WrittenFormat, CultureInfo.InvariantCulture);
+        writer.WriteStringValue(formatted);
     }
 }

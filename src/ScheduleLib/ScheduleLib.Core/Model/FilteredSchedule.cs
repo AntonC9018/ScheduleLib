@@ -571,15 +571,15 @@ public static class FilterHelper
         // Find out which groups have regular lessons.
         GroupId[] GroupsFromLessons()
         {
-            HashSet<GroupId> groups1 = new();
+            HashSet<GroupId> groupSet = new();
             foreach (var lesson in lessons)
             {
                 foreach (var group in schedule.Get(lesson).Lesson.Groups)
                 {
-                    groups1.Add(group);
+                    groupSet.Add(group);
                 }
             }
-            var ret = groups1.ToArray();
+            var ret = groupSet.ToArray();
             // Sorting by index is fine here.
             Array.Sort(ret);
             return ret;
@@ -608,42 +608,42 @@ public static class FilterHelper
                 bool ok = e.MoveNext();
                 Debug.Assert(ok);
 
-                var min1 = schedule.Get(e.Current)
+                var minSlot = schedule.Get(e.Current)
                     .GetTimeSlot();
                 while (true)
                 {
-                    if (min1 == TimeSlot.First)
+                    if (minSlot == TimeSlot.First)
                     {
-                        return min1;
+                        return minSlot;
                     }
 
                     if (!e.MoveNext())
                     {
-                        return min1;
+                        return minSlot;
                     }
 
                     var t = schedule.Get(e.Current)
                         .GetTimeSlot();
-                    if (t < min1)
+                    if (t < minSlot)
                     {
-                        min1 = t;
+                        minSlot = t;
                     }
                 }
             }
 
             TimeSlot FindMax()
             {
-                var max1 = TimeSlot.First;
+                var maxSlot = TimeSlot.First;
                 foreach (var l in lessons)
                 {
                     var t = schedule.Get(l)
                         .GetTimeSlot();
-                    if (t > max1)
+                    if (t > maxSlot)
                     {
-                        max1 = t;
+                        maxSlot = t;
                     }
                 }
-                return max1;
+                return maxSlot;
             }
         }
 

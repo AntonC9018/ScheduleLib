@@ -86,8 +86,8 @@ public sealed class LessonTimeConfig
             {
                 double Diff(TimeSpan offset)
                 {
-                    var t1 = (t.Item.Add(offset) - time).TotalMinutes;
-                    return Math.Abs(t1);
+                    var offsetDifferenceMinutes = (t.Item.Add(offset) - time).TotalMinutes;
+                    return Math.Abs(offsetDifferenceMinutes);
                 }
 
                 var a = Diff(TimeSpan.Zero);

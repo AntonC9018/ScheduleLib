@@ -304,11 +304,10 @@ internal sealed class HttpClientRequester : BaseRequester
             _ => throw new ArgumentOutOfRangeException(nameof(request.Method)),
         };
 
-        var method2 = method;
-        var requestUri2 = new Uri(request.Address.ToString());
+        var requestUri = new Uri(request.Address.ToString());
         var ret = new HttpRequestMessage(
-            method: method2,
-            requestUri: requestUri2);
+            method: method,
+            requestUri: requestUri);
         try
         {
             if (request.Content != null)

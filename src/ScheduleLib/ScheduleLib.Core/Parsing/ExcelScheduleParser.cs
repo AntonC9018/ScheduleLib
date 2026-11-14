@@ -238,15 +238,11 @@ public static class ExcelScheduleParser
                     const string err = "Lesson found in a column that doesn't have a group assigned";
                     if (offsetIndex.Value < 0)
                     {
-                        var iXLCell = cell;
-                        string message = $"{err} (appearing BEFORE THE FIRST column with a group)";
-                        throw iXLCell.Exception(message);
+                        throw cell.Exception($"{err} (appearing BEFORE THE FIRST column with a group)");
                     }
                     if (offsetIndex.Value >= groups.Len)
                     {
-                        var iXLCell2 = cell;
-                        string message2 = $"{err} (appearing AFTER THE LAST column with a group)";
-                        throw iXLCell2.Exception(message2);
+                        throw cell.Exception($"{err} (appearing AFTER THE LAST column with a group)");
                     }
                     var groupId = groups.Get(offsetIndex);
                     lessonGroups[index] = groupId;
@@ -486,17 +482,13 @@ public static class ExcelScheduleParser
 
             if (timeConfig.FindTimeSlotByStartTime(timeInterval.Start) is not { } timeSlotFound)
             {
-                var iXLCell = cell;
-                string message = $"Not found time slot with start time `{timeInterval.Start}`";
-                throw iXLCell.Exception(message);
+                throw cell.Exception($"Not found time slot with start time `{timeInterval.Start}`");
             }
 
             var newTimeSlotTime = timeConfig.GetTimeSlotInterval(timeSlotFound);
             if (newTimeSlotTime.End != timeInterval.End)
             {
-                var iXLCell2 = cell;
-                string message2 = $"The end time of interval `{timeInterval.End}` doesn't match.";
-                throw iXLCell2.Exception(message2);
+                throw cell.Exception($"The end time of interval `{timeInterval.End}` doesn't match.");
             }
 
             if (_timeSlot is { } timeSlot)
@@ -702,9 +694,7 @@ public static class ExcelScheduleParser
             var columnCount = cell.ColumnCount();
             int index = columnNumber - startOffset.Value;
 
-            Grade item2 = new(grade);
-            int size2 = columnCount;
-            var item = new SizedItem<Grade>(item: item2, size: size2);
+            var item = new SizedItem<Grade>(item: new(grade), size: columnCount);
             if (ret.TotalSize != index)
             {
                 throw cell.Exception("Empty grade cell not allowed.");
@@ -815,15 +805,11 @@ public static class ExcelScheduleParser
                 var group = builder.Group(str);
                 if (!config.AllowedAttendanceModes.Contains(group.Ref.AttendanceMode))
                 {
-                    var iXLCell = cell;
-                    string message = $"Expected only {config.AllowedAttendanceModes} groups in the excel";
-                    throw iXLCell.Exception(message);
+                    throw cell.Exception($"Expected only {config.AllowedAttendanceModes} groups in the excel");
                 }
                 if (!config.AllowedQualificationTypes.Contains(group.Ref.QualificationType))
                 {
-                    var iXLCell2 = cell;
-                    string message2 = $"Expected only {config.AllowedQualificationTypes} groups in the excel";
-                    throw iXLCell2.Exception(message2);
+                    throw cell.Exception($"Expected only {config.AllowedQualificationTypes} groups in the excel");
                 }
 
                 var grade = grades.Get(colIndex);

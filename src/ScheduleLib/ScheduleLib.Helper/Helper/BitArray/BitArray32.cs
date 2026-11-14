@@ -410,10 +410,8 @@ public readonly struct SlidingWindowLowToHighEnumerable : IEnumerable<SliceAndOf
         {
             get
             {
-                int offset2 = _offset;
                 var slice = _e._source.Slice(offset: _offset, length: _e._length);
-                SliceAndOffset sliceAndOffset = new(offset2, slice);
-                return sliceAndOffset;
+                return new(_offset, slice);
             }
         }
 

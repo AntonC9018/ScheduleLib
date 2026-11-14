@@ -122,9 +122,9 @@ public static partial class ScheduleBuilderHelper
             }
             if (splitGroups != lesson.Base.Group.Groups.Count)
             {
-                string groups2 = GroupNames(s, lesson.Base.Group.Groups);
-                string course2 = CourseName(s, course);
-                throw InconsistentLanguageSplitException.ForMixedSplit(groups: groups2, course: course2);
+                string groupNames = GroupNames(s, lesson.Base.Group.Groups);
+                string courseName = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMixedSplit(groups: groupNames, course: courseName);
             }
 
             foreach (var g in lesson.Base.Group.Groups)
@@ -139,9 +139,9 @@ public static partial class ScheduleBuilderHelper
             if (!coveredSplits.Contains((group, course))
                 && !normalizedSplits.Contains((group, course)))
             {
-                string group2 = GroupName(s, group);
-                string course3 = CourseName(s, course);
-                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: group2, course: course3);
+                string groupName = GroupName(s, group);
+                string courseName = CourseName(s, course);
+                throw InconsistentLanguageSplitException.ForMissingCounterpart(@group: groupName, course: courseName);
             }
         }
 
@@ -261,12 +261,10 @@ public static partial class ScheduleBuilderHelper
                 if (!numbers.Contains(expected))
                 {
                     string groupName = GroupName(s, groupId);
-                    int missing2 = expected;
-                    int occurring2 = numbers[^1];
                     throw InvalidSubGroupPartitionException.ForNonContiguousPrefix(
                         groupName,
-                        missing: missing2,
-                        occurring: occurring2);
+                        missing: expected,
+                        occurring: numbers[^1]);
                 }
             }
         }

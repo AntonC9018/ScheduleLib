@@ -155,24 +155,24 @@ public static class Config
             x.StudyYear = new(2026);
             x.Grade = new(2);
             x.Qualification = QualificationType.Licenta;
-            string course = "Disciplină umanistică opțională: Antreprenoriat inovativ";
-            Alternative alternative = new("Antreprenoriat inovativ");
-            x.Alternative(course, alternative);
-            string course2 = "Antreprenoriat inovativ";
-            Alternative alternative2 = new("Antreprenoriat inovativ");
-            x.Alternative(course2, alternative2);
-            string course3 = "Disciplină umanistică opțională: Psihologie";
-            Alternative alternative3 = new("Psihologie");
-            x.Alternative(course3, alternative3);
-            string course4 = "Psihologie";
-            Alternative alternative4 = new("Psihologie");
-            x.Alternative(course4, alternative4);
-            string course5 = "Opț. ped.";
-            Alternative alternative5 = new("Opț. ped.");
-            x.Alternative(course5, alternative5);
-            string course6 = "Cult. comun.";
-            Alternative alternative6 = new("Cult. comun.");
-            x.Alternative(course6, alternative6);
+            x.Alternative(
+                "Disciplină umanistică opțională: Antreprenoriat inovativ",
+                new("Antreprenoriat inovativ"));
+            x.Alternative(
+                "Antreprenoriat inovativ",
+                new("Antreprenoriat inovativ"));
+            x.Alternative(
+                "Disciplină umanistică opțională: Psihologie",
+                new("Psihologie"));
+            x.Alternative(
+                "Psihologie",
+                new("Psihologie"));
+            x.Alternative(
+                "Opț. ped.",
+                new("Opț. ped."));
+            x.Alternative(
+                "Cult. comun.",
+                new("Cult. comun."));
         });
         return builder.Build();
     }

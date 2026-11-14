@@ -517,12 +517,12 @@ public sealed class NameAlphabeticComparer : IComparer<Name>
                     return score;
                 }
 
-                var score1 = ap.CompareTo(bp, StringComparison.CurrentCultureIgnoreCase);
-                if (score1 == 0)
+                var cultureScore = ap.CompareTo(bp, StringComparison.CurrentCultureIgnoreCase);
+                if (cultureScore == 0)
                 {
                     continue;
                 }
-                return score1;
+                return cultureScore;
             }
         }
 

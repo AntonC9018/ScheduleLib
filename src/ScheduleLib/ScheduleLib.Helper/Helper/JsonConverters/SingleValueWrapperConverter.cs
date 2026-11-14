@@ -27,13 +27,11 @@ public sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
         T value,
         JsonSerializerOptions options)
     {
-        var writer2 = writer;
-        var value2 = _accessor.Extractor(value);
-        var options2 = options;
+        var extracted = _accessor.Extractor(value);
         JsonSerializer.Serialize(
-            writer2,
-            value2,
-            options2);
+            writer,
+            extracted,
+            options);
     }
 }
 

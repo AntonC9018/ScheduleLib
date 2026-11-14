@@ -139,35 +139,26 @@ public sealed class SpecializationRegistry
             var constraints = new List<string>(4);
             if (selector.Grade is { } grade)
             {
-                var list = constraints;
-                string item = $"grade {grade.Value}";
-                list.Add(item);
+                constraints.Add($"grade {grade.Value}");
             }
             if (selector.Faculty is { } faculty)
             {
-                var list2 = constraints;
-                string item2 = $"faculty {faculty.Name}";
-                list2.Add(item2);
+                constraints.Add($"faculty {faculty.Name}");
             }
             if (selector.AttendanceMode is { } attendance)
             {
-                var list3 = constraints;
-                string item3 = $"attendance {attendance}";
-                list3.Add(item3);
+                constraints.Add($"attendance {attendance}");
             }
             if (selector.Qualification is { } qualification)
             {
-                var list4 = constraints;
-                string item4 = $"qualification {qualification}";
-                list4.Add(item4);
+                constraints.Add($"qualification {qualification}");
             }
 
             var selectorText = constraints.Count == 0
                 ? "any group"
                 : string.Join(", ", constraints);
-            var list5 = matches;
-            string item5 = $"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]";
-            list5.Add(item5);
+            var specializationsText = string.Join(", ", values.Select(x => x.Value));
+            matches.Add($"({selectorText}) => [{specializationsText}]");
         }
 
         if (matches.Count == 0)

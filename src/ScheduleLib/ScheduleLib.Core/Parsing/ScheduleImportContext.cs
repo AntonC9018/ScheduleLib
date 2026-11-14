@@ -87,24 +87,16 @@ public sealed class ScheduleImportContext
         s.EnableLookupModule();
         var timeConfig = LessonTimeConfig.CreateDefault();
 
-        var schedule2 = s;
-        LessonTimeConfig timeConfig2 = timeConfig;
-        CourseNameUnifierModule courseNameUnifierModule2 =
-            new(p.CourseNameUnifierConfig);
-        var dayNameParser2 = new DayNameParser(p.DayNameProvider);
-        var parserFactory2 = p.ParserFactory;
-        var specializationRegistry2 =
-            p.SpecializationRegistry ?? SpecializationRegistry.Empty;
-        var subGroupMatcher2 = p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default;
-        ScheduleImportContext scheduleImportContext = new(
-            schedule: schedule2,
-            timeConfig: timeConfig2,
-            courseNameUnifierModule: courseNameUnifierModule2,
-            dayNameParser: dayNameParser2,
-            parserFactory: parserFactory2,
-            specializationRegistry: specializationRegistry2,
-            subGroupMatcher: subGroupMatcher2);
-        return scheduleImportContext;
+        CourseNameUnifierModule courseNameUnifierModule = new(p.CourseNameUnifierConfig);
+        var dayNameParser = new DayNameParser(p.DayNameProvider);
+        return new ScheduleImportContext(
+            schedule: s,
+            timeConfig: timeConfig,
+            courseNameUnifierModule: courseNameUnifierModule,
+            dayNameParser: dayNameParser,
+            parserFactory: p.ParserFactory,
+            specializationRegistry: p.SpecializationRegistry ?? SpecializationRegistry.Empty,
+            subGroupMatcher: p.SubGroupMatcher ?? SubGroupPrefixMatcher.Default);
     }
 
     public SubGroupStatus SetCommonProps(
@@ -155,9 +147,8 @@ public sealed class ScheduleImportContext
             {
                 // Future specialization labels are registered by their complete
                 // name, not by the built-in abbreviation table.
-                var scheduleBuilder = Schedule;
-                SubGroup subGroup2 = new(parsedLesson.GroupName.ToString());
-                var remapped = scheduleBuilder.RemapSubGroup(subGroup2);
+                var parsedSubGroup = new SubGroup(parsedLesson.GroupName.ToString());
+                var remapped = Schedule.RemapSubGroup(parsedSubGroup);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     groupNameIsLabel = true;
@@ -169,9 +160,8 @@ public sealed class ScheduleImportContext
         if (!parsedLesson.PartitionHint.IsEmpty)
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
-            var scheduleBuilder2 = Schedule;
-            SubGroup subGroup3 = new(parsedLesson.PartitionHint.ToString());
-            var remapped = scheduleBuilder2.RemapSubGroup(subGroup3);
+            var parsedPartition = new SubGroup(parsedLesson.PartitionHint.ToString());
+            var remapped = Schedule.RemapSubGroup(parsedPartition);
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)
@@ -354,11 +344,8 @@ public sealed class ScheduleImportContext
         }
         else
         {
-            var
-                lessonBuilder = builder;
             var group = Schedule.Group(lesson.GroupName.ToString());
-            GroupId group2 = group;
-            lessonBuilder.Group(group2);
+            builder.Group(group);
         }
 
         if (MaybeMergeIntoAnExistingLesson())

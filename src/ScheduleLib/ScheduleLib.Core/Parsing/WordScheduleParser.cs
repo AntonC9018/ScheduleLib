@@ -632,8 +632,8 @@ public static class WordScheduleParser
 
         SkippedHeaderColumnsInfo TrySkipEmpties()
         {
-            int skippedCount1 = 0;
-            int skippedSize1 = 0;
+            int skippedCount = 0;
+            int skippedSize = 0;
             while (true)
             {
                 var cell = cellEnumerator.Current;
@@ -643,13 +643,13 @@ public static class WordScheduleParser
                 {
                     break;
                 }
-                skippedCount1++;
+                skippedCount++;
 
                 int size = cell.GetWidth();
-                skippedSize1 += size;
+                skippedSize += size;
                 MoveToNextCellForGroupRow();
             }
-            return new(Count: skippedCount1, Size: skippedSize1);
+            return new(Count: skippedCount, Size: skippedSize);
         }
 
         SkippedHeaderColumnsInfo TrySecondFormat()

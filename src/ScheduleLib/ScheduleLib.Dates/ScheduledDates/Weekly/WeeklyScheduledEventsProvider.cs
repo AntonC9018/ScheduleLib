@@ -49,19 +49,15 @@ public readonly record struct Event
         int count,
         int interval)
     {
-        var first2 = first;
-        var last2 = FirstToLast(
+        var last = FirstToLast(
             first,
             count: count,
             interval: interval);
-        int count2 = count;
-        int interval2 = interval;
-        Event eventValue = new(
-            first: first2,
-            last: last2,
-            count: count2,
-            interval: interval2);
-        return eventValue;
+        return new(
+            first: first,
+            last: last,
+            count: count,
+            interval: interval);
     }
 
     public Event(

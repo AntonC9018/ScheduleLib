@@ -122,25 +122,25 @@ public struct GeneratorCache
         };
         return ret;
 
-        int MaxLessonsInOneCell(SharedLayout? layout1)
+        int MaxLessonsInOneCell(SharedLayout? existingLayout)
         {
-            if (layout1 is { } layout2)
+            if (existingLayout is { } layout)
             {
-                int ret1 = -1;
-                foreach (var k in layout2.LessonVerticalOrder.Values)
+                int maxVerticalOrder = -1;
+                foreach (var k in layout.LessonVerticalOrder.Values)
                 {
-                    ret1 = Math.Max(ret1, (int) k);
+                    maxVerticalOrder = Math.Max(maxVerticalOrder, (int) k);
                 }
-                return ret1 + 1;
+                return maxVerticalOrder + 1;
             }
 
             {
-                int ret1 = 0;
+                int maxCellLessonCount = 0;
                 foreach (var lessons in mappings.MappingByCell.Values)
                 {
-                    ret1 = Math.Max(ret1, lessons.Count);
+                    maxCellLessonCount = Math.Max(maxCellLessonCount, lessons.Count);
                 }
-                return ret1;
+                return maxCellLessonCount;
             }
         }
     }
