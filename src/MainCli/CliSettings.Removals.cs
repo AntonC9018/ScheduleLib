@@ -296,11 +296,10 @@ public static partial class CliSettings
         object item,
         object value)
     {
-        return (bool) typeof(IEqualityComparer<>).MakeGenericType(element)
-            .GetMethod("Equals", [element, element])!
-            .Invoke(
-                comparer,
-                [item, value])!;
+        var comparerType = typeof(IEqualityComparer<>).MakeGenericType(element);
+        var equalsMethod = comparerType.GetMethod("Equals", [element, element])!;
+        var matched = equalsMethod.Invoke(comparer, [item, value])!;
+        return (bool) matched;
     }
 
     private static void AddOperation(
@@ -321,9 +320,11 @@ public static partial class CliSettings
             }
         }
 
-        typeof(CliSettings).GetMethod(nameof(AddTypedOperation), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(path.Block)
-            .Invoke(null, [node, action, path.Members, provider, json]);
+        var addTypedMethod = typeof(CliSettings).GetMethod(
+            nameof(AddTypedOperation),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        var typedOperation = addTypedMethod.MakeGenericMethod(path.Block);
+        typedOperation.Invoke(null, [node, action, path.Members, provider, json]);
     }
 
     private static void AddTypedOperation<T>(
@@ -369,9 +370,9 @@ public static partial class CliSettings
                 var serviceType = typeof(IBasicOperations<>).MakeGenericType(members[^1].PropertyType);
                 var basic = sp.GetRequiredService(
                     serviceType);
-                basic.GetType()
-                    .GetMethod("Reset")!
-                    .Invoke(basic, [list]);
+                var resetMethod = basic.GetType()
+                    .GetMethod("Reset")!;
+                resetMethod.Invoke(basic, [list]);
             }
             else
             {

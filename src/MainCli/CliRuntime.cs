@@ -22,9 +22,31 @@ public static class CliRuntime
         Action<IServiceCollection> configure,
         string? projectDirectory = null)
     {
-        var dataDirectory = source.DataDirectory is { } path
-            ? ResolvePath(path)
-            : Path.Combine(AppContext.BaseDirectory, "data");
+        string ResolveDataDirectory()
+        {
+            if (source.DataDirectory is { } path)
+            {
+                return ResolvePath(path);
+            }
+
+            return Path.Combine(AppContext.BaseDirectory, "data");
+        }
+
+        string ResolveCacheDirectory()
+        {
+            if (source.CacheDirectory is { } path)
+            {
+                return ResolvePath(path);
+            }
+
+            var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(
+                localApplicationData,
+                "ScheduleLib",
+                "cache");
+        }
+
+        var dataDirectory = ResolveDataDirectory();
         if (source.CacheDirectory is { } selectedCache)
         {
             ResolvePath(selectedCache);
@@ -41,12 +63,7 @@ public static class CliRuntime
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;
-            x.CacheDirectory = source.CacheDirectory is { } cache
-                ? ResolvePath(cache)
-                : Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "ScheduleLib",
-                    "cache");
+            x.CacheDirectory = ResolveCacheDirectory();
             x.UseCache = !source.NoCache;
         });
         return services;

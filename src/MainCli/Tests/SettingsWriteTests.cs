@@ -283,18 +283,20 @@ public sealed class SettingsWriteTests
         await using (var lease = await LocalFileLock.Acquire($"{files.ProjectFile}.lock", CancellationToken.None))
         {
             using var cancellation = new CancellationTokenSource();
-            var edit = CliSettings.Edit(
-                new()
-                {
-                    Project = files.ProjectDirectory,
-                },
-                SettingsScope.Project,
-                key: "GoogleCalendarConfig.calendarName",
-                value: "\"cancelled\"",
-                false,
-                cancellation.Token,
-                invocationDirectory: files.ProjectDirectory,
-                userFile: files.UserFile);
+            var settingsArguments = new SettingsArguments
+            {
+                Project = files.ProjectDirectory,
+            };
+            SettingsEditRequest editRequest = new(
+                Arguments: settingsArguments,
+                Scope: SettingsScope.Project,
+                Key: "GoogleCalendarConfig.calendarName",
+                Value: "\"cancelled\"",
+                Unset: false,
+                CancellationToken: cancellation.Token,
+                InvocationDirectory: files.ProjectDirectory,
+                UserFile: files.UserFile);
+            var edit = CliSettings.Edit(editRequest);
             await Task.Delay(200);
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => edit);

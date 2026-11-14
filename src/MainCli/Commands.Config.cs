@@ -124,22 +124,22 @@ public sealed partial class ConfigCommands
                 cancellationToken: cancellation.Token,
                 overrides: overrides);
             var data = inspect(resolved);
-            return CliConfigExecution.Finish(
-                context,
-                CliExit.Success,
-                [],
-                data,
-                verb);
+            return CliConfigExecution.Finish(new ConfigFinishRequest<object?>(
+                Context: context,
+                Exit: CliExit.Success,
+                Errors: [],
+                Data: data,
+                Verb: verb));
         }
         catch (Exception error)
         {
             var failure = CliConfigExecution.ClassifyRead(error);
-            return CliConfigExecution.Finish<object?>(
-                context,
-                failure.ExitCode,
-                failure.Errors,
-                null,
-                verb);
+            return CliConfigExecution.Finish(new ConfigFinishRequest<object?>(
+                Context: context,
+                Exit: failure.ExitCode,
+                Errors: failure.Errors,
+                Data: null,
+                Verb: verb));
         }
     }
 }

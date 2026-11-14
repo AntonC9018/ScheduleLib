@@ -14,17 +14,14 @@ public partial class AuthCommands
 
     protected virtual MicrosoftAuthConfig LoadMicrosoftConfig() => MicrosoftCliConfiguration.Load();
 
-    private async Task<int> ExecuteMicrosoft(
-        string verb,
-        SettingsArguments settings,
-        ResultArguments outputArgs,
-        CancellationToken cancellationToken)
+    private async Task<int> ExecuteMicrosoft(AuthCommandRequest request)
     {
+        var verb = request.Verb;
         var command = $"auth {verb} microsoft";
         using var context = new CliCommandContext(
             command,
-            outputArgs,
-            cancellationToken);
+            request.Output,
+            request.CancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -32,7 +29,7 @@ public partial class AuthCommands
         var cancellation = context.Cancellation;
         try
         {
-            using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
+            using var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is not { } profile)
             {
                 throw new JsonException("A teacher --profile is required. Use config profiles to list identities.");

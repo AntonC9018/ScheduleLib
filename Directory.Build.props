@@ -31,7 +31,108 @@
          CR1700 placeholders remain errors and must be renamed after applying fixes.
          Other compiler/analyzer warnings remain errors. PrivateAssets avoids exporting the analyzer. -->
     <PropertyGroup>
-        <AntonCodingRulesDiagnosticIds>CR0001;CR0003;CR0004;CR0005;CR0006;CR0200;CR0201;CR0202;CR0203;CR0204;CR0205;CR0300;CR0301;CR0302;CR0303;CR0400;CR0402;CR0403;CR0404;CR0500;CR0600;CR0601;CR0700;CR0701;CR0800;CR0801;CR0802;CR0803;CR0804;CR0805;CR0806;CR0900;CR1000;CR1001;CR1100;CR1200;CR1300;CR1400;CR1500;CR1600;RCS0042;RCS1016</AntonCodingRulesDiagnosticIds>
+        <!-- Return-decision readability rules: make return choices explicit rather than compressed. -->
+        <!-- CR0001: Make return outcomes explicit with if statements. -->
+        <AntonCodingRulesDiagnosticIds>CR0001</AntonCodingRulesDiagnosticIds>
+        <!-- CR0003: Make nested ternary return decisions explicit with if statements. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0003</AntonCodingRulesDiagnosticIds>
+        <!-- CR0004: Make nested null-coalescing return decisions explicit with if statements. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0004</AntonCodingRulesDiagnosticIds>
+        <!-- CR0005: Make nested nullable-returning call decisions explicit with if statements. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0005</AntonCodingRulesDiagnosticIds>
+        <!-- CR0006: Make nested boolean return decisions explicit with if statements. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0006</AntonCodingRulesDiagnosticIds>
+
+        <!-- Compound-condition readability rules: break complex Boolean logic into named steps. -->
+        <!-- CR0200: Extract mixed Boolean operators (&& and ||). -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0200</AntonCodingRulesDiagnosticIds>
+        <!-- CR0201: Extract conditions with more than three checks into a decision helper. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0201</AntonCodingRulesDiagnosticIds>
+        <!-- CR0202: Extract independent subjects in compound conditions. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0202</AntonCodingRulesDiagnosticIds>
+        <!-- CR0203: Extract combined condition operations. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0203</AntonCodingRulesDiagnosticIds>
+        <!-- CR0204: Extract three or more repeated alternatives. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0204</AntonCodingRulesDiagnosticIds>
+        <!-- CR0205: Remove else branches after a terminating return or throw. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0205</AntonCodingRulesDiagnosticIds>
+
+        <!-- Calculation and statement-staging rules: name nested operations and consumed mutations. -->
+        <!-- CR0300: Name nested argument operations in intermediate variables. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0300</AntonCodingRulesDiagnosticIds>
+        <!-- CR0301: Name embedded conditional values in a local variable. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0301</AntonCodingRulesDiagnosticIds>
+        <!-- CR0302: Separate consumed mutations and inline statement operations. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0302</AntonCodingRulesDiagnosticIds>
+        <!-- CR0303: Name a branching decision with a local function using explicit returns. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0303</AntonCodingRulesDiagnosticIds>
+
+        <!-- Pipeline and lambda readability rules: clarify projections, selectors, and nested lambdas. -->
+        <!-- CR0400: Name projection stages in query/LINQ chains. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0400</AntonCodingRulesDiagnosticIds>
+        <!-- CR0402: Make dictionary/lookup collection key and element selectors explicit. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0402</AntonCodingRulesDiagnosticIds>
+        <!-- CR0403: Expand compound or deeply nested chain predicates into block lambdas. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0403</AntonCodingRulesDiagnosticIds>
+        <!-- CR0404: Name the inner stage of a nested chain lambda. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0404</AntonCodingRulesDiagnosticIds>
+
+        <!-- Call-site and API-clarity rules. -->
+        <!-- CR0500: Name positional arguments that share a repeated parameter type. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0500</AntonCodingRulesDiagnosticIds>
+        <!-- CR0600: Represent search absence in non-private return types instead of sentinel primitives. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0600</AntonCodingRulesDiagnosticIds>
+        <!-- CR0601: Check a helper sentinel explicitly before forwarding to callers. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0601</AntonCodingRulesDiagnosticIds>
+
+        <!-- Allocation and literal efficiency rules. -->
+        <!-- CR0700: Use spans for transient trimmed-text inspection instead of allocating. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0700</AntonCodingRulesDiagnosticIds>
+        <!-- CR0701: Use UTF-8 u8 string literals instead of runtime Encoding.UTF8.GetBytes on literals. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0701</AntonCodingRulesDiagnosticIds>
+
+        <!-- Layout and formatting rules (enforced explicitly by build/format.py -style). -->
+        <!-- CR0800: Place wrapped Boolean operators at the start of continuation lines. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0800</AntonCodingRulesDiagnosticIds>
+        <!-- CR0801: Place multiline initializer members on separate lines. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0801</AntonCodingRulesDiagnosticIds>
+        <!-- CR0802: Keep a sole constructor argument adjacent to the opening parenthesis. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0802</AntonCodingRulesDiagnosticIds>
+        <!-- CR0803: Use braces for embedded control-flow statements. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0803</AntonCodingRulesDiagnosticIds>
+        <!-- CR0804: Separate casts from their operands with a space. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0804</AntonCodingRulesDiagnosticIds>
+        <!-- CR0805: Start subsequent chained calls on new lines (still under upstream review in #278). -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0805</AntonCodingRulesDiagnosticIds>
+        <!-- CR0806: Put the first argument of a chopped argument list on a new line. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0806</AntonCodingRulesDiagnosticIds>
+
+        <!-- Data-contract, architecture, and exception-context rules. -->
+        <!-- CR0900: Represent public/stored tuple data with named record structs. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0900</AntonCodingRulesDiagnosticIds>
+        <!-- CR1000: Group parameters on oversized owned contracts (4+ arguments). -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1000</AntonCodingRulesDiagnosticIds>
+        <!-- CR1001: Use a configuration builder for multi-parameter overload alternatives. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1001</AntonCodingRulesDiagnosticIds>
+        <!-- CR1100: Prefer string interpolation to runtime string concatenation. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1100</AntonCodingRulesDiagnosticIds>
+        <!-- CR1200: Replace unchanged assignment branches with explicit conditional updates. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1200</AntonCodingRulesDiagnosticIds>
+        <!-- CR1300: Review repeated timestamp formatting for shared domain meaning. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1300</AntonCodingRulesDiagnosticIds>
+        <!-- CR1400: Review unsealed concrete classes (CLI command seams tracked in #247). -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1400</AntonCodingRulesDiagnosticIds>
+        <!-- CR1500: Implement non-generic collection members explicitly behind generic APIs. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1500</AntonCodingRulesDiagnosticIds>
+        <!-- CR1600: Expose interpolated exception context through typed read-only properties. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR1600</AntonCodingRulesDiagnosticIds>
+
+        <!-- Exported Roslynator formatting diagnostics kept visible alongside CR08xx. -->
+        <!-- RCS0042: Place simple auto-property accessors on a single line. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);RCS0042</AntonCodingRulesDiagnosticIds>
+        <!-- RCS1016: Use block bodies for multiline member expressions. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);RCS1016</AntonCodingRulesDiagnosticIds>
+
         <!-- dotnet format filters warnaserror- entries out of its analyzer pass.
              The isolated formatting host opts out; ordinary builds retain this policy. -->
         <WarningsNotAsErrors Condition="'$(ScheduleLibFormatting)' != 'true'">$(WarningsNotAsErrors);$(AntonCodingRulesDiagnosticIds)</WarningsNotAsErrors>

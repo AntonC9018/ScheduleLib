@@ -83,41 +83,42 @@ public sealed partial class ConfigCommands
             };
             if (destination is null)
             {
-                return CliConfigExecution.Finish<SettingsEdit?>(
-                    context,
-                    CliExit.InvalidArguments,
-                    ["--scope user|project is required."],
-                    null,
-                    request.Verb);
+                return CliConfigExecution.Finish(new ConfigFinishRequest<SettingsEdit?>(
+                    Context: context,
+                    Exit: CliExit.InvalidArguments,
+                    Errors: ["--scope user|project is required."],
+                    Data: null,
+                    Verb: request.Verb));
             }
 
             string? operation = request.Verb is "remove" or "clear" ? request.Verb : null;
 
-            var result = await CliSettings.Edit(
-                request.Settings,
-                destination.Value,
-                key: request.Key,
-                value: request.Value,
-                request.Verb == "unset",
-                cancellation.Token,
-                operation: operation,
-                item: request.Item);
-            return CliConfigExecution.Finish(
-                context,
-                CliExit.Success,
-                [],
-                result,
-                request.Verb);
+            SettingsEditRequest editRequest = new(
+                Arguments: request.Settings,
+                Scope: destination.Value,
+                Key: request.Key,
+                Value: request.Value,
+                Unset: request.Verb == "unset",
+                CancellationToken: cancellation.Token,
+                Operation: operation,
+                Item: request.Item);
+            var result = await CliSettings.Edit(editRequest);
+            return CliConfigExecution.Finish(new ConfigFinishRequest<SettingsEdit?>(
+                Context: context,
+                Exit: CliExit.Success,
+                Errors: [],
+                Data: result,
+                Verb: request.Verb));
         }
         catch (Exception error)
         {
             var failure = CliConfigExecution.ClassifyWrite(error);
-            return CliConfigExecution.Finish<SettingsEdit?>(
-                context,
-                failure.ExitCode,
-                failure.Errors,
-                null,
-                request.Verb);
+            return CliConfigExecution.Finish(new ConfigFinishRequest<SettingsEdit?>(
+                Context: context,
+                Exit: failure.ExitCode,
+                Errors: failure.Errors,
+                Data: null,
+                Verb: request.Verb));
         }
     }
 }

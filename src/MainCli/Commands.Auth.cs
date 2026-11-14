@@ -25,6 +25,13 @@ public sealed class AuthProviderArguments : IArgumentModel
 [Command("auth", Description = "Manage local authorization; only login initiates browser consent.")]
 public partial class AuthCommands
 {
+    private readonly record struct AuthCommandRequest(
+        string Verb,
+        AuthProvider Provider,
+        SettingsArguments Settings,
+        ResultArguments Output,
+        CancellationToken CancellationToken);
+
     [Command(
         "login",
         Description =
@@ -35,12 +42,13 @@ public partial class AuthCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Route(
-            "login",
-            provider.Provider,
-            settings,
-            output,
-            cancellationToken);
+        AuthCommandRequest request = new(
+            Verb: "login",
+            Provider: provider.Provider,
+            Settings: settings,
+            Output: output,
+            CancellationToken: cancellationToken);
+        return Route(request);
     }
 
     [Command(
@@ -52,12 +60,13 @@ public partial class AuthCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Route(
-            "status",
-            provider.Provider,
-            settings,
-            output,
-            cancellationToken);
+        AuthCommandRequest request = new(
+            Verb: "status",
+            Provider: provider.Provider,
+            Settings: settings,
+            Output: output,
+            CancellationToken: cancellationToken);
+        return Route(request);
     }
 
     [Command(
@@ -69,48 +78,33 @@ public partial class AuthCommands
         ResultArguments output,
         CancellationToken cancellationToken = default)
     {
-        return Route(
-            "logout",
-            provider.Provider,
-            settings,
-            output,
-            cancellationToken);
+        AuthCommandRequest request = new(
+            Verb: "logout",
+            Provider: provider.Provider,
+            Settings: settings,
+            Output: output,
+            CancellationToken: cancellationToken);
+        return Route(request);
     }
 
-    private Task<int> Route(
-        string verb,
-        AuthProvider provider,
-        SettingsArguments settings,
-        ResultArguments output,
-        CancellationToken token)
+    private Task<int> Route(AuthCommandRequest request)
     {
-        if (provider == AuthProvider.microsoft)
+        if (request.Provider == AuthProvider.microsoft)
         {
-            return ExecuteMicrosoft(
-                verb,
-                settings,
-                output,
-                token);
+            return ExecuteMicrosoft(request);
         }
 
-        return Execute(
-            verb,
-            settings,
-            output,
-            token);
+        return Execute(request);
     }
 
-    private static async Task<int> Execute(
-        string verb,
-        SettingsArguments settings,
-        ResultArguments outputArgs,
-        CancellationToken cancellationToken)
+    private static async Task<int> Execute(AuthCommandRequest request)
     {
+        var verb = request.Verb;
         var command = $"auth {verb} google";
         using var context = new CliCommandContext(
             command,
-            outputArgs,
-            cancellationToken);
+            request.Output,
+            request.CancellationToken);
         if (!context.Start())
         {
             return CliExit.InvalidArguments;
@@ -118,7 +112,7 @@ public partial class AuthCommands
         var cancellation = context.Cancellation;
         try
         {
-            using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
+            using var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is not { } teacher)
             {
                 return CliAuthenticationExecution.Finish(

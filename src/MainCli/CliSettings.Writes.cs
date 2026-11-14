@@ -19,24 +19,37 @@ public sealed record SettingsEdit(
     string Key,
     bool Changed);
 
+internal readonly record struct SettingsEditRequest(
+    SettingsArguments Arguments,
+    SettingsScope Scope,
+    string Key,
+    string? Value,
+    bool Unset,
+    CancellationToken CancellationToken,
+    string? InvocationDirectory = null,
+    string? UserFile = null,
+    string? Operation = null,
+    string? Item = null);
+
 public static partial class CliSettings
 {
     /// <summary>A parent object on a settings path, and the member name under it.</summary>
     private readonly record struct SettingsParent(JsonObject Parent, string Key);
 
     // The candidate is resolved through the same engine as a fresh invocation before publication.
-    internal static async Task<SettingsEdit> Edit(
-        SettingsArguments arguments,
-        SettingsScope scope,
-        string key,
-        string? value,
-        bool unset,
-        CancellationToken cancellationToken,
-        string? invocationDirectory = null,
-        string? userFile = null,
-        string? operation = null,
-        string? item = null)
+    internal static async Task<SettingsEdit> Edit(SettingsEditRequest request)
     {
+        var arguments = request.Arguments;
+        var scope = request.Scope;
+        var key = request.Key;
+        var value = request.Value;
+        var unset = request.Unset;
+        var cancellationToken = request.CancellationToken;
+        var invocationDirectory = request.InvocationDirectory;
+        var userFile = request.UserFile;
+        var operation = request.Operation;
+        var item = request.Item;
+
         cancellationToken.ThrowIfCancellationRequested();
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         using var initial = await Load(
@@ -176,13 +189,14 @@ public static partial class CliSettings
                 cancellationToken);
         }
 
+        var scopeName = scope.ToString()
+            .ToLowerInvariant();
         return new(
             File: file,
-            Scope: scope.ToString()
-                .ToLowerInvariant(),
+            Scope: scopeName,
             Profile: arguments.Profile,
             Key: key,
-            changed);
+            Changed: changed);
     }
 
     private static void ValidateEditKey(string key, ResolvedSettings settings)

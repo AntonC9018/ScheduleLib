@@ -6,59 +6,165 @@ namespace ScheduleLib.Cli;
 
 internal static class CliRegistryFailure
 {
+    private enum ExitPolicy
+    {
+        Fixed,
+        IoFailure,
+        Unexpected,
+        Streaming,
+    }
+
+    private readonly record struct FailureRule(
+        ExitPolicy Policy,
+        int FixedExitCode,
+        Func<Exception, string> FormatMessage)
+    {
+        public static FailureRule Fixed(int exitCode, string message)
+        {
+            return new(
+                ExitPolicy.Fixed,
+                exitCode,
+                _ => message);
+        }
+
+        public static FailureRule FixedFromMessage(int exitCode)
+        {
+            return new(
+                ExitPolicy.Fixed,
+                exitCode,
+                error => error.Message);
+        }
+
+        public static FailureRule IoWithCause(string summary)
+        {
+            return new(
+                ExitPolicy.IoFailure,
+                0,
+                error => WithCause(summary, error));
+        }
+
+        public static FailureRule UnexpectedWithCause(string summary)
+        {
+            return new(
+                ExitPolicy.Unexpected,
+                0,
+                error => WithCause(summary, error));
+        }
+
+        public static FailureRule StreamingWithMessage(string message)
+        {
+            return new(
+                ExitPolicy.Streaming,
+                0,
+                _ => message);
+        }
+
+        public int ResolveExitCode(bool attempted, bool grades)
+        {
+            if (Policy == ExitPolicy.Fixed)
+            {
+                return FixedExitCode;
+            }
+
+            if (attempted)
+            {
+                return CliExit.Partial;
+            }
+
+            if (Policy == ExitPolicy.IoFailure)
+            {
+                return CliExit.IoFailure;
+            }
+
+            if (Policy == ExitPolicy.Unexpected)
+            {
+                if (grades)
+                {
+                    return CliExit.Unexpected;
+                }
+
+                return CliExit.IoFailure;
+            }
+
+            return CliExit.Unexpected;
+        }
+
+        public CliFailure Create(
+            Exception error,
+            bool attempted,
+            bool grades)
+        {
+            var exitCode = ResolveExitCode(attempted: attempted, grades: grades);
+            var message = FormatMessage(error);
+            return new(exitCode, [message]);
+        }
+    }
+
+    private static readonly IReadOnlyDictionary<Type, FailureRule> SharedRules = new Dictionary<Type, FailureRule>
+    {
+        [typeof(CliOutputStreamingException)] = FailureRule.StreamingWithMessage(
+            "Output streaming failed. Completed actions remain applied; inspect the registry before retrying."),
+        [typeof(OperationCanceledException)] = FailureRule.Fixed(CliExit.Cancelled, "Cancelled."),
+        [typeof(RegistryAuthenticationException)] = FailureRule.FixedFromMessage(CliExit.AuthenticationRequired),
+        [typeof(LocalOperationBusyException)] = FailureRule.FixedFromMessage(CliExit.Busy),
+        [typeof(JsonException)] = FailureRule.FixedFromMessage(CliExit.InvalidConfiguration),
+        [typeof(DirectoryNotFoundException)] = FailureRule.FixedFromMessage(CliExit.InvalidConfiguration),
+        [typeof(FileNotFoundException)] = FailureRule.FixedFromMessage(CliExit.InvalidConfiguration),
+        [typeof(InvalidScheduleSourceException)] = FailureRule.FixedFromMessage(CliExit.InvalidConfiguration),
+        [typeof(ScheduleBuildException)] = FailureRule.FixedFromMessage(CliExit.InvalidConfiguration),
+        [typeof(ArgumentException)] = FailureRule.FixedFromMessage(CliExit.InvalidArguments),
+        [typeof(PlatformNotSupportedException)] = FailureRule.FixedFromMessage(CliExit.Unsupported),
+    };
+
+    private static readonly IReadOnlyDictionary<Type, FailureRule> GradeRules = new Dictionary<Type, FailureRule>
+    {
+        [typeof(IOException)] = FailureRule.IoWithCause(
+            "Registry input/output operation failed. No automatic retry was performed."),
+        [typeof(HttpRequestException)] = FailureRule.IoWithCause(
+            "Registry/Moodle remote read failed. No automatic retry was performed."),
+        [typeof(InvalidOperationException)] = FailureRule.IoWithCause(
+            "Registry/Moodle required form or report markup was unavailable. No automatic retry was performed."),
+    };
+
+    private static readonly FailureRule GradeFallback = FailureRule.UnexpectedWithCause(
+        "Unexpected registry operation failure. No automatic retry was performed.");
+
+    private static readonly FailureRule SyncFallback = FailureRule.UnexpectedWithCause(
+        "Registry operation failed. No automatic retry was performed.");
+
     public static CliFailure Classify(
         Exception error,
         bool attempted,
         bool grades)
     {
-        var ioExit = CliExit.IoFailure;
-        var unexpectedExit = CliExit.IoFailure;
-        var streamingExit = CliExit.Unexpected;
+        var rule = LookupRule(error.GetType(), grades);
+        return rule.Create(
+            error,
+            attempted: attempted,
+            grades: grades);
+    }
+
+    private static FailureRule LookupRule(Type exceptionType, bool grades)
+    {
+        for (var current = exceptionType; current is not null; current = current.BaseType)
+        {
+            if (SharedRules.TryGetValue(current, out var sharedRule))
+            {
+                return sharedRule;
+            }
+
+            if (grades && GradeRules.TryGetValue(current, out var gradeRule))
+            {
+                return gradeRule;
+            }
+        }
+
         if (grades)
         {
-            unexpectedExit = CliExit.Unexpected;
+            return GradeFallback;
         }
-        if (attempted)
-        {
-            ioExit = CliExit.Partial;
-            unexpectedExit = CliExit.Partial;
-            streamingExit = CliExit.Partial;
-        }
-        return error switch
-        {
-            CliOutputStreamingException => new(
-                streamingExit,
-                ["Output streaming failed. Completed actions remain applied; inspect the registry before retrying."]),
-            OperationCanceledException => new(CliExit.Cancelled, ["Cancelled."]),
-            RegistryAuthenticationException => new(CliExit.AuthenticationRequired, [error.Message]),
-            LocalOperationBusyException => new(CliExit.Busy, [error.Message]),
-            JsonException
-                or DirectoryNotFoundException
-                or FileNotFoundException
-                or InvalidScheduleSourceException
-                or ScheduleBuildException => new(CliExit.InvalidConfiguration, [error.Message]),
-            ArgumentException => new(CliExit.InvalidArguments, [error.Message]),
-            PlatformNotSupportedException => new(CliExit.Unsupported, [error.Message]),
-            IOException when grades => new(
-                ioExit,
-                [WithCause("Registry input/output operation failed. No automatic retry was performed.", error)]),
-            HttpRequestException when grades => new(
-                ioExit,
-                [WithCause("Registry/Moodle remote read failed. No automatic retry was performed.", error)]),
-            InvalidOperationException when grades => new(
-                ioExit,
-                [
-                    WithCause(
-                        "Registry/Moodle required form or report markup was unavailable. No automatic retry was performed.",
-                        error),
-                ]),
-            _ when grades => new(
-                unexpectedExit,
-                [WithCause("Unexpected registry operation failure. No automatic retry was performed.", error)]),
-            _ => new(
-                unexpectedExit,
-                [WithCause("Registry operation failed. No automatic retry was performed.", error)]),
-        };
+
+        return SyncFallback;
     }
 
     /// <summary>

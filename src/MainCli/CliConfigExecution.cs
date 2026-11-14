@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using ScheduleLib.Application.Core;
 
@@ -12,6 +13,13 @@ internal sealed record ConfigEditRequest(
     ResultArguments Output,
     CancellationToken CancellationToken,
     string? Item = null);
+
+internal readonly record struct ConfigFinishRequest<T>(
+    CliCommandContext Context,
+    int Exit,
+    string[] Errors,
+    T Data,
+    string Verb);
 
 internal static class CliConfigExecution
 {
@@ -48,53 +56,70 @@ internal static class CliConfigExecution
         };
     }
 
-    internal static int Finish<T>(
-        CliCommandContext context,
-        int exit,
-        string[] errors,
-        T data,
-        string verb)
+    private static bool TryGetProfileList<T>(
+        ConfigFinishRequest<T> request,
+        [NotNullWhen(true)] out IReadOnlyList<string>? profiles)
     {
+        profiles = null;
+        if (request.Exit != CliExit.Success)
+        {
+            return false;
+        }
+
+        if (request.Verb != "profiles")
+        {
+            return false;
+        }
+
+        if (request.Data is IReadOnlyList<string> list)
+        {
+            profiles = list;
+            return true;
+        }
+
+        return false;
+    }
+
+    internal static int Finish<T>(ConfigFinishRequest<T> request)
+    {
+        var context = request.Context;
+        var exit = request.Exit;
+        var errors = request.Errors;
+        var data = request.Data;
         var cli = context.Output;
         var status = CliCommandContext.Status(exit);
         var jsonStatus = CliCommandContext.Status(exit, cancellation: false);
 
-        if (exit == CliExit.Success)
+        if (TryGetProfileList(request, out var profiles))
         {
-            if (verb == "profiles")
+            for (var index = 0; index < profiles.Count; index++)
             {
-                if (data is IReadOnlyList<string> profiles)
+                var profileId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                cli.EmitItem(
+                    id: profileId,
+                    status: ActionState.Completed,
+                    new { profile = profiles[index] });
+            }
+
+            return context.Finish(new CliCompletion<T>(
+                exit,
+                errors,
+                data)
+            {
+                Summary = new { profileCount = profiles.Count },
+                Status = status,
+                JsonStatus = jsonStatus,
+                RenderHuman = _ =>
                 {
-                    for (var index = 0; index < profiles.Count; index++)
+                    foreach (var profile in profiles)
                     {
-                        var profileId = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        cli.EmitItem(
-                            id: profileId,
-                            status: ActionState.Completed,
-                            new { profile = profiles[index] });
+                        cli.WriteHuman(profile);
                     }
 
-                    return context.Finish(new CliCompletion<T>(
-                        exit,
-                        errors,
-                        data)
-                    {
-                        Summary = new { profileCount = profiles.Count },
-                        Status = status,
-                        JsonStatus = jsonStatus,
-                        RenderHuman = _ =>
-                        {
-                            foreach (var profile in profiles)
-                            {
-                                cli.WriteHuman(profile);
-                            }
-
-                            string line = $"succeeded: {profiles.Count} profiles.";
-                            cli.WriteHuman(line);
-                        },
-                    });
-                }
-            }
+                    string line = $"succeeded: {profiles.Count} profiles.";
+                    cli.WriteHuman(line);
+                },
+            });
         }
 
         return context.Finish(new CliCompletion<T>(
