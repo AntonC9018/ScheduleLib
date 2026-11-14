@@ -11,3 +11,9 @@ public sealed class RegistryOperationResponseUnconfirmedException(string operati
 {
     public string Operation { get; } = operation;
 }
+
+public sealed class RegistryLoginRedirectRejectedException()
+    : RegistrySubmissionRejectedException("Registry submission redirected to login.");
+
+public sealed class RegistryFormValidationRejectedException()
+    : RegistrySubmissionRejectedException("Registry form validation failed.");

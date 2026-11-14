@@ -794,7 +794,7 @@ internal static class HtmlSearch
             .ToArray();
         if (validationErrors.Length != 0)
         {
-            throw new RegistrySubmissionRejectedException("Registry form validation failed.");
+            throw new RegistryFormValidationRejectedException();
         }
     }
 

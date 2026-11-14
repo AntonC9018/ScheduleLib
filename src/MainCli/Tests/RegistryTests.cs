@@ -727,7 +727,7 @@ public sealed class RegistryTests
         {
             if (submitted)
             {
-                return new RegistrySubmissionRejectedException("rejected");
+                return new RegistryOperationRejectedException("sync");
             }
 
             return new IOException("form read failed");

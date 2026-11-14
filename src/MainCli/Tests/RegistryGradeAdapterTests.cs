@@ -562,7 +562,7 @@ public sealed class RegistryGradeAdapterTests
         var document = await navigator.GetHtml(new Uri("https://registry.test/grades"));
         if (login)
         {
-            await Assert.ThrowsAsync<RegistrySubmissionRejectedException>(() =>
+            await Assert.ThrowsAsync<RegistryLoginRedirectRejectedException>(() =>
                 navigator.SubmitGrades(document, default));
         }
         else

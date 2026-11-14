@@ -978,7 +978,7 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
         }
         catch (FormSubmissionRedirectException error) when (IsLoginRedirect(error))
         {
-            throw new RegistrySubmissionRejectedException("Registry submission redirected to login.");
+            throw new RegistryLoginRedirectRejectedException();
         }
     }
 

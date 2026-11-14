@@ -14,7 +14,9 @@ public abstract class InvalidGroupNameException : ScheduleBuildException
 
     public static InvalidGroupNameException ForNameTooShort(int minimumLength, int actualLength)
     {
-        return new NameTooShortException(minimumLength, actualLength);
+        return new NameTooShortException(
+            minimumLength: minimumLength,
+            actualLength: actualLength);
     }
 
     public static InvalidGroupNameException ForUnrecognizedLanguage(char value)

@@ -109,7 +109,7 @@ public static class RegistryActionGuard
     }
 }
 
-public class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
+public abstract class RegistrySubmissionRejectedException(string message) : InvalidOperationException(message);
 
 /// <summary>A fresh registry read confirms that the requested deletion was not applied.</summary>
 public sealed class RegistryDeletionRefusedException()

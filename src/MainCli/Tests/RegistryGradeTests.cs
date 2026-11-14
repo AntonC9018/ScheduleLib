@@ -173,7 +173,7 @@ public sealed class RegistryGradeTests
         {
             if (rejected)
             {
-                return new RegistrySubmissionRejectedException("rejected");
+                return new RegistryOperationRejectedException("grade");
             }
 
             return new IOException("lost response");

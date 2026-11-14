@@ -160,6 +160,12 @@ public sealed class DriveStreamingException(DriveSyncResult PartialResult, Excep
     public DriveSyncResult PartialResult { get; } = PartialResult;
 }
 
+public sealed class UnknownDriveActionException(Type actionType)
+    : InvalidOperationException($"Unknown Drive action {actionType.Name}.")
+{
+    public Type ActionType { get; } = actionType;
+}
+
 public static class DriveSync
 {
     public static string LockPath(
@@ -353,7 +359,7 @@ public static class DriveSync
                             break;
                         }
                     default:
-                        throw new InvalidOperationException($"Unknown Drive action {action.GetType().Name}.");
+                        throw new UnknownDriveActionException(action.GetType());
                 }
 
                 AddOutcome(new DriveOutcome(
