@@ -158,12 +158,28 @@ internal static class HtmlSearch
                     continue;
                 }
 
-                if (groupForSearch.IsRepeat
-                    || groupForSearch.SubGroupName.Span.Equals("S", StringComparison.OrdinalIgnoreCase)
-                    || groupForSearch.SubGroupName.Span.Equals("D", StringComparison.OrdinalIgnoreCase))
+                // Repeats and unconfirmed historical (S)/(D) markers are skipped
+                // before producing navigable links or accessing remote lessons.
+                bool ShouldSkipGroup(in GroupForSearch candidate)
                 {
-                    // Repeats and unconfirmed historical (S)/(D) markers are skipped
-                    // before producing navigable links or accessing remote lessons.
+                    if (candidate.IsRepeat)
+                    {
+                        return true;
+                    }
+                    var subGroupName = candidate.SubGroupName.Span;
+                    if (subGroupName.Equals("S", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                    if (subGroupName.Equals("D", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+                if (ShouldSkipGroup(in groupForSearch))
+                {
                     continue;
                 }
                 var groups = p.SearchGroupId(ref groupForSearch);
@@ -870,11 +886,12 @@ internal static class HtmlSearch
 
     internal static string? GetLessonTypeName(LessonType type)
     {
-        if (LessonTypeNames.Length <= (int) type)
+        var typeIndex = (int) type;
+        if (LessonTypeNames.Length <= typeIndex)
         {
             return null;
         }
-        return LessonTypeNames[(int) type];
+        return LessonTypeNames[typeIndex];
     }
 
 

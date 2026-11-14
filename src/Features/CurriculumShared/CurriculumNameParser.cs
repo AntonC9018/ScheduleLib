@@ -1623,7 +1623,8 @@ internal static class SectionTypeHelper
         public bool MoveNext()
         {
             _index++;
-            return _index < (int) SectionType.Count;
+            const int sectionCount = (int) SectionType.Count;
+            return _index < sectionCount;
         }
 
         public void Reset() => _index = -1;

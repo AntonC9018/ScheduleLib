@@ -87,9 +87,27 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 notices.Add(RegistryGradeNotice.MoodleGradeMissing(q.UserName));
                 continue;
             }
-            if (!float.IsFinite(grade1)
-                || (double) grade1 > int.MaxValue
-                || (double) grade1 < int.MinValue)
+
+            bool IsUnsupportedMoodleGrade(float grade)
+            {
+                if (!float.IsFinite(grade))
+                {
+                    return true;
+                }
+
+                var numericGrade = (double) grade;
+                if (numericGrade > int.MaxValue)
+                {
+                    return true;
+                }
+                if (numericGrade < int.MinValue)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            if (IsUnsupportedMoodleGrade(grade1))
             {
                 notices.Add(RegistryGradeNotice.MoodleGradeUnsupported(q.UserName));
                 continue;

@@ -187,8 +187,20 @@ public sealed class GoogleCredentialResolver : IDisposable
                     innerException: error));
         }
 
-        if (string.IsNullOrWhiteSpace(secrets.ClientId)
-            || string.IsNullOrWhiteSpace(secrets.ClientSecret))
+        bool HasIncompleteClientSecrets()
+        {
+            if (string.IsNullOrWhiteSpace(secrets.ClientId))
+            {
+                return true;
+            }
+            if (string.IsNullOrWhiteSpace(secrets.ClientSecret))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        if (HasIncompleteClientSecrets())
         {
             throw new AuthenticationRequiredException(provider: "google", teacher: user);
         }

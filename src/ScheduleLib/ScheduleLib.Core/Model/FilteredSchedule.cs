@@ -384,7 +384,11 @@ public static class FilterHelper
                         // every annotation as shared. A filter spanning
                         // several groups includes the lesson when it matches at least
                         // one of those group contexts.
-                        if (!counts.TryGetValue(groupId, out var count) || count < 2)
+                        if (!counts.TryGetValue(groupId, out var count))
+                        {
+                            return true;
+                        }
+                        if (count < 2)
                         {
                             return true;
                         }

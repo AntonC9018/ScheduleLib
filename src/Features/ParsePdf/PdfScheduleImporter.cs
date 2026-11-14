@@ -122,7 +122,15 @@ public static class PdfScheduleImporter
             {
                 var box = cell.Bounds;
 
-                if (box.Left < left || cell.Text.Length == 0 || Group.IsMatch(cell.Text))
+                if (box.Left < left)
+                {
+                    continue;
+                }
+                if (cell.Text.Length == 0)
+                {
+                    continue;
+                }
+                if (Group.IsMatch(cell.Text))
                 {
                     continue;
                 }

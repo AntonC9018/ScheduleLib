@@ -145,9 +145,15 @@ public static partial class ScheduleBuilderHelper
 
         void ValidateSubGroup(SubGroup subGroup, in LessonGroups groups)
         {
-            if (subGroup == SubGroup.All
-                || SpecialSubGroups.AllSpecial.Contains(subGroup)
-                || NumberHelper.FromRoman(subGroup.Value) is not null)
+            if (subGroup == SubGroup.All)
+            {
+                return;
+            }
+            if (SpecialSubGroups.AllSpecial.Contains(subGroup))
+            {
+                return;
+            }
+            if (NumberHelper.FromRoman(subGroup.Value) is not null)
             {
                 return;
             }

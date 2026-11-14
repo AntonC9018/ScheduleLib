@@ -251,7 +251,19 @@ public sealed class IcsCalendarWriterTests
             .SkipWhile(l => !l.StartsWith("SUMMARY:"))
             .TakeWhile((l, i) =>
             {
-                return i == 0 || l.StartsWith(" ") || l.StartsWith("\t");
+                if (i == 0)
+                {
+                    return true;
+                }
+                if (l.StartsWith(" "))
+                {
+                    return true;
+                }
+                if (l.StartsWith("\t"))
+                {
+                    return true;
+                }
+                return false;
             })
             .ToArray();
 

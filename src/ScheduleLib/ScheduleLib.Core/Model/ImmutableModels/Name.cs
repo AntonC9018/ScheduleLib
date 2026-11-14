@@ -548,7 +548,21 @@ public static class NameDisplayHelper
                     return false;
                 }
 
-                if (f[1].Full is null && f[1].Short is not null)
+                bool ShouldDeferToShort()
+                {
+                    var secondPart = f[1];
+                    if (secondPart.Full is not null)
+                    {
+                        return false;
+                    }
+                    if (secondPart.Short is not null)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+                if (ShouldDeferToShort())
                 {
                     return false;
                 }

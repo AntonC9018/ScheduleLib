@@ -98,9 +98,24 @@ public static class RegistryHistoryHtml
 
         var action = SafeUri(address, form.GetAttribute("action") ?? address.AbsoluteUri);
 
-        if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal)
-            || action.Query.Length != 0
-            || action.Fragment.Length != 0)
+        bool HasUnsupportedYearAction()
+        {
+            if (!action.AbsolutePath.Equals(address.AbsolutePath, StringComparison.Ordinal))
+            {
+                return true;
+            }
+            if (action.Query.Length != 0)
+            {
+                return true;
+            }
+            if (action.Fragment.Length != 0)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        if (HasUnsupportedYearAction())
         {
             throw new RegistryHistoryException(
                 "Academic-year form action is unsupported; navigation requires inspection.",
@@ -111,7 +126,11 @@ public static class RegistryHistoryHtml
         var result = new List<RegistryHistoryYear>();
         foreach (var option in select.Options)
         {
-            if (option.IsDisabled || string.IsNullOrWhiteSpace(option.Value))
+            if (option.IsDisabled)
+            {
+                continue;
+            }
+            if (string.IsNullOrWhiteSpace(option.Value))
             {
                 continue;
             }
@@ -716,7 +735,11 @@ public sealed class RegistryHistoryRequestHandler : DelegatingHandler
     {
         var prefix = $"{RegistryHistoryHtml.Root(_index)}LessonAttendance/{route}/";
 
-        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal) || uri.Fragment.Length != 0)
+        if (!uri.AbsolutePath.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+        if (uri.Fragment.Length != 0)
         {
             return false;
         }

@@ -302,7 +302,24 @@ internal static class RegistryAssessments
                 var registryIndex = registryIndexes.GetValueOrDefault(lesson.RegistryLessonType);
                 var regularTopic = getTopic(lesson, index);
 
-                if (registryIndex == 0 && regularTopic is null && configuredTypes.Contains(lesson.RegistryLessonType))
+                bool ShouldEnableRegistryTopics()
+                {
+                    if (registryIndex != 0)
+                    {
+                        return false;
+                    }
+                    if (regularTopic is not null)
+                    {
+                        return false;
+                    }
+                    if (configuredTypes.Contains(lesson.RegistryLessonType))
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+
+                if (ShouldEnableRegistryTopics())
                 {
                     useRegistryTopics.Add(lesson.RegistryLessonType);
                 }

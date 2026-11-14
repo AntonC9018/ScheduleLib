@@ -1961,7 +1961,15 @@ public sealed class RoomParser
 
                 // Move this out of here?
 
-                if (t.Is(',') || t.Type == TokenType.Whitespace || t.Type == TokenType.EndOfLine)
+                if (t.Is(','))
+                {
+                    return true;
+                }
+                if (t.Type == TokenType.Whitespace)
+                {
+                    return true;
+                }
+                if (t.Type == TokenType.EndOfLine)
                 {
                     return true;
                 }

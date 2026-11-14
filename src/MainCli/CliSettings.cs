@@ -1300,14 +1300,31 @@ internal sealed class ConfigColorConverter : JsonConverter<Color>
             throw new JsonException("Color must be a known color name or #AARRGGBB.");
         }
 
+        static bool TryParseHexArgb(string colorText, out uint argb)
+        {
+            if (colorText.Length != 9)
+            {
+                argb = 0;
+                return false;
+            }
+            if (colorText[0] != '#')
+            {
+                argb = 0;
+                return false;
+            }
+            if (uint.TryParse(
+                    colorText.AsSpan(1),
+                    System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out argb))
+            {
+                return true;
+            }
+            return false;
+        }
+
         var value = reader.GetString()!;
-        if (value.Length == 9
-            && value[0] == '#'
-            && uint.TryParse(
-                value.AsSpan(1),
-                System.Globalization.NumberStyles.HexNumber,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out var argb))
+        if (TryParseHexArgb(value, out var argb))
         {
             return Color.FromArgb(unchecked((int) argb));
         }

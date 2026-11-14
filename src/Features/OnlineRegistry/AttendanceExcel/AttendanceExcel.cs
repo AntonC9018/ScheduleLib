@@ -1501,7 +1501,21 @@ public sealed partial class AttendanceListsExcelParser
         {
             return true;
         }
-        if (value.TryGetText(out var text) && string.IsNullOrWhiteSpace(text))
+
+        bool HasBlankText()
+        {
+            if (!value.TryGetText(out var text))
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        if (HasBlankText())
         {
             return true;
         }
