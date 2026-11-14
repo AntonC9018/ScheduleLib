@@ -47,10 +47,7 @@ public static class CliRuntime
         }
 
         var dataDirectory = ResolveDataDirectory();
-        if (source.CacheDirectory is { } selectedCache)
-        {
-            ResolvePath(selectedCache);
-        }
+        var cacheDirectory = ResolveCacheDirectory();
 
         if (!Directory.Exists(dataDirectory))
         {
@@ -63,7 +60,7 @@ public static class CliRuntime
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
             x.DataDirectory = dataDirectory;
-            x.CacheDirectory = ResolveCacheDirectory();
+            x.CacheDirectory = cacheDirectory;
             x.UseCache = !source.NoCache;
         });
         return services;

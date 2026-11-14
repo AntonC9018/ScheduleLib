@@ -100,12 +100,21 @@ public sealed class SelfReferentialDataMappingException(Type configType)
     public Type ConfigType { get; } = configType;
 }
 
-public sealed class MarkerConfigTypeMismatchException(Type expectedType, Type actualType)
-    : InvalidOperationException(
-        $"Marker config type mismatch: expected `{expectedType.Name}`, got `{actualType.Name}`.")
+public sealed class MarkerConfigTypeMismatchException(Type expectedType, Type? actualType)
+    : InvalidOperationException(FormatMessage(expectedType: expectedType, actualType: actualType))
 {
     public Type ExpectedType { get; } = expectedType;
-    public Type ActualType { get; } = actualType;
+    public Type? ActualType { get; } = actualType;
+
+    private static string FormatMessage(Type expectedType, Type? actualType)
+    {
+        if (actualType is null)
+        {
+            return $"Marker config type mismatch: expected `{expectedType.Name}`, got null.";
+        }
+
+        return $"Marker config type mismatch: expected `{expectedType.Name}`, got `{actualType.Name}`.";
+    }
 }
 
 public sealed class SingleUseEnumerableReusedException()
