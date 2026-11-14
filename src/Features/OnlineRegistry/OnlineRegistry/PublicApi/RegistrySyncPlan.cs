@@ -44,7 +44,10 @@ public static class RegistrySyncActionKindExtensions
             RegistrySyncActionKind.Create => "create",
             RegistrySyncActionKind.Update => "update",
             RegistrySyncActionKind.Delete => "delete",
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                null),
         };
     }
 }
@@ -90,9 +93,10 @@ public static class RegistryActionGuard
     public static async Task Run(Func<Action, Task> submit)
     {
         var submissionStarted = false;
+        void MarkSubmissionStarted() => submissionStarted = true;
         try
         {
-            await submit(() => submissionStarted = true);
+            await submit(MarkSubmissionStarted);
         }
         catch (OperationCanceledException error)
         {

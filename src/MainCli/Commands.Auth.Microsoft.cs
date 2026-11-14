@@ -5,8 +5,12 @@ namespace ScheduleLib.Cli;
 
 public partial class AuthCommands
 {
-    protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication(CliCommandContext context) =>
-        new(logger: context.CreateLogger(typeof(MicrosoftAuthentication).FullName!));
+    protected virtual MicrosoftAuthentication CreateMicrosoftAuthentication(CliCommandContext context)
+    {
+        var categoryName = typeof(MicrosoftAuthentication).FullName!;
+        var logger = context.CreateLogger(categoryName);
+        return new(logger: logger);
+    }
 
     protected virtual MicrosoftAuthConfig LoadMicrosoftConfig() => MicrosoftCliConfiguration.Load();
 

@@ -148,8 +148,19 @@ internal static class MatchLessonHelper
         if (lesson.SubGroup.IsLanguageSubGroup()
             && lesson.Groups.All(group =>
             {
-                return schedule.Get(group).Language is Language.Ro or Language.Ru or Language.En
-                    && SpecialSubGroups.FromLanguage(schedule.Get(group).Language) == lesson.SubGroup;
+                var groupLanguage = schedule.Get(group).Language;
+                if (groupLanguage is not (Language.Ro or Language.Ru or Language.En))
+                {
+                    return false;
+                }
+
+                var expectedSubGroup = SpecialSubGroups.FromLanguage(groupLanguage);
+                if (expectedSubGroup != lesson.SubGroup)
+                {
+                    return false;
+                }
+
+                return true;
             }))
         {
             return true;

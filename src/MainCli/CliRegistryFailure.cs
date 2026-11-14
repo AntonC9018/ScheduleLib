@@ -47,11 +47,17 @@ internal static class CliRegistryFailure
                 [WithCause("Registry/Moodle remote read failed. No automatic retry was performed.", error)]),
             InvalidOperationException when grades => new(
                 ioExit,
-                [WithCause("Registry/Moodle required form or report markup was unavailable. No automatic retry was performed.", error)]),
+                [
+                    WithCause(
+                        "Registry/Moodle required form or report markup was unavailable. No automatic retry was performed.",
+                        error),
+                ]),
             _ when grades => new(
                 unexpectedExit,
                 [WithCause("Unexpected registry operation failure. No automatic retry was performed.", error)]),
-            _ => new(unexpectedExit, [WithCause("Registry operation failed. No automatic retry was performed.", error)]),
+            _ => new(
+                unexpectedExit,
+                [WithCause("Registry operation failed. No automatic retry was performed.", error)]),
         };
     }
 
@@ -64,7 +70,8 @@ internal static class CliRegistryFailure
         var causes = new List<string>();
         for (var current = error; current is not null; current = current.InnerException)
         {
-            causes.Add($"{current.GetType().FullName}: {current.Message}");
+            var exceptionType = current.GetType().FullName;
+            causes.Add($"{exceptionType}: {current.Message}");
         }
         var cause = string.Join(" ---> ", causes);
         return $"{summary} Cause: {cause}";

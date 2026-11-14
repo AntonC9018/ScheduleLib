@@ -38,7 +38,8 @@ public sealed class FmiScheduleUpdater(
     {
         stateFile = Path.GetFullPath(stateFile);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(stateFile)!);
+        var stateDirectory = Path.GetDirectoryName(stateFile)!;
+        Directory.CreateDirectory(stateDirectory);
 
         // FileShare.None rejects concurrent writers before either starts downloading.
         await using var gate = new FileStream(

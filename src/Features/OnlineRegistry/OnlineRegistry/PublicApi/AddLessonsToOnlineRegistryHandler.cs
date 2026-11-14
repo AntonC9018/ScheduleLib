@@ -426,13 +426,15 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     var lesson = _schedule.Get(x.LessonId);
                     var courseId = lesson.Lesson.Course;
 
+                    var orderedGroups = audiences[x.LessonId].Ordered();
+                    var groupPartition = AttendancePartition(lesson.Lesson);
                     var key = new AttendanceLookupKey(
                         groups: new FoundGroups
                         {
-                            Value = audiences[x.LessonId].Ordered(),
+                            Value = orderedGroups,
                             IsWildcard = false,
                         },
-                        groupPartition: AttendancePartition(lesson.Lesson),
+                        groupPartition: groupPartition,
                         courseId: courseId,
                         lessonType: dbLessonType,
                         dayIndex: attendanceIndex,
@@ -535,7 +537,8 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
 
                     var topicGroups = TopicGroups(local);
-                    var partition = AttendancePartition(_schedule.Get(local.LessonId).Lesson);
+                    var lesson = _schedule.Get(local.LessonId).Lesson;
+                    var partition = AttendancePartition(lesson);
                     return RegistryTopicScope.Format(
                         _schedule,
                         topicGroups,

@@ -186,12 +186,13 @@ public sealed class RegistrySyncDiagnostics
         string? group,
         GroupPartitionKey partition)
     {
+        var partitionDescription = DescribePartition(partition);
         Add(
             RegistrySyncDiagnosticKind.MissingRegistryGroup,
             course: course,
             @group: group,
             detail:
-            $"No registry destination matched the scheduled partition {DescribePartition(partition)}. Ask the registry administrator to add or correct its group assignment.");
+            $"No registry destination matched the scheduled partition {partitionDescription}. Ask the registry administrator to add or correct its group assignment.");
     }
 
     /// <summary>The registry has no course entry matching a scheduled course name.</summary>
@@ -290,12 +291,13 @@ public sealed class RegistrySyncDiagnostics
         string? group,
         GroupPartitionKey partition)
     {
+        var partitionDescription = DescribePartition(partition);
         Add(
             RegistrySyncDiagnosticKind.RegistryPartitionMismatch,
             course: course,
             @group: group,
             detail:
-            $"No schedule lessons match {DescribePartition(partition)}. Check the registry assignment and schedule partition mapping.");
+            $"No schedule lessons match {partitionDescription}. Check the registry assignment and schedule partition mapping.");
     }
 
     /// <summary>The registry refused a lesson deletion without retrying another POST.</summary>

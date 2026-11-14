@@ -371,32 +371,34 @@ public static partial class CliSettings
             var selectedSources = defaultSources;
             foreach (var coded in codeProfiles)
             {
+                var profileName = coded.Key;
+                var profileNode = coded.Value;
                 var path = defaultsPath.ToImmutable()
                     .ToBuilder();
                 var sources = new List<SettingsSource>(defaultSources);
-                path.Add(coded.Value);
+                path.Add(profileNode);
                 var codeProfileSource = CodeSource(
-                    $"code profile: {coded.Key}",
-                    coded.Value,
+                    $"code profile: {profileName}",
+                    profileNode,
                     json);
                 sources.Add(codeProfileSource);
                 AddOverlay(
                     path,
                     sources,
                     user,
-                    name: $"user profile: {coded.Key}",
-                    user?.Profiles.GetValueOrDefault(coded.Key),
-                    profile: coded.Key);
+                    name: $"user profile: {profileName}",
+                    user?.Profiles.GetValueOrDefault(profileName),
+                    profile: profileName);
                 AddOverlay(
                     path,
                     sources,
                     local,
-                    name: $"project profile: {coded.Key}",
-                    local?.Profiles.GetValueOrDefault(coded.Key),
-                    profile: coded.Key);
+                    name: $"project profile: {profileName}",
+                    local?.Profiles.GetValueOrDefault(profileName),
+                    profile: profileName);
                 AddCli(path, sources);
-                profilePaths.Add(coded.Key, new(path.ToImmutable()));
-                if (arguments.Profile == coded.Key)
+                profilePaths.Add(profileName, new(path.ToImmutable()));
+                if (arguments.Profile == profileName)
                 {
                     selectedPath = path.ToImmutable();
                     selectedSources = sources;
@@ -493,7 +495,10 @@ public static partial class CliSettings
                 var node = new MutableNode();
                 _ = new NodeBuilder(node, provider)
                     .GoogleCalendar()
-                    .ConfigureValue(x => x.CalendarName = calendar);
+                    .ConfigureValue(x =>
+                    {
+                        x.CalendarName = calendar;
+                    });
                 path.Add(node);
                 sources.Add(new(
                     Name: "CLI arguments",

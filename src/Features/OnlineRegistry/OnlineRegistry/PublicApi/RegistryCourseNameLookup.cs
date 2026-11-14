@@ -143,10 +143,11 @@ public static class RegistryCourseNameLookup
 
     private static string Normalize(string name)
     {
-        return new(name.Normalize(NormalizationForm.FormD)
+        var normalizedCharacters = name.Normalize(NormalizationForm.FormD)
             .Where(char.IsLetterOrDigit)
             .Select(char.ToLowerInvariant)
-            .ToArray());
+            .ToArray();
+        return new(normalizedCharacters);
     }
 
     private static int Distance(string first, string second)
