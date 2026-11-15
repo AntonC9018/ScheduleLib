@@ -28,6 +28,7 @@ public readonly struct ListBuilder<T>()
     }
 
     public ImmutableArray<T> Build() => [.. List];
+
     public ImmutableArray<U> Build<U>(Func<T, U> f)
     {
         var builder = ImmutableArray.CreateBuilder<U>(List.Count);
@@ -42,4 +43,3 @@ public readonly struct ListBuilder<T>()
 
     public ref T Ref(int id) => ref CollectionsMarshal.AsSpan(List)[id];
 }
-

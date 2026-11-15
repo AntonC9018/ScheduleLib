@@ -20,13 +20,38 @@ public enum TestOption
 
 public sealed class IntegrationTestHelper : IDisposable
 {
-    public static IEnumerable<object[]> TestOptionMemberData => [
-        [TestOption.Default],
-        [TestOption.New],
-    ];
-    public static string VerifyScheduleSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_model";
-    public static string ScheduleJsonSnapshotName(TestOption option) => $"{Enum.GetName(option)}_verify_schedule_json";
-    public static string ScheduleSnapshotJsonPath(TestOption option) => $"schedule_{Enum.GetName(option)}.json";
+    public static IEnumerable<object[]> TestOptionMemberData
+    {
+        get
+        {
+            return
+            [
+                [TestOption.Default],
+                [TestOption.New],
+            ];
+        }
+    }
+
+    public static string VerifyScheduleSnapshotName(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"{name}_verify_schedule_model";
+        return text;
+    }
+
+    public static string ScheduleJsonSnapshotName(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"{name}_verify_schedule_json";
+        return text;
+    }
+
+    public static string ScheduleSnapshotJsonPath(TestOption option)
+    {
+        string? name = Enum.GetName(option);
+        string text = $"schedule_{name}.json";
+        return text;
+    }
 
     public readonly int Year;
     public readonly Semester Semester;
@@ -143,12 +168,15 @@ public sealed class IntegrationTestHelper : IDisposable
     {
         var scheduleBuilder = new ScheduleBuilder();
         scheduleBuilder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
-        await AddScheduleToBuilder(scheduleBuilder, jsonPath, cancellationToken);
+        await AddScheduleToBuilder(
+            scheduleBuilder,
+            jsonPath,
+            cancellationToken);
         var jsonSchedule = scheduleBuilder.Build();
         return jsonSchedule;
     }
 
-    public SettingsTask ScheduleVerify(Schedule schedule)
+    public SettingsTask ScheduleVerify(Schedule schedule, bool canonicalOrder = false)
     {
         var timeConfig = ServiceProvider.GetRequiredService<LessonTimeConfig>();
         var readableSchedule = new ReadableScheduleModel
@@ -184,35 +212,44 @@ public sealed class IntegrationTestHelper : IDisposable
                     {
                         Course = schedule.Get(lesson.Course).FullName,
                         Date = x.OneTime?.Date.Date,
-                        Groups = lesson.Groups.Select(id => schedule.Get(id).Name).ToArray(),
+                        Groups = lesson.Groups.Select(id => schedule.Get(id).Name)
+                            .ToArray(),
                         Id = x.Id.Id,
                         Period = periodModel,
                         RepeatableDate = repeatableDateModel,
                         Room = lesson.Room.IsValid ? schedule.Get(lesson.Room) : null,
-                        Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName.ToString()).ToArray(),
+                        Teachers = lesson.Teachers.Select(tid => schedule.Get(tid).PersonName
+                                .ToString())
+                            .ToArray(),
                         Time = timeConfig.GetTimeSlotInterval(x.GetTimeSlot()).Start,
                         LessonType = lesson.Type,
                         SubGroup = lesson.SubGroup.Value,
                         Specialization = lesson.Specialization.Value,
                     };
-                }).ToArray(),
-            Groups = schedule.EnumerateGroups().Select(g =>
+                })
+                .ToArray(),
+            Groups = schedule.EnumerateGroups()
+                .Select(g =>
                 {
                     return new ReadableGroupModel
                     {
                         Id = g.Id.Value,
                         Name = g.Item.Name,
                     };
-                }).ToArray(),
-            Courses = schedule.EnumerateCourses().Select(c =>
+                })
+                .ToArray(),
+            Courses = schedule.EnumerateCourses()
+                .Select(c =>
                 {
                     return new ReadableCourseModel
                     {
                         Id = c.Id.Id,
                         Names = c.Item.Names.ToArray(),
                     };
-                }).ToArray(),
-            Periods = schedule.EnumeratePeriods().Select(p =>
+                })
+                .ToArray(),
+            Periods = schedule.EnumeratePeriods()
+                .Select(p =>
                 {
                     return new ReadablePeriodModel
                     {
@@ -220,7 +257,8 @@ public sealed class IntegrationTestHelper : IDisposable
                         Start = p.Item.Start,
                         End = p.Item.End,
                     };
-                }).ToArray(),
+                })
+                .ToArray(),
         };
         var options = new JsonSerializerOptions
         {
@@ -234,9 +272,49 @@ public sealed class IntegrationTestHelper : IDisposable
         textEncoder.AllowRanges(UnicodeRanges.All);
         options.Encoder = JavaScriptEncoder.Create(textEncoder);
 
+        if (canonicalOrder)
+        {
+            // Source discovery can assign different model IDs and enumeration orders.
+            // The readable projection uses names for references, so assign snapshot-local IDs.
+            foreach (var lesson in readableSchedule.Lessons)
+            {
+                lesson.Id = 0;
+                Array.Sort(lesson.Groups, StringComparer.Ordinal);
+                Array.Sort(lesson.Teachers, StringComparer.Ordinal);
+            }
+            readableSchedule.Lessons = readableSchedule.Lessons
+                .OrderBy(lesson => JsonSerializer.Serialize(lesson, options), StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Lessons.Length; index++)
+            {
+                readableSchedule.Lessons[index].Id = index;
+            }
+            foreach (var course in readableSchedule.Courses)
+            {
+                Array.Sort(course.Names, StringComparer.Ordinal);
+            }
+            readableSchedule.Courses = readableSchedule.Courses
+                .OrderBy(course => JsonSerializer.Serialize(course.Names, options), StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Courses.Length; index++)
+            {
+                readableSchedule.Courses[index].Id = index;
+            }
+            readableSchedule.Groups = readableSchedule.Groups
+                .OrderBy(group => group.Name, StringComparer.Ordinal)
+                .ToArray();
+            for (int index = 0; index < readableSchedule.Groups.Length; index++)
+            {
+                readableSchedule.Groups[index].Id = index;
+            }
+        }
+
         using var stream = new MemoryStream();
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation
-        JsonSerializer.Serialize(stream, readableSchedule, options);
+        JsonSerializer.Serialize(
+            stream,
+            readableSchedule,
+            options);
         stream.Position = 0;
         using var reader = new StreamReader(stream);
         // ReSharper disable once MethodHasAsyncOverloadWithCancellation

@@ -8,4 +8,7 @@
         <ProjectReference Include="..\..\..\Features\Integration\Integration.csproj" />
         <ProjectReference Include="..\..\..\ScheduleDefaults\ScheduleDefaults.csproj" />
     </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Tests/Common/Tests.Common.csproj" />
+  </ItemGroup>
 </Project>

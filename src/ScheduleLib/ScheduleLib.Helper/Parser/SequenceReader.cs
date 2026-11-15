@@ -16,34 +16,39 @@ public record struct SequenceReader
     public readonly char PeekAt(int offset) => WholeSpan[_index + offset];
     public readonly bool CanPeekAt(int offset) => _index + offset < _input.Length;
     public readonly bool CanPeekCount(int size) => CanPeekAt(size - 1);
+
     public readonly int GetPeekCount(int desiredSize)
     {
         int remaining = _input.Length - _index;
         return Math.Min(remaining, desiredSize);
     }
+
     private readonly int AvailableCount => _input.Length - _index;
-    public readonly ReadOnlySpan<char> PeekSpan(int size) => WholeSpan[_index .. (_index + size)];
+    public readonly ReadOnlySpan<char> PeekSpan(int size) => WholeSpan[_index..(_index + size)];
+
     public readonly ReadOnlySpan<char> PeekSpanMaxSize(int size)
     {
         int s = Math.Min(AvailableCount, size);
-        return WholeSpan[_index .. (_index + s)];
+        return WholeSpan[_index..(_index + s)];
     }
 
     public readonly ReadOnlySpan<char> PeekSpanUntilPosition(SequencePosition positionExclusive)
     {
         int start = _index;
         int end = positionExclusive.Index;
-        return WholeSpan[start .. end];
+        return WholeSpan[start..end];
     }
 
-    public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => WholeSpan[_index ..];
+    public readonly ReadOnlySpan<char> PeekSpanUntilEnd() => WholeSpan[_index..];
     public readonly char Current => WholeSpan[_index];
     public void Move(int x = 1) => _index += x;
+
     public void MoveTo(SequencePosition position)
     {
         Debug.Assert(_index <= position.Index);
         _index = position.Index;
     }
+
     public void MovePast(SequencePosition position)
     {
         _index = Math.Min(_input.Length, position.Index + 1);
@@ -58,7 +63,7 @@ public record struct SequenceReader
     // Currently just return a copy, because we only have a string impl and
     // I don't want it to get more abstract at this point.
     public readonly SequenceReader BufferedView() => this;
-    public readonly override string ToString() => WholeSpan[_index ..].ToString();
+    public readonly override string ToString() => WholeSpan[_index..].ToString();
 }
 
 public readonly record struct SequencePosition(int Index);
@@ -139,12 +144,35 @@ public static class ParserHelper
     {
         public bool EndOfInput;
         public bool SkippedAny;
-        public readonly bool Satisfied => SkippedAny && !EndOfInput;
 
-        public static SkipResult EndOfInputResult => new()
+        public readonly bool Satisfied
         {
-            EndOfInput = true,
-        };
+            get
+            {
+                if (!SkippedAny)
+                {
+                    return false;
+                }
+
+                if (!EndOfInput)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        public static SkipResult EndOfInputResult
+        {
+            get
+            {
+                return new()
+                {
+                    EndOfInput = true,
+                };
+            }
+        }
     }
 
     public static SkipResult SkipWindow<T>(
@@ -152,7 +180,6 @@ public static class ParserHelper
         ref T impl,
         int minWindowSize,
         int maxWindowSize)
-
         where T : struct, IShouldSkipSequence, allows ref struct
     {
         var ret = new SkipResult();
@@ -181,6 +208,7 @@ public static class ParserHelper
     {
         private readonly ReadOnlySpan<string> _strings;
         public int Match { get; private set; }
+
         public SkipWindowUntilStringImpl(ReadOnlySpan<string> strings)
         {
             _strings = strings;
@@ -197,7 +225,7 @@ public static class ParserHelper
                     continue;
                 }
 
-                if (window[.. str.Length].Equals(str, StringComparison.OrdinalIgnoreCase))
+                if (window[..str.Length].Equals(str, StringComparison.OrdinalIgnoreCase))
                 {
                     Match = index;
                     return false;
@@ -207,6 +235,7 @@ public static class ParserHelper
             return true;
         }
     }
+
     public static SkipSequenceResult SkipUntilSequence(this ref SequenceReader reader, ReadOnlySpan<string> strings)
     {
         Debug.Assert(!strings.IsEmpty);
@@ -233,6 +262,7 @@ public static class ParserHelper
             }
             return max;
         }
+
         static int MinSize(ReadOnlySpan<string> s)
         {
             int min = int.MaxValue;
@@ -283,6 +313,7 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsWhiteSpace(ch);
     }
+
     public static SkipResult SkipWhitespace(this ref SequenceReader reader)
     {
         return reader.Skip(new WhitespaceSkip());
@@ -292,6 +323,7 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => !char.IsWhiteSpace(ch);
     }
+
     public static SkipResult SkipNotWhitespace(this ref SequenceReader reader)
     {
         return reader.Skip(new NotWhitespaceSkip());
@@ -303,6 +335,7 @@ public static class ParserHelper
         public SkipUntilImpl(ReadOnlySpan<char> chars) => _chars = chars;
         public bool ShouldSkip(char ch) => !_chars.Contains(ch);
     }
+
     public static SkipResult SkipUntilAny(
         this ref SequenceReader reader,
         ReadOnlySpan<char> chars)
@@ -316,6 +349,7 @@ public static class ParserHelper
         public SkipUntilNotImpl(ReadOnlySpan<char> chars) => _chars = chars;
         public bool ShouldSkip(char ch) => _chars.Contains(ch);
     }
+
     public static SkipResult SkipUntilNotAny(
         this ref SequenceReader reader,
         ReadOnlySpan<char> chars)
@@ -327,6 +361,7 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsLetter(ch);
     }
+
     public static SkipResult SkipLetters(this ref SequenceReader reader)
     {
         return reader.Skip(new SkipLettersImpl());
@@ -385,6 +420,7 @@ public static class ParserHelper
     {
         public bool ShouldSkip(char ch) => char.IsNumber(ch);
     }
+
     public static SkipResult SkipNumbers(this ref SequenceReader reader)
     {
         return reader.Skip(new NumberSkip());
@@ -439,14 +475,14 @@ public static class ParserHelper
 
     public static ReadOnlyMemory<char> SourceUntilEnd(this SequenceReader p)
     {
-        var ret = p.Source[p.Position.Index ..];
+        var ret = p.Source[p.Position.Index..];
         return ret;
     }
 
     public static ReadOnlyMemory<char> SourceUntilExclusive(this SequenceReader a, SequencePosition end)
     {
         var start = a.Position;
-        return a.Source[start.Index .. end.Index];
+        return a.Source[start.Index..end.Index];
     }
 
     public static ReadOnlyMemory<char> SourceUntilExclusive(this SequenceReader a, SequenceReader b)
@@ -461,7 +497,7 @@ public static class ParserHelper
     {
         Debug.Assert(a.CanPeekCount(count));
         var end = a.Position.Index + count;
-        var ret = a.Source[a.Position.Index .. end];
+        var ret = a.Source[a.Position.Index..end];
         return ret;
     }
 
@@ -485,7 +521,7 @@ public static class ParserHelper
         ref this SequenceReader reader,
         ReadOnlySpan<char> expectedString)
     {
-        return ConsumeExactString(ref reader, expectedString, StringComparison.Ordinal);
+        return reader.ConsumeExactString(expectedString, StringComparison.Ordinal);
     }
 
     public static bool ConsumeExactString(
@@ -562,7 +598,6 @@ public enum ReadRomanStatus
     NotRoman,
 }
 
-
 public enum ConsumeIntStatus
 {
     Ok,
@@ -575,6 +610,7 @@ public record struct ConsumeIntResult(
     uint Value = 0)
 {
     public static ConsumeIntResult Ok(uint value) => new(ConsumeIntStatus.Ok, value);
+
     public static ConsumeIntResult Error(ConsumeIntStatus error)
     {
         Debug.Assert(error != ConsumeIntStatus.Ok);

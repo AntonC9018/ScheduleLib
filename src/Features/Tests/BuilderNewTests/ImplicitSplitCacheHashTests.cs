@@ -8,14 +8,20 @@ public sealed class ImplicitSplitCacheHashTests
     [Fact]
     public void CacheHashIgnoresDeclarationOrder()
     {
-        Assert.Equal(Hash(BuildConfigA()), Hash(BuildConfigB()));
-        Assert.NotEqual(Hash(BuildConfigA()), Hash(BuildConfigC()));
+        string expected2 = Hash(BuildConfigA());
+        string actual2 = Hash(BuildConfigB());
+        Assert.Equal(expected: expected2, actual: actual2);
+        string expected3 = Hash(BuildConfigA());
+        string actual3 = Hash(BuildConfigC());
+        Assert.NotEqual(expected: expected3, actual: actual3);
     }
 
     [Fact]
     public void NullConfigHashesDistinctlyFromEmptyConfig()
     {
-        Assert.NotEqual(Hash(null), Hash(new ImplicitSplitConfigBuilder().Build()));
+        string expected2 = Hash(null);
+        string actual2 = Hash(new ImplicitSplitConfigBuilder().Build());
+        Assert.NotEqual(expected: expected2, actual: actual2);
     }
 
     private static string Hash(ImplicitSplitConfig? config)
@@ -37,7 +43,10 @@ public sealed class ImplicitSplitCacheHashTests
         builder.Scope(x =>
         {
             x.Grade = new(2);
-            x.Alternative("C", new("Alt"));
+            var implicitSplitScopeBuilder = x;
+            string course = "C";
+            Alternative alternative = new("Alt");
+            implicitSplitScopeBuilder.Alternative(course, alternative);
         });
         return builder.Build();
     }
@@ -48,7 +57,10 @@ public sealed class ImplicitSplitCacheHashTests
         builder.Scope(x =>
         {
             x.Grade = new(2);
-            x.Alternative("C", new("Alt"));
+            var implicitSplitScopeBuilder = x;
+            string course = "C";
+            Alternative alternative = new("Alt");
+            implicitSplitScopeBuilder.Alternative(course, alternative);
         });
         builder.Scope(x =>
         {

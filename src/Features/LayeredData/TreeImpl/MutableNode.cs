@@ -13,7 +13,8 @@ public sealed class MutableNode
 
     public ICollection<NodeDataKey> ConfigKeys => _configs.Keys;
 
-    public IEnumerable<NodeDataAccessorHelper> Configs => _configs.Select(x => new NodeDataAccessorHelper(x.Key, x.Value));
+    public IEnumerable<NodeDataAccessorHelper> Configs =>
+        _configs.Select(x => new NodeDataAccessorHelper(x.Key, x.Value));
 
     public NodeDataContainer? GetUntyped(NodeDataKey key)
     {

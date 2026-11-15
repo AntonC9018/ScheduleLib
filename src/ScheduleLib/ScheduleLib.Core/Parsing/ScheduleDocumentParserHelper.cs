@@ -8,38 +8,57 @@ namespace ScheduleLib.Parsing;
 
 public static class ScheduleDocumentParserHelper
 {
+    /// <summary>A date interval from a schedule document.</summary>
+    public readonly record struct DateInterval(DateTime Start, DateTime End);
+
+    private static bool HasTimeRangeSeparator(ref SequenceReader reader)
+    {
+        if (reader.IsEmpty)
+        {
+            return false;
+        }
+        if (reader.Current == '-')
+        {
+            return true;
+        }
+        return false;
+    }
+
     extension(ref SequenceReader reader)
     {
-        public (DateTime Start, DateTime End) ParseDateInterval(string format)
+        public DateInterval ParseDateInterval(string format)
         {
             reader.SkipWhitespace();
             var bparser = reader.BufferedView();
             var skipped = bparser.SkipUntilAny(['–', '-', '—']);
             if (skipped.EndOfInput)
             {
-                throw new NotSupportedException("Expected interval separator");
+                throw InvalidScheduleDocumentException.ForMissingDateIntervalSeparator(reader.ToString());
             }
 
             var startSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            var startDate = ParseDateTime(startSpan, "Invalid start date");
+            var startDate = ParseDateTime(startSpan, DateIntervalEndpoint.Start);
 
             bparser.Move();
             reader.MoveTo(bparser.Position);
 
             var endSpan = reader.PeekSpanUntilEnd();
-            var endDate = ParseDateTime(endSpan, "Invalid end date");
+            var endDate = ParseDateTime(endSpan, DateIntervalEndpoint.End);
 
             if (startDate >= endDate)
             {
-                throw new NotSupportedException("The start date must be before the end date");
+                throw InvalidScheduleDocumentException.ForInvertedDateInterval(
+                    start: startDate,
+                    end: endDate);
             }
 
-            return (startDate, endDate);
+            return new(Start: startDate, End: endDate);
 
-            DateTime ParseDateTime(ReadOnlySpan<char> s, string error)
+            DateTime ParseDateTime(ReadOnlySpan<char> s, DateIntervalEndpoint endpoint)
             {
                 var culture = CultureInfo.CurrentCulture;
-                Debug.Assert(culture.Calendar.TwoDigitYearMax == 2049,
+                Debug.Assert(
+                    culture.Calendar.TwoDigitYearMax == 2049,
                     "Fix this if you want to parse older docs");
 
                 if (!DateTime.TryParseExact(
@@ -49,7 +68,10 @@ public static class ScheduleDocumentParserHelper
                         style: default,
                         result: out var date))
                 {
-                    throw new NotSupportedException(error);
+                    throw InvalidScheduleDocumentException.ForInvalidIntervalEndpointDate(
+                        endpoint: endpoint,
+                        dateText: s.ToString(),
+                        format: format);
                 }
                 return date;
             }
@@ -61,31 +83,31 @@ public static class ScheduleDocumentParserHelper
             reader.SkipWhitespace();
             if (ParserHelper.ParseTime(ref reader) is not { } startTime)
             {
-                throw new NotSupportedException("Expected time range start");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeStart(reader.ToString());
             }
-            if (reader.IsEmpty || reader.Current != '-')
+            if (!HasTimeRangeSeparator(ref reader))
             {
                 if (allowOpenInterval)
                 {
                     return TimeInterval.CreateOpenInterval(startTime);
                 }
-                throw new NotSupportedException("Expected '-' after start time");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeSeparator(reader.ToString());
             }
             reader.Move();
 
             if (ParserHelper.ParseTime(ref reader) is not { } endTime)
             {
-                throw new NotSupportedException("Expected time range end");
+                throw InvalidScheduleDocumentException.ForMissingTimeRangeEnd(reader.ToString());
             }
 
             reader.SkipWhitespace();
 
             if (!reader.IsEmpty)
             {
-                throw new NotSupportedException("Time range not consumed fully");
+                throw InvalidScheduleDocumentException.ForTrailingTimeRangeText(reader.ToString());
             }
 
-            return new(startTime, endTime);
+            return new(Start: startTime, End: endTime);
         }
 
         public DayOfWeek ParseDayOfWeek(DayNameParser dayNameParser)
@@ -117,7 +139,10 @@ public static class ScheduleDocumentParserHelper
             }
 
             var dateSpan = reader.PeekSpanUntilPosition(bparser.Position);
-            bool parsed = DateOnly.TryParseExact(dateSpan, format, out var date);
+            bool parsed = DateOnly.TryParseExact(
+                s: dateSpan,
+                format: format,
+                out var date);
             if (!parsed)
             {
                 throw InvalidScheduleDocumentException.ForDateNotMatchingFormat();
@@ -126,7 +151,6 @@ public static class ScheduleDocumentParserHelper
             reader.MoveTo(bparser.Position);
             return date;
         }
-
     }
 
     private struct SkipDate : IShouldSkip
@@ -137,10 +161,12 @@ public static class ScheduleDocumentParserHelper
             {
                 return true;
             }
+
             if (char.IsNumber(ch))
             {
                 return true;
             }
+
             return false;
         }
     }
@@ -150,7 +176,7 @@ public readonly record struct TimeInterval(TimeOnly Start, TimeOnly End)
 {
     public static TimeInterval CreateOpenInterval(TimeOnly start)
     {
-        return new(start, default);
+        return new(Start: start, End: default);
     }
 
     public bool IsOpenInterval => End == default;

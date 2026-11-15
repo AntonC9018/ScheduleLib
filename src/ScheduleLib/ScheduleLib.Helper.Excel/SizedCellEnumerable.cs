@@ -8,8 +8,9 @@ public static class SizedCellHelper
 {
     public static SizedCellEnumerable SizedCells(this IndexedRow row, MergeCellMap mergeCells)
     {
-        return SizedCells((Indexed<Row>) row, mergeCells);
+        return ((Indexed<Row>) row).SizedCells(mergeCells);
     }
+
     public static SizedCellEnumerable SizedCells(this Indexed<Row> row, MergeCellMap mergeCells)
     {
         return new(mergeCells, row);
@@ -84,7 +85,8 @@ public readonly struct SizedCellEnumerable : IEnumerable<CellInfo>
                     continue;
                 }
 
-                var pos = ExcelRangeHelper.GetPosition(new(_colIndex, cell), _row);
+                Indexed<Cell> indexedCell = new(_colIndex, cell);
+                var pos = ExcelRangeHelper.GetPosition(indexedCell, _row);
                 if (pos.Col != _colIndex)
                 {
                     _colIndex = (int) pos.Col;

@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 
 namespace Desktop.NodeData.Features.Registry;
 
-
 public sealed class Registry<T>
 {
     private readonly List<Named<T>> _values;
@@ -22,10 +21,24 @@ public sealed class Registry<T>
 
     public Named<T> Find(T value)
     {
-        var x = _values.FirstOrDefault(x => _comparer.Equals(x.Value, value));
+        var x = _values.FirstOrDefault(x => _comparer.Equals(x: x.Value, y: value));
         if (x is null)
         {
-            throw new NotImplementedException("Implement the proper registry system!");
+            string? valueText = null;
+            if (value is string s)
+            {
+                valueText = s;
+            }
+            else if (value is Enum e)
+            {
+                valueText = e.ToString();
+            }
+
+            var valueType = value?.GetType();
+            throw new UnregisteredPropertyValueException(
+                propertyType: typeof(T),
+                valueType: valueType,
+                valueText: valueText);
         }
 
         return x;
@@ -51,6 +64,7 @@ public sealed record class Named<T>(
 public readonly record struct RegistryKey(
     NodeDataKey NodeData,
     PropertyId Property);
+
 public readonly record struct RegistryKey<T>(RegistryKey Value)
 {
     public override string ToString() => Value.ToString();
@@ -65,11 +79,13 @@ public static class ThingRegistryHelper
             Action<ThingRegistryOptions<T>>? configure = null)
         {
             var keyStr = key == default ? null : key.ToString();
-            services.AddKeyedSingleton<Registry<T>>(keyStr, static (sp, keyStr) =>
-            {
-                var opts = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
-                return new(opts, (string?) keyStr);
-            });
+            services.AddKeyedSingleton<Registry<T>>(
+                keyStr,
+                static (sp, keyStr) =>
+                {
+                    var opts = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
+                    return new(opts, (string?) keyStr);
+                });
 
             var ret = services.AddOptions<ThingRegistryOptions<T>>(keyStr);
             if (configure != null)
@@ -82,7 +98,11 @@ public static class ThingRegistryHelper
         public OptionsBuilder<ThingRegistryOptions<T>> AddRegistry<T>(
             Action<ThingRegistryOptions<T>>? configure = null)
         {
-            services.AddSingleton<Registry<T>>();
+            services.AddSingleton<Registry<T>>(static sp =>
+            {
+                var options = sp.GetRequiredService<IOptionsMonitor<ThingRegistryOptions<T>>>();
+                return new(options, optionKey: null);
+            });
             var ret = services.AddOptions<ThingRegistryOptions<T>>();
             if (configure != null)
             {
@@ -102,7 +122,8 @@ public static class ThingRegistryHelper
             RegistryKey<T> key,
             Action<ThingRegistryOptions<T>> configure)
         {
-            services.Configure(key.ToString(), configure);
+            var optionKey = key == default ? Options.DefaultName : key.ToString();
+            services.Configure(optionKey, configure);
         }
     }
 
@@ -111,7 +132,9 @@ public static class ThingRegistryHelper
     {
         public void Add(string name, T value)
         {
-            opts.Values.Add(new(name, value));
+            var list = opts.Values;
+            Named<T> item = new(name, value);
+            list.Add(item);
         }
 
         public void UseTypeComparer()

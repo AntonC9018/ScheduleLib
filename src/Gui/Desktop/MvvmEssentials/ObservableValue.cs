@@ -5,12 +5,13 @@ public struct ObservableValueSource<T>(T initialValue, IDispatcher<T> dispatcher
     public readonly EventSource<T> Event = new(dispatcher);
     private T _value = initialValue;
     public void SetDirect(T value) => _value = value;
+
     public T Value
     {
         get => _value;
         set
         {
-            if (!EqualityComparer<T>.Default.Equals(_value, value))
+            if (!EqualityComparer<T>.Default.Equals(x: _value, y: value))
             {
                 _value = value;
                 Event.Invoke(value);
@@ -32,10 +33,12 @@ public readonly ref struct ObservableValue<T>
     {
         _source.Value = value;
     }
+
     public T Get()
     {
         return _source.Value;
     }
+
     public Event<T> Changed => _source.Event;
 }
 
@@ -64,7 +67,8 @@ public static class ObservableValueHelper
             return new(initialValue, d);
         }
     }
-    extension (IDispatcher d)
+
+    extension(IDispatcher d)
     {
         public ObservableValueSource<T> CreateObservableValue<T>(T initialValue)
         {

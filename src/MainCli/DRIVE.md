@@ -43,7 +43,7 @@ application returns 5 (401 returns 4), and completed/uncertain application retur
 6. Completed local artifacts are retained. No automatic rollback or retry is
 provided; inspect Drive before applying again after uncertainty.
 
-The production adapter bypasses legacy `GoogleApiHelper1` mutation retries and
+The production adapter bypasses legacy mutation retries and
 batch deletion callbacks (which only log individual failures). SDK HTTP retries
 and redirects are disabled. Credentials may refresh before sending, but 401
 responses do not invoke credential refresh or replay the request. Failed pre-send

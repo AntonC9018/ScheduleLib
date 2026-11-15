@@ -53,7 +53,6 @@ production setup remain separate work.
 | `calendar sync` | `UpdateCalendar` | Preview or apply synchronization to the configured calendar. |
 | `registry sync` | `CreateLessonsInRegistry` | Preview or apply the existing lesson/topic/attendance reconciliation. |
 | `registry import-grades --quiz-id ID` | `CopyGradesFromMoodleToRegistry` | Preview or apply grades from the specified Moodle quiz. |
-| `curricula download` | `PullCurriculaFromOneDrive` | Download using the existing configured source and explicit Microsoft authentication. |
 
 `drive publish` remains one operation even though generating its bundle has
 several internal steps. It does not introduce arbitrary command chaining.
@@ -256,8 +255,7 @@ Preserve current website enrichment where a selected workflow needs it; this
 design does not add an offline-mode guarantee.
 
 Pre-defense commission data is currently empty; report that prerequisite until
-the existing code configuration supplies it. Curricula source settings remain
-code-defined for now and must be disclosed in the command's resolved inputs.
+the existing code configuration supplies it.
 Existing positional registry matching, mixed-partition deadline limitations and
 Moodle mapping limitations are surfaced rather than redesigned under #71.
 

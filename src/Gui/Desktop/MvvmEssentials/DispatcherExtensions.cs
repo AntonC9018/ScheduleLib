@@ -21,18 +21,20 @@ public static class DispatcherExtensions
     {
         if (task.IsCompleted)
         {
-            task.GetAwaiter().GetResult();
+            task.GetAwaiter()
+                .GetResult();
             return;
         }
-        throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
+        throw new AsyncDelegateExecutionException();
     }
 
     public static T EnsureCompletedSync<T>(this ValueTask<T> task)
     {
         if (task.IsCompleted)
         {
-            return task.GetAwaiter().GetResult();
+            return task.GetAwaiter()
+                .GetResult();
         }
-        throw new InvalidOperationException("Expected to be able to run the delegate synchronously.");
+        throw new AsyncDelegateExecutionException();
     }
 }

@@ -8,14 +8,14 @@ public static class ExpressionExtensions
 {
     public static PropertyInfo ExtractPropertyInfo(this LambdaExpression memberAccessLambda)
     {
-        var member = ExtractMemberInfo(memberAccessLambda);
+        var member = memberAccessLambda.ExtractMemberInfo();
         var property = (PropertyInfo) member;
         return property;
     }
 
     public static PropertyInfo ExtractPropertyInfo<T>(this Expression<Func<T, object?>> memberAccessLambda)
     {
-        var member = ExtractMemberInfo(memberAccessLambda);
+        var member = memberAccessLambda.ExtractMemberInfo();
         var property = (PropertyInfo) member;
         return property;
     }

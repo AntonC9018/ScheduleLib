@@ -49,9 +49,13 @@ public readonly record struct Event
         int count,
         int interval)
     {
+        var last = FirstToLast(
+            first,
+            count: count,
+            interval: interval);
         return new(
             first: first,
-            last: FirstToLast(first, count, interval),
+            last: last,
             count: count,
             interval: interval);
     }
@@ -67,7 +71,10 @@ public readonly record struct Event
         {
             Debug.Assert(interval >= 1);
             Debug.Assert(last > first);
-            var expectedLast = FirstToLast(first, count, interval);
+            var expectedLast = FirstToLast(
+                first,
+                count: count,
+                interval: interval);
             Debug.Assert(expectedLast == last);
         }
         else
@@ -113,6 +120,7 @@ public readonly record struct Event
         public void Dispose()
         {
         }
+
         public void Reset()
         {
             throw new NotSupportedException();
@@ -150,29 +158,34 @@ public static class ScheduledDatesToEventsTransformerHelper
         {
             bool hasValue = dateE.MoveNext();
             var date = hasValue ? dateE.Current : default;
+
             bool ShouldOutput()
             {
-               if (count == 0)
-               {
-                   return false;
-               }
-               if (!hasValue)
-               {
-                   return true;
-               }
-               if (date.DayNumber - prev.DayNumber != interval)
-               {
-                   return true;
-               }
-               return false;
+                if (count == 0)
+                {
+                    return false;
+                }
+                if (!hasValue)
+                {
+                    return true;
+                }
+
+                if (date.DayNumber - prev.DayNumber != interval)
+                {
+                    return true;
+                }
+
+                return false;
             }
+
             if (ShouldOutput())
             {
+                int eventInterval = count > 1 ? interval : 0;
                 yield return new Event(
                     first: first,
                     last: prev,
                     count: count,
-                    interval: count > 1 ? interval : 0);
+                    interval: eventInterval);
                 first = default;
                 count = 0;
             }
@@ -207,4 +220,3 @@ public sealed partial class ScheduledEventsProviderTransformer
         return ret;
     }
 }
-

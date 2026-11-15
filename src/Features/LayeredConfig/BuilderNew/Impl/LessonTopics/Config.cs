@@ -37,7 +37,7 @@ public sealed class LessonTopicsConfig : INodeData<LessonTopicsConfig>
         }
 
         services.RegisterBasicOperationsAndMergers<ManifestLessonTopicSourceDefinition>();
-        services.AddConfigProvider(LessonTopicsConfig.Key);
+        services.AddConfigProvider(Key);
     }
 }
 
@@ -62,13 +62,14 @@ public sealed class LessonTopicsSourceDefinitionBasicOperations : IBasicOperatio
     {
         _serviceProvider = serviceProvider;
     }
+
     public LessonTopicSourceDefinition? Empty() => null;
     public LessonTopicSourceDefinition? Reset(LessonTopicSourceDefinition? item) => null;
 
     public LessonTopicSourceDefinition Copy(LessonTopicSourceDefinition from)
     {
         var ret = CallCopyHelper.CopyUsingService(_serviceProvider, from);
-        return (LessonTopicSourceDefinition) ret;
+        return ret;
     }
 }
 
@@ -76,4 +77,3 @@ public interface LessonTopicSourceDefinition
 {
     ILessonTopicSource Create(IServiceProvider sp);
 }
-

@@ -6,26 +6,48 @@ namespace ScheduleLib.Excel.Helper;
 // ReSharper disable once InconsistentNaming
 public static class ExcelLibExtensions
 {
-    public static ExcelRangeException Exception(this IXLCell cell, string message, Exception? inner = null)
+    public static ExcelRangeException Exception(
+        this IXLCell cell,
+        string message,
+        Exception? inner = null)
     {
-        return new(cell.ActualRange().RangeAddress.ToString()!, message, inner);
+        return new(
+            cell.ActualRange().RangeAddress
+                .ToString()!,
+            message,
+            inner);
     }
-    public static ExcelRangeException Exception(this IXLRow row, string message, Exception? inner = null)
+
+    public static ExcelRangeException Exception(
+        this IXLRow row,
+        string message,
+        Exception? inner = null)
     {
-        return new(row.RangeAddress.ToString()!, message, inner);
+        return new(
+            row.RangeAddress.ToString()!,
+            message,
+            inner);
     }
-    public static ExcelSheetException Exception(this IXLWorksheet sheet, string message, Exception? inner = null)
+
+    public static ExcelSheetException Exception(
+        this IXLWorksheet sheet,
+        string message,
+        Exception? inner = null)
     {
-        return new(sheet.Name, message, inner);
+        return new(
+            sheetName: sheet.Name,
+            message: message,
+            inner);
     }
 
     public static int ColumnCount(this IXLCell cell)
     {
-        if (cell.MergedRange() is { } merged)
+        if (!(cell.MergedRange() is { } merged))
         {
-            return merged.ColumnCount();
+            return 1;
         }
-        return 1;
+
+        return merged.ColumnCount();
     }
 
     public static IXLRange ActualRange(this IXLCell cell)
@@ -44,7 +66,7 @@ public static class ExcelLibExtensions
         foreach (var cell in row.Cells())
         {
             var range = cell.ActualRange();
-            if (ReferenceEquals(currentRange, range))
+            if (ReferenceEquals(objA: currentRange, objB: range))
             {
                 continue;
             }
@@ -53,7 +75,6 @@ public static class ExcelLibExtensions
             yield return cell;
         }
     }
-
 }
 
 public interface ICellProcessor<TColumn>
@@ -63,9 +84,12 @@ public interface ICellProcessor<TColumn>
 
 public sealed class ExcelSheetException : NotSupportedException
 {
-    public string SheetName { get; set; }
+    public string SheetName { get; }
 
-    public ExcelSheetException(string sheetName, string message, Exception? inner = null)
+    public ExcelSheetException(
+        string sheetName,
+        string message,
+        Exception? inner = null)
         : base($"Sheet {sheetName}: {message}", inner)
     {
         SheetName = sheetName;
@@ -74,9 +98,12 @@ public sealed class ExcelSheetException : NotSupportedException
 
 public sealed class ExcelRangeException : NotSupportedException
 {
-    public string CellRange { get; set; }
+    public string CellRange { get; }
 
-    public ExcelRangeException(string cellRange, string message, Exception? inner = null)
+    public ExcelRangeException(
+        string cellRange,
+        string message,
+        Exception? inner = null)
         : base($"{cellRange}: {message}", inner)
     {
         CellRange = cellRange;

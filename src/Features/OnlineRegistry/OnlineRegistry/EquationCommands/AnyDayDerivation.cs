@@ -8,9 +8,11 @@ public sealed class AnyDayDerivation : IEquationCommandsDerivation
     public IEnumerable<LessonEquationCommand> DeriveCommands(GetLessonEquationCommandsParams p)
     {
         // ReSharper disable once GenericEnumeratorNotDisposed
-        using var remoteE = p.RemoteLessons.GetEnumerator().RememberIsDone();
+        using var remoteE = p.RemoteLessons.GetEnumerator()
+            .RememberIsDone();
         // ReSharper disable once GenericEnumeratorNotDisposed
-        using var localE = p.LocalLessons.GetEnumerator().RememberIsDone();
+        using var localE = p.LocalLessons.GetEnumerator()
+            .RememberIsDone();
 
         remoteE.MoveNext();
         localE.MoveNext();
@@ -55,5 +57,3 @@ public sealed class AnyDayDerivation : IEquationCommandsDerivation
         }
     }
 }
-
-

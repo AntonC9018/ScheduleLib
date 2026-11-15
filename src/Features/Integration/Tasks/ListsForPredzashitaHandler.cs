@@ -26,13 +26,16 @@ public sealed class CommissionMember
 public sealed class PreDefenseOptions
 {
     public Commission<CommissionMember>[]? Commissions { get; set; }
-    public (string Student, string Group)[]? AvrStudents { get; set; }
+    public AvrStudent[]? AvrStudents { get; set; }
 }
+
+/// <summary>A student that is listed for pre-defense by their own group.</summary>
+public readonly record struct AvrStudent(string Student, string Group);
 
 public sealed partial class ListsForPredzashitaTaskHandler
 {
     // Initialize these in a static constructor.
-    private static (string Student, string Group)[] AvrStudents { get; set; } = [];
+    private static AvrStudent[] AvrStudents { get; set; } = [];
     private static Commission<CommissionMember>[] Commissions { get; set; } = [];
 
     private readonly ThesesListProvider _thesesListProvider;
@@ -40,14 +43,17 @@ public sealed partial class ListsForPredzashitaTaskHandler
     private readonly INameRemapper _nameRemapper;
     private readonly PreDefenseOptions _options;
 
-    public static bool HasConfiguredCommissions(PreDefenseOptions options) =>
-        (options.Commissions ?? Commissions) is { Length: > 0 } configured
-        && configured.All(x => x.Members.Length > 0);
+    public static bool HasConfiguredCommissions(PreDefenseOptions options)
+    {
+        return (options.Commissions ?? Commissions) is { Length: > 0 } configured
+            && configured.All(x => x.Members.Length > 0);
+    }
 
     public ListsForPredzashitaTaskHandler(
         ThesesListProvider thesesListProvider,
         ILogger<ListsForPredzashitaTaskHandler> logger,
-        [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper nameRemapper,
+        [FromKeyedServices(NameMappingKeys.Teacher)]
+        INameRemapper nameRemapper,
         IOptions<PreDefenseOptions> options)
     {
         _thesesListProvider = thesesListProvider;
@@ -59,8 +65,21 @@ public sealed partial class ListsForPredzashitaTaskHandler
     public string? GetConfigurationError()
     {
         if (!HasConfiguredCommissions(_options))
-            return "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
-        try { return GetConfigurationError(ParseCommissionNames()); }
+        {
+            return
+                "Pre-defense requires nonempty commissions with members in the existing C# configuration. Configure commissions before running export pre-defense.";
+        }
+
+        try
+        {
+            var result = GetConfigurationError(ParseCommissionNames());
+            if (result is null)
+            {
+                return null;
+            }
+
+            return result;
+        }
         catch (InvalidDataException e) { return e.Message; }
     }
 
@@ -71,31 +90,59 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var commission in commissions)
         {
             if (!numbers.Add(commission.Number))
+            {
                 return $"Pre-defense commission number {commission.Number} is configured more than once.";
+            }
+
             foreach (var member in commission.Members)
             {
                 if (!members.Add(member))
-                    return $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+                {
+                    return
+                        $"Pre-defense teacher '{member}' is configured more than once among commission members after name remapping.";
+                }
             }
         }
         return null;
     }
 
-    private Commission<Name>[] ParseCommissionNames() => (_options.Commissions ?? Commissions).Select(x =>
-        new Commission<Name>
-        {
-            Members = x.Members.Select((y, index) => ParseCommissionMember(x.Number, index + 1, y.Name)).ToArray(),
-            Number = x.Number,
-            Room = x.Room,
-        }).ToArray();
-
-    private Name ParseCommissionMember(int commissionNumber, int memberNumber, string name)
+    private Commission<Name>[] ParseCommissionNames()
     {
-        try { return _nameRemapper.RemapName(NameHelper.Parse(name)); }
+        return (_options.Commissions ?? Commissions).Select(commission =>
+            {
+                var members = commission.Members.Select((member, index) =>
+                        ParseCommissionMember(
+                            commissionNumber: commission.Number,
+                            memberNumber: index + 1,
+                            member.Name))
+                    .ToArray();
+                return new Commission<Name>
+                {
+                    Members = members,
+                    Number = commission.Number,
+                    Room = commission.Room,
+                };
+            })
+            .ToArray();
+    }
+
+    private Name ParseCommissionMember(
+        int commissionNumber,
+        int memberNumber,
+        string name)
+    {
+        try
+        {
+            var parsedName = NameHelper.Parse(name);
+            return _nameRemapper.RemapName(parsedName);
+        }
         catch (NameParsingException e)
         {
-            throw new InvalidDataException(
-                $"Pre-defense commission {commissionNumber} member {memberNumber} has an invalid name '{name}': {e.Message}", e);
+            throw PreDefenseInvalidDataExceptionFactory.ForInvalidMemberName(
+                commissionNumber: commissionNumber,
+                memberNumber: memberNumber,
+                name,
+                e);
         }
     }
 
@@ -105,25 +152,35 @@ public sealed partial class ListsForPredzashitaTaskHandler
         CancellationToken cancellationToken)
     {
         var data = await BuildWorkbooks(thesisType, cancellationToken);
-        await WriteAllAsync(data, outputDirectory, cancellationToken);
+        await WriteAllAsync(
+            data,
+            outputDirectory,
+            cancellationToken);
     }
 
     public async Task<Dictionary<int, List<StudentThesisRecord>>> BuildWorkbooks(
-        ThesisType thesisType, CancellationToken cancellationToken)
+        ThesisType thesisType,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!HasConfiguredCommissions(_options))
+        {
             throw new InvalidDataException("Pre-defense requires commission data in the existing C# configuration.");
+        }
+
         var commissionsWithParsedNames = ParseCommissionNames();
         if (GetConfigurationError(commissionsWithParsedNames) is { } error)
+        {
             throw new InvalidDataException(error);
+        }
+
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
 
         var avrLookup = new HashSet<NameAndGroup>(Hasher.Instance);
         foreach (var x in _options.AvrStudents ?? AvrStudents)
         {
             var name = NameHelper.Parse(x.Student);
-            avrLookup.Add(new(name, x.Group));
+            avrLookup.Add(new NameAndGroup(name, x.Group));
         }
         var nameComparer = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance;
 
@@ -136,7 +193,10 @@ public sealed partial class ListsForPredzashitaTaskHandler
 
             var thesisName = t.ThesisNames.Storage.First(x => x != null) ?? "";
             var list = studentByTeacher.GetOrAdd(teacherName, _ => new());
-            list.Add(new(studentName, group, thesisName));
+            list.Add(new ThesisRecord(
+                studentName,
+                Group: group,
+                ThesisName: thesisName));
         }
 
         Dictionary<Name, Commission<Name>> commissionByTeacher = new(nameComparer);
@@ -162,25 +222,25 @@ public sealed partial class ListsForPredzashitaTaskHandler
         foreach (var (teacher, commision) in commissionByTeacher)
         {
             var list = thesesOfCommision[commision.Number];
-            if (!studentByTeacher.TryGetValue(teacher, out var theses1))
+            if (!studentByTeacher.TryGetValue(teacher, out var teacherTheses))
             {
                 _logger.LogWarning("Teacher {Teacher} is in a commission but has no students!", teacher.ToString());
                 continue;
             }
-            foreach (var t in theses1)
+            foreach (var t in teacherTheses)
             {
                 string? practicaPlace = null;
-                if (avrLookup.Contains(new(t.StudentName, t.Group)))
+                if (avrLookup.Contains(new NameAndGroup(t.StudentName, t.Group)))
                 {
                     practicaPlace = "Laborator AVR";
                 }
 
-                list.Add(new(
-                    t.StudentName,
-                    teacher,
-                    t.Group,
-                    t.ThesisName,
-                    practicaPlace));
+                list.Add(new StudentThesisRecord(
+                    StudentName: t.StudentName,
+                    TeacherName: teacher,
+                    Group: t.Group,
+                    ThesisName: t.ThesisName,
+                    PracticaPlace: practicaPlace));
             }
         }
 
@@ -194,7 +254,10 @@ public sealed partial class ListsForPredzashitaTaskHandler
         Stream output,
         CancellationToken cancellationToken)
     {
-        await using var spreadsheet = await Spreadsheet.CreateNewAsync(output, options: null, cancellationToken);
+        await using var spreadsheet = await Spreadsheet.CreateNewAsync(
+            output,
+            options: null,
+            cancellationToken);
         const string font = "Times New Roman";
 
         var headerStyle = spreadsheet.AddStyle(new()
@@ -219,21 +282,25 @@ public sealed partial class ListsForPredzashitaTaskHandler
             },
         });
 
-        await spreadsheet.StartWorksheetAsync($"Comisia {commissionNumber}", options: null, cancellationToken);
+        await spreadsheet.StartWorksheetAsync(
+            $"Comisia {commissionNumber}",
+            options: null,
+            cancellationToken);
 
         // Header
         Cell HeaderCell(string s) => new(s, headerStyle);
         await spreadsheet.AddRowAsync(
-        [
-            HeaderCell("Nr."),
-            HeaderCell("Nume, prenume student"),
-            HeaderCell("Grupa"),
-            HeaderCell("Conducător științific"),
-            HeaderCell("Compania / locul de practică"),
-            HeaderCell("Documente prezentate (agenda / raport)"),
-            HeaderCell("Observații privind prezentarea și activitatea"),
-            HeaderCell("Nota finală"),
-        ], cancellationToken);
+            [
+                HeaderCell("Nr."),
+                HeaderCell("Nume, prenume student"),
+                HeaderCell("Grupa"),
+                HeaderCell("Conducător științific"),
+                HeaderCell("Compania / locul de practică"),
+                HeaderCell("Documente prezentate (agenda / raport)"),
+                HeaderCell("Observații privind prezentarea și activitatea"),
+                HeaderCell("Nota finală"),
+            ],
+            cancellationToken);
 
         for (int i = 0; i < data.Count; i++)
         {
@@ -245,7 +312,7 @@ public sealed partial class ListsForPredzashitaTaskHandler
                 {
                     return new(i1, bodyStyle);
                 }
-                else if (val is string s1)
+                if (val is string s1)
                 {
                     return new(s1, bodyStyle);
                 }
@@ -253,16 +320,17 @@ public sealed partial class ListsForPredzashitaTaskHandler
             }
 
             await spreadsheet.AddRowAsync(
-            [
-                BodyCell(i + 1),
-                BodyCell(student.StudentName.ToString()),
-                BodyCell(student.Group),
-                BodyCell(student.TeacherName.ToString()),
-                BodyCell(student.PracticaPlace ?? ""),
-                BodyCell("da/da"),
-                BodyCell(student.ThesisName),
-                BodyCell(10),
-            ], cancellationToken);
+                [
+                    BodyCell(i + 1),
+                    BodyCell(student.StudentName.ToString()),
+                    BodyCell(student.Group),
+                    BodyCell(student.TeacherName.ToString()),
+                    BodyCell(student.PracticaPlace ?? ""),
+                    BodyCell("da/da"),
+                    BodyCell(student.ThesisName),
+                    BodyCell(10),
+                ],
+                cancellationToken);
         }
         await spreadsheet.FinishAsync(cancellationToken);
     }
@@ -274,7 +342,10 @@ public sealed partial class ListsForPredzashitaTaskHandler
     {
         foreach (var (commissionNumber, students) in data)
         {
-            await using var outputFile = output.OpenFile($"comisia_{commissionNumber}.xlsx", FileMode.Create, FileAccess.Write);
+            await using var outputFile = output.OpenFile(
+                $"comisia_{commissionNumber}.xlsx",
+                FileMode.Create,
+                FileAccess.Write);
             await WriteAsync(
                 commissionNumber,
                 students,
@@ -285,10 +356,12 @@ public sealed partial class ListsForPredzashitaTaskHandler
 }
 
 public readonly record struct NameAndGroup(Name Name, string Group);
+
 public readonly record struct ThesisRecord(
     Name StudentName,
     string Group,
     string ThesisName);
+
 public sealed record class StudentThesisRecord(
     Name StudentName,
     Name TeacherName,
@@ -302,23 +375,23 @@ public sealed class Hasher : IEqualityComparer<NameAndGroup>
 
     public bool Equals(NameAndGroup x, NameAndGroup y)
     {
-        if (!Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.Equals(x.Name, y.Name))
+        if (!Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.Equals(x: x.Name, y: y.Name))
         {
             return false;
         }
 
-        if (x.Group != y.Group)
+        if (x.Group == y.Group)
         {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     public int GetHashCode(NameAndGroup obj)
     {
         var a = Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance.GetHashCode(obj.Name);
         var b = obj.Group.GetHashCode();
-        return HashCode.Combine(a, b);
+        return HashCode.Combine(value1: a, value2: b);
     }
 }

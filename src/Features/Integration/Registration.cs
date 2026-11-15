@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using System.Reflection;
 using System.Text;
 using Anton.LayeredData;
@@ -50,8 +51,11 @@ public static class Registration
                 builder.WriteTo.Logger(w =>
                 {
                     w = w.Enrich.With(new RemovePropertyEnricher("EventId"));
+
                     w = w.Enrich.With(new RemovePropertyEnricher("SourceContext"));
-                    w.WriteTo.Console(standardErrorFromLevel: LogEventLevel.Verbose, outputTemplate:
+                    w.WriteTo.Console(
+                        standardErrorFromLevel: LogEventLevel.Verbose,
+                        outputTemplate:
                         "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
                 });
 
@@ -81,6 +85,7 @@ public static class Registration
             DeadlinesExcelConfig.Register(services);
             LabTasksDatabaseConfig.Register(services);
             RegistryLessonFilterConfig.Register(services);
+            ScheduleDerivationConfig.Register(services);
 
             // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
@@ -93,8 +98,12 @@ public static class Registration
         public void AddDynamicConfigurationBinders()
         {
             services.AddScoped<IMarkedConfigurationSectionResolver, MarkedConfigurationSectionResolver>();
-            services.AddScoped(typeof(MarkedDynamicOptionsResolver<>), typeof(MarkedDynamicOptionsResolver<>));
-            services.AddScoped(typeof(DynamicOptionsBinder<>), typeof(DynamicOptionsBinder<>));
+            services.AddScoped(
+                serviceType: typeof(MarkedDynamicOptionsResolver<>),
+                implementationType: typeof(MarkedDynamicOptionsResolver<>));
+            services.AddScoped(
+                serviceType: typeof(DynamicOptionsBinder<>),
+                implementationType: typeof(DynamicOptionsBinder<>));
         }
 
         public void AddScheduleServices()
@@ -110,11 +119,11 @@ public static class Registration
             void AddScheduleGeneralServices()
             {
                 services.AddSingleton<LookupFacade>();
-                services.AddSingleton<LookupModule>(sp =>
+                services.AddSingleton(sp =>
                 {
                     return sp.GetRequiredService<ScheduleBuilder>().LookupModule!;
                 });
-                services.AddSingleton<ScheduleBuilder>(sp =>
+                services.AddSingleton(sp =>
                 {
                     var builder = new ScheduleBuilder();
                     builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
@@ -128,7 +137,7 @@ public static class Registration
 
             void AddParserServices()
             {
-                services.AddSingleton<GroupParseContext>(sp =>
+                services.AddSingleton(sp =>
                 {
                     var options = sp.GetRequiredService<IOptions<StudyYearOptions>>().Value;
                     return GroupParseContext.Create(new()
@@ -139,8 +148,8 @@ public static class Registration
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
                 services.AddSingleton(ScheduleDefaults.Config.SpecializationRegistry);
-                services.AddSingleton<CourseNameParserConfig>(ScheduleDefaults.Config.CourseNameParser);
-                services.AddSingleton<CourseNameUnifierConfig>(sp =>
+                services.AddSingleton(ScheduleDefaults.Config.CourseNameParser);
+                services.AddSingleton(sp =>
                 {
                     var parserConfig = sp.GetRequiredService<CourseNameParserConfig>();
                     var unificationConfig = ScheduleDefaults.Config.CourseNameUnificationConfig;
@@ -154,7 +163,7 @@ public static class Registration
                 services.AddSingleton(LessonTypeParser.Instance);
                 services.AddSingleton(RoomParser.Instance);
                 services.AddSingleton(SubGroupPrefixMatcher.Default);
-                services.AddSingleton<LessonParserFactory>(sp =>
+                services.AddSingleton(sp =>
                 {
                     return new LessonParserFactory(new()
                     {
@@ -173,7 +182,7 @@ public static class Registration
             {
                 services.AddSingleton<LessonTimeConfig>(
                     LessonTimeConfig.CreateDefault());
-                services.AddSingleton<CurrentYearSemesterIntervalProvider>(sp =>
+                services.AddSingleton(sp =>
                 {
                     _ = sp;
                     return ScheduleDefaults.Config.SemesterIntervalProvider();
@@ -206,7 +215,7 @@ public static class Registration
                 // These don't seem necessary?
                 // I'm not sure how to set up the schedule in DI.
                 services.AddSingleton<ScheduleProvider>();
-                services.AddScoped<Schedule>(x =>
+                services.AddScoped(x =>
                 {
                     var provider = x.GetRequiredService<ScheduleProvider>();
                     // Caching this should probably be on by default / make this singleton.
@@ -232,7 +241,6 @@ public static class Registration
                 services.AddOptions<ManifestDirectoriesOptions>();
                 services.AddStudyYear();
                 services.AddOptions<RegularSeminarDateConfig>();
-                services.AddOptions<GoogleDriveOptions>();
             }
         }
 
@@ -270,10 +278,7 @@ public static class Registration
                 services.AddScoped<AddLessonsToOnlineRegistryForCurrentTeacherTaskHandler>();
             }
 
-            {
-                services.AddScoped<SyncDriveFolderTaskHandler>();
-                services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
-            }
+            services.AddScoped<UpdateLessonsInGoogleCalendarTaskHandler>();
             {
                 services.AddScoped<ThesesConversionTaskHandler>();
                 services.AddScoped<ListsForPredzashitaTaskHandler>();

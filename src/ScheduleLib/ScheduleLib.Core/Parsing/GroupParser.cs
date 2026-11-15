@@ -36,21 +36,24 @@ public sealed class GroupParseContext
 
     public Grade DetermineGrade(int year)
     {
-        var ret = CurrentStudyYear.Mod100 - year + 1;
-        return new(ret);
+        int completedStudyYears = CurrentStudyYear.Mod100 - year;
+        int grade = completedStudyYears + 1;
+        return new(grade);
     }
 }
 
 public static class GroupHelper
 {
-    // Just do the lazy thing here for now.
+    /// <summary>The parsed label of a group name and the flags that were recognized next to it.</summary>
+    private readonly record struct GroupLabel(string Label, bool IsFR, bool IsMaster);
+
     public static Group? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         try
         {
-            return Parse(context, name);
+            return context.Parse(name);
         }
-        catch (Exception)
+        catch (InvalidGroupNameException)
         {
             return null;
         }
@@ -63,9 +66,12 @@ public static class GroupHelper
         // IAFR2403 R
         // SMMSPA 2401
         // MIA 2402 (ru)
-        if (name.Length < 5)
+        const int minimumNameLength = 5;
+        if (name.Length < minimumNameLength)
         {
-            throw new ArgumentException("The minimum length of the name is 5", paramName: nameof(name));
+            throw InvalidGroupNameException.ForNameTooShort(
+                minimumLength: minimumNameLength,
+                actualLength: name.Length);
         }
 
         var baseParser = new SequenceReader(name);
@@ -80,11 +86,6 @@ public static class GroupHelper
         }
 
         var qualificationType = isMaster ? QualificationType.Master : QualificationType.Licenta;
-
-        if (isFr && isDual)
-        {
-            throw InvalidGroupNameException.ForFrenchAndDual();
-        }
 
         parser.SkipWhitespace();
 
@@ -105,19 +106,7 @@ public static class GroupHelper
         parser.SkipWhitespace();
         var language = ParseLanguage();
 
-        AttendanceMode attendanceMode;
-        if (isFr)
-        {
-            attendanceMode = AttendanceMode.FrecventaRedusa;
-        }
-        else if (isDual)
-        {
-            attendanceMode = AttendanceMode.Dual;
-        }
-        else
-        {
-            attendanceMode = AttendanceMode.Zi;
-        }
+        var attendanceMode = AttendanceModeHelper.FromFlags(isFr: isFr, isDual: isDual);
 
         return new()
         {
@@ -129,7 +118,6 @@ public static class GroupHelper
             QualificationType = qualificationType,
             AttendanceMode = attendanceMode,
         };
-
 
         Language ParseLanguage()
         {
@@ -180,9 +168,12 @@ public static class GroupHelper
                 {
                     languageLen++;
                 }
-                else if (ch == ')' && isParen)
+                else
                 {
-                    break;
+                    if (ch == ')' && isParen)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -194,7 +185,7 @@ public static class GroupHelper
         }
     }
 
-    private static (string Label, bool IsFR, bool IsMaster) ParseLabel(ref SequenceReader reader)
+    private static GroupLabel ParseLabel(ref SequenceReader reader)
     {
         var bparser = reader.BufferedView();
         if (!ParserHelper.IsUpperAscii(bparser.Current))
@@ -221,7 +212,10 @@ public static class GroupHelper
         {
             // Skip until the label is ending.
             var skip = new SkipLabelUntilFR();
-            bparser.SkipWindow(ref skip, minWindowSize: 1, maxWindowSize: 2);
+            bparser.SkipWindow(
+                ref skip,
+                minWindowSize: 1,
+                maxWindowSize: 2);
             isFr = skip.IsFr;
 
             label = labelParser.PeekSpanUntilPosition(bparser.Position);
@@ -253,10 +247,14 @@ public static class GroupHelper
         }
 
         reader.MoveTo(bparser.Position);
-        return (label.ToString(), isFr, isCertainlyMaster);
+        return new(
+            label.ToString(),
+            IsFR: isFr,
+            IsMaster: isCertainlyMaster);
     }
 
     public const int GroupNumberLen = 2;
+
     private static int ParseGroup(ref SequenceReader reader)
     {
         var result = reader.ConsumePositiveIntWithMaxLength(GroupNumberLen);
@@ -268,27 +266,28 @@ public static class GroupHelper
     }
 
     public const int YearLen = 2;
+
     private static int ParseYear(ref SequenceReader reader)
     {
         var result = reader.ConsumePositiveInt(YearLen);
         switch (result.Status)
         {
             case ConsumeIntStatus.Ok:
-            {
-                return (int) result.Value;
-            }
+                {
+                    return (int) result.Value;
+                }
             case ConsumeIntStatus.InputTooShort:
-            {
-                throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
-            }
+                {
+                    throw InvalidGroupNameException.ForInvalidYearLength(YearLen);
+                }
             case ConsumeIntStatus.NotAnInteger:
-            {
-                throw InvalidGroupNameException.ForInvalidYear();
-            }
+                {
+                    throw InvalidGroupNameException.ForInvalidYear();
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 

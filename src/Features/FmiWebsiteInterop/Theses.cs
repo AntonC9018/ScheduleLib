@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Core.Services;
 using ScheduleLib.Parsing;
-
 using Parsing = ScheduleLib.Theses.Parsing;
 
 namespace FmiWebsiteInterop.Theses;
@@ -43,12 +42,14 @@ public static class ThesesJsonHelper
         Type = "TEZA_DE_AN",
         Label = "Teză de an",
     };
+
     private static readonly ThesisType Licenta = new()
     {
         TypeId = 2,
         Type = "TEZA_DE_LICENTA",
         Label = "Teză de licenta",
     };
+
     private static readonly ThesisType Master = new()
     {
         TypeId = 3,
@@ -89,7 +90,6 @@ public sealed class ThesesConversionTaskHandler(
     Parsing.INameRemapper _nameRemapper,
     ILogger<ThesesConversionTaskHandler> _logger)
 {
-
     public async Task Handle(
         CancellationToken cancellationToken,
         OutputDirectory outputDirectory)
@@ -97,14 +97,22 @@ public sealed class ThesesConversionTaskHandler(
         var theses = await _thesesListProvider.DownloadAndParse(cancellationToken);
         var slugByName = await _teacherData.SlugMap(cancellationToken);
 
-        var forSerialization = theses.SelectMany(x => x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i)))
+        var forSerialization = theses.SelectMany(x =>
+            {
+                var indexedTheses = x.Value.Items.Select((it, i) => (Type: x.Key, Item: it, Id: i));
+                return indexedTheses;
+            })
             .GroupBy(x => x.Item.TeacherName, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
-            .Select(x => (
-                Teacher: x.Key,
-                Theses: x
-                    .OrderBy(i => i.Type)
-                    .ThenBy(i => i.Id)
-                    .Select(i => ThesesJsonHelper.ConvertThesis(i.Type, i.Item))));
+            .Select(x =>
+            {
+                var teacherTheses = (
+                    Teacher: x.Key,
+                    Theses: x
+                        .OrderBy(i => i.Type)
+                        .ThenBy(i => i.Id)
+                        .Select(i => ThesesJsonHelper.ConvertThesis(i.Type, i.Item)));
+                return teacherTheses;
+            });
 
         foreach (var x in forSerialization)
         {
@@ -115,7 +123,10 @@ public sealed class ThesesConversionTaskHandler(
                 continue;
             }
             var fileName = $"{slug}.json";
-            await using var outputFile = outputDirectory.OpenFile(fileName, FileMode.Create, FileAccess.Write);
+            await using var outputFile = outputDirectory.OpenFile(
+                fileName,
+                FileMode.Create,
+                FileAccess.Write);
             await JsonSerializer.SerializeAsync(
                 outputFile,
                 new RootObject

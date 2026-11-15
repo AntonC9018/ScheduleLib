@@ -25,7 +25,9 @@ internal sealed class GroupPartitionResolver
         }
         var subGroup = new SubGroup(groupForSearch.SubGroupName.ToString());
         if (Specializations.TryResolveSpecialization(
-            subGroup.Value, _specializationRegistry, out var specialization))
+                subGroup.Value,
+                _specializationRegistry,
+                out var specialization))
         {
             return new(SubGroup.All, specialization);
         }

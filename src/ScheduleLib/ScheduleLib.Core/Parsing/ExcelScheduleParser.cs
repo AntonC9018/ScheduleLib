@@ -1,3 +1,4 @@
+using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
@@ -15,7 +16,7 @@ public static class ExcelScheduleParser
     public readonly struct Params
     {
         public required Stream InputFile { get; init; }
-        public required DocParseContext Context { get; init; }
+        public required ScheduleImportContext Context { get; init; }
         public required StringBuilder StringBuilder { get; init; }
 
         public StringBuilder GetCleanStringBuilder()
@@ -25,22 +26,35 @@ public static class ExcelScheduleParser
         }
     }
 
-    public static Config FrConfig => new()
+    public static Config FrConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa),
-        AllowedQualificationTypes = new(QualificationType.Licenta),
-        AddLessonHandler = FrScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeekAndDate,
-        ExpectBullshitRow = true,
-    };
-    public static Config MasterConfig => new()
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.FrecventaRedusa, AttendanceMode.DualFr),
+                AllowedQualificationTypes = new(QualificationType.Licenta),
+                AddLessonHandler = FrScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeekAndDate,
+                ExpectBullshitRow = true,
+            };
+        }
+    }
+
+    public static Config MasterConfig
     {
-        AllowedAttendanceModes = new(AttendanceMode.Zi),
-        AllowedQualificationTypes = new(QualificationType.Master),
-        AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
-        DayParseMode = DayParseMode.DayOfWeek,
-        ExpectBullshitRow = false,
-    };
+        get
+        {
+            return new()
+            {
+                AllowedAttendanceModes = new(AttendanceMode.Zi, AttendanceMode.DualZi),
+                AllowedQualificationTypes = new(QualificationType.Master),
+                AddLessonHandler = RegularScheduleAddLessonHandler.Instance,
+                DayParseMode = DayParseMode.DayOfWeek,
+                ExpectBullshitRow = false,
+            };
+        }
+    }
 
     public static ValueTask ParseFrIntoSchedule(Params p)
     {
@@ -68,17 +82,22 @@ public static class ExcelScheduleParser
         using var xl = new XLWorkbook(p.InputFile);
         var ws = xl.FindRelevantWorksheet();
 
-        using var rowE = ws.Worksheet.Rows().GetEnumerator();
+        using var rowE = ws.Worksheet.Rows()
+            .GetEnumerator();
         if (!rowE.MoveNext())
         {
-            throw new NotSupportedException("Expected header row!");
+            throw ws.Exception("Expected header row!");
         }
 
         var previousResult = ParsingIterResult.None;
         bool isFirstIter = true;
         while (true)
         {
-            var result = DoParsingIter(rowE, p, config, isFirstIter);
+            var result = DoParsingIter(
+                rowE,
+                p,
+                config,
+                isFirstIter);
             if (result == ParsingIterResult.EndOfFile)
             {
                 break;
@@ -105,26 +124,29 @@ public static class ExcelScheduleParser
         {
             return worksheets.First();
         }
-        var ret = xl.Worksheets
-            .Select(x =>
-            {
-                var parser = new SequenceReader(x.Name);
-                if (!parser.ConsumeExactString("sem"))
-                {
-                    return default;
-                }
-                if (!parser.SkipWhitespace().SkippedAny)
-                {
-                    return default;
-                }
-                var roman = parser.ReadRoman();
-                if (roman.Status != ReadRomanStatus.Ok)
-                {
-                    return default;
-                }
 
-                return new NumberedWorksheet(x, roman.Number);
-            })
+        NumberedWorksheet ProjectValue(IXLWorksheet x)
+        {
+            var parser = new SequenceReader(x.Name);
+            if (!parser.ConsumeExactString("sem"))
+            {
+                return default;
+            }
+            if (!parser.SkipWhitespace().SkippedAny)
+            {
+                return default;
+            }
+            var roman = parser.ReadRoman();
+            if (roman.Status != ReadRomanStatus.Ok)
+            {
+                return default;
+            }
+
+            return new NumberedWorksheet(x, roman.Number);
+        }
+
+        var ret = xl.Worksheets
+            .Select(ProjectValue)
             // TODO: add validation for sem number?
             .WhereNotDefault()
             .Single()
@@ -162,7 +184,7 @@ public static class ExcelScheduleParser
         {
             if (!rowE.MoveNext())
             {
-                throw new NotSupportedException("Expected a bullshit row!");
+                throw ExcelScheduleMissingSectionException.ForMissingMetadataSeparatorRow();
             }
         }
 
@@ -182,7 +204,8 @@ public static class ExcelScheduleParser
                 break;
             }
             var row = rowE.Current;
-            var cellE = row.CellsWithMergedAppearingOnce().GetEnumerator();
+            var cellE = row.CellsWithMergedAppearingOnce()
+                .GetEnumerator();
             var action = rowIterationContext.Update(row, cellE);
             if (action == RowIterationContext.UpdateAction.Done)
             {
@@ -191,7 +214,8 @@ public static class ExcelScheduleParser
             Debug.Assert(action == RowIterationContext.UpdateAction.Process);
             currentResult = ParsingIterResult.ProcessedNormally;
 
-            var cellIterationContext = new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
+            var cellIterationContext =
+                new CellIterationContext(cellE, rowIterationContext.LessonsEndRowNumberForLesson);
 
             while (true)
             {
@@ -207,7 +231,7 @@ public static class ExcelScheduleParser
                     continue;
                 }
 
-                var lessonGroups = lessonGroupsMem[.. cellIterationContext.ColSpan];
+                var lessonGroups = lessonGroupsMem[..cellIterationContext.ColSpan];
                 foreach (var (index, columnNumber) in cellIterationContext.ColumnNumbers.WithIndex())
                 {
                     var offsetIndex = offset.GetUnOffsetIndex(columnNumber);
@@ -227,7 +251,8 @@ public static class ExcelScheduleParser
                 var text = value.GetText();
                 using var textAsEnumerable = SingleItemEnumerator.Create(text.AsMemory());
                 lessonParser.Lexer.Reset(textAsEnumerable);
-                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder).GetEnumerator();
+                using var parsedLessonE = lessonParser.ParseLessons(stringBuilder)
+                    .GetEnumerator();
                 while (true)
                 {
                     try
@@ -321,7 +346,7 @@ public static class ExcelScheduleParser
 
             if (!cellE.MoveNext())
             {
-                throw new NotSupportedException("No date column found");
+                throw row.Exception("No date column found");
             }
 
             {
@@ -337,7 +362,7 @@ public static class ExcelScheduleParser
 
             if (!cellE.MoveNext())
             {
-                throw new NotSupportedException("No time slot cell");
+                throw row.Exception("No time slot cell");
             }
 
             {
@@ -382,7 +407,11 @@ public static class ExcelScheduleParser
 
             _currentDayRowSpan = range.RowCount();
             _rowsSinceLastDate = 0;
-            var newDay = ParseDay(cell, text, dayNameParser, dayParseMode);
+            var newDay = ParseDay(
+                cell,
+                text,
+                dayNameParser,
+                dayParseMode);
             _lastDateRange = range;
             _previousTimeSlotRoman = NoTimeSlotRoman;
             _rowsSinceLastTimeSlot = 0;
@@ -519,12 +548,15 @@ public static class ExcelScheduleParser
             }
             var cell = _cellE.Current;
             var range = cell.ActualRange();
-            if (range.LastRow().RowNumber() >= lessonsEndRowNumber)
+            if (range.LastRow()
+                    .RowNumber()
+                >= lessonsEndRowNumber)
             {
                 throw cell.Exception("Lesson's span exits the current time slot span");
             }
 
-            var newColNumber = range.FirstColumn().ColumnNumber();
+            var newColNumber = range.FirstColumn()
+                .ColumnNumber();
             if (_colNumber != -1)
             {
                 int expectedNextCol = _colNumber + _colSpan;
@@ -642,7 +674,8 @@ public static class ExcelScheduleParser
             }
             if (startOffset == null)
             {
-                startOffset = range.FirstColumn().ColumnNumber();
+                startOffset = range.FirstColumn()
+                    .ColumnNumber();
             }
 
             if (!parser.SkipWhitespace().SkippedAny)
@@ -656,7 +689,8 @@ public static class ExcelScheduleParser
             }
 
             var grade = romanResult.Number;
-            var columnNumber = range.FirstColumn().ColumnNumber();
+            var columnNumber = range.FirstColumn()
+                .ColumnNumber();
             var columnCount = cell.ColumnCount();
             int index = columnNumber - startOffset.Value;
 
@@ -705,14 +739,15 @@ public static class ExcelScheduleParser
     {
         if (!rowE.MoveNext())
         {
-            throw new NotSupportedException("No groups row found.");
+            throw ExcelScheduleMissingSectionException.ForMissingGroupsHeaderRow();
         }
         var outputCount = grades.Count;
         if (outputCount == 0)
         {
             return default;
         }
-        using var cellE = rowE.Current.CellsWithMergedAppearingOnce().GetEnumerator();
+        using var cellE = rowE.Current.CellsWithMergedAppearingOnce()
+            .GetEnumerator();
         while (true)
         {
             if (!cellE.MoveNext())
@@ -720,7 +755,9 @@ public static class ExcelScheduleParser
                 return default;
             }
             var cell = cellE.Current;
-            var col = cell.AsRange().FirstColumn().ColumnNumber();
+            var col = cell.AsRange()
+                .FirstColumn()
+                .ColumnNumber();
             var colIndex = offset.GetUnOffsetIndex(col);
             if (colIndex.Value == 0)
             {
@@ -743,7 +780,9 @@ public static class ExcelScheduleParser
             while (true)
             {
                 var cell = cellE.Current;
-                var col = cell.AsRange().FirstColumn().ColumnNumber();
+                var col = cell.AsRange()
+                    .FirstColumn()
+                    .ColumnNumber();
                 var colIndex = offset.GetUnOffsetIndex(col);
                 if (colIndex.Value != groupIndex)
                 {
@@ -790,7 +829,9 @@ public static class ExcelScheduleParser
 
             if (groupIndex != outputCount)
             {
-                throw new NotSupportedException("Not all columns covered by year are covered by groups");
+                throw new IncompleteExcelGroupHeaderException(
+                    expectedGroupCount: outputCount,
+                    actualGroupCount: groupIndex);
             }
         }
         catch
@@ -821,14 +862,14 @@ public readonly record struct AddLessonResult(string? ErrorString)
 
 public readonly ref struct AddLessonParams
 {
-    public readonly DocParseContext Context;
+    public readonly ScheduleImportContext Context;
     public readonly ref readonly ParsedLesson ParsedLesson;
     public readonly ReadOnlySpan<GroupId> Groups;
     public readonly TimeSlot TimeSlot;
     public readonly Day Day;
 
     public AddLessonParams(
-        DocParseContext context,
+        ScheduleImportContext context,
         in ParsedLesson parsedLesson,
         ReadOnlySpan<GroupId> groups,
         TimeSlot timeSlot,
@@ -900,7 +941,9 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
 
         if (!allowedTypes.Contains(p.ParsedLesson.LessonType))
         {
-            return AddLessonResult.Error($"Only {allowedTypes} lesson types are supported");
+            string err = $"Only {allowedTypes} lesson types are supported";
+            var error = AddLessonResult.Error(err);
+            return error;
         }
 
         if (p.ParsedLesson.StartTime != null)
@@ -917,4 +960,3 @@ public sealed class RegularScheduleAddLessonHandler : IScheduleAddLessonHandler
         return AddLessonResult.Ok;
     }
 }
-

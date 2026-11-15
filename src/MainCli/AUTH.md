@@ -54,13 +54,12 @@ Calendar synchronization and Drive publication are separate CLI slices. Real Goo
 has not been smoke-tested. Windows execution remains unverified.
 
 
-## Microsoft authorization and curricula
+## Microsoft authorization
 
 ```sh
 schedulelib auth login microsoft --profile "Curmanschii Anton"
 schedulelib auth status microsoft --profile "Curmanschii Anton" --json
 schedulelib auth logout microsoft --profile "Curmanschii Anton"
-schedulelib curricula download --profile "Curmanschii Anton" --output ./curricula-run --json
 ```
 
 The lowercase provider literal is `microsoft`. Microsoft `TenantId` and `ClientId`
@@ -68,7 +67,7 @@ remain in the existing `Microsoft` user-secrets section. The registered public
 client must permit a desktop public-client flow with `http://localhost` as its
 redirect URI. Only explicit login opens the system browser. Status/logout read
 local state without resolving client configuration or initializing schedules.
-Ordinary downloads use MSAL `AcquireTokenSilent` and may refresh provisioned
+Ordinary token resolution uses MSAL `AcquireTokenSilent` and may refresh provisioned
 credentials; missing/unusable authorization exits 4 with the exact login command.
 There is no interactive fallback. Native browser consent has not been exercised.
 
@@ -80,26 +79,3 @@ login, refresh, status and local logout. Token and binding files are owner-only 
 Unix; Windows user-state ACLs apply. SDK exceptions and token/cache contents do not
 appear in CLI results. Old invocation-directory `tokencache.bin` is not imported;
 provision Microsoft authorization through explicit login once.
-
-Curricula downloads retain the coded owner `titu.capcelea@usm.md` and source path
-`Curricula DI anul universitar 2024-2025/Curricula per program studii`. Results
-include both resolved inputs and a warning about the coded academic year. A stale
-or unavailable source is a configuration prerequisite (exit 3); no newer source
-is discovered automatically. Update the supported C# source configuration when
-required. Download performs Graph reads only and does not load the schedule.
-Program folders/documents follow Graph pagination.
-
-Outputs use the shared isolated-run/owned-manifest contract. To keep each artifact
-owned individually, documents use `GROUP - DOCUMENT.docx` names in the run output
-rather than changing the working directory or populating a shared legacy cache.
-Caller files are preserved and conflicting artifact names fail. Downloaded DOCX
-packages are validated before atomic publication. On Linux, a legacy DOC source
-reports exit 8 before downloading anything. On Windows, the original DOC is
-published, a staging copy is converted, and the DOCX is validated/published;
-the conversion boundary permits input deletion only for that staging copy. Legacy
-conversion also requires .NET Framework 4.8 and Microsoft Word. Windows/Word
-execution is unverified. Cancellation retains completed artifacts in a partial manifest;
-provider timeouts are operation failures unless the command token was cancelled.
-Failures after publishing artifacts report partial output (exit 6); cancellation
-retains exit 130 and lists completed outputs. Legacy implicit-consent helper entry
-points are disabled and direct users to the explicit CLI commands.

@@ -4,7 +4,7 @@ namespace ScheduleLib.Tests;
 
 public sealed class EnumBitArrayRef
 {
-    #if DEBUG // It's implemented with Debug.Assert, might want to change that.
+#if DEBUG // It's implemented with Debug.Assert, might want to change that.
     [Fact]
     public void BreaksForInvalidOffset()
     {
@@ -26,7 +26,7 @@ public sealed class EnumBitArrayRef
             _ = arrRef;
         });
     }
-    #endif
+#endif
 
     [Fact]
     public void SetIndex()

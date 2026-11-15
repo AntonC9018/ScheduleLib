@@ -17,38 +17,38 @@ public sealed class NameParserTests
     public void RegularName_AllComponents()
     {
         var s = ParseName("Last First Patro");
-        Assert.Equal("First", s.FirstName[0]);
-        Assert.Equal("Last", s.LastName[0]);
-        Assert.Equal("Patro", s.Patronymic[0]);
+        Assert.Equal(expected: "First", actual: s.FirstName[0]);
+        Assert.Equal(expected: "Last", actual: s.LastName[0]);
+        Assert.Equal(expected: "Patro", actual: s.Patronymic[0]);
     }
 
     [Fact]
     public void Name_AllComponentsAreDoubled()
     {
         var s = ParseName("LastA-LastB FirstA-FirstB PatroA-PatroB");
-        Assert.Equal("FirstA", s.FirstName[0]);
-        Assert.Equal("FirstB", s.FirstName[1]);
-        Assert.Equal("LastA", s.LastName[0]);
-        Assert.Equal("LastB", s.LastName[1]);
-        Assert.Equal("PatroA", s.Patronymic[0]);
-        Assert.Equal("PatroB", s.Patronymic[1]);
+        Assert.Equal(expected: "FirstA", actual: s.FirstName[0]);
+        Assert.Equal(expected: "FirstB", actual: s.FirstName[1]);
+        Assert.Equal(expected: "LastA", actual: s.LastName[0]);
+        Assert.Equal(expected: "LastB", actual: s.LastName[1]);
+        Assert.Equal(expected: "PatroA", actual: s.Patronymic[0]);
+        Assert.Equal(expected: "PatroB", actual: s.Patronymic[1]);
     }
 
     [Fact]
     public void RandomParensIgnored()
     {
         var s = ParseName("LastA (Also C) FirstA (Also B) Patro");
-        Assert.Equal("FirstA", s.FirstName[0]);
-        Assert.Equal("LastA", s.LastName[0]);
-        Assert.Equal("Patro", s.Patronymic[0]);
+        Assert.Equal(expected: "FirstA", actual: s.FirstName[0]);
+        Assert.Equal(expected: "LastA", actual: s.LastName[0]);
+        Assert.Equal(expected: "Patro", actual: s.Patronymic[0]);
     }
 
     [Fact]
     public void PatroMightBeMissing()
     {
         var s = ParseName("Last First");
-        Assert.Equal("First", s.FirstName[0]);
-        Assert.Equal("Last", s.LastName[0]);
+        Assert.Equal(expected: "First", actual: s.FirstName[0]);
+        Assert.Equal(expected: "Last", actual: s.LastName[0]);
         Assert.Null(s.Patronymic[0]);
     }
 
@@ -61,16 +61,17 @@ public sealed class NameParserTests
     [Fact]
     public void StuffAfterIgnored()
     {
-        var p = new Helper.Parsing.SequenceReader("Last First Patro (ABC) Extra Stuff");
+        var p = new SequenceReader("Last First Patro (ABC) Extra Stuff");
         var s = NameHelper.Parse(ref p);
         _ = s;
-        Assert.True(p.ConsumeExactString(" (ABC) Extra Stuff"));
+        bool condition = p.ConsumeExactString(" (ABC) Extra Stuff");
+        Assert.True(condition);
     }
 
     [Fact]
     public void ToStringIsCorrect()
     {
         var s = ParseName("A B C");
-        Assert.Equal("A B", s.ToString());
+        Assert.Equal(expected: "A B", actual: s.ToString());
     }
 }

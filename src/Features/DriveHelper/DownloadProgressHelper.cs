@@ -8,7 +8,7 @@ public static class DownloadProgressHelper
     {
         if (progress.Status != DownloadStatus.Completed)
         {
-            throw new InvalidOperationException("Failed download", progress.Exception);
+            throw new DriveDownloadFailedException(progress.Status, progress.Exception);
         }
     }
 }

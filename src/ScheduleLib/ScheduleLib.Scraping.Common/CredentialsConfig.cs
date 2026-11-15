@@ -26,8 +26,10 @@ public abstract class CredentialsSource
     public static void Register(IServiceCollection services)
     {
         var hierarchy = services.AddOpenHierarchy<CredentialsSource>();
-        hierarchy.AddDerived<ValueCredentialsSource>().SetImmutable();
-        hierarchy.AddDerived<AppConfigCredentialsSource>().SetImmutable();
+        hierarchy.AddDerived<ValueCredentialsSource>()
+            .SetImmutable();
+        hierarchy.AddDerived<AppConfigCredentialsSource>()
+            .SetImmutable();
     }
 }
 
@@ -43,7 +45,7 @@ public readonly struct CredentialsSourceBuilder
 
 public static class CredentialsBuilderExtensions
 {
-    extension<T> (NodeDataBuilder<T> builder)
+    extension<T>(NodeDataBuilder<T> builder)
         where T : class, ICredentialsHolder
     {
         public CredentialsSourceBuilder Credentials()
@@ -53,7 +55,7 @@ public static class CredentialsBuilderExtensions
         }
     }
 
-    extension (CredentialsSourceBuilder builder)
+    extension(CredentialsSourceBuilder builder)
     {
         public void FromConfig()
         {
@@ -84,12 +86,11 @@ public static class CredentialsBuilderExtensions
         }
     }
 
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         public void AddCredentialsResolver<T>(
             string serviceKey,
             Func<T, CredentialsSource> getter)
-
             where T : class
         {
             services.AddScoped<CredentialsResolver<T>>(sp =>
@@ -111,6 +112,21 @@ public interface ICredentialsResolver
         CredentialsSource source);
 }
 
+public enum CredentialsField
+{
+    Login,
+    Password,
+}
+
+public sealed class CredentialsMissingException(
+    string message,
+    string? configKey = null,
+    CredentialsField? missingField = null) : InvalidOperationException(message)
+{
+    public string? ConfigKey { get; } = configKey;
+    public CredentialsField? MissingField { get; } = missingField;
+}
+
 [AutoConstructor]
 public sealed partial class CredentialsResolver : ICredentialsResolver
 {
@@ -123,25 +139,27 @@ public sealed partial class CredentialsResolver : ICredentialsResolver
         switch (source)
         {
             case AppConfigCredentialsSource:
-            {
-                // TODO: Support other types of sources.
-                var credentials = _resolver.Resolve(serviceKey);
-                if (credentials != null)
                 {
-                    return credentials;
+                    // TODO: Support other types of sources.
+                    var credentials = _resolver.Resolve(serviceKey);
+                    if (credentials != null)
+                    {
+                        return credentials;
+                    }
+                    {
+                        throw new CredentialsMissingException(
+                            message: "Credentials must be given as per configuration",
+                            configKey: serviceKey);
+                    }
                 }
-                {
-                    throw new InvalidOperationException("Credentials must be given as per configuration");
-                }
-            }
             case ValueCredentialsSource v:
-            {
-                return v.Value;
-            }
+                {
+                    return v.Value;
+                }
             default:
-            {
-                throw Unreachable();
-            }
+                {
+                    throw Unreachable();
+                }
         }
     }
 }
@@ -160,7 +178,9 @@ public sealed partial class CredentialsResolver<T>
         var config = _provider.Get();
         if (config is null)
         {
-            throw new InvalidOperationException("No credential config found");
+            throw new CredentialsMissingException(
+                message: "No credential config found",
+                configKey: _serviceKey);
         }
         var source = _sourceGetter(config);
         var ret = _generalResolver.Resolve(_serviceKey, source);

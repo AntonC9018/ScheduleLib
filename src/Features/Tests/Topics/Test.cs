@@ -42,20 +42,26 @@ public sealed class Test
             .Distinct();
 
         var teacherId = teachers.First();
-        var teacherName = schedule.Get(teacherId).PersonName.AsNameFields();
+        var teacherName = schedule.Get(teacherId).PersonName
+            .AsNameFields();
+
         var manifestFileSource = ActivatorUtilities.CreateInstance<ManifestFileSource>(
             helper.ServiceProvider,
             path,
             new Name(teacherName));
 
         var manifest = await manifestFileSource.Read(helper.CancellationToken);
-        var filteredSchedule = schedule.Filter(
-            new ScheduleFilter()
-                .WithCourse(courseId)
-                .WithTeacher(teacherId));
+        var teacherCourseFilter = new ScheduleFilter()
+            .WithCourse(courseId)
+            .WithTeacher(teacherId);
+        var filteredSchedule = schedule.Filter(teacherCourseFilter);
 
-        var builder = ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
-        await builder.AddFromManifest(manifest, lookup, helper.CancellationToken);
+        var builder =
+            ActivatorUtilities.CreateInstance<AllLessonTopicsDatabaseBuilder>(helper.ServiceProvider, filteredSchedule);
+        await builder.AddFromManifest(
+            manifest,
+            lookup,
+            helper.CancellationToken);
         var result = builder.Build();
 
         var list = new List<string>();
@@ -67,7 +73,7 @@ public sealed class Test
         };
         while (true)
         {
-            var topic = result.Get(new(
+            var topic = result.Get(new AttendanceLookupKey(
                 courseId: courseId,
                 groups: groups,
                 groupPartition: GroupPartitionKey.All,
@@ -84,5 +90,4 @@ public sealed class Test
 
         await Verify(list);
     }
-
 }

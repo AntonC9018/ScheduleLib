@@ -7,6 +7,8 @@
         <LangVersion>preview</LangVersion>
         <IncludeHelpers>true</IncludeHelpers>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <!-- This code is going to be rewritten using builders; enable CR1001 afterwards. -->
+        <NoWarn>$(NoWarn);CR1001</NoWarn>
     </PropertyGroup>
 
     <Import Project="$(RootPath)build\UserSecrets.props" />

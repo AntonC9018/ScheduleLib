@@ -37,11 +37,13 @@ public readonly record struct GroupCategorySelector(
         {
             return false;
         }
+
         if (Qualification is { } qualification
             && group.QualificationType != qualification)
         {
             return false;
         }
+
         return true;
     }
 }
@@ -53,10 +55,12 @@ public readonly record struct GroupCategorySelector(
 /// </summary>
 public sealed class SpecializationRegistry
 {
-    private readonly ImmutableArray<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> _entries;
+    /// <summary>A category selector together with the specialization values it permits.</summary>
+    internal readonly record struct Entry(GroupCategorySelector Selector, ImmutableArray<Specialization> Values);
 
-    internal SpecializationRegistry(
-        ImmutableArray<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> entries)
+    private readonly ImmutableArray<Entry> _entries;
+
+    internal SpecializationRegistry(ImmutableArray<Entry> entries)
     {
         _entries = entries;
     }
@@ -101,7 +105,10 @@ public sealed class SpecializationRegistry
             {
                 foreach (var candidate in values)
                 {
-                    if (string.Equals(candidate.Value, value, StringComparison.Ordinal))
+                    if (string.Equals(
+                            candidate.Value,
+                            value,
+                            StringComparison.Ordinal))
                     {
                         specialization = candidate;
                         return true;
@@ -150,12 +157,16 @@ public sealed class SpecializationRegistry
             var selectorText = constraints.Count == 0
                 ? "any group"
                 : string.Join(", ", constraints);
-            matches.Add($"({selectorText}) => [{string.Join(", ", values.Select(x => x.Value))}]");
+            var specializationsText = string.Join(", ", values.Select(x => x.Value));
+            matches.Add($"({selectorText}) => [{specializationsText}]");
         }
 
-        return matches.Count == 0
-            ? "no matching selector"
-            : string.Join("; ", matches);
+        if (matches.Count == 0)
+        {
+            return "no matching selector";
+        }
+
+        return string.Join("; ", matches);
     }
 }
 
@@ -163,7 +174,7 @@ public sealed class SpecializationRegistryBuilder()
 {
     // Set reuse: identical value lists share one array instance.
     private readonly Dictionary<string, ImmutableArray<Specialization>> _sets = new(StringComparer.Ordinal);
-    private readonly List<(GroupCategorySelector Selector, ImmutableArray<Specialization> Values)> _entries = new();
+    private readonly List<SpecializationRegistry.Entry> _entries = new();
 
     public SpecializationSetBuilder Set(params ReadOnlySpan<Specialization> values)
     {
@@ -178,12 +189,15 @@ public sealed class SpecializationRegistryBuilder()
 
     internal void Add(GroupCategorySelector selector, ImmutableArray<Specialization> values)
     {
-        _entries.Add((selector, values));
+        _entries.Add(new(selector, values));
     }
 
     private ImmutableArray<Specialization> Intern(ReadOnlySpan<Specialization> values)
     {
-        var key = string.Join("|", values.ToArray().Select(x => x.Value));
+        var key = string.Join(
+            "|",
+            values.ToArray()
+                .Select(x => x.Value));
         if (_sets.TryGetValue(key, out var set))
         {
             return set;
@@ -211,10 +225,13 @@ public sealed class SpecializationSetBuilder
     {
         var b = new GroupSelectorBuilder();
         configure(b);
-        _owner.Add(new(
+        var specializationRegistryBuilder = _owner;
+        GroupCategorySelector selector = new(
             Grade: b.Grade,
             Faculty: b.Faculty,
             AttendanceMode: b.AttendanceMode,
-            Qualification: b.Qualification), _values);
+            Qualification: b.Qualification);
+        var values = _values;
+        specializationRegistryBuilder.Add(selector, values);
     }
 }

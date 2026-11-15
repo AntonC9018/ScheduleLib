@@ -8,7 +8,17 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 {
     public static readonly T Start;
     public static readonly T End;
-    public static int Count => EnumAsInt(End) - EnumAsInt(Start) + 1;
+
+    public static int Count
+    {
+        get
+        {
+            int lastValue = EnumAsInt(End);
+            int firstValue = EnumAsInt(Start);
+            int valueDistance = lastValue - firstValue;
+            return valueDistance + 1;
+        }
+    }
 
     public static void AssertCompiles()
     {
@@ -24,7 +34,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     {
         Debug.Assert(val >= EnumAsInt(Start));
         Debug.Assert(val <= EnumAsInt(End));
-        var ret = val - EnumAsInt(Start);
+        int enumAsInt = EnumAsInt(Start);
+        var ret = val - enumAsInt;
         return ret;
     }
 
@@ -41,7 +52,11 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
     {
         Debug.Assert(typeof(T).GetEnumUnderlyingType() == typeof(int));
 
-        var values = Enum.GetValues(typeof(T)).OfType<T>().OrderBy(EnumAsInt).Distinct().ToArray();
+        var values = Enum.GetValues(typeof(T))
+            .OfType<T>()
+            .OrderBy(EnumAsInt)
+            .Distinct()
+            .ToArray();
         Debug.Assert(values.Length > 0, "Empty enum?");
 
         bool adjustForCount = Enum.GetName(typeof(T), values[^1]) == "Count";
@@ -59,8 +74,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         Debug.Assert(length >= 1, "Empty enum can't be enumerated");
 
-        T start = adjustForUnknown ? values[1] : values[0];
-        T end = adjustForCount ? values[^2] : values[^1];
+        var start = adjustForUnknown ? values[1] : values[0];
+        var end = adjustForCount ? values[^2] : values[^1];
 
         Start = start;
         End = end;
@@ -86,7 +101,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public Enumerator()
         {
-            _index = EnumAsInt(Start) - 1;
+            int firstValue = EnumAsInt(Start);
+            _index = firstValue - 1;
         }
 
         public bool MoveNext()
@@ -97,7 +113,8 @@ public readonly struct EnumMembers<T> : IEnumerable<T>
 
         public void Reset()
         {
-            _index = EnumAsInt(Start) - 1;
+            int firstValue = EnumAsInt(Start);
+            _index = firstValue - 1;
         }
 
         public readonly T Current => IntAsEnum(_index);

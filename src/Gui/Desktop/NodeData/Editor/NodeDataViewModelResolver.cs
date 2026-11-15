@@ -62,7 +62,8 @@ public sealed class NodeDataViewModelResolver
 
         try
         {
-            var ret = factory.Create(new(scope.ServiceProvider, dataStore));
+            NodeDataVMCreateParams p = new(scope.ServiceProvider, dataStore);
+            var ret = factory.Create(p);
             return new(scope, ret);
         }
         catch

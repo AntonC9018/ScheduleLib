@@ -14,8 +14,9 @@ public sealed class GoogleDriveConfig : INodeData<GoogleDriveConfig>
     {
         services.RegisterBasicOperationsAndMergers<GoogleDriveConfig>();
         services.AddMapper<GoogleDriveConfigMapper>();
-        services.AddConfigProvider(GoogleDriveConfig.Key);
-        services.AddConfigProvider(new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value));
+        services.AddConfigProvider(Key);
+        var builtKey = new NodeDataKey<BuiltGoogleDriveConfig>(Key.Value);
+        services.AddConfigProvider(builtKey);
     }
 }
 
@@ -32,17 +33,13 @@ public sealed class GoogleDriveConfigMapper : IDataMapper<GoogleDriveConfig, Bui
     {
         if (input.Credentials is null)
         {
-            throw new InvalidOperationException("No credentials config");
+            throw new GoogleDriveCredentialsMissingException();
         }
         return new()
         {
             Credentials = input.Credentials.Build(),
-            DriveFolderName = input.DriveFolderName ?? throw new InvalidOperationException("No drive folder configured"),
+            DriveFolderName =
+                input.DriveFolderName ?? throw new GoogleDriveFolderMissingException(),
         };
     }
-}
-
-public sealed class GoogleDriveOptions
-{
-    public string ApplicationName { get; set; } = "ScheduleLib";
 }

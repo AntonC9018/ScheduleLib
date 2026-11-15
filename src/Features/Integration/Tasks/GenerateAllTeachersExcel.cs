@@ -43,10 +43,11 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
         var teachers = p.Schedule.Teachers
             .OrderBy(id =>
-            {
-                var teacher = p.Schedule.Source.Get(id);
-                return teacher.PersonName;
-            }, PersonNameLastFirstAlphabeticComparer.Instance)
+                {
+                    var teacher = p.Schedule.Source.Get(id);
+                    return teacher.PersonName;
+                },
+                PersonNameLastFirstAlphabeticComparer.Instance)
             .ToArray();
 
         var workbookPart = excel.AddWorkbookPart();
@@ -125,6 +126,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 const double c = 8.43 / 64.0;
                 return px * c;
             }
+
             var dayColumn = new Column
             {
                 Min = 1,
@@ -155,7 +157,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
 
         void ConfigureMerges()
         {
-            var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
+            var mergeCells = worksheet.Elements<MergeCells>()
+                .FirstOrDefault();
             if (mergeCells is null)
             {
                 mergeCells = new MergeCells();
@@ -169,8 +172,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             for (uint dayIndex = 0; dayIndex < 6; dayIndex++)
             {
                 var merge = new MergeCell();
-                uint rowIndexStart = initialRowIndex + dayIndex * timeSlotCount;
-                uint rowIndexEnd = rowIndexStart + timeSlotCount - 1;
+                uint dayRowOffset = dayIndex * timeSlotCount;
+                uint rowIndexStart = initialRowIndex + dayRowOffset;
+                uint rowIndexEndExclusive = rowIndexStart + timeSlotCount;
+                uint rowIndexEnd = rowIndexEndExclusive - 1;
                 merge.Reference = ExcelRangeHelper.GetCellRange(new()
                 {
                     Start = new(Col: 0, Row: rowIndexStart),
@@ -256,14 +261,16 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             cell.SetStringValue(caps);
                         }
                         var odd = option.GetOddness();
-                        cell.SetStyle(styles.Day.Get(odd));
+                        var formatId = styles.Day.Get(odd);
+                        cell.SetStyle(formatId);
                     }
 
                     {
                         var id = new SharedStringItemId(firstTimeSlotStringId.Value + timeSlotIndex);
                         var cell = cells.NextCell();
                         cell.SetSharedStringValue(id);
-                        cell.SetStyle(styles.TimeSlot.Get(option));
+                        var timeSlotFormatId = styles.TimeSlot.Get(option);
+                        cell.SetStyle(timeSlotFormatId);
                     }
 
                     bool isSeminarDate = day == seminarDate.Day && timeSlot == seminarDate.TimeSlot;
@@ -283,7 +290,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        cell.SetStyle(styles.Lesson.Get(option));
+                        var lessonFormatId = styles.Lesson.Get(option);
+                        cell.SetStyle(lessonFormatId);
 
                         var cellKey = rowKey.DefaultCellKey(teacherId);
                         if (!mappingByCell.TryGetValue(cellKey, out var lessons))
@@ -291,15 +299,12 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             continue;
                         }
 
-                        {
-                            var sb = stringBuilder;
-                            FormatLessons(sb, lessons);
-                            Debug.Assert(sb.Length > 0);
+                        FormatLessons(stringBuilder, lessons);
+                        Debug.Assert(stringBuilder.Length > 0);
 
-                            var str = sb.ToStringAndClear();
-                            var stringId = strings.GetOrAddString(str);
-                            cell.SetSharedStringValue(stringId);
-                        }
+                        var str = stringBuilder.ToStringAndClear();
+                        var stringId = strings.GetOrAddString(str);
+                        cell.SetSharedStringValue(stringId);
                     }
                 }
             }
@@ -319,6 +324,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             {
                 var timeSlot = new TimeSlot(timeSlotIndex);
                 var interval = _timeConfig.GetTimeSlotInterval(timeSlot);
+
                 interval = interval with
                 {
                     Duration = interval.Duration.Add(TimeSpan.FromMinutes(1)),
@@ -359,8 +365,8 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 }
                 for (int index = 0; index < lessons.Count - 1; index++)
                 {
-                    var l0 = lessons[index];
-                    var l1 = lessons[index + 1];
+                    var current = lessons[index];
+                    var next = lessons[index + 1];
 
                     var diffMask = new LessonModelDiffMask
                     {
@@ -368,7 +374,10 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         Course = true,
                         Room = true,
                     };
-                    var diff = LessonBuilderHelper.Diff(l0, l1, diffMask);
+                    var diff = LessonBuilderHelper.Diff(
+                        a: current,
+                        b: next,
+                        diffMask);
                     if (diff.TheyDiffer)
                     {
                         return false;
@@ -383,26 +392,26 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     switch (lesson.Date.Parity)
                     {
                         case Parity.EvenWeek:
-                        {
-                            metEven = true;
-                            break;
-                        }
+                            {
+                                metEven = true;
+                                break;
+                            }
                         case Parity.OddWeek:
-                        {
-                            metOdd = true;
-                            break;
-                        }
+                            {
+                                metOdd = true;
+                                break;
+                            }
                         case Parity.EveryWeek:
-                        {
-                            metEven = true;
-                            metOdd = true;
-                            break;
-                        }
+                            {
+                                metEven = true;
+                                metOdd = true;
+                                break;
+                            }
                         default:
-                        {
-                            Debug.Fail("??");
-                            throw new InvalidOperationException("??");
-                        }
+                            {
+                                Debug.Fail("??");
+                                throw new UnexpectedLessonParityException(lesson.Date.Parity);
+                            }
                     }
                 }
                 Debug.Assert(!(metEven == false && metOdd == false));
@@ -452,19 +461,22 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     return false;
                 }
 
-                var l0 = lessons[0];
-                var l1 = lessons[1];
-                var checkGroups = l0.Lesson.Groups.IsSingleGroup
-                    && l0.Lesson.Groups.IsSingleGroup;
-                var diff = LessonBuilderHelper.Diff(l0, l1, new()
-                {
-                    Course = true,
-                    Parity = true,
-                    LessonType = true,
-                    OneGroup = checkGroups,
-                    SubGroup = true,
-                    Room = true,
-                });
+                var first = lessons[0];
+                var second = lessons[1];
+                var checkGroups = first.Lesson.Groups.IsSingleGroup
+                    && first.Lesson.Groups.IsSingleGroup;
+                var diff = LessonBuilderHelper.Diff(
+                    a: first,
+                    b: second,
+                    new()
+                    {
+                        Course = true,
+                        Parity = true,
+                        LessonType = true,
+                        OneGroup = checkGroups,
+                        SubGroup = true,
+                        Room = true,
+                    });
                 if (!diff.Parity)
                 {
                     return false;
@@ -475,20 +487,23 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 }
 
                 var listBuilder = new ListStringBuilder(sb);
-                AppendCourse(listBuilder, l0.Ref);
+                AppendCourse(listBuilder, first.Ref);
 
                 if (!diff.LessonType)
                 {
-                    AppendLessonTypeName(listBuilder, l0.Ref);
+                    AppendLessonTypeName(listBuilder, first.Ref);
                 }
                 if (!diff.Room)
                 {
-                    AppendRoom(listBuilder, l0.Ref);
+                    AppendRoom(listBuilder, first.Ref);
                 }
                 if (!diff.OneGroup)
                 {
                     bool subgroupsDiffer = diff.SubGroup;
-                    AppendGroup(listBuilder, l0.Ref, appendSubgroup: !subgroupsDiffer);
+                    AppendGroup(
+                        listBuilder,
+                        first.Ref,
+                        appendSubgroup: !subgroupsDiffer);
                 }
 
                 bool AllWillAppendSomething()
@@ -499,6 +514,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                         {
                             return false;
                         }
+
                         bool WillAppendSomething()
                         {
                             var l = lessons[i].Ref;
@@ -510,10 +526,12 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                             {
                                 return true;
                             }
+
                             if (diff.Room && WillAppendRoom(l))
                             {
                                 return true;
                             }
+
                             return false;
                         }
                     }
@@ -557,10 +575,12 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 var course = p.Schedule.Source.Get(lesson.Lesson.Course);
                 b.Append(course.Names[^1]);
             }
+
             bool WillAppendLessonTypeName(WeeklyLessonRef lesson)
             {
                 return _lessonTypeDisplay.Get(lesson.Lesson.Type) is not null;
             }
+
             void AppendLessonTypeName(ListStringBuilder b, WeeklyLessonRef lesson)
             {
                 if (_lessonTypeDisplay.Get(lesson.Lesson.Type) is { } lessonTypeName)
@@ -568,10 +588,12 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     b.Append($"({lessonTypeName})");
                 }
             }
+
             bool WillAppendRoom(WeeklyLessonRef lesson)
             {
                 return lesson.Lesson.Room != RoomId.Invalid;
             }
+
             void AppendRoom(ListStringBuilder b, WeeklyLessonRef lesson)
             {
                 if (lesson.Lesson.Room != RoomId.Invalid)
@@ -579,11 +601,13 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     b.Append($"{lesson.Lesson.Room.Id}");
                 }
             }
+
             bool WillAppendGroup(WeeklyLessonRef lesson)
             {
                 var groups = lesson.Lesson.Groups;
                 return groups.IsSingleGroup;
             }
+
             void AppendGroup(
                 ListStringBuilder b,
                 WeeklyLessonRef lesson,
@@ -612,6 +636,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     b.StringBuilder.Append(partitionDisplay);
                 }
             }
+
             string GetParityName(WeeklyLessonRef l)
             {
                 var parityName = _parityDisplay.Get(l.Date.Parity);
@@ -691,7 +716,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         {
             // The style with this id is some dotted grid pattern.
             // ???
-            var wtf = stylesheet.Fill(_ => {});
+            var wtf = stylesheet.Fill(_ => { });
             _ = wtf;
         }
 
@@ -753,6 +778,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                 Style = Thick(),
             };
         });
+
         BorderId BorderIdByEdge(Edge edge)
         {
             return cellBorderIds.Get(edge);
@@ -783,7 +809,9 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         {
             x.CenterAndWrap();
             x.SetFont(cellFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -794,13 +822,17 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
             x.CenterAndWrap();
             x.SetFont(cellFontId);
             x.SetFill(greenFillId);
-            x.SetBorder(BorderIdByEdge(edge));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge);
+            cellFormat.SetBorder(borderId);
         });
         var timeSlotStyleIds = stylesheet.CellFormats<OddEdge>((x, edge) =>
         {
             x.CenterAndWrap();
             x.SetFont(timeSlotFontId);
-            x.SetBorder(BorderIdByEdge(edge.GetEdge()));
+            var cellFormat = x;
+            var borderId = BorderIdByEdge(edge.GetEdge());
+            cellFormat.SetBorder(borderId);
             if (edge.IsOdd())
             {
                 x.SetFill(oddFillId);
@@ -837,15 +869,15 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
     public int Compare(PersonName x, PersonName y)
     {
         {
-            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(x.LastName, y.LastName);
+            var t = IgnoreDiacriticsAndCase_Name_Comparer.Instance.Compare(a: x.LastName, b: y.LastName);
             if (t != 0)
             {
                 return t;
             }
         }
         var ret = NamePartHelper.CompareEach(
-            x.FirstName,
-            y.FirstName,
+            a: x.FirstName,
+            b: y.FirstName,
             Comparer.Instance);
         return ret;
     }
@@ -857,7 +889,7 @@ file sealed class PersonNameLastFirstAlphabeticComparer : IComparer<PersonName>
 
         public int Compare(OptionalNamePart x, OptionalNamePart y)
         {
-            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(x.Longer, y.Longer);
+            return IgnoreDiacriticsAndCaseComparer.Instance.Compare(a: x.Longer, b: y.Longer);
         }
     }
 }

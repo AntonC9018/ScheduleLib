@@ -29,18 +29,44 @@ public readonly struct ParsedStringTable(List<string> strings)
     {
         if (cell.DataType is not { } dt)
         {
-            if (cell.CellValue is { } cv)
+            if (!(cell.CellValue is { } cv))
             {
-                return cv.InnerText;
+                return null;
             }
-            return null;
+
+            return cv.InnerText;
         }
-        if (dt == CellValues.Boolean
-            || dt == CellValues.Date
-            || dt == CellValues.Error
-            || dt == CellValues.Number)
+
+        bool HasNonTextCellValue()
         {
-            throw new InvalidOperationException("Expected a string");
+            if (dt == CellValues.Boolean)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Date)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Error)
+            {
+                return true;
+            }
+
+            if (dt == CellValues.Number)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (HasNonTextCellValue())
+        {
+            throw ExcelCellStringValueException.ForNonTextCellType(
+                cell.CellReference?.Value,
+                dt.Value);
         }
         if (dt == CellValues.InlineString)
         {
@@ -51,7 +77,9 @@ public readonly struct ParsedStringTable(List<string> strings)
             var index = cell.CellValue!.Text;
             if (!int.TryParse(index, out int i))
             {
-                throw new InvalidOperationException("Invalid shared string index.");
+                throw ExcelCellStringValueException.ForInvalidSharedStringIndex(
+                    cellReference: cell.CellReference?.Value,
+                    rawSharedStringIndex: index);
             }
             return _strings[i];
         }
@@ -59,6 +87,8 @@ public readonly struct ParsedStringTable(List<string> strings)
         {
             return cell.CellValue!.Text;
         }
-        throw new InvalidOperationException("Invalid type");
+        throw ExcelCellStringValueException.ForUnsupportedCellDataType(
+            cell.CellReference?.Value,
+            dt.Value);
     }
 }

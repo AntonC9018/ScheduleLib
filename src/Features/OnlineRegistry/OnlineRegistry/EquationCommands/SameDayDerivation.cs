@@ -7,7 +7,8 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
 {
     public IEnumerable<LessonEquationCommand> DeriveCommands(GetLessonEquationCommandsParams p)
     {
-        /* using */ var lists = new MatchingLists();
+        /* using */
+        var lists = new MatchingLists();
 
         using var a_ = p.LocalLessons.GetEnumerator();
         var allEnumerator = a_.RememberIsDone();
@@ -29,6 +30,7 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
                 break;
             }
 
+            lists.Clear();
             var all = allEnumerator.Current;
             var existing = existingEnumerator.Current;
 
@@ -63,7 +65,6 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
             void AddTodaysItems<T>(
                 ref EnumerableExtensions.RememberIsDoneEnumerator<T> e,
                 List<T> list)
-
                 where T : struct, IDateTime
             {
                 while (true)
@@ -86,7 +87,8 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
 
             void AddPartialMatches()
             {
-                ReadOnlySpan<LessonProperty> criteria = [
+                ReadOnlySpan<LessonProperty> criteria =
+                [
                     LessonProperty.Time,
                     LessonProperty.Type,
                     LessonProperty.Topic,
@@ -160,7 +162,6 @@ public sealed class SameDayDerivation : IEquationCommandsDerivation
     }
 }
 
-
 internal readonly record struct Mapping(int AllIndex, int ExistingIndex);
 
 internal struct Matches
@@ -169,11 +170,17 @@ internal struct Matches
     {
         if (allLen > BitArray32.MaxLength)
         {
-            throw new NotSupportedException("At most 32 lessons per day are supported.");
+            throw new TooManySameDayLessonsException(
+                "scheduled",
+                lessonCount: allLen,
+                maxSupported: BitArray32.MaxLength);
         }
         if (existingLen > BitArray32.MaxLength)
         {
-            throw new NotSupportedException("At most 32 lessons per day are supported.");
+            throw new TooManySameDayLessonsException(
+                "existing",
+                lessonCount: existingLen,
+                maxSupported: BitArray32.MaxLength);
         }
         AllMapped = BitArray32.Empty(allLen);
         ExistingMapped = BitArray32.Empty(existingLen);
@@ -241,11 +248,13 @@ internal struct MatchingResult
     {
         private readonly BitArray32 _bits;
         private readonly List<T> _items;
+
         public UnusedEnumerable(BitArray32 bits, List<T> items)
         {
             _bits = bits;
             _items = items;
         }
+
         public UnusedEnumerator<T> GetEnumerator() => new(_bits, _items);
     }
 
@@ -313,7 +322,7 @@ internal struct MatchingContext
     public MatchingContext(MatchingLists lists)
     {
         _lists = lists;
-        _matches = new(lists.AllToday.Count, _lists.ExistingToday.Count);
+        _matches = new(allLen: lists.AllToday.Count, existingLen: _lists.ExistingToday.Count);
     }
 
     public void AddMatch(Mapping m)

@@ -1,0 +1,206 @@
+using System.Globalization;
+using System.Text.Json;
+using ScheduleLib.Cli;
+
+public sealed class CalendarReportingTests
+{
+    [Theory]
+    [InlineData(CalendarActionKind.DeleteCalendar, "delete calendar")]
+    [InlineData(CalendarActionKind.CreateCalendar, "create calendar")]
+    [InlineData(CalendarActionKind.CreateEvent, "create event")]
+    public void ActionKindsPreserveJsonAndHumanOutput(CalendarActionKind action, string wire)
+    {
+        var outcome = new CalendarActionOutcome(
+            action,
+            CalendarId: null,
+            EventId: null,
+            ActionState.Planned);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(outcome));
+        Assert.Equal(
+            expected: wire,
+            actual: document.RootElement.GetProperty("Action")
+                .GetString());
+        var expectedPlannedMessage = $"{wire}: planned; calendar ; event ; desired index ";
+        var actualPlannedMessage = new CalendarActionMessage(outcome).Format(CultureInfo.InvariantCulture);
+        Assert.Equal(expected: expectedPlannedMessage, actual: actualPlannedMessage);
+        var expectedNotAttemptedMessage = $"{wire}: not-attempted; desired index 2";
+        var actualNotAttemptedMessage = new CalendarNotAttemptedMessage(action, 2)
+            .Format(CultureInfo.InvariantCulture);
+        Assert.Equal(expected: expectedNotAttemptedMessage, actual: actualNotAttemptedMessage);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ReportingBoundaryRendersOnlyHumanOutput(bool json, bool jsonl)
+    {
+        var previous = Console.Out;
+        using var text = new StringWriter();
+        var probe = new FormattingProbe();
+        try
+        {
+            Console.SetOut(text);
+            using var context = new CliCommandContext(
+                "calendar sync",
+                new()
+                {
+                    Json = json,
+                    Jsonl = jsonl,
+                },
+                default);
+
+            var report = new CalendarReport(
+                "desired-0",
+                ActionState.Completed,
+                new { index = 0 },
+                new ProbeMessage(probe));
+            context.StreamUpdate(report);
+
+            int expected2;
+            if (json || jsonl)
+            {
+                expected2 = 0;
+            }
+            else
+            {
+                expected2 = 1;
+            }
+
+            int actual2 = probe.Calls;
+            Assert.Equal(expected: expected2, actual: actual2);
+            if (jsonl)
+            {
+                using var document = JsonDocument.Parse(text.ToString());
+                Assert.Equal(
+                    expected: "desired-0",
+                    actual: document.RootElement.GetProperty("id")
+                        .GetString());
+                Assert.Equal(
+                    expected: 0,
+                    actual: document.RootElement.GetProperty("item")
+                        .GetProperty("index")
+                        .GetInt32());
+                Assert.DoesNotContain(
+                    "human",
+                    document.RootElement.EnumerateObject()
+                        .Select(x => x.Name));
+            }
+            else
+            {
+                string expected3;
+                if (json)
+                {
+                    expected3 = "";
+                }
+                else
+                {
+                    string text2 = $"probe{Environment.NewLine}";
+                    expected3 = text2;
+                }
+
+                string actual3 = text.ToString();
+                Assert.Equal(expected: expected3, actual: actual3);
+            }
+        }
+        finally
+        {
+            Console.SetOut(previous);
+        }
+    }
+
+    [Fact]
+    public void PlannedActionValuesRenderToTheExistingJsonStringArray()
+    {
+        var previous = Console.Out;
+        using var text = new StringWriter();
+        try
+        {
+            Console.SetOut(text);
+            using var context = new CliCommandContext(
+                "calendar sync",
+                new()
+                {
+                    Json = true,
+                },
+                default);
+            context.Finish(new CliCompletion<object?>(
+                0,
+                [],
+                null)
+            {
+                ActionMessages =
+                [
+                    new CalendarDeleteAction("old", 2),
+                    new CalendarCreateAction("Lessons"),
+                    new CalendarCreateEventsAction(3),
+                ],
+            });
+            using var document = JsonDocument.Parse(text.ToString());
+            Assert.Equal(
+                expected: new[]
+                {
+                    "Delete calendar old and its 2 events",
+                    "Create calendar Lessons with a new ID",
+                    "Create 3 events with new IDs",
+                },
+                actual: document.RootElement.GetProperty("actions")
+                    .EnumerateArray()
+                    .Select(x => x.GetString()));
+        }
+        finally
+        {
+            Console.SetOut(previous);
+        }
+    }
+
+    [Fact]
+    public void RenderingUsesTheBoundaryCultureAndPreservesNullFields()
+    {
+        var start = new DateTimeOffset(
+            year: 2026,
+            month: 10,
+            day: 18,
+            hour: 9,
+            minute: 0,
+            second: 0,
+            TimeSpan.FromHours(3));
+        var message = new CalendarDesiredEventMessage(
+            0,
+            null,
+            Start: start,
+            End: null,
+            []);
+        foreach (var cultureName in new[]
+                 {
+                     "en-US",
+                     "ro-RO",
+                 })
+        {
+            var culture = CultureInfo.GetCultureInfo(cultureName);
+            string toString = start.ToString(culture);
+            string expected2 = $"Create event [0]: ; {toString}–; ";
+            string actual2 = message.Format(culture);
+            Assert.Equal(expected: expected2, actual: actual2);
+        }
+        var notAttemptedMessage = new CalendarNotAttemptedMessage(CalendarActionKind.CreateEvent, 2)
+            .Format(CultureInfo.InvariantCulture);
+        Assert.Equal(
+            expected: "create event: not-attempted; desired index 2",
+            actual: notAttemptedMessage);
+    }
+
+    private sealed class FormattingProbe
+    {
+        public int Calls;
+    }
+
+    private readonly record struct ProbeMessage(FormattingProbe Probe) : ICliMessage
+    {
+        public string Format(IFormatProvider provider)
+        {
+            Probe.Calls++;
+            return "probe";
+        }
+    }
+}

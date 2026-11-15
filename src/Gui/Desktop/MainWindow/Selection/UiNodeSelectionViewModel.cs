@@ -26,8 +26,7 @@ public sealed partial class AtomicSelectionModel : ViewModelBase
 
     public UiNode[] AllNodes { get; }
 
-    [ObservableProperty]
-    public partial UiNode SelectedNode { get; set; }
+    [ObservableProperty] public partial UiNode SelectedNode { get; set; }
 }
 
 public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposable
@@ -37,8 +36,7 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
     private readonly TreeBuilder _tree;
     private readonly UiSelectedNodeViewModel _uiNode;
 
-    [ObservableProperty]
-    public partial AtomicSelectionModel Model { get; private set; }
+    [ObservableProperty] public partial AtomicSelectionModel Model { get; private set; }
 
     private void OnSelectedNodeChanged(UiNode newNode)
     {
@@ -70,10 +68,11 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
         {
             ResetModel(_uiNode.Value);
         });
-        _uiNodeChangedSub = uiNode.NodeSelected().Sub(n =>
-        {
-            ResetModel(n);
-        });
+        _uiNodeChangedSub = uiNode.NodeSelected()
+            .Sub(n =>
+            {
+                ResetModel(n);
+            });
         Model = null!;
         ResetModel(UiNode.Null);
     }
@@ -81,7 +80,10 @@ public sealed partial class UiNodeSelectionViewModel : ViewModelBase, IDisposabl
     private void ResetModel(UiNode n)
     {
         var allNodes = GetUserNodes();
-        Model = new(_dispatcher, allNodes, n);
+        Model = new(
+            _dispatcher,
+            allNodes,
+            n);
     }
 
     private UiNode[] GetUserNodes()

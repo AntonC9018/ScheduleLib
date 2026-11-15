@@ -50,7 +50,6 @@ public struct ArrangementEnumerator<T>
                 currentLastIndex--;
                 if (prev == currentLastIndex)
                 {
-
                 }
             }
         }
@@ -74,12 +73,14 @@ public static class CombinationHelper
 
         var resultMem = new T[slots];
 
-        return Generate(items, resultMem);
+        return Generate(items: items, resultMem: resultMem);
     }
 
     public static IEnumerable<T[]> Generate<T>(T[] items, T[] resultMem)
     {
-        foreach (var x in Generate(new ArraySegment<T>(items), new(resultMem)))
+        var inputSegment = new ArraySegment<T>(items);
+        var resultSegment = new ArraySegment<T>(resultMem);
+        foreach (var x in Generate(items: inputSegment, resultMem: resultSegment))
         {
             _ = x;
             yield return resultMem;
@@ -100,9 +101,9 @@ public static class CombinationHelper
 
         {
             resultMem[0] = items[0];
-            var items1 = items[1 ..];
-            var resultMem1 = resultMem[1 ..];
-            foreach (var x1 in Generate(items1, resultMem1))
+            var items1 = items[1..];
+            var resultMem1 = resultMem[1..];
+            foreach (var x1 in Generate(items: items1, resultMem: resultMem1))
             {
                 _ = x1;
                 yield return resultMem;
@@ -111,8 +112,8 @@ public static class CombinationHelper
 
         if (items.Count > resultMem.Count)
         {
-            var items1 = items[1 ..];
-            foreach (var x1 in Generate(items1, resultMem))
+            var items1 = items[1..];
+            foreach (var x1 in Generate(items: items1, resultMem: resultMem))
             {
                 _ = x1;
                 yield return resultMem;

@@ -9,7 +9,11 @@ public sealed class PermutationTests
     private static VerifySettings CreateSettings()
     {
         var s = new VerifySettings();
-        s.AddExtraSettings(json => json.DefaultValueHandling = DefaultValueHandling.Include);
+        s.AddExtraSettings(json =>
+        {
+            var jsonSerializerSettings = json;
+            jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
+        });
         return s;
     }
 
@@ -32,7 +36,8 @@ public sealed class PermutationTests
     {
         int[] items = [1, 2, 3];
         var permutationsEnumerable = PermutationHelper.Generate(items);
-        var permutations = permutationsEnumerable.Select(x => x.ToArray()).ToArray();
+        var permutations = permutationsEnumerable.Select(x => x.ToArray())
+            .ToArray();
         return Verify(permutations, Settings);
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace ScheduleLib.Dates;
@@ -10,11 +11,11 @@ public interface IWeeklyScheduledDateProvider
 public sealed class ManualWeeklyScheduledDateProvider
     : IWeeklyScheduledDateProvider
 {
-    private readonly StudyWeek[] _studyWeeks;
+    private readonly ImmutableArray<StudyWeek> _studyWeeks;
     private readonly HolidayPeriod[] _holidays;
 
     public ManualWeeklyScheduledDateProvider(
-        StudyWeek[] studyWeeks,
+        ImmutableArray<StudyWeek> studyWeeks,
         HolidayPeriod[] holidays)
     {
         Debug.Assert(studyWeeks.IsSorted(x => x.MondayDate));
@@ -64,11 +65,13 @@ public sealed class ManualWeeklyScheduledDateProvider
                 {
                     return false;
                 }
-                if (holidayE.OrderedCheckIsHoliday(ret))
+
+                if (!holidayE.OrderedCheckIsHoliday(ret))
                 {
-                    return false;
+                    return true;
                 }
-                return true;
+
+                return false;
             }
 
             bool IsParityMatch()
@@ -76,21 +79,26 @@ public sealed class ManualWeeklyScheduledDateProvider
                 switch (p.Parity)
                 {
                     case Parity.EveryWeek:
-                    {
-                        return true;
-                    }
+                        {
+                            return true;
+                        }
                     case Parity.OddWeek:
-                    {
-                        return e.Week.IsOddWeek;
-                    }
+                        {
+                            return e.Week.IsOddWeek;
+                        }
                     case Parity.EvenWeek:
-                    {
-                        return !e.Week.IsOddWeek;
-                    }
+                        {
+                            if (!e.Week.IsOddWeek)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
                     default:
-                    {
-                        throw Unreachable();
-                    }
+                        {
+                            throw Unreachable();
+                        }
                 }
             }
         }
@@ -139,10 +147,10 @@ file struct HolidayChecker
 file struct DayEnumerator
 {
     private int _index;
-    private readonly StudyWeek[] _weeks;
+    private readonly ImmutableArray<StudyWeek> _weeks;
     private readonly DayOfWeek _day;
 
-    public DayEnumerator(StudyWeek[] weeks, DayOfWeek day)
+    public DayEnumerator(ImmutableArray<StudyWeek> weeks, DayOfWeek day)
     {
         _index = -1;
         _weeks = weeks;
@@ -152,11 +160,7 @@ file struct DayEnumerator
     public bool MoveNext()
     {
         _index++;
-        if (_index >= _weeks.Length)
-        {
-            return false;
-        }
-        return true;
+        return !(_index >= _weeks.Length);
     }
 
     public readonly StudyWeek Week => _weeks[_index];

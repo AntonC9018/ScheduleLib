@@ -18,7 +18,7 @@ public sealed class EnumMembersTests
         var members = new EnumMembers<InvalidAndCount>();
         var list = members.ToList();
 
-        Assert.Equal([InvalidAndCount.First, InvalidAndCount.Second], list);
+        Assert.Equal(expected: [InvalidAndCount.First, InvalidAndCount.Second], actual: list);
     }
 
     enum Invalid
@@ -34,7 +34,7 @@ public sealed class EnumMembersTests
         var members = new EnumMembers<Invalid>();
         var list = members.ToList();
 
-        Assert.Equal([Invalid.First, Invalid.Second], list);
+        Assert.Equal(expected: [Invalid.First, Invalid.Second], actual: list);
     }
 
     enum ZeroInvalid
@@ -50,7 +50,7 @@ public sealed class EnumMembersTests
         var members = new EnumMembers<ZeroInvalid>();
         var list = members.ToList();
 
-        Assert.Equal([ZeroInvalid.First, ZeroInvalid.Second], list);
+        Assert.Equal(expected: [ZeroInvalid.First, ZeroInvalid.Second], actual: list);
     }
 
     enum NoSpecialMembers
@@ -66,7 +66,7 @@ public sealed class EnumMembersTests
         var members = new EnumMembers<NoSpecialMembers>();
         var list = members.ToList();
 
-        Assert.Equal([NoSpecialMembers.First, NoSpecialMembers.Second, NoSpecialMembers.Third], list);
+        Assert.Equal(expected: [NoSpecialMembers.First, NoSpecialMembers.Second, NoSpecialMembers.Third], actual: list);
     }
 
     enum TestEnum
@@ -80,15 +80,19 @@ public sealed class EnumMembersTests
     [Fact]
     public void StaticPropertiesTest()
     {
-        Assert.Equal(TestEnum.First, EnumMembers<TestEnum>.Start);
-        Assert.Equal(TestEnum.Second, EnumMembers<TestEnum>.End);
-        Assert.Equal(2, EnumMembers<TestEnum>.Count);
+        Assert.Equal(expected: TestEnum.First, actual: EnumMembers<TestEnum>.Start);
+        Assert.Equal(expected: TestEnum.Second, actual: EnumMembers<TestEnum>.End);
+        Assert.Equal(expected: 2, actual: EnumMembers<TestEnum>.Count);
     }
 
     [Fact]
     public void GetOffsetTest()
     {
-        Assert.Equal(0, EnumMembers<TestEnum>.GetOffset(TestEnum.First));
-        Assert.Equal(1, EnumMembers<TestEnum>.GetOffset(TestEnum.Second));
+        int expected2 = 0;
+        int actual2 = EnumMembers<TestEnum>.GetOffset(TestEnum.First);
+        Assert.Equal(expected: expected2, actual: actual2);
+        int expected3 = 1;
+        int actual3 = EnumMembers<TestEnum>.GetOffset(TestEnum.Second);
+        Assert.Equal(expected: expected3, actual: actual3);
     }
 }

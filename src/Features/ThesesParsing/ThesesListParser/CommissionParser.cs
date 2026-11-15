@@ -25,29 +25,35 @@ public static class CommissionParser
 {
     public static CommissionSchedule ParseCommissions(string filePath)
     {
-        using var excel = SpreadsheetDocument.Open(filePath, isEditable: false, new()
-        {
-            AutoSave = false,
-            CompatibilityLevel = CompatibilityLevel.Version_2_20,
-        });
+        using var excel = SpreadsheetDocument.Open(
+            filePath,
+            isEditable: false,
+            new()
+            {
+                AutoSave = false,
+                CompatibilityLevel = CompatibilityLevel.Version_2_20,
+            });
 
         var workbook = excel.WorkbookPart;
         if (workbook is null)
         {
-            throw new InvalidOperationException("Excel is wrong");
+            throw new CommissionWorkbookMissingException();
         }
         var worksheetPart = workbook.WorksheetParts.First();
         var worksheet = worksheetPart.Worksheet;
-        var sheetData = worksheet.Elements<SheetData>().First();
+        var sheetData = worksheet.Elements<SheetData>()
+            .First();
         var stringTable = ParsedStringTable.Create(workbook);
         var widths = MergeCellMap.Create(worksheetPart);
 
         var state = new ParsingState();
-        using var rows = sheetData.IndexedRows().GetEnumerator();
+        using var rows = sheetData.IndexedRows()
+            .GetEnumerator();
         var ret = ImmutableArray.CreateBuilder<Commission>();
         while (rows.MoveNext())
         {
             var row = rows.Current;
+
             if (row.IsJump && state.Action == Action.NameRow)
             {
                 FinalizeCurrentCommissions();
@@ -57,156 +63,170 @@ public static class CommissionParser
             switch (state.Action)
             {
                 case Action.Date:
-                {
-                    foreach (var cell in row.SizedCells(widths))
-                    {
-                        if (GetDate(cell.Cell) is not { } date)
-                        {
-                            continue;
-                        }
-                        state.DateMappings.AddAt(cell.Position, new(date, cell.Size));
-                    }
-                    if (!state.DateMappings.IsEmpty)
-                    {
-                        state.Action = Action.Commissions;
-                    }
-                    break;
-
-                    DateOnly? GetDate(Cell cell)
-                    {
-                        DateOnly DateFromString(string s)
-                        {
-                            var excelEpoch = new DateOnly(1899, 12, 30);
-
-                            var parser = new SequenceReader(s);
-                            var bparser = parser.BufferedView();
-                            bparser.SkipNumbers();
-                            var span = parser.PeekSpanUntilPosition(bparser.Position);
-                            int days = int.Parse(span);
-
-                            var date = excelEpoch.AddDays(days);
-                            return date;
-                        }
-
-                        if (cell.DataType?.Value == CellValues.Date)
-                        {
-                            throw new NotImplementedException("How tf is this stored??");
-                        }
-                        var str = stringTable.GetStringValue(cell);
-                        if (str is null)
-                        {
-                            return null;
-                        }
-                        return DateFromString(str);
-                    }
-                }
-
-                case Action.Commissions:
-                {
-                    foreach (var cell in new SizedCellEnumerable(widths, row))
-                    {
-                        var text = stringTable.GetStringValue(cell.Cell);
-                        if (text is null)
-                        {
-                            continue;
-                        }
-
-                        var parser = new SequenceReader(text);
-                        if (!parser.ConsumeExactString("Comisia"))
-                        {
-                            throw new InvalidOperationException("Expected text 'Comisia'");
-                        }
-                        if (!parser.SkipWhitespace().SkippedAny)
-                        {
-                            throw new InvalidOperationException("Expected whitespace after 'Comisia'");
-                        }
-                        var romanResult = parser.ReadRoman();
-                        if (romanResult.Status != ReadRomanStatus.Ok)
-                        {
-                            throw new InvalidOperationException("Expected roman number after 'Comisia'");
-                        }
-                        int num = romanResult.Number;
-                        state.CommissionNumberMappings.AddAt(cell.Position, new(num, cell.Size));
-                    }
-                    if (state.CommissionNumberMappings.IsEmpty)
-                    {
-                        continue;
-                    }
-                    state.Action = Action.FirstNameRow;
-                    break;
-                }
-
-                case Action.FirstNameRow:
-                case Action.NameRow:
-                {
-                    IEnumerable<(string Text, CellInfo Cell)> NonEmptyCells()
                     {
                         foreach (var cell in row.SizedCells(widths))
                         {
-                            var text = stringTable.GetStringValue(cell.Cell);
-                            if (text is not null)
+                            if (GetDate(cell.Cell) is not { } date)
                             {
-                                yield return (text, cell);
+                                continue;
                             }
+
+                            state.DateMappings.AddAt(cell.Position, new SizedItem<DateOnly?>(date, cell.Size));
                         }
-                    }
-                    bool NoneHasText()
-                    {
-                        foreach (var x in NonEmptyCells())
+                        if (!state.DateMappings.IsEmpty)
                         {
-                            _ = x;
-                            return false;
+                            state.Action = Action.Commissions;
                         }
-                        return true;
-                    }
-
-                    bool isFirst = state.Action == Action.FirstNameRow;
-                    state.Action = Action.NameRow;
-
-                    if (isFirst && NoneHasText())
-                    {
                         break;
-                    }
-                    if (!isFirst && NoneHasText())
-                    {
-                        FinalizeCurrentCommissions();
-                        state.Action = Action.Date;
-                        break;
-                    }
 
-                    if (state.StudentColumns.Count == 0)
-                    {
-                        foreach (var x in NonEmptyCells())
+                        DateOnly? GetDate(Cell cell)
                         {
-                            var b = ImmutableArray.CreateBuilder<Name>();
-                            state.StudentColumns.AddAt(x.Cell.Position, new(b, x.Cell.Size));
+                            DateOnly DateFromString(string s)
+                            {
+                                var excelEpoch = new DateOnly(
+                                    year: 1899,
+                                    month: 12,
+                                    day: 30);
+
+                                var parser = new SequenceReader(s);
+                                var bparser = parser.BufferedView();
+                                bparser.SkipNumbers();
+                                var span = parser.PeekSpanUntilPosition(bparser.Position);
+                                int days = int.Parse(span);
+
+                                var date = excelEpoch.AddDays(days);
+                                return date;
+                            }
+
+                            if (cell.DataType?.Value == CellValues.Date)
+                            {
+                                throw new UnsupportedCommissionExcelDateCellException(cell.CellReference?.Value);
+                            }
+                            var str = stringTable.GetStringValue(cell);
+                            if (str is null)
+                            {
+                                return null;
+                            }
+                            return DateFromString(str);
                         }
                     }
 
-                    foreach (var x in NonEmptyCells())
+                case Action.Commissions:
                     {
-                        var text = stringTable.GetStringValue(x.Cell.Cell);
-                        if (text is null)
+                        foreach (var cell in new SizedCellEnumerable(widths, row))
+                        {
+                            var text = stringTable.GetStringValue(cell.Cell);
+                            if (text is null)
+                            {
+                                continue;
+                            }
+
+                            var parser = new SequenceReader(text);
+                            if (!parser.ConsumeExactString("Comisia"))
+                            {
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedComisia,
+                                    text);
+                            }
+                            if (!parser.SkipWhitespace().SkippedAny)
+                            {
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedWhitespaceAfterComisia,
+                                    text);
+                            }
+                            var romanResult = parser.ReadRoman();
+                            if (romanResult.Status != ReadRomanStatus.Ok)
+                            {
+                                throw new InvalidCommissionHeaderException(
+                                    CommissionHeaderError.ExpectedRomanNumberAfterComisia,
+                                    text);
+                            }
+                            int num = romanResult.Number;
+
+                            state.CommissionNumberMappings.AddAt(
+                                cell.Position,
+                                new SizedItem<int>(item: num, size: cell.Size));
+                        }
+                        if (state.CommissionNumberMappings.IsEmpty)
                         {
                             continue;
                         }
-
-                        var parser = new SequenceReader(text);
-                        parser.SkipWhitespace();
-                        parser.SkipNumbers();
-                        parser.ConsumeExactString(".");
-                        parser.SkipWhitespace();
-
-                        var studentName = NameHelper.Parse(ref parser);
-                        var students = state.StudentColumns.Find(x.Cell.Position);
-                        if (students is null)
-                        {
-                            throw new InvalidOperationException("Students must start immediately");
-                        }
-                        students.Add(studentName);
+                        state.Action = Action.FirstNameRow;
+                        break;
                     }
-                    break;
-                }
+
+                case Action.FirstNameRow:
+                case Action.NameRow:
+                    {
+                        IEnumerable<(string Text, CellInfo Cell)> NonEmptyCells()
+                        {
+                            foreach (var cell in row.SizedCells(widths))
+                            {
+                                var text = stringTable.GetStringValue(cell.Cell);
+                                if (text is not null)
+                                {
+                                    yield return (text, cell);
+                                }
+                            }
+                        }
+
+                        bool NoneHasText()
+                        {
+                            foreach (var x in NonEmptyCells())
+                            {
+                                _ = x;
+                                return false;
+                            }
+                            return true;
+                        }
+
+                        bool isFirst = state.Action == Action.FirstNameRow;
+                        state.Action = Action.NameRow;
+
+                        if (isFirst && NoneHasText())
+                        {
+                            break;
+                        }
+                        if (!isFirst && NoneHasText())
+                        {
+                            FinalizeCurrentCommissions();
+                            state.Action = Action.Date;
+                            break;
+                        }
+
+                        if (state.StudentColumns.Count == 0)
+                        {
+                            foreach (var x in NonEmptyCells())
+                            {
+                                var b = ImmutableArray.CreateBuilder<Name>();
+                                state.StudentColumns.AddAt(x.Cell.Position, new(b, x.Cell.Size));
+                            }
+                        }
+
+                        foreach (var x in NonEmptyCells())
+                        {
+                            var text = stringTable.GetStringValue(x.Cell.Cell);
+                            if (text is null)
+                            {
+                                continue;
+                            }
+
+                            var parser = new SequenceReader(text);
+                            parser.SkipWhitespace();
+                            parser.SkipNumbers();
+                            parser.ConsumeExactString(".");
+                            parser.SkipWhitespace();
+
+                            var studentName = NameHelper.Parse(ref parser);
+                            var students = state.StudentColumns.Find(x.Cell.Position);
+                            if (students is null)
+                            {
+                                throw new UnexpectedCommissionStudentColumnException(x.Cell.Position);
+                            }
+                            students.Add(studentName);
+                        }
+                        break;
+                    }
             }
         }
 
@@ -214,10 +234,10 @@ public static class CommissionParser
         {
             case Action.NameRow:
             case Action.FirstNameRow:
-            {
-                FinalizeCurrentCommissions();
-                break;
-            }
+                {
+                    FinalizeCurrentCommissions();
+                    break;
+                }
         }
         return new()
         {
@@ -236,7 +256,7 @@ public static class CommissionParser
                 var date = state.DateMappings.Find(it.Position);
                 if (date is null)
                 {
-                    throw new InvalidOperationException("Student column with no date");
+                    throw new MissingCommissionColumnDateException(it.Position);
                 }
                 ret.Add(new()
                 {

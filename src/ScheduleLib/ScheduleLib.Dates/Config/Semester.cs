@@ -21,7 +21,7 @@ public static class SemesterHelper
         {
             1 => Semester.Sem1,
             2 => Semester.Sem2,
-            _ => throw new ArgumentException("Invalid semester value", nameof(value)),
+            _ => throw new ArgumentException(message: "Invalid semester value", paramName: nameof(value)),
         };
     }
 }

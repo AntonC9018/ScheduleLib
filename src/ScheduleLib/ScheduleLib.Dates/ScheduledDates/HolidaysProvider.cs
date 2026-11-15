@@ -24,7 +24,7 @@ file static class DateOnlyExtensions
         this DateOnly dateOnly)
     {
         var dateTime = dateOnly.ToDateTime(time: new TimeOnly(0));
-        return new DateTimeOffset(dateTime, offset: new TimeSpan(0));
+        return new DateTimeOffset(dateTime, offset: TimeSpan.Zero);
     }
 
     public static DateOnly ToDateOnly(

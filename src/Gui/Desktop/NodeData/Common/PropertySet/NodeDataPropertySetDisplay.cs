@@ -21,6 +21,7 @@ public sealed class RootXXXPropertySetBuilder
 public sealed class PropertySetDisplayFactoryBuilder
 {
     private readonly IServiceProvider _sp;
+
     public PropertySetDisplayFactoryBuilder(IServiceProvider sp)
     {
         _sp = sp;
@@ -41,7 +42,7 @@ public sealed class PropertySetDisplayFactoryBuilder
 
     public PropertySetDisplayFactory CreateFactory()
     {
-        throw new NotImplementedException();
+        throw new PropertySetDisplayNotImplementedException(nameof(CreateFactory));
     }
 }
 
@@ -49,7 +50,7 @@ public sealed class PropertySetDisplayFactory
 {
     public NodeDataViewModelResult BuildVm(NodeDataVMCreateParams p)
     {
-        throw new NotImplementedException();
+        throw new PropertySetDisplayNotImplementedException(nameof(BuildVm));
     }
 }
 
@@ -59,6 +60,7 @@ public sealed class VmFactoryService(
     : IPropertySetViewModelFactory
 {
     public PropertySetId Key => _key;
+
     public NodeDataViewModelResult Create(NodeDataVMCreateParams p)
     {
         var ret = _impl.BuildVm(p);
@@ -138,7 +140,6 @@ public sealed class XXXPropertySetBuilder<T>
 
 public sealed class XXXPropertySetIncludeBuilder<T>
     : IXXXPropertyConfigBuilder
-
     where T : class
 {
     public XXXPropertySetModel Model { get; }
@@ -193,7 +194,9 @@ public static class PropertySet
 
         public XXXPropertyBuilder<T> IncludeProperty(string name)
         {
-            var ret = builder.Model.AddProperty(new(name));
+            var xXXPropertySetModel = builder.Model;
+            PropertyId id = new(name);
+            var ret = xXXPropertySetModel.AddProperty(id);
             return new(ret);
         }
 
@@ -202,10 +205,9 @@ public static class PropertySet
             builder.Model.IncludesAll = true;
             return builder;
         }
-
     }
 
-    extension (XXXPropertySetModel model)
+    extension(XXXPropertySetModel model)
     {
         private PropertyConfig AddProperty(PropertyId id)
         {
@@ -285,7 +287,7 @@ public static class PropertySet
 
         public XXXPropertySetBuilder<T> From<T>(NodeDataKey<T> key) where T : class
         {
-            var ret = PropertySet.From(key);
+            var ret = From(key);
             builder.Add(ret);
             return ret;
         }
@@ -296,7 +298,6 @@ public static class PropertySet
         public void SourceFrom<T>(
             NodeDataKey<T> key,
             Action<XXXPropertySetBuilder<T>>? configure = null)
-
             where T : class
         {
             builder.Source(x =>

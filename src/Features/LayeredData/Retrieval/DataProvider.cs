@@ -19,6 +19,7 @@ public sealed partial class DataProvider
         var type = NodeDataKey.Registry.GetTypeFromKey(key);
         return GetUntypedInternal(type, key);
     }
+
     private object? GetUntypedInternal(Type outputType, NodeDataKey key)
     {
         // TODO: Cache globally maybe
@@ -28,6 +29,7 @@ public sealed partial class DataProvider
         var ret = func(key);
         return ret;
     }
+
     private delegate object? GetUntypedDelegate(NodeDataKey key);
 
     private static readonly MethodInfo GetConfigMethod =
@@ -36,7 +38,8 @@ public sealed partial class DataProvider
     private object? GetWrapper<T>(NodeDataKey key)
         where T : class
     {
-        return Get<T>(new(key));
+        var typedKey = new NodeDataKey<T>(key);
+        return Get(typedKey);
     }
 
     public T? Get<T>(NodeDataKey<T> key)
@@ -65,14 +68,14 @@ public sealed partial class DataProvider
 
         if (_helper.GetCurrentPath(markerConfig) is not { } path)
         {
-            throw new InvalidOperationException("No matching path found for the current configuration.");
+            throw new NoMatchingConfigurationPathException(typeof(T));
         }
 
         {
             var type = NodeDataKey.Registry.GetTypeFromKey(key.Value);
             if (type != typeof(T))
             {
-                throw new InvalidOperationException($"Config mapper not registered for type `{typeof(T).Name}`");
+                throw new ConfigMapperNotRegisteredException(typeof(T));
             }
         }
 
@@ -92,7 +95,7 @@ public sealed partial class DataProvider<T> where T : class
 
 public static class DataProviderHelper
 {
-    extension (IServiceCollection services)
+    extension(IServiceCollection services)
     {
         private static Func<IServiceProvider, DataProvider<T>> Factory<T>(NodeDataKey<T> key)
             where T : class

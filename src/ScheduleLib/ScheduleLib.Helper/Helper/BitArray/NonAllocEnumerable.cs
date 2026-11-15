@@ -1,3 +1,5 @@
+using ScheduleLib.Helper;
+
 internal static class NonAllocEnumerable
 {
     public static T? First<T, E>(E e) where E : IEnumerator<T>
@@ -15,12 +17,12 @@ internal static class NonAllocEnumerable
         using var enumerator = e;
         if (!enumerator.MoveNext())
         {
-            throw new InvalidOperationException("No elements");
+            throw NonAllocSequenceSingleException.Empty(typeof(T));
         }
         var r = enumerator.Current;
         if (enumerator.MoveNext())
         {
-            throw new InvalidOperationException("More than one element");
+            throw NonAllocSequenceSingleException.MultipleElements(typeof(T));
         }
         return r;
     }

@@ -16,10 +16,9 @@ public sealed class NameRegistry<T>
         {
             if (!_registered.Add(name))
             {
-                throw new InvalidOperationException($"{typeof(T).Name} with name '{name}' has already been registered.");
+                throw new NameAlreadyRegisteredException(typeof(T), name);
             }
             return T.Create(name);
         }
     }
 }
-

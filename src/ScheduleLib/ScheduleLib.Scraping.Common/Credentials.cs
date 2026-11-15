@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.Scraping.Common;
 
@@ -18,7 +19,9 @@ public static class CredentialsHelper
         var ret = config.MaybeGetCredentials(key);
         if (ret == null)
         {
-            throw new InvalidOperationException("Credentials not found.");
+            throw new CredentialsMissingException(
+                message: "Credentials not found.",
+                configKey: key);
         }
         return ret;
     }
@@ -27,18 +30,25 @@ public static class CredentialsHelper
         this IConfiguration config,
         string key)
     {
-        var ret = config.GetRequiredSection(key).Get<Credentials>();
+        var ret = config.GetRequiredSection(key)
+            .Get<Credentials>();
         if (ret == null)
         {
             return null;
         }
         if (ret.Login == null)
         {
-            throw new InvalidOperationException("Login not found.");
+            throw new CredentialsMissingException(
+                message: "Login not found.",
+                configKey: key,
+                missingField: CredentialsField.Login);
         }
         if (ret.Password == null)
         {
-            throw new InvalidOperationException("Password not found.");
+            throw new CredentialsMissingException(
+                message: "Password not found.",
+                configKey: key,
+                missingField: CredentialsField.Password);
         }
         return ret;
     }
@@ -57,7 +67,9 @@ public static class CredentialsHelper
         var ret = MaybeGetCredentials(userSecretsAssembly, key);
         if (ret == null)
         {
-            throw new InvalidOperationException("Credentials not found.");
+            throw new CredentialsMissingException(
+                message: "Credentials not found.",
+                configKey: key);
         }
         return ret;
     }

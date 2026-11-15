@@ -25,4 +25,3 @@ public readonly record struct NodeDataViewModelResult(
 
     public void Dispose() => Disposable.Dispose();
 }
-

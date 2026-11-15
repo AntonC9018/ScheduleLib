@@ -18,25 +18,32 @@ public static class TestBuilderHelper
         // they will take effect if later they are not overriden.
         b.Defaults.Configure(defaults =>
         {
-            defaults.Registry().Configure(x =>
-            {
-                x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
-                x.CommandDerivation<AnyDayDerivation>();
-                x.ProcessingFlags(CommandProcessingConfig.Process
-                    .WithLog(LessonEquationCommandTypes.All));
-            });
+            defaults.Registry()
+                .Configure(x =>
+                {
+                    x.ExtraLessonAction(ExtraLessonInstanceAction.LeaveAlone);
+                    x.CommandDerivation<AnyDayDerivation>();
+
+                    x.ProcessingFlags(CommandProcessingConfig.Process
+                        .WithLog(LessonEquationCommandTypes.All));
+                });
 
             // Adds default source.
             // b.LessonTopics.AddSource<ManifestLessonTopicSource>(topics => ...)
-            defaults.LessonTopics().Manifest(topics =>
-            {
-                // If someone else tries using topics.Manifest()
-                // in their source config, it would bind to this one.
-                _ = topics;
-            });
+            defaults.LessonTopics()
+                .Manifest(topics =>
+                {
+                    // If someone else tries using topics.Manifest()
+                    // in their source config, it would bind to this one.
+                    _ = topics;
+                });
 
-            defaults.Registry().Credentials().FromConfig();
-            defaults.Moodle().Credentials().FromConfig();
+            defaults.Registry()
+                .Credentials()
+                .FromConfig();
+            defaults.Moodle()
+                .Credentials()
+                .FromConfig();
         });
 
         // As an idea (ignore for now)
@@ -46,38 +53,50 @@ public static class TestBuilderHelper
         //     scope.LessonTopics.Manifest();
         // });
 
-        b.Defaults.TeacherLayer("Anton Curmanschii", t =>
-        {
-            t.GoogleDrive();
-
-            t.Registry().Configure(x =>
+        b.Defaults.TeacherLayer(
+            "Anton Curmanschii",
+            t =>
             {
-                x.ProcessingFlags(CommandProcessingConfig.None);
+                t.GoogleDrive();
+
+                t.Registry()
+                    .Configure(x =>
+                    {
+                        x.ProcessingFlags(CommandProcessingConfig.None);
+                    });
+
+                t.LessonAttendance()
+                    .Source(
+                        Path.Join(
+                            path1: Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                            path2: "Desktop",
+                            path3: "lipse.xlsx"),
+                        attendance =>
+                        {
+                            attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
+                        });
+                t.LessonTopics()
+                    .Configure(topics =>
+                    {
+                        topics.Manifest();
+                        topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
+                        t.LessonTopics()
+                            .Manifest(m => m.Path("path.xlsx"));
+                    });
+                t.Moodle()
+                    .Credentials()
+                    .FromConfig();
             });
 
-            t.LessonAttendance().Source(
-                Path.Join(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "Desktop",
-                    "lipse.xlsx"),
-                attendance =>
-                {
-                    attendance.RepeatedCourseBehavior = RepeatedCourseBehavior.Error;
-                });
-            t.LessonTopics().Configure(topics =>
+        b.Defaults.TeacherLayer(
+            "Tamara Iatasina",
+            t =>
             {
-                topics.Manifest();
-                topics.FallbackProvider<NoNameProvider>(LessonType.Lab);
-                t.LessonTopics().Manifest(m => m.Path("path.xlsx"));
+                t.Moodle()
+                    .Remove();
+                t.LessonTopics()
+                    .Remove();
             });
-            t.Moodle().Credentials().FromConfig();
-        });
-
-        b.Defaults.TeacherLayer("Tamara Iatasina", t =>
-        {
-            t.Moodle().Remove();
-            t.LessonTopics().Remove();
-        });
 
         return b;
     }

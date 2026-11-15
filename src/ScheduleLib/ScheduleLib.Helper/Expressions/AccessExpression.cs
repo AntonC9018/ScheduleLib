@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
@@ -27,7 +27,9 @@ public readonly struct AccessExpression
     {
         if (expression.Parameters.Count != 1)
         {
-            throw new ArgumentException("Expression must have exactly one parameter.", nameof(expression));
+            throw new ArgumentException(
+                message: "Expression must have exactly one parameter.",
+                paramName: nameof(expression));
         }
 
         return new AccessExpression(expression.Parameters[0], expression.Body);
@@ -55,18 +57,20 @@ public readonly struct AccessExpression<TObject, TFieldOrProperty>
     }
 }
 
-
 public static class AccessExpressionExtensions
 {
     public static AccessExpression<TToSource, TResult> ReplaceParameter<TFromSource, TToSource, TResult>(
         this AccessExpression<TFromSource, TResult> originalAccess,
         AccessExpression<TToSource, TFromSource> parameterReplacement)
     {
-        var visitor = ReplaceVariableExpressionVisitor.GetInstance(parameterReplacement.Access, originalAccess.Parameter);
+        var visitor =
+            ReplaceVariableExpressionVisitor.GetInstance(parameterReplacement.Access, originalAccess.Parameter);
         var newAccess = visitor.Visit(originalAccess.Access);
 
-        return new AccessExpression<TToSource, TResult>(
-            new AccessExpression(parameterReplacement.Parameter, newAccess));
+        var underlyingExpression = new AccessExpression(parameterReplacement.Parameter, newAccess);
+        var accessExpression = new AccessExpression<TToSource, TResult>(
+            underlyingExpression);
+        return accessExpression;
     }
 
     extension<TObject, TFieldOrProperty>(AccessExpression<TObject, TFieldOrProperty> access)
@@ -76,10 +80,14 @@ public static class AccessExpressionExtensions
             var param = Expression.Parameter(typeof(TFieldOrProperty), "value");
 
             // parent.X  ->   parent.X = value
-            var assignment = Expression.Assign(access.Access, param);
+            var assignment = Expression.Assign(left: access.Access, right: param);
 
             // parent, parent.X = value   ->  (parent, value) => parent.X = value
-            var parameters = new[] { access.Parameter, param };
+            var parameters = new[]
+            {
+                access.Parameter,
+                param,
+            };
             var setter = Expression.Lambda<Action<TObject, TFieldOrProperty>>(
                 assignment,
                 parameters);
@@ -87,7 +95,8 @@ public static class AccessExpressionExtensions
             return setter;
         }
 
-        public Expression<Action<TObject, TSource>> CreateAssignExpression<TSource>(Expression<Func<TSource, TFieldOrProperty>> map)
+        public Expression<Action<TObject, TSource>> CreateAssignExpression<TSource>(
+            Expression<Func<TSource, TFieldOrProperty>> map)
         {
             var param = Expression.Parameter(typeof(TFieldOrProperty), "value");
 
@@ -95,10 +104,14 @@ public static class AccessExpressionExtensions
             var mappedValue = map.ReplaceParameterAndGetBody(param);
 
             // parent.X  ->   parent.X = map(value)
-            var assignment = Expression.Assign(access.Access, mappedValue);
+            var assignment = Expression.Assign(left: access.Access, right: mappedValue);
 
             // parent, parent.X = map(value)   ->  (parent, value) => parent.X = map(value)
-            var parameters = new[] { access.Parameter, param };
+            var parameters = new[]
+            {
+                access.Parameter,
+                param,
+            };
             var setter = Expression.Lambda<Action<TObject, TSource>>(
                 assignment,
                 parameters);
@@ -109,7 +122,9 @@ public static class AccessExpressionExtensions
         public AccessExpression<TObject, TMapped> MapReturn<TMapped>(Expression<Func<TFieldOrProperty, TMapped>> map)
         {
             var body = map.ReplaceParameterAndGetBody(access.Access);
-            return new(new(access.Parameter, body));
+            AccessExpression underlyingExpression = new(access.Parameter, body);
+            AccessExpression<TObject, TMapped> accessExpression = new(underlyingExpression);
+            return accessExpression;
         }
 
         public Expression<Func<TObject, TFieldOrProperty>> ToLambda()

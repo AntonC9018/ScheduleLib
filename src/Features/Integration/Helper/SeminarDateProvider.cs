@@ -26,4 +26,3 @@ public sealed class RegularSeminarDateConfig
 public readonly record struct RegularSeminarDate(
     DayOfWeek Day,
     TimeSlot TimeSlot);
-

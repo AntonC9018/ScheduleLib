@@ -21,7 +21,8 @@ public sealed partial class ThesesListProvider
     {
         await using var inputFile = await _thesesFileProvider.Open(cancellationToken);
 
-        var ret = OneForEach.Enum<ThesisType>().CreateArray<ThesisList>();
+        var ret = OneForEach.Enum<ThesisType>()
+            .CreateArray<ThesisList>();
         foreach (var t in ret)
         {
             inputFile.Seek(0, SeekOrigin.Begin);

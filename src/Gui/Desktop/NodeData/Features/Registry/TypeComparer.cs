@@ -8,18 +8,24 @@ public sealed class TypeComparer<T> : IEqualityComparer<T>
     public bool Equals(T? x, T? y)
     {
         if (ComparisonHelper.AtLeastOneIsDefault(
-                x,
-                y,
+                x: x,
+                y: y,
                 out bool areBothNull))
         {
             return areBothNull;
         }
 
-        return x.GetType() == y.GetType();
+        if (x.GetType() == y.GetType())
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public int GetHashCode([DisallowNull] T obj)
     {
-        return obj.GetType().GetHashCode();
+        return obj.GetType()
+            .GetHashCode();
     }
 }

@@ -32,7 +32,7 @@ public ref struct SpanBuilderI<T>
         return Array;
     }
 
-    public Span<T> SoFar => Array[.. _index];
+    public Span<T> SoFar => Array[.._index];
 }
 
 public ref struct SpanBuilder<T>
@@ -59,7 +59,7 @@ public ref struct SpanBuilder<T>
         return Array;
     }
 
-    public Span<T> SoFar => Array[.. _index];
+    public Span<T> SoFar => Array[.._index];
 }
 
 public static class SpanBuilder

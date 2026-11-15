@@ -17,7 +17,8 @@ public sealed class MergeCellMap
     {
         _cellWidths = new Dictionary<CellPosition, int>();
 
-        var mergeCells = worksheetPart.Worksheet.Elements<MergeCells>().FirstOrDefault();
+        var mergeCells = worksheetPart.Worksheet.Elements<MergeCells>()
+            .FirstOrDefault();
         if (mergeCells == null)
         {
             return;
@@ -34,12 +35,12 @@ public sealed class MergeCellMap
             var start = parser.ParseCellPosition();
             if (!parser.ConsumeExactString(":"))
             {
-                throw new InvalidOperationException("Expected a range syntax.");
+                throw InvalidExcelRangeSyntaxException.ForMissingSeparator(val);
             }
             var end = parser.ParseCellPosition();
             if (!parser.IsEmpty)
             {
-                throw new InvalidOperationException("Range syntax continues?");
+                throw InvalidExcelRangeSyntaxException.ForTrailingContent(val);
             }
             int width = (int) (end.Col - start.Col + 1);
             _cellWidths[start] = width;

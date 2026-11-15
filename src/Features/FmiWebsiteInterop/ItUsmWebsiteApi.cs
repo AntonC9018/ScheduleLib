@@ -24,7 +24,7 @@ public static class ItUsmWebsiteApi
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    extension (ItUsmWebsiteHttpClient c)
+    extension(ItUsmWebsiteHttpClient c)
     {
         public async Task<ItUsmTeacherModel[]> GetAllTeachers(CancellationToken cancellationToken)
         {
@@ -60,7 +60,7 @@ public static class ItUsmWebsiteApi
             }
             if (!responseModel.Last)
             {
-                throw new NotImplementedException("Multipage responses");
+                throw new ItUsmWebsiteMultipageNotSupportedException();
             }
 
             var remoteTeachers = responseModel.Content;
@@ -88,12 +88,12 @@ public static class ItUsmWebsiteApi
                 {
                     parser.Load(s.AsMemory());
                     var lexer = parser.Scope();
-                    var ret1 = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
+                    var parsed = NameHelper.ParseNamePart(ref lexer, out bool isIncompleteDoubleName);
                     if (isIncompleteDoubleName)
                     {
-                        throw new InvalidOperationException($"Invalid double name on the website '{s}'");
+                        throw new InvalidDoubleNameOnWebsiteException(s);
                     }
-                    return ret1;
+                    return parsed;
                 }
             }
             return ret;
@@ -104,6 +104,9 @@ public static class ItUsmWebsiteApi
 public sealed class ItUsmWebsiteHttpException : ItUsmWebsiteException
 {
 }
+
+public sealed class ItUsmWebsiteMultipageNotSupportedException()
+    : ItUsmWebsiteException("Multipage responses are not supported.");
 
 public sealed class ItUsmWebsiteLogicException : ItUsmWebsiteException
 {

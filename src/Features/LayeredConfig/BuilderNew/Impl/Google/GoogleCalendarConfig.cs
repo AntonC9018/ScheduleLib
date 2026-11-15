@@ -6,14 +6,16 @@ namespace ScheduleLib.Application.Config;
 
 public sealed class GoogleCalendarConfig : INodeData<GoogleCalendarConfig>
 {
-    public static NodeDataKey<GoogleCalendarConfig> Key { get; } = NodeDataKey.Registry.Register<GoogleCalendarConfig>();
+    public static NodeDataKey<GoogleCalendarConfig> Key { get; } =
+        NodeDataKey.Registry.Register<GoogleCalendarConfig>();
+
     public GoogleCredentialsConfig? Credentials { get; set; }
     public string? CalendarName { get; set; }
 
     public static void Register(IServiceCollection services)
     {
         services.RegisterBasicOperationsAndMergers<GoogleCalendarConfig>();
-        services.AddConfigProvider(GoogleCalendarConfig.Key);
+        services.AddConfigProvider(Key);
         services.AddConfigProvider(BuiltGoogleCalendarConfig.Key);
         services.AddMapper<GoogleCalendarConfigMapper>();
     }
@@ -21,7 +23,7 @@ public sealed class GoogleCalendarConfig : INodeData<GoogleCalendarConfig>
 
 public sealed class BuiltGoogleCalendarConfig
 {
-    public static NodeDataKey<BuiltGoogleCalendarConfig> Key { get; set; } = new (GoogleCalendarConfig.Key.Value);
+    public static NodeDataKey<BuiltGoogleCalendarConfig> Key { get; set; } = new(GoogleCalendarConfig.Key.Value);
     public required GoogleCredentialsConfig Credentials { get; set; }
     public required string CalendarName { get; set; }
 }
@@ -32,7 +34,7 @@ public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfi
     {
         if (input.Credentials is not { } credentials)
         {
-            throw new InvalidOperationException("Credentials not provided for Calendar");
+            throw new GoogleCalendarCredentialsMissingException();
         }
         if (input.CalendarName is not { } calendarName)
         {
@@ -40,7 +42,7 @@ public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfi
         }
         else if (calendarName == "primary")
         {
-            throw new InvalidOperationException("Using `primary` calendar might clear all your events! Don't");
+            throw new PrimaryGoogleCalendarNotAllowedException();
         }
 
         return new()
@@ -50,4 +52,3 @@ public sealed class GoogleCalendarConfigMapper : IDataMapper<GoogleCalendarConfi
         };
     }
 }
-

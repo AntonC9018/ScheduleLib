@@ -92,31 +92,33 @@ public static class ExcelRangeHelper
             pos = parser.ParseCellPosition();
             if (!parser.IsEmpty)
             {
-                throw new InvalidOperationException("Expected valid cell position syntax.");
+                throw InvalidExcelCellPositionException.ForTrailingContent(val);
             }
         }
         else
         {
-            uint rowIndex = row.Item.RowIndex?.Value ?? ((uint) row.Index + 1);
-            pos = new((uint) (cell.Index + 1), rowIndex);
+            uint rowIndex = row.Item.RowIndex?.Value ?? (uint) row.Index + 1;
+            pos = new(Col: (uint) (cell.Index + 1), Row: rowIndex);
         }
         return pos;
     }
 
     public static CellPosition ParseCellPosition(this ref SequenceReader reader)
     {
+        const int ExcelColumnAlphabetRadix = 'Z' - 'A' + 1;
+
         uint col = 0;
         while (true)
         {
             if (reader.IsEmpty)
             {
-                throw new InvalidOperationException("Invalid cell position");
+                throw InvalidExcelCellPositionException.ForUnexpectedEnd(reader.ToString());
             }
             if (!char.IsLetter(reader.Current))
             {
                 break;
             }
-            col *= 'Z' - 'A' + 1;
+            col *= ExcelColumnAlphabetRadix;
             col += (uint) (char.ToUpperInvariant(reader.Current) - 'A' + 1);
             reader.Move();
         }
@@ -124,11 +126,11 @@ public static class ExcelRangeHelper
         var bparser = reader.BufferedView();
         if (!bparser.SkipNumbers().SkippedAny)
         {
-            throw new InvalidOperationException("Expected number after the letter");
+            throw InvalidExcelCellPositionException.ForMissingRowNumber(reader.ToString());
         }
         uint row = uint.Parse(reader.PeekSpanUntilPosition(bparser.Position));
         reader.MoveTo(bparser.Position);
 
-        return new(col, row);
+        return new(Col: col, Row: row);
     }
 }

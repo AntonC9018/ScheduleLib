@@ -15,8 +15,8 @@ public interface ISlugProvider
 // TODO: Probably don't want to have the client be stored here.
 public sealed class ItUsmWebsiteTeacherDataProvider(
     ItUsmWebsiteHttpClient _client,
-    [FromKeyedServices(NameMappingKeys.Teacher)] INameRemapper _remap)
-
+    [FromKeyedServices(NameMappingKeys.Teacher)]
+    INameRemapper _remap)
     : ISlugProvider
 {
     private ItUsmTeacherModel[]? _data;
@@ -26,7 +26,7 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
     {
         if (_data is not null)
         {
-            throw new InvalidOperationException("Tried to initialize the provider a second time!");
+            throw new TeacherDataProviderAlreadyInitializedException();
         }
         _data = await _client.GetAllTeachers(cancellationToken);
     }
@@ -57,14 +57,19 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
             var name = remoteTeacher.Name;
             name = _remap.RemapName(name);
 
-            ref var t = ref CollectionsMarshal.GetValueRefOrAddDefault(ret, name, out bool exists);
+            ref var t = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                ret,
+                name,
+                out bool exists);
             if (exists && t != slug)
             {
-                throw new InvalidOperationException("Something wrong, slugs don't match for a duplicate? teacher");
+                throw new ConflictingTeacherSlugException(
+                    teacherName: name.Fields,
+                    existingSlug: t!,
+                    newSlug: slug);
             }
 
             t = slug;
-
         }
         return ret;
     }
@@ -72,7 +77,8 @@ public sealed class ItUsmWebsiteTeacherDataProvider(
 
 public sealed class TeacherSlugMap : Dictionary<Name, string>
 {
-    public TeacherSlugMap(int capacity) : base(capacity, Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
+    public TeacherSlugMap(int capacity) : base(capacity,
+        Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance)
     {
     }
 }

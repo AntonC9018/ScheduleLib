@@ -14,7 +14,7 @@ public readonly struct SizeComputer
     public int ComputeRowOffsetOf(int lessonIndex)
     {
         var total = _maxRowsInOneCell;
-        var x = (float) lessonIndex / (float) _lessonCount;
+        var x = lessonIndex / (float) _lessonCount;
         return (int) (x * total);
     }
 
@@ -24,5 +24,4 @@ public readonly struct SizeComputer
         var b = ComputeRowOffsetOf(lessonIndex + 1);
         return (uint) (b - a);
     }
-
 }

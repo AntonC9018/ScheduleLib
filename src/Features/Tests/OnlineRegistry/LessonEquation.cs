@@ -9,12 +9,18 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class LessonEquationTests
 {
-    private LessonConfig DefaultLesson => new()
+    private LessonConfig DefaultLesson
     {
-        Day = DayOfWeek.Monday,
-        Type = LessonType.Lab,
-        TimeSlot = new(0),
-    };
+        get
+        {
+            return new()
+            {
+                Day = DayOfWeek.Monday,
+                Type = LessonType.Lab,
+                TimeSlot = new(0),
+            };
+        }
+    }
 
     [Fact]
     public void SingleExactMatch_ProducesNoCommands()
@@ -36,10 +42,11 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
             });
     }
 
@@ -53,10 +60,11 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
             });
     }
 
@@ -71,15 +79,19 @@ public sealed class LessonEquationTests
             TimeSlot = new(1),
         });
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Delete, c.Type);
-                Assert.Equal(new(1), c.Existing.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
+                TimeSlot expected2 = new(1);
+                var actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
             });
     }
 
-    [Fact(Skip = "It is not ignored anymore, it counts as a separate type but does not produce changes at a later point")]
+    [Fact(Skip =
+        "It is not ignored anymore, it counts as a separate type but does not produce changes at a later point")]
     public void LessonTypeNotSet_IgnoredInChecks()
     {
         var ctx = new TestContext();
@@ -111,8 +123,10 @@ public sealed class LessonEquationTests
         var result = ctx.Resolve();
 
         var c = Assert.Single(result);
-        Assert.Equal(LessonEquationCommandType.Update, c.Type);
-        Assert.Equal(new(0), c.Existing.TimeSlot);
+        Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+        TimeSlot expected2 = new(0);
+        var actual2 = c.Existing.TimeSlot;
+        Assert.Equal(expected: expected2, actual: actual2);
     }
 
     [Fact]
@@ -126,10 +140,11 @@ public sealed class LessonEquationTests
         });
         ctx.AddExisting(DefaultLesson);
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Create, c.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Create, actual: c.Type);
             });
     }
 
@@ -152,8 +167,8 @@ public sealed class LessonEquationTests
         var result = ctx.Resolve();
 
         var c = Assert.Single(result);
-        Assert.Equal(LessonEquationCommandType.Create, c.Type);
-        Assert.Equal(DayOfWeek.Tuesday, c.All.Day);
+        Assert.Equal(expected: LessonEquationCommandType.Create, actual: c.Type);
+        Assert.Equal(expected: DayOfWeek.Tuesday, actual: c.All.Day);
     }
 
     [Fact]
@@ -202,23 +217,32 @@ public sealed class LessonEquationTests
         });
 
         var result = ctx.Resolve();
-        Assert.Collection(result,
+        Assert.Collection(
+            result,
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
-                Assert.Equal(new(1), c.Existing.TimeSlot);
-                Assert.Equal(LessonType.Curs, c.Existing.Type);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+                TimeSlot expected2 = new(1);
+                var actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
+                Assert.Equal(expected: LessonType.Curs, actual: c.Existing.Type);
             },
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Update, c.Type);
-                Assert.Equal(new(3), c.Existing.TimeSlot);
-                Assert.Equal(new(2), c.All.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Update, actual: c.Type);
+                TimeSlot expected2 = new(3);
+                var actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
+                TimeSlot expected3 = new(2);
+                var actual3 = c.All.TimeSlot;
+                Assert.Equal(expected: expected3, actual: actual3);
             },
             c =>
             {
-                Assert.Equal(LessonEquationCommandType.Delete, c.Type);
-                Assert.Equal(new(4), c.Existing.TimeSlot);
+                Assert.Equal(expected: LessonEquationCommandType.Delete, actual: c.Type);
+                TimeSlot expected2 = new(4);
+                var actual2 = c.Existing.TimeSlot;
+                Assert.Equal(expected: expected2, actual: actual2);
             });
     }
 
@@ -230,7 +254,7 @@ public sealed class LessonEquationTests
             {
                 var date = TestContext.GetDate(day);
                 var actualDay = date.DayOfWeek;
-                Assert.Equal(day, actualDay);
+                Assert.Equal(expected: day, actual: actualDay);
             }
 
             Check(DayOfWeek.Sunday);
@@ -245,13 +269,19 @@ public sealed class LessonEquationTests
                 var dateTime = new DateTime(date, time);
 
                 var (actualDay, actualTs) = TestContext.ReverseEngineerDateTime(dateTime);
-                Assert.Equal(day, actualDay);
-                Assert.Equal(ts, actualTs);
+                Assert.Equal(expected: day, actual: actualDay);
+                Assert.Equal(expected: ts, actual: actualTs);
             }
 
-            Check(DayOfWeek.Sunday, new(0));
-            Check(DayOfWeek.Friday, new(1));
-            Check(DayOfWeek.Tuesday, new(2));
+            var day2 = DayOfWeek.Sunday;
+            TimeSlot ts2 = new(0);
+            Check(day2, ts2);
+            var day3 = DayOfWeek.Friday;
+            TimeSlot ts3 = new(1);
+            Check(day3, ts3);
+            var day4 = DayOfWeek.Tuesday;
+            TimeSlot ts4 = new(2);
+            Check(day4, ts4);
         }
     }
 }
@@ -265,17 +295,24 @@ internal record struct LessonConfig()
 
 file sealed class TestContext
 {
+    /// <summary>A weekday and time slot recovered from a concrete date and time.</summary>
+    internal readonly record struct TimetableSlot(DayOfWeek Day, TimeSlot Slot);
+
     private const int Year = 2024;
     public static readonly DefaultLessonTimeConfig TimeConfig = LessonTimeConfig.CreateDefault();
     private readonly List<LessonConfig> _lessonConfigs = new();
     private readonly List<RemoteLessonInstance> _existingLessons = new();
+
     private static DateOnly BaseDate
     {
         get
         {
             var relativeDay = 10;
             var relativeMonth = 1;
-            var date = new DateOnly(year: Year, day: relativeDay, month: relativeMonth);
+            var date = new DateOnly(
+                year: Year,
+                day: relativeDay,
+                month: relativeMonth);
             return date;
         }
     }
@@ -299,13 +336,15 @@ file sealed class TestContext
     }
 
     // We only do a single week, so this works.
-    internal static (DayOfWeek, TimeSlot) ReverseEngineerDateTime(DateTime dateTime)
+    internal static TimetableSlot ReverseEngineerDateTime(DateTime dateTime)
     {
         var day = dateTime.DayOfWeek;
-        var maybeTimeSlot = TimeConfig.Base.FindTimeSlotByStartTime(TimeOnly.FromDateTime(dateTime));
+        var lessonTimeConfig = TimeConfig.Base;
+        var startTime = TimeOnly.FromDateTime(dateTime);
+        var maybeTimeSlot = lessonTimeConfig.FindTimeSlotByStartTime(startTime);
         Debug.Assert(maybeTimeSlot is not null);
         var timeSlot = maybeTimeSlot.Value;
-        return (day, timeSlot);
+        return new(day, timeSlot);
     }
 
     public void AddExisting(LessonConfig config)
@@ -348,6 +387,7 @@ file sealed class TestContext
                 _all = value;
             }
         }
+
         public LessonConfig Existing
         {
             get
@@ -421,8 +461,12 @@ file sealed class TestContext
         }
 
         var derivationAlgorithm = new SameDayDerivation();
-        var result = derivationAlgorithm.DeriveCommands(
-            new(schedule, existing, scheduled));
+        var sameDayDerivation = derivationAlgorithm;
+        GetLessonEquationCommandsParams p = new(
+            schedule,
+            existing,
+            scheduled);
+        var result = sameDayDerivation.DeriveCommands(p);
         return result.Select(x =>
         {
             var ret = new ResolvedCommand(x.Type);
