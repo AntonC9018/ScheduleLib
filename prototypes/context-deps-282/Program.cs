@@ -7,6 +7,7 @@
 // or fails only at run time.
 using Autofac;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var a = new ScheduleContext("2025-sem1");
 var b = new ScheduleContext("2026-sem2");
@@ -33,7 +34,8 @@ Section("1. Seeded scope (Microsoft DI)");
     var globalFake = Ms.Build(s =>
     {
         s.AddSeededGraph();
-        s.AddTransient<ILessonSource, FakeLessonSource>(); // test: last registration wins
+        s.RemoveAll<ILessonSource>();
+        s.AddTransient<ILessonSource, FakeLessonSource>();
     });
     if (globalFake is not null)
     {
@@ -42,23 +44,8 @@ Section("1. Seeded scope (Microsoft DI)");
             () => sa.ServiceProvider.GetRequiredService<Handler>().Run());
     }
 
-    // Registrations cannot differ per scope, so a per-context override must dispatch on the value.
-    var perContext = Ms.Build(s =>
-    {
-        s.AddSeededGraph();
-        s.AddTransient<ILessonSource>(sp => sp.GetRequiredService<ScheduleContext>() == b
-            ? new FakeLessonSource()
-            : ActivatorUtilities.CreateInstance<LessonSource>(sp));
-    });
-    if (perContext is not null)
-    {
-        await using var sa = perContext.OpenContextScope(a);
-        await using var sb = perContext.OpenContextScope(b);
-        Try("per-context override, A (value dispatch)",
-            () => sa.ServiceProvider.GetRequiredService<Handler>().Run());
-        Try("per-context override, B (value dispatch)",
-            () => sb.ServiceProvider.GetRequiredService<Handler>().Run());
-    }
+    // Not shown: swapping a leaf for ONE context only. Registrations belong to the root,
+    // so every seeded scope shares them; only the seeded values differ.
 
     Ms.Build(s =>
     {
@@ -88,6 +75,7 @@ Section("2. Keyed services, inherited key (Microsoft DI)");
     var globalFake = Ms.Build(s =>
     {
         s.AddKeyedGraph();
+        s.RemoveAllKeyed<ILessonSource>(KeyedService.AnyKey);
         s.AddKeyedTransient<ILessonSource, FakeLessonSource>(KeyedService.AnyKey);
     });
     if (globalFake is not null)
@@ -128,10 +116,11 @@ Section("2. Keyed services, inherited key (Microsoft DI)");
 Section("3. Autofac child lifetime scopes");
 {
     var root = Af.Build(_ => { });
-    await using (var sa = root.OpenContextScope(a))
-    await using (var sb = root.OpenContextScope(b))
-    await using (var sa2 = root.OpenContextScope(a))
     {
+        // Three scopes open at the same time (not nested): two contexts plus a second A.
+        await using var sa = root.OpenContextScope(a);
+        await using var sb = root.OpenContextScope(b);
+        await using var sa2 = root.OpenContextScope(a);
         Try("context A", () => sa.Resolve<Handler>().Run());
         Try("context B", () => sb.Resolve<Handler>().Run());
         Try("context A, second scope (schedule reused?)", () => sa2.Resolve<Handler>().Run());
@@ -143,23 +132,23 @@ Section("3. Autofac child lifetime scopes");
     });
 
     var globalFake = Af.Build(cb => cb.RegisterType<FakeLessonSource>().As<ILessonSource>());
-    await using (var sa = globalFake.OpenContextScope(a))
     {
+        await using var sa = globalFake.OpenContextScope(a);
         Try("test replaces leaf for all contexts", () => sa.Resolve<Handler>().Run());
     }
 
-    await using (var sa = root.OpenContextScope(a))
-    await using (var sb = root.OpenContextScope(b,
-        cb => cb.RegisterType<FakeLessonSource>().As<ILessonSource>()))
     {
+        await using var sa = root.OpenContextScope(a);
+        await using var sb = root.OpenContextScope(b,
+            cb => cb.RegisterType<FakeLessonSource>().As<ILessonSource>());
         Try("per-context override, A (scope registration)", () => sa.Resolve<Handler>().Run());
         Try("per-context override, B (scope registration)", () => sb.Resolve<Handler>().Run());
     }
 
     var captive = Af.Build(cb => cb.RegisterType<CachingPlanner>().SingleInstance());
     Console.WriteLine("  (Autofac has no build-time validation; the container built fine)");
-    await using (var sa = captive.OpenContextScope(a))
     {
+        await using var sa = captive.OpenContextScope(a);
         Try("captive singleton over Schedule", () => sa.Resolve<CachingPlanner>().Plan());
     }
 }
@@ -289,6 +278,8 @@ public static class Af
         var builder = new ContainerBuilder();
         builder.RegisterType<Shared>().SingleInstance();
         builder.RegisterType<ScheduleCache>().SingleInstance();
+        // RegisterType<T>() registers T as itself with a new instance per resolution
+        // (Microsoft DI: AddTransient<T>()). .As<I>() exposes it under interface I instead.
         builder.RegisterType<LessonSource>().As<ILessonSource>();
         builder.RegisterType<Planner>();
         builder.RegisterType<Handler>();
@@ -305,8 +296,7 @@ public static class Af
         return root.BeginLifetimeScope(cb =>
         {
             cb.RegisterInstance(context);
-            cb.Register(c => c.Resolve<ScheduleCache>().Get(c.Resolve<ScheduleContext>()))
-                .InstancePerLifetimeScope();
+            cb.Register(c => c.Resolve<ScheduleCache>().Get(context)).InstancePerLifetimeScope();
             overrides?.Invoke(cb);
         });
     }
