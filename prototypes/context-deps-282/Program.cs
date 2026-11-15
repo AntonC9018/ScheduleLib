@@ -3,6 +3,8 @@
 //   1. Seeded scope (Microsoft DI): one root, a scoped holder seeded once when the scope opens.
 //   2. Keyed services with an inherited key (Microsoft DI): the context is the service key.
 //   3. Autofac child lifetime scopes with per-scope registrations.
+//   4. Section 1 extended: modular seeds, factory classes, async initializers and a plan
+//      derived from the registrations (ScopePlan.cs, ScopePlanDemo.cs).
 // Each variant runs the same scenarios and prints whether it works, fails at build time,
 // or fails only at run time.
 using Autofac;
@@ -152,6 +154,9 @@ Section("3. Autofac child lifetime scopes");
         Try("captive singleton over Schedule", () => sa.Resolve<CachingPlanner>().Plan());
     }
 }
+
+Section("4. Modular seeding with a ScopePlan (Microsoft DI)");
+await Plans.ScopePlanDemo.Run(Try);
 
 Console.WriteLine();
 Console.WriteLine($"Schedules built in total: {Counters.Schedules}; Shared built in total: {Counters.Shared}");
