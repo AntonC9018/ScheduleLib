@@ -2,7 +2,11 @@
 // Modular seeding with a plan derived from the registrations:
 // - Seeds: raw inputs supplied when a scope opens.
 // - Derived values: built synchronously by a factory class whose constructor lists its inputs.
-// - Initialized values: built asynchronously by an initializer class, before the scope is handed out.
+// - Initialized values: built asynchronously by an initializer class. The registration picks
+//   WHEN that happens (InitMode):
+//     Eager    - the opener runs it before handing out the scope; the caller says nothing.
+//     Explicit - the opener runs it too, but only if the caller names it when opening the scope.
+//     Lazy     - nothing runs at open; consumers depend on Deferred<T> and await it on first use.
 // ScopePlan walks constructors from a workflow's root type and reports which seeds it needs,
 // which initializers run and in what order, plus dependencies it cannot see through (opaque).
 using System.Reflection;
@@ -18,6 +22,13 @@ public interface IFactory<out T>
 public interface IInitializer<T>
 {
     ValueTask<T> InitializeAsync(CancellationToken cancellationToken);
+}
+
+public enum InitMode
+{
+    Eager,
+    Explicit,
+    Lazy,
 }
 
 // Write-once slot, filled only by ScopeOpener.
@@ -38,12 +49,31 @@ public sealed class Slot<T> where T : class
     }
 }
 
+// Lazy async value, one per scope. Consumers see in their constructor that the value is
+// not ready yet, instead of a sync property that blocks on async work.
+// Prototype simplification: a failed or cancelled first attempt stays cached.
+public sealed class Deferred<T>(Func<CancellationToken, ValueTask<T>> initialize) where T : class
+{
+    private readonly Lock _lock = new();
+    private Task<T>? _task;
+
+    public Task<T> GetAsync(CancellationToken cancellationToken)
+    {
+        lock (_lock)
+        {
+            return _task ??= initialize(cancellationToken).AsTask();
+        }
+    }
+}
+
+public sealed record InitializedEntry(Type Initializer, InitMode Mode);
+
 // Metadata kept next to the IServiceCollection so the plan can see through factories.
 public sealed class ScopeGraph
 {
     internal HashSet<Type> Seeds { get; } = [];
-    internal Dictionary<Type, Type> Derived { get; } = [];      // value -> factory class
-    internal Dictionary<Type, Type> Initialized { get; } = [];  // value -> initializer class
+    internal Dictionary<Type, Type> Derived { get; } = [];                  // value -> factory class
+    internal Dictionary<Type, InitializedEntry> Initialized { get; } = [];  // value -> initializer
 }
 
 public static class ScopeGraphRegistration
@@ -78,35 +108,54 @@ public static class ScopeGraphRegistration
         return services;
     }
 
-    public static IServiceCollection AddInitialized<T, TInitializer>(this IServiceCollection services)
+    public static IServiceCollection AddInitialized<T, TInitializer>(
+        this IServiceCollection services,
+        InitMode mode = InitMode.Eager)
         where T : class
         where TInitializer : class, IInitializer<T>
     {
-        services.GetScopeGraph().Initialized[typeof(T)] = typeof(TInitializer);
+        services.GetScopeGraph().Initialized[typeof(T)] = new(typeof(TInitializer), mode);
         services.AddTransient<TInitializer>();
-        services.AddScoped<Slot<T>>();
-        services.AddScoped(sp => sp.GetRequiredService<Slot<T>>().Value);
+        if (mode == InitMode.Lazy)
+        {
+            // Only Deferred<T> is resolvable; asking for T itself is a plan error.
+            services.AddScoped(sp => new Deferred<T>(
+                token => sp.GetRequiredService<TInitializer>().InitializeAsync(token)));
+        }
+        else
+        {
+            services.AddScoped<Slot<T>>();
+            services.AddScoped(sp => sp.GetRequiredService<Slot<T>>().Value);
+        }
         return services;
     }
 }
 
-public sealed record PlanStep(Type Value, Type Initializer);
+public sealed record PlanStep(Type Value, Type Initializer, InitMode Mode);
 
 public sealed class ScopePlan
 {
     public required Type Root { get; init; }
     public required IReadOnlyList<Type> Seeds { get; init; }
-    public required IReadOnlyList<PlanStep> Initializers { get; init; } // dependency order
+    public required IReadOnlyList<PlanStep> Initializers { get; init; } // run at open, dependency order
+    public required IReadOnlyList<PlanStep> Lazy { get; init; }         // run on first await
     public required IReadOnlyList<string> Opaque { get; init; }        // warnings: runtime-only
     public required IReadOnlyList<string> Errors { get; init; }        // missing registrations, cycles
 
-    public static ScopePlan For<TRoot>(IServiceCollection services) => For(typeof(TRoot), services);
+    public IEnumerable<Type> ExplicitInitializers =>
+        Initializers.Where(s => s.Mode == InitMode.Explicit).Select(s => s.Value);
 
-    public static ScopePlan For(Type root, IServiceCollection services)
+    public static ScopePlan For<TRoot>(IServiceCollection services, bool allowImplicitInit = true) =>
+        For(typeof(TRoot), services, allowImplicitInit);
+
+    // allowImplicitInit: false turns every Eager initializer of this plan into an Explicit one,
+    // so the caller must name everything that runs when the scope opens.
+    public static ScopePlan For(Type root, IServiceCollection services, bool allowImplicitInit = true)
     {
         var graph = services.GetScopeGraph();
         var seeds = new List<Type>();
         var steps = new List<PlanStep>();
+        var lazy = new List<PlanStep>();
         var opaque = new List<string>();
         var errors = new List<string>();
         var done = new HashSet<Type>();
@@ -118,6 +167,7 @@ public sealed class ScopePlan
             Root = root,
             Seeds = seeds,
             Initializers = steps,
+            Lazy = lazy,
             Opaque = opaque,
             Errors = errors,
         };
@@ -157,10 +207,21 @@ public sealed class ScopePlan
                 VisitConstructor(factory);
                 return;
             }
-            if (graph.Initialized.TryGetValue(type, out var initializer))
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Deferred<>))
             {
-                VisitConstructor(initializer);
-                steps.Add(new(type, initializer)); // post-order = inputs initialized first
+                VisitDeferred(type.GetGenericArguments()[0]);
+                return;
+            }
+            if (graph.Initialized.TryGetValue(type, out var entry))
+            {
+                if (entry.Mode == InitMode.Lazy)
+                {
+                    errors.Add($"{Where()} needs {type.Name}, which is lazy: depend on Deferred<{type.Name}>");
+                    return;
+                }
+                VisitConstructor(entry.Initializer);
+                var mode = entry.Mode == InitMode.Eager && !allowImplicitInit ? InitMode.Explicit : entry.Mode;
+                steps.Add(new(type, entry.Initializer, mode)); // post-order = inputs initialized first
                 return;
             }
             if (type == typeof(IServiceProvider) || type == typeof(IServiceScopeFactory))
@@ -191,6 +252,23 @@ public sealed class ScopePlan
             }
         }
 
+        void VisitDeferred(Type value)
+        {
+            if (!graph.Initialized.TryGetValue(value, out var entry))
+            {
+                errors.Add($"{Where()} needs Deferred<{value.Name}>, but {value.Name} has no initializer");
+                return;
+            }
+            if (entry.Mode != InitMode.Lazy)
+            {
+                errors.Add($"{Where()} needs Deferred<{value.Name}>, but {value.Name} is {entry.Mode}: depend on it directly");
+                return;
+            }
+            // The initializer runs later, but its seeds must still be there when the scope opens.
+            VisitConstructor(entry.Initializer);
+            lazy.Add(new(value, entry.Initializer, InitMode.Lazy));
+        }
+
         void VisitConstructor(Type implementation)
         {
             // Microsoft DI picks the satisfiable constructor with the most parameters;
@@ -211,7 +289,11 @@ public sealed class ScopePlan
     {
         Console.WriteLine($"  plan for {Root.Name}:");
         Console.WriteLine($"    seeds:        [{string.Join(", ", Seeds.Select(t => t.Name))}]");
-        Console.WriteLine($"    initializers: [{string.Join(" -> ", Initializers.Select(s => s.Value.Name))}]");
+        Console.WriteLine($"    at open:      [{string.Join(" -> ", Initializers.Select(Describe))}]");
+        if (Lazy.Count > 0)
+        {
+            Console.WriteLine($"    lazy:         [{string.Join(", ", Lazy.Select(s => s.Value.Name))}]");
+        }
         foreach (var o in Opaque)
         {
             Console.WriteLine($"    OPAQUE (runtime only): {o}");
@@ -220,16 +302,27 @@ public sealed class ScopePlan
         {
             Console.WriteLine($"    ERROR: {e}");
         }
+
+        static string Describe(PlanStep step) => $"{step.Value.Name} ({step.Mode.ToString().ToLowerInvariant()})";
     }
 }
 
-public sealed class SeedSet
+// What the caller provides when opening a scope: seed values, plus the names of
+// Explicit initializers it agrees to run.
+public sealed class ScopeInputs
 {
-    internal Dictionary<Type, object> Values { get; } = [];
+    internal Dictionary<Type, object> Seeds { get; } = [];
+    internal HashSet<Type> Initialize { get; } = [];
 
-    public SeedSet Add<T>(T value) where T : class
+    public ScopeInputs Add<T>(T value) where T : class
     {
-        Values[typeof(T)] = value;
+        Seeds[typeof(T)] = value;
+        return this;
+    }
+
+    public ScopeInputs Init<T>() where T : class
+    {
+        Initialize.Add(typeof(T));
         return this;
     }
 }
@@ -241,33 +334,30 @@ public static class ScopeOpener
     private static readonly MethodInfo InitializeMethod =
         typeof(ScopeOpener).GetMethod(nameof(Initialize), BindingFlags.NonPublic | BindingFlags.Static)!;
 
-    // Verifies the seeds against the plan BEFORE any work, fills them, runs initializers in order,
-    // and only then hands out the scope.
+    // Verifies the inputs against the plan BEFORE any work, fills the seeds, runs the
+    // at-open initializers in order, and only then hands out the scope.
     public static async Task<AsyncServiceScope> OpenAsync(
         this IServiceProvider root,
         ScopePlan plan,
-        Action<SeedSet> seed,
+        Action<ScopeInputs> provide,
         CancellationToken cancellationToken)
     {
         if (plan.Errors.Count > 0)
         {
             throw new InvalidOperationException($"plan for {plan.Root.Name} has errors");
         }
-        var seeds = new SeedSet();
-        seed(seeds);
-        var missing = plan.Seeds.Where(t => !seeds.Values.ContainsKey(t)).Select(t => t.Name).ToList();
-        if (missing.Count > 0)
-        {
-            throw new InvalidOperationException(
-                $"{plan.Root.Name} needs seeds [{string.Join(", ", missing)}]; nothing was initialized");
-        }
+        var inputs = new ScopeInputs();
+        provide(inputs);
+        Reject("needs seeds", plan.Seeds.Where(t => !inputs.Seeds.ContainsKey(t)));
+        Reject("needs explicit initialization of", plan.ExplicitInitializers.Where(t => !inputs.Initialize.Contains(t)));
+        Reject("does not initialize explicitly", inputs.Initialize.Except(plan.ExplicitInitializers));
 
         var scope = root.CreateAsyncScope();
         try
         {
             foreach (var type in plan.Seeds)
             {
-                FillMethod.MakeGenericMethod(type).Invoke(null, [scope.ServiceProvider, seeds.Values[type]]);
+                FillMethod.MakeGenericMethod(type).Invoke(null, [scope.ServiceProvider, inputs.Seeds[type]]);
             }
             foreach (var step in plan.Initializers)
             {
@@ -281,6 +371,16 @@ public static class ScopeOpener
         {
             await scope.DisposeAsync();
             throw;
+        }
+
+        void Reject(string problem, IEnumerable<Type> types)
+        {
+            var names = types.Select(t => t.Name).ToList();
+            if (names.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"{plan.Root.Name} {problem} [{string.Join(", ", names)}]; nothing was initialized");
+            }
         }
     }
 
