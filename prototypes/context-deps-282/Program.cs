@@ -158,6 +158,9 @@ Section("3. Autofac child lifetime scopes");
 Section("4. Modular seeding with a ScopePlan (Microsoft DI)");
 await Plans.ScopePlanDemo.Run(Try);
 
+Section("5. Disposal trap: a lambda registration owns what it hands out");
+Disposal.DisposalCheck.Run(Try);
+
 Console.WriteLine();
 Console.WriteLine($"Schedules built in total: {Counters.Schedules}; Shared built in total: {Counters.Shared}");
 Console.WriteLine("(Shared is built once per root container; each variant builds its own roots.)");
