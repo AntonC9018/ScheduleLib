@@ -151,6 +151,30 @@ public sealed class ExamReminderHandler(Deferred<ExamDates> exams)
         remind ? $"{(await exams.GetAsync(token)).Count} exams" : "no reminder requested";
 }
 
+// ---- one initializer, several values: X is projected out of the bundle Z ----
+public sealed record RoomIndex(IReadOnlyList<string> Rooms);
+public sealed record TimetableBundle(int Rows, RoomIndex Rooms); // Z, holding X
+
+public sealed class TimetableInitializer(SourceArgs source, LoadCounter loads) : IInitializer<TimetableBundle>
+{
+    public async ValueTask<TimetableBundle> InitializeAsync(CancellationToken token)
+    {
+        await Task.Delay(10, token); // one parse produces everything
+        loads.Count("timetable");
+        return new(Rows: 120, new RoomIndex([$"{source.DataDir}: 101", $"{source.DataDir}: 202"]));
+    }
+}
+
+public sealed class RoomIndexFactory(TimetableBundle bundle) : IFactory<RoomIndex>
+{
+    public RoomIndex Create() => bundle.Rooms;
+}
+
+public sealed class RoomFinderHandler(RoomIndex rooms) // asks for X only
+{
+    public string Run() => $"rooms [{string.Join(", ", rooms.Rooms)}]";
+}
+
 // ---- deliberately hidden dependency (service location) ----
 public sealed class LegacyGradePlanner(IServiceProvider services)
 {
@@ -182,6 +206,8 @@ public static class ScopePlanDemo
         s.AddInitialized<RemoteCalendar, RemoteCalendarInitializer>(InitMode.Explicit);
         s.AddInitialized<Holidays, HolidaysInitializer>(InitMode.Lazy);
         s.AddInitialized<ExamDates, ExamDatesInitializer>(InitMode.Lazy);
+        s.AddInitialized<TimetableBundle, TimetableInitializer>();
+        s.AddDerived<RoomIndex, RoomIndexFactory>();
         s.AddSingleton<LoadCounter>();
         s.AddSingleton<PlanScheduleCache>();
         s.AddTransient<LessonQuery>();
@@ -193,6 +219,7 @@ public static class ScopePlanDemo
         s.AddTransient<HolidayReportHandler>();
         s.AddTransient<CompareSemestersHandler>();
         s.AddTransient<ExamReminderHandler>();
+        s.AddTransient<RoomFinderHandler>();
         s.AddTransient<LegacyGradePlanner>();
         s.AddTransient<LegacyGradeHandler>();
         s.AddTransient<BrokenHandler>();
@@ -212,11 +239,12 @@ public static class ScopePlanDemo
         var holidays = ScopePlan.For<HolidayReportHandler>(services);
         var compare = ScopePlan.For<CompareSemestersHandler>(services);
         var exams = ScopePlan.For<ExamReminderHandler>(services);
+        var rooms = ScopePlan.For<RoomFinderHandler>(services);
         var legacy = ScopePlan.For<LegacyGradeHandler>(services);
         var broken = ScopePlan.For<BrokenHandler>(services);
         var eagerHoliday = ScopePlan.For<EagerHolidayHandler>(services);
         Console.WriteLine("  (QueryLessonsHandler is planned twice; the second plan disallows implicit init)");
-        foreach (var plan in new[] { query, queryStrict, sync, show, holidays, compare, exams, legacy, broken, eagerHoliday })
+        foreach (var plan in new[] { query, queryStrict, sync, show, holidays, compare, exams, rooms, legacy, broken, eagerHoliday })
         {
             plan.Print();
         }
@@ -298,6 +326,14 @@ public static class ScopePlanDemo
             var text = await scope.ServiceProvider.GetRequiredService<ExamReminderHandler>().RunAsync(remind: false, ct);
             tryRun("exam reminder, exams never awaited",
                 () => $"{text}; schedule loads anyway: {loads["schedule"] - before}");
+        }
+
+        Console.WriteLine("  -- one initializer, projected value --");
+        await using (var scope = await root.OpenAsync(rooms, s => s.Add(source), ct))
+        {
+            tryRun("room finder asks for RoomIndex only",
+                () => scope.ServiceProvider.GetRequiredService<RoomFinderHandler>().Run()
+                    + $"; timetable parses: {loads["timetable"]}");
         }
 
         Console.WriteLine("  -- opaque and broken --");
