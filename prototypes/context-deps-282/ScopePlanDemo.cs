@@ -5,6 +5,8 @@
 //                  derived ResolvedSettings.
 //   ShowSettings:  Settings seed only; the schedule is never loaded.
 //   HolidayReport: lazy Holidays, loaded only if the report actually asks for them.
+//   CompareSemesters: two SourceArgs seeds, the unkeyed one and one keyed "previous".
+//   ExamReminder:  lazy ExamDates whose initializer needs the schedule (known gap).
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Plans;
@@ -127,6 +129,28 @@ public sealed class HolidayReportHandler(LessonQuery query, Deferred<Holidays> h
     }
 }
 
+// ---- keyed seeds: same type, two values ----
+public sealed class CompareSemestersHandler(
+    SourceArgs current,
+    [FromKeyedServices("previous")] SourceArgs previous)
+{
+    public string Run() => $"compare {previous.DataDir} -> {current.DataDir}";
+}
+
+// ---- known gap: a lazy value whose initializer needs an eager one ----
+public sealed record ExamDates(int Count);
+
+public sealed class ExamDatesInitializer(PlanSchedule schedule) : IInitializer<ExamDates>
+{
+    public ValueTask<ExamDates> InitializeAsync(CancellationToken token) => new(new ExamDates(schedule.Id * 3));
+}
+
+public sealed class ExamReminderHandler(Deferred<ExamDates> exams)
+{
+    public async Task<string> RunAsync(bool remind, CancellationToken token) =>
+        remind ? $"{(await exams.GetAsync(token)).Count} exams" : "no reminder requested";
+}
+
 // ---- deliberately hidden dependency (service location) ----
 public sealed class LegacyGradePlanner(IServiceProvider services)
 {
@@ -152,10 +176,12 @@ public static class ScopePlanDemo
         s.AddSeed<SourceArgs>();
         s.AddSeed<SettingsArgs>();
         s.AddSeed<OutputArgs>();
+        s.AddKeyedSeed<SourceArgs>("previous");
         s.AddDerived<ResolvedSettings, ResolvedSettingsFactory>();
         s.AddInitialized<PlanSchedule, ScheduleInitializer>(); // InitMode.Eager by default
         s.AddInitialized<RemoteCalendar, RemoteCalendarInitializer>(InitMode.Explicit);
         s.AddInitialized<Holidays, HolidaysInitializer>(InitMode.Lazy);
+        s.AddInitialized<ExamDates, ExamDatesInitializer>(InitMode.Lazy);
         s.AddSingleton<LoadCounter>();
         s.AddSingleton<PlanScheduleCache>();
         s.AddTransient<LessonQuery>();
@@ -165,6 +191,8 @@ public static class ScopePlanDemo
         s.AddTransient<CalendarSyncHandler>();
         s.AddTransient<ShowSettingsHandler>();
         s.AddTransient<HolidayReportHandler>();
+        s.AddTransient<CompareSemestersHandler>();
+        s.AddTransient<ExamReminderHandler>();
         s.AddTransient<LegacyGradePlanner>();
         s.AddTransient<LegacyGradeHandler>();
         s.AddTransient<BrokenHandler>();
@@ -182,11 +210,13 @@ public static class ScopePlanDemo
         var sync = ScopePlan.For<CalendarSyncHandler>(services);
         var show = ScopePlan.For<ShowSettingsHandler>(services);
         var holidays = ScopePlan.For<HolidayReportHandler>(services);
+        var compare = ScopePlan.For<CompareSemestersHandler>(services);
+        var exams = ScopePlan.For<ExamReminderHandler>(services);
         var legacy = ScopePlan.For<LegacyGradeHandler>(services);
         var broken = ScopePlan.For<BrokenHandler>(services);
         var eagerHoliday = ScopePlan.For<EagerHolidayHandler>(services);
         Console.WriteLine("  (QueryLessonsHandler is planned twice; the second plan disallows implicit init)");
-        foreach (var plan in new[] { query, queryStrict, sync, show, holidays, legacy, broken, eagerHoliday })
+        foreach (var plan in new[] { query, queryStrict, sync, show, holidays, compare, exams, legacy, broken, eagerHoliday })
         {
             plan.Print();
         }
@@ -251,6 +281,25 @@ public static class ScopePlanDemo
                 () => $"{withHolidays}; holiday loads: {loads["holidays"]}");
         }
 
+        Console.WriteLine("  -- keyed seeds --");
+        var previous = new SourceArgs("data/2024-sem2");
+        await using (var scope = await root.OpenAsync(compare,
+            s => s.Add(source).AddKeyed("previous", previous), ct))
+        {
+            tryRun("compare semesters, keyed \"previous\" seed",
+                () => scope.ServiceProvider.GetRequiredService<CompareSemestersHandler>().Run());
+        }
+        Reject(tryRun, "compare semesters, keyed seed missing", () => root.OpenAsync(compare, s => s.Add(source), ct));
+
+        Console.WriteLine("  -- KNOWN GAP: a lazy value's own inputs are not lazy --");
+        before = loads["schedule"];
+        await using (var scope = await root.OpenAsync(exams, s => s.Add(new SourceArgs("data/2026-sem2")), ct))
+        {
+            var text = await scope.ServiceProvider.GetRequiredService<ExamReminderHandler>().RunAsync(remind: false, ct);
+            tryRun("exam reminder, exams never awaited",
+                () => $"{text}; schedule loads anyway: {loads["schedule"] - before}");
+        }
+
         Console.WriteLine("  -- opaque and broken --");
         await using (var scope = await root.OpenAsync(legacy, s => s.Add(source), ct))
         {
@@ -264,11 +313,11 @@ public static class ScopePlanDemo
             + $"holidays {loads["holidays"]}");
     }
 
-    private static void Reject(Action<string, Func<string>> tryRun, string label, Func<Task<AsyncServiceScope>> open)
+    private static void Reject(Action<string, Func<string>> tryRun, string label, Func<ValueTask<AsyncServiceScope>> open)
     {
         tryRun(label, () =>
         {
-            using var scope = open().GetAwaiter().GetResult();
+            using var scope = open().AsTask().GetAwaiter().GetResult();
             return "opened?!";
         });
     }
