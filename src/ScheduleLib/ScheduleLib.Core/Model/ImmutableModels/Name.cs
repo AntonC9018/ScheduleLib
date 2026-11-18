@@ -27,6 +27,27 @@ public record struct OptionalNamePart
         }
     }
 
+    /// <summary>
+    /// The short form for display: the imported one, or else the initial of the full form.
+    /// Matching uses <see cref="Short"/>, because a generated initial is not part of the source.
+    /// </summary>
+    public readonly string? DisplayShort
+    {
+        get
+        {
+            if (Short is { } shortName)
+            {
+                return shortName;
+            }
+            if (Full is not { } full)
+            {
+                return null;
+            }
+
+            return $"{full[0]}{WordHelper.ShortenedWordCharacter}";
+        }
+    }
+
     public readonly bool IsNull
     {
         get
@@ -582,7 +603,7 @@ public static class NameDisplayHelper
 
             bool AppendShorter(NameParts<OptionalNamePart> f)
             {
-                if (f[0].Short is not { } a)
+                if (f[0].DisplayShort is not { } a)
                 {
                     return false;
                 }
@@ -590,10 +611,11 @@ public static class NameDisplayHelper
                 AppendSpaceMaybe();
 
                 var list = new ListStringBuilder(p.Output, separator: NameConstants.DoubleNameSeparator);
+                var second = f[1].DisplayShort;
 
                 {
                     var word = new WordSpan(a);
-                    if (f[1].Short is not null)
+                    if (second is not null)
                     {
                         // Skip the .
                         list.Append(word.Shortened.Value);
@@ -604,7 +626,7 @@ public static class NameDisplayHelper
                     }
                 }
 
-                if (f[1].Short is not { } b)
+                if (second is not { } b)
                 {
                     return true;
                 }

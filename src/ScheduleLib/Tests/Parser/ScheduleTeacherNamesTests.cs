@@ -1,4 +1,7 @@
+using System.Text;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.ParserTests;
 
@@ -131,6 +134,69 @@ public sealed class ScheduleTeacherNamesTests
         Assert.Empty(lookup.TeachersByLastName.Get("Last") ?? []);
         int[] expected = [t.Id.Id];
         Assert.Equal(expected: expected, actual: lookup.TeachersByLastName.Get("Otherlast"));
+    }
+
+    [Fact]
+    public void BuiltLookupDoesNotMatchAFullFirstNameAgainstADisplayInitial()
+    {
+        var s = new ScheduleBuilder();
+        s.EnableLookupModule();
+        var other = s.Teacher("Mihai-Ana Popescu");
+        var schedule = s.Build();
+        var lookup = BuiltLookup(s, schedule);
+
+        Assert.NotEqual(expected: other.Id, actual: lookup.Teacher("Maria-A.", "Popescu"));
+    }
+
+    [Fact]
+    public void BuiltLookupPrefersTheTeacherWhoseFullFirstNameMatches()
+    {
+        var s = new ScheduleBuilder();
+        s.EnableLookupModule();
+        var other = s.Teacher("Mihai-Ana Popescu");
+        var expected = s.Teacher("Maria-A. Popescu");
+        Assert.NotEqual(expected: other.Id, actual: expected.Id);
+        var schedule = s.Build();
+        var lookup = BuiltLookup(s, schedule);
+
+        Assert.Equal(expected: expected.Id, actual: lookup.Teacher("Maria-A.", "Popescu"));
+    }
+
+    [Fact]
+    public void BuiltTeacherDisplaysInitialsOfFullFirstNames()
+    {
+        var s = new ScheduleBuilder();
+        var teacher = s.Teacher("Mihai-Ana Popescu");
+        var schedule = s.Build();
+        var name = schedule.Get(teacher.Id).PersonName;
+
+        var display = new StringBuilder();
+        NameDisplayHelper.Append(new()
+        {
+            Output = display,
+            Name = name,
+            PreferLonger = false,
+        });
+        Assert.Equal(expected: "M-A. Popescu", actual: display.ToString());
+
+        var fileName = new StringBuilder();
+        TeacherNameHelper.AsFileName(fileName, name);
+        Assert.Equal(expected: "M-A_Popescu", actual: fileName.ToString());
+    }
+
+    private static LookupFacade BuiltLookup(ScheduleBuilder s, Schedule schedule)
+    {
+        var courseNames = CourseNameUnifierConfig.Create(new CourseNameParserConfig(new()), []);
+        var groupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2025),
+        });
+        var scheduleLookup = ScheduleLookup.Create(schedule, courseNames);
+        return new LookupFacade(
+            schedule: schedule,
+            lookup: scheduleLookup,
+            remappings: s.Remappings,
+            groupParseContext: groupParseContext);
     }
 }
 

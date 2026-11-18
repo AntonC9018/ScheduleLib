@@ -833,7 +833,7 @@ public static class TeacherNameHelper
             var firstNameBuilder = new ListStringBuilder(sb, NameConstants.DoubleNameSeparator);
             foreach (var fname in teacherName.FirstName)
             {
-                if (fname.Short is not { } s)
+                if (fname.DisplayShort is not { } s)
                 {
                     break;
                 }

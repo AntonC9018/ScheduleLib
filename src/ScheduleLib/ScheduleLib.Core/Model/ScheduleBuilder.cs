@@ -245,27 +245,10 @@ public static partial class ScheduleBuilderHelper
         var groups = s.Groups.Build(x => x.Build());
         var teachers = s.Teachers.Build(x =>
         {
-            var firstName = x.Name.FirstName.Map(x1 => x1 with
-            {
-                Short = ShortName(x1),
-            });
-            var personName = new PersonName(firstName, x.Name.LastName);
+            // The imported name parts, which matching relies on; displays derive initials.
+            var personName = new PersonName(x.Name.FirstName, x.Name.LastName);
             var contacts = x.Contacts.ToPersonContacts();
             return new Teacher(personName, contacts);
-
-            static string? ShortName(OptionalNamePart x)
-            {
-                if (x.Short is { } shortf)
-                {
-                    return shortf;
-                }
-                if (!(x.Full is { } fullf))
-                {
-                    return null;
-                }
-
-                return $"{fullf[0]}{WordHelper.ShortenedWordCharacter}";
-            }
         });
         var courses = s.Courses.Build();
 
