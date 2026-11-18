@@ -1,4 +1,4 @@
-# Analyzer and formatter decisions
+# Analyzer, formatter and architecture decisions
 
 Durable ScheduleLib-specific decisions, one per file. Each states the decision, rationale and
 boundaries; measurements and history live in [evidence](../evidence/README.md).
@@ -16,6 +16,7 @@ General analyzer rules, their boundaries and accepted cases belong to CodingRule
 - [Tuple API migration to record structs (CR0900)](analyzer-tuple-record-structs.md)
 - [Local CodingRules candidate adoption](codingrules-candidate-adoption.md)
 - [The formatter retains CleanupCode alongside package fixes](formatter-retains-cleanupcode.md)
+- [Scope plans for context-dependent dependencies](scope-plans.md)
 - [Google token context, credential request and timestamp helper (CR1000,
   CR1300)](google-token-context.md)
 
