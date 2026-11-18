@@ -312,9 +312,73 @@ public sealed class ScopePlanTests
 
         var plan = root.PlanOf<DiamondTop>();
 
-        Assert.Single(plan.Errors, e => e.Kind == ScopePlanIssueKind.Cycle);
+        var cycle = Assert.Single(plan.Errors, e => e.Kind == ScopePlanIssueKind.Cycle);
         var missing = Assert.Single(plan.Errors, e => e.Kind == ScopePlanIssueKind.MissingRegistration);
         Assert.Equal(expected: ScopeNode.Unkeyed(typeof(DiamondBottom)), actual: missing.Subject);
+        ScopeNode[] path =
+        [
+            ScopeNode.Unkeyed(typeof(DiamondTop)),
+            ScopeNode.Unkeyed(typeof(DiamondLeft)),
+            ScopeNode.Unkeyed(typeof(DiamondBottom)),
+            ScopeNode.Unkeyed(typeof(DiamondTop)),
+        ];
+        Assert.Equal(expected: path, actual: cycle.Related);
+    }
+
+    [Fact]
+    public void KeyedCycleIsReportedTheSameFromEitherEnd()
+    {
+        using var fromInt = CreateKeyedCycleServices().BuildServiceProvider();
+        using var fromString = CreateKeyedCycleServices().BuildServiceProvider();
+
+        var intCycle = Assert.Single(fromInt.PlanOf<IntKeyRoot>().Errors);
+        var stringCycle = Assert.Single(fromString.PlanOf<StringKeyRoot>().Errors);
+
+        Assert.Equal(expected: intCycle, actual: stringCycle);
+        ScopeNode[] path = [new(typeof(ILink), 1), new(typeof(ILink), "1"), new(typeof(ILink), 1)];
+        Assert.Equal(expected: path, actual: intCycle.Related);
+
+        static IServiceCollection CreateKeyedCycleServices()
+        {
+            var services = new ServiceCollection();
+            services.AddSeed<SourceArgs>();
+            services.AddKeyedScoped<ILink, IntKeyLink>(1);
+            services.AddKeyedScoped<ILink, StringKeyLink>("1");
+            return services;
+        }
+    }
+
+    [Fact]
+    public void EachSeparateCycleIsReported()
+    {
+        var services = new ServiceCollection();
+        services.AddSeed<SourceArgs>();
+        services.AddScoped<CycleFirst>();
+        services.AddScoped<CycleSecond>();
+        services.AddScoped<CycleRoot>();
+        services.AddScoped<CycleService>();
+        using var root = services.BuildServiceProvider();
+
+        var plan = root.PlanOf<TwoCyclesRoot>();
+
+        var cycles = plan.Errors.Where(e => e.Kind == ScopePlanIssueKind.Cycle).ToList();
+        Assert.Equal(expected: 2, actual: cycles.Count);
+    }
+
+    [Fact]
+    public void SeedAndInitializedRegistrationsReplaceEachOther()
+    {
+        var asSeed = CreateServices();
+        asSeed.AddSeed<LoadedSchedule>();
+        using var seedRoot = asSeed.Build();
+        var asInitialized = CreateServices();
+        asInitialized.AddSeed<LoadedSchedule>();
+        asInitialized.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
+        using var initializedRoot = asInitialized.Build();
+
+        ScopeNode[] seeds = [ScopeNode.Unkeyed(typeof(LoadedSchedule))];
+        Assert.Equal(expected: seeds, actual: seedRoot.PlanOf<QueryLessonsHandler>().Seeds);
+        Assert.Empty(initializedRoot.PlanOf<QueryLessonsHandler>().Seeds);
     }
 
     [Fact]

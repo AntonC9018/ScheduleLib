@@ -20,12 +20,14 @@ internal readonly record struct ServiceRecipe(ServiceSource Source, Type? Implem
 internal sealed class ServiceIndex
 {
     private readonly Dictionary<ScopeNode, List<ServiceDescriptor>> _descriptors = [];
+    private readonly Dictionary<ScopeNode, int> _positions = [];
 
     public ServiceIndex(IServiceCollection services)
     {
         foreach (var descriptor in services)
         {
             var node = new ScopeNode(descriptor.ServiceType, descriptor.ServiceKey);
+            _positions.TryAdd(node, _positions.Count);
             if (!_descriptors.TryGetValue(node, out var list))
             {
                 list = [];
@@ -44,6 +46,24 @@ internal sealed class ServiceIndex
             return new(ServiceSource.Missing, Implementation: null);
         }
         return RecipeOf(descriptors[^1], node.Type);
+    }
+
+    /// <summary>
+    /// Where the node's service was first registered, relative to other services; closed generics
+    /// share their open registration's position. Unregistered nodes come last.
+    /// </summary>
+    public int PositionOf(ScopeNode node)
+    {
+        if (_positions.TryGetValue(node, out var exact))
+        {
+            return exact;
+        }
+        if (!node.Type.IsConstructedGenericType)
+        {
+            return int.MaxValue;
+        }
+        var open = new ScopeNode(node.Type.GetGenericTypeDefinition(), node.Key);
+        return _positions.GetValueOrDefault(open, int.MaxValue);
     }
 
     /// <summary>Every registration, in order, as <see cref="IEnumerable{T}"/> resolves them.</summary>

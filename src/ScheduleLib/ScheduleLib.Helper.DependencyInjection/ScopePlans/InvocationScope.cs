@@ -12,19 +12,28 @@ public sealed class InvocationScope : IAsyncDisposable
     private readonly AsyncServiceScope _scope;
     private readonly ScopeState _state;
 
-    public InvocationScope(IServiceProvider root)
+    private InvocationScope(AsyncServiceScope scope, ScopeState state)
     {
-        _scope = root.CreateAsyncScope();
+        _scope = scope;
+        _state = state;
+        _state.UseServicesTeardown(failures => failures.Run(_scope.DisposeAsync));
+    }
+
+    public static async ValueTask<InvocationScope> OpenAsync(IServiceProvider root)
+    {
+        var scope = root.CreateAsyncScope();
         try
         {
-            _state = _scope.ServiceProvider.GetRequiredService<ScopeState>();
+            var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
+            return new InvocationScope(scope, state);
         }
-        catch
+        catch (Exception openFailure)
         {
-            _scope.Dispose();
+            var failures = new CleanupFailures();
+            await failures.Run(scope.DisposeAsync);
+            failures.ThrowIfAnyAlongside(openFailure);
             throw;
         }
-        _state.UseServicesTeardown(failures => failures.Run(_scope.DisposeAsync));
     }
 
     public IServiceProvider Services => _scope.ServiceProvider;

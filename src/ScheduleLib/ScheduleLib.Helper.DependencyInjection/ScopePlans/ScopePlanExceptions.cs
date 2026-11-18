@@ -87,6 +87,13 @@ public sealed class UnregisteredSeedsException(Type root, ImmutableArray<ScopeNo
     public ImmutableArray<ScopeNode> Seeds { get; } = seeds;
 }
 
+/// <summary>A cycle component did not lead back to its first member; a bug in scope plans.</summary>
+internal sealed class CyclePathNotFoundException(ScopeNode start)
+    : ScopePlanException($"The cycle component of {start} does not lead back to it")
+{
+    public ScopeNode Start { get; } = start;
+}
+
 /// <summary>A fork was opened from a scope that had already started ending.</summary>
 public sealed class ParentScopeEndedException(Type fork)
     : ScopePlanException($"Cannot open a fork for {fork.Name}: its parent scope has started ending")

@@ -75,12 +75,24 @@ public sealed class ScopeState : IAsyncDisposable
     }
 
     /// <summary>
-    /// Settles a fork that will not be returned. The opener first starts ending it, so a parent
-    /// waiting for it joins that ending and never reports the fork as left open.
+    /// Settles a fork that will not be returned, and tells whether its parent had started ending
+    /// by then. The opener first starts ending the fork, so a parent waiting for it joins that
+    /// ending and never reports the fork as left open.
     /// </summary>
-    internal void MarkOpenSettled()
+    internal bool SettleUnpublished()
     {
-        _openSettled.TrySetResult();
+        var parent = _parent!;
+        TaskCompletionSource<Exception?>? parentEnding;
+        lock (parent._lock)
+        {
+            _openSettled.TrySetResult();
+            parentEnding = parent._ending;
+        }
+        if (parentEnding is null)
+        {
+            return false;
+        }
+        return true;
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
@@ -29,11 +30,11 @@ public sealed class ScopeForkFactory<THandler>(
         Action<ScopeInputs>? supply,
         CancellationToken cancellationToken)
     {
-        var scopePlan = plan.Plan;
         if (!current.AcceptsForks)
         {
-            throw new ParentScopeEndedException(scopePlan.Root);
+            throw new ParentScopeEndedException(typeof(THandler));
         }
+        var scopePlan = plan.Plan;
         if (scopePlan.Errors.Length > 0)
         {
             throw new ScopePlanErrorsException(scopePlan.Root, scopePlan.Errors);
@@ -78,21 +79,39 @@ public sealed class ScopeForkFactory<THandler>(
         }
         catch (Exception openFailure)
         {
-            if (await EndUnpublishedAsync(state) is not { } cleanupFailure)
+            var failures = await EndUnpublishedAsync(state, openFailure);
+            if (failures.Length == 1)
             {
                 throw;
             }
-            throw new AggregateException(openFailure, cleanupFailure);
+            throw new AggregateException(failures);
         }
         return planned;
     }
 
-    /// <summary>Ends a fork that is never returned to the caller, then lets a waiting parent continue.</summary>
-    private static async ValueTask<Exception?> EndUnpublishedAsync(ScopeState state)
+    /// <summary>
+    /// Ends a fork that is never returned to the caller, then lets a waiting parent continue.
+    /// Returns what to report: that the parent ended, when it started ending before the fork
+    /// settled, then <paramref name="openFailure"/>, then any failure to end the fork.
+    /// </summary>
+    private static async ValueTask<Exception[]> EndUnpublishedAsync(ScopeState state, Exception openFailure)
     {
         var ending = state.EndAsync();
-        state.MarkOpenSettled();
-        return await ending.Completion;
+        Debug.Assert(ending.StartedHere, "Nothing else ends a fork before it is returned or settled.");
+        bool parentEnded = state.SettleUnpublished();
+        var cleanupFailure = await ending.Completion;
+
+        var failures = new List<Exception>();
+        if (parentEnded && openFailure is not ParentScopeEndedException)
+        {
+            failures.Add(new ParentScopeEndedException(typeof(THandler)));
+        }
+        failures.Add(openFailure);
+        if (cleanupFailure is not null)
+        {
+            failures.Add(cleanupFailure);
+        }
+        return [.. failures];
     }
 
     private bool IsSupplied(ScopeInputs inputs, ScopeNode seed)

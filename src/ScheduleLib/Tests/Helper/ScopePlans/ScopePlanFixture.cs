@@ -330,6 +330,9 @@ internal sealed class InitializerGate
     /// <summary>Whether the borrowed registry connection was still open when initialization resumed.</summary>
     public bool ConnectionWasOpen { get; set; }
 
+    /// <summary>Makes the gated initializer fail once released.</summary>
+    public bool FailOnRelease { get; set; }
+
     public async Task PassAsync()
     {
         _entered.TrySetResult();
@@ -344,12 +347,18 @@ internal sealed class InitializerGate
 
 internal sealed record GatedValue;
 
+internal sealed class GatedInitializerFailedException() : Exception("The gated initializer failed");
+
 internal sealed class GatedValueInitializer(RegistrySession session, InitializerGate gate) : IInitializer<GatedValue>
 {
     public async ValueTask<GatedValue> InitializeAsync(CancellationToken cancellationToken)
     {
         await gate.PassAsync();
         gate.ConnectionWasOpen = !session.Connection.IsClosed;
+        if (gate.FailOnRelease)
+        {
+            throw new GatedInitializerFailedException();
+        }
         return new GatedValue();
     }
 }
@@ -483,6 +492,35 @@ internal sealed class DiamondBottom(DiamondTop top, Unregistered missing)
 {
     public DiamondTop Top => top;
     public Unregistered Missing => missing;
+}
+
+internal interface ILink;
+
+/// <summary>Registered under the key 1; leads to the link under the key "1", which leads back.</summary>
+internal sealed class IntKeyLink([FromKeyedServices("1")] ILink next) : ILink
+{
+    public ILink Next => next;
+}
+
+internal sealed class StringKeyLink([FromKeyedServices(1)] ILink next) : ILink
+{
+    public ILink Next => next;
+}
+
+internal sealed class IntKeyRoot([FromKeyedServices(1)] ILink link)
+{
+    public ILink Link => link;
+}
+
+internal sealed class StringKeyRoot([FromKeyedServices("1")] ILink link)
+{
+    public ILink Link => link;
+}
+
+internal sealed class TwoCyclesRoot(CycleFirst first, CycleRoot second)
+{
+    public CycleFirst First => first;
+    public CycleRoot Second => second;
 }
 
 internal static class ScopePlanFixture

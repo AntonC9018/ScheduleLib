@@ -196,7 +196,7 @@ public sealed class ScopeForkTests
         await using var root = CreateServices().Build();
         // Disposed once below, inside the assertion, because ending it throws.
 #pragma warning disable CA2000
-        var invocation = new InvocationScope(root);
+        var invocation = await InvocationScope.OpenAsync(root);
 #pragma warning restore CA2000
 
         var parent = await invocation.Services.OpenAsync<GradeImportHandler>(SupplySource);
@@ -231,6 +231,28 @@ public sealed class ScopeForkTests
         Assert.IsType<ParentScopeEndedException>(exception.InnerExceptions[0]);
         var cleanup = Assert.IsType<ScopeCleanupException>(exception.InnerExceptions[1]);
         Assert.IsType<ResourceCloseFailedException>(Assert.Single(cleanup.Failures));
+    }
+
+    [Fact]
+    public async Task ForkFailingWhileItsParentEndsReportsBothToItsOpener()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+        var gate = root.GetRequiredService<InitializerGate>();
+        gate.FailOnRelease = true;
+
+        var parent = await invocation.ServiceProvider.OpenAsync<GatedParentHandler>(supply: null);
+        var opening = parent.Handler.Children.OpenAsync(supply: null, None).AsTask();
+        await gate.Entered;
+        var ending = parent.DisposeAsync().AsTask();
+        gate.Release();
+
+        var exception = await Assert.ThrowsAsync<AggregateException>(() => opening);
+        await ending;
+
+        Assert.Equal(expected: 2, actual: exception.InnerExceptions.Count);
+        Assert.IsType<ParentScopeEndedException>(exception.InnerExceptions[0]);
+        Assert.IsType<GatedInitializerFailedException>(exception.InnerExceptions[1]);
     }
 
     [Fact]

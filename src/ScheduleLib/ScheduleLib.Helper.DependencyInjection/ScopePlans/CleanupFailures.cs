@@ -31,6 +31,18 @@ public sealed class CleanupFailures
         }
     }
 
+    /// <summary>
+    /// After a failure, <paramref name="primary"/>, led to cleanup: throws it together with the
+    /// cleanup failures, if any. Otherwise returns, and the caller rethrows the primary failure.
+    /// </summary>
+    public void ThrowIfAnyAlongside(Exception primary)
+    {
+        if (_failures.Count > 0)
+        {
+            throw new AggregateException([primary, .. _failures]);
+        }
+    }
+
     /// <summary>Rethrows a single failure unchanged, or several as one <see cref="AggregateException"/>.</summary>
     public void ThrowIfAny()
     {

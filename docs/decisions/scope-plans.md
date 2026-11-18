@@ -56,11 +56,11 @@ command builds its own container from runtime arguments, and resolving `Schedule
   It is planned from its constructor without memoizing that node or putting it on the walk
   path, so for every other consumer it stays missing and plans, including cycle reports,
   never depend on which workflow was planned first.
+  The planned scope creates such a handler itself and disposes it when the scope ends.
 - **Cycles:** the walk memoizes each strongly connected component once it is complete, so every
   node is expanded once. A component with a cycle is reported as one error, the shortest cycle
-  through its first member in a fixed order, and its members share one closure; plans therefore
+  through its first member in registration order, and its members share one closure; plans therefore
   report the same cycle whichever root reached it first.
-  The planned scope creates such a handler itself and disposes it when the scope ends.
 - **Opaque spots are warnings, not errors.** Injected `IServiceProvider`/`IServiceScopeFactory`
   and lambda registrations fail only at run time if something is missing.
   Each consumer of an opaque or missing node is named. Opaque spots are converted over time.
@@ -105,7 +105,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
     returned.
   - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`,
     before any work. A fork still opening at that moment is not returned: its opener ends it and
-    receives that exception, while the parent waits for that ending. A fork is returned under the
+    receives that exception, alongside any failure of its own, while the parent waits for that
+    ending. A fork is returned under the
     parent's lock, so a parent either sees it returned, and ends it as left open, or rejects it.
   - Each ending reports its failures once, to whoever started it; anyone joining it only waits.
   - Every step is attempted even when some fail; the failures are reported together in one

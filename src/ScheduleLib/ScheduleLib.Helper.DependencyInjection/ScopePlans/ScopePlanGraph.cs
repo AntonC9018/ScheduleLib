@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -101,7 +100,8 @@ public sealed class ScopePlanGraph
     /// One depth-first walk (Tarjan's algorithm). Each strongly connected component is memoized
     /// once it is complete, so every node is expanded once and its closure never depends on which
     /// root reached it first. A component with a cycle is one error, and its members share one
-    /// closure, because each reaches the others.
+    /// closure, because each reaches the others. Members are ordered by registration, so the
+    /// reported cycle never depends on which root reached it first.
     /// </summary>
     private sealed class Walk(ScopePlanGraph graph)
     {
@@ -118,7 +118,11 @@ public sealed class ScopePlanGraph
             var description = Describe(root);
             if (description.Kind != ScopeNodeKind.Missing)
             {
-                return Visit(root);
+                if (!graph._nodes.ContainsKey(root))
+                {
+                    Connect(root, description);
+                }
+                return graph._nodes[root].Closure;
             }
             var activated = new NodeDescription(ScopeNodeKind.Service, ImplementationInputs(root.Type, key: null));
             foreach (var input in activated.Inputs)
@@ -134,14 +138,14 @@ public sealed class ScopePlanGraph
         {
             if (!graph._nodes.ContainsKey(node))
             {
-                Connect(node);
+                Connect(node, Describe(node));
             }
             return graph._nodes[node].Closure;
         }
 
-        private WalkEntry Connect(ScopeNode node)
+        private WalkEntry Connect(ScopeNode node, NodeDescription description)
         {
-            var entry = new WalkEntry(node, Describe(node), _entries.Count);
+            var entry = new WalkEntry(node, description, _entries.Count);
             _entries[node] = entry;
             _component.Push(entry);
             foreach (var input in entry.Description.Inputs)
@@ -151,7 +155,9 @@ public sealed class ScopePlanGraph
                     continue;
                 }
                 // A visited node that is not memoized is still on the component stack.
-                var reached = _entries.TryGetValue(input, out var visited) ? visited : Connect(input);
+                var reached = _entries.TryGetValue(input, out var visited)
+                    ? visited
+                    : Connect(input, Describe(input));
                 entry.LowLink = Math.Min(entry.LowLink, reached.LowLink);
             }
             if (entry.LowLink == entry.Index)
@@ -177,15 +183,11 @@ public sealed class ScopePlanGraph
         private void MemoizeComponent(List<WalkEntry> component)
         {
             var members = component.Select(m => m.Node).ToHashSet();
-            var first = component[0];
-            var inputs = first.Description.Inputs;
-            var isCycle = component.Count > 1 || inputs.Contains(first.Node);
-            if (!isCycle)
-            {
-                members.Clear();
-            }
+            var only = component[0];
+            var isCycle = component.Count > 1 || only.Description.Inputs.Contains(only.Node);
             var ordered = component
-                .OrderBy(m => CanonicalName(m.Node), StringComparer.Ordinal)
+                .OrderBy(m => graph.Index.PositionOf(m.Node))
+                .ThenBy(m => CanonicalName(m.Node), StringComparer.Ordinal)
                 .ToList();
             var builder = new ScopeClosureBuilder();
             foreach (var member in ordered)
@@ -245,7 +247,7 @@ public sealed class ScopePlanGraph
                     }
                 }
             }
-            throw new UnreachableException("A cycle component always leads back to its members.");
+            throw new CyclePathNotFoundException(start);
         }
 
         private static ImmutableArray<ScopeNode> PathTo(
@@ -262,9 +264,10 @@ public sealed class ScopePlanGraph
             return [.. reversed];
         }
 
+        /// <summary>Breaks ties between nodes registered together, such as closed generics of one registration.</summary>
         private static string CanonicalName(ScopeNode node)
         {
-            return $"{node.Type.AssemblyQualifiedName}|{node.Key}";
+            return $"{node.Type.AssemblyQualifiedName}|{node.Key?.GetType().AssemblyQualifiedName}|{node.Key}";
         }
 
         private NodeDescription Describe(ScopeNode node)

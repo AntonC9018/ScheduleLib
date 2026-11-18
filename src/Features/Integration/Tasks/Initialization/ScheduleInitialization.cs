@@ -126,7 +126,7 @@ public sealed class ScheduleScope : IAsyncDisposable
     {
         // CA2000 does not see ownership pass to the returned ScheduleScope; failures dispose below.
 #pragma warning disable CA2000
-        var invocation = new InvocationScope(root);
+        var invocation = await InvocationScope.OpenAsync(root);
 #pragma warning restore CA2000
         try
         {
@@ -138,11 +138,8 @@ public sealed class ScheduleScope : IAsyncDisposable
         {
             var failures = new CleanupFailures();
             await failures.Run(invocation.DisposeAsync);
-            if (failures.Failures.Count == 0)
-            {
-                throw;
-            }
-            throw new AggregateException([openFailure, .. failures.Failures]);
+            failures.ThrowIfAnyAlongside(openFailure);
+            throw;
         }
     }
 
