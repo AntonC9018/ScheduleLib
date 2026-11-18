@@ -26,6 +26,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
     private readonly ILogger _logger;
     private readonly ConfigureRemappingsDelegate _configureRemappings;
+    private readonly Remappings _remappings;
     private readonly IOptions<ScheduleBuilderInitializerOptions> _opts;
 
     public async Task Initialize(
@@ -35,7 +36,7 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
         await using var scope = _scopeFactory.CreateAsyncScope();
         var sp = scope.ServiceProvider;
 
-        builder.ConfigureRemappings(_configureRemappings);
+        builder.UseRemappings(_remappings);
         builder.EnableLookupModule();
 
         var loader = new ScheduleLoader();

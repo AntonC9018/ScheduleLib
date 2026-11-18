@@ -147,6 +147,11 @@ public static class Registration
                     });
                 });
                 services.AddSingleton<ConfigureRemappingsDelegate>(ScheduleDefaults.Config.ConfigureRemappings);
+                services.AddSingleton(sp =>
+                {
+                    var configure = sp.GetRequiredService<ConfigureRemappingsDelegate>();
+                    return Remappings.Create(configure);
+                });
                 services.AddSingleton(ScheduleDefaults.Config.SpecializationRegistry);
                 services.AddSingleton(ScheduleDefaults.Config.CourseNameParser);
                 services.AddSingleton(sp =>

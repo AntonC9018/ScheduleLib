@@ -41,13 +41,21 @@ public static class GroupBuilderHelper
             s.SetDefaultGroupParseContext(context);
         }
 
+        return context.Parse(fullName, s.Remappings);
+    }
+
+    /// <summary>Parses a group name, applying the group name remappings.</summary>
+    public static Group Parse(this GroupParseContext context, string fullName, Remappings remappings)
+    {
         var ret = context.Parse(fullName.AsMemory());
-        if (s.Remappings.GroupNameRemappings.TryGetValue(key: ret.Name, value: out var name))
+        if (!remappings.GroupNameRemappings.TryGetValue(key: ret.Name, value: out var name))
         {
-            var language = ret.Language;
-            ret = context.Parse(name.AsMemory());
-            ret.Language = language;
+            return ret;
         }
+
+        var language = ret.Language;
+        ret = context.Parse(name.AsMemory());
+        ret.Language = language;
         return ret;
     }
 

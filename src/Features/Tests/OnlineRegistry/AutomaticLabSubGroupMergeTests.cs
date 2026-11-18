@@ -368,7 +368,7 @@ public sealed class AutomaticLabSubGroupMergeTests
         var groupParser = fixture.Builder.GroupParseContext!;
         var lookup = fixture.Lookup;
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,
@@ -419,7 +419,7 @@ public sealed class AutomaticLabSubGroupMergeTests
         var groupParser = fixture.Builder.GroupParseContext!;
         var lookup = fixture.Lookup;
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,
@@ -482,7 +482,7 @@ public sealed class AutomaticLabSubGroupMergeTests
         var groupParser = fixture.Builder.GroupParseContext!;
         var lookup = fixture.Lookup;
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder);
+        var subGroupRemapper = new SubGroupNameRemapper(fixture.Builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,

@@ -133,7 +133,7 @@ public sealed class ScheduleImportContext
             if (SubGroupMatcher.TryFromNamePrefix(parsedLesson.GroupName.Span, out var group))
             {
                 groupNameIsLabel = true;
-                var remapped = Schedule.RemapSubGroup(group);
+                var remapped = Schedule.Remappings.RemapSubGroup(group);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     specialization = spec;
@@ -148,7 +148,7 @@ public sealed class ScheduleImportContext
                 // Future specialization labels are registered by their complete
                 // name, not by the built-in abbreviation table.
                 var parsedSubGroup = new SubGroup(parsedLesson.GroupName.ToString());
-                var remapped = Schedule.RemapSubGroup(parsedSubGroup);
+                var remapped = Schedule.Remappings.RemapSubGroup(parsedSubGroup);
                 if (Schedule.TryGetSpecialization(remapped, out var spec))
                 {
                     groupNameIsLabel = true;
@@ -161,7 +161,7 @@ public sealed class ScheduleImportContext
         {
             LessonParsingHelper.RejectExplicitNonBeginners(parsedLesson.PartitionHint.Span);
             var parsedPartition = new SubGroup(parsedLesson.PartitionHint.ToString());
-            var remapped = Schedule.RemapSubGroup(parsedPartition);
+            var remapped = Schedule.Remappings.RemapSubGroup(parsedPartition);
             if (Schedule.TryGetSpecialization(remapped, out var spec))
             {
                 if (specialization is { } prevSpec)
@@ -246,7 +246,7 @@ public sealed class ScheduleImportContext
         };
 
         // Need to remap explicitly, because we do the check for diacritics later.
-        _ = Schedule.RemapTeacherName(ref nameModel);
+        _ = Schedule.Remappings.RemapTeacherName(ref nameModel);
 
         var teacherBuilder = Schedule.Teacher(nameModel);
         var teacher = teacherBuilder.Model;

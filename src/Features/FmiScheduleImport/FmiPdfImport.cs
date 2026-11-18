@@ -69,7 +69,7 @@ public static class FmiPdfImport
             CurrentStudyYear = new(AdjustedYear()),
             GroupLabelsThatAreMaster = Config.GroupLabelsThatAreMaster,
         });
-        context.Schedule.ConfigureRemappings(Config.ConfigureRemappings);
+        context.Schedule.UseRemappings(Remappings.Create(Config.ConfigureRemappings));
         var cohorts = new ElectiveCohorts(context, cells);
         context.Schedule.ImplicitSplitConfig = cohorts.SplitConfig;
         context.Schedule.OverlapValidationConfig = new()

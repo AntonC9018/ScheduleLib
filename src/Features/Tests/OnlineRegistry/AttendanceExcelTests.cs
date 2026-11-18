@@ -66,7 +66,7 @@ public sealed class AttendanceExcelTests
         var groupParser = builder.GroupParseContext!;
         var lookup2 = builder.Lookup(unifier);
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(builder);
+        var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,
@@ -186,7 +186,7 @@ public sealed class AttendanceExcelTests
         var groupParser = builder.GroupParseContext!;
         var lookup = builder.Lookup(unifier);
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(builder);
+        var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,
@@ -243,7 +243,7 @@ public sealed class AttendanceExcelTests
         var groupParser = builder.GroupParseContext!;
         var lookup = builder.Lookup(unifier);
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(builder);
+        var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var parser = new AttendanceListsExcelParser(
             groupParser,
@@ -387,7 +387,7 @@ public sealed class AttendanceExcelTests
         var groupParser = builder.GroupParseContext!;
         var lookup = builder.Lookup(unifier);
         var lessonTypeParser = LessonTypeParser.Instance;
-        var subGroupRemapper = new SubGroupNameRemapper(builder);
+        var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
         var attendanceListsExcelParser = new AttendanceListsExcelParser(
             groupParser,

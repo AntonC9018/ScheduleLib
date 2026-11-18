@@ -555,7 +555,7 @@ public static class LessonBuilderHelper
         ret.Model.Data = modelData;
 
         ref var subGroup = ref ret.Model.Group.SubGroup;
-        subGroup = s.RemapSubGroup(subGroup);
+        subGroup = s.Remappings.RemapSubGroup(subGroup);
 
         ret.InitLookup();
         return ret;

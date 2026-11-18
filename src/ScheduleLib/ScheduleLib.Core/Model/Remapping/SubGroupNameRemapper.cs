@@ -5,8 +5,8 @@ namespace ScheduleLib.Builders;
 [AutoConstructor]
 public sealed partial class SubGroupNameRemapper
 {
-    private readonly ScheduleBuilder _builder;
-    private SubGroupNameRemappings Remappings => _builder.Remappings.SubGroupNameRemappings;
+    private readonly Remappings _remappings;
+    private SubGroupNameRemappings Remappings => _remappings.SubGroupNameRemappings;
     public SubGroup Remap(SubGroup subGroup) => Remappings.Remap(subGroup);
     public SubGroup Remap(ReadOnlyMemory<char> subGroup) => Remappings.Remap(subGroup);
     public SubGroup Remap(ReadOnlySpan<char> subGroup) => Remappings.Remap(subGroup);

@@ -7,7 +7,7 @@ using ScheduleLib.Theses.Parsing;
 namespace ScheduleLib.Application.Config;
 
 // don't know where to put this.
-public sealed class TeacherNameMapper(ScheduleBuilder b) : INameRemapper
+public sealed class TeacherNameMapper(Remappings remappings) : INameRemapper
 {
     public static void Register(IServiceCollection services)
     {
@@ -18,7 +18,7 @@ public sealed class TeacherNameMapper(ScheduleBuilder b) : INameRemapper
     {
         var nameModel = name.ToNameModel();
         // There should be an api for this that works with regular names.
-        _ = b.RemapTeacherName(ref nameModel);
+        _ = remappings.RemapTeacherName(ref nameModel);
         var ret = nameModel.AsNameFields();
         return new(ret);
     }

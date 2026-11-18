@@ -1,3 +1,4 @@
+using System.Diagnostics;
 namespace ScheduleLib.Builders;
 
 public sealed class Remappings()
@@ -8,6 +9,80 @@ public sealed class Remappings()
 
     /// <summary>Explicit aliases between canonical group codes, without language suffixes.</summary>
     public readonly Dictionary<string, string> GroupNameRemappings = new(StringComparer.Ordinal);
+
+    public static Remappings Create(ConfigureRemappingsDelegate configure)
+    {
+        var ret = new Remappings();
+        configure(ret);
+        return ret;
+    }
+
+    /// <summary>Applies the teacher name remappings. A remapped name must not remap again.</summary>
+    public TeacherNameRemapStatus RemapTeacherName(ref TeacherBuilderModel.NameModel name)
+    {
+        var status = RemapTeacherNameOnce(ref name);
+        if (status == TeacherNameRemapStatus.None)
+        {
+            return status;
+        }
+
+        var remappedStatus = RemapTeacherNameOnce(ref name);
+        if (remappedStatus != TeacherNameRemapStatus.None)
+        {
+            throw ConflictingTeacherNameRemapException.ForRecursive();
+        }
+        return status;
+    }
+
+    private TeacherNameRemapStatus RemapTeacherNameOnce(ref TeacherBuilderModel.NameModel name)
+    {
+        var status = TeacherNameRemapStatus.None;
+        if (!name.LastName.IsNull)
+        {
+            if (TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
+            {
+                name.LastName = t;
+                status = TeacherNameRemapStatus.LastName;
+            }
+        }
+
+        var copy = name;
+        foreach (var x in TeacherFullNameRemappings)
+        {
+            if (!x(ref name))
+            {
+                continue;
+            }
+            if (copy != name)
+            {
+                status = TeacherNameRemapStatus.FullName;
+            }
+            break;
+        }
+        return status;
+    }
+
+    public SubGroup RemapSubGroup(SubGroup subGroup)
+    {
+        if (subGroup == SubGroup.All)
+        {
+            return subGroup;
+        }
+
+        var val = subGroup.Value;
+        Debug.Assert(val != null);
+        var remapped = SubGroupNameRemappings.GetValueOrDefault(key: val, defaultValue: val);
+        return new(remapped);
+    }
+}
+
+public delegate void ConfigureRemappingsDelegate(Remappings remap);
+
+public enum TeacherNameRemapStatus
+{
+    None,
+    LastName,
+    FullName,
 }
 
 public sealed class SubGroupNameRemappings : Dictionary<string, string>

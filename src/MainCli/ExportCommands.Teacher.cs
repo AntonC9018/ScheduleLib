@@ -160,12 +160,7 @@ public partial class ExportCommands
                     ]);
             }
 
-            if (preDefense)
-            {
-                provider.GetRequiredService<ScheduleBuilder>()
-                    .ConfigureRemappings(provider.GetRequiredService<ConfigureRemappingsDelegate>());
-            }
-            else
+            if (!preDefense)
             {
                 await provider.InitializeSchedule(cancellation.Token);
             }

@@ -355,78 +355,13 @@ public static partial class ScheduleBuilderHelper
         return new(id);
     }
 
-    public static TeacherNameRemapStatus RemapTeacherName(
-        this ScheduleBuilder s,
-        ref TeacherBuilderModel.NameModel name)
-    {
-        var status = Impl(s, ref name);
-        if (status != TeacherNameRemapStatus.None)
-        {
-            var remappedStatus = Impl(s, ref name);
-            if (remappedStatus != TeacherNameRemapStatus.None)
-            {
-                // Maybe allow 1 recursion level?
-                throw ConflictingTeacherNameRemapException.ForRecursive();
-            }
-        }
-        return status;
-
-        static TeacherNameRemapStatus Impl(ScheduleBuilder s, ref TeacherBuilderModel.NameModel name)
-        {
-            var status = TeacherNameRemapStatus.None;
-            if (!name.LastName.IsNull)
-            {
-                if (s.Remappings.TeacherLastNameRemappings.TryGetValue(name.LastName, out var t))
-                {
-                    name.LastName = t;
-                    status = TeacherNameRemapStatus.LastName;
-                }
-            }
-
-            var copy = name;
-            foreach (var x in s.Remappings.TeacherFullNameRemappings)
-            {
-                if (x(ref name))
-                {
-                    if (copy != name)
-                    {
-                        status = TeacherNameRemapStatus.FullName;
-                    }
-                    break;
-                }
-            }
-            return status;
-        }
-    }
-
-    internal static SubGroup RemapSubGroup(this ScheduleBuilder s, SubGroup subGroup)
-    {
-        if (subGroup == SubGroup.All)
-        {
-            return subGroup;
-        }
-
-        var val = subGroup.Value;
-        Debug.Assert(val != null);
-        var remapped = s.Remappings.SubGroupNameRemappings.GetValueOrDefault(key: val, defaultValue: val);
-        return new(remapped);
-    }
-
-    public static void ConfigureRemappings(this ScheduleBuilder s, ConfigureRemappingsDelegate configure)
+    /// <summary>Remappings apply as teachers are added, so they must be chosen first.</summary>
+    public static void UseRemappings(this ScheduleBuilder s, Remappings remappings)
     {
         if (s.Teachers.Count > 0)
         {
             throw new RemappingsConfiguredAfterTeachersAddedException(s.Teachers.Count);
         }
-        configure(s.Remappings);
+        s.Remappings = remappings;
     }
-}
-
-public delegate void ConfigureRemappingsDelegate(Remappings remap);
-
-public enum TeacherNameRemapStatus
-{
-    None,
-    LastName,
-    FullName,
 }

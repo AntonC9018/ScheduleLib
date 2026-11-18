@@ -334,7 +334,7 @@ public static class TeacherBuilderHelper
 {
     public static TeacherBuilder Teacher(this ScheduleBuilder s, TeacherBuilderModel.NameModel name)
     {
-        _ = s.RemapTeacherName(ref name);
+        _ = s.Remappings.RemapTeacherName(ref name);
 
         Debug.Assert(name.FirstName.All(x =>
         {
