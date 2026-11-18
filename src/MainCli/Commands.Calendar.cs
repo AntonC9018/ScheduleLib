@@ -4,7 +4,6 @@ using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Builders;
 
 namespace ScheduleLib.Cli;
 
@@ -87,8 +86,7 @@ public class CalendarCommands
                 resolved,
                 ConfigureServices);
             await using var container = AppConfiguration.BuildServiceProvider(services);
-            await container.InitializeSchedule(cancellation.Token);
-            await using var scope = container.CreateAsyncScope();
+            await using var scope = await container.OpenScheduleScope(cancellation.Token);
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>()
                 .Get();
             if (config is null)

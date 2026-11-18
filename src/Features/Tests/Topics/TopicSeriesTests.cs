@@ -5,6 +5,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.Topics.Tests;
 
@@ -58,11 +59,9 @@ public sealed class TopicSeriesTests
                     });
                 }
             }
-            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-            unifier.Refresh(scheduleBuilder);
             scheduleBuilder.RefreshLookup();
-            var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
+            var lookup = scheduleBuilder.CreateLookup(schedule, Config.CourseNameUnifier);
 
             await using var input = new MemoryStream("""
                                                      {"documents":[
@@ -163,11 +162,9 @@ public sealed class TopicSeriesTests
                 english,
                 LessonType.Lab,
                 SubGroup.All);
-            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-            unifier.Refresh(scheduleBuilder);
             scheduleBuilder.RefreshLookup();
-            var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
+            var lookup = scheduleBuilder.CreateLookup(schedule, Config.CourseNameUnifier);
 
             await using var input = new MemoryStream("""
                                                      {"documents":[

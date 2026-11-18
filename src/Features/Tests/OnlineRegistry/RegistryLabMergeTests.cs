@@ -5,6 +5,7 @@ using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
@@ -435,11 +436,9 @@ public sealed class RegistryLabMergeTests
                     lesson.TimeSlot(TimeSlot.First);
                 });
             }
-            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-            unifier.Refresh(Builder);
             Builder.RefreshLookup();
-            Lookup = Builder.Lookup(unifier);
             Schedule = Builder.Build();
+            Lookup = Builder.CreateLookup(Schedule, Config.CourseNameUnifier);
         }
 
         private void Add(string subgroup, DayOfWeek day)
@@ -471,7 +470,7 @@ public sealed class RegistryLabMergeTests
                             IsWildcard = false,
                         },
                         GroupPartitionKey.All),
-                    Builder.LookupModule!.LessonsByCourse,
+                    Schedule.CreateScheduleLookup(),
                     Schedule));
         }
     }

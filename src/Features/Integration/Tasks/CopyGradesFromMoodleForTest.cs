@@ -15,9 +15,8 @@ namespace ScheduleLib.Application.Core;
 [AutoConstructor]
 public sealed partial class CopyGradesFromMoodleForTestTaskHandler
 {
-    private readonly CourseNameUnifierModule _unifier;
     private readonly Schedule _schedule;
-    private readonly LookupModule _lookup;
+    private readonly LookupFacade _lookup;
 
     public readonly record struct RunParams
     {
@@ -141,11 +140,7 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             return UnsupportedPath();
         }
 
-        var courseId = _unifier.Find(new()
-        {
-            Lookup = _lookup,
-            CourseName = parsedPath.CourseName.AsMemory(),
-        });
+        var courseId = _lookup.Course(parsedPath.CourseName.AsMemory());
         if (courseId is null)
         {
             notices.Add(RegistryGradeNotice.MoodleCourseUnresolved());

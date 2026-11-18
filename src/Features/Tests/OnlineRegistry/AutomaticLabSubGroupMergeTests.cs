@@ -6,6 +6,7 @@ using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
@@ -329,7 +330,7 @@ public sealed class AutomaticLabSubGroupMergeTests
             ],
             new(
                 search,
-                fixture.Builder.LookupModule!.LessonsByCourse,
+                merged.CreateScheduleLookup(),
                 merged));
         Assert.Equal(expected: GroupPartitionKey.All, actual: selection.AttendancePartition);
 
@@ -353,7 +354,7 @@ public sealed class AutomaticLabSubGroupMergeTests
             [],
             new(
                 combined,
-                fixture.Builder.LookupModule.LessonsByCourse,
+                merged.CreateScheduleLookup(),
                 merged));
         Assert.Equal(
             expected: selection.Lessons,
@@ -587,11 +588,10 @@ public sealed class AutomaticLabSubGroupMergeTests
 
         internal Schedule Build()
         {
-            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-            unifier.Refresh(Builder);
             Builder.RefreshLookup();
-            Lookup = Builder.Lookup(unifier);
-            return Builder.Build();
+            var schedule = Builder.Build();
+            Lookup = Builder.CreateLookup(schedule, Config.CourseNameUnifier);
+            return schedule;
         }
     }
 }

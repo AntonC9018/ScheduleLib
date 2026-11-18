@@ -79,8 +79,7 @@ public partial class ExportCommands
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(cancellation.Token);
-            await using var scope = provider.CreateAsyncScope();
+            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
             var grouping = full.TeacherGrouping(FilterHelper.Builder()
                 .WithLatestPeriod(full));
@@ -274,8 +273,7 @@ public partial class ExportCommands
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(cancellation.Token);
-            await using var scope = provider.CreateAsyncScope();
+            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
             var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
                 .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));

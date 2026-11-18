@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Builders;
 using ScheduleLib.Theses.Parsing;
 
 namespace ScheduleLib.Cli;
@@ -160,10 +159,7 @@ public partial class ExportCommands
                     ]);
             }
 
-            if (!preDefense)
-            {
-                await provider.InitializeSchedule(cancellation.Token);
-            }
+            await using var scheduleScope = preDefense ? null : await provider.OpenScheduleScope(cancellation.Token);
 
             if (preDefense)
             {
@@ -203,9 +199,10 @@ public partial class ExportCommands
             }
             else
             {
-                var teacherConfig = scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
+                var scheduleServices = scheduleScope!.ServiceProvider;
+                var teacherConfig = scheduleServices.GetRequiredService<TeacherLayerConfig>();
                 if (TeacherProfileScheduleLookup.Find(
-                        scope.ServiceProvider.GetRequiredService<LookupFacade>(),
+                        scheduleServices.GetRequiredService<LookupFacade>(),
                         teacherConfig.TeacherName) is not { } teacherId)
                 {
                     return await Finish(
@@ -213,7 +210,7 @@ public partial class ExportCommands
                         [$"Selected teacher '{teacher}' is absent from this schedule."]);
                 }
 
-                var schedule = scope.ServiceProvider.GetRequiredService<Schedule>()
+                var schedule = scheduleServices.GetRequiredService<Schedule>()
                     .Filter(
                         FilterHelper.Builder()
                             .WithTeacher(teacherId)
@@ -249,7 +246,7 @@ public partial class ExportCommands
                     runId: context.RunId,
                     cancellation.Token,
                     projectDirectory: resolvedSettings.ProjectDirectory);
-                var handler = scope.ServiceProvider.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
+                var handler = scheduleServices.GetRequiredService<GenerateDeadlinesExcelTaskHandler>();
                 await output.Publish(
                     "deadlines.xlsx",
                     async (stream, token) =>

@@ -23,12 +23,12 @@ public readonly record struct LessonSearchFilter
 internal readonly record struct LessonMatchParams
 {
     public readonly LessonSearchFilter Filter;
-    public readonly LessonsByCourseMap Lookup;
+    public readonly ScheduleLookup Lookup;
     public readonly Schedule Schedule;
 
     public LessonMatchParams(
         LessonSearchFilter filter,
-        LessonsByCourseMap lookup,
+        ScheduleLookup lookup,
         Schedule schedule)
     {
         Filter = filter;
@@ -173,7 +173,7 @@ internal static class MatchLessonHelper
         LessonMatchParams p,
         GroupPartitionKey groupPartition)
     {
-        var lessonsOfCourse = p.Lookup[p.Filter.CourseId];
+        var lessonsOfCourse = p.Lookup.LessonsOf(p.Filter.CourseId);
         foreach (var lessonId in lessonsOfCourse)
         {
             if (!p.Schedule.IsLessonActive(lessonId))

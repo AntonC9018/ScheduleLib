@@ -1,3 +1,4 @@
+using ScheduleLib.DependencyInjection.ScopePlans;
 using ScheduleLib.Parsing;
 using System.Reflection;
 using System.Text;
@@ -118,20 +119,7 @@ public static class Registration
 
             void AddScheduleGeneralServices()
             {
-                services.AddSingleton<LookupFacade>();
-                services.AddSingleton(sp =>
-                {
-                    return sp.GetRequiredService<ScheduleBuilder>().LookupModule!;
-                });
-                services.AddSingleton(sp =>
-                {
-                    var builder = new ScheduleBuilder();
-                    builder.GroupParseContext = sp.GetRequiredService<GroupParseContext>();
-                    builder.ImplicitSplitConfig = ScheduleDefaults.Config.ImplicitSplitConfig;
-                    builder.OverlapValidationConfig = ScheduleDefaults.Config.OverlapValidationConfig;
-                    builder.EnableLookupModule();
-                    return builder;
-                });
+                services.AddScoped<LookupFacade>();
                 services.AddSingleton<SubGroupNameRemapper>();
             }
 
@@ -161,7 +149,6 @@ public static class Registration
                     var ret = CourseNameUnifierConfig.Create(parserConfig, unificationConfig);
                     return ret;
                 });
-                services.AddSingleton<CourseNameUnifierModule>();
 
                 services.AddSingleton<ProcessSpaces>(ScheduleDefaults.Config.WhiteSpaceActionCourseName);
                 services.AddSingleton(ParityParser.Instance);
@@ -211,21 +198,15 @@ public static class Registration
 
             void AddScheduleLifetimeServices()
             {
-                services.AddSingleton<IScheduleInitializer, ScheduleBuilderInitializer>();
+                services.AddSingleton<ScheduleSourceLoader>();
+                services.AddInitialized<LoadedSchedule, LoadedScheduleInitializer>();
+                services.AddDerived<Schedule, ScheduleFactory>();
+                services.AddDerived<ScheduleLookup, ScheduleLookupFactory>();
                 services.AddTransient<EnrichWithTeacherFullNamesFromWebsite>();
                 services.AddTransient<ConsultationsLoaderComponent>();
 
                 services.AddOptions<ScheduleBuilderInitializerOptions>();
 
-                // These don't seem necessary?
-                // I'm not sure how to set up the schedule in DI.
-                services.AddSingleton<ScheduleProvider>();
-                services.AddScoped(x =>
-                {
-                    var provider = x.GetRequiredService<ScheduleProvider>();
-                    // Caching this should probably be on by default / make this singleton.
-                    return provider.Get();
-                });
                 services.AddScoped<CurrentTeacherIdProvider>();
                 services.AddScoped<ScopeFilteredScheduleProvider>();
                 services.AddScoped<LatestPeriodFilteredScheduleProvider>();

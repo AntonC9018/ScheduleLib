@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -44,15 +45,37 @@ public readonly struct TeachersByLastName()
 
 public static class TeacherLookupHelper
 {
-    public static int FindIndexOfBestMatch(
-        ScheduleBuilder s,
-        TeacherIdList ids,
+    /// <summary>Returns the index into <paramref name="ids"/> of the best match, or -1.</summary>
+    public static int FindIndexOfBestBuilderMatch(
+        IReadOnlyList<TeacherBuilderModel> teachers,
+        ReadOnlySpan<int> ids,
         NameParts<Word> name)
     {
-        return FindIndexOfBestMatch(
-            CollectionsMarshal.AsSpan(s.Teachers.List),
-            CollectionsMarshal.AsSpan(ids),
-            name);
+        return FindIndexOfBestMatch(new BuilderTeachers(teachers), ids, name);
+    }
+
+    /// <summary>Returns the index into <paramref name="ids"/> of the best match, or -1.</summary>
+    public static int FindIndexOfBestMatch(
+        ImmutableArray<Teacher> teachers,
+        ReadOnlySpan<int> ids,
+        NameParts<Word> name)
+    {
+        return FindIndexOfBestMatch(new BuiltTeachers(teachers), ids, name);
+    }
+
+    private interface ITeacherFirstNames
+    {
+        NameParts<OptionalNamePart> FirstNameOf(int id);
+    }
+
+    private readonly struct BuilderTeachers(IReadOnlyList<TeacherBuilderModel> teachers) : ITeacherFirstNames
+    {
+        public NameParts<OptionalNamePart> FirstNameOf(int id) => teachers[id].Name.FirstName;
+    }
+
+    private readonly struct BuiltTeachers(ImmutableArray<Teacher> teachers) : ITeacherFirstNames
+    {
+        public NameParts<OptionalNamePart> FirstNameOf(int id) => teachers[id].PersonName.FirstName;
     }
 
     private enum FirstNameComparison
@@ -64,10 +87,11 @@ public static class TeacherLookupHelper
         Count,
     }
 
-    public static int FindIndexOfBestMatch(
-        ReadOnlySpan<TeacherBuilderModel> teachers,
+    private static int FindIndexOfBestMatch<TTeachers>(
+        TTeachers teachers,
         ReadOnlySpan<int> ids,
         NameParts<Word> name)
+        where TTeachers : ITeacherFirstNames
     {
         Debug.Assert(name[0].Value.Length > 0);
         Debug.Assert(name.All(w => w.Value != null));
@@ -83,8 +107,7 @@ public static class TeacherLookupHelper
             for (int teacherIndex = 0; teacherIndex < ids.Length; teacherIndex++)
             {
                 int id = ids[teacherIndex];
-                var teacher = teachers[id];
-                var teacherFirstName = teacher.Name.FirstName;
+                var teacherFirstName = teachers.FirstNameOf(id);
                 if (CheckEquality(teacherFirstName))
                 {
                     return teacherIndex;
@@ -397,9 +420,9 @@ public static class TeacherBuilderHelper
 
                 return lookup[0];
             }
-            int i = TeacherLookupHelper.FindIndexOfBestMatch(
-                s,
-                lookup,
+            int i = TeacherLookupHelper.FindIndexOfBestBuilderMatch(
+                s.Teachers.List,
+                CollectionsMarshal.AsSpan(lookup),
                 longer);
             if (i == -1)
             {

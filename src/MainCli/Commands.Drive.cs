@@ -110,8 +110,7 @@ public class DriveCommands
                 resolved,
                 ConfigureServices);
             await using var container = AppConfiguration.BuildServiceProvider(services);
-            await container.InitializeSchedule(cancellation.Token);
-            await using var scope = container.CreateAsyncScope();
+            await using var scope = await container.OpenScheduleScope(cancellation.Token);
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>()
                 .Get();
             if (config is null)

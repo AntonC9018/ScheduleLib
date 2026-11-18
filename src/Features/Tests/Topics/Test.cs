@@ -30,7 +30,7 @@ public sealed class Test
 
     private async Task TestLab(string path, string courseName)
     {
-        using var helper = await IntegrationTestHelper.CreateNew();
+        await using var helper = await IntegrationTestHelper.CreateNew();
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
         var courseId = lookup.Course(courseName.AsMemory())!.Value;

@@ -149,7 +149,8 @@ internal static class RegistryLabMerges
         var specialization = Specialization.All;
         var survivingPartition = new GroupPartitionKey(subGroup, specialization);
         // Exact surviving lab partition; no elective fallback or cross-parent lesson.
-        var lessons = parameters.Lookup[filter.CourseId].Where(id =>
+        var lessons = parameters.Lookup.LessonsOf(filter.CourseId)
+            .Where(id =>
             {
                 if (!parameters.Schedule.IsLessonActive(id))
                 {

@@ -7,7 +7,7 @@ using System.Text.Unicode;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper.JsonConverters;
 using ScheduleLib.JsonConverters;
-using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib;
 
@@ -46,20 +46,13 @@ public static class ScheduleSerializer
 
     public static void AddToBuilder(
         ScheduleBuilder builder,
-        SerializationModels.ScheduleModel schedule,
-        CourseNameUnifierModule? unifier = null)
+        SerializationModels.ScheduleModel schedule)
     {
         SerializationModels.ConvertToScheduleBuilder(builder, schedule);
 
         if (builder.LookupModule is not null)
         {
             builder.RefreshLookup();
-        }
-
-        if (unifier is not null)
-        {
-            builder.EnableLookupModule();
-            unifier.Refresh(builder);
         }
     }
 
@@ -239,6 +232,105 @@ public static class SerializationModels
             Periods = periods,
         };
         return model;
+    }
+
+    /// <summary>
+    /// Restores a built schedule without building it again. Group names are parsed again,
+    /// because only the name and language of a group are saved.
+    /// </summary>
+    public static Schedule ConvertToSchedule(
+        ScheduleModel schedule,
+        GroupParseContext groupParseContext,
+        Remappings remappings)
+    {
+        return new Schedule
+        {
+            WeeklyLessons = [.. schedule.RegularLessons.Select(ToWeeklyLesson)],
+            OneTimeLessons = [.. schedule.OneTimeLessons.Select(ToOneTimeLesson)],
+            Groups = [.. schedule.Groups.Select(ToGroup)],
+            Teachers = [.. schedule.Teachers.Select(ToTeacher)],
+            Courses = [.. schedule.Courses.Select(ToCourse)],
+            Periods = [.. schedule.Periods.Select(ToPeriod)],
+        };
+
+        Group ToGroup(GroupModel model)
+        {
+            var group = groupParseContext.Parse(model.Name, remappings);
+            group.Language = model.Language;
+            return group;
+        }
+
+        static WeeklyLesson ToWeeklyLesson(WeeklyLessonModel model)
+        {
+            return new()
+            {
+                Base = ToLessonBase(model),
+                Date = new()
+                {
+                    DayOfWeek = model.DayOfWeek,
+                    TimeSlot = model.TimeSlot,
+                    Parity = model.Parity,
+                    Period = model.Period,
+                },
+            };
+        }
+
+        static OneTimeLesson ToOneTimeLesson(OneTimeLessonModel model)
+        {
+            return new()
+            {
+                Base = ToLessonBase(model),
+                Date = new()
+                {
+                    Date = model.Date,
+                    TimeSlot = model.TimeSlot,
+                },
+            };
+        }
+
+        static LessonBase ToLessonBase(LessonBaseModel model)
+        {
+            return new()
+            {
+                Data = new()
+                {
+                    Groups = [.. model.Groups],
+                    SubGroup = model.SubGroup,
+                    Specialization = model.Specialization,
+                    Alternative = model.Alternative,
+                    Course = model.Course,
+                    Room = model.Room,
+                    Teachers = model.Teachers,
+                    Type = model.Type,
+                },
+            };
+        }
+
+        static Teacher ToTeacher(PersonModel model)
+        {
+            return new()
+            {
+                PersonName = new()
+                {
+                    FirstName = model.FirstName,
+                    LastName = new(model.LastName),
+                },
+                Contacts = default,
+            };
+        }
+
+        static Course ToCourse(CourseModel model)
+        {
+            return new()
+            {
+                Names = model.Names,
+            };
+        }
+
+        static Period ToPeriod(PeriodModel model)
+        {
+            return new(start: model.Start, end: model.End ?? default);
+        }
     }
 
     // NOTE: the issue is that multiple serialized things can't be merged easily.

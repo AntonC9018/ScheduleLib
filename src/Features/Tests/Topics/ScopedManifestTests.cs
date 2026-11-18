@@ -5,6 +5,7 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.Topics.Tests;
 
@@ -80,11 +81,9 @@ public sealed class ScopedManifestTests
                     lesson.TimeSlot(TimeSlot.First);
                 });
             }
-            var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-            unifier.Refresh(scheduleBuilder);
             scheduleBuilder.RefreshLookup();
-            var lookup = scheduleBuilder.Lookup(unifier);
             var schedule = scheduleBuilder.Build();
+            var lookup = scheduleBuilder.CreateLookup(schedule, Config.CourseNameUnifier);
 
             await using var input = new MemoryStream("""
                                                      {"documents":[{"path":"topics.csv","course":"Synthetic course","groups":"IA2601",

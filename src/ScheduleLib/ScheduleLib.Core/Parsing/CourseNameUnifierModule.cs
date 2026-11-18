@@ -6,36 +6,6 @@ using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing.CourseName;
 
-public readonly struct CourseNameUnifierModuleWithDeps
-{
-    private readonly CourseNameUnifierModule _a;
-    private readonly LookupModule _b;
-
-    public CourseNameUnifierModuleWithDeps(
-        CourseNameUnifierModule a,
-        LookupModule b)
-    {
-        _a = a;
-        _b = b;
-    }
-
-    public CourseId? Find(
-        ReadOnlyMemory<char> courseName,
-        CourseNameParseOptions? parseOptions = null)
-    {
-        CourseNameUnifierModule.FindParams p = new()
-        {
-            Lookup = _b,
-            CourseName = courseName,
-        };
-        if (parseOptions is { } x)
-        {
-            p.ParseOptions = x;
-        }
-        return _a.Find(p);
-    }
-}
-
 public readonly record struct FullyRenamedCourse(ParsedCourseName From, ParsedCourseName To);
 
 public sealed class CourseNameUnifierConfig
@@ -45,6 +15,37 @@ public sealed class CourseNameUnifierConfig
 
     private CourseNameUnifierConfig()
     {
+    }
+
+    /// <summary>Parses a course name and applies the full renames: the form names are compared in.</summary>
+    public ParsedCourseName ParseUnified(ReadOnlyMemory<char> courseName, CourseNameParseOptions options)
+    {
+        var parsed = ParserConfig.Parse(courseName, options);
+        return TryRemap(parsed);
+    }
+
+    /// <summary>The unified form of a course's own name, which may contain punctuation.</summary>
+    internal SlowCourse UnifiedCourse(string courseName, CourseId id)
+    {
+        var options = new CourseNameParseOptions
+        {
+            IgnorePunctuation = true,
+        };
+        var parsed = ParseUnified(courseName.AsMemory(), options);
+        return new(parsed, id);
+    }
+
+    internal static CourseId? FindUnified(ReadOnlySpan<SlowCourse> courses, ParsedCourseName unifiedName)
+    {
+        // TODO: N^2, use some sort of hash to make this faster.
+        foreach (var t in courses)
+        {
+            if (t.Name.IsEqual(unifiedName))
+            {
+                return t.CourseId;
+            }
+        }
+        return null;
     }
 
     public ParsedCourseName TryRemap(ParsedCourseName original)
@@ -115,69 +116,10 @@ public sealed class CourseNameUnifierModule
             var courseId = new CourseId(i);
             var fullName = courses.Ref(i).FullName;
             // Only adding a single instance of this because they are all equivalent.
-            AddSlow(fullName.AsMemory(), courseId);
+            SlowCourses.Add(_config.UnifiedCourse(fullName, courseId));
             // Also adding lookup for the future.
             lookup.Courses.TryAdd(fullName, courseId);
         }
-    }
-
-    private ParsedCourseName TryRemap(ParsedCourseName original)
-    {
-        return _config.TryRemap(original);
-    }
-
-    public void AddSlow(ReadOnlyMemory<char> courseName, CourseId id)
-    {
-        var parsedCourse = ParseCourseName(new()
-        {
-            CourseName = courseName,
-            ParseOptions = new()
-            {
-                IgnorePunctuation = true,
-            },
-        });
-        parsedCourse = TryRemap(parsedCourse);
-        var list = SlowCourses;
-        SlowCourse item = new(parsedCourse, id);
-        list.Add(item);
-    }
-
-    public ref struct FindParams()
-    {
-        public required LookupModule Lookup;
-        public required ReadOnlyMemory<char> CourseName;
-        public CourseNameParseOptions ParseOptions = new();
-
-        internal readonly CourseNameForParsing CourseNameForParsing
-        {
-            get
-            {
-                return new()
-                {
-                    CourseName = CourseName,
-                    ParseOptions = ParseOptions,
-                };
-            }
-        }
-    }
-
-    public CourseId? Find(FindParams p)
-    {
-        var alt = p.Lookup.Courses.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (alt.TryGetValue(p.CourseName.Span, out var courseId))
-        {
-            return courseId;
-        }
-
-        var parsedCourseName = ParseCourseName(p.CourseNameForParsing);
-        if (FindSlow(ref parsedCourseName) is { } slowCourseId)
-        {
-            var n = p.CourseName.ToString();
-            p.Lookup.Courses.Add(n, slowCourseId);
-            return slowCourseId;
-        }
-
-        return null;
     }
 
     public struct FindOrAddParams()
@@ -205,28 +147,14 @@ public sealed class CourseNameUnifierModule
         public required ReadOnlyMemory<char> CourseName;
     }
 
-    private ParsedCourseName ParseCourseName(CourseNameForParsing p)
+    private ParsedCourseName ParseUnified(CourseNameForParsing p)
     {
-        var parsedCourse = _config.ParserConfig.Parse(
-            p.CourseName,
-            p.ParseOptions);
-        return parsedCourse;
+        return _config.ParseUnified(p.CourseName, p.ParseOptions);
     }
 
-    private CourseId? FindSlow(ref ParsedCourseName parsedCourseName)
+    private CourseId? FindSlow(ParsedCourseName unifiedName)
     {
-        parsedCourseName = TryRemap(parsedCourseName);
-
-        // TODO: N^2, use some sort of hash to make this faster.
-        foreach (var t in SlowCourses)
-        {
-            if (!t.Name.IsEqual(parsedCourseName))
-            {
-                continue;
-            }
-            return t.CourseId;
-        }
-        return null;
+        return CourseNameUnifierConfig.FindUnified(CollectionsMarshal.AsSpan(SlowCourses), unifiedName);
     }
 
     public CourseId FindOrAdd(in FindOrAddParams p)
@@ -242,8 +170,8 @@ public sealed class CourseNameUnifierModule
             return courseId;
         }
 
-        var parsedCourse = ParseCourseName(p.CourseNameForParsing);
-        if (FindSlow(ref parsedCourse) is { } slowCourseId)
+        var parsedCourse = ParseUnified(p.CourseNameForParsing);
+        if (FindSlow(parsedCourse) is { } slowCourseId)
         {
             courseId = slowCourseId;
             return slowCourseId;
@@ -256,31 +184,5 @@ public sealed class CourseNameUnifierModule
         SlowCourses.Add(new(parsedCourse, new(result.Id)));
 
         return new(result.Id);
-    }
-}
-
-public sealed class CourseNameLookup
-{
-    public CourseNameUnifierModule Unifier { get; }
-    public LookupModule Lookup { get; }
-
-    public CourseNameLookup(CourseNameUnifierModule unifier, LookupModule lookup)
-    {
-        Unifier = unifier;
-        Lookup = lookup;
-    }
-
-    public CourseId? Get(ReadOnlyMemory<char> s)
-    {
-        var ret = Unifier.Find(new()
-        {
-            CourseName = s,
-            Lookup = Lookup,
-            ParseOptions = new()
-            {
-                IgnorePunctuation = false,
-            },
-        });
-        return ret;
     }
 }

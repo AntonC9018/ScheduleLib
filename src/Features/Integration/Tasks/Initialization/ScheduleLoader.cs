@@ -25,7 +25,8 @@ public sealed class ScheduleLoader
     public string ConfigurationIdentity { get; set; } = "";
     public List<IScheduleLoaderComponent> Components { get; set; } = new();
 
-    public async ValueTask Load(
+    /// <summary>Returns the built schedule, from the cache when it is current.</summary>
+    public async ValueTask<Schedule> Load(
         ScheduleImportContext context,
         CancellationToken cancellationToken,
         bool bypassCache = false)
@@ -39,66 +40,16 @@ public sealed class ScheduleLoader
                 wait: true)
             : null;
         string? hashHex = null;
+        if (CachedPath != null)
         {
-            bool shouldComputeHash = CachedPath != null;
-            if (shouldComputeHash)
-            {
-                using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                hasher.AppendFileName(ConfigurationIdentity);
-                foreach (var loader in Components)
-                {
-                    hasher.AppendFileName(loader.GetType().FullName!);
-                    await loader.Hash(hasher, cancellationToken);
-                }
-                // The implicit split configuration participates in the hash: editing it
-                // invalidates the cache instead of silently reusing one built without
-                // the assignments.
-                hasher.AppendImplicitSplitConfig(context.Schedule.ImplicitSplitConfig);
-                hashHex = hasher.ToHexString();
-            }
+            hashHex = await ComputeHash(context, cancellationToken);
         }
 
         if (!bypassCache)
         {
-            if (CachedPath is { } existingPath)
+            if (await TryReadCache(context, hashHex, cancellationToken) is { } cached)
             {
-                if (File.Exists(existingPath))
-                {
-                    SerializationModels.ScheduleModel? model = null;
-                    try
-                    {
-                        await using var input = new FileStream(
-                            existingPath,
-                            FileMode.Open,
-                            FileAccess.Read,
-                            FileShare.Read | FileShare.Delete);
-                        model = await ScheduleSerializer.Deserialize(input, cancellationToken);
-                    }
-                    catch (System.Text.Json.JsonException) { }
-                    catch (InvalidDataException) { }
-                    if (model is not null && model.Hash == hashHex)
-                    {
-                        ScheduleSerializer.AddToBuilder(
-                            context.Schedule,
-                            model,
-                            context.CourseNameUnifierModule);
-                        // Cache models already contain the explicit PDF cohort assignments;
-                        // reuse the same import policy before the builder validates them.
-                        if (Components.OfType<DirectoryScheduleLoaderComponent>()
-                            .Any(component =>
-                                Directory.EnumerateFiles(
-                                        path: component.DirectoryPath.Value,
-                                        searchPattern: "*.pdf",
-                                        SearchOption.AllDirectories)
-                                    .Any()))
-                        {
-                            context.Schedule.ImplicitSplitConfig = ElectiveCohorts.CreateSplitConfig(
-                                context.Schedule.ImplicitSplitConfig ?? ScheduleDefaults.Config.ImplicitSplitConfig);
-                        }
-
-                        return;
-                    }
-                }
+                return cached;
             }
         }
 
@@ -107,15 +58,77 @@ public sealed class ScheduleLoader
             await loader.Apply(context, cancellationToken);
         }
 
+        var schedule = context.Schedule.Build();
         if (CachedPath is { } destination)
         {
-            var schedule = context.Schedule.Build();
             await ScheduleSerializer.Serialize()
                 .Input(schedule)
                 .Output(destination)
                 .Hash(hashHex!)
                 .ExecuteAsync(cancellationToken);
         }
+        return schedule;
+    }
+
+    private async ValueTask<string> ComputeHash(ScheduleImportContext context, CancellationToken cancellationToken)
+    {
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hasher.AppendFileName(ConfigurationIdentity);
+        foreach (var loader in Components)
+        {
+            hasher.AppendFileName(loader.GetType().FullName!);
+            await loader.Hash(hasher, cancellationToken);
+        }
+        // The implicit split configuration participates in the hash: editing it
+        // invalidates the cache instead of silently reusing one built without
+        // the assignments.
+        hasher.AppendImplicitSplitConfig(context.Schedule.ImplicitSplitConfig);
+        return hasher.ToHexString();
+    }
+
+    private async ValueTask<Schedule?> TryReadCache(
+        ScheduleImportContext context,
+        string? hashHex,
+        CancellationToken cancellationToken)
+    {
+        if (CachedPath is not { } existingPath)
+        {
+            return null;
+        }
+        if (!File.Exists(existingPath))
+        {
+            return null;
+        }
+
+        SerializationModels.ScheduleModel model;
+        try
+        {
+            await using var input = new FileStream(
+                existingPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read | FileShare.Delete);
+            model = await ScheduleSerializer.Deserialize(input, cancellationToken);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
+
+        if (model.Hash != hashHex)
+        {
+            return null;
+        }
+
+        var builder = context.Schedule;
+        return SerializationModels.ConvertToSchedule(
+            model,
+            builder.GroupParseContext!,
+            builder.Remappings);
     }
 }
 

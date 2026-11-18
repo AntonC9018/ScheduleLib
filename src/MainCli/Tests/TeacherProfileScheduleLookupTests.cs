@@ -1,6 +1,7 @@
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
+using Tests.ScheduleCommon;
 
 public sealed class TeacherProfileScheduleLookupTests
 {
@@ -13,7 +14,7 @@ public sealed class TeacherProfileScheduleLookupTests
         var other = schedule.Teacher("Victor Vișnevschii");
         var vlada = schedule.Teacher("Vlada Vișnevschii");
         schedule.RefreshLookup();
-        var lookup = schedule.Lookup(null!);
+        var lookup = schedule.CreateLookup(schedule.Build());
 
         ScheduleLib.TeacherId? expected2 = vlada.Id;
         var lookup2 = lookup;
@@ -35,7 +36,7 @@ public sealed class TeacherProfileScheduleLookupTests
         var oldSpelling = schedule.Teacher("Vlada Visnevschi");
         var natalia = schedule.Teacher("Natalia Plesca");
         schedule.RefreshLookup();
-        var lookup = schedule.Lookup(null!);
+        var lookup = schedule.CreateLookup(schedule.Build());
 
         ScheduleLib.TeacherId? expected2 = oldSpelling.Id;
         var lookup2 = lookup;

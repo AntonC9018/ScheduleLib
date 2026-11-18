@@ -1,11 +1,46 @@
 using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace Tests.ScheduleCommon;
 
 public static class ScheduleTestHelper
 {
+    private static readonly CourseNameUnifierConfig PlainCourseNames = CourseNameUnifierConfig.Create(
+        new CourseNameParserConfig(new()),
+        []);
+
+    /// <summary>
+    /// The lookup a loaded schedule provides for <paramref name="schedule"/>, built from
+    /// <paramref name="builder"/>. Without a course name configuration, names only match exactly
+    /// or after parsing.
+    /// </summary>
+    public static LookupFacade CreateLookup(
+        this ScheduleBuilder builder,
+        Schedule schedule,
+        CourseNameUnifierConfig? courseNames = null)
+    {
+        var lookup = schedule.CreateScheduleLookup(courseNames);
+        var groupParseContext = builder.GroupParseContext
+            ?? GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2025),
+            });
+        return new LookupFacade(
+            schedule: schedule,
+            lookup: lookup,
+            remappings: builder.Remappings,
+            groupParseContext: groupParseContext);
+    }
+
+    public static ScheduleLookup CreateScheduleLookup(
+        this Schedule schedule,
+        CourseNameUnifierConfig? courseNames = null)
+    {
+        return ScheduleLookup.Create(schedule, courseNames ?? PlainCourseNames);
+    }
+
     public static StudyYear StudyYear(this ScheduleBuilder s)
     {
         return s.GroupParseContext!.CurrentStudyYear;
@@ -62,8 +97,7 @@ public static class ScheduleTestHelper
         var schedule = s.Build();
         var ret = FilterForTeacher(
             schedule,
-            // Ok for this test, because it's not used.
-            s.Lookup(unifier: null!),
+            s.CreateLookup(schedule),
             name);
         return ret;
     }

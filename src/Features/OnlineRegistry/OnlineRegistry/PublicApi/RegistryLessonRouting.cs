@@ -41,7 +41,7 @@ internal static class RegistryLessonRouting
                 return false;
             })
             .ToHashSet();
-        foreach (var id in parameters.Lookup[filter.CourseId])
+        foreach (var id in parameters.Lookup.LessonsOf(filter.CourseId))
         {
             if (!parameters.Schedule.IsLessonActive(id))
             {

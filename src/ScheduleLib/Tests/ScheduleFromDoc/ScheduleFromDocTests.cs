@@ -21,7 +21,7 @@ public sealed class ScheduleFromDocTestExclusive1
     [EnumMembersData<TestOption>]
     public async Task IntegrationTestWord(TestOption option)
     {
-        using var helper = await Create(option);
+        await using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var verify = helper.ScheduleVerify(schedule);
 
@@ -34,7 +34,7 @@ public sealed class ScheduleFromDocTestExclusive1
     [EnumMembersData<TestOption>]
     public async Task JsonAndWordModelsAreEquivalent(TestOption option)
     {
-        using var helper = await Create(option);
+        await using var helper = await Create(option);
 
         var jsonSchedule = await GetScheduleFromJson(
             ScheduleSnapshotJsonPath(option),
@@ -52,7 +52,7 @@ public sealed class ScheduleFromDocTestExclusive1
     [EnumMembersData<TestOption>]
     public async Task RegenerateScheduleJsonCache(TestOption option)
     {
-        using var helper = await Create(option);
+        await using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
 
         await using var outputFile = new FileStream(
@@ -116,7 +116,7 @@ public sealed class ScheduleFromDocTests
         string outputPath = $"{optionName}_output.json";
         string otherOutputPath = $"{optionName}_other_output.json";
 
-        using var helper = await Create(option);
+        await using var helper = await Create(option);
         {
             var schedule = helper.GetScheduleFromSourceOfTruth();
             await using var outputFile = new FileStream(outputPath, FileMode.Create);
@@ -159,27 +159,19 @@ public sealed class ScheduleFromDocTests
     [EnumMembersData<TestOption>]
     public async Task JsonSerializationIntegrationTest(TestOption option)
     {
-        using var helper = await Create(option);
+        await using var helper = await Create(option);
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var settingsTask = helper.ScheduleVerify(schedule);
 
         await settingsTask.UseFileName(ScheduleJsonSnapshotName(option));
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task LookupCompletelyWorks(bool resetLookup)
+    [Fact]
+    public async Task LookupCompletelyWorks()
     {
-        using var helper = await CreateDefault();
+        await using var helper = await CreateDefault();
         var schedule = helper.GetScheduleFromSourceOfTruth();
         var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
-        var builder = helper.ServiceProvider.GetRequiredService<ScheduleBuilder>();
-
-        if (resetLookup)
-        {
-            builder.RefreshLookup();
-        }
 
         foreach (var course in schedule.EnumerateCourses())
         {

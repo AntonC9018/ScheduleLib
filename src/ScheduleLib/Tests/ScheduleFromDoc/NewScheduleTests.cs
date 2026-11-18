@@ -9,7 +9,7 @@ public sealed class NewScheduleTests
     [Fact]
     public async Task NodeJsTest()
     {
-        using var helper = await IntegrationTestHelper.CreateNew();
+        await using var helper = await IntegrationTestHelper.CreateNew();
         var schedule = helper.ServiceProvider.GetRequiredService<Schedule>();
         var lookup = helper.ServiceProvider.GetRequiredService<LookupFacade>();
         var nodejsCourseId = lookup.Course("Node.js".AsMemory())!.Value;

@@ -42,10 +42,6 @@ public sealed class AttendanceExcelTests
     public async Task ExcelSnapshot()
     {
         var builder = await ScheduleTestHelper.CreateTestSchedule();
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        builder.EnableLookupModule();
-        unifier.Refresh(builder);
-
         var schedule = builder.Build();
 
         TeacherBuilderModel.NameModel name = default;
@@ -54,7 +50,7 @@ public sealed class AttendanceExcelTests
             name.LastName[0] = "Curmanschii";
         }
         var schedule2 = schedule;
-        var lookup = builder.Lookup(unifier);
+        var lookup = builder.CreateLookup(schedule, Config.CourseNameUnifier);
         var name2 = name;
         var filteredSchedule = ScheduleTestHelper.FilterForTeacher(
             schedule2,
@@ -64,7 +60,7 @@ public sealed class AttendanceExcelTests
         using var workbook = new XLWorkbook(ExcelFilePath);
         var attendanceBuilder = new AllStudentAttendanceListBuilder();
         var groupParser = builder.GroupParseContext!;
-        var lookup2 = builder.Lookup(unifier);
+        var lookup2 = lookup;
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
@@ -181,10 +177,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: blankRows + 2, column: 2).Value = "a";
         sheet.Cell(row: blankRows + 2, column: 3).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
         var groupParser = builder.GroupParseContext!;
-        var lookup = builder.Lookup(unifier);
+        var lookup = builder.CreateLookup(schedule, Config.CourseNameUnifier);
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
@@ -238,10 +232,8 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 3, column: 2).Value = "am";
 
         var attendanceBuilder = new AllStudentAttendanceListBuilder();
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
         var groupParser = builder.GroupParseContext!;
-        var lookup = builder.Lookup(unifier);
+        var lookup = builder.CreateLookup(schedule, Config.CourseNameUnifier);
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
@@ -370,8 +362,6 @@ public sealed class AttendanceExcelTests
         });
         builder.RefreshLookup();
         var schedule = builder.Build();
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
         var filteredSchedule = schedule.Filter(new());
         return new(
             builder,
@@ -380,12 +370,10 @@ public sealed class AttendanceExcelTests
             group);
     }
 
-    private static AttendanceListsExcelParser CreateParser(ScheduleBuilder builder)
+    private static AttendanceListsExcelParser CreateParser(ScheduleBuilder builder, Schedule schedule)
     {
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
         var groupParser = builder.GroupParseContext!;
-        var lookup = builder.Lookup(unifier);
+        var lookup = builder.CreateLookup(schedule, Config.CourseNameUnifier);
         var lessonTypeParser = LessonTypeParser.Instance;
         var subGroupRemapper = new SubGroupNameRemapper(builder.Remappings);
         var specializationRegistry = SpecializationRegistry.Empty;
@@ -429,7 +417,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         sheet.Cell(row: 2, column: 3).Value = "na";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -488,7 +476,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -535,7 +523,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
         var error = Assert.ThrowsAny<Exception>(() =>
-            CreateParser(builder)
+            CreateParser(builder, filtered.Source)
                 .Parse(new(
                     new()
                     {
@@ -558,7 +546,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
         Assert.ThrowsAny<Exception>(() =>
-            CreateParser(builder)
+            CreateParser(builder, filtered.Source)
                 .Parse(new(
                     new()
                     {
@@ -579,7 +567,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 1).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -637,7 +625,7 @@ public sealed class AttendanceExcelTests
         var filtered = builder.Build()
             .Filter(new());
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -692,7 +680,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 5).Value = "na";
         sheet.Cell(row: 2, column: 6).Value = "ignored outside header";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -830,7 +818,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "am";
         sheet.Cell(row: 2, column: 3).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -898,7 +886,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "a";
         sheet.Cell(row: 2, column: 3).Value = "am";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -985,7 +973,7 @@ public sealed class AttendanceExcelTests
         int secondAttendanceColumnOffset = hasHeader ? 4 : 2;
         sheet.Cell(row: firstStudentRow + 1, column: nameColumn + secondAttendanceColumnOffset).Value = "am";
         var attendance = new AllStudentAttendanceListBuilder();
-        var createParser = CreateParser(builder);
+        var createParser = CreateParser(builder, filtered.Source);
         ParseAttendanceListsExcelParams p = new(
             new(),
             attendance,
@@ -1024,7 +1012,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 3).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 4).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -1051,7 +1039,7 @@ public sealed class AttendanceExcelTests
         sheet.Cell(row: 2, column: 2).Value = "Synthetic Student";
         sheet.Cell(row: 2, column: 3).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -1103,7 +1091,7 @@ public sealed class AttendanceExcelTests
         valid.Cell(row: studentRow, column: 1).Value = "Synthetic Student";
         valid.Cell(row: studentRow, column: 2).Value = "a";
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {
@@ -1143,7 +1131,7 @@ public sealed class AttendanceExcelTests
         workbook.AddWorksheet("Unmatched formatted sheet")
             .Range("A1:D50").Style.Font.Bold = true;
         var attendance = new AllStudentAttendanceListBuilder();
-        CreateParser(builder)
+        CreateParser(builder, filtered.Source)
             .Parse(new(
                 new()
                 {

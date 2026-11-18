@@ -500,8 +500,7 @@ public partial class QueryCommands
                 resolvedSettings,
                 ConfigureServices);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(cancellation.Token);
-            await using var scope = provider.CreateAsyncScope();
+            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
             if (query.Room is { } room
                 && !schedule.EnumerateWeeklyLessons()

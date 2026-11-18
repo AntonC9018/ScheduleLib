@@ -112,13 +112,11 @@ public sealed class ScheduleTeacherNamesTests
     public void LookupWorksAfterAddingTeacher()
     {
         var s = new ScheduleBuilder();
-        s.EnableLookupModule();
-        var lookup = s.Lookup(null!);
+        var lookup = s.EnableLookupModule();
 
         var t = s.Teacher("First Last");
-        TeacherId? expected2 = t.Id;
-        var actual2 = lookup.Teacher(lastName: "Last");
-        Assert.Equal(expected: expected2, actual: actual2);
+        int[] expected = [t.Id.Id];
+        Assert.Equal(expected: expected, actual: lookup.TeachersByLastName.Get("Last"));
     }
 
     [Fact]
@@ -128,13 +126,11 @@ public sealed class ScheduleTeacherNamesTests
         s.EnableLookupModule();
         var t = s.Teacher("First Last");
         t.LastName("Otherlast");
-        var lookup = s.Lookup(null!);
+        var lookup = s.LookupModule!;
 
-        var value = lookup.Teacher(lastName: "Last");
-        Assert.Null(value);
-        TeacherId? expected2 = t.Id;
-        var actual2 = lookup.Teacher(lastName: "Otherlast");
-        Assert.Equal(expected: expected2, actual: actual2);
+        Assert.Empty(lookup.TeachersByLastName.Get("Last") ?? []);
+        int[] expected = [t.Id.Id];
+        Assert.Equal(expected: expected, actual: lookup.TeachersByLastName.Get("Otherlast"));
     }
 }
 
@@ -260,7 +256,7 @@ public sealed class Db
 
     public void Check(NameParts<Word> firstName, int expected)
     {
-        int i = TeacherLookupHelper.FindIndexOfBestMatch(
+        int i = TeacherLookupHelper.FindIndexOfBestBuilderMatch(
             _teachers,
             _ids,
             firstName);

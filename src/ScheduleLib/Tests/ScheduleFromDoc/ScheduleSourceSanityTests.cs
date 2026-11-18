@@ -8,7 +8,7 @@ public sealed class ScheduleSourceSanityTests
     [Fact]
     public async Task Schedule2026Semester1MatchesReadableSnapshot()
     {
-        using var helper = new IntegrationTestHelper(2026, Semester.Sem1);
+        await using var helper = new IntegrationTestHelper(2026, Semester.Sem1);
 
         await helper.InitializeSchedule();
 

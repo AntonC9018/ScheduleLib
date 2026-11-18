@@ -6,9 +6,11 @@ using ScheduleLib.Application.Config;
 using Anton.LayeredData.Retrieval;
 using ScheduleLib.Application.Core.Helper;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleFromDoc.Tests;
+using ScheduleLib;
 using ScheduleLib.Builders;
+using ScheduleLib.DependencyInjection.ScopePlans;
+using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Dates;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.CourseName;
@@ -47,15 +49,12 @@ public sealed class IntegrationTest
     public async Task TopicsLoaderTest()
     {
         var fixture = Fixture();
-        await using var scope = fixture.ServiceProvider.CreateMarkerScope(x =>
-        {
-            x.TeacherName = NameHelper.Parse("Curmanschii Anton");
-        });
         using var cancellationTokenSource = IntegrationTestHelper.CreateCts();
         var cancellationToken = cancellationTokenSource.Token;
+        await using var scope = await fixture.ServiceProvider.OpenScheduleScope(cancellationToken);
         var serviceProvider = scope.ServiceProvider;
-
-        await serviceProvider.InitializeSchedule(cancellationToken);
+        serviceProvider.GetRequiredService<TeacherLayerConfig>()
+            .TeacherName = NameHelper.Parse("Curmanschii Anton");
 
         var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>()
             .Get();
@@ -97,12 +96,7 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
-        var serviceCollection = services;
-        ServiceDescriptor descriptor = new(
-            serviceType: typeof(IScheduleInitializer),
-            implementationType: typeof(ScheduleBuilderInitializer),
-            ServiceLifetime.Singleton);
-        serviceCollection.Replace(descriptor);
+        services.AddInitialized<LoadedSchedule, TestScheduleInitializer>();
 
         var serviceProvider = services.BuildServiceProvider(options: new()
         {
@@ -121,24 +115,19 @@ public sealed class GoogleDriveUploadHandler
     // private readonly RegularSeminarDateProvider _seminarDateProvider;
 }
 
+/// <summary>Loads the saved test schedule instead of the schedule sources.</summary>
 [AutoConstructor]
-public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
+public sealed partial class TestScheduleInitializer : IInitializer<LoadedSchedule>
 {
-    private readonly CourseNameUnifierModule? _unifier;
+    private readonly GroupParseContext _groupParseContext;
+    private readonly Remappings _remappings;
+    private readonly CourseNameUnifierConfig _courseNames;
 
-    public async Task Initialize(
-        ScheduleBuilder builder,
-        CancellationToken cancellationToken)
+    public async ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
     {
-        builder.EnableLookupModule();
-        await IntegrationTestHelper.AddScheduleToBuilder(
-            builder,
-            ScheduleTestHelper.TestSchedulePath,
-            cancellationToken);
-
-        if (_unifier is { } unifier)
-        {
-            unifier.Refresh(builder);
-        }
+        await using var input = File.OpenRead(ScheduleTestHelper.TestSchedulePath);
+        var model = await ScheduleSerializer.Deserialize(input, cancellationToken);
+        var schedule = SerializationModels.ConvertToSchedule(model, _groupParseContext, _remappings);
+        return LoadedSchedule.Create(schedule, _courseNames);
     }
 }

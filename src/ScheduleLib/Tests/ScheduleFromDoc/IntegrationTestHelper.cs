@@ -18,7 +18,7 @@ public enum TestOption
     New,
 }
 
-public sealed class IntegrationTestHelper : IDisposable
+public sealed class IntegrationTestHelper : IAsyncDisposable
 {
     public static IEnumerable<object[]> TestOptionMemberData
     {
@@ -58,17 +58,29 @@ public sealed class IntegrationTestHelper : IDisposable
     private readonly ServiceProvider _rootServiceProvider;
     public CancellationToken CancellationToken;
     private readonly CancellationTokenSource _cts;
-    public IServiceProvider ServiceProvider => _scope.ServiceProvider;
-    private readonly IServiceScope _scope;
+    private ScheduleScope? _scope;
+
+    public IServiceProvider ServiceProvider
+    {
+        get
+        {
+            if (_scope is null)
+            {
+                throw new InvalidOperationException("Initialize the schedule first.");
+            }
+            return _scope.ServiceProvider;
+        }
+    }
 
     public async Task InitializeSchedule()
     {
-        await ServiceProvider.InitializeSchedule(CancellationToken);
+        _scope = await _rootServiceProvider.OpenScheduleScope(CancellationToken);
     }
 
     public IntegrationTestHelper(
         int year,
-        Semester sem)
+        Semester sem,
+        SubGroupValidationMode subGroupValidation = SubGroupValidationMode.Strict)
     {
         _cts = CreateCts();
 
@@ -88,10 +100,10 @@ public sealed class IntegrationTestHelper : IDisposable
             opts.UseCache = false;
             opts.EnrichWithFullNames = false;
             opts.LoadConsultations = false;
+            opts.SubGroupValidation = subGroupValidation;
         });
 
         _rootServiceProvider = services.BuildServiceProvider();
-        _scope = _rootServiceProvider.CreateScope();
     }
 
     public static Task<IntegrationTestHelper> Create(TestOption option)
@@ -108,15 +120,14 @@ public sealed class IntegrationTestHelper : IDisposable
 
     public static async Task<IntegrationTestHelper> CreateDefault()
     {
-        var ret = new IntegrationTestHelper(2024, Semester.Sem2);
+        var ret = new IntegrationTestHelper(2024, Semester.Sem2, SubGroupValidationMode.None);
         try
         {
-            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
         {
-            ret.Dispose();
+            await ret.DisposeAsync();
             throw;
         }
         return ret;
@@ -124,24 +135,17 @@ public sealed class IntegrationTestHelper : IDisposable
 
     public static async Task<IntegrationTestHelper> CreateNew()
     {
-        var ret = new IntegrationTestHelper(2025, Semester.Sem1);
+        var ret = new IntegrationTestHelper(2025, Semester.Sem1, SubGroupValidationMode.None);
         try
         {
-            ret.DisableSubGroupValidation();
             await ret.InitializeSchedule();
         }
         catch
         {
-            ret.Dispose();
+            await ret.DisposeAsync();
             throw;
         }
         return ret;
-    }
-
-    private void DisableSubGroupValidation()
-    {
-        var builder = ServiceProvider.GetRequiredService<ScheduleBuilder>();
-        builder.ValidationSettings.SubGroup = SubGroupValidationMode.None;
     }
 
     public static CancellationTokenSource CreateCts()
@@ -322,10 +326,13 @@ public sealed class IntegrationTestHelper : IDisposable
         return Verify(new Target("json", str));
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _scope.Dispose();
-        _rootServiceProvider.Dispose();
+        if (_scope is not null)
+        {
+            await _scope.DisposeAsync();
+        }
+        await _rootServiceProvider.DisposeAsync();
         _cts.Dispose();
     }
 }

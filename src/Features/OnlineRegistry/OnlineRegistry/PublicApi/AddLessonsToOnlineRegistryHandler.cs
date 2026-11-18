@@ -60,7 +60,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
     private readonly IRegistryErrorHandler _errorHandler;
     private readonly ILogger _logger;
 
-    private readonly LookupModule _lookup;
+    private readonly ScheduleLookup _lookup;
     private readonly ScheduledDateTimeProvider _dateTimeProvider;
 
     private readonly Schedule _schedule;
@@ -201,7 +201,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         group.GroupPartition);
                     var parameters = new LessonMatchParams(
                         filter,
-                        _lookup.LessonsByCourse,
+                        _lookup,
                         _schedule);
                     var candidates = RegistryLessonRouting.Candidates(config, parameters);
                     var validity = p.LessonFilter.Filter(new(

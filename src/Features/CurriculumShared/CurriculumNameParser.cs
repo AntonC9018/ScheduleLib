@@ -548,7 +548,6 @@ public sealed class FindCurriculumForLessonParams
 {
     public required WeeklyLessonId LessonId { get; init; }
     public required Schedule Schedule { get; init; }
-    public required CourseNameUnifierModuleWithDeps CourseLookup { get; init; }
     public required LookupFacade Lookup { get; init; }
 }
 
@@ -751,7 +750,7 @@ public sealed class CurriculumCache
 
             bool CourseOk()
             {
-                if (p.CourseLookup.Find(file.Key.Course) is not { } courseId)
+                if (p.Lookup.Course(file.Key.Course) is not { } courseId)
                 {
                     return false;
                 }

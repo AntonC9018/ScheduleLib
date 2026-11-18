@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <ProjectReference Include="$(RootPath)src\ScheduleDefaults\ScheduleDefaults.csproj" />
+        <ProjectReference Include="$(RootPath)src\ScheduleLib\ScheduleLib.Helper.DependencyInjection\ScheduleLib.Helper.DependencyInjection.csproj" />
 
         <ProjectReference Include="$(FeaturesPath)FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
         <ProjectReference Include="$(FeaturesPath)ParsePdf\ParsePdf.csproj" />

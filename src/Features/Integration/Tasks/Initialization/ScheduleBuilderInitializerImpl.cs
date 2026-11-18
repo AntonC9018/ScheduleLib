@@ -4,6 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Builders;
+using ScheduleLib.DependencyInjection.ScopePlans;
+using ScheduleLib.Parsing.CourseName;
+using ScheduleLib.Parsing.GroupParser;
+using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
 using ScheduleLib.Parsing.WordDoc;
 
@@ -17,25 +21,42 @@ public sealed class ScheduleBuilderInitializerOptions
     public bool UseCache { get; set; } = true;
     public bool EnrichWithFullNames { get; set; } = true;
     public bool LoadConsultations { get; set; } = true;
+    public SubGroupValidationMode SubGroupValidation { get; set; } = SubGroupValidationMode.Strict;
 }
 
+/// <summary>
+/// Builds the schedule of the configured sources in a local builder, or reads it from the cache.
+/// The builder is never shared: the result is an immutable <see cref="Schedule"/>.
+/// </summary>
 [AutoConstructor]
-public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
+public sealed partial class ScheduleSourceLoader
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<StudyYearOptions> _studyYearOptions;
-    private readonly ILogger _logger;
+    private readonly ILogger<ScheduleSourceLoader> _logger;
     private readonly ConfigureRemappingsDelegate _configureRemappings;
     private readonly Remappings _remappings;
+    private readonly GroupParseContext _groupParseContext;
+    private readonly CourseNameUnifierConfig _courseNameUnifierConfig;
     private readonly IOptions<ScheduleBuilderInitializerOptions> _opts;
 
-    public async Task Initialize(
-        ScheduleBuilder builder,
-        CancellationToken cancellationToken)
+    public async Task<Schedule> Load(CancellationToken cancellationToken)
     {
+        // The loader components are transient and some are disposable, so they live in a
+        // scope of their own; none of them depends on a workflow's context.
         await using var scope = _scopeFactory.CreateAsyncScope();
         var sp = scope.ServiceProvider;
 
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = _groupParseContext,
+            ImplicitSplitConfig = ScheduleDefaults.Config.ImplicitSplitConfig,
+            OverlapValidationConfig = ScheduleDefaults.Config.OverlapValidationConfig,
+            ValidationSettings = new()
+            {
+                SubGroup = _opts.Value.SubGroupValidation,
+            },
+        };
         builder.UseRemappings(_remappings);
         builder.EnableLookupModule();
 
@@ -93,19 +114,21 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
             loader.Components.Add(l);
         }
 
-        var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder);
+        var unifier = new CourseNameUnifierModule(_courseNameUnifierConfig);
+        var context = ActivatorUtilities.CreateInstance<ScheduleImportContext>(sp, builder, unifier);
 
         // Code-defined parser/remapping changes invalidate the cache too. Runtime
         // initialization options are included independently of teacher/profile identity.
         {
             // Snapshot each input in the original argument order, before serialization runs.
-            var initializerVersion = typeof(ScheduleBuilderInitializer).Module.ModuleVersionId;
+            var initializerVersion = typeof(ScheduleSourceLoader).Module.ModuleVersionId;
             var builderVersion = typeof(ScheduleBuilder).Module.ModuleVersionId;
             var remappingVersion = _configureRemappings.Method.Module.ModuleVersionId;
             var identityStudyYear = studyYear.StudyYear;
             var identitySemester = studyYear.Semester;
             var enrichWithFullNames = opts.EnrichWithFullNames;
             var loadConsultations = opts.LoadConsultations;
+            var subGroupValidation = opts.SubGroupValidation;
             var timeConfiguration = System.Text.Json.JsonSerializer.Serialize(
                 context.TimeConfig,
                 new System.Text.Json.JsonSerializerOptions
@@ -113,16 +136,16 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                     IncludeFields = true,
                 });
             var subGroupRemappings =
-                System.Text.Json.JsonSerializer.Serialize(builder.Remappings.SubGroupNameRemappings);
+                System.Text.Json.JsonSerializer.Serialize(_remappings.SubGroupNameRemappings);
             var groupRemappings =
-                System.Text.Json.JsonSerializer.Serialize(builder.Remappings.GroupNameRemappings);
+                System.Text.Json.JsonSerializer.Serialize(_remappings.GroupNameRemappings);
             var teacherRemappings = string.Join(
                 ";",
-                builder.Remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
+                _remappings.TeacherLastNameRemappings.OrderBy(x => x.Key.ToString())
                     .Select(x => $"{x.Key}={x.Value}"));
             loader.ConfigurationIdentity = string.Join(
                 "|",
-                "cache-v2",
+                "cache-v3",
                 initializerVersion,
                 builderVersion,
                 remappingVersion,
@@ -130,16 +153,69 @@ public sealed partial class ScheduleBuilderInitializer : IScheduleInitializer
                 identitySemester,
                 enrichWithFullNames,
                 loadConsultations,
+                subGroupValidation,
                 timeConfiguration,
                 subGroupRemappings,
                 groupRemappings,
                 teacherRemappings);
         }
-        await loader.Load(
+        var schedule = await loader.Load(
             context,
             cancellationToken,
             bypassCache: opts.BypassCache);
 
         _logger.LogInformation("Schedule built");
+        return schedule;
     }
+}
+
+/// <summary>Loads the schedule of a scope and derives what workflows read from it.</summary>
+[AutoConstructor]
+public sealed partial class LoadedScheduleInitializer : IInitializer<LoadedSchedule>
+{
+    private readonly ScheduleSourceLoader _loader;
+    private readonly IOptions<ScheduleDerivationOptions> _options;
+    private readonly CourseNameUnifierConfig _courseNameUnifierConfig;
+    private readonly ILogger<LoadedScheduleInitializer> _logger;
+
+    public async ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
+    {
+        var built = await _loader.Load(cancellationToken);
+        var schedule = LabSubGroupMerges.Project(built, _options.Value.AutoMergeLabSubGroups);
+        LogLabSubGroupMerges(schedule);
+        return LoadedSchedule.Create(schedule, _courseNameUnifierConfig);
+    }
+
+    private void LogLabSubGroupMerges(Schedule schedule)
+    {
+        foreach (var diagnostic in schedule.LabSubGroupMergeDiagnostics)
+        {
+            var course = schedule.Get(diagnostic.Course);
+            var group = schedule.Get(diagnostic.Group);
+            _logger.LogWarning(
+                "Cannot infer a lab subgroup merge for {Course}, {Group}, {Specialization}, {Alternative}: {Reason}",
+                course.FullName,
+                group.Name,
+                diagnostic.Specialization.Value,
+                diagnostic.Alternative.Value,
+                diagnostic.Reason);
+        }
+
+        if (!schedule.AutomaticLabSubGroupMerges.IsEmpty)
+        {
+            _logger.LogInformation(
+                "Derived {Count} automatic lab subgroup merges for the semester",
+                schedule.AutomaticLabSubGroupMerges.Length);
+        }
+    }
+}
+
+public sealed class ScheduleFactory(LoadedSchedule loaded) : IFactory<Schedule>
+{
+    public Schedule Create() => loaded.Schedule;
+}
+
+public sealed class ScheduleLookupFactory(LoadedSchedule loaded) : IFactory<ScheduleLookup>
+{
+    public ScheduleLookup Create() => loaded.Lookup;
 }

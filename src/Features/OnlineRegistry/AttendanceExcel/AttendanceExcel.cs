@@ -31,7 +31,7 @@ public sealed partial class AttendanceListsExcelParser
 {
     public static void Register(IServiceCollection services)
     {
-        services.AddSingleton<AttendanceListsExcelParser>();
+        services.AddScoped<AttendanceListsExcelParser>();
     }
 
     private readonly GroupParseContext _groupParser;

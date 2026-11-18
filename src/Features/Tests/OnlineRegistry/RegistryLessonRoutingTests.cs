@@ -3,6 +3,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
@@ -181,7 +182,7 @@ public sealed class RegistryLessonRoutingTests
             course,
             groups,
             partition);
-        var lookup = builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         LessonMatchParams lessonMatchParams = new(
             filter,
@@ -762,7 +763,7 @@ public sealed class RegistryLessonRoutingTests
         AnyLessonId tainted = default;
         bool foundValid = false;
         bool foundTainted = false;
-        foreach (var id in builder.LookupModule!.LessonsByCourse[course])
+        foreach (var id in schedule.CreateScheduleLookup().LessonsOf(course))
         {
             var lesson = schedule.Get(id).Lesson;
 

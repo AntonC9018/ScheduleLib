@@ -117,8 +117,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
     {
         var resolved = await CliSettings.Load(settings, cancellationToken: token);
         ServiceProvider? provider = null;
-        AsyncServiceScope scope = default;
-        var hasScope = false;
+        ScheduleScope? scope = null;
         try
         {
             var services = CliRuntime.CreateServices(
@@ -132,9 +131,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
 
             provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(token);
-            scope = provider.CreateAsyncScope();
-            hasScope = true;
+            scope = await provider.OpenScheduleScope(token);
             const string missingCredentialsMessage =
                 "Registry credentials are missing; configure the selected teacher's existing credential source.";
             var credentialsResolver =
@@ -186,7 +183,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         }
         catch
         {
-            if (hasScope)
+            if (scope is not null)
             {
                 await scope.DisposeAsync();
             }
@@ -204,7 +201,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
     private sealed class Session(
         ResolvedSettings settings,
         ServiceProvider provider,
-        AsyncServiceScope scope,
+        ScheduleScope scope,
         RegistryScrapingContext context,
         RegistryDestination target) : IConfiguredRegistrySession
     {

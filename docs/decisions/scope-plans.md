@@ -120,12 +120,13 @@ command builds its own container from runtime arguments, and resolving `Schedule
   immutable `LoadedSchedule`:
   - `Schedule`, with the lab-merge projection (`ScheduleDerivationOptions`) applied,
     so lesson ids agree everywhere;
-  - an immutable `ScheduleLookup` (courses by name and alias, teachers by last name,
-    groups by name, lessons by course), replacing `LookupModule`;
-  - a frozen course-name index, replacing the unifier's mutable `SlowCourses`.
+  - an immutable `ScheduleLookup` (teachers by last name, groups by name, lessons by course),
+    replacing `LookupModule`. Its `CourseNameIndex` finds courses by name and alias, then by
+    unified name, replacing the unifier's mutable `SlowCourses`.
 - `Schedule` and `ScheduleLookup` are derived from it; `LookupFacade` is an ordinary scoped
-  service over `ScheduleLookup`. `ScheduleProvider`, `InitializeSchedule` and the `LookupModule`
-  registration are removed.
+  service over them. Its consumers are scoped too. `ScheduleProvider`, `InitializeSchedule`
+  and the `LookupModule` registration are removed; the builder keeps `LookupModule` internally
+  while loading.
 - Lookups never write: fuzzy course matches are computed and returned, not stored as aliases.
 - Post-processing runs once. On a cache miss the initializer fills a local builder, builds,
   saves and returns that result; on a cache hit it reads the `Schedule` directly and builds the

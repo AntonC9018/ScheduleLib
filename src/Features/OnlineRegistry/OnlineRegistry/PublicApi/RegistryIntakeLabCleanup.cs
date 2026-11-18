@@ -36,7 +36,7 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         group.GroupPartition);
                     LessonMatchParams parameters = new(
                         filter,
-                        _lookup.LessonsByCourse,
+                        _lookup,
                         _schedule);
                     var selection = RegistryLessonRouting.Candidates(config, parameters);
                     var decision = lessonFilter.Filter(new(

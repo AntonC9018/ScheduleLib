@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.OnlineRegistry.Tests;
 
@@ -107,9 +108,8 @@ public sealed class RegistryCourseNameTests
             builder.Course(name);
         }
 
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
-        return builder.Lookup(unifier);
+        var schedule = builder.Build();
+        return builder.CreateLookup(schedule, Config.CourseNameUnifier);
     }
 
     [Fact]
@@ -119,9 +119,8 @@ public sealed class RegistryCourseNameTests
         builder.EnableLookupModule();
         var automatic = builder.Course("Advanced web");
         var intended = builder.Course("Web fundamentals");
-        var unifier = new CourseNameUnifierModule(Config.CourseNameUnifier);
-        unifier.Refresh(builder);
-        var lookup = builder.Lookup(unifier);
+        var schedule = builder.Build();
+        var lookup = builder.CreateLookup(schedule, Config.CourseNameUnifier);
 
         CourseId? expected2 = automatic;
         var actual2 = RegistryCourseNameLookup.Find(

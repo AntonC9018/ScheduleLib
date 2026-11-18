@@ -3,6 +3,7 @@ using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
+using Tests.ScheduleCommon;
 
 namespace ScheduleLib.Tests.OnlineRegistry;
 
@@ -29,7 +30,7 @@ public sealed class CombinedGroupMatchingTests
             courseId,
             groups2,
             groupPartition);
-        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         LessonMatchParams p = new(
             filter,
@@ -70,7 +71,7 @@ public sealed class CombinedGroupMatchingTests
             courseId,
             groups2,
             groupPartition);
-        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         var parameters = new LessonMatchParams(
             filter,
@@ -120,7 +121,7 @@ public sealed class CombinedGroupMatchingTests
             combinedPartition);
         var parameters = new LessonMatchParams(
             filter,
-            fixture.Builder.LookupModule!.LessonsByCourse,
+            schedule.CreateScheduleLookup(),
             schedule);
         var collection = MatchLessonHelper.MatchLessonsInSchedule(parameters);
         System.Collections.IEnumerable collection2 = collection;
@@ -299,7 +300,7 @@ public sealed class CombinedGroupMatchingTests
             courseId,
             groups2,
             groupPartition);
-        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         LessonMatchParams p = new(
             filter,
@@ -473,7 +474,7 @@ public sealed class CombinedGroupMatchingTests
             courseId,
             groups2,
             groupPartition);
-        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         LessonMatchParams p = new(
             filter,
@@ -507,7 +508,7 @@ public sealed class CombinedGroupMatchingTests
             courseId,
             groups2,
             groupPartition);
-        var lookup = fixture.Builder.LookupModule!.LessonsByCourse;
+        var lookup = schedule.CreateScheduleLookup();
         var schedule2 = schedule;
         LessonMatchParams p = new(
             filter,
@@ -597,7 +598,7 @@ public sealed class CombinedGroupMatchingTests
             parsedPartition);
         var parameters = new LessonMatchParams(
             filter,
-            fixture.Builder.LookupModule!.LessonsByCourse,
+            schedule.CreateScheduleLookup(),
             schedule);
         var lessons = MatchLessonHelper.MatchLessonsInSchedule(parameters)
             .ToArray();
