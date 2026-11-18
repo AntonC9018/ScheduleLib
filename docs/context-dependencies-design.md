@@ -70,6 +70,16 @@ consumers that take ordinary constructor parameters, and a graph that can be che
 - **Independent initializers run sequentially in constructor order** (Q45),
   so a cheap check that can fail (Google auth) can be listed before an expensive parse.
 
+### Settings (Q51)
+
+- No private containers and no containers built from runtime arguments; the CLI may be
+  rewritten freely to get there.
+- `AddConfigsServices`, `AddOnlineRegistry` and `TreeBuilder` live in the root container.
+- A seed `SettingsSelection { ProjectPath?, Profile?, CalendarName? }` comes from CLI options.
+- `ResolvedSettings` is an initialized value built from it (it reads files).
+- Derived from it: an immutable `TeacherLayerConfig`, a plain `ScheduleDerivationOptions`
+  (no `IOptions`) and `IMarkerDataHelper`. Profile-specific behaviour is data, not registrations.
+
 ### Composition and forks
 
 - **Child handlers that always run with the parent are constructor parameters.**
@@ -127,7 +137,6 @@ See the latest round in the conversation; recorded here once answered.
 
 - **Plan footprint:** plans for different handlers share subgraphs; duplication must be bounded.
 - **Open forks when the parent ends:** dispose, error, or allow ownership transfer.
-- **Settings:** `ResolvedSettings` and its private container; the CLI may be rewritten freely.
 - **Keyed seeds and keyed values:** no current use case for either.
 
 ## Next steps (after the open questions and a demo review)
