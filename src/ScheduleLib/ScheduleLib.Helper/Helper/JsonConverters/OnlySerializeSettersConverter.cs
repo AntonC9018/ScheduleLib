@@ -28,7 +28,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     {
         var nullability = new NullabilityInfoContext();
         var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var writable = properties.Where(p => p.CanWrite);
+        var writable = properties.Where(IsSerialized);
         return writable
             .Select((p, index) => CreateContract(p, index, nullability))
             .ToArray();
@@ -45,6 +45,20 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             IsRequired: isRequired,
             AllowsNull: allowsNull,
             ElementsAllowNull: elementsAllowNull);
+    }
+
+    /// <summary>Readable and settable, and not an indexer.</summary>
+    private static bool IsSerialized(PropertyInfo property)
+    {
+        if (!property.CanRead || !property.CanWrite)
+        {
+            return false;
+        }
+        if (property.GetIndexParameters().Length > 0)
+        {
+            return false;
+        }
+        return true;
     }
 
     private static bool IsRequired(PropertyInfo property)
@@ -243,24 +257,9 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     {
         writer.WriteStartObject();
 
-        var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p =>
-            {
-                if (!p.CanRead)
-                {
-                    return false;
-                }
-
-                if (p.CanWrite)
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
-        foreach (var prop in props)
+        foreach (var contract in _writableProperties)
         {
+            var prop = contract.Property;
             var propValue = prop.GetValue(value);
             writer.WritePropertyName(options.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name);
             JsonSerializer.Serialize(

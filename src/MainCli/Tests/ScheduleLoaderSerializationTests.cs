@@ -211,9 +211,9 @@ public sealed class ScheduleLoaderSerializationTests
     }
 
     /// <summary>
-    /// Edits the cache while keeping its hash, so only schema validation can reject the result.
+    /// Replaces the rows of one cached table with the single <paramref name="row"/>, keeping the
+    /// hash, so only schema validation can reject the result.
     /// </summary>
-    /// <summary>Replaces the rows of one cached table with the single <paramref name="row"/>.</summary>
     private static async Task ReplaceCachedRows(string path, string table, JsonNode? row)
     {
         var text = await File.ReadAllTextAsync(path);
