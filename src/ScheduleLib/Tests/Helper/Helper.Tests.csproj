@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
         <ProjectReference Include="..\..\ScheduleLib.Helper\ScheduleLib.Helper.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib.Helper.DependencyInjection\ScheduleLib.Helper.DependencyInjection.csproj" />
     </ItemGroup>
 </Project>
