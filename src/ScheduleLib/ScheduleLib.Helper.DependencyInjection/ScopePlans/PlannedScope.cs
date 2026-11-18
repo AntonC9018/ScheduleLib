@@ -36,6 +36,7 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
 {
     private readonly AsyncServiceScope _scope;
     private THandler? _handler;
+    private bool _handlerIsActivated;
 
     internal PlannedScope(AsyncServiceScope scope)
     {
@@ -44,10 +45,49 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
 
     public IServiceProvider Services => _scope.ServiceProvider;
 
-    public THandler Handler => _handler ??= ActivatorUtilities.GetServiceOrCreateInstance<THandler>(Services);
+    /// <summary>
+    /// The registered handler, or else one created from the scope's services. A created handler
+    /// is owned by this scope, since the container does not track it.
+    /// </summary>
+    public THandler Handler => _handler ??= ResolveHandler();
 
-    public ValueTask DisposeAsync()
+    private THandler ResolveHandler()
     {
-        return _scope.DisposeAsync();
+        if (Services.GetService<THandler>() is { } registered)
+        {
+            return registered;
+        }
+        var activated = ActivatorUtilities.CreateInstance<THandler>(Services);
+        _handlerIsActivated = true;
+        return activated;
+    }
+
+    /// <summary>Disposes a handler this scope created, then the scope, even when the handler fails.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_handlerIsActivated)
+            {
+                await DisposeActivatedHandler(_handler!);
+            }
+        }
+        finally
+        {
+            await _scope.DisposeAsync();
+        }
+    }
+
+    private static async ValueTask DisposeActivatedHandler(THandler handler)
+    {
+        switch (handler)
+        {
+            case IAsyncDisposable asyncDisposable:
+                await asyncDisposable.DisposeAsync();
+                break;
+            case IDisposable disposable:
+                disposable.Dispose();
+                break;
+        }
     }
 }

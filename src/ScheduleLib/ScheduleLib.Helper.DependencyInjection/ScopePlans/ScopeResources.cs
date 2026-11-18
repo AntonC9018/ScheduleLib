@@ -7,21 +7,42 @@ namespace ScheduleLib.DependencyInjection.ScopePlans;
 /// </summary>
 public sealed class ScopeResources
 {
+    private readonly Lock _lock = new();
     private readonly List<IAsyncDisposable> _resources = [];
+    private bool _closed;
 
+    /// <summary>
+    /// Takes ownership of <paramref name="resource"/>. Once the scope has started ending this
+    /// throws, and the caller still owns the resource.
+    /// </summary>
     public T Add<T>(T resource)
         where T : IAsyncDisposable
     {
-        _resources.Add(resource);
+        lock (_lock)
+        {
+            if (_closed)
+            {
+                throw new ScopeResourcesClosedException(typeof(T));
+            }
+            _resources.Add(resource);
+        }
         return resource;
     }
 
-    internal async ValueTask CloseAsync()
+    /// <summary>Closes every resource, the last added first, recording failures without stopping.</summary>
+    internal async ValueTask CloseAsync(List<Exception> failures)
     {
-        for (int i = _resources.Count - 1; i >= 0; i--)
+        IAsyncDisposable[] resources;
+        lock (_lock)
         {
-            await _resources[i].DisposeAsync();
+            _closed = true;
+            resources = [.. _resources];
+            _resources.Clear();
         }
-        _resources.Clear();
+        for (int i = resources.Length - 1; i >= 0; i--)
+        {
+            var resource = resources[i];
+            await CleanupStep.Run(resource.DisposeAsync, failures);
+        }
     }
 }

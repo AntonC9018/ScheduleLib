@@ -61,7 +61,7 @@ public sealed class ScopePlanGraph
             {
                 return existing;
             }
-            var closure = new Walk(this, root).Visit(ScopeNode.Unkeyed(root));
+            var closure = new Walk(this).VisitRoot(ScopeNode.Unkeyed(root));
             var plan = new ScopePlan(root, closure, Registrations);
             _plans[root] = plan;
             return plan;
@@ -74,7 +74,7 @@ public sealed class ScopePlanGraph
         {
             if (!_nodes.ContainsKey(node))
             {
-                new Walk(this, root: null).Visit(node);
+                new Walk(this).Visit(node);
             }
             return _nodes[node];
         }
@@ -88,9 +88,25 @@ public sealed class ScopePlanGraph
     private readonly record struct PathEntry(ScopeNode Node, List<ScopePlanIssue> CycleIssues);
 
     /// <summary>One depth-first walk; finished nodes are memoized in the graph.</summary>
-    private sealed class Walk(ScopePlanGraph graph, Type? root)
+    private sealed class Walk(ScopePlanGraph graph)
     {
         private readonly List<PathEntry> _path = [];
+
+        /// <summary>
+        /// Plans a workflow root. A root may be a concrete type that is not registered: it is then
+        /// activated from its constructor, but that node is not memoized, because for every other
+        /// consumer the type stays missing. The result therefore never depends on planning order.
+        /// </summary>
+        public ScopeClosure VisitRoot(ScopeNode root)
+        {
+            var description = Describe(root);
+            if (description.Kind != ScopeNodeKind.Missing)
+            {
+                return Visit(root);
+            }
+            var activated = new NodeDescription(ScopeNodeKind.Service, ImplementationInputs(root.Type, key: null));
+            return Expand(root, activated).Closure;
+        }
 
         public ScopeClosure Visit(ScopeNode node)
         {
@@ -98,16 +114,26 @@ public sealed class ScopePlanGraph
             {
                 return done.Closure;
             }
+            return Memoize(node, Describe(node));
+        }
+
+        private ScopeClosure Memoize(ScopeNode node, NodeDescription description)
+        {
             int cycleStart = _path.FindIndex(p => p.Node == node);
             if (cycleStart >= 0)
             {
                 ReportCycle(cycleStart, node);
                 return ScopeClosure.Empty;
             }
+            var info = Expand(node, description);
+            graph._nodes[node] = info;
+            return info.Closure;
+        }
 
+        private ScopeNodeInfo Expand(ScopeNode node, NodeDescription description)
+        {
             var entry = new PathEntry(node, []);
             _path.Add(entry);
-            var description = Describe(node);
             var builder = new ScopeClosureBuilder();
             foreach (var input in description.Inputs)
             {
@@ -120,10 +146,7 @@ public sealed class ScopePlanGraph
                 builder.AddIssue(cycle);
             }
             _path.RemoveAt(_path.Count - 1);
-
-            var info = new ScopeNodeInfo(node, description.Kind, description.Inputs, builder.Build());
-            graph._nodes[node] = info;
-            return info.Closure;
+            return new ScopeNodeInfo(node, description.Kind, description.Inputs, builder.Build());
         }
 
         private void ReportCycle(int cycleStart, ScopeNode repeated)
@@ -176,9 +199,6 @@ public sealed class ScopePlanGraph
             var recipe = graph.Index.Find(node);
             switch (recipe.Source)
             {
-                case ServiceSource.Missing when node.Type == root:
-                    // Workflow roots may be concrete types that are not registered.
-                    return new(ScopeNodeKind.Service, ImplementationInputs(node.Type, key: null));
                 case ServiceSource.Missing:
                     return new(ScopeNodeKind.Missing, []);
                 case ServiceSource.Singleton:

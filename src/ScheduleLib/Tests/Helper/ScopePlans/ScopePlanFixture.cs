@@ -257,6 +257,77 @@ internal sealed class SourceBaseHandler(SourceBase source)
     public SourceBase Source => source;
 }
 
+internal sealed class UnresolvableScheduleInitializer(Unregistered missing) : IInitializer<LoadedSchedule>
+{
+    public ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
+    {
+        return new(new LoadedSchedule(missing.ToString()!, Load: 0));
+    }
+}
+
+internal sealed class FixedTeacherSettingsFactory : IFactory<TeacherSettings>
+{
+    public TeacherSettings Create()
+    {
+        return new("fixed");
+    }
+}
+
+/// <summary>A workflow root that is not registered, and a consumer that needs it as a service.</summary>
+internal sealed class QueryLessonsConsumer(QueryLessonsHandler handler)
+{
+    public QueryLessonsHandler Handler => handler;
+}
+
+/// <summary>An unregistered root that owns a resource of its own.</summary>
+internal sealed class DisposableHandler(LessonQuery query) : IAsyncDisposable
+{
+    public LessonQuery Query => query;
+    public bool IsDisposed { get; private set; }
+
+    public ValueTask DisposeAsync()
+    {
+        IsDisposed = true;
+        return ValueTask.CompletedTask;
+    }
+}
+
+internal sealed class ResourceCloseFailedException() : Exception("The resource failed to close");
+
+internal sealed class FailingResource : IAsyncDisposable
+{
+    public ValueTask DisposeAsync()
+    {
+        throw new ResourceCloseFailedException();
+    }
+}
+
+internal sealed record FailingSession;
+
+internal sealed class FailingSessionInitializer(ScopeResources resources) : IInitializer<FailingSession>
+{
+    public ValueTask<FailingSession> InitializeAsync(CancellationToken cancellationToken)
+    {
+#pragma warning disable CA2000 // ScopeResources closes the resource when the scope ends.
+        resources.Add(new FailingResource());
+#pragma warning restore CA2000
+        return new(new FailingSession());
+    }
+}
+
+/// <summary>Its resource fails to close after the registry session it borrows.</summary>
+internal sealed class FailingHandler(RegistrySession session, FailingSession failing)
+{
+    public RegistrySession Session => session;
+    public FailingSession Failing => failing;
+}
+
+internal sealed class FailingParentHandler(RegistrySession session, ScopeForkFactory<FailingHandler> children)
+{
+    public RegistrySession Session => session;
+    public ScopeForkFactory<FailingHandler> Children => children;
+}
+
 internal static class ScopePlanFixture
 {
     public static readonly SourceArgs Source = new("data/2025-sem1");
@@ -277,6 +348,7 @@ internal static class ScopePlanFixture
         services.AddInitialized<QuizGrades, QuizGradesInitializer>();
         services.AddInitialized<LegacyReport, LegacyReportInitializer>();
         services.AddInitialized<DisposableValue, DisposableValueInitializer>();
+        services.AddInitialized<FailingSession, FailingSessionInitializer>();
         services.AddHiddenNeeds<LegacyPlanner, LessonQuery>();
         services.AddHiddenNeeds<LegacyReportInitializer, LessonQuery>();
         services.AddSingleton<LoadLog>();
@@ -292,6 +364,7 @@ internal static class ScopePlanFixture
         var options = new ServiceProviderOptions
         {
             ValidateScopes = true,
+            ValidateOnBuild = true,
         };
         return services.BuildServiceProvider(options);
     }

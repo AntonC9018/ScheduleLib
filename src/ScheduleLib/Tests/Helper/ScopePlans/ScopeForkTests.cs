@@ -112,4 +112,57 @@ public sealed class ScopeForkTests
         Assert.Equal(expected: expected, actual: exception.Forks);
         Assert.Equal(expected: 1, actual: log.Count("registry closed"));
     }
+
+    [Fact]
+    public async Task ForkCannotOpenAfterItsParentEnded()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var parent = await invocation.ServiceProvider.OpenAsync<GradeImportHandler>(SupplySource);
+        var copies = parent.Handler.Copies;
+        await parent.DisposeAsync();
+        var exception = await Assert.ThrowsAsync<ParentScopeEndedException>(Open);
+
+        Assert.Equal(expected: typeof(MoodleCopyHandler), actual: exception.Fork);
+
+        async Task Open()
+        {
+            await copies.OpenAsync(s => s.Add(new QuizArgs(1)), None);
+        }
+    }
+
+    [Fact]
+    public async Task FailingResourceDoesNotStopTheRestClosing()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var scope = await invocation.ServiceProvider.OpenAsync<FailingHandler>(supply: null);
+        var connection = scope.Handler.Session.Connection;
+        var exception = await Assert.ThrowsAsync<ScopeCleanupException>(async () => await scope.DisposeAsync());
+
+        Assert.IsType<ResourceCloseFailedException>(Assert.Single(exception.Failures));
+        Assert.Empty(exception.ForksLeftOpen);
+        Assert.True(connection.IsClosed);
+    }
+
+    [Fact]
+    public async Task FailingForkDoesNotStopItsSiblingsOrItsParentClosing()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var parent = await invocation.ServiceProvider.OpenAsync<FailingParentHandler>(supply: null);
+        var connection = parent.Handler.Session.Connection;
+        _ = await parent.Handler.Children.OpenAsync(supply: null, None);
+        _ = await parent.Handler.Children.OpenAsync(supply: null, None);
+        var exception = await Assert.ThrowsAsync<ScopeCleanupException>(async () => await parent.DisposeAsync());
+
+        Type[] forks = [typeof(FailingHandler), typeof(FailingHandler)];
+        Assert.Equal(expected: forks, actual: exception.ForksLeftOpen);
+        Assert.Equal(expected: 2, actual: exception.Failures.Length);
+        Assert.All(exception.Failures, f => Assert.IsType<ScopeCleanupException>(f));
+        Assert.True(connection.IsClosed);
+    }
 }

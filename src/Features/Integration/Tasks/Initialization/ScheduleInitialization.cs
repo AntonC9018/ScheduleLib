@@ -140,8 +140,14 @@ public sealed class ScheduleScope : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        await _scope.DisposeAsync();
-        await _invocation.DisposeAsync();
+        try
+        {
+            await _scope.DisposeAsync();
+        }
+        finally
+        {
+            await _invocation.DisposeAsync();
+        }
     }
 }
 

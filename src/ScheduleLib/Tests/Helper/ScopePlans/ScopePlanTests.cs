@@ -184,6 +184,73 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
+    public void UnregisteredRootIsPlannedTheSameInEitherOrder()
+    {
+        using var rootFirst = CreateServices().Build();
+        using var consumerFirst = CreateServices().Build();
+
+        var rootPlanFirst = rootFirst.PlanOf<QueryLessonsHandler>();
+        var consumerPlanSecond = rootFirst.PlanOf<QueryLessonsConsumer>();
+        var consumerPlanFirst = consumerFirst.PlanOf<QueryLessonsConsumer>();
+        var rootPlanSecond = consumerFirst.PlanOf<QueryLessonsHandler>();
+
+        ScopeNode[] seeds = [ScopeNode.Unkeyed(typeof(SourceArgs))];
+        foreach (var rootPlan in new[] { rootPlanFirst, rootPlanSecond })
+        {
+            Assert.Equal(expected: seeds, actual: rootPlan.Seeds);
+            Assert.Empty(rootPlan.Errors);
+        }
+        foreach (var consumerPlan in new[] { consumerPlanFirst, consumerPlanSecond })
+        {
+            var error = Assert.Single(consumerPlan.Errors);
+            Assert.Equal(expected: ScopePlanIssueKind.MissingRegistration, actual: error.Kind);
+        }
+    }
+
+    [Fact]
+    public async Task ScopeDisposesAHandlerItCreated()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var scope = await invocation.ServiceProvider.OpenAsync<DisposableHandler>(SupplySource);
+        var handler = scope.Handler;
+        await scope.DisposeAsync();
+
+        Assert.True(handler.IsDisposed);
+    }
+
+    [Fact]
+    public async Task ReplacedInitializerIsNoLongerValidated()
+    {
+        var services = new ServiceCollection();
+        services.AddSeed<SourceArgs>();
+        services.AddTransient<LessonQuery>();
+        services.AddInitialized<LoadedSchedule, UnresolvableScheduleInitializer>();
+        services.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<QueryLessonsHandler>(supply: null);
+
+        Assert.Equal(expected: "fake", actual: scope.Handler.Schedule.DataDir);
+    }
+
+    [Fact]
+    public async Task LaterDerivedRegistrationReplacesEarlierOne()
+    {
+        var services = CreateServices();
+        services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<ShowSettingsHandler>(supply: null);
+
+        Assert.Equal(expected: "fixed", actual: scope.Handler.Settings.Teacher);
+        Assert.Empty(root.PlanOf<ShowSettingsHandler>().Seeds);
+    }
+
+    [Fact]
     public async Task LaterInitializedRegistrationReplacesEarlierOne()
     {
         var services = CreateServices();
