@@ -116,6 +116,23 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - The flaws of the mutable singleton `ScheduleBuilder` come from working around Microsoft DI,
   so the schedule model is refactored now: loading produces an immutable value per scope,
   and the builder is used only while loading.
+- `ScheduleBuilder` is not a DI service. A schedule initializer turns the source seed into an
+  immutable `LoadedSchedule`:
+  - `Schedule`, with the lab-merge projection (`ScheduleDerivationOptions`) applied,
+    so lesson ids agree everywhere;
+  - an immutable `ScheduleLookup` (courses by name and alias, teachers by last name,
+    groups by name, lessons by course), replacing `LookupModule`;
+  - a frozen course-name index, replacing the unifier's mutable `SlowCourses`.
+- `Schedule` and `ScheduleLookup` are derived from it; `LookupFacade` is an ordinary scoped
+  service over `ScheduleLookup`. `ScheduleProvider`, `InitializeSchedule` and the `LookupModule`
+  registration are removed.
+- Lookups never write: fuzzy course matches are computed and returned, not stored as aliases.
+- Post-processing runs once. On a cache miss the initializer fills a local builder, builds,
+  saves and returns that result; on a cache hit it reads the `Schedule` directly and builds the
+  lookup from it (ids are list positions in both). The cache format version is bumped.
+- `Remappings` is a singleton built from the static remapping configuration, independent of
+  the schedule. The builder and post-load consumers (`TeacherNameMapper`,
+  `SubGroupNameRemapper`, the cache identity) share it.
 
 ## Rejected and not planned
 
@@ -131,6 +148,10 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - A source generator producing plans at compile time.
 - A per-registration "re-initialize in each fork" option, once a stateful session needs it.
 - Per-request log routing for a CLI server.
+- Reusing a previous builder to recreate a schedule incrementally (for example after a source
+  changes) instead of loading from scratch. The once-only build must not rule this out.
+- How remapping logic and model pieces used both while building and after loading are shared;
+  needs analysis beyond moving `Remappings` out of the builder.
 
 ## Migration notes
 
