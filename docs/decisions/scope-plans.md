@@ -104,7 +104,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
   - The handler is resolved while the fork opens, so a failure ends the fork before it is
     returned.
   - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`,
-    before any work. A fork still opening at that moment is not returned: its opener ends it and
+    before any work. A fork registers with its parent before its seeds are supplied, so a fork
+    still opening at that moment, even inside its supply callback, is not returned: its opener ends it and
     receives that exception, alongside any failure of its own, while the parent waits for that
     ending. A fork is returned under the
     parent's lock, so a parent either sees it returned, and ends it as left open, or rejects it.

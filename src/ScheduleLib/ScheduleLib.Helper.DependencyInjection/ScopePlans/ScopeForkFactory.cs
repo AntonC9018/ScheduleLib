@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
@@ -23,17 +24,66 @@ public sealed class ScopeForkFactory<THandler>(
     public ScopePlan Plan => plan.Plan;
 
     /// <summary>
-    /// Checks the plan and the seeds before any work, fills the seeds, runs the initializers the
-    /// fork does not inherit, and only then returns the scope.
+    /// Registers the fork with its parent, checks the plan and the seeds before any initializer
+    /// runs, fills the seeds, runs the initializers the fork does not inherit, and only then
+    /// returns the scope. A parent that starts ending meanwhile waits for the fork to settle.
     /// </summary>
     public async ValueTask<PlannedScope<THandler>> OpenAsync(
         Action<ScopeInputs>? supply,
         CancellationToken cancellationToken)
     {
-        if (!current.AcceptsForks)
+        var (planned, state) = await AttachAsync();
+        Exception? openFailure = null;
+        try
         {
-            throw new ParentScopeEndedException(typeof(THandler));
+            var inputs = CheckInputs(supply);
+            await FillAsync(planned.Services, state, plan.Plan, inputs, cancellationToken);
+            planned.ResolveHandler();
+            if (state.TryPublish())
+            {
+                return planned;
+            }
         }
+        catch (Exception failure)
+        {
+            openFailure = failure;
+        }
+
+        var failures = await EndUnpublishedAsync(state, openFailure);
+        if (failures is [var only])
+        {
+            ExceptionDispatchInfo.Throw(only);
+        }
+        throw new AggregateException(failures);
+    }
+
+    /// <summary>
+    /// Creates the fork's container scope and registers it as an open fork of the parent, so the
+    /// parent waits for it from here on. A failure disposes the scope.
+    /// </summary>
+    private async ValueTask<(PlannedScope<THandler> Planned, ScopeState State)> AttachAsync()
+    {
+        var scope = scopes.CreateAsyncScope();
+        try
+        {
+            var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
+            var planned = new PlannedScope<THandler>(scope, state);
+            state.UseServicesTeardown(planned.DisposeServicesAsync);
+            state.AttachToParent(current, typeof(THandler));
+            return (planned, state);
+        }
+        catch (Exception attachFailure)
+        {
+            var failures = new CleanupFailures();
+            await failures.Run(scope.DisposeAsync);
+            failures.ThrowIfAnyAlongside(attachFailure);
+            throw;
+        }
+    }
+
+    /// <summary>Rejects plan errors, values that are not seeds and missing seeds, before any initializer runs.</summary>
+    private ScopeInputs CheckInputs(Action<ScopeInputs>? supply)
+    {
         var scopePlan = plan.Plan;
         if (scopePlan.Errors.Length > 0)
         {
@@ -41,7 +91,8 @@ public sealed class ScopeForkFactory<THandler>(
         }
         var inputs = new ScopeInputs();
         supply?.Invoke(inputs);
-        ImmutableArray<ScopeNode> unregistered = [.. inputs.Seeds.Keys.Where(n => !graph.Registrations.Seeds.ContainsKey(n))];
+        var seeds = graph.Registrations.Seeds;
+        ImmutableArray<ScopeNode> unregistered = [.. inputs.Seeds.Keys.Where(n => !seeds.ContainsKey(n))];
         if (unregistered.Length > 0)
         {
             throw new UnregisteredSeedsException(scopePlan.Root, unregistered);
@@ -51,42 +102,7 @@ public sealed class ScopeForkFactory<THandler>(
         {
             throw new MissingSeedsException(scopePlan.Root, missing);
         }
-
-        var scope = scopes.CreateAsyncScope();
-        var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
-        var planned = new PlannedScope<THandler>(scope, state);
-        state.UseServicesTeardown(planned.DisposeServicesAsync);
-        try
-        {
-            state.AttachToParent(current, scopePlan.Root);
-        }
-        catch
-        {
-            await scope.DisposeAsync();
-            throw;
-        }
-
-        try
-        {
-            await FillAsync(scope.ServiceProvider, state, scopePlan, inputs, cancellationToken);
-            planned.ResolveHandler();
-            // A parent that started ending meanwhile waits for this fork to settle; the fork is
-            // then ended here instead of being returned already closed.
-            if (!state.TryPublish())
-            {
-                throw new ParentScopeEndedException(scopePlan.Root);
-            }
-        }
-        catch (Exception openFailure)
-        {
-            var failures = await EndUnpublishedAsync(state, openFailure);
-            if (failures.Length == 1)
-            {
-                throw;
-            }
-            throw new AggregateException(failures);
-        }
-        return planned;
+        return inputs;
     }
 
     /// <summary>
@@ -94,19 +110,23 @@ public sealed class ScopeForkFactory<THandler>(
     /// Returns what to report: that the parent ended, when it started ending before the fork
     /// settled, then <paramref name="openFailure"/>, then any failure to end the fork.
     /// </summary>
-    private static async ValueTask<Exception[]> EndUnpublishedAsync(ScopeState state, Exception openFailure)
+    private static async ValueTask<Exception[]> EndUnpublishedAsync(ScopeState state, Exception? openFailure)
     {
         var ending = state.EndAsync();
         Debug.Assert(ending.StartedHere, "Nothing else ends a fork before it is returned or settled.");
         bool parentEnded = state.SettleUnpublished();
+        Debug.Assert(parentEnded || openFailure is not null, "A fork is only rejected by a parent that is ending.");
         var cleanupFailure = await ending.Completion;
 
         var failures = new List<Exception>();
-        if (parentEnded && openFailure is not ParentScopeEndedException)
+        if (parentEnded)
         {
             failures.Add(new ParentScopeEndedException(typeof(THandler)));
         }
-        failures.Add(openFailure);
+        if (openFailure is not null)
+        {
+            failures.Add(openFailure);
+        }
         if (cleanupFailure is not null)
         {
             failures.Add(cleanupFailure);

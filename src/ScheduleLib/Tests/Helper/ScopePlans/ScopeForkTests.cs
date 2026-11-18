@@ -239,7 +239,8 @@ public sealed class ScopeForkTests
         await using var root = CreateServices().Build();
         await using var invocation = root.CreateAsyncScope();
         var gate = root.GetRequiredService<InitializerGate>();
-        gate.FailOnRelease = true;
+        // The initializer's own failure is kept even when it is the same kind of failure.
+        gate.FailureOnRelease = new ParentScopeEndedException(typeof(Unregistered));
 
         var parent = await invocation.ServiceProvider.OpenAsync<GatedParentHandler>(supply: null);
         var opening = parent.Handler.Children.OpenAsync(supply: null, None).AsTask();
@@ -251,8 +252,40 @@ public sealed class ScopeForkTests
         await ending;
 
         Assert.Equal(expected: 2, actual: exception.InnerExceptions.Count);
+        var parentEnded = Assert.IsType<ParentScopeEndedException>(exception.InnerExceptions[0]);
+        Assert.Equal(expected: typeof(GatedHandler), actual: parentEnded.Fork);
+        Assert.Same(expected: gate.FailureOnRelease, actual: exception.InnerExceptions[1]);
+    }
+
+    [Fact]
+    public async Task ParentEndingWaitsForAForkStillSupplyingItsSeeds()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+        using var entered = new ManualResetEventSlim();
+        using var released = new ManualResetEventSlim();
+
+        var parent = await invocation.ServiceProvider.OpenAsync<GatedParentHandler>(supply: null);
+        var children = parent.Handler.Children;
+        var opening = Task.Run(async () => await children.OpenAsync(BlockThenFail, None));
+        entered.Wait(TimeSpan.FromSeconds(10));
+        var ending = parent.DisposeAsync().AsTask();
+
+        await Assert.ThrowsAsync<TimeoutException>(() => ending.WaitAsync(TimeSpan.FromMilliseconds(100)));
+        released.Set();
+        var exception = await Assert.ThrowsAsync<AggregateException>(() => opening);
+        await ending;
+
+        Assert.Equal(expected: 2, actual: exception.InnerExceptions.Count);
         Assert.IsType<ParentScopeEndedException>(exception.InnerExceptions[0]);
-        Assert.IsType<GatedInitializerFailedException>(exception.InnerExceptions[1]);
+        Assert.IsType<SupplyFailedException>(exception.InnerExceptions[1]);
+
+        void BlockThenFail(ScopeInputs inputs)
+        {
+            entered.Set();
+            released.Wait(TimeSpan.FromSeconds(10));
+            throw new SupplyFailedException();
+        }
     }
 
     [Fact]

@@ -330,8 +330,8 @@ internal sealed class InitializerGate
     /// <summary>Whether the borrowed registry connection was still open when initialization resumed.</summary>
     public bool ConnectionWasOpen { get; set; }
 
-    /// <summary>Makes the gated initializer fail once released.</summary>
-    public bool FailOnRelease { get; set; }
+    /// <summary>What the gated initializer throws once released, if anything.</summary>
+    public Exception? FailureOnRelease { get; set; }
 
     public async Task PassAsync()
     {
@@ -347,7 +347,7 @@ internal sealed class InitializerGate
 
 internal sealed record GatedValue;
 
-internal sealed class GatedInitializerFailedException() : Exception("The gated initializer failed");
+internal sealed class SupplyFailedException() : Exception("Supplying the seeds failed");
 
 internal sealed class GatedValueInitializer(RegistrySession session, InitializerGate gate) : IInitializer<GatedValue>
 {
@@ -355,9 +355,9 @@ internal sealed class GatedValueInitializer(RegistrySession session, Initializer
     {
         await gate.PassAsync();
         gate.ConnectionWasOpen = !session.Connection.IsClosed;
-        if (gate.FailOnRelease)
+        if (gate.FailureOnRelease is { } failure)
         {
-            throw new GatedInitializerFailedException();
+            throw failure;
         }
         return new GatedValue();
     }
