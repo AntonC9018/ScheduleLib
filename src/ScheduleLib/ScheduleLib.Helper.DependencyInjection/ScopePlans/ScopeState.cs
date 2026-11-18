@@ -50,27 +50,24 @@ public sealed class ScopeState : IAsyncDisposable
     }
 
     /// <summary>
-    /// Registers this planned scope as an open fork of <paramref name="parent"/>, before any
-    /// initializer runs. Fails once the parent has started ending.
+    /// Creates a fork with <paramref name="createFork"/> and registers it as open, before any
+    /// initializer runs. Both happen under this scope's lock, so this scope cannot start ending,
+    /// and its container cannot be disposed, between the check and the registration.
+    /// Fails once this scope has started ending.
     /// </summary>
-    internal void AttachToParent(ScopeState parent, Type root)
+    internal ScopeState AttachFork(Type root, Func<ScopeState> createFork)
     {
-        parent.AddFork(this, root);
-        _parent = parent;
-        _root = root;
-    }
-
-    /// <summary>Whether this scope has not started ending, checked before a fork does any work.</summary>
-    internal bool AcceptsForks
-    {
-        get
+        lock (_lock)
         {
-            TaskCompletionSource<Exception?>? ending;
-            lock (_lock)
+            if (_ending is not null)
             {
-                ending = _ending;
+                throw new ParentScopeEndedException(root);
             }
-            return ending is null;
+            var fork = createFork();
+            fork._parent = this;
+            fork._root = root;
+            _openForks.Add(fork);
+            return fork;
         }
     }
 
@@ -111,18 +108,6 @@ public sealed class ScopeState : IAsyncDisposable
             }
             _openSettled.TrySetResult();
             return true;
-        }
-    }
-
-    private void AddFork(ScopeState fork, Type root)
-    {
-        lock (_lock)
-        {
-            if (_ending is not null)
-            {
-                throw new ParentScopeEndedException(root);
-            }
-            _openForks.Add(fork);
         }
     }
 

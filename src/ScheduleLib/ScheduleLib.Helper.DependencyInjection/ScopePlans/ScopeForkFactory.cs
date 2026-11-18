@@ -32,12 +32,6 @@ public sealed class ScopeForkFactory<THandler>(
         Action<ScopeInputs>? supply,
         CancellationToken cancellationToken)
     {
-        // Checked again under the parent's lock when attaching; this check also covers a parent
-        // whose container was disposed after it ended.
-        if (!current.AcceptsForks)
-        {
-            throw new ParentScopeEndedException(typeof(THandler));
-        }
         var (planned, state) = await AttachAsync();
         Exception? openFailure = null;
         try
@@ -64,24 +58,34 @@ public sealed class ScopeForkFactory<THandler>(
     }
 
     /// <summary>
-    /// Creates the fork's container scope and registers it as an open fork of the parent, so the
-    /// parent waits for it from here on. A failure disposes the scope.
+    /// Creates the fork's container scope and registers it as an open fork of the parent, under
+    /// the parent's lock, so the parent waits for it from here on. A failure disposes the scope.
     /// </summary>
     private async ValueTask<(PlannedScope<THandler> Planned, ScopeState State)> AttachAsync()
     {
-        var scope = scopes.CreateAsyncScope();
+        AsyncServiceScope? scope = null;
+        PlannedScope<THandler>? planned = null;
         try
         {
-            var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
-            var planned = new PlannedScope<THandler>(scope, state);
-            state.UseServicesTeardown(planned.DisposeServicesAsync);
-            state.AttachToParent(current, typeof(THandler));
-            return (planned, state);
+            var state = current.AttachFork(typeof(THandler), () =>
+            {
+                var created = scopes.CreateAsyncScope();
+                scope = created;
+                var forkState = created.ServiceProvider.GetRequiredService<ScopeState>();
+                planned = new PlannedScope<THandler>(created, forkState);
+                forkState.UseServicesTeardown(planned.DisposeServicesAsync);
+                return forkState;
+            });
+            return (planned!, state);
         }
         catch (Exception attachFailure)
         {
+            if (scope is not { } created)
+            {
+                throw;
+            }
             var failures = new CleanupFailures();
-            await failures.Run(scope.DisposeAsync);
+            await failures.Run(created.DisposeAsync);
             failures.ThrowIfAnyAlongside(attachFailure);
             throw;
         }
