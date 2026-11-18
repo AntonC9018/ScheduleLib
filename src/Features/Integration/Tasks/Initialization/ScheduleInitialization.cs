@@ -134,10 +134,15 @@ public sealed class ScheduleScope : IAsyncDisposable
             var scope = await forks.OpenAsync(supply: null, cancellationToken);
             return new(invocation, scope);
         }
-        catch
+        catch (Exception openFailure)
         {
-            await invocation.DisposeAsync();
-            throw;
+            var failures = new CleanupFailures();
+            await failures.Run(invocation.DisposeAsync);
+            if (failures.Failures.Count == 0)
+            {
+                throw;
+            }
+            throw new AggregateException([openFailure, .. failures.Failures]);
         }
     }
 

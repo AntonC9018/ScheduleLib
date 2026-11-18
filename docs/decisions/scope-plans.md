@@ -36,8 +36,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
   - Each value has a write-once slot; resolving it unfilled fails with "not available".
   - A later registration for the same value replaces the earlier one, removing exactly the
     registrations the earlier one added, so container validation no longer needs its
-    dependencies; tests use this to supply fakes. Derived values are replaced the same way,
-    and either kind replaces the other.
+    dependencies; tests use this to supply fakes. Seeds and derived values are replaced the
+    same way, and each kind replaces the others.
 - **Bundles:** one initializer produces a value from which factories project others;
   the initializer runs once. `ScheduleBuilder` becomes such an immutable bundle for
   `Schedule`, the lookup module and the teacher remappings.
@@ -55,16 +55,19 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - **Unregistered roots:** a workflow root may be a concrete type that is not registered.
   It is planned from its constructor without memoizing that node or putting it on the walk
   path, so for every other consumer it stays missing and plans, including cycle reports,
-  never depend on which workflow was planned first. Likewise, a node whose closure a cycle cut
-  short at an ancestor is not memoized.
+  never depend on which workflow was planned first.
+- **Cycles:** the walk memoizes each strongly connected component once it is complete, so every
+  node is expanded once. A component with a cycle is reported as one error, the shortest cycle
+  through its first member in a fixed order, and its members share one closure; plans therefore
+  report the same cycle whichever root reached it first.
   The planned scope creates such a handler itself and disposes it when the scope ends.
 - **Opaque spots are warnings, not errors.** Injected `IServiceProvider`/`IServiceScopeFactory`
   and lambda registrations fail only at run time if something is missing.
   Each consumer of an opaque or missing node is named. Opaque spots are converted over time.
 - **Hidden needs:** `AddHiddenNeeds<TService, TNeed>()` declares what a service, factory or
   initializer resolves at run time, until it is converted. The warning stays.
-- **Errors before any work:** a plan error or missing seed is rejected when the scope opens,
-  with nothing initialized.
+- **Errors before any work:** a plan error, a missing seed or a supplied value that is not a
+  registered seed is rejected when the scope opens, with nothing initialized.
 - **Disposable values are plan errors:** seeds, derived values and initialized values must not
   implement `IDisposable` or `IAsyncDisposable`, because Microsoft DI disposes whatever a
   lambda registration returns when the resolving scope ends, including borrowed values.
@@ -100,9 +103,11 @@ command builds its own container from runtime arguments, and resolving `Schedule
     but a failing service can stop that disposal early.
   - The handler is resolved while the fork opens, so a failure ends the fork before it is
     returned.
-  - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`.
-    A fork still opening at that moment is ended by the parent, which waits for it, and its
-    opener receives that exception instead of an ended scope.
+  - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`,
+    before any work. A fork still opening at that moment is not returned: its opener ends it and
+    receives that exception, while the parent waits for that ending. A fork is returned under the
+    parent's lock, so a parent either sees it returned, and ends it as left open, or rejects it.
+  - Each ending reports its failures once, to whoever started it; anyone joining it only waits.
   - Every step is attempted even when some fail; the failures are reported together in one
     `ScopeCleanupException`, which also lists the forks left open.
 - **Accepted limitation:** inherited values are shared, so a child mutating one affects the

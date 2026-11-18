@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
 /// <param name="Descriptors">The service registrations this value added, removed when it is replaced.</param>
+internal sealed record SeedRegistration(Type SlotType, ImmutableArray<ServiceDescriptor> Descriptors);
+
+/// <param name="Descriptors">The service registrations this value added, removed when it is replaced.</param>
 internal sealed record DerivedRegistration(Type Factory, ImmutableArray<ServiceDescriptor> Descriptors);
 
 /// <param name="Descriptors">The service registrations this value added, removed when it is replaced.</param>
@@ -15,8 +18,7 @@ internal sealed record InitializedRegistration(
 /// <summary>Scope-plan metadata kept next to the service collection, so plans can see through factories.</summary>
 internal sealed class ScopeRegistrations
 {
-    /// <summary>Seed node to its slot type.</summary>
-    public Dictionary<ScopeNode, Type> Seeds { get; } = [];
+    public Dictionary<ScopeNode, SeedRegistration> Seeds { get; } = [];
 
     public Dictionary<Type, DerivedRegistration> Derived { get; } = [];
 
@@ -26,16 +28,24 @@ internal sealed class ScopeRegistrations
     public Dictionary<Type, List<ScopeNode>> HiddenNeeds { get; } = [];
 
     /// <summary>
-    /// Forgets the derived or initialized registration of <paramref name="value"/>, whichever kind
-    /// it was, and returns the service registrations it added.
+    /// Forgets the seed, derived or initialized registration of <paramref name="value"/>, whichever
+    /// kind it was, and returns the service registrations it added.
     /// </summary>
-    public ImmutableArray<ServiceDescriptor> Unregister(Type value)
+    public ImmutableArray<ServiceDescriptor> Unregister(ScopeNode value)
     {
-        if (Derived.Remove(value, out var derived))
+        if (Seeds.Remove(value, out var seed))
+        {
+            return seed.Descriptors;
+        }
+        if (value.Key is not null)
+        {
+            return [];
+        }
+        if (Derived.Remove(value.Type, out var derived))
         {
             return derived.Descriptors;
         }
-        if (Initialized.Remove(value, out var initialized))
+        if (Initialized.Remove(value.Type, out var initialized))
         {
             return initialized.Descriptors;
         }
@@ -44,9 +54,9 @@ internal sealed class ScopeRegistrations
 
     public Type SlotTypeOf(ScopeNode node)
     {
-        if (Seeds.TryGetValue(node, out var seedSlot))
+        if (Seeds.TryGetValue(node, out var seed))
         {
-            return seedSlot;
+            return seed.SlotType;
         }
         return Initialized[node.Type].SlotType;
     }
@@ -54,40 +64,60 @@ internal sealed class ScopeRegistrations
 
 public static class ScopePlanServiceCollectionExtensions
 {
-    /// <summary>A raw input supplied when a scope opens. The caller owns it; the scope never disposes it.</summary>
+    /// <summary>
+    /// A raw input supplied when a scope opens. The caller owns it; the scope never disposes it.
+    /// It replaces an earlier seed, derived or initialized registration of <typeparamref name="T"/>.
+    /// </summary>
     public static IServiceCollection AddSeed<T>(this IServiceCollection services)
         where T : class
     {
-        services.GetScopeRegistrations().Seeds[ScopeNode.Unkeyed(typeof(T))] = typeof(Slot<T>);
-        services.AddScoped<Slot<T>>();
-        services.AddScoped(static sp => sp.GetRequiredService<Slot<T>>().Value);
-        return services;
+        ImmutableArray<ServiceDescriptor> descriptors =
+        [
+            ServiceDescriptor.Scoped<Slot<T>, Slot<T>>(),
+            ServiceDescriptor.Scoped(static sp => sp.GetRequiredService<Slot<T>>().Value),
+        ];
+        var node = ScopeNode.Unkeyed(typeof(T));
+        var seed = new SeedRegistration(SlotType: typeof(Slot<T>), Descriptors: descriptors);
+        return services.AddSeed(node, seed);
     }
 
     /// <summary>
     /// A keyed seed. Consumers take it through <see cref="FromKeyedServicesAttribute"/>
-    /// and stay unkeyed themselves.
+    /// and stay unkeyed themselves. It replaces an earlier seed with the same key.
     /// </summary>
     public static IServiceCollection AddKeyedSeed<T>(this IServiceCollection services, object key)
         where T : class
     {
-        services.GetScopeRegistrations().Seeds[new(typeof(T), key)] = typeof(Slot<T>);
-        services.AddKeyedScoped<Slot<T>>(key);
-        services.AddKeyedScoped(key, static (sp, k) => sp.GetRequiredKeyedService<Slot<T>>(k).Value);
+        ImmutableArray<ServiceDescriptor> descriptors =
+        [
+            ServiceDescriptor.KeyedScoped<Slot<T>, Slot<T>>(key),
+            ServiceDescriptor.KeyedScoped(key, static (sp, k) => sp.GetRequiredKeyedService<Slot<T>>(k).Value),
+        ];
+        var node = new ScopeNode(typeof(T), key);
+        var seed = new SeedRegistration(SlotType: typeof(Slot<T>), Descriptors: descriptors);
+        return services.AddSeed(node, seed);
+    }
+
+    private static IServiceCollection AddSeed(this IServiceCollection services, ScopeNode node, SeedRegistration seed)
+    {
+        var registrations = services.GetScopeRegistrations();
+        services.RemoveDescriptors(registrations.Unregister(node));
+        services.AddDescriptors(seed.Descriptors);
+        registrations.Seeds[node] = seed;
         return services;
     }
 
     /// <summary>
     /// A value built synchronously in each scope by <typeparamref name="TFactory"/>.
-    /// A later derived or initialized registration for the same <typeparamref name="T"/>
-    /// replaces the earlier one.
+    /// It replaces an earlier seed, derived or initialized registration of <typeparamref name="T"/>.
     /// </summary>
     public static IServiceCollection AddDerived<T, TFactory>(this IServiceCollection services)
         where T : class
         where TFactory : class, IFactory<T>
     {
         var registrations = services.GetScopeRegistrations();
-        services.RemoveDescriptors(registrations.Unregister(typeof(T)));
+        var replaced = registrations.Unregister(ScopeNode.Unkeyed(typeof(T)));
+        services.RemoveDescriptors(replaced);
         ImmutableArray<ServiceDescriptor> descriptors =
         [
             ServiceDescriptor.Transient<TFactory, TFactory>(),
@@ -105,15 +135,15 @@ public static class ScopePlanServiceCollectionExtensions
 
     /// <summary>
     /// A value built asynchronously by <typeparamref name="TInitializer"/> when the scope opens.
-    /// A later derived or initialized registration for the same <typeparamref name="T"/>
-    /// replaces the earlier one.
+    /// It replaces an earlier seed, derived or initialized registration of <typeparamref name="T"/>.
     /// </summary>
     public static IServiceCollection AddInitialized<T, TInitializer>(this IServiceCollection services)
         where T : class
         where TInitializer : class, IInitializer<T>
     {
         var registrations = services.GetScopeRegistrations();
-        services.RemoveDescriptors(registrations.Unregister(typeof(T)));
+        var replaced = registrations.Unregister(ScopeNode.Unkeyed(typeof(T)));
+        services.RemoveDescriptors(replaced);
         ImmutableArray<ServiceDescriptor> descriptors =
         [
             ServiceDescriptor.Transient<TInitializer, TInitializer>(),

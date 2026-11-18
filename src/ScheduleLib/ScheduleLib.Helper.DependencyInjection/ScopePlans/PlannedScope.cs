@@ -71,12 +71,7 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        var ending = _state.EndAsync();
-        var failure = await ending.Completion;
-        if (ending.StartedHere && failure is not null)
-        {
-            throw failure;
-        }
+        await _state.EndAsync().ThrowIfStartedHereAndFailed();
     }
 
     /// <summary>The services step of ending: a handler this scope created, then the container scope.</summary>

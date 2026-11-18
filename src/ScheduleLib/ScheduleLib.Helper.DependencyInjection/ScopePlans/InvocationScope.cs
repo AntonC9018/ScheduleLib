@@ -15,17 +15,23 @@ public sealed class InvocationScope : IAsyncDisposable
     public InvocationScope(IServiceProvider root)
     {
         _scope = root.CreateAsyncScope();
-        _state = _scope.ServiceProvider.GetRequiredService<ScopeState>();
+        try
+        {
+            _state = _scope.ServiceProvider.GetRequiredService<ScopeState>();
+        }
+        catch
+        {
+            _scope.Dispose();
+            throw;
+        }
         _state.UseServicesTeardown(failures => failures.Run(_scope.DisposeAsync));
     }
 
     public IServiceProvider Services => _scope.ServiceProvider;
 
+    /// <summary>Ends the scope; only the first call reports its failure.</summary>
     public async ValueTask DisposeAsync()
     {
-        if (await _state.EndAsync().Completion is { } failure)
-        {
-            throw failure;
-        }
+        await _state.EndAsync().ThrowIfStartedHereAndFailed();
     }
 }

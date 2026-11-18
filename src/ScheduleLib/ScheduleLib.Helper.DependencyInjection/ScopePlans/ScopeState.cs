@@ -5,7 +5,18 @@ namespace ScheduleLib.DependencyInjection.ScopePlans;
 /// <summary>How a request to end a scope relates to the one ending operation it shares.</summary>
 /// <param name="Completion">The scope's failure to end cleanly, or null.</param>
 /// <param name="StartedHere">Whether this request started the ending; later requests only wait.</param>
-internal readonly record struct ScopeEnding(Task<Exception?> Completion, bool StartedHere);
+internal readonly record struct ScopeEnding(Task<Exception?> Completion, bool StartedHere)
+{
+    /// <summary>Waits for the ending; only the request that started it reports its failure.</summary>
+    public async ValueTask ThrowIfStartedHereAndFailed()
+    {
+        var failure = await Completion;
+        if (StartedHere && failure is not null)
+        {
+            throw failure;
+        }
+    }
+}
 
 /// <summary>
 /// Per-scope bookkeeping: the values a fork can inherit, open forks and resources.
@@ -49,7 +60,7 @@ public sealed class ScopeState : IAsyncDisposable
         _root = root;
     }
 
-    /// <summary>Whether this scope has not started ending, so a fork opened from it may be returned.</summary>
+    /// <summary>Whether this scope has not started ending, checked before a fork does any work.</summary>
     internal bool AcceptsForks
     {
         get
@@ -64,12 +75,31 @@ public sealed class ScopeState : IAsyncDisposable
     }
 
     /// <summary>
-    /// Called by the opener once initialization has finished. A failed opener first starts
-    /// ending the fork, so a parent waiting here never reports that fork as left open.
+    /// Settles a fork that will not be returned. The opener first starts ending it, so a parent
+    /// waiting for it joins that ending and never reports the fork as left open.
     /// </summary>
     internal void MarkOpenSettled()
     {
         _openSettled.TrySetResult();
+    }
+
+    /// <summary>
+    /// Settles this fork as returned to its opener, unless the parent has started ending.
+    /// Checking and settling under the parent's lock means a parent that starts ending either
+    /// sees the fork returned, and ends it as left open, or makes this fail.
+    /// </summary>
+    internal bool TryPublish()
+    {
+        var parent = _parent!;
+        lock (parent._lock)
+        {
+            if (parent._ending is not null)
+            {
+                return false;
+            }
+            _openSettled.TrySetResult();
+            return true;
+        }
     }
 
     private void AddFork(ScopeState fork, Type root)
@@ -138,12 +168,15 @@ public sealed class ScopeState : IAsyncDisposable
             foreach (var fork in forks)
             {
                 await fork._openSettled.Task;
+                // Whoever started a fork's ending reports its failure; joining only waits.
                 var ending = fork.EndAsync();
-                if (ending.StartedHere)
+                var forkFailure = await ending.Completion;
+                if (!ending.StartedHere)
                 {
-                    leftOpen.Add(fork._root!);
+                    continue;
                 }
-                if (await ending.Completion is { } forkFailure)
+                leftOpen.Add(fork._root!);
+                if (forkFailure is not null)
                 {
                     failures.Add(forkFailure);
                 }
@@ -181,9 +214,6 @@ public sealed class ScopeState : IAsyncDisposable
         {
             return;
         }
-        if (await EndAsync().Completion is { } failure)
-        {
-            throw failure;
-        }
+        await EndAsync().ThrowIfStartedHereAndFailed();
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -85,36 +86,32 @@ public sealed class ScopePlanGraph
         public bool HasLambdaMember { get; init; }
     }
 
-    /// <summary>A node being expanded, at <paramref name="index"/> on the walk path.</summary>
-    private sealed class PathEntry(ScopeNode node, int index)
+    /// <summary>A node of the current walk, numbered in visiting order.</summary>
+    private sealed class WalkEntry(ScopeNode node, NodeDescription description, int index)
     {
-        private readonly int _index = index;
-
         public ScopeNode Node => node;
-        public List<ScopePlanIssue> CycleIssues { get; } = [];
+        public NodeDescription Description => description;
+        public int Index { get; } = index;
 
-        /// <summary>The shallowest path index that a cycle found below this node reached back to.</summary>
+        /// <summary>The smallest index reachable from this node among nodes not yet memoized.</summary>
         public int LowLink { get; set; } = index;
-
-        /// <summary>
-        /// A cycle reached an ancestor still being expanded, so this node's closure lacks that
-        /// ancestor's contributions and must not be memoized: from another root it would differ.
-        /// </summary>
-        public bool IsTruncated => LowLink < _index;
     }
 
-    private readonly record struct Expansion(ScopeNodeInfo Info, bool IsTruncated);
-
-    /// <summary>One depth-first walk; finished nodes are memoized in the graph.</summary>
+    /// <summary>
+    /// One depth-first walk (Tarjan's algorithm). Each strongly connected component is memoized
+    /// once it is complete, so every node is expanded once and its closure never depends on which
+    /// root reached it first. A component with a cycle is one error, and its members share one
+    /// closure, because each reaches the others.
+    /// </summary>
     private sealed class Walk(ScopePlanGraph graph)
     {
-        private readonly List<PathEntry> _path = [];
+        private readonly Dictionary<ScopeNode, WalkEntry> _entries = [];
+        private readonly Stack<WalkEntry> _component = new();
 
         /// <summary>
         /// Plans a workflow root. A root may be a concrete type that is not registered: it is then
-        /// activated from its constructor, but that node is neither memoized nor put on the walk
-        /// path, because for every other consumer the type stays missing. The result therefore
-        /// never depends on planning order.
+        /// activated from its constructor, but that node is not memoized, because for every other
+        /// consumer the type stays missing. The result therefore never depends on planning order.
         /// </summary>
         public ScopeClosure VisitRoot(ScopeNode root)
         {
@@ -124,76 +121,150 @@ public sealed class ScopePlanGraph
                 return Visit(root);
             }
             var activated = new NodeDescription(ScopeNodeKind.Service, ImplementationInputs(root.Type, key: null));
-            return Expand(root, activated, onPath: false).Info.Closure;
+            foreach (var input in activated.Inputs)
+            {
+                Visit(input);
+            }
+            var builder = new ScopeClosureBuilder();
+            AddExpansion(root, activated, builder, members: []);
+            return builder.Build();
         }
 
         public ScopeClosure Visit(ScopeNode node)
         {
-            if (graph._nodes.TryGetValue(node, out var done))
+            if (!graph._nodes.ContainsKey(node))
             {
-                return done.Closure;
+                Connect(node);
             }
-            return Memoize(node, Describe(node));
+            return graph._nodes[node].Closure;
         }
 
-        private ScopeClosure Memoize(ScopeNode node, NodeDescription description)
+        private WalkEntry Connect(ScopeNode node)
         {
-            int cycleStart = _path.FindIndex(p => p.Node == node);
-            if (cycleStart >= 0)
+            var entry = new WalkEntry(node, Describe(node), _entries.Count);
+            _entries[node] = entry;
+            _component.Push(entry);
+            foreach (var input in entry.Description.Inputs)
             {
-                ReportCycle(cycleStart, node);
-                var consumer = _path[^1];
-                consumer.LowLink = Math.Min(consumer.LowLink, cycleStart);
-                return ScopeClosure.Empty;
+                if (graph._nodes.ContainsKey(input))
+                {
+                    continue;
+                }
+                // A visited node that is not memoized is still on the component stack.
+                var reached = _entries.TryGetValue(input, out var visited) ? visited : Connect(input);
+                entry.LowLink = Math.Min(entry.LowLink, reached.LowLink);
             }
-            var expansion = Expand(node, description, onPath: true);
-            if (!expansion.IsTruncated)
+            if (entry.LowLink == entry.Index)
             {
-                graph._nodes[node] = expansion.Info;
+                MemoizeComponent(PopComponent(entry));
             }
-            return expansion.Info.Closure;
+            return entry;
         }
 
-        private Expansion Expand(ScopeNode node, NodeDescription description, bool onPath)
+        private List<WalkEntry> PopComponent(WalkEntry root)
         {
-            var entry = new PathEntry(node, _path.Count);
-            if (onPath)
+            var members = new List<WalkEntry>();
+            WalkEntry member;
+            do
             {
-                _path.Add(entry);
+                member = _component.Pop();
+                members.Add(member);
             }
+            while (member != root);
+            return members;
+        }
+
+        private void MemoizeComponent(List<WalkEntry> component)
+        {
+            var members = component.Select(m => m.Node).ToHashSet();
+            var first = component[0];
+            var inputs = first.Description.Inputs;
+            var isCycle = component.Count > 1 || inputs.Contains(first.Node);
+            if (!isCycle)
+            {
+                members.Clear();
+            }
+            var ordered = component
+                .OrderBy(m => CanonicalName(m.Node), StringComparer.Ordinal)
+                .ToList();
             var builder = new ScopeClosureBuilder();
+            foreach (var member in ordered)
+            {
+                AddExpansion(member.Node, member.Description, builder, members);
+            }
+            if (isCycle)
+            {
+                var cycle = CycleIssue(ordered[0].Node, members);
+                builder.AddIssue(cycle);
+            }
+            var closure = builder.Build();
+            foreach (var member in component)
+            {
+                var description = member.Description;
+                graph._nodes[member.Node] = new(member.Node, description.Kind, description.Inputs, closure);
+            }
+        }
+
+        /// <summary>Adds what <paramref name="node"/> needs from outside its component, then its own part.</summary>
+        private void AddExpansion(
+            ScopeNode node,
+            NodeDescription description,
+            ScopeClosureBuilder builder,
+            HashSet<ScopeNode> members)
+        {
             foreach (var input in description.Inputs)
             {
-                builder.AddInput(Visit(input));
+                if (members.Contains(input))
+                {
+                    continue;
+                }
+                builder.AddInput(graph._nodes[input].Closure);
                 ReportInput(consumer: node, input: input, builder: builder);
             }
             AddOwn(node, description, builder);
-            foreach (var cycle in entry.CycleIssues)
-            {
-                builder.AddIssue(cycle);
-            }
-            if (onPath)
-            {
-                _path.RemoveAt(_path.Count - 1);
-                if (_path.Count > 0)
-                {
-                    var consumer = _path[^1];
-                    consumer.LowLink = Math.Min(consumer.LowLink, entry.LowLink);
-                }
-            }
-            var info = new ScopeNodeInfo(node, description.Kind, description.Inputs, builder.Build());
-            return new(info, entry.IsTruncated);
         }
 
-        private void ReportCycle(int cycleStart, ScopeNode repeated)
+        /// <summary>The shortest cycle through <paramref name="start"/>, following inputs in order.</summary>
+        private ScopePlanIssue CycleIssue(ScopeNode start, HashSet<ScopeNode> members)
         {
-            var cycleEntries = _path.Skip(cycleStart).ToList();
-            ImmutableArray<ScopeNode> cyclePath = [.. cycleEntries.Select(p => p.Node), repeated];
-            var issue = new ScopePlanIssue(ScopePlanIssueKind.Cycle, repeated, cyclePath);
-            foreach (var cycleEntry in cycleEntries)
+            var previous = new Dictionary<ScopeNode, ScopeNode>();
+            var queue = new Queue<ScopeNode>();
+            queue.Enqueue(start);
+            while (queue.TryDequeue(out var current))
             {
-                cycleEntry.CycleIssues.Add(issue);
+                foreach (var input in _entries[current].Description.Inputs)
+                {
+                    if (input == start)
+                    {
+                        var path = PathTo(last: current, start: start, previous: previous);
+                        return new(ScopePlanIssueKind.Cycle, start, path);
+                    }
+                    if (members.Contains(input) && previous.TryAdd(input, current))
+                    {
+                        queue.Enqueue(input);
+                    }
+                }
             }
+            throw new UnreachableException("A cycle component always leads back to its members.");
+        }
+
+        private static ImmutableArray<ScopeNode> PathTo(
+            ScopeNode last,
+            ScopeNode start,
+            Dictionary<ScopeNode, ScopeNode> previous)
+        {
+            var reversed = new List<ScopeNode> { start, last };
+            for (var node = last; node != start; node = previous[node])
+            {
+                reversed.Add(previous[node]);
+            }
+            reversed.Reverse();
+            return [.. reversed];
+        }
+
+        private static string CanonicalName(ScopeNode node)
+        {
+            return $"{node.Type.AssemblyQualifiedName}|{node.Key}";
         }
 
         private NodeDescription Describe(ScopeNode node)
@@ -274,10 +345,7 @@ public sealed class ScopePlanGraph
         // opaque node is named.
         private void ReportInput(ScopeNode consumer, ScopeNode input, ScopeClosureBuilder builder)
         {
-            if (!graph._nodes.TryGetValue(input, out var info))
-            {
-                return; // part of a cycle, already reported
-            }
+            var info = graph._nodes[input];
             var kind = info.Kind switch
             {
                 ScopeNodeKind.Missing => ScopePlanIssueKind.MissingRegistration,

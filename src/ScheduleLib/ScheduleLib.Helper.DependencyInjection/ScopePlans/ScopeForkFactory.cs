@@ -30,12 +30,21 @@ public sealed class ScopeForkFactory<THandler>(
         CancellationToken cancellationToken)
     {
         var scopePlan = plan.Plan;
+        if (!current.AcceptsForks)
+        {
+            throw new ParentScopeEndedException(scopePlan.Root);
+        }
         if (scopePlan.Errors.Length > 0)
         {
             throw new ScopePlanErrorsException(scopePlan.Root, scopePlan.Errors);
         }
         var inputs = new ScopeInputs();
         supply?.Invoke(inputs);
+        ImmutableArray<ScopeNode> unregistered = [.. inputs.Seeds.Keys.Where(n => !graph.Registrations.Seeds.ContainsKey(n))];
+        if (unregistered.Length > 0)
+        {
+            throw new UnregisteredSeedsException(scopePlan.Root, unregistered);
+        }
         ImmutableArray<ScopeNode> missing = [.. scopePlan.Seeds.Where(n => !IsSupplied(inputs, n))];
         if (missing.Length > 0)
         {
@@ -60,6 +69,12 @@ public sealed class ScopeForkFactory<THandler>(
         {
             await FillAsync(scope.ServiceProvider, state, scopePlan, inputs, cancellationToken);
             planned.ResolveHandler();
+            // A parent that started ending meanwhile waits for this fork to settle; the fork is
+            // then ended here instead of being returned already closed.
+            if (!state.TryPublish())
+            {
+                throw new ParentScopeEndedException(scopePlan.Root);
+            }
         }
         catch (Exception openFailure)
         {
@@ -69,19 +84,6 @@ public sealed class ScopeForkFactory<THandler>(
             }
             throw new AggregateException(openFailure, cleanupFailure);
         }
-
-        // A parent that started ending meanwhile is waiting for this fork to settle. Ending the
-        // fork here, before it settles, keeps the parent from returning a closed scope to us.
-        if (!current.AcceptsForks)
-        {
-            var parentEnded = new ParentScopeEndedException(scopePlan.Root);
-            if (await EndUnpublishedAsync(state) is { } cleanupFailure)
-            {
-                throw new AggregateException(parentEnded, cleanupFailure);
-            }
-            throw parentEnded;
-        }
-        state.MarkOpenSettled();
         return planned;
     }
 

@@ -38,6 +38,36 @@ public sealed record ScopePlanIssue(ScopePlanIssueKind Kind, ScopeNode Subject, 
         }
     }
 
+    /// <summary>Issues are equal by content, so the same problem found twice is reported once.</summary>
+    public bool Equals(ScopePlanIssue? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+        if (Kind != other.Kind || Subject != other.Subject)
+        {
+            return false;
+        }
+        if (!Related.SequenceEqual(other.Related))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Kind);
+        hash.Add(Subject);
+        foreach (var node in Related)
+        {
+            hash.Add(node);
+        }
+        return hash.ToHashCode();
+    }
+
     public override string ToString()
     {
         return Kind switch

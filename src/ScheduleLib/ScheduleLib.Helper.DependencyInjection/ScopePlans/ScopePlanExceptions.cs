@@ -64,8 +64,9 @@ public sealed class ForkLeftOpenException(ImmutableArray<Type> forks)
 }
 
 /// <summary>
-/// Disposing a scope's forks or closing its resources failed. Every fork and resource was still
-/// attempted; <see cref="Failures"/> holds each failure, in the order it happened.
+/// Ending a scope failed: ending a fork left open, disposing a handler the scope created or its
+/// container services, or closing a resource. Every step was still attempted;
+/// <see cref="Failures"/> holds each failure, in the order it happened.
 /// </summary>
 public sealed class ScopeCleanupException(ImmutableArray<Type> forksLeftOpen, ImmutableArray<Exception> failures)
     : ScopePlanException(
@@ -76,6 +77,14 @@ public sealed class ScopeCleanupException(ImmutableArray<Type> forksLeftOpen, Im
     public ImmutableArray<Type> ForksLeftOpen { get; } = forksLeftOpen;
 
     public ImmutableArray<Exception> Failures { get; } = failures;
+}
+
+/// <summary>The caller supplied values that are not registered as seeds; nothing was initialized.</summary>
+public sealed class UnregisteredSeedsException(Type root, ImmutableArray<ScopeNode> seeds)
+    : ScopePlanException($"{root.Name} was supplied [{string.Join(", ", seeds)}], which are not registered seeds")
+{
+    public Type Root { get; } = root;
+    public ImmutableArray<ScopeNode> Seeds { get; } = seeds;
 }
 
 /// <summary>A fork was opened from a scope that had already started ending.</summary>

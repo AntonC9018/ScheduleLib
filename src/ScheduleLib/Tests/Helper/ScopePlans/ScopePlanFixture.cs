@@ -449,6 +449,42 @@ internal sealed class FailingParentHandler(RegistrySession session, ScopeForkFac
     public ScopeForkFactory<FailingHandler> Children => children;
 }
 
+/// <summary>Adds a resource that fails to close, then waits at the gate.</summary>
+internal sealed class GatedFailingHandler(FailingSession failing, GatedValue value)
+{
+    public FailingSession Failing => failing;
+    public GatedValue Value => value;
+}
+
+internal sealed class GatedFailingParentHandler(RegistrySession session, ScopeForkFactory<GatedFailingHandler> children)
+{
+    public RegistrySession Session => session;
+    public ScopeForkFactory<GatedFailingHandler> Children => children;
+}
+
+/// <summary>A cycle reached through two paths: top to left or right, both to bottom, back to top.</summary>
+internal sealed class DiamondTop(DiamondLeft left, DiamondRight right)
+{
+    public DiamondLeft Left => left;
+    public DiamondRight Right => right;
+}
+
+internal sealed class DiamondLeft(DiamondBottom bottom)
+{
+    public DiamondBottom Bottom => bottom;
+}
+
+internal sealed class DiamondRight(DiamondBottom bottom)
+{
+    public DiamondBottom Bottom => bottom;
+}
+
+internal sealed class DiamondBottom(DiamondTop top, Unregistered missing)
+{
+    public DiamondTop Top => top;
+    public Unregistered Missing => missing;
+}
+
 internal static class ScopePlanFixture
 {
     public static readonly SourceArgs Source = new("data/2025-sem1");

@@ -277,10 +277,17 @@ public sealed class ScopePlanTests
         var secondPlanLater = firstFirst.PlanOf<CycleSecond>();
         var secondPlanFirst = secondFirst.PlanOf<CycleSecond>();
 
-        var issues = IssueKinds(secondPlanFirst);
-        Assert.Equal(expected: issues, actual: IssueKinds(secondPlanLater));
-        Assert.Contains(ScopePlanIssueKind.MissingRegistration, issues);
-        Assert.Contains(ScopePlanIssueKind.Cycle, issues);
+        ScopePlanIssue[] errors = [.. secondPlanFirst.Errors];
+        Assert.Equal(expected: errors, actual: [.. secondPlanLater.Errors]);
+        var cycle = Assert.Single(secondPlanFirst.Errors, e => e.Kind == ScopePlanIssueKind.Cycle);
+        Assert.Single(secondPlanFirst.Errors, e => e.Kind == ScopePlanIssueKind.MissingRegistration);
+        ScopeNode[] path =
+        [
+            ScopeNode.Unkeyed(typeof(CycleFirst)),
+            ScopeNode.Unkeyed(typeof(CycleSecond)),
+            ScopeNode.Unkeyed(typeof(CycleFirst)),
+        ];
+        Assert.Equal(expected: path, actual: cycle.Related);
 
         static IServiceCollection CreateCycleServices()
         {
@@ -290,11 +297,51 @@ public sealed class ScopePlanTests
             services.AddScoped<CycleSecond>();
             return services;
         }
+    }
 
-        static ScopePlanIssueKind[] IssueKinds(ScopePlan plan)
-        {
-            return [.. plan.Errors.Select(e => e.Kind).Order()];
-        }
+    [Fact]
+    public void CycleReachedThroughSeveralPathsReportsEachProblemOnce()
+    {
+        var services = new ServiceCollection();
+        services.AddSeed<SourceArgs>();
+        services.AddScoped<DiamondTop>();
+        services.AddScoped<DiamondLeft>();
+        services.AddScoped<DiamondRight>();
+        services.AddScoped<DiamondBottom>();
+        using var root = services.BuildServiceProvider();
+
+        var plan = root.PlanOf<DiamondTop>();
+
+        Assert.Single(plan.Errors, e => e.Kind == ScopePlanIssueKind.Cycle);
+        var missing = Assert.Single(plan.Errors, e => e.Kind == ScopePlanIssueKind.MissingRegistration);
+        Assert.Equal(expected: ScopeNode.Unkeyed(typeof(DiamondBottom)), actual: missing.Subject);
+    }
+
+    [Fact]
+    public async Task SeedReplacesADerivedRegistration()
+    {
+        var services = CreateServices();
+        services.AddSeed<TeacherSettings>();
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<ShowSettingsHandler>(
+            s => s.Add(new TeacherSettings("supplied")));
+
+        ScopeNode[] seeds = [ScopeNode.Unkeyed(typeof(TeacherSettings))];
+        Assert.Equal(expected: seeds, actual: root.PlanOf<ShowSettingsHandler>().Seeds);
+        Assert.Equal(expected: "supplied", actual: scope.Handler.Settings.Teacher);
+    }
+
+    [Fact]
+    public void DerivedRegistrationReplacesASeed()
+    {
+        var services = CreateServices();
+        services.AddSeed<TeacherSettings>();
+        services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
+        using var root = services.Build();
+
+        Assert.Empty(root.PlanOf<ShowSettingsHandler>().Seeds);
     }
 
     [Fact]
