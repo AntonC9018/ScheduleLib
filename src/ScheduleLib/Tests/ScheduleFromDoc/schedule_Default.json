@@ -17622,135 +17622,333 @@
   "Groups": [
     {
       "Name": "SMMSPA2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "SMMSPA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "PMS2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "PMS",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "MIA2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Master",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "MIA2402",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 1,
+      "GroupNumber": 2,
+      "QualificationType": "Master",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "MIASD2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Master",
+      "Faculty": "IASD",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "M2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "M",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2402",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2402",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 1,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2403",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 1,
+      "GroupNumber": 3,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2404",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 1,
+      "GroupNumber": 4,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2401",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 1,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2402",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 1,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "M2301",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 2,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "M",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2301",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 2,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2301",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 2,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2302",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 2,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2302",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 2,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2303",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 2,
+      "GroupNumber": 3,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2304",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 2,
+      "GroupNumber": 4,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2301",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 2,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2302",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 2,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2303",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 2,
+      "GroupNumber": 3,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "M2201",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 3,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "M",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2201",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 3,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2201",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 3,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "I2202",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 3,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "I",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "IA2202",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 3,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "IA",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2201",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 3,
+      "GroupNumber": 1,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2202",
-      "Language": "Ro"
+      "Language": "Ro",
+      "Grade": 3,
+      "GroupNumber": 2,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2203",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 3,
+      "GroupNumber": 3,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     },
     {
       "Name": "DJ2204",
-      "Language": "Ru"
+      "Language": "Ru",
+      "Grade": 3,
+      "GroupNumber": 4,
+      "QualificationType": "Licenta",
+      "Faculty": "DJ",
+      "AttendanceMode": "Zi",
+      "Specialty": null
     }
   ],
   "Teachers": [
@@ -17763,7 +17961,12 @@
       ],
       "LastName": [
         "Beț"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17774,7 +17977,12 @@
       ],
       "LastName": [
         "Perjan"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17785,7 +17993,12 @@
       ],
       "LastName": [
         "Hâncu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17796,7 +18009,12 @@
       ],
       "LastName": [
         "Tkacenko"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17807,7 +18025,12 @@
       ],
       "LastName": [
         "Botezatu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17818,7 +18041,12 @@
       ],
       "LastName": [
         "Andrieș"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17829,7 +18057,12 @@
       ],
       "LastName": [
         "Cerbu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17840,7 +18073,12 @@
       ],
       "LastName": [
         "Bumbu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17851,7 +18089,12 @@
       ],
       "LastName": [
         "Arnaut"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17862,7 +18105,12 @@
       ],
       "LastName": [
         "Poiată"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17873,7 +18121,12 @@
       ],
       "LastName": [
         "Guțu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17884,7 +18137,12 @@
       ],
       "LastName": [
         "Ungureanu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17895,7 +18153,12 @@
       ],
       "LastName": [
         "Bragaru"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17906,7 +18169,12 @@
       ],
       "LastName": [
         "Poștaru"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17917,7 +18185,12 @@
       ],
       "LastName": [
         "Prepeliță"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17928,7 +18201,12 @@
       ],
       "LastName": [
         "Ciudin"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17939,7 +18217,12 @@
       ],
       "LastName": [
         "Miron"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17950,7 +18233,12 @@
       ],
       "LastName": [
         "Cemîrtan"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17961,7 +18249,12 @@
       ],
       "LastName": [
         "Cuciuc"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17972,7 +18265,12 @@
       ],
       "LastName": [
         "Cucu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17983,7 +18281,12 @@
       ],
       "LastName": [
         "Niculiță"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -17994,7 +18297,12 @@
       ],
       "LastName": [
         "Efros"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18005,7 +18313,12 @@
       ],
       "LastName": [
         "Donu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18016,7 +18329,12 @@
       ],
       "LastName": [
         "Pleșca"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18027,7 +18345,12 @@
       ],
       "LastName": [
         "Bogatu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18038,7 +18361,12 @@
       ],
       "LastName": [
         "Țurcanu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18049,7 +18377,12 @@
       ],
       "LastName": [
         "Mîndru"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18060,7 +18393,12 @@
       ],
       "LastName": [
         "Lupușor"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18071,7 +18409,12 @@
       ],
       "LastName": [
         "Crudu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18082,7 +18425,12 @@
       ],
       "LastName": [
         "Capcelea"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18093,7 +18441,12 @@
       ],
       "LastName": [
         "Capcelea"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18104,7 +18457,12 @@
       ],
       "LastName": [
         "Sârbu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18115,7 +18473,12 @@
       ],
       "LastName": [
         "Latul"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18126,7 +18489,12 @@
       ],
       "LastName": [
         "Grigorcea"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18137,7 +18505,12 @@
       ],
       "LastName": [
         "Anghelova"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18148,7 +18521,12 @@
       ],
       "LastName": [
         "Curmanschii"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18159,7 +18537,12 @@
       ],
       "LastName": [
         "Pavlenco"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18170,7 +18553,12 @@
       ],
       "LastName": [
         "Cuznetov"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18185,7 +18573,12 @@
       ],
       "LastName": [
         "Stănescu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18196,7 +18589,12 @@
       ],
       "LastName": [
         "Șchiopu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18207,7 +18605,12 @@
       ],
       "LastName": [
         "Murineț"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18218,7 +18621,12 @@
       ],
       "LastName": [
         "Xenofontov"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18229,7 +18637,12 @@
       ],
       "LastName": [
         "Nartea"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18240,7 +18653,12 @@
       ],
       "LastName": [
         "Boicenco"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18251,7 +18669,12 @@
       ],
       "LastName": [
         "Marin"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18262,7 +18685,12 @@
       ],
       "LastName": [
         "Iațâșina"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18273,7 +18701,12 @@
       ],
       "LastName": [
         "Carceva"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18284,7 +18717,12 @@
       ],
       "LastName": [
         "Belogorodov"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18295,7 +18733,12 @@
       ],
       "LastName": [
         "Pașa"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18306,7 +18749,12 @@
       ],
       "LastName": [
         "Cucu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18317,7 +18765,12 @@
       ],
       "LastName": [
         "Pavel"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18328,7 +18781,12 @@
       ],
       "LastName": [
         "Butnaru"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18339,7 +18797,12 @@
       ],
       "LastName": [
         "Sprîncean"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18350,7 +18813,12 @@
       ],
       "LastName": [
         "Vișnevschii"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18361,7 +18829,12 @@
       ],
       "LastName": [
         "Vișnevschii"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18372,7 +18845,12 @@
       ],
       "LastName": [
         "Solovei"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18383,7 +18861,12 @@
       ],
       "LastName": [
         "Gladei"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18394,7 +18877,12 @@
       ],
       "LastName": [
         "Marin"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18405,7 +18893,12 @@
       ],
       "LastName": [
         "Pațiuc"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18420,7 +18913,12 @@
       ],
       "LastName": [
         "Arseni"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18431,7 +18929,12 @@
       ],
       "LastName": [
         "Dabija"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18442,7 +18945,12 @@
       ],
       "LastName": [
         "Damian"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18453,7 +18961,12 @@
       ],
       "LastName": [
         "Croitor"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18464,7 +18977,12 @@
       ],
       "LastName": [
         "Dumitraș"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18475,7 +18993,12 @@
       ],
       "LastName": [
         "Dodi"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18486,7 +19009,12 @@
       ],
       "LastName": [
         "Lefter"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18497,7 +19025,12 @@
       ],
       "LastName": [
         "Verlan"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18508,7 +19041,12 @@
       ],
       "LastName": [
         "Ciornei"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18519,7 +19057,12 @@
       ],
       "LastName": [
         "Pugaci"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18530,7 +19073,12 @@
       ],
       "LastName": [
         "Trebiș"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18541,7 +19089,12 @@
       ],
       "LastName": [
         "Sprîncean"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18552,7 +19105,12 @@
       ],
       "LastName": [
         "Corlat"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18563,7 +19121,12 @@
       ],
       "LastName": [
         "Ulmanu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18574,7 +19137,12 @@
       ],
       "LastName": [
         "Sturza"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18585,7 +19153,12 @@
       ],
       "LastName": [
         "Râbacova"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18596,7 +19169,12 @@
       ],
       "LastName": [
         "Popa"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18607,13 +19185,23 @@
       ],
       "LastName": [
         "Pașa"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [],
       "LastName": [
         "Cineva"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18624,7 +19212,12 @@
       ],
       "LastName": [
         "Grosu"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18635,7 +19228,12 @@
       ],
       "LastName": [
         "Pascaru"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18646,7 +19244,12 @@
       ],
       "LastName": [
         "Drăgălina"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     },
     {
       "FirstName": [
@@ -18661,7 +19264,12 @@
       ],
       "LastName": [
         "Ianachevici"
-      ]
+      ],
+      "Contacts": {
+        "PersonalEmail": null,
+        "CorporateEmail": null,
+        "PhoneNumber": null
+      }
     }
   ],
   "Courses": [

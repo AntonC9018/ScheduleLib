@@ -7,7 +7,6 @@ using System.Text.Unicode;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper.JsonConverters;
 using ScheduleLib.JsonConverters;
-using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib;
 
@@ -67,6 +66,8 @@ public static class ScheduleSerializer
         options.Converters.Add(new JsonStringEnumConverter<LessonType>());
         options.Converters.Add(new JsonStringEnumConverter<DayOfWeek>());
         options.Converters.Add(new JsonStringEnumConverter<Parity>());
+        options.Converters.Add(new JsonStringEnumConverter<QualificationType>());
+        options.Converters.Add(new JsonStringEnumConverter<AttendanceMode>());
         options.Converters.Add(new OnlySerializeSettersForUserDefinedTypesConverterFactory());
         var textEncoder = new TextEncoderSettings();
         textEncoder.AllowRanges(
@@ -129,16 +130,100 @@ public static class SerializationModels
         public required PeriodId Period { get; set; }
     }
 
+    /// <summary>Every field of a built group, so restoring it never parses or remaps the name.</summary>
     public sealed class GroupModel
     {
         public required string Name { get; set; }
         public required Language Language { get; set; }
+        public required Grade Grade { get; set; }
+        public required int GroupNumber { get; set; }
+        public required QualificationType QualificationType { get; set; }
+        public required Faculty Faculty { get; set; }
+        public required AttendanceMode AttendanceMode { get; set; }
+        public required Specialty Specialty { get; set; }
+
+        public static GroupModel From(Group group)
+        {
+            return new()
+            {
+                Name = group.Name,
+                Language = group.Language,
+                Grade = group.Grade,
+                GroupNumber = group.GroupNumber,
+                QualificationType = group.QualificationType,
+                Faculty = group.Faculty,
+                AttendanceMode = group.AttendanceMode,
+                Specialty = group.Specialty,
+            };
+        }
+
+        public GroupBuilderModel ToBuilderModel()
+        {
+            return new()
+            {
+                Name = Name,
+                Language = Language,
+                Grade = Grade,
+                GroupNumber = GroupNumber,
+                QualificationType = QualificationType,
+                Faculty = Faculty,
+                AttendanceMode = AttendanceMode,
+                Specialty = Specialty,
+            };
+        }
     }
 
+    /// <summary>A teacher as built, so restoring it never remaps or merges the name.</summary>
     public sealed class PersonModel
     {
         public required NameParts<OptionalNamePart> FirstName { get; set; }
         public required NameParts<string?> LastName { get; set; }
+        public required ContactsModel Contacts { get; set; }
+
+        public static PersonModel From(Teacher teacher)
+        {
+            return new()
+            {
+                FirstName = teacher.PersonName.FirstName,
+                LastName = teacher.PersonName.LastName.Parts,
+                Contacts = ContactsModel.From(teacher.Contacts),
+            };
+        }
+    }
+
+    public sealed class ContactsModel
+    {
+        public required string? PersonalEmail { get; set; }
+        public required string? CorporateEmail { get; set; }
+        public required string? PhoneNumber { get; set; }
+
+        public static ContactsModel From(PersonContacts contacts)
+        {
+            return new()
+            {
+                PersonalEmail = contacts.PersonalEmail,
+                CorporateEmail = contacts.CorporateEmail,
+                PhoneNumber = contacts.PhoneNumber,
+            };
+        }
+
+        public PersonContacts ToPersonContacts()
+        {
+            return new(
+                personalEmail: PersonalEmail,
+                corporateEmail: CorporateEmail,
+                phoneNumber: PhoneNumber);
+        }
+
+        public TeacherBuilderModel.ContactsModel ToBuilderModel()
+        {
+            return new()
+            {
+                PersonalEmail = PersonalEmail,
+                CorporateEmail = CorporateEmail,
+                PhoneNumber = PhoneNumber,
+            };
+        }
     }
 
     public sealed class CourseModel
@@ -194,18 +279,9 @@ public static class SerializationModels
             })
             .ToImmutableArray();
 
-        var groups = schedule.Groups.Select(g => new GroupModel
-        {
-            Name = g.Name,
-            Language = g.Language,
-        })
+        var groups = schedule.Groups.Select(GroupModel.From)
             .ToImmutableArray();
-
-        var teachers = schedule.Teachers.Select(t => new PersonModel
-        {
-            FirstName = t.PersonName.FirstName,
-            LastName = t.PersonName.LastName,
-        })
+        var teachers = schedule.Teachers.Select(PersonModel.From)
             .ToImmutableArray();
 
         var courses = schedule.Courses.Select(c => new CourseModel
@@ -235,13 +311,10 @@ public static class SerializationModels
     }
 
     /// <summary>
-    /// Restores a built schedule without building it again. Group names are parsed again,
-    /// because only the name and language of a group are saved.
+    /// Restores a built schedule without building it again. Every value is restored as saved:
+    /// names are not parsed, remapped or merged again.
     /// </summary>
-    public static Schedule ConvertToSchedule(
-        ScheduleModel schedule,
-        GroupParseContext groupParseContext,
-        Remappings remappings)
+    public static Schedule ConvertToSchedule(ScheduleModel schedule)
     {
         ImmutableArray<WeeklyLesson> weeklyLessons = [.. schedule.RegularLessons.Select(ToWeeklyLesson)];
         ImmutableArray<OneTimeLesson> oneTimeLessons = [.. schedule.OneTimeLessons.Select(ToOneTimeLesson)];
@@ -257,11 +330,10 @@ public static class SerializationModels
             courses: courses,
             periods: periods);
 
-        Group ToGroup(GroupModel model)
+        static Group ToGroup(GroupModel model)
         {
-            var group = groupParseContext.Parse(model.Name, remappings);
-            group.Language = model.Language;
-            return group.Build();
+            return model.ToBuilderModel()
+                .Build();
         }
 
         static WeeklyLesson ToWeeklyLesson(WeeklyLessonModel model)
@@ -301,7 +373,8 @@ public static class SerializationModels
         {
             LastName lastName = new(model.LastName);
             var personName = new PersonName(model.FirstName, lastName);
-            return new(personName, contacts: default);
+            var contacts = model.Contacts.ToPersonContacts();
+            return new(personName, contacts);
         }
 
         static Course ToCourse(CourseModel model)
@@ -317,6 +390,10 @@ public static class SerializationModels
 
     // NOTE: the issue is that multiple serialized things can't be merged easily.
     // need to do some id remaps and value merges for this to work.
+    /// <summary>
+    /// Fills an empty builder with a saved schedule. Like the courses, groups and teachers are
+    /// added as saved, without parsing, remapping or merging their names, so ids stay positions.
+    /// </summary>
     public static void ConvertToScheduleBuilder(
         ScheduleBuilder builder,
         ScheduleModel schedule)
@@ -330,8 +407,7 @@ public static class SerializationModels
         Debug.Assert(builder.Groups.Count == 0);
         foreach (var s in schedule.Groups)
         {
-            var g = builder.Group(s.Name);
-            g.Model.Language = s.Language;
+            builder.Groups.List.Add(s.ToBuilderModel());
         }
 
         Debug.Assert(builder.Periods.Count == 0);
@@ -352,12 +428,15 @@ public static class SerializationModels
         Debug.Assert(builder.Teachers.Count == 0);
         foreach (var t in schedule.Teachers)
         {
-            var teacher = builder.Teacher(new TeacherBuilderModel.NameModel
+            builder.Teachers.List.Add(new()
             {
-                FirstName = t.FirstName,
-                LastName = new(t.LastName),
+                Name = new()
+                {
+                    FirstName = t.FirstName,
+                    LastName = new(t.LastName),
+                },
+                Contacts = t.Contacts.ToBuilderModel(),
             });
-            _ = teacher;
         }
 
         Debug.Assert(builder.WeeklyLessons.Count == 0);

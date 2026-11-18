@@ -47,7 +47,7 @@ public sealed class ScheduleLoader
 
         if (!bypassCache)
         {
-            if (await TryReadCache(context, hashHex, cancellationToken) is { } cached)
+            if (await TryReadCache(hashHex, cancellationToken) is { } cached)
             {
                 return cached;
             }
@@ -87,7 +87,6 @@ public sealed class ScheduleLoader
     }
 
     private async ValueTask<Schedule?> TryReadCache(
-        ScheduleImportContext context,
         string? hashHex,
         CancellationToken cancellationToken)
     {
@@ -124,11 +123,7 @@ public sealed class ScheduleLoader
             return null;
         }
 
-        var builder = context.Schedule;
-        return SerializationModels.ConvertToSchedule(
-            model,
-            builder.GroupParseContext!,
-            builder.Remappings);
+        return SerializationModels.ConvertToSchedule(model);
     }
 }
 

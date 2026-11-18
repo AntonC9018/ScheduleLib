@@ -119,15 +119,13 @@ public sealed class GoogleDriveUploadHandler
 [AutoConstructor]
 public sealed partial class TestScheduleInitializer : IInitializer<LoadedSchedule>
 {
-    private readonly GroupParseContext _groupParseContext;
-    private readonly Remappings _remappings;
     private readonly CourseNameUnifierConfig _courseNames;
 
     public async ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
     {
         await using var input = File.OpenRead(ScheduleTestHelper.TestSchedulePath);
         var model = await ScheduleSerializer.Deserialize(input, cancellationToken);
-        var schedule = SerializationModels.ConvertToSchedule(model, _groupParseContext, _remappings);
+        var schedule = SerializationModels.ConvertToSchedule(model);
         return LoadedSchedule.Create(schedule, _courseNames);
     }
 }

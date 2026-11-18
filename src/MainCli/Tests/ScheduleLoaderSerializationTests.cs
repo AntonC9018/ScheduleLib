@@ -4,6 +4,7 @@ using ScheduleLib;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
 
 public sealed class ScheduleLoaderSerializationTests
@@ -61,6 +62,71 @@ public sealed class ScheduleLoaderSerializationTests
         Assert.Equal(expected: 2, actual: component.ApplyCount);
 
         Assert.Empty(Directory.EnumerateFiles(path: temp.Path, searchPattern: "*.tmp"));
+    }
+
+    [Fact]
+    public async Task CacheHitRestoresTheScheduleTheColdLoadBuilt()
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var component = new PopulatedComponent();
+        var loader = new ScheduleLoader
+        {
+            CachedPath = CalculateSchedulePath(temp),
+            Components = [component],
+        };
+
+        var cold = await loader.Load(CreateRemappingContext(), CancellationToken.None);
+        var warm = await loader.Load(CreateRemappingContext(), CancellationToken.None);
+
+        Assert.Equal(expected: 1, actual: component.ApplyCount);
+        var group = Assert.Single(cold.Groups);
+        // The import remaps IA2401 once; a cache hit must not remap the result again.
+        Assert.Equal(expected: "IA2402", actual: group.Name);
+        Assert.Equal(expected: Language.Ru, actual: group.Language);
+        Assert.Equal(expected: new Specialty("Synthetic specialty"), actual: group.Specialty);
+        var teacher = Assert.Single(cold.Teachers);
+        Assert.Equal(expected: "teacher@example.com", actual: teacher.Contacts.CorporateEmail);
+        var lesson = Assert.Single(cold.WeeklyLessons);
+        Assert.Equal(expected: new Alternative("Psihologie"), actual: lesson.Base.Data.Alternative);
+
+        AssertSameSchedule(expected: cold, actual: warm);
+    }
+
+    private static void AssertSameSchedule(Schedule expected, Schedule actual)
+    {
+        Assert.Equal(expected: expected.Groups.Length, actual: actual.Groups.Length);
+        for (int i = 0; i < expected.Groups.Length; i++)
+        {
+            var e = expected.Groups[i];
+            var a = actual.Groups[i];
+            Assert.Equal(expected: e.Name, actual: a.Name);
+            Assert.Equal(expected: e.Grade, actual: a.Grade);
+            Assert.Equal(expected: e.GroupNumber, actual: a.GroupNumber);
+            Assert.Equal(expected: e.QualificationType, actual: a.QualificationType);
+            Assert.Equal(expected: e.Faculty, actual: a.Faculty);
+            Assert.Equal(expected: e.AttendanceMode, actual: a.AttendanceMode);
+            Assert.Equal(expected: e.Language, actual: a.Language);
+            Assert.Equal(expected: e.Specialty, actual: a.Specialty);
+        }
+
+        Assert.Equal(expected: expected.Teachers.Length, actual: actual.Teachers.Length);
+        for (int i = 0; i < expected.Teachers.Length; i++)
+        {
+            var e = expected.Teachers[i];
+            var a = actual.Teachers[i];
+            Assert.Equal(expected: e.PersonName.FirstName, actual: a.PersonName.FirstName);
+            Assert.Equal(expected: e.PersonName.LastName, actual: a.PersonName.LastName);
+            Assert.Equal(expected: e.Contacts.PersonalEmail, actual: a.Contacts.PersonalEmail);
+            Assert.Equal(expected: e.Contacts.CorporateEmail, actual: a.Contacts.CorporateEmail);
+            Assert.Equal(expected: e.Contacts.PhoneNumber, actual: a.Contacts.PhoneNumber);
+        }
+
+        Assert.Equal(
+            expected: expected.Courses.Select(x => x.Names.ToArray()),
+            actual: actual.Courses.Select(x => x.Names.ToArray()));
+        // ImmutableArray compares by reference, so compare the elements.
+        Assert.Equal(expected: expected.WeeklyLessons.ToArray(), actual: actual.WeeklyLessons.ToArray());
+        Assert.Equal(expected: expected.OneTimeLessons.ToArray(), actual: actual.OneTimeLessons.ToArray());
     }
 
     [Theory]
@@ -125,6 +191,58 @@ public sealed class ScheduleLoaderSerializationTests
             CourseNameUnifierConfig = Config.CourseNameUnifier,
             ParserFactory = new(new()),
         });
+    }
+
+    private static ScheduleImportContext CreateRemappingContext()
+    {
+        var context = CreateContext();
+        var remappings = new Remappings();
+        remappings.GroupNameRemappings.Add(key: "IA2401", value: "IA2402");
+        remappings.GroupNameRemappings.Add(key: "IA2402", value: "IA2403");
+        context.Schedule.UseRemappings(remappings);
+        context.Schedule.GroupParseContext = GroupParseContext.Create(new()
+        {
+            CurrentStudyYear = new(2025),
+        });
+        return context;
+    }
+
+    /// <summary>Imports one lesson of a remapped group, a teacher with contacts and an elective.</summary>
+    private sealed class PopulatedComponent : IScheduleLoaderComponent
+    {
+        public int ApplyCount { get; private set; }
+
+        public ValueTask Hash(IncrementalHash hasher, CancellationToken cancellationToken)
+        {
+            byte[] data = Encoding.UTF8.GetBytes("populated v1");
+            hasher.AppendData(data);
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask Apply(ScheduleImportContext context, CancellationToken cancellationToken)
+        {
+            ApplyCount++;
+            var s = context.Schedule;
+            var group = s.Group("IA2401");
+            group.Model.Language = Language.Ru;
+            group.Model.Specialty = new("Synthetic specialty");
+            var teacher = s.Teacher("Ion Popescu");
+            teacher.Contacts(new()
+            {
+                CorporateEmail = "teacher@example.com",
+                PhoneNumber = "+37300000000",
+            });
+
+            var lesson = s.RegularLesson();
+            var course = s.Course("Elective course");
+            lesson.Course(course);
+            lesson.Group(group.Id);
+            lesson.Teacher(teacher.Id);
+            lesson.TimeSlot(new(0));
+            lesson.DayOfWeek(DayOfWeek.Monday);
+            lesson.Alternative(new("Psihologie"));
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class Component : IScheduleLoaderComponent

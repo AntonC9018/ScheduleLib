@@ -145,7 +145,7 @@ public sealed partial class ScheduleSourceLoader
                     .Select(x => $"{x.Key}={x.Value}"));
             loader.ConfigurationIdentity = string.Join(
                 "|",
-                "cache-v3",
+                "cache-v4",
                 initializerVersion,
                 builderVersion,
                 remappingVersion,
