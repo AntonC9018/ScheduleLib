@@ -453,7 +453,7 @@ public static class Config
             {
                 x = default;
                 x.FirstName[0].Full = "Eva";
-                x.FirstName[1].Short = "E";
+                x.FirstName[0].Short = "E";
                 x.FirstName[1].Full = "Mădălina";
                 x.FirstName[1].Short = "M";
                 x.LastName[0] = "Arseni";
