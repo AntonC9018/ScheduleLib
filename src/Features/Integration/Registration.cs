@@ -185,13 +185,14 @@ public static class Registration
             void AddScheduleLifetimeServices()
             {
                 services.AddSingleton<ScheduleSourceLoader>();
+                services.AddSeed<ScheduleSource>();
                 services.AddInitialized<LoadedSchedule, LoadedScheduleInitializer>();
                 services.AddDerived<Schedule, ScheduleFactory>();
                 services.AddDerived<ScheduleLookup, ScheduleLookupFactory>();
                 services.AddTransient<EnrichWithTeacherFullNamesFromWebsite>();
                 services.AddTransient<ConsultationsLoaderComponent>();
 
-                services.AddOptions<ScheduleBuilderInitializerOptions>();
+                services.AddOptions<ScheduleSourceLoaderOptions>();
 
                 services.AddScoped<CurrentTeacherIdProvider>();
                 services.AddScoped<ScopeFilteredScheduleProvider>();

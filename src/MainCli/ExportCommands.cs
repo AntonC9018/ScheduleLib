@@ -59,8 +59,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
+            var scheduleSource = CliRuntime.ResolveSource(source);
             var services = context.CreateServices(
-                source,
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
@@ -70,7 +70,7 @@ public partial class ExportCommands
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
             var schedule = scope.ServiceProvider.LatestPeriodSchedule();
             lessonCount = schedule.EnumerateWeeklyLessons()
                 .Count();

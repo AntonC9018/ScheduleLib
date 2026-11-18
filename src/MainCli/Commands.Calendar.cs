@@ -81,12 +81,13 @@ public class CalendarCommands
                     ["Primary calendars cannot be replaced; configure a named secondary calendar."]);
             }
 
+            var scheduleSource = CliRuntime.ResolveSource(source);
+
             var services = context.CreateServices(
-                source,
                 resolved,
                 ConfigureServices);
             await using var container = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await container.OpenScheduleScope(cancellation.Token);
+            await using var scope = await container.OpenScheduleScope(scheduleSource, cancellation.Token);
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleCalendarConfig>>()
                 .Get();
             if (config is null)

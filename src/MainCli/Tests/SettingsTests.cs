@@ -684,11 +684,11 @@ public sealed class SettingsTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
                 var
-                    scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                    loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<ScheduleLib.Dates.StudyYearOptions>(x =>
             {

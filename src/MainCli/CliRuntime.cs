@@ -3,8 +3,8 @@ using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>Shared source/cache setup for query and export slices. Project settings
-/// can supply their resolved root; CLI paths resolve from the invocation directory.</summary>
+/// <summary>Shared source/cache setup for query and export slices. CLI paths resolve from the
+/// invocation directory.</summary>
 public static class CliRuntime
 {
     public static string ResolvePath(string path)
@@ -17,10 +17,11 @@ public static class CliRuntime
         return Path.GetFullPath(path);
     }
 
-    public static IServiceCollection CreateServices(
-        SourceArguments source,
-        Action<IServiceCollection> configure,
-        string? projectDirectory = null)
+    /// <summary>
+    /// The schedule source an invocation selects. Relative paths resolve from the invocation
+    /// directory now, so later directory changes do not move them.
+    /// </summary>
+    public static ScheduleSource ResolveSource(SourceArguments source)
     {
         string ResolveDataDirectory()
         {
@@ -54,17 +55,23 @@ public static class CliRuntime
             throw new ScheduleSourceDirectoryNotFoundException(dataDirectory);
         }
 
+        return new(dataDirectory, cacheDirectory, UseCache: !source.NoCache);
+    }
+
+    /// <summary>A container of its own, for commands that do not run through the root container yet.</summary>
+    public static IServiceCollection CreateServices(Action<IServiceCollection> configure)
+    {
         var services = new ServiceCollection();
         configure(services);
+        AddCliServices(services);
+        return services;
+    }
+
+    /// <summary>The CLI's logging and Google authorization, replacing the defaults of <paramref name="services"/>.</summary>
+    public static void AddCliServices(IServiceCollection services)
+    {
         CliLogging.Register(services);
         GoogleAuthentication.Register(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
-        {
-            x.DataDirectory = dataDirectory;
-            x.CacheDirectory = cacheDirectory;
-            x.UseCache = !source.NoCache;
-        });
-        return services;
     }
 
     internal sealed class EmptyDirectoryPathException : ArgumentException

@@ -886,10 +886,10 @@ public sealed class TeacherExportTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             // The coded academic calendar intentionally has no master ranges. Supply a synthetic
             // master range for workbook evidence without changing production academic settings.

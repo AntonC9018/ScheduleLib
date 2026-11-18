@@ -122,7 +122,10 @@ public sealed class ScheduleScope : IAsyncDisposable
 
     public IServiceProvider ServiceProvider => _scope.Services;
 
-    public static async Task<ScheduleScope> Open(IServiceProvider root, CancellationToken cancellationToken)
+    public static async Task<ScheduleScope> Open(
+        IServiceProvider root,
+        ScheduleSource source,
+        CancellationToken cancellationToken)
     {
         // CA2000 does not see ownership pass to the returned ScheduleScope; failures dispose below.
 #pragma warning disable CA2000
@@ -131,7 +134,7 @@ public sealed class ScheduleScope : IAsyncDisposable
         try
         {
             var forks = invocation.Services.GetRequiredService<ScopeForkFactory<LoadedSchedule>>();
-            var scope = await forks.OpenAsync(supply: null, cancellationToken);
+            var scope = await forks.OpenAsync(inputs => inputs.Add(source), cancellationToken);
             return new(invocation, scope);
         }
         catch (Exception openFailure)
@@ -157,8 +160,9 @@ public static class ScheduleScopeHelper
 {
     public static Task<ScheduleScope> OpenScheduleScope(
         this IServiceProvider root,
+        ScheduleSource source,
         CancellationToken cancellationToken)
     {
-        return ScheduleScope.Open(root, cancellationToken);
+        return ScheduleScope.Open(root, source, cancellationToken);
     }
 }

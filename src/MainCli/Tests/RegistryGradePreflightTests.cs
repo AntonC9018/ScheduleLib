@@ -144,18 +144,17 @@ public sealed class RegistryGradePreflightTests
         {
             Profile = TestProfiles.Owner,
         });
-        var collection = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
-        settings.ConfigureServices(collection);
-        collection.Configure<ScheduleBuilderInitializerOptions>(x =>
+        var scheduleSource = CliRuntime.ResolveSource(new()
         {
-            var scheduleBuilderInitializerOptions = x;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var collection = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(collection);
+        collection.Configure<ScheduleSourceLoaderOptions>(x =>
+        {
+            var loaderOptions = x;
+            loaderOptions.EnrichWithFullNames = false;
         });
         collection.Configure<StudyYearOptions>(x =>
         {
@@ -163,7 +162,7 @@ public sealed class RegistryGradePreflightTests
             x.Semester = Semester.Sem2;
         });
         await using var services = AppConfiguration.BuildServiceProvider(collection);
-        await using var scope = await services.OpenScheduleScope(default);
+        await using var scope = await services.OpenScheduleScope(scheduleSource, default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(x =>

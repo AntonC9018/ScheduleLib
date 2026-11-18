@@ -120,13 +120,11 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         ScheduleScope? scope = null;
         try
         {
-            var services = CliRuntime.CreateServices(
-                source,
-                AppConfiguration.ConfigureServices,
-                resolved.ProjectDirectory);
+            var scheduleSource = CliRuntime.ResolveSource(source);
+            var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
             resolved.ConfigureServices(services);
             provider = AppConfiguration.BuildServiceProvider(services);
-            scope = await provider.OpenScheduleScope(token);
+            scope = await provider.OpenScheduleScope(scheduleSource, token);
             const string missingCredentialsMessage =
                 "Registry credentials are missing; configure the selected teacher's existing credential source.";
             var credentialsResolver =

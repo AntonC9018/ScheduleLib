@@ -105,12 +105,13 @@ public class DriveCommands
                     ["Google Drive credentials and folder name are required for this profile."]);
             }
 
+            var scheduleSource = CliRuntime.ResolveSource(source);
+
             var services = context.CreateServices(
-                source,
                 resolved,
                 ConfigureServices);
             await using var container = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await container.OpenScheduleScope(cancellation.Token);
+            await using var scope = await container.OpenScheduleScope(scheduleSource, cancellation.Token);
             var config = scope.ServiceProvider.GetRequiredService<DataProvider<BuiltGoogleDriveConfig>>()
                 .Get();
             if (config is null)

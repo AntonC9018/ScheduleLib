@@ -13,19 +13,23 @@ using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Application.Core;
 
-public sealed class ScheduleBuilderInitializerOptions
+/// <summary>
+/// Where a scope's schedule is read from and the cache it may use. A seed supplied when the scope
+/// opens; the cache defaults to the data directory.
+/// </summary>
+public sealed record ScheduleSource(string DataDirectory, string? CacheDirectory = null, bool UseCache = true);
+
+/// <summary>How the loader builds a schedule, independently of where it reads it from.</summary>
+public sealed class ScheduleSourceLoaderOptions
 {
-    public string DataDirectory { get; set; } = "data";
-    public string? CacheDirectory { get; set; }
     public bool BypassCache { get; set; } = false;
-    public bool UseCache { get; set; } = true;
     public bool EnrichWithFullNames { get; set; } = true;
     public bool LoadConsultations { get; set; } = true;
     public SubGroupValidationMode SubGroupValidation { get; set; } = SubGroupValidationMode.Strict;
 }
 
 /// <summary>
-/// Builds the schedule of the configured sources in a local builder, or reads it from the cache.
+/// Builds the schedule of a source in a local builder, or reads it from the source's cache.
 /// The builder is never shared: the result is an immutable <see cref="Schedule"/>.
 /// </summary>
 [AutoConstructor]
@@ -38,9 +42,9 @@ public sealed partial class ScheduleSourceLoader
     private readonly Remappings _remappings;
     private readonly GroupParseContext _groupParseContext;
     private readonly CourseNameUnifierConfig _courseNameUnifierConfig;
-    private readonly IOptions<ScheduleBuilderInitializerOptions> _opts;
+    private readonly IOptions<ScheduleSourceLoaderOptions> _opts;
 
-    public async Task<Schedule> Load(CancellationToken cancellationToken)
+    public async Task<Schedule> Load(ScheduleSource source, CancellationToken cancellationToken)
     {
         // The loader components are transient and some are disposable, so they live in a
         // scope of their own; none of them depends on a workflow's context.
@@ -64,21 +68,21 @@ public sealed partial class ScheduleSourceLoader
 
         var studyYear = _studyYearOptions.Value;
         var opts = _opts.Value;
-        if (opts.UseCache)
+        if (source.UseCache)
         {
             var encoding = System.Text.Encoding.UTF8;
-            string s = Path.GetFullPath(opts.DataDirectory);
-            byte[] source = encoding.GetBytes(s);
-            byte[] inArray = System.Security.Cryptography.SHA256.HashData(source);
+            string dataPath = Path.GetFullPath(source.DataDirectory);
+            byte[] dataPathBytes = encoding.GetBytes(dataPath);
+            byte[] inArray = System.Security.Cryptography.SHA256.HashData(dataPathBytes);
             var rootIdentity = Convert.ToHexStringLower(inArray);
-            string cacheDir = opts.CacheDirectory ?? opts.DataDirectory;
+            string cacheDir = source.CacheDirectory ?? source.DataDirectory;
             string cacheFileName =
                 $"{rootIdentity}_schedule_{studyYear.StudyYear!.Value.Value}_{studyYear.Semester.AsOrdinal()}.json";
             loader.CachedPath = Path.Combine(cacheDir, cacheFileName);
         }
 
         {
-            var rootPath = new TruePath.LocalPath(opts.DataDirectory);
+            var rootPath = new TruePath.LocalPath(source.DataDirectory);
             var scheduleDirs = ScheduleDirectoryDiscovery.DiscoverDirectories(path: rootPath)
                 .OrderBy(x => x.StudyYear)
                 .ThenBy(x => x.Semester)
@@ -90,7 +94,7 @@ public sealed partial class ScheduleSourceLoader
                 throw new ScheduleSourcesNotFoundException(
                     studyYear.StudyYear,
                     studyYear.Semester,
-                    opts.DataDirectory);
+                    source.DataDirectory);
             }
 
             var loaders = matchingDirs.SelectMany(x => x.GetLoaders());
@@ -174,13 +178,14 @@ public sealed partial class ScheduleSourceLoader
 public sealed partial class LoadedScheduleInitializer : IInitializer<LoadedSchedule>
 {
     private readonly ScheduleSourceLoader _loader;
+    private readonly ScheduleSource _source;
     private readonly IOptions<ScheduleDerivationOptions> _options;
     private readonly CourseNameUnifierConfig _courseNameUnifierConfig;
     private readonly ILogger<LoadedScheduleInitializer> _logger;
 
     public async ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
     {
-        var built = await _loader.Load(cancellationToken);
+        var built = await _loader.Load(_source, cancellationToken);
         var schedule = LabSubGroupMerges.Project(built, _options.Value.AutoMergeLabSubGroups);
         LogLabSubGroupMerges(schedule);
         return LoadedSchedule.Create(schedule, _courseNameUnifierConfig);

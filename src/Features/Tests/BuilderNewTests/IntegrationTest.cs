@@ -51,7 +51,9 @@ public sealed class IntegrationTest
         var fixture = Fixture();
         using var cancellationTokenSource = IntegrationTestHelper.CreateCts();
         var cancellationToken = cancellationTokenSource.Token;
-        await using var scope = await fixture.ServiceProvider.OpenScheduleScope(cancellationToken);
+        await using var scope = await fixture.ServiceProvider.OpenScheduleScope(
+            new ScheduleSource(DataDirectory: "data"),
+            cancellationToken);
         var serviceProvider = scope.ServiceProvider;
         serviceProvider.GetRequiredService<TeacherLayerConfig>()
             .TeacherName = NameHelper.Parse("Curmanschii Anton");

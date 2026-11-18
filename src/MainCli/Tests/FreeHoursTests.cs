@@ -245,9 +245,10 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task ExistingTaskTextRenderingIsUnchanged()
     {
-        var services = CliRuntime.CreateServices(Source(), new FixtureQuery().FixtureServices);
+        var scheduleSource = CliRuntime.ResolveSource(Source());
+        var services = CliRuntime.CreateServices(new FixtureQuery().FixtureServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
         var builder = new StringBuilder();
         scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>()
             .Run(new()
@@ -500,9 +501,10 @@ public sealed class FreeHoursTests
     [Fact]
     public async Task CancellationDuringTheCalculationStopsTheHandler()
     {
-        var services = CliRuntime.CreateServices(Source(), new FixtureQuery().FixtureServices);
+        var scheduleSource = CliRuntime.ResolveSource(Source());
+        var services = CliRuntime.CreateServices(new FixtureQuery().FixtureServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
         var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
 
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
@@ -750,10 +752,10 @@ public sealed class FreeHoursTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {

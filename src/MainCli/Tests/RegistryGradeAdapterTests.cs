@@ -848,7 +848,7 @@ public sealed class RegistryGradeAdapterTests
                     Password = "test",
                 },
             });
-        var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
+        var collection = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
         await using var provider = AppConfiguration.BuildServiceProvider(collection);
         await using var scope = provider.CreateAsyncScope();
@@ -1014,7 +1014,7 @@ public sealed class RegistryGradeAdapterTests
                     Password = "test",
                 },
             });
-        var collection = CliRuntime.CreateServices(new(), AppConfiguration.ConfigureServices);
+        var collection = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
         settings.ConfigureServices(collection);
         collection.AddLogging(logging => logging.AddProvider(log)
             .SetMinimumLevel(LogLevel.Debug));

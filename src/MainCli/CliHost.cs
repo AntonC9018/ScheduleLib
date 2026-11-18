@@ -490,12 +490,12 @@ public partial class QueryCommands
             using var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
+            var scheduleSource = CliRuntime.ResolveSource(source);
             var services = context.CreateServices(
-                source,
                 resolvedSettings,
                 ConfigureServices);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
             if (query.Room is { } room
                 && !schedule.EnumerateWeeklyLessons()

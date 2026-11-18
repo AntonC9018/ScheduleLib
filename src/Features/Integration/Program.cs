@@ -25,7 +25,7 @@ public static class AppConfiguration
             x.Day = DayOfWeek.Wednesday;
             x.Time = new(hour: 15, minute: 00);
         });
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        services.Configure<ScheduleSourceLoaderOptions>(x =>
         {
             x.BypassCache = false;
             x.EnrichWithFullNames = true;

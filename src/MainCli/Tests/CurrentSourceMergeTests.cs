@@ -355,10 +355,8 @@ public sealed class CurrentSourceMergeTests
     {
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(options =>
+        services.Configure<ScheduleSourceLoaderOptions>(options =>
         {
-            options.DataDirectory = dataDirectory;
-            options.CacheDirectory = cacheDirectory;
             options.BypassCache = bypass;
             options.EnrichWithFullNames = false;
             options.LoadConsultations = false;
@@ -370,7 +368,8 @@ public sealed class CurrentSourceMergeTests
         });
         using var provider = AppConfiguration.BuildServiceProvider(services);
         AppConfiguration.ConfigureLayeredConfig(provider);
-        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+        var source = new ScheduleSource(dataDirectory, cacheDirectory);
+        await using var scope = await provider.OpenScheduleScope(source, CancellationToken.None);
         return scope.ServiceProvider.GetRequiredService<Schedule>();
     }
 

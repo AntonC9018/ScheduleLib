@@ -333,18 +333,17 @@ public sealed class CliJsonlTests
             {
                 Profile = TestProfiles.Owner,
             });
-            var services = CliRuntime.CreateServices(
-                new()
-                {
-                    NoCache = true,
-                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                },
-                AppConfiguration.ConfigureServices);
-            settings.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            var scheduleSource = CliRuntime.ResolveSource(new()
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                NoCache = true,
+                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+            });
+            var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+            settings.ConfigureServices(services);
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
+            {
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {
@@ -358,7 +357,7 @@ public sealed class CliJsonlTests
                 b.AddProvider(capture);
             });
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(default);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
             var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
             var lesson = schedule.EnumerateWeeklyLessons()
                 .First();
@@ -2244,10 +2243,10 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {
@@ -2262,10 +2261,10 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {
@@ -2286,10 +2285,10 @@ public sealed class CliJsonlTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {

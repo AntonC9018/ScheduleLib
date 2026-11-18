@@ -1,12 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 
 public sealed class CliRuntimeTests
 {
     [Fact]
-    public void CreateServicesCapturesRelativeCacheDirectoryAtEntry()
+    public void ResolveSourceCapturesRelativeDirectoriesAtEntry()
     {
         using var temp = new TestTempDirectory("cliruntime-cache-tests");
         var entryPath = Path.Combine(temp.Path, "entry");
@@ -21,22 +18,17 @@ public sealed class CliRuntimeTests
         try
         {
             Environment.CurrentDirectory = entryDirectory;
-            var services = CliRuntime.CreateServices(
-                new SourceArguments
-                {
-                    DataDirectory = "data",
-                    CacheDirectory = "cache",
-                },
-                _ =>
-                {
-                    Environment.CurrentDirectory = laterDirectory;
-                });
+            var source = CliRuntime.ResolveSource(new SourceArguments
+            {
+                DataDirectory = "data",
+                CacheDirectory = "cache",
+                NoCache = true,
+            });
+            Environment.CurrentDirectory = laterDirectory;
 
-            using var provider = services.BuildServiceProvider();
-            var options = provider.GetRequiredService<IOptions<ScheduleBuilderInitializerOptions>>().Value;
-
-            Assert.Equal(expected: dataDirectory, actual: options.DataDirectory);
-            Assert.Equal(expected: expectedCacheDirectory, actual: options.CacheDirectory);
+            Assert.Equal(expected: dataDirectory, actual: source.DataDirectory);
+            Assert.Equal(expected: expectedCacheDirectory, actual: source.CacheDirectory);
+            Assert.False(source.UseCache);
         }
         finally
         {

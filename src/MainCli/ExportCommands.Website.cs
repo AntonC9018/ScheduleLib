@@ -68,8 +68,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
+            var scheduleSource = CliRuntime.ResolveSource(source);
             var services = context.CreateServices(
-                source,
                 resolvedSettings,
                 ConfigureServices);
             output = context.Artifacts = await RunOutput.Create(
@@ -79,7 +79,7 @@ public partial class ExportCommands
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
             var grouping = full.TeacherGrouping(FilterHelper.Builder()
                 .WithLatestPeriod(full));
@@ -259,8 +259,8 @@ public partial class ExportCommands
             using var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
+            var scheduleSource = CliRuntime.ResolveSource(source);
             var services = context.CreateServices(
-                source,
                 resolvedSettings,
                 ConfigureServices);
             var thesisWarnings = new ThesisWarningCollector();
@@ -273,7 +273,7 @@ public partial class ExportCommands
                 cancellation.Token,
                 projectDirectory: resolvedSettings.ProjectDirectory);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(cancellation.Token);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
             var slugPreview = await scope.ServiceProvider.GetRequiredService<ItUsmWebsiteTeacherDataProvider>()
                 .SlugMap(cancellation.Token);
             ValidateWebsiteArtifactNames(slugPreview.Values.Select(x => $"{x}.json"));

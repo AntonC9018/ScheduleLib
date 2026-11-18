@@ -107,12 +107,10 @@ public partial class ExportCommands
                     ["A teacher --profile is required. Use config profiles to list identities."]);
             }
 
+            var scheduleSource = preDefense ? null : CliRuntime.ResolveSource(source!);
             var services = preDefense
                 ? new ServiceCollection()
-                : CliRuntime.CreateServices(
-                    source!,
-                    ConfigureServices,
-                    resolvedSettings.ProjectDirectory);
+                : CliRuntime.CreateServices(ConfigureServices);
             if (preDefense)
             {
                 ConfigureServices(services);
@@ -154,7 +152,7 @@ public partial class ExportCommands
                     ]);
             }
 
-            await using var scheduleScope = preDefense ? null : await provider.OpenScheduleScope(cancellation.Token);
+            await using var scheduleScope = preDefense ? null : await provider.OpenScheduleScope(scheduleSource!, cancellation.Token);
 
             if (preDefense)
             {

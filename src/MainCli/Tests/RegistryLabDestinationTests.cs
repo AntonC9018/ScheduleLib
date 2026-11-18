@@ -994,7 +994,9 @@ public sealed class RegistryLabDestinationTests
             FixedSchedule.Register(services, schedule);
             var provider = AppConfiguration.BuildServiceProvider(services);
             AppConfiguration.ConfigureLayeredConfig(provider);
-            var scope = await provider.OpenScheduleScope(CancellationToken.None);
+            // The fixed schedule reads no source; the bridge still takes one.
+            var unusedSource = new ScheduleSource(DataDirectory: AppContext.BaseDirectory);
+            var scope = await provider.OpenScheduleScope(unusedSource, CancellationToken.None);
             scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName = NameHelper.Parse(TestProfiles.Owner);
             return new(
                 provider,

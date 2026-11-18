@@ -201,14 +201,10 @@ public sealed class CliCommandContext : IDisposable
     }
 
     public IServiceCollection CreateServices(
-        SourceArguments source,
         ResolvedSettings settings,
         Action<IServiceCollection> configure)
     {
-        var services = CliRuntime.CreateServices(
-            source,
-            configure,
-            settings.ProjectDirectory);
+        var services = CliRuntime.CreateServices(configure);
         settings.ConfigureServices(services);
         return services;
     }

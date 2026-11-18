@@ -44,13 +44,12 @@ public sealed class RegistryTests
         {
             Profile = TestProfiles.Owner,
         });
-        var services = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
+        var scheduleSource = CliRuntime.ResolveSource(new()
+        {
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
         FixedSchedule.Register(services, builtSchedule);
         services.Configure<StudyYearOptions>(options =>
@@ -59,7 +58,7 @@ public sealed class RegistryTests
             options.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(default);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(item => item.Lesson.Groups.IsSingleGroup);
@@ -133,18 +132,17 @@ public sealed class RegistryTests
         {
             Profile = TestProfiles.Owner,
         });
-        var services = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
-        settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        var scheduleSource = CliRuntime.ResolveSource(new()
         {
-            var scheduleBuilderInitializerOptions = x;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleSourceLoaderOptions>(x =>
+        {
+            var loaderOptions = x;
+            loaderOptions.EnrichWithFullNames = false;
         });
         services.Configure<StudyYearOptions>(x =>
         {
@@ -152,7 +150,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(default);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = singleDestination
             ? schedule.EnumerateWeeklyLessons()
@@ -234,18 +232,17 @@ public sealed class RegistryTests
         {
             Profile = TestProfiles.Owner,
         });
-        var services = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
-        settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        var scheduleSource = CliRuntime.ResolveSource(new()
         {
-            var scheduleBuilderInitializerOptions = x;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleSourceLoaderOptions>(x =>
+        {
+            var loaderOptions = x;
+            loaderOptions.EnrichWithFullNames = false;
         });
         services.Configure<StudyYearOptions>(x =>
         {
@@ -253,7 +250,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(default);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
             .EnumerateWeeklyLessons()
             .First();
@@ -392,18 +389,17 @@ public sealed class RegistryTests
         {
             Profile = TestProfiles.Owner,
         });
-        var services = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
-        settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        var scheduleSource = CliRuntime.ResolveSource(new()
         {
-            var scheduleBuilderInitializerOptions = x;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleSourceLoaderOptions>(x =>
+        {
+            var loaderOptions = x;
+            loaderOptions.EnrichWithFullNames = false;
         });
         services.Configure<StudyYearOptions>(x =>
         {
@@ -411,7 +407,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(default);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First();
@@ -488,18 +484,17 @@ public sealed class RegistryTests
         {
             Profile = TestProfiles.Owner,
         });
-        var services = CliRuntime.CreateServices(
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            AppConfiguration.ConfigureServices);
-        settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(x =>
+        var scheduleSource = CliRuntime.ResolveSource(new()
         {
-            var scheduleBuilderInitializerOptions = x;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+            NoCache = true,
+            DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
+        });
+        var services = CliRuntime.CreateServices(AppConfiguration.ConfigureServices);
+        settings.ConfigureServices(services);
+        services.Configure<ScheduleSourceLoaderOptions>(x =>
+        {
+            var loaderOptions = x;
+            loaderOptions.EnrichWithFullNames = false;
         });
         services.Configure<StudyYearOptions>(x =>
         {
@@ -507,7 +502,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(default);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, default);
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
             .EnumerateWeeklyLessons()
             .First();

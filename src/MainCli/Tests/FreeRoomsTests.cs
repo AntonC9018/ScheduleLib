@@ -490,10 +490,10 @@ public sealed class FreeRoomsTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {

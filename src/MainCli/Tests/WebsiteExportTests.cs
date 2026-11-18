@@ -872,10 +872,10 @@ public sealed class WebsiteExportTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {
@@ -908,13 +908,11 @@ public sealed class WebsiteExportTests
         public async Task<TeacherDiscovery> DiscoverTeachersAsync()
         {
             using var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
-            var services = CliRuntime.CreateServices(
-                FixtureSource,
-                ConfigureForTest,
-                resolved.ProjectDirectory);
+            var scheduleSource = CliRuntime.ResolveSource(FixtureSource);
+            var services = CliRuntime.CreateServices(ConfigureForTest);
             resolved.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
             var filtered = scope.ServiceProvider.LatestPeriodSchedule();
             var remapper = scope.ServiceProvider.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
@@ -958,13 +956,11 @@ public sealed class WebsiteExportTests
             LatestPeriodTeacherlessAsync()
         {
             using var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
-            var services = CliRuntime.CreateServices(
-                FixtureSource,
-                ConfigureForTest,
-                resolved.ProjectDirectory);
+            var scheduleSource = CliRuntime.ResolveSource(FixtureSource);
+            var services = CliRuntime.CreateServices(ConfigureForTest);
             resolved.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+            await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
             var latest = scope.ServiceProvider.LatestPeriodSchedule()
                 .EnumerateWeeklyLessons()
                 .ToArray();

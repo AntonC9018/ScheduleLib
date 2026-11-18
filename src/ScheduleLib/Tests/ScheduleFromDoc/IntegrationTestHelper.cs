@@ -74,7 +74,8 @@ public sealed class IntegrationTestHelper : IAsyncDisposable
 
     public async Task InitializeSchedule()
     {
-        _scope = await _rootServiceProvider.OpenScheduleScope(CancellationToken);
+        var source = new ScheduleSource(DataDirectory: "data", UseCache: false);
+        _scope = await _rootServiceProvider.OpenScheduleScope(source, CancellationToken);
     }
 
     public IntegrationTestHelper(
@@ -95,9 +96,8 @@ public sealed class IntegrationTestHelper : IAsyncDisposable
             opts.StudyYear = new(year);
             opts.Semester = sem;
         });
-        services.Configure<ScheduleBuilderInitializerOptions>(opts =>
+        services.Configure<ScheduleSourceLoaderOptions>(opts =>
         {
-            opts.UseCache = false;
             opts.EnrichWithFullNames = false;
             opts.LoadConsultations = false;
             opts.SubGroupValidation = subGroupValidation;

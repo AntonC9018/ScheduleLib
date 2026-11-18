@@ -122,15 +122,14 @@ public sealed class ScheduleExportTests
     [InlineData(true)]
     public async Task CancellationAfterFirstArtifactStopsFurtherGeneration(bool calendar)
     {
-        var services = CliRuntime.CreateServices(
-            Source(),
-            services =>
+        var scheduleSource = CliRuntime.ResolveSource(Source());
+        var services = CliRuntime.CreateServices(services =>
             {
                 AppConfiguration.ConfigureServices(services);
-                services.Configure<ScheduleBuilderInitializerOptions>(x =>
+                services.Configure<ScheduleSourceLoaderOptions>(x =>
                 {
-                    var scheduleBuilderInitializerOptions = x;
-                    scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                    var loaderOptions = x;
+                    loaderOptions.EnrichWithFullNames = false;
                 });
                 services.Configure<StudyYearOptions>(x =>
                 {
@@ -139,7 +138,7 @@ public sealed class ScheduleExportTests
                 });
             });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
+        await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         var count = 0;
 
@@ -280,10 +279,10 @@ public sealed class ScheduleExportTests
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.Configure<ScheduleBuilderInitializerOptions>(x =>
+            services.Configure<ScheduleSourceLoaderOptions>(x =>
             {
-                var scheduleBuilderInitializerOptions = x;
-                scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
+                var loaderOptions = x;
+                loaderOptions.EnrichWithFullNames = false;
             });
             services.Configure<StudyYearOptions>(x =>
             {
