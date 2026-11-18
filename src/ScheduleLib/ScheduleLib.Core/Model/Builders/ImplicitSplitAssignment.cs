@@ -133,12 +133,7 @@ public static partial class ScheduleBuilderHelper
                 Alternative? alt = null;
                 foreach (var scope in config.Scopes)
                 {
-                    if (!scope.Matches(
-                            studyYear,
-                            group.Grade,
-                            group.Faculty,
-                            group.AttendanceMode,
-                            group.QualificationType))
+                    if (!scope.Matches(studyYear, group.Category))
                     {
                         continue;
                     }

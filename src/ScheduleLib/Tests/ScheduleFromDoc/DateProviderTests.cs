@@ -15,7 +15,7 @@ public sealed class DateProviderTests
     {
         var builder = new ScheduleBuilder();
         var groupSlot = builder.Groups.New();
-        groupSlot.Value = new Group
+        groupSlot.Value = new GroupBuilderModel
         {
             Name = "DU-IA2601",
             Grade = new(1),
@@ -89,7 +89,7 @@ public sealed class DateProviderTests
         });
         Assert.Equal(expected: ordinaryRange, actual: dualRange);
 
-        Group GroupFor(AttendanceMode mode)
+        GroupBuilderModel GroupFor(AttendanceMode mode)
         {
             return new()
             {
@@ -321,7 +321,7 @@ public sealed class DateProviderTests
         {
             var builder = new ScheduleBuilder();
             var groupSlot = builder.Groups.New();
-            groupSlot.Value = new Group
+            groupSlot.Value = new GroupBuilderModel
             {
                 Name = $"TEST-{grade}",
                 Grade = new(grade),

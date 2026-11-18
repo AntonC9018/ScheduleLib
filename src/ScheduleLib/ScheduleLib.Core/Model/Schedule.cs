@@ -1222,7 +1222,19 @@ public sealed class Group
     public required AttendanceMode AttendanceMode { get; init; }
     public Specialty Specialty { get; init; } = default;
     public required Language Language { get; set; }
+
+    public GroupCategory Category => new(Grade, Faculty, AttendanceMode, QualificationType);
 }
+
+/// <summary>
+/// The fields that place a group into a category, such as the categories
+/// the specialization registry and the implicit split scopes select.
+/// </summary>
+public readonly record struct GroupCategory(
+    Grade Grade,
+    Faculty Faculty,
+    AttendanceMode AttendanceMode,
+    QualificationType QualificationType);
 
 public sealed class Teacher
 {

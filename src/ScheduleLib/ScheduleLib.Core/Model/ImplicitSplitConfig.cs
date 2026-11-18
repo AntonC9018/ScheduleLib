@@ -61,29 +61,26 @@ public sealed class ImplicitSplitScope
     /// </summary>
     public bool Matches(
         StudyYear? currentStudyYear,
-        Grade grade,
-        Faculty faculty,
-        AttendanceMode attendanceMode,
-        QualificationType qualificationType)
+        GroupCategory group)
     {
         if (StudyYear is { } year && currentStudyYear != year)
         {
             return false;
         }
-        if (Grade is { } g && grade != g)
+        if (Grade is { } g && group.Grade != g)
         {
             return false;
         }
-        if (Faculty is { } f && faculty != f)
+        if (Faculty is { } f && group.Faculty != f)
         {
             return false;
         }
-        if (AttendanceMode is { } a && attendanceMode != a)
+        if (AttendanceMode is { } a && group.AttendanceMode != a)
         {
             return false;
         }
 
-        if (Qualification is { } q && qualificationType != q)
+        if (Qualification is { } q && group.QualificationType != q)
         {
             return false;
         }

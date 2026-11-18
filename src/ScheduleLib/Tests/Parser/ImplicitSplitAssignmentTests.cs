@@ -346,18 +346,11 @@ public sealed class ImplicitSplitAssignmentTests
     [Fact]
     public void RegistryPermitsTheGrade3TrackValues()
     {
-        var group = new Group
-        {
-            Name = "IA2403",
-            Grade = new(3),
-            GroupNumber = 3,
-            QualificationType = QualificationType.Licenta,
-            Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Zi,
-            Language = Language.Ru,
-        };
+        Grade thirdYear = new(3);
+        Faculty faculty = new("IA");
+        var group = new GroupCategory(thirdYear, faculty, AttendanceMode.Zi, QualificationType.Licenta);
 
-        var permitted = ScheduleDefaults.Config.SpecializationRegistry.PermittedFor(in group);
+        var permitted = ScheduleDefaults.Config.SpecializationRegistry.PermittedFor(group);
 
         Assert.True(new[]
             {

@@ -474,7 +474,7 @@ public static class LessonBuilderHelper
                     }
                 }
 
-                Group Group1(in LessonBuilderModelDataBase lesson, int i)
+                GroupBuilderModel Group1(in LessonBuilderModelDataBase lesson, int i)
                 {
                     return s.Groups.Ref(lesson.Group.Groups[i].Value);
                 }

@@ -257,7 +257,7 @@ public static class SerializationModels
         {
             var group = groupParseContext.Parse(model.Name, remappings);
             group.Language = model.Language;
-            return group;
+            return group.Build();
         }
 
         static WeeklyLesson ToWeeklyLesson(WeeklyLessonModel model)
@@ -352,7 +352,7 @@ public static class SerializationModels
         foreach (var s in schedule.Groups)
         {
             var g = builder.Group(s.Name);
-            g.Ref.Language = s.Language;
+            g.Model.Language = s.Language;
         }
 
         Debug.Assert(builder.Periods.Count == 0);

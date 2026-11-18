@@ -11,7 +11,7 @@ public sealed class GroupNameParserTests
         CurrentStudyYear = new(2024),
     });
 
-    private Group Parse(string s) => _context.Parse(s.AsMemory());
+    private GroupBuilderModel Parse(string s) => _context.Parse(s.AsMemory());
 
     [Theory]
     [InlineData("")]

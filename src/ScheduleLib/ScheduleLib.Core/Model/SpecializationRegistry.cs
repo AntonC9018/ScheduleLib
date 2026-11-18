@@ -20,7 +20,7 @@ public readonly record struct GroupCategorySelector(
     AttendanceMode? AttendanceMode,
     QualificationType? Qualification)
 {
-    public bool Matches(in Group group)
+    public bool Matches(GroupCategory group)
     {
         if (Grade is { } grade
             && group.Grade != grade)
@@ -71,13 +71,13 @@ public sealed class SpecializationRegistry
     /// The union of the sets of every selector matching the group.
     /// No matching entry means no specialization values are allowed.
     /// </summary>
-    public ImmutableArray<Specialization> PermittedFor(in Group group)
+    public ImmutableArray<Specialization> PermittedFor(GroupCategory group)
     {
         var builder = ImmutableArray.CreateBuilder<Specialization>();
         var seen = new HashSet<Specialization>();
         foreach (var (selector, values) in _entries)
         {
-            if (!selector.Matches(in group))
+            if (!selector.Matches(group))
             {
                 continue;
             }
@@ -126,12 +126,12 @@ public sealed class SpecializationRegistry
     /// validation errors, where seeing the exact registry context is more useful
     /// than a bare "unknown subgroup" message.
     /// </summary>
-    public string DescribeMatches(in Group group)
+    public string DescribeMatches(GroupCategory group)
     {
         var matches = new List<string>();
         foreach (var (selector, values) in _entries)
         {
-            if (!selector.Matches(in group))
+            if (!selector.Matches(group))
             {
                 continue;
             }

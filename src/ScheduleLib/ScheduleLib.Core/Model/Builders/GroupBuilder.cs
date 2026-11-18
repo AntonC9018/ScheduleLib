@@ -1,19 +1,70 @@
-using System.Runtime.InteropServices;
 using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib.Builders;
 
 partial class ScheduleBuilder
 {
-    public ListBuilder<Group> Groups = new();
+    public ListBuilder<GroupBuilderModel> Groups = new();
 }
 
-public struct GroupBuilder
+/// <summary>The data of a group while the schedule is being built.</summary>
+public sealed class GroupBuilderModel
+{
+    /// <summary>
+    /// Does not contain the language
+    /// </summary>
+    public required string Name;
+
+    public Grade Grade;
+    public int GroupNumber;
+    public QualificationType QualificationType;
+    public Faculty Faculty;
+    public AttendanceMode AttendanceMode;
+    public Specialty Specialty;
+    public Language Language;
+
+    public GroupCategory Category => new(Grade, Faculty, AttendanceMode, QualificationType);
+
+    /// <summary>
+    /// Throws when a field the built group requires has not been set.
+    /// The name is checked as well, because a model may be filled in without the parser.
+    /// </summary>
+    public void Validate()
+    {
+        if (Name is null)
+        {
+            throw UninitializedScheduleModelException.ForGroupNameNotInitialized();
+        }
+
+        if (Grade.Value == 0)
+        {
+            throw UninitializedScheduleModelException.ForGroupGradeNotInitialized();
+        }
+    }
+
+    public Group Build()
+    {
+        Validate();
+        return new()
+        {
+            Name = Name,
+            Grade = Grade,
+            GroupNumber = GroupNumber,
+            QualificationType = QualificationType,
+            Faculty = Faculty,
+            AttendanceMode = AttendanceMode,
+            Specialty = Specialty,
+            Language = Language,
+        };
+    }
+}
+
+public readonly struct GroupBuilder
 {
     public required ScheduleBuilder Schedule { get; init; }
     public required GroupId Id { get; init; }
 
-    public ref Group Ref => ref Schedule.Groups.Ref(Id.Value);
+    public GroupBuilderModel Model => Schedule.Groups.List[Id.Value];
     public static implicit operator GroupId(GroupBuilder g) => g.Id;
 }
 
@@ -29,7 +80,7 @@ public static class GroupBuilderHelper
         return new(now.Year - 1);
     }
 
-    public static Group ParseGroup(this ScheduleBuilder s, string fullName)
+    public static GroupBuilderModel ParseGroup(this ScheduleBuilder s, string fullName)
     {
         var context = s.GroupParseContext;
         if (context is null)
@@ -45,7 +96,7 @@ public static class GroupBuilderHelper
     }
 
     /// <summary>Parses a group name, applying the group name remappings.</summary>
-    public static Group Parse(this GroupParseContext context, string fullName, Remappings remappings)
+    public static GroupBuilderModel Parse(this GroupParseContext context, string fullName, Remappings remappings)
     {
         var ret = context.Parse(fullName.AsMemory());
         if (!remappings.GroupNameRemappings.TryGetValue(key: ret.Name, value: out var name))
@@ -80,7 +131,7 @@ public static class GroupBuilderHelper
             Schedule = s,
         };
 
-        static GroupId Default(ScheduleBuilder s, Group group)
+        static GroupId Default(ScheduleBuilder s, GroupBuilderModel group)
         {
             var result = s.Groups.New();
             result.Value = group;
@@ -90,17 +141,9 @@ public static class GroupBuilderHelper
 
     internal static void ValidateGroups(ScheduleBuilder s)
     {
-        foreach (ref var group in CollectionsMarshal.AsSpan(s.Groups.List))
+        foreach (var group in s.Groups.List)
         {
-            if (group.Name == null)
-            {
-                throw UninitializedScheduleModelException.ForGroupNameNotInitialized();
-            }
-
-            if (group.Grade.Value == 0)
-            {
-                throw UninitializedScheduleModelException.ForGroupGradeNotInitialized();
-            }
+            group.Validate();
         }
     }
 }

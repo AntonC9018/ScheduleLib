@@ -803,17 +803,17 @@ public static class ExcelScheduleParser
                 }
 
                 var group = builder.Group(str);
-                if (!config.AllowedAttendanceModes.Contains(group.Ref.AttendanceMode))
+                if (!config.AllowedAttendanceModes.Contains(group.Model.AttendanceMode))
                 {
                     throw cell.Exception($"Expected only {config.AllowedAttendanceModes} groups in the excel");
                 }
-                if (!config.AllowedQualificationTypes.Contains(group.Ref.QualificationType))
+                if (!config.AllowedQualificationTypes.Contains(group.Model.QualificationType))
                 {
                     throw cell.Exception($"Expected only {config.AllowedQualificationTypes} groups in the excel");
                 }
 
                 var grade = grades.Get(colIndex);
-                if (group.Ref.Grade != grade)
+                if (group.Model.Grade != grade)
                 {
                     throw cell.Exception("Grade parsed vs specified mismatch");
                 }

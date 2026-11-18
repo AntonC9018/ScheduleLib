@@ -47,7 +47,7 @@ public static class GroupHelper
     /// <summary>The parsed label of a group name and the flags that were recognized next to it.</summary>
     private readonly record struct GroupLabel(string Label, bool IsFR, bool IsMaster);
 
-    public static Group? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
+    public static GroupBuilderModel? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         try
         {
@@ -59,7 +59,7 @@ public static class GroupHelper
         }
     }
 
-    public static Group Parse(this GroupParseContext context, ReadOnlyMemory<char> name)
+    public static GroupBuilderModel Parse(this GroupParseContext context, ReadOnlyMemory<char> name)
     {
         // M2401(ro)
         // IAFR2402

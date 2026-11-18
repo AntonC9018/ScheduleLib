@@ -34,9 +34,9 @@ public sealed class TopicSeriesTests
             scheduleBuilder.EnableLookupModule();
             var course = scheduleBuilder.Course("Synthetic course");
             var russian = scheduleBuilder.Group("IA2601");
-            russian.Ref.Language = Language.Ru;
+            russian.Model.Language = Language.Ru;
             var english = scheduleBuilder.Group("IA2602");
-            english.Ref.Language = Language.En;
+            english.Model.Language = Language.En;
             foreach (var group in new[]
                      {
                          russian,
@@ -144,9 +144,9 @@ public sealed class TopicSeriesTests
             scheduleBuilder.EnableLookupModule();
             var course = scheduleBuilder.Course("Synthetic course");
             var russian = scheduleBuilder.Group("IA2601");
-            russian.Ref.Language = Language.Ru;
+            russian.Model.Language = Language.Ru;
             var english = scheduleBuilder.Group("IA2602");
-            english.Ref.Language = Language.En;
+            english.Model.Language = Language.En;
             AddLesson(
                 russian,
                 LessonType.Curs,

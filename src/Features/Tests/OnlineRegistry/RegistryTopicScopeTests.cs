@@ -54,7 +54,7 @@ public sealed class RegistryTopicScopeTests
             CurrentStudyYear = new(2026),
         });
         var group = builder.Group("IA2501");
-        group.Ref.Language = Language.None;
+        group.Model.Language = Language.None;
         var groups = new LessonGroups();
         groups.Add(group.Id);
         var scope = RegistryTopicScope.Format(

@@ -12,7 +12,6 @@ using ScheduleLib.Parsing;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
-using Group = ScheduleLib.Group;
 using SequencePosition = ScheduleLib.Helper.Parsing.SequencePosition;
 
 namespace OnlineRegistry.AttendanceExcel;
@@ -264,7 +263,7 @@ public sealed partial class AttendanceListsExcelParser
         public required (SequencePosition Start, SequencePosition End)? NameRange;
         public required LessonType LessonType;
         public required GroupPartitionKey GroupPartition;
-        public required Group? Group;
+        public required string? GroupName;
     }
 
     private static ParsedName ParseName(
@@ -278,7 +277,7 @@ public sealed partial class AttendanceListsExcelParser
         bool isInParens = false;
         var lessonType = LessonType.None;
         var groupPartition = GroupPartitionKey.All;
-        Group? group = null;
+        string? groupName = null;
 
         while (!lexer.IsEmpty)
         {
@@ -354,7 +353,7 @@ public sealed partial class AttendanceListsExcelParser
             {
                 if (groupParser.TryParse(token.Value) is { } x)
                 {
-                    group = x;
+                    groupName = x.Name;
                     return true;
                 }
                 return false;
@@ -363,7 +362,7 @@ public sealed partial class AttendanceListsExcelParser
 
         return new()
         {
-            Group = group,
+            GroupName = groupName,
             LessonType = lessonType,
             NameRange = nameStart is null ? null : (nameStart.Value, nameEnd!.Value),
             GroupPartition = groupPartition,
@@ -436,11 +435,11 @@ public sealed partial class AttendanceListsExcelParser
             }
 
             var groups = new LessonGroups();
-            if (parsedName.Group is { } group)
+            if (parsedName.GroupName is { } groupName)
             {
-                if (_lookup.Group(group.Name) is not { } x)
+                if (_lookup.Group(groupName) is not { } x)
                 {
-                    throw new AttendanceGroupNotFoundException(group.Name);
+                    throw new AttendanceGroupNotFoundException(groupName);
                 }
                 groups.Add(x);
             }

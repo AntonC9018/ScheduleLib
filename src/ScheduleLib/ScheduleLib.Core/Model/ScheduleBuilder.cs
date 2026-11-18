@@ -206,7 +206,7 @@ public static partial class ScheduleBuilderHelper
                 return $"{id.Value} => unavailable group";
             }
             var group = s.Groups.List[id.Value];
-            return $"{group.Name} => {registry.DescribeMatches(in group)}";
+            return $"{group.Name} => {registry.DescribeMatches(group.Category)}";
         }
     }
 
@@ -257,7 +257,7 @@ public static partial class ScheduleBuilderHelper
                 },
             };
         });
-        var groups = s.Groups.Build();
+        var groups = s.Groups.Build(x => x.Build());
         var teachers = s.Teachers.Build(x =>
         {
             var ret = new Teacher

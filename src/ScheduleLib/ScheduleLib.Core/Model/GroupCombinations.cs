@@ -287,7 +287,7 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
             ImmutableArray<Specialization> permitted = [.. observedSpecs];
             if (registry is { } r)
             {
-                var allowed = r.PermittedFor(in group);
+                var allowed = r.PermittedFor(group.Category);
                 permitted = [.. observedSpecs.Where(allowed.Contains)];
             }
             // A singleton specialization is stored on the lesson but is shared for

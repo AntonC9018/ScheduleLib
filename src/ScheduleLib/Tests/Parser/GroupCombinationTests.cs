@@ -902,36 +902,13 @@ public sealed class GroupCombinationTests
             });
         var registry = b.Build();
 
-        var both = new Group
-        {
-            Name = "IA2401",
-            Grade = new(2),
-            GroupNumber = 1,
-            QualificationType = QualificationType.Licenta,
-            Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Zi,
-            Language = Language.Ro,
-        };
-        var otherFaculty = new Group
-        {
-            Name = "XX2401",
-            Grade = new(2),
-            GroupNumber = 1,
-            QualificationType = QualificationType.Licenta,
-            Faculty = new("XX"),
-            AttendanceMode = AttendanceMode.Zi,
-            Language = Language.Ro,
-        };
-        var otherGrade = new Group
-        {
-            Name = "IA2301",
-            Grade = new(3),
-            GroupNumber = 1,
-            QualificationType = QualificationType.Licenta,
-            Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.Zi,
-            Language = Language.Ro,
-        };
+        Grade secondYear = new(2);
+        Grade thirdYear = new(3);
+        Faculty ia = new("IA");
+        Faculty xx = new("XX");
+        var both = new GroupCategory(secondYear, ia, AttendanceMode.Zi, QualificationType.Licenta);
+        var otherFaculty = new GroupCategory(secondYear, xx, AttendanceMode.Zi, QualificationType.Licenta);
+        var otherGrade = new GroupCategory(thirdYear, ia, AttendanceMode.Zi, QualificationType.Licenta);
 
         var value = new[]
         {
@@ -939,7 +916,7 @@ public sealed class GroupCombinationTests
             Specialization.DJ,
         };
         var second =
-            registry.PermittedFor(in both);
+            registry.PermittedFor(both);
         IEnumerable<Specialization> second2 = second;
         bool includesShared = value.SequenceEqual(second2);
         Assert.True(includesShared);
@@ -948,7 +925,7 @@ public sealed class GroupCombinationTests
             Specialization.CV,
         };
         var second3 =
-            registry.PermittedFor(in otherFaculty);
+            registry.PermittedFor(otherFaculty);
         IEnumerable<Specialization> second4 = second3;
         bool includesNumericI = value2.SequenceEqual(second4);
         Assert.True(includesNumericI);
@@ -957,7 +934,7 @@ public sealed class GroupCombinationTests
             Specialization.DJ,
         };
         var second5 =
-            registry.PermittedFor(in otherGrade);
+            registry.PermittedFor(otherGrade);
         IEnumerable<Specialization> second6 = second5;
         bool includesRomanian = value3.SequenceEqual(second6);
         Assert.True(includesRomanian);
@@ -966,18 +943,11 @@ public sealed class GroupCombinationTests
     [Fact]
     public void DefaultRegistryUsesTheIAFirstYearDualSelector()
     {
-        var dual = new Group
-        {
-            Name = "IA2501 Dual",
-            Grade = new(1),
-            GroupNumber = 1,
-            QualificationType = QualificationType.Licenta,
-            Faculty = new("IA"),
-            AttendanceMode = AttendanceMode.DualZi,
-            Language = Language.Ro,
-        };
+        Grade firstYear = new(1);
+        Faculty faculty = new("IA");
+        var dual = new GroupCategory(firstYear, faculty, AttendanceMode.DualZi, QualificationType.Licenta);
 
-        var permitted = Config.SpecializationRegistry.PermittedFor(in dual);
+        var permitted = Config.SpecializationRegistry.PermittedFor(dual);
 
         Assert.True(new[]
             {
