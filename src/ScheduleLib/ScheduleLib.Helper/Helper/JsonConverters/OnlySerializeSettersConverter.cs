@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -9,27 +10,49 @@ namespace ScheduleLib.Helper.JsonConverters;
 public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     where T : new()
 {
+    /// <summary>A settable property and what the JSON must supply for it.</summary>
+    private sealed record PropertyContract(int Index, PropertyInfo Property, bool IsRequired, bool AllowsNull);
+
     // Cache properties with setters
-    private static readonly PropertyInfo[] _writableProperties =
-        typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+    private static readonly PropertyContract[] _writableProperties = CreateContracts();
+
+    private static PropertyContract[] CreateContracts()
+    {
+        var nullability = new NullabilityInfoContext();
+        return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.CanWrite)
+            .Select((p, index) => new PropertyContract(
+                Index: index,
+                Property: p,
+                IsRequired: p.IsDefined(typeof(RequiredMemberAttribute)),
+                AllowsNull: AllowsNull(p, nullability)))
             .ToArray();
+    }
+
+    private static bool AllowsNull(PropertyInfo property, NullabilityInfoContext nullability)
+    {
+        if (property.PropertyType.IsValueType)
+        {
+            return Nullable.GetUnderlyingType(property.PropertyType) is not null;
+        }
+        return nullability.Create(property).WriteState != NullabilityState.NotNull;
+    }
 
     private record struct Key(JsonNamingPolicy? Policy);
 
-    // Cache property name -> PropertyInfo mapping per naming policy
-    private static readonly ConcurrentDictionary<Key, Dictionary<string, PropertyInfo>> _propertyCache = new();
+    // Cache property name -> contract mapping per naming policy
+    private static readonly ConcurrentDictionary<Key, Dictionary<string, PropertyContract>> _propertyCache = new();
 
-    private static Dictionary<string, PropertyInfo> GetPropertyMap(JsonNamingPolicy? namingPolicy)
+    private static Dictionary<string, PropertyContract> GetPropertyMap(JsonNamingPolicy? namingPolicy)
     {
         Key key = new(namingPolicy);
-        Func<Key, Dictionary<string, PropertyInfo>> valueFactory = np =>
+        Func<Key, Dictionary<string, PropertyContract>> valueFactory = np =>
         {
-            var dict = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
-            foreach (var prop in _writableProperties)
+            var dict = new Dictionary<string, PropertyContract>(StringComparer.OrdinalIgnoreCase);
+            foreach (var contract in _writableProperties)
             {
-                string name = np.Policy?.ConvertName(prop.Name) ?? prop.Name;
-                dict[name] = prop;
+                string name = np.Policy?.ConvertName(contract.Property.Name) ?? contract.Property.Name;
+                dict[name] = contract;
             }
 
             return dict;
@@ -37,6 +60,10 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         return _propertyCache.GetOrAdd(key, valueFactory);
     }
 
+    /// <summary>
+    /// Reads an object, rejecting a missing <c>required</c> property and a null value for a
+    /// non-nullable one, so malformed input fails as a <see cref="JsonException"/>.
+    /// </summary>
     public override T Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
@@ -49,11 +76,13 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
         object obj = new T();
         var props = GetPropertyMap(options.PropertyNamingPolicy);
+        var supplied = new bool[_writableProperties.Length];
 
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
+                RejectMissingRequired(supplied);
                 return (T) obj;
             }
 
@@ -66,13 +95,18 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             reader.Read(); // move to value
 
             // TODO: remove reflection
-            if (props.TryGetValue(propertyName, out var propInfo))
+            if (props.TryGetValue(propertyName, out var contract))
             {
                 object? value = JsonSerializer.Deserialize(
                     ref reader,
-                    propInfo.PropertyType,
+                    contract.Property.PropertyType,
                     options);
-                propInfo.SetValue(obj: obj, value: value);
+                if (value is null && !contract.AllowsNull)
+                {
+                    throw new JsonException($"{typeof(T).Name}.{contract.Property.Name} must not be null");
+                }
+                contract.Property.SetValue(obj: obj, value: value);
+                supplied[contract.Index] = true;
             }
             else
             {
@@ -81,6 +115,15 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         }
 
         throw new JsonException("Incomplete JSON object");
+    }
+
+    private static void RejectMissingRequired(bool[] supplied)
+    {
+        var missing = _writableProperties.FirstOrDefault(c => c.IsRequired && !supplied[c.Index]);
+        if (missing is not null)
+        {
+            throw new JsonException($"{typeof(T).Name}.{missing.Property.Name} is required");
+        }
     }
 
     public override void Write(

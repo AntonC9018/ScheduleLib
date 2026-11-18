@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
@@ -14,6 +15,8 @@ public sealed class ScheduleLoaderSerializationTests
     [InlineData("configuration")]
     [InlineData("empty-hash")]
     [InlineData("corrupt-json")]
+    [InlineData("teacher-without-contacts")]
+    [InlineData("teacher-with-null-contacts")]
     public async Task CacheHitsSkipImportAndChangedIdentityRebuilds(string change)
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
@@ -53,6 +56,12 @@ public sealed class ScheduleLoaderSerializationTests
                 break;
             case "corrupt-json":
                 await File.WriteAllTextAsync(path: CalculateSchedulePath(temp), contents: "{corrupt");
+                break;
+            case "teacher-without-contacts":
+                await AddCachedTeacher(CalculateSchedulePath(temp), writeNullContacts: false);
+                break;
+            case "teacher-with-null-contacts":
+                await AddCachedTeacher(CalculateSchedulePath(temp), writeNullContacts: true);
                 break;
         }
         var rebuilt = await loader.Load(CreateContext(), CancellationToken.None);
@@ -181,6 +190,26 @@ public sealed class ScheduleLoaderSerializationTests
             CreateContext(),
             CancellationToken.None,
             bypassCache: true);
+    }
+
+    /// <summary>
+    /// Adds a malformed teacher to the cache while keeping its hash, so only schema validation
+    /// can reject it: its required contacts are either omitted or null.
+    /// </summary>
+    private static async Task AddCachedTeacher(string path, bool writeNullContacts)
+    {
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+        var teacher = new JsonObject
+        {
+            ["FirstName"] = new JsonArray(),
+            ["LastName"] = new JsonArray("Popescu"),
+        };
+        if (writeNullContacts)
+        {
+            teacher["Contacts"] = null;
+        }
+        root["Teachers"] = new JsonArray(teacher);
+        await File.WriteAllTextAsync(path: path, contents: root.ToJsonString());
     }
 
     private static ScheduleImportContext CreateContext()
