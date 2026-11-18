@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using ScheduleLib.Builders;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.ScheduleDefaults;
 
@@ -43,6 +45,52 @@ public sealed class CourseNameTests
         var course1 = Parse(parserConfig, "Dezvoltarea de aplicatii server-side cu Node.js");
         var course2 = Parse(parserConfig, "Dezv. apl. server-side cu Node.js");
         Assert.Equal(expected: course1, actual: course2);
+    }
+
+    [Fact]
+    public void LookupMatchesEveryNameAddedDuringImport()
+    {
+        var unifierConfig = CourseNameUnifierConfig.Create(new CourseNameParserConfig(new()), []);
+        var builder = new ScheduleBuilder();
+        builder.EnableLookupModule();
+        var unifier = new CourseNameUnifierModule(unifierConfig);
+
+        // "Networking" shares a prefix with "Network", but not with "Networks".
+        var course = Import("Network Systems");
+        var longerSpelling = Import("Networking Systems");
+        Assert.Equal(expected: course, actual: longerSpelling);
+        var schedule = builder.Build();
+        var builtCourse = schedule.Get(course);
+        Assert.Equal(expected: "Networking Systems", actual: builtCourse.FullName);
+
+        var index = CourseNameIndex.Create(schedule.Courses, unifierConfig);
+        var found = index.Find("Networks Systems".AsMemory(), new());
+        Assert.Equal(expected: course, actual: found);
+
+        CourseId Import(string name)
+        {
+            return unifier.FindOrAdd(new()
+            {
+                Schedule = builder,
+                CourseName = name.AsMemory(),
+            });
+        }
+    }
+
+    [Fact]
+    public void LookupPrefersTheEarliestCourseWhenNamesOfSeveralMatch()
+    {
+        var unifierConfig = CourseNameUnifierConfig.Create(new CourseNameParserConfig(new()), []);
+        ImmutableArray<Course> courses =
+        [
+            new(["Networking Systems"]),
+            new(["Networks Systems"]),
+        ];
+        var index = CourseNameIndex.Create(courses, unifierConfig);
+
+        var found = index.Find("Network Systems".AsMemory(), new());
+
+        Assert.Equal(expected: new CourseId(0), actual: found);
     }
 
     private ParsedCourseName Parse(

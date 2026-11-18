@@ -8,6 +8,12 @@ namespace ScheduleLib.Parsing.CourseName;
 /// Finds courses of a built schedule by name: first among their names and aliases, then by the
 /// unified form of the name. Lookups never add aliases.
 /// </summary>
+/// <remarks>
+/// Every name of a course is unified, not only the first: unified names compare by prefix,
+/// which is not transitive, so a name matching one spelling of a course may miss another.
+/// When unified names of several courses match, the course with the lowest id wins,
+/// the one imported first.
+/// </remarks>
 public sealed class CourseNameIndex
 {
     private readonly CourseNameUnifierConfig _config;
@@ -29,7 +35,8 @@ public sealed class CourseNameIndex
     public static CourseNameIndex Create(ImmutableArray<Course> courses, CourseNameUnifierConfig config)
     {
         var names = new Dictionary<string, CourseId>(StringComparer.CurrentCultureIgnoreCase);
-        var unifiedNames = ImmutableArray.CreateBuilder<SlowCourse>(courses.Length);
+        // Ordered by course id, so the first match is the earliest course.
+        var unifiedNames = ImmutableArray.CreateBuilder<SlowCourse>();
         for (int i = 0; i < courses.Length; i++)
         {
             var id = new CourseId(i);
@@ -37,12 +44,11 @@ public sealed class CourseNameIndex
             foreach (var name in course.Names)
             {
                 names.Add(name, id);
+                unifiedNames.Add(config.UnifiedCourse(name, id));
             }
-            // The names of a course are equivalent, so one unified name suffices.
-            unifiedNames.Add(config.UnifiedCourse(course.FullName, id));
         }
         var frozenNames = names.ToFrozenDictionary(StringComparer.CurrentCultureIgnoreCase);
-        return new(config, frozenNames, unifiedNames.MoveToImmutable());
+        return new(config, frozenNames, unifiedNames.ToImmutable());
     }
 
     public CourseId? Find(ReadOnlyMemory<char> courseName, CourseNameParseOptions parseOptions)
