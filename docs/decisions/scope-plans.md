@@ -101,7 +101,21 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - Command method parameters become seeds.
 - Tests replace values through `AddInitialized`/`AddDerived` and run commands through the real
   host, removing the `virtual` seams and the CR1400 suppression.
-- The GUI moves later under [#283][283].
+- The GUI is removed from the solution until it moves to scope plans under [#283][283];
+  reverting the removal commit restores it.
+
+### Logging
+
+- One Serilog `ReloadableLogger` (`CreateBootstrapLogger`) is registered in the root container.
+  After CommandDotNet parses the arguments, the CLI reloads it into console mode (stderr) or
+  JSONL mode writing to the invocation's `CliOutput`. `CliAmbient` is removed.
+- This is per process. A CLI server needs per-request routing (deferred).
+
+### Schedule
+
+- The flaws of the mutable singleton `ScheduleBuilder` come from working around Microsoft DI,
+  so the schedule model is refactored now: loading produces an immutable value per scope,
+  and the builder is used only while loading.
 
 ## Rejected and not planned
 
@@ -116,6 +130,7 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - Parallel initializers, opted into by an attribute or a registration option.
 - A source generator producing plans at compile time.
 - A per-registration "re-initialize in each fork" option, once a stateful session needs it.
+- Per-request log routing for a CLI server.
 
 ## Migration notes
 
