@@ -112,7 +112,7 @@ public partial class AuthCommands
         var cancellation = context.Cancellation;
         try
         {
-            using var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
+            var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is not { } teacher)
             {
                 return CliAuthenticationExecution.Finish(

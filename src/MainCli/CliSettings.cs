@@ -10,9 +10,11 @@ using Anton.LayeredData.Retrieval;
 using Anton.LayeredData.TreeEnumeration;
 using CommandDotNet;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
+using ScheduleLib.DependencyInjection.ScopePlans;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 
@@ -41,10 +43,13 @@ public sealed record SettingsSource(string Name, string? File, IReadOnlyList<str
 
 public sealed record SettingsValue(JsonNode? Value, IReadOnlyList<SettingsSource> Sources);
 
-/// <summary>Owns the registered layer services and the actual path consumed by runtime DataProvider.</summary>
-public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
+/// <summary>
+/// The resolved settings layers and the actual path consumed by runtime DataProvider.
+/// Values are constructed with the layered-data services of the container that loaded them.
+/// </summary>
+public sealed class ResolvedSettings : IMarkerDataHelper
 {
-    private readonly ServiceProvider _provider;
+    private readonly IServiceProvider _provider;
     private readonly JsonSerializerOptions _json;
     private readonly IReadOnlyDictionary<string, NodePath> _profilePaths;
     private readonly NodePath _globalPath;
@@ -64,7 +69,7 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public IReadOnlyList<SettingsSource> Sources { get; }
 
     internal ResolvedSettings(
-        ServiceProvider provider,
+        IServiceProvider provider,
         TreeBuilder tree,
         NodePath path,
         JsonSerializerOptions json,
@@ -90,19 +95,59 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     public T? Get<T>(NodeDataKey<T> key) where T : class => Path.ConstructValue(key, _provider);
     public T? GetGlobal<T>(NodeDataKey<T> key) where T : class => _globalPath.ConstructValue(key, _provider);
 
+    /// <summary>
+    /// Registers these settings in a container of their own, for commands that do not run
+    /// through the root container yet (#247).
+    /// </summary>
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton(Tree);
-        services.AddSingleton<IMarkerDataHelper>(this);
-        services.Configure<ScheduleDerivationOptions>(options =>
-            options.AutoMergeLabSubGroups = GetGlobal(ScheduleDerivationConfig.Key)?.AutoMergeLabSubGroups ?? false);
-        if (Profile is { } teacher)
+        services.AddSingleton(this);
+        AddDerivedValues(services);
+    }
+
+    /// <summary>
+    /// Settings as scope values: the selection is a seed, the settings are initialized from it,
+    /// and the teacher marker, marker helper and derivation options derive from them.
+    /// </summary>
+    public static void AddScopeValues(IServiceCollection services)
+    {
+        services.AddSingleton<SettingsLoader>();
+        services.AddSeed<SettingsSelection>();
+        services.AddInitialized<ResolvedSettings, ResolvedSettingsInitializer>();
+        AddDerivedValues(services);
+    }
+
+    private static void AddDerivedValues(IServiceCollection services)
+    {
+        // The marker services registered without settings are replaced, not shadowed.
+        services.RemoveAll<TeacherLayerConfig>();
+        services.RemoveAll<IMarkerDataHelper>();
+        services.AddDerived<TeacherLayerConfig, SettingsTeacherLayerFactory>();
+        services.AddDerived<IMarkerDataHelper, SettingsMarkerDataHelperFactory>();
+        services.AddDerived<ScheduleDerivationOptions, SettingsScheduleDerivationFactory>();
+    }
+
+    /// <summary>The teacher marker of the selected profile; empty without a profile.</summary>
+    public TeacherLayerConfig CreateTeacherLayer()
+    {
+        if (Profile is not { } teacher)
         {
-            services.AddScoped(_ => new TeacherLayerConfig
-            {
-                TeacherName = NameHelper.Parse(teacher),
-            });
+            return new();
         }
+        return new()
+        {
+            TeacherName = NameHelper.Parse(teacher),
+        };
+    }
+
+    public ScheduleDerivationOptions CreateDerivationOptions()
+    {
+        var autoMerge = GetGlobal(ScheduleDerivationConfig.Key)?.AutoMergeLabSubGroups ?? false;
+        return new()
+        {
+            AutoMergeLabSubGroups = autoMerge,
+        };
     }
 
     MarkerData IMarkerDataHelper.GetMarkerData(IServiceProvider sp) => new(sp.GetRequiredService<TeacherLayerConfig>());
@@ -223,8 +268,6 @@ public sealed class ResolvedSettings : IDisposable, IMarkerDataHelper
     private void ValidateBlock<T>(NodePath path, NodeDataKey key) where T : class =>
         _ = path.ConstructValue(new NodeDataKey<T>(key), _provider);
 
-    public void Dispose() => _provider.Dispose();
-
     internal sealed class UnknownSettingsKeyException : JsonException
     {
         internal UnknownSettingsKeyException(string key)
@@ -275,6 +318,19 @@ public static partial class CliSettings
         }
     }
 
+    /// <summary>
+    /// Layered-data services for commands that load settings outside the root container (#247).
+    /// Registration only: never initialize schedules, credential resolvers, provider clients, or
+    /// user secrets. Built once; loads never mutate them.
+    /// </summary>
+    private static readonly Lazy<ServiceProvider> StandaloneServices = new(() =>
+    {
+        var services = new ServiceCollection();
+        services.AddConfigsServices();
+        services.AddOnlineRegistry();
+        return services.BuildServiceProvider();
+    });
+
     public static async Task<ResolvedSettings> Load(
         SettingsArguments arguments,
         string? invocationDirectory = null,
@@ -283,233 +339,224 @@ public static partial class CliSettings
         ConfigOverrideArguments? overrides = null)
     {
         return await LoadCore(
-            arguments,
+            StandaloneServices.Value,
+            SettingsSelection.From(arguments, overrides),
             invocationDirectory: invocationDirectory,
             userFile: userFile,
-            cancellationToken,
-            overrides);
+            cancellationToken);
     }
 
-    private static async Task<ResolvedSettings> LoadCore(
-        SettingsArguments arguments,
+    /// <summary>
+    /// Loads the selected settings with <paramref name="provider"/>'s layered-data services, on a
+    /// layer tree of their own.
+    /// </summary>
+    internal static async Task<ResolvedSettings> LoadCore(
+        IServiceProvider provider,
+        SettingsSelection selection,
         string? invocationDirectory,
         string? userFile,
         CancellationToken cancellationToken,
-        ConfigOverrideArguments? overrides = null,
         (string Path, JsonObject Envelope)? replacement = null)
     {
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
-        var project = DiscoverProject(explicitProject: arguments.Project, invocationDirectory: cwd);
-        var services = new ServiceCollection();
-        // Registration only: never initialize schedules, credential resolvers, provider clients, or user secrets.
-        services.AddConfigsServices();
-        services.AddOnlineRegistry();
-        var provider = services.BuildServiceProvider();
-        try
+        var project = DiscoverProject(explicitProject: selection.ProjectPath, invocationDirectory: cwd);
+        var tree = new TreeBuilder(provider);
+        tree.AddDefaultConfig();
+        var codeProfiles = tree.GetMarkerNodes()
+            .ToDictionary(
+                keySelector: x => x.Config.TeacherName.ToString(),
+                elementSelector: x => x.Builder.Node,
+                StringComparer.Ordinal);
+        if (selection.Profile is { } teacher && !codeProfiles.ContainsKey(teacher))
         {
-            var tree = provider.GetRequiredService<TreeBuilder>();
-            tree.AddDefaultConfig();
-            var codeProfiles = tree.GetMarkerNodes()
-                .ToDictionary(
-                    keySelector: x => x.Config.TeacherName.ToString(),
-                    elementSelector: x => x.Builder.Node,
-                    StringComparer.Ordinal);
-            if (arguments.Profile is { } teacher && !codeProfiles.ContainsKey(teacher))
-            {
-                throw new UnknownCliTeacherProfileException(teacher);
-            }
+            throw new UnknownCliTeacherProfileException(teacher);
+        }
 
-            var json =
-                new JsonSerializerOptions(
-                    provider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>()
-                        .Get(TreeSerializer.ServiceKey))
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-                    NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
-                    WriteIndented = true,
-                };
-            json.Converters.Insert(0, new ConfigColorConverter());
-            json.Converters.Insert(0, new JsonStringEnumConverter(allowIntegerValues: false));
-            var user = await ReadFile(
-                userFile ?? UserFile,
+        var json =
+            new JsonSerializerOptions(
+                provider.GetRequiredService<IOptionsMonitor<JsonSerializerOptions>>()
+                    .Get(TreeSerializer.ServiceKey))
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+                WriteIndented = true,
+            };
+        json.Converters.Insert(0, new ConfigColorConverter());
+        json.Converters.Insert(0, new JsonStringEnumConverter(allowIntegerValues: false));
+        var user = await ReadFile(
+            userFile ?? UserFile,
+            json,
+            codeProfiles.Keys,
+            cancellationToken,
+            replacement);
+        var local = project is null
+            ? null
+            : await ReadFile(
+                Path.Combine(project, FileName),
                 json,
                 codeProfiles.Keys,
                 cancellationToken,
                 replacement);
-            var local = project is null
-                ? null
-                : await ReadFile(
-                    Path.Combine(project, FileName),
-                    json,
-                    codeProfiles.Keys,
-                    cancellationToken,
-                    replacement);
-            var defaultSources = new List<SettingsSource>
-            {
-                CodeSource(
-                    "code defaults",
-                    tree.BaseNode,
-                    json),
-            };
-            var defaultsPath = ImmutableArray.CreateBuilder<MutableNode>();
-            defaultsPath.Add(tree.BaseNode);
+        var defaultSources = new List<SettingsSource>
+        {
+            CodeSource(
+                "code defaults",
+                tree.BaseNode,
+                json),
+        };
+        var defaultsPath = ImmutableArray.CreateBuilder<MutableNode>();
+        defaultsPath.Add(tree.BaseNode);
+        AddOverlay(
+            defaultsPath,
+            defaultSources,
+            user,
+            "user defaults",
+            user?.Defaults);
+        AddOverlay(
+            defaultsPath,
+            defaultSources,
+            local,
+            "project settings",
+            local?.Defaults);
+        var profilePaths = new Dictionary<string, NodePath>(StringComparer.Ordinal);
+        var selectedPath = defaultsPath.ToImmutable();
+        var selectedSources = defaultSources;
+        foreach (var coded in codeProfiles)
+        {
+            var profileName = coded.Key;
+            var profileNode = coded.Value;
+            var path = defaultsPath.ToImmutable()
+                .ToBuilder();
+            var sources = new List<SettingsSource>(defaultSources);
+            path.Add(profileNode);
+            var codeProfileSource = CodeSource(
+                $"code profile: {profileName}",
+                profileNode,
+                json);
+            sources.Add(codeProfileSource);
             AddOverlay(
-                defaultsPath,
-                defaultSources,
+                path,
+                sources,
                 user,
-                "user defaults",
-                user?.Defaults);
+                name: $"user profile: {profileName}",
+                user?.Profiles.GetValueOrDefault(profileName),
+                profile: profileName);
             AddOverlay(
-                defaultsPath,
-                defaultSources,
+                path,
+                sources,
                 local,
-                "project settings",
-                local?.Defaults);
-            var profilePaths = new Dictionary<string, NodePath>(StringComparer.Ordinal);
-            var selectedPath = defaultsPath.ToImmutable();
-            var selectedSources = defaultSources;
-            foreach (var coded in codeProfiles)
+                name: $"project profile: {profileName}",
+                local?.Profiles.GetValueOrDefault(profileName),
+                profile: profileName);
+            AddCli(path, sources);
+            profilePaths.Add(profileName, new(path.ToImmutable()));
+            if (selection.Profile == profileName)
             {
-                var profileName = coded.Key;
-                var profileNode = coded.Value;
-                var path = defaultsPath.ToImmutable()
-                    .ToBuilder();
-                var sources = new List<SettingsSource>(defaultSources);
-                path.Add(profileNode);
-                var codeProfileSource = CodeSource(
-                    $"code profile: {profileName}",
-                    profileNode,
-                    json);
-                sources.Add(codeProfileSource);
-                AddOverlay(
-                    path,
-                    sources,
-                    user,
-                    name: $"user profile: {profileName}",
-                    user?.Profiles.GetValueOrDefault(profileName),
-                    profile: profileName);
-                AddOverlay(
-                    path,
-                    sources,
-                    local,
-                    name: $"project profile: {profileName}",
-                    local?.Profiles.GetValueOrDefault(profileName),
-                    profile: profileName);
-                AddCli(path, sources);
-                profilePaths.Add(profileName, new(path.ToImmutable()));
-                if (arguments.Profile == profileName)
-                {
-                    selectedPath = path.ToImmutable();
-                    selectedSources = sources;
-                }
-            }
-            if (arguments.Profile is null)
-            {
-                var path = selectedPath.ToBuilder();
-                AddCli(path, selectedSources);
                 selectedPath = path.ToImmutable();
-            }
-            var settingsPath = new NodePath(selectedPath);
-            var globalPath = new NodePath(defaultsPath.ToImmutable());
-            var resolved = new ResolvedSettings(
-                provider,
-                tree,
-                path: settingsPath,
-                json,
-                projectDirectory: project,
-                profile: arguments.Profile,
-                codeProfiles.Keys.Order()
-                    .ToArray(),
-                selectedSources,
-                profilePaths,
-                globalPath: globalPath);
-            resolved.Validate();
-            return resolved;
-
-            void AddOverlay(
-                ImmutableArray<MutableNode>.Builder path,
-                List<SettingsSource> sources,
-                SettingsFile? file,
-                string name,
-                JsonObject? values,
-                string? profile = null)
-            {
-                if (file is null)
-                {
-                    return;
-                }
-
-                var actions = GetOperations(file.Operations, profile);
-
-                if (values is null && actions is null)
-                {
-                    return;
-                }
-
-                var node = new MutableNode();
-                path.Add(node);
-                foreach (var setting in values ?? new JsonObject())
-                {
-                    var key = new NodeDataKey(setting.Key);
-                    var type = NodeDataKey.Registry.GetTypeFromKey(key);
-                    var value = setting.Value?.Deserialize(type, json);
-                    if (value is not null)
-                    {
-                        SetValue(
-                            node,
-                            key,
-                            value);
-                    }
-                }
-                if (actions is not null)
-                {
-                    foreach (var action in actions.Cast<JsonObject>())
-                    {
-                        AddOperation(
-                            node,
-                            action,
-                            provider,
-                            json);
-                    }
-                }
-
-                var leafKeys = LeafKeys(values);
-                var actionKeys = actions?.Cast<JsonObject>()
-                        .Select(x => x["key"]!.GetValue<string>())
-                    ?? [];
-                sources.Add(new(
-                    Name: name,
-                    File: file.Path,
-                    leafKeys.Concat(actionKeys)
-                        .ToArray()));
-            }
-
-            void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
-            {
-                if (overrides?.CalendarName is not { } calendar)
-                {
-                    return;
-                }
-
-                var node = new MutableNode();
-                _ = new NodeBuilder(node, provider)
-                    .GoogleCalendar()
-                    .ConfigureValue(x =>
-                    {
-                        x.CalendarName = calendar;
-                    });
-                path.Add(node);
-                sources.Add(new(
-                    Name: "CLI arguments",
-                    File: null,
-                    ["GoogleCalendarConfig.calendarName"]));
+                selectedSources = sources;
             }
         }
-        catch
+        if (selection.Profile is null)
         {
-            provider.Dispose();
-            throw;
+            var path = selectedPath.ToBuilder();
+            AddCli(path, selectedSources);
+            selectedPath = path.ToImmutable();
+        }
+        var settingsPath = new NodePath(selectedPath);
+        var globalPath = new NodePath(defaultsPath.ToImmutable());
+        var resolved = new ResolvedSettings(
+            provider,
+            tree,
+            path: settingsPath,
+            json,
+            projectDirectory: project,
+            profile: selection.Profile,
+            codeProfiles.Keys.Order()
+                .ToArray(),
+            selectedSources,
+            profilePaths,
+            globalPath: globalPath);
+        resolved.Validate();
+        return resolved;
+
+        void AddOverlay(
+            ImmutableArray<MutableNode>.Builder path,
+            List<SettingsSource> sources,
+            SettingsFile? file,
+            string name,
+            JsonObject? values,
+            string? profile = null)
+        {
+            if (file is null)
+            {
+                return;
+            }
+
+            var actions = GetOperations(file.Operations, profile);
+
+            if (values is null && actions is null)
+            {
+                return;
+            }
+
+            var node = new MutableNode();
+            path.Add(node);
+            foreach (var setting in values ?? new JsonObject())
+            {
+                var key = new NodeDataKey(setting.Key);
+                var type = NodeDataKey.Registry.GetTypeFromKey(key);
+                var value = setting.Value?.Deserialize(type, json);
+                if (value is not null)
+                {
+                    SetValue(
+                        node,
+                        key,
+                        value);
+                }
+            }
+            if (actions is not null)
+            {
+                foreach (var action in actions.Cast<JsonObject>())
+                {
+                    AddOperation(
+                        node,
+                        action,
+                        provider,
+                        json);
+                }
+            }
+
+            var leafKeys = LeafKeys(values);
+            var actionKeys = actions?.Cast<JsonObject>()
+                    .Select(x => x["key"]!.GetValue<string>())
+                ?? [];
+            sources.Add(new(
+                Name: name,
+                File: file.Path,
+                leafKeys.Concat(actionKeys)
+                    .ToArray()));
+        }
+
+        void AddCli(ImmutableArray<MutableNode>.Builder path, List<SettingsSource> sources)
+        {
+            if (selection.CalendarName is not { } calendar)
+            {
+                return;
+            }
+
+            var node = new MutableNode();
+            _ = new NodeBuilder(node, provider)
+                .GoogleCalendar()
+                .ConfigureValue(x =>
+                {
+                    x.CalendarName = calendar;
+                });
+            path.Add(node);
+            sources.Add(new(
+                Name: "CLI arguments",
+                File: null,
+                ["GoogleCalendarConfig.calendarName"]));
         }
     }
 

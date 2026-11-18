@@ -361,14 +361,13 @@ public sealed class CurrentSourceMergeTests
             options.EnrichWithFullNames = false;
             options.LoadConsultations = false;
         });
-        services.Configure<ScheduleDerivationOptions>(options =>
+        services.AddFixed(new ScheduleDerivationOptions
         {
-            var scheduleDerivationOptions = options;
-            scheduleDerivationOptions.AutoMergeLabSubGroups = enabled;
+            AutoMergeLabSubGroups = enabled,
         });
         using var provider = AppConfiguration.BuildServiceProvider(services);
         AppConfiguration.ConfigureLayeredConfig(provider);
-        var source = new ScheduleSource(dataDirectory, cacheDirectory);
+        var source = new ScheduleSource(DataDirectory: dataDirectory, CacheDirectory: cacheDirectory);
         await using var scope = await provider.OpenScheduleScope(source, CancellationToken.None);
         return scope.ServiceProvider.GetRequiredService<Schedule>();
     }

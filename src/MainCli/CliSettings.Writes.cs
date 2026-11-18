@@ -52,7 +52,7 @@ public static partial class CliSettings
 
         cancellationToken.ThrowIfCancellationRequested();
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
-        using var initial = await Load(
+        var initial = await Load(
             arguments,
             invocationDirectory: cwd,
             userFile: userFile,
@@ -128,7 +128,7 @@ public static partial class CliSettings
             cancellationToken,
             wait: true);
         // Re-read under the lease so concurrent edits cannot overwrite one another.
-        using var current = await Load(
+        var current = await Load(
             arguments,
             invocationDirectory: cwd,
             userFile: userFile,
@@ -167,8 +167,9 @@ public static partial class CliSettings
                 parsed,
                 unset);
         }
-        using var candidate = await LoadCore(
-            arguments,
+        var candidate = await LoadCore(
+            StandaloneServices.Value,
+            SettingsSelection.From(arguments),
             invocationDirectory: cwd,
             userFile: userFile,
             cancellationToken,

@@ -179,14 +179,14 @@ public sealed partial class LoadedScheduleInitializer : IInitializer<LoadedSched
 {
     private readonly ScheduleSourceLoader _loader;
     private readonly ScheduleSource _source;
-    private readonly IOptions<ScheduleDerivationOptions> _options;
+    private readonly ScheduleDerivationOptions _options;
     private readonly CourseNameUnifierConfig _courseNameUnifierConfig;
     private readonly ILogger<LoadedScheduleInitializer> _logger;
 
     public async ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
     {
         var built = await _loader.Load(_source, cancellationToken);
-        var schedule = LabSubGroupMerges.Project(built, _options.Value.AutoMergeLabSubGroups);
+        var schedule = LabSubGroupMerges.Project(built, _options.AutoMergeLabSubGroups);
         LogLabSubGroupMerges(schedule);
         return LoadedSchedule.Create(schedule, _courseNameUnifierConfig);
     }

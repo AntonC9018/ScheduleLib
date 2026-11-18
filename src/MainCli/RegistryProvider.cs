@@ -109,7 +109,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
         category: "Reliability",
         checkId: "CA2000:Dispose objects before losing scope",
         Justification =
-            "Successful sessions own settings, service provider, scope and context; the failure path disposes them.")]
+            "Successful sessions own the service provider, scope and context; the failure path disposes them.")]
     public async Task<IRegistrySession> Open(
         SourceArguments source,
         SettingsArguments settings,
@@ -168,7 +168,6 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             }
             RegistryDestination target = new(Account: credentials.Login, Destination: RegistryScraping.BaseUrl);
             return new Session(
-                resolved,
                 provider,
                 scope,
                 context,
@@ -186,13 +185,11 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                 await provider.DisposeAsync();
             }
 
-            resolved.Dispose();
             throw;
         }
     }
 
     private sealed class Session(
-        ResolvedSettings settings,
         ServiceProvider provider,
         ScheduleScope scope,
         RegistryScrapingContext context,
@@ -245,7 +242,6 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
             context.Dispose();
             await scope.DisposeAsync();
             await provider.DisposeAsync();
-            settings.Dispose();
         }
     }
 }

@@ -68,7 +68,7 @@ public sealed partial class ConfiguredRegistryHistoryProvider : IRegistryHistory
             "locks",
             "registry-history-global.lock");
         await using var lease = await LocalFileLock.Acquire(lockPath, token);
-        using var resolved = await CliSettings.Load(settings, cancellationToken: token);
+        var resolved = await CliSettings.Load(settings, cancellationToken: token);
         var services = new ServiceCollection();
         AppConfiguration.ConfigureServices(services);
         resolved.ConfigureServices(services);

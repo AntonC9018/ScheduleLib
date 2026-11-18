@@ -40,7 +40,7 @@ public sealed class RegistryTests
         });
         var builtSchedule = builder.Build();
 
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -128,7 +128,7 @@ public sealed class RegistryTests
         bool singleDestination,
         bool hasAttendanceSources)
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -228,7 +228,7 @@ public sealed class RegistryTests
     [InlineData(true)]
     public async Task RealGroupPlanIsDeliveredBeforeNextGroupScan(bool continueScanning)
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -385,7 +385,7 @@ public sealed class RegistryTests
     [InlineData(true)]
     public async Task LegacyContinuesOnlyLocalInvalidFormsWhileStrictApplyStops(bool strict)
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -480,7 +480,7 @@ public sealed class RegistryTests
     [InlineData(true)]
     public async Task LegacyDoesNotSwallowReadOrSubmissionInvalidOperation(bool submitted)
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });

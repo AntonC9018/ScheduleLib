@@ -15,34 +15,34 @@ public sealed class SettingsTests
     public async Task LabSubGroupMergeSettingIsOptInGlobalAndUsesUserProjectLayering()
     {
         using var files = new SettingsFixture();
-        using (var defaults = await files.Load(new()))
-        {
-            var global = defaults.GetGlobal(ScheduleDerivationConfig.Key);
-            bool? condition = global!.AutoMergeLabSubGroups;
-            Assert.False(condition);
-        }
+        var defaults = await files.Load(new());
+        var global = defaults.GetGlobal(ScheduleDerivationConfig.Key);
+        bool? condition = global!.AutoMergeLabSubGroups;
+        Assert.False(condition);
 
         await files.User(
             """{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":true}}}""");
         await files.Project(
             """{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":null}}}""");
-        using (var settings = await files.Load(new()
+        var settings = await files.Load(new()
         {
             Profile = TestProfiles.Owner,
-        }))
+        });
+        var global2 = settings.GetGlobal(ScheduleDerivationConfig.Key);
+        bool? condition2 = global2!.AutoMergeLabSubGroups;
+        Assert.True(condition2);
+        var services = new ServiceCollection();
+        services.AddConfigsServices();
+        settings.ConfigureServices(services);
+        await using (var provider = services.BuildServiceProvider())
         {
-            var global2 = settings.GetGlobal(ScheduleDerivationConfig.Key);
-            bool? condition2 = global2!.AutoMergeLabSubGroups;
-            Assert.True(condition2);
-            var services = new ServiceCollection();
-            services.AddConfigsServices();
-            settings.ConfigureServices(services);
-            using var provider = services.BuildServiceProvider();
-            Assert.True(provider.GetRequiredService<IOptions<ScheduleDerivationOptions>>().Value.AutoMergeLabSubGroups);
+            await using var scope = provider.CreateAsyncScope();
+            var derivation = scope.ServiceProvider.GetRequiredService<ScheduleDerivationOptions>();
+            Assert.True(derivation.AutoMergeLabSubGroups);
         }
         await files.Project(
             """{"schemaVersion":1,"defaults":{"ScheduleDerivationConfig":{"autoMergeLabSubGroups":false}}}""");
-        using var overridden = await files.Load(new()
+        var overridden = await files.Load(new()
         {
             Profile = TestProfiles.OtherTeacher,
         });
@@ -68,20 +68,18 @@ public sealed class SettingsTests
     public async Task AttendanceWorkbookComesFromProfileInsteadOfPersonalCodedPath()
     {
         using var files = new SettingsFixture();
-        using (var defaults = await files.Load(new()
+        var defaults = await files.Load(new()
         {
             Profile = TestProfiles.Owner,
-        }))
-        {
-            Assert.Empty(defaults.Get(LessonAttendanceConfig.Key)?.Sources ?? []);
-        }
+        });
+        Assert.Empty(defaults.Get(LessonAttendanceConfig.Key)?.Sources ?? []);
 
         await files.Project(
             """
             {"schemaVersion":1,"profiles":{"Curmanschii Anton":{"LessonAttendanceConfig":{
             "sources":[{"filePath":"private-attendance.xlsx","repeatedCourseBehavior":"Error","cellValueFormat":"IgnoreGrade"}]}}}}
             """);
-        using var settings = await files.Load(new()
+        var settings = await files.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -105,7 +103,7 @@ public sealed class SettingsTests
     public async Task RegistryAnalysisTeachersHaveSeparateSelectableProfiles(string teacher)
     {
         using var files = new SettingsFixture();
-        using var settings = await files.Load(new()
+        var settings = await files.Load(new()
         {
             Profile = teacher,
         });
@@ -140,7 +138,7 @@ public sealed class SettingsTests
             {"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"project"}},
             "profiles":{"Curmanschii Anton":{"GoogleCalendarConfig":{"calendarName":"project-profile"}}}}
             """);
-        using var global = await files.Load(new());
+        var global = await files.Load(new());
         string expected4 = "project";
         var get = global.Get(GoogleCalendarConfig.Key);
         string? actual3 = get!.CalendarName;
@@ -155,7 +153,7 @@ public sealed class SettingsTests
         Assert.Equal(
             expected: expected5,
             actual: actual4);
-        using var teacher = await files.Load(new()
+        var teacher = await files.Load(new()
         {
             Profile = TestProfiles.Owner,
         });
@@ -163,7 +161,7 @@ public sealed class SettingsTests
         var get3 = teacher.Get(GoogleCalendarConfig.Key);
         string? actual5 = get3!.CalendarName;
         Assert.Equal(expected: expected6, actual: actual5);
-        using var cli = await files.Load(
+        var cli = await files.Load(
             new()
             {
                 Profile = TestProfiles.Owner,
@@ -249,7 +247,7 @@ public sealed class SettingsTests
             "LessonAttendanceConfig":{"sources":[{"filePath":"../user/shared.xlsx","repeatedCourseBehavior":"Error"},{"filePath":"new.xlsx"}]},
             "LessonTopicsConfig":{"sources":[{"$type":"ManifestLessonTopicSourceDefinition","path":"topics"}]}}}
             """);
-        using var settings = await files.Load(new());
+        var settings = await files.Load(new());
         string expected2 = "user";
         var get = settings.Get(GoogleCalendarConfig.Key);
         string? actual2 = get!.CalendarName;
@@ -307,12 +305,12 @@ public sealed class SettingsTests
             path: Path.Combine(nested, CliSettings.FileName),
             contents: """{"schemaVersion":1}""");
         var cwd = Environment.CurrentDirectory;
-        using var nearest = await CliSettings.Load(
+        var nearest = await CliSettings.Load(
             new(),
             invocationDirectory: Path.Combine(nested, "child"),
             userFile: files.UserFile);
         Assert.Equal(expected: nested, actual: nearest.ProjectDirectory);
-        using var explicitRoot = await CliSettings.Load(
+        var explicitRoot = await CliSettings.Load(
             new()
             {
                 Project = "../../user",
@@ -370,12 +368,12 @@ public sealed class SettingsTests
         using var files = new SettingsFixture();
         await files.Project(
             """{"schemaVersion":1,"defaults":{"RegistryLessonFilterConfig":{"skipAttendance":"Zi"}}}""");
-        using var global = await files.Load(new());
+        var global = await files.Load(new());
         Assert.Equal(
             expected: "Zi",
             actual: global.Get(RegistryLessonFilterConfig.Key)!.SkipAttendance
                 .ToString());
-        using var teacher = await files.Load(new()
+        var teacher = await files.Load(new()
         {
             Profile = "Iatasina Tamara",
         });
@@ -389,7 +387,7 @@ public sealed class SettingsTests
     public async Task InspectionRedactsExistingCodeSecrets()
     {
         using var files = new SettingsFixture();
-        using var settings = await files.Load(new());
+        var settings = await files.Load(new());
         settings.Tree.Defaults.Moodle()
             .ConfigureValue(x =>
                 x.Credentials = new ScheduleLib.Scraping.Common.Config.ValueCredentialsSource
@@ -410,7 +408,7 @@ public sealed class SettingsTests
     public async Task DesktopSerializerContractRemainsUnchanged()
     {
         using var files = new SettingsFixture();
-        using var settings = await files.Load(new());
+        var settings = await files.Load(new());
         var services = new ServiceCollection();
         services.AddConfigsServices();
         services.AddOnlineRegistry();
@@ -646,7 +644,7 @@ public sealed class SettingsTests
         {
             for (var i = 0; i < 8; i++)
             {
-                using var settings = await CliSettings.Load(
+                var settings = await CliSettings.Load(
                     new(),
                     invocationDirectory: Path.Combine(files.Root, "project"),
                     userFile: files.UserFile,

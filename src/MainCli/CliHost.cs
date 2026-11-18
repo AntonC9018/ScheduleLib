@@ -487,7 +487,7 @@ public partial class QueryCommands
                     ["Invalid day, parity, or slot (slots start at 1)."]);
             }
 
-            using var resolvedSettings = await CliSettings.Load(
+            var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
             var scheduleSource = CliRuntime.ResolveSource(source);

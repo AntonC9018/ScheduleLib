@@ -838,7 +838,7 @@ public sealed class RegistryGradeAdapterTests
             new MemoryCookieProvider(),
             client,
             handler);
-        using var settings = await CliSettings.Load(new());
+        var settings = await CliSettings.Load(new());
         settings.Tree.Defaults.Moodle()
             .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
             {
@@ -1004,7 +1004,7 @@ public sealed class RegistryGradeAdapterTests
 
     private static async Task PlanWithFailingMoodle(Exception failure, DebugLogCapture log)
     {
-        using var settings = await CliSettings.Load(new());
+        var settings = await CliSettings.Load(new());
         settings.Tree.Defaults.Moodle()
             .ConfigureValue(x => x.Credentials = new ValueCredentialsSource
             {

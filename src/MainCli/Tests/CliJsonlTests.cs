@@ -329,7 +329,7 @@ public sealed class CliJsonlTests
 
         static async Task<string[]> PlanLogs(bool explicitApply)
         {
-            using var settings = await CliSettings.Load(new()
+            var settings = await CliSettings.Load(new()
             {
                 Profile = TestProfiles.Owner,
             });

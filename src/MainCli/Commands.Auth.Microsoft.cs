@@ -29,7 +29,7 @@ public partial class AuthCommands
         var cancellation = context.Cancellation;
         try
         {
-            using var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
+            var resolved = await CliSettings.Load(request.Settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is not { } profile)
             {
                 throw new JsonException("A teacher --profile is required. Use config profiles to list identities.");

@@ -2,6 +2,7 @@ using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Anton.LayeredData.TreeEnumeration;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Application.Config;
 
@@ -17,17 +18,26 @@ public sealed class ScheduleDerivationConfig : INodeData<ScheduleDerivationConfi
     {
         services.AddConfigProvider(Key);
         services.RegisterBasicOperationsAndMergers<ScheduleDerivationConfig>();
-        services.AddOptions<ScheduleDerivationOptions>()
-            .Configure<TreeBuilder, IServiceProvider>((
-                    options, tree,
-                    provider) =>
-                options.AutoMergeLabSubGroups = new NodePath([tree.BaseNode])
-                        .ConstructValue(Key, provider)?.AutoMergeLabSubGroups
-                    ?? false);
+        services.AddDerived<ScheduleDerivationOptions, CodeScheduleDerivationFactory>();
     }
 }
 
+/// <summary>The derivation options of the code-defined defaults, for hosts without settings files.</summary>
+public sealed class CodeScheduleDerivationFactory(TreeBuilder tree) : IFactory<ScheduleDerivationOptions>
+{
+    public ScheduleDerivationOptions Create()
+    {
+        var defaults = new NodePath([tree.BaseNode]);
+        var config = defaults.ConstructValue(ScheduleDerivationConfig.Key, tree.SingletonServiceProvider);
+        return new()
+        {
+            AutoMergeLabSubGroups = config?.AutoMergeLabSubGroups ?? false,
+        };
+    }
+}
+
+/// <summary>How a loaded schedule is derived from its sources. A scope value.</summary>
 public sealed class ScheduleDerivationOptions
 {
-    public bool AutoMergeLabSubGroups { get; set; }
+    public bool AutoMergeLabSubGroups { get; init; }
 }

@@ -71,7 +71,7 @@ public partial class QueryCommands
                 warnings.Add("Repeated group names were reported once.");
             }
 
-            using var resolvedSettings = await CliSettings.Load(
+            var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
             var scheduleSource = CliRuntime.ResolveSource(source);

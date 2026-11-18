@@ -65,7 +65,7 @@ public partial class ExportCommands
                 CliRuntime.ResolvePath(selectedOutput);
             }
 
-            using var resolvedSettings = await CliSettings.Load(
+            var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
             var scheduleSource = CliRuntime.ResolveSource(source);
@@ -256,7 +256,7 @@ public partial class ExportCommands
                 CliRuntime.ResolvePath(selectedOutput);
             }
 
-            using var resolvedSettings = await CliSettings.Load(
+            var resolvedSettings = await CliSettings.Load(
                 settings ?? new(),
                 cancellationToken: cancellation.Token);
             var scheduleSource = CliRuntime.ResolveSource(source);

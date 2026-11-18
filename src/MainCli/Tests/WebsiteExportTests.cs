@@ -907,7 +907,7 @@ public sealed class WebsiteExportTests
 
         public async Task<TeacherDiscovery> DiscoverTeachersAsync()
         {
-            using var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
+            var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
             var scheduleSource = CliRuntime.ResolveSource(FixtureSource);
             var services = CliRuntime.CreateServices(ConfigureForTest);
             resolved.ConfigureServices(services);
@@ -955,7 +955,7 @@ public sealed class WebsiteExportTests
         public async Task<(int LatestTeacherless, int LatestWeekly, int AllTeacherless, int AllWeekly)>
             LatestPeriodTeacherlessAsync()
         {
-            using var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
+            var resolved = await CliSettings.Load(new(), cancellationToken: CancellationToken.None);
             var scheduleSource = CliRuntime.ResolveSource(FixtureSource);
             var services = CliRuntime.CreateServices(ConfigureForTest);
             resolved.ConfigureServices(services);

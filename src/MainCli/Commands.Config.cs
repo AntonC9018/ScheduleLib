@@ -119,7 +119,7 @@ public sealed partial class ConfigCommands
         try
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            using var resolved = await CliSettings.Load(
+            var resolved = await CliSettings.Load(
                 settings,
                 cancellationToken: cancellation.Token,
                 overrides: overrides);

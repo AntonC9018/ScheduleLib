@@ -400,7 +400,7 @@ public sealed class RegistryGradeTests
     [Fact]
     public async Task RealPlannerMapsAndRoundsWithoutChangingOrSubmittingForm()
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });

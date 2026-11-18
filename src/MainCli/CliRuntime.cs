@@ -55,7 +55,7 @@ public static class CliRuntime
             throw new ScheduleSourceDirectoryNotFoundException(dataDirectory);
         }
 
-        return new(dataDirectory, cacheDirectory, UseCache: !source.NoCache);
+        return new(DataDirectory: dataDirectory, CacheDirectory: cacheDirectory, UseCache: !source.NoCache);
     }
 
     /// <summary>A container of its own, for commands that do not run through the root container yet.</summary>

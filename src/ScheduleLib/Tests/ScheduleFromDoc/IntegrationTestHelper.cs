@@ -90,6 +90,7 @@ public sealed class IntegrationTestHelper : IAsyncDisposable
 
         var services = new ServiceCollection();
         services.AddScheduleServices();
+        services.AddSingleton(new ScheduleDerivationOptions());
         services.AddLogging();
         services.Configure<StudyYearOptions>(opts =>
         {

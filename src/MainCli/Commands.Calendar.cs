@@ -58,7 +58,7 @@ public class CalendarCommands
         var cancellation = context.Cancellation;
         try
         {
-            using var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
+            var resolved = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             if (resolved.Profile is null)
             {
                 return Finish(

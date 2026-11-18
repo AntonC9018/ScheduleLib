@@ -472,7 +472,7 @@ public sealed class AuthenticationTests
         using var fixture = new Fixture();
 
         var missingUserFile = Path.Combine(fixture.Root, "missing-settings.json");
-        using var settings = await CliSettings.Load(
+        var settings = await CliSettings.Load(
             new()
             {
                 Profile = Teacher,

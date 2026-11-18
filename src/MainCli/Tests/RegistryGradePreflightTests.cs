@@ -140,7 +140,7 @@ public sealed class RegistryGradePreflightTests
         int posts,
         string[] statuses)
     {
-        using var settings = await CliSettings.Load(new()
+        var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
         });

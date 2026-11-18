@@ -97,7 +97,7 @@ public partial class ExportCommands
                 CliRuntime.ResolvePath(selectedOutput);
             }
 
-            using var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
+            var resolvedSettings = await CliSettings.Load(settings, cancellationToken: cancellation.Token);
             teacher = resolvedSettings.Profile;
 
             if (!preDefense && teacher is null)
