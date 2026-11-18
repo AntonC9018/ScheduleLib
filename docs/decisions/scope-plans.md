@@ -104,12 +104,12 @@ command builds its own container from runtime arguments, and resolving `Schedule
   - The handler is resolved while the fork opens, so a failure ends the fork before it is
     returned.
   - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`,
-    before any work. A fork's container scope is created and registered with its parent under the
-    parent's lock, before its seeds are supplied, so a fork
-    still opening at that moment, even inside its supply callback, is not returned: its opener ends it and
-    receives that exception, alongside any failure of its own, while the parent waits for that
-    ending. A fork is returned under the
-    parent's lock, so a parent either sees it returned, and ends it as left open, or rejects it.
+    before any work. A fork's container scope is created and registered with its parent under
+    the parent's lock, before its seeds are supplied. A fork still opening when the parent starts
+    ending, even inside its supply callback, is not returned: its opener ends it and receives that
+    exception, alongside any failure of its own, while the parent waits for that ending.
+    A fork is returned under the parent's lock too, so a parent either sees it returned, and
+    ends it as left open, or rejects it.
   - Each ending reports its failures once, to whoever started it; anyone joining it only waits.
   - Every step is attempted even when some fail; the failures are reported together in one
     `ScopeCleanupException`, which also lists the forks left open.
