@@ -19,14 +19,33 @@ internal static class RegistryLectureAudience
 
         foreach (var candidate in schedule.EnumerateAllLessons())
         {
-            if (!schedule.IsLessonActive(candidate.Id)
-                || candidate.Id == id
-                || candidate.Lesson.SubGroup != SubGroup.All && !candidate.Lesson.SubGroup.IsLanguageSubGroup()
-                || !(candidate.Lesson with
+            bool IsSameLessonForAnotherAudience()
+            {
+                if (!schedule.IsLessonActive(candidate.Id))
                 {
-                    Groups = source.Lesson.Groups,
-                    SubGroup = source.Lesson.SubGroup,
-                }).Equals(source.Lesson))
+                    return false;
+                }
+                if (candidate.Id == id)
+                {
+                    return false;
+                }
+                if (candidate.Lesson.SubGroup != SubGroup.All && !candidate.Lesson.SubGroup.IsLanguageSubGroup())
+                {
+                    return false;
+                }
+
+                var withSourceAudience = candidate.Lesson.WithGroupsAndSubGroup(
+                    source.Lesson.Groups,
+                    source.Lesson.SubGroup);
+                if (withSourceAudience.Equals(source.Lesson))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (!IsSameLessonForAnotherAudience())
             {
                 continue;
             }

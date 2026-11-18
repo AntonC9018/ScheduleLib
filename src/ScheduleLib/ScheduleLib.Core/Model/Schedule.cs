@@ -12,15 +12,40 @@ namespace ScheduleLib;
 
 public sealed class Schedule
 {
-    public required ImmutableArray<WeeklyLesson> WeeklyLessons { get; init; }
-    public required ImmutableArray<OneTimeLesson> OneTimeLessons { get; init; }
-    public required ImmutableArray<Group> Groups { get; init; }
-    public required ImmutableArray<Teacher> Teachers { get; init; }
-    public required ImmutableArray<Course> Courses { get; init; }
-    public required ImmutableArray<Period> Periods { get; init; }
-    public ImmutableArray<DetectedLabSubGroupMerge> AutomaticLabSubGroupMerges { get; init; } = [];
-    public ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics { get; init; } = [];
-    public ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons { get; init; } = [];
+    public readonly ImmutableArray<WeeklyLesson> WeeklyLessons;
+    public readonly ImmutableArray<OneTimeLesson> OneTimeLessons;
+    public readonly ImmutableArray<Group> Groups;
+    public readonly ImmutableArray<Teacher> Teachers;
+    public readonly ImmutableArray<Course> Courses;
+    public readonly ImmutableArray<Period> Periods;
+    public readonly ImmutableArray<DetectedLabSubGroupMerge> AutomaticLabSubGroupMerges;
+    public readonly ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics;
+    public readonly ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons;
+
+    /// <summary>
+    /// The lab subgroup merge results are empty when not given.
+    /// </summary>
+    public Schedule(
+        ImmutableArray<WeeklyLesson> weeklyLessons,
+        ImmutableArray<OneTimeLesson> oneTimeLessons,
+        ImmutableArray<Group> groups,
+        ImmutableArray<Teacher> teachers,
+        ImmutableArray<Course> courses,
+        ImmutableArray<Period> periods,
+        ImmutableArray<DetectedLabSubGroupMerge>? automaticLabSubGroupMerges = null,
+        ImmutableArray<LabSubGroupMergeDiagnostic>? labSubGroupMergeDiagnostics = null,
+        ImmutableHashSet<WeeklyLessonId>? suppressedWeeklyLessons = null)
+    {
+        WeeklyLessons = weeklyLessons;
+        OneTimeLessons = oneTimeLessons;
+        Groups = groups;
+        Teachers = teachers;
+        Courses = courses;
+        Periods = periods;
+        AutomaticLabSubGroupMerges = automaticLabSubGroupMerges ?? [];
+        LabSubGroupMergeDiagnostics = labSubGroupMergeDiagnostics ?? [];
+        SuppressedWeeklyLessons = suppressedWeeklyLessons ?? [];
+    }
 
     public bool IsLessonActive(AnyLessonId id)
     {
@@ -38,15 +63,13 @@ public sealed class Schedule
         return true;
     }
 
-    public static readonly Schedule Empty = new()
-    {
-        WeeklyLessons = [],
-        OneTimeLessons = [],
-        Groups = [],
-        Teachers = [],
-        Courses = [],
-        Periods = [],
-    };
+    public static readonly Schedule Empty = new(
+        weeklyLessons: [],
+        oneTimeLessons: [],
+        groups: [],
+        teachers: [],
+        courses: [],
+        periods: []);
 }
 
 public readonly struct Accessor<T, TId> : IAccessor<Accessor<T, TId>, T>
@@ -367,18 +390,36 @@ public readonly record struct AllLessonsEnumerable
     }
 }
 
-public record struct WeeklyLessonDate()
+public readonly record struct WeeklyLessonDate
 {
-    public Parity Parity { get; init; } = Parity.EveryWeek;
-    public required DayOfWeek DayOfWeek { get; init; }
-    public required TimeSlot TimeSlot { get; init; }
-    public required PeriodId Period { get; init; }
+    public readonly Parity Parity;
+    public readonly DayOfWeek DayOfWeek;
+    public readonly TimeSlot TimeSlot;
+    public readonly PeriodId Period;
+
+    public WeeklyLessonDate(
+        DayOfWeek dayOfWeek,
+        TimeSlot timeSlot,
+        PeriodId period,
+        Parity parity = Parity.EveryWeek)
+    {
+        Parity = parity;
+        DayOfWeek = dayOfWeek;
+        TimeSlot = timeSlot;
+        Period = period;
+    }
 }
 
-public record struct OneTimeLessonDate
+public readonly record struct OneTimeLessonDate
 {
-    public required DateOnly Date { get; init; }
-    public required TimeSlot TimeSlot { get; init; }
+    public readonly DateOnly Date;
+    public readonly TimeSlot TimeSlot;
+
+    public OneTimeLessonDate(DateOnly date, TimeSlot timeSlot)
+    {
+        Date = date;
+        TimeSlot = timeSlot;
+    }
 }
 
 [InlineArray(_Capacity)]
@@ -593,37 +634,77 @@ public readonly record struct CourseId(int Id)
     public bool IsInvalid => this == Invalid;
 }
 
-public record struct Course
+public readonly record struct Course
 {
     public string FullName => Names[0];
 
     /// <summary>
     /// Sorted from longest to least long.
     /// </summary>
-    public required ImmutableArray<string> Names { get; init; }
+    public readonly ImmutableArray<string> Names;
+
+    public Course(ImmutableArray<string> names)
+    {
+        Names = names;
+    }
 }
 
-public record struct LessonData()
+public readonly record struct LessonData
 {
     // Always ordered with .Ordered()
-    public required LessonGroups Groups { get; init; }
-    public required CourseId Course { get; init; }
+    public readonly LessonGroups Groups;
+    public readonly CourseId Course;
 
+    // Compared by sequence, so that equal lessons with distinct arrays are equal.
     private readonly SequenceComparableImmutableArray<TeacherId> _teachers;
 
-    public required ImmutableArray<TeacherId> Teachers
+    public readonly RoomId Room;
+    public readonly LessonType Type;
+    public readonly SubGroup SubGroup;
+    public readonly Specialization Specialization;
+    public readonly Alternative Alternative;
+
+    /// <summary>
+    /// The default subgroup, specialization and alternative are <c>All</c>.
+    /// </summary>
+    public LessonData(
+        LessonGroups groups,
+        CourseId course,
+        ImmutableArray<TeacherId> teachers,
+        RoomId room,
+        LessonType type,
+        SubGroup subGroup = default,
+        Specialization specialization = default,
+        Alternative alternative = default)
     {
-        get => _teachers.Array;
-        init => _teachers = new(value);
+        Groups = groups;
+        Course = course;
+        _teachers = new(teachers);
+        Room = room;
+        Type = type;
+        SubGroup = subGroup;
+        Specialization = specialization;
+        Alternative = alternative;
     }
 
-    public required RoomId Room { get; init; }
-    public required LessonType Type { get; init; }
+    public ImmutableArray<TeacherId> Teachers => _teachers.Array;
+    public GroupId Group => Groups.Group0;
 
-    public SubGroup SubGroup { get; init; } = SubGroup.All;
-    public Specialization Specialization { get; init; } = Specialization.All;
-    public Alternative Alternative { get; init; } = Alternative.All;
-    public readonly GroupId Group => Groups.Group0;
+    /// <summary>
+    /// The same lesson given to other groups or another subgroup.
+    /// </summary>
+    public LessonData WithGroupsAndSubGroup(LessonGroups groups, SubGroup subGroup)
+    {
+        return new(
+            groups: groups,
+            course: Course,
+            teachers: Teachers,
+            room: Room,
+            type: Type,
+            subGroup: subGroup,
+            specialization: Specialization,
+            alternative: Alternative);
+    }
 }
 
 /// <summary>
@@ -817,50 +898,37 @@ public readonly record struct OneTimeLessonId(int Id)
     public AnyLessonId AsAny() => new(LessonRegularity.OneTime, Id);
 }
 
-public record struct LessonBase
+public readonly record struct LessonBase
 {
-    internal readonly LessonData _data;
+    public readonly LessonData Data;
 
-    public required LessonData Data
+    public LessonBase(LessonData data)
     {
-        readonly get => _data;
-        init => _data = value;
+        Data = data;
     }
 }
 
-public record struct WeeklyLesson
+public readonly record struct WeeklyLesson
 {
-    internal readonly LessonBase _base;
-    internal readonly WeeklyLessonDate _date;
+    public readonly LessonBase Base;
+    public readonly WeeklyLessonDate Date;
 
-    public required LessonBase Base
+    public WeeklyLesson(LessonBase @base, WeeklyLessonDate date)
     {
-        readonly get => _base;
-        init => _base = value;
-    }
-
-    public required WeeklyLessonDate Date
-    {
-        readonly get => _date;
-        init => _date = value;
+        Base = @base;
+        Date = date;
     }
 }
 
-public record struct OneTimeLesson
+public readonly record struct OneTimeLesson
 {
-    internal readonly LessonBase _base;
-    internal readonly OneTimeLessonDate _date;
+    public readonly LessonBase Base;
+    public readonly OneTimeLessonDate Date;
 
-    public required LessonBase Base
+    public OneTimeLesson(LessonBase @base, OneTimeLessonDate date)
     {
-        readonly get => _base;
-        init => _base = value;
-    }
-
-    public required OneTimeLessonDate Date
-    {
-        readonly get => _date;
-        init => _date = value;
+        Base = @base;
+        Date = date;
     }
 }
 
@@ -879,8 +947,8 @@ public readonly ref struct WeeklyLessonRef : ILessonRef<WeeklyLessonRef, WeeklyL
         _lesson = ref lesson;
     }
 
-    public readonly ref readonly LessonData Lesson => ref _lesson._base._data;
-    public readonly ref readonly WeeklyLessonDate Date => ref _lesson._date;
+    public readonly ref readonly LessonData Lesson => ref _lesson.Base.Data;
+    public readonly ref readonly WeeklyLessonDate Date => ref _lesson.Date;
 
     public static WeeklyLessonRef Create(ref readonly WeeklyLesson lesson) => new(in lesson);
 }
@@ -894,8 +962,8 @@ public readonly ref struct OneTimeLessonRef : ILessonRef<OneTimeLessonRef, OneTi
         _lesson = ref lesson;
     }
 
-    public readonly ref readonly LessonData Lesson => ref _lesson._base._data;
-    public readonly ref readonly OneTimeLessonDate Date => ref _lesson._date;
+    public readonly ref readonly LessonData Lesson => ref _lesson.Base.Data;
+    public readonly ref readonly OneTimeLessonDate Date => ref _lesson.Date;
     public static OneTimeLessonRef Create(ref readonly OneTimeLesson lesson) => new(in lesson);
 }
 
@@ -1213,15 +1281,35 @@ public sealed class Group
     /// <summary>
     /// Does not contain the language
     /// </summary>
-    public required string Name { get; init; }
+    public readonly string Name;
 
-    public required Grade Grade { get; init; }
-    public required int GroupNumber { get; init; }
-    public required QualificationType QualificationType { get; init; }
-    public required Faculty Faculty { get; init; }
-    public required AttendanceMode AttendanceMode { get; init; }
-    public Specialty Specialty { get; init; } = default;
-    public required Language Language { get; set; }
+    public readonly Grade Grade;
+    public readonly int GroupNumber;
+    public readonly QualificationType QualificationType;
+    public readonly Faculty Faculty;
+    public readonly AttendanceMode AttendanceMode;
+    public readonly Specialty Specialty;
+    public readonly Language Language;
+
+    public Group(
+        string name,
+        Grade grade,
+        int groupNumber,
+        QualificationType qualificationType,
+        Faculty faculty,
+        AttendanceMode attendanceMode,
+        Language language,
+        Specialty specialty = default)
+    {
+        Name = name;
+        Grade = grade;
+        GroupNumber = groupNumber;
+        QualificationType = qualificationType;
+        Faculty = faculty;
+        AttendanceMode = attendanceMode;
+        Language = language;
+        Specialty = specialty;
+    }
 
     public GroupCategory Category => new(Grade, Faculty, AttendanceMode, QualificationType);
 }
@@ -1239,16 +1327,28 @@ public readonly record struct GroupCategory(
 public sealed class Teacher
 {
     // As an idea: save the origin of the value (stack trace + way to see it)
-    public required PersonName PersonName { get; init; }
-    public required PersonContacts Contacts { get; init; }
+    public readonly PersonName PersonName;
+    public readonly PersonContacts Contacts;
+
+    public Teacher(PersonName personName, PersonContacts contacts)
+    {
+        PersonName = personName;
+        Contacts = contacts;
+    }
 }
 
-public struct PersonName
+public readonly struct PersonName
 {
-    public required NameParts<OptionalNamePart> FirstName { get; init; }
+    public readonly NameParts<OptionalNamePart> FirstName;
 
     // One is required
-    public required LastName LastName { get; init; }
+    public readonly LastName LastName;
+
+    public PersonName(NameParts<OptionalNamePart> firstName, LastName lastName)
+    {
+        FirstName = firstName;
+        LastName = lastName;
+    }
 
     public NameFields AsNameFields()
     {
@@ -1267,11 +1367,21 @@ public struct PersonName
     }
 }
 
-public struct PersonContacts
+public readonly struct PersonContacts
 {
-    public string? PersonalEmail { get; init; }
-    public string? CorporateEmail { get; init; }
-    public string? PhoneNumber { get; init; }
+    public readonly string? PersonalEmail;
+    public readonly string? CorporateEmail;
+    public readonly string? PhoneNumber;
+
+    public PersonContacts(
+        string? personalEmail = null,
+        string? corporateEmail = null,
+        string? phoneNumber = null)
+    {
+        PersonalEmail = personalEmail;
+        CorporateEmail = corporateEmail;
+        PhoneNumber = phoneNumber;
+    }
 }
 
 public static class ScheduleAccessorHelper

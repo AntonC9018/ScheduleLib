@@ -111,11 +111,7 @@ public static partial class ScheduleBuilderHelper
 
         foreach (var t in courseNamesByKey)
         {
-            ref var course = ref b.Courses.Ref(t.Key.Id);
-            course = course with
-            {
-                Names = t.Names,
-            };
+            b.Courses.Ref(t.Key.Id) = new(t.Names);
         }
     }
 
@@ -214,65 +210,48 @@ public static partial class ScheduleBuilderHelper
     {
         LessonBase BuildBase(in LessonBuilderModelDataBase x)
         {
-            return new()
-            {
-                Data = new()
-                {
-                    Groups = x.Group.Groups.Ordered(),
-                    SubGroup = x.Group.SubGroup,
-                    Specialization = x.Group.Specialization,
-                    Alternative = x.Group.Alternative,
-                    Course = x.General.Course!.Value,
-                    Room = x.General.Room,
-                    Teachers = [.. x.General.Teachers],
-                    Type = x.General.Type,
-                },
-            };
+            var groups = x.Group.Groups.Ordered();
+            ImmutableArray<TeacherId> teachers = [.. x.General.Teachers];
+            var data = new LessonData(
+                groups: groups,
+                course: x.General.Course!.Value,
+                teachers: teachers,
+                room: x.General.Room,
+                type: x.General.Type,
+                subGroup: x.Group.SubGroup,
+                specialization: x.Group.Specialization,
+                alternative: x.Group.Alternative);
+            return new(data);
         }
 
         var weeklyLessons = s.WeeklyLessons.Build(x =>
         {
-            var ret = new WeeklyLesson
-            {
-                Base = BuildBase(x.Base),
-                Date = new()
-                {
-                    TimeSlot = x.Date.TimeSlot!.Value,
-                    DayOfWeek = x.Date.DayOfWeek!.Value,
-                    Parity = x.Date.Parity ?? Parity.EveryWeek,
-                    Period = x.General.Period,
-                },
-            };
-            return ret;
+            var lessonBase = BuildBase(x.Base);
+            var date = new WeeklyLessonDate(
+                dayOfWeek: x.Date.DayOfWeek!.Value,
+                timeSlot: x.Date.TimeSlot!.Value,
+                period: x.General.Period,
+                parity: x.Date.Parity ?? Parity.EveryWeek);
+            return new WeeklyLesson(lessonBase, date);
         });
         var oneTimeLessons = s.OneTimeLessons.Build(x =>
         {
-            return new OneTimeLesson
-            {
-                Base = BuildBase(x.Base),
-                Date = new()
-                {
-                    Date = x.Date.Date!.Value,
-                    TimeSlot = x.Date.TimeSlot!.Value,
-                },
-            };
+            var lessonBase = BuildBase(x.Base);
+            var date = new OneTimeLessonDate(
+                date: x.Date.Date!.Value,
+                timeSlot: x.Date.TimeSlot!.Value);
+            return new OneTimeLesson(lessonBase, date);
         });
         var groups = s.Groups.Build(x => x.Build());
         var teachers = s.Teachers.Build(x =>
         {
-            var ret = new Teacher
+            var firstName = x.Name.FirstName.Map(x1 => x1 with
             {
-                Contacts = x.Contacts,
-                PersonName = new()
-                {
-                    FirstName = x.Name.FirstName.Map(x1 => x1 with
-                    {
-                        Short = ShortName(x1),
-                    }),
-                    LastName = x.Name.LastName,
-                },
-            };
-            return ret;
+                Short = ShortName(x1),
+            });
+            var personName = new PersonName(firstName, x.Name.LastName);
+            var contacts = x.Contacts.ToPersonContacts();
+            return new Teacher(personName, contacts);
 
             static string? ShortName(OptionalNamePart x)
             {
@@ -296,15 +275,13 @@ public static partial class ScheduleBuilderHelper
             return ret;
         });
 
-        return new Schedule
-        {
-            WeeklyLessons = weeklyLessons,
-            OneTimeLessons = oneTimeLessons,
-            Groups = groups,
-            Teachers = teachers,
-            Courses = courses,
-            Periods = periods,
-        };
+        return new Schedule(
+            weeklyLessons: weeklyLessons,
+            oneTimeLessons: oneTimeLessons,
+            groups: groups,
+            teachers: teachers,
+            courses: courses,
+            periods: periods);
     }
 
     public static CourseId Course(this ScheduleBuilder s, params ImmutableArray<string> names)
@@ -322,10 +299,7 @@ public static partial class ScheduleBuilderHelper
         }
 
         var r = s.Courses.New();
-        r.Value = new()
-        {
-            Names = names,
-        };
+        r.Value = new(names);
 
         {
             if (s.LookupModule is { } lookupModule)

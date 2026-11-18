@@ -553,16 +553,35 @@ internal sealed class RegistryTargetCoverage(
             // Its existing parent-language destination already synchronizes that event.
             var shared = schedule.EnumerateAllLessons()
                 .Any(candidate =>
-                    candidate.Lesson.Groups.IsSingleGroup
-                    && candidate.Lesson.Groups[0] == target.Group
-                    && candidate.Lesson.GroupPartitionKey == target.Partition
-                    && (candidate.Lesson with
+                {
+                    if (!candidate.Lesson.Groups.IsSingleGroup)
                     {
-                        Groups = source.Lesson.Groups,
-                        SubGroup = source.Lesson.SubGroup,
-                    })
-                    == source.Lesson
-                    && SameDate(first: source, second: candidate));
+                        return false;
+                    }
+                    if (candidate.Lesson.Groups[0] != target.Group)
+                    {
+                        return false;
+                    }
+                    if (candidate.Lesson.GroupPartitionKey != target.Partition)
+                    {
+                        return false;
+                    }
+
+                    var withSourceAudience = candidate.Lesson.WithGroupsAndSubGroup(
+                        source.Lesson.Groups,
+                        source.Lesson.SubGroup);
+                    if (withSourceAudience != source.Lesson)
+                    {
+                        return false;
+                    }
+
+                    if (SameDate(first: source, second: candidate))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                });
             if (shared)
             {
                 Cover(target);

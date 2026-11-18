@@ -626,14 +626,17 @@ public sealed partial class AttendanceListsExcelParser
             }
             diffMask = diffMask.Remove(additionallyIgnoredFields);
 
-            var diffLesson = default(LessonData) with
-            {
-                Course = !key.CourseId.IsInvalid ? key.CourseId : default,
-                Groups = key.Groups.Count > 0 ? key.Groups : default,
-                SubGroup = key.GroupPartition.SubGroup,
-                Specialization = key.GroupPartition.Specialization,
-                Type = key.LessonType != LessonType.None ? key.LessonType : default,
-            };
+            var diffCourse = !key.CourseId.IsInvalid ? key.CourseId : default;
+            var diffGroups = key.Groups.Count > 0 ? key.Groups : default;
+            var diffType = key.LessonType != LessonType.None ? key.LessonType : default;
+            var diffLesson = new LessonData(
+                groups: diffGroups,
+                course: diffCourse,
+                teachers: default,
+                room: default,
+                type: diffType,
+                subGroup: key.GroupPartition.SubGroup,
+                specialization: key.GroupPartition.Specialization);
 
             LessonData result = default;
             AnyLessonId? lessonId = null;

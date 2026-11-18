@@ -247,20 +247,16 @@ public static class LabSubGroupMerges
             {
                 suppressed.Remove(item.Id);
                 var lesson = lessons[item.Id.Id];
-                lessons[item.Id.Id] = lesson with
-                {
-                    Base = lesson.Base with
-                    {
-                        Data = lesson.Base.Data with
-                        {
-                            SubGroup = SubGroup.All,
-                        },
-                    },
-                    Date = lesson.Date with
-                    {
-                        Period = PeriodId.Unspecified,
-                    },
-                };
+                var data = lesson.Base.Data;
+                var mergedData = data.WithGroupsAndSubGroup(data.Groups, SubGroup.All);
+                var date = lesson.Date;
+                var mergedDate = new WeeklyLessonDate(
+                    dayOfWeek: date.DayOfWeek,
+                    timeSlot: date.TimeSlot,
+                    period: PeriodId.Unspecified,
+                    parity: date.Parity);
+                LessonBase mergedBase = new(mergedData);
+                lessons[item.Id.Id] = new(mergedBase, mergedDate);
             }
 
             void Diagnose(string reason)
@@ -273,18 +269,20 @@ public static class LabSubGroupMerges
                     reason));
             }
         }
-        return new()
-        {
-            WeeklyLessons = lessons.ToImmutable(),
-            OneTimeLessons = source.OneTimeLessons,
-            Groups = source.Groups,
-            Teachers = source.Teachers,
-            Courses = source.Courses,
-            Periods = source.Periods,
-            AutomaticLabSubGroupMerges = merges.ToImmutable(),
-            LabSubGroupMergeDiagnostics = diagnostics.ToImmutable(),
-            SuppressedWeeklyLessons = suppressed.ToImmutable(),
-        };
+        var weeklyLessons = lessons.ToImmutable();
+        var automaticMerges = merges.ToImmutable();
+        var mergeDiagnostics = diagnostics.ToImmutable();
+        var suppressedLessons = suppressed.ToImmutable();
+        return new(
+            weeklyLessons: weeklyLessons,
+            oneTimeLessons: source.OneTimeLessons,
+            groups: source.Groups,
+            teachers: source.Teachers,
+            courses: source.Courses,
+            periods: source.Periods,
+            automaticLabSubGroupMerges: automaticMerges,
+            labSubGroupMergeDiagnostics: mergeDiagnostics,
+            suppressedWeeklyLessons: suppressedLessons);
     }
 
     private static bool IsNumeric(SubGroup subgroup) =>

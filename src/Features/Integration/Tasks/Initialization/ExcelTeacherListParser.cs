@@ -134,10 +134,7 @@ public static class ExcelTeacherListParser
                                 var email = stringTable.GetStringValue(cell);
                                 if (email is not null)
                                 {
-                                    builder.Model.Contacts = builder.Model.Contacts with
-                                    {
-                                        PersonalEmail = email,
-                                    };
+                                    builder.Model.Contacts.PersonalEmail = email;
                                 }
                                 return true;
                             }
@@ -147,10 +144,7 @@ public static class ExcelTeacherListParser
                                 var email = stringTable.GetStringValue(cell);
                                 if (email is not null)
                                 {
-                                    builder.Model.Contacts = builder.Model.Contacts with
-                                    {
-                                        CorporateEmail = email,
-                                    };
+                                    builder.Model.Contacts.CorporateEmail = email;
                                 }
                                 return true;
                             }
@@ -160,10 +154,7 @@ public static class ExcelTeacherListParser
                                 var phone = stringTable.GetStringValue(cell);
                                 if (phone is not null)
                                 {
-                                    builder.Model.Contacts = builder.Model.Contacts with
-                                    {
-                                        PhoneNumber = phone,
-                                    };
+                                    builder.Model.Contacts.PhoneNumber = phone;
                                 }
                                 return true;
                             }

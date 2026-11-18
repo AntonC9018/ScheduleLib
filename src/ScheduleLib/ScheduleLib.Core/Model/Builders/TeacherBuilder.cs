@@ -333,7 +333,7 @@ public static class TeacherLookupHelper
 public sealed class TeacherBuilderModel
 {
     public NameModel Name;
-    public PersonContacts Contacts;
+    public ContactsModel Contacts;
 
     public record struct NameModel
     {
@@ -349,6 +349,21 @@ public sealed class TeacherBuilderModel
                 LastName = LastName,
             };
             return nameFields;
+        }
+    }
+
+    public record struct ContactsModel
+    {
+        public string? PersonalEmail;
+        public string? CorporateEmail;
+        public string? PhoneNumber;
+
+        public readonly PersonContacts ToPersonContacts()
+        {
+            return new(
+                personalEmail: PersonalEmail,
+                corporateEmail: CorporateEmail,
+                phoneNumber: PhoneNumber);
         }
     }
 }
@@ -582,7 +597,7 @@ public readonly struct TeacherBuilder
         }
     }
 
-    public void Contacts(PersonContacts contacts)
+    public void Contacts(TeacherBuilderModel.ContactsModel contacts)
     {
         Model.Contacts = contacts;
     }

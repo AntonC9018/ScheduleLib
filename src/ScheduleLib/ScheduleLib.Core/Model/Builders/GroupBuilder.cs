@@ -45,17 +45,15 @@ public sealed class GroupBuilderModel
     public Group Build()
     {
         Validate();
-        return new()
-        {
-            Name = Name,
-            Grade = Grade,
-            GroupNumber = GroupNumber,
-            QualificationType = QualificationType,
-            Faculty = Faculty,
-            AttendanceMode = AttendanceMode,
-            Specialty = Specialty,
-            Language = Language,
-        };
+        return new(
+            name: Name,
+            grade: Grade,
+            groupNumber: GroupNumber,
+            qualificationType: QualificationType,
+            faculty: Faculty,
+            attendanceMode: AttendanceMode,
+            language: Language,
+            specialty: Specialty);
     }
 }
 

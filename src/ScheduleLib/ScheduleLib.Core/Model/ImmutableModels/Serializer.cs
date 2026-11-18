@@ -243,15 +243,19 @@ public static class SerializationModels
         GroupParseContext groupParseContext,
         Remappings remappings)
     {
-        return new Schedule
-        {
-            WeeklyLessons = [.. schedule.RegularLessons.Select(ToWeeklyLesson)],
-            OneTimeLessons = [.. schedule.OneTimeLessons.Select(ToOneTimeLesson)],
-            Groups = [.. schedule.Groups.Select(ToGroup)],
-            Teachers = [.. schedule.Teachers.Select(ToTeacher)],
-            Courses = [.. schedule.Courses.Select(ToCourse)],
-            Periods = [.. schedule.Periods.Select(ToPeriod)],
-        };
+        ImmutableArray<WeeklyLesson> weeklyLessons = [.. schedule.RegularLessons.Select(ToWeeklyLesson)];
+        ImmutableArray<OneTimeLesson> oneTimeLessons = [.. schedule.OneTimeLessons.Select(ToOneTimeLesson)];
+        ImmutableArray<Group> groups = [.. schedule.Groups.Select(ToGroup)];
+        ImmutableArray<Teacher> teachers = [.. schedule.Teachers.Select(ToTeacher)];
+        ImmutableArray<Course> courses = [.. schedule.Courses.Select(ToCourse)];
+        ImmutableArray<Period> periods = [.. schedule.Periods.Select(ToPeriod)];
+        return new Schedule(
+            weeklyLessons: weeklyLessons,
+            oneTimeLessons: oneTimeLessons,
+            groups: groups,
+            teachers: teachers,
+            courses: courses,
+            periods: periods);
 
         Group ToGroup(GroupModel model)
         {
@@ -262,69 +266,47 @@ public static class SerializationModels
 
         static WeeklyLesson ToWeeklyLesson(WeeklyLessonModel model)
         {
-            return new()
-            {
-                Base = ToLessonBase(model),
-                Date = new()
-                {
-                    DayOfWeek = model.DayOfWeek,
-                    TimeSlot = model.TimeSlot,
-                    Parity = model.Parity,
-                    Period = model.Period,
-                },
-            };
+            var lessonBase = ToLessonBase(model);
+            var date = new WeeklyLessonDate(
+                dayOfWeek: model.DayOfWeek,
+                timeSlot: model.TimeSlot,
+                period: model.Period,
+                parity: model.Parity);
+            return new(lessonBase, date);
         }
 
         static OneTimeLesson ToOneTimeLesson(OneTimeLessonModel model)
         {
-            return new()
-            {
-                Base = ToLessonBase(model),
-                Date = new()
-                {
-                    Date = model.Date,
-                    TimeSlot = model.TimeSlot,
-                },
-            };
+            var lessonBase = ToLessonBase(model);
+            var date = new OneTimeLessonDate(model.Date, model.TimeSlot);
+            return new(lessonBase, date);
         }
 
         static LessonBase ToLessonBase(LessonBaseModel model)
         {
-            return new()
-            {
-                Data = new()
-                {
-                    Groups = [.. model.Groups],
-                    SubGroup = model.SubGroup,
-                    Specialization = model.Specialization,
-                    Alternative = model.Alternative,
-                    Course = model.Course,
-                    Room = model.Room,
-                    Teachers = model.Teachers,
-                    Type = model.Type,
-                },
-            };
+            LessonGroups groups = [.. model.Groups];
+            var data = new LessonData(
+                groups: groups,
+                course: model.Course,
+                teachers: model.Teachers,
+                room: model.Room,
+                type: model.Type,
+                subGroup: model.SubGroup,
+                specialization: model.Specialization,
+                alternative: model.Alternative);
+            return new(data);
         }
 
         static Teacher ToTeacher(PersonModel model)
         {
-            return new()
-            {
-                PersonName = new()
-                {
-                    FirstName = model.FirstName,
-                    LastName = new(model.LastName),
-                },
-                Contacts = default,
-            };
+            LastName lastName = new(model.LastName);
+            var personName = new PersonName(model.FirstName, lastName);
+            return new(personName, contacts: default);
         }
 
         static Course ToCourse(CourseModel model)
         {
-            return new()
-            {
-                Names = model.Names,
-            };
+            return new(model.Names);
         }
 
         static Period ToPeriod(PeriodModel model)
@@ -342,10 +324,7 @@ public static class SerializationModels
         Debug.Assert(builder.Courses.Count == 0);
         foreach (var s in schedule.Courses)
         {
-            builder.Courses.List.Add(new()
-            {
-                Names = s.Names,
-            });
+            builder.Courses.List.Add(new(s.Names));
         }
 
         Debug.Assert(builder.Groups.Count == 0);
