@@ -28,9 +28,9 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   Context is data supplied to scopes, never extra registrations.
 - **Seeds** are raw inputs supplied when a scope opens (CLI arguments, data directory, profile).
   - Consumers receive them through constructor injection, like any other dependency.
-  - Seeds can be keyed: `AddKeyedSeed<SourceArgs>("previous")`,
-    consumed through `[FromKeyedServices("previous")]`.
-    The plan reads that attribute, including `InheritKey`.
+  - Seeds can be keyed: `AddKeyedSeed<SourceArgs>("previous")`, consumed through
+    `[FromKeyedServices("previous")]` by an ordinary service that stays unkeyed (Q52).
+    The plan reads that attribute, also for ordinary keyed services.
   - Seeds are never disposed by the scope; the caller owns them.
 - **Derived values** are built synchronously by factory classes,
   `AddDerived<T, TFactory>()` with `TFactory : IFactory<T>`.
@@ -63,6 +63,8 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   This is also how a dynamic need is added manually.
 - **Errors are found before any work:** a missing seed or a broken registration is rejected
   when the scope opens, with nothing initialized.
+- **Shared plan graph** (Q49, implementation detail): plans share nodes per `(type, key)`
+  and memoized closures, so a subgraph used by many handlers is stored once.
 - **Verification:** a test builds the plan of every workflow root in the CLI and GUI
   and checks that none has errors.
 - **Plans are built on first use and kept** by the `ScopePlan<THandler>` singleton (Q43);
@@ -106,6 +108,9 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   - An initializer that opens a resource registers it with its scope's `ScopeResources`
     and returns a non-disposable value that uses it.
     Only the scope that ran the initializer closes the resource.
+- **Forks are disposed by whoever opens them** (Q50). A parent that ends with a fork still
+  open disposes it as a safety net, then throws "fork left open".
+  Forks never outlive their parent; there is no ownership-transfer option.
 - **No per-registration "re-initialize in each fork" setting** until a stateful session
   breaks (Q44).
 - **#247 integration** (Q47): CommandDotNet's `UseDependencyResolver` injects
@@ -127,17 +132,15 @@ consumers that take ordinary constructor parameters, and a graph that can be che
 - **Explicit initialization:** initializers the caller must name with `.Init<X>()`,
   and a per-plan switch disallowing implicit initialization.
   Open point if revived: whether naming X also covers what X depends on (a setting).
+- **Keyed derived and initialized values** (Q48): one factory serving several keys through an
+  inherited key. No command needs it.
 - **Parallel initializers:** independent initializers marked by an attribute or a
   registration option could run concurrently. Idea only.
 - **Compile-time graph:** a source generator producing the plan statically.
 
 ## Open questions
 
-See the latest round in the conversation; recorded here once answered.
-
-- **Plan footprint:** plans for different handlers share subgraphs; duplication must be bounded.
-- **Open forks when the parent ends:** dispose, error, or allow ownership transfer.
-- **Keyed seeds and keyed values:** no current use case for either.
+- **GUI adoption:** whether GUI workflows move to scope plans in this work or later.
 
 ## Next steps (after the open questions and a demo review)
 
