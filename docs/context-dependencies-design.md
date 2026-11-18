@@ -65,6 +65,10 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   when the scope opens, with nothing initialized.
 - **Verification:** a test builds the plan of every workflow root in the CLI and GUI
   and checks that none has errors.
+- **Plans are built on first use and kept** by the `ScopePlan<THandler>` singleton (Q43);
+  the verification test covers what eager building would catch.
+- **Independent initializers run sequentially in constructor order** (Q45),
+  so a cheap check that can fail (Google auth) can be listed before an expensive parse.
 
 ### Composition and forks
 
@@ -92,6 +96,12 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   - An initializer that opens a resource registers it with its scope's `ScopeResources`
     and returns a non-disposable value that uses it.
     Only the scope that ran the initializer closes the resource.
+- **No per-registration "re-initialize in each fork" setting** until a stateful session
+  breaks (Q44).
+- **#247 integration** (Q47): CommandDotNet's `UseDependencyResolver` injects
+  `ScopeForkFactory<THandler>`; command method parameters become seeds;
+  tests replace values only through `AddInitialized`/`AddDerived` and run commands through
+  the real host, removing the `virtual` seams and the CR1400 suppression.
 - **Accepted limitations:**
   - Inherited values are shared by reference; a child mutating one affects the parent.
   - Ordinary scoped services (not seeds or initialized values) are created fresh in a fork.
@@ -107,29 +117,18 @@ consumers that take ordinary constructor parameters, and a graph that can be che
 - **Explicit initialization:** initializers the caller must name with `.Init<X>()`,
   and a per-plan switch disallowing implicit initialization.
   Open point if revived: whether naming X also covers what X depends on (a setting).
+- **Parallel initializers:** independent initializers marked by an attribute or a
+  registration option could run concurrently. Idea only.
 - **Compile-time graph:** a source generator producing the plan statically.
 
 ## Open questions
 
-Recommended answers in parentheses.
+See the latest round in the conversation; recorded here once answered.
 
-- **Q43:** `ScopePlan<T>` singletons build each plan on first use and keep it.
-  Fine, since the test still builds every plan? (Yes.)
-- **Q44:** No per-registration "re-initialize in each fork" setting until a stateful session
-  breaks; a parent ending its scope disposes its open forks first? (Yes to both.)
-- **Q45:** Independent initializers run in the order the handler's constructor lists them,
-  so Google auth can fail before the schedule is parsed? (Yes.)
-- **Q46:** What `ResolvedSettings.ConfigureServices` registers per profile becomes values derived
-  from a settings seed, since one root container cannot take per-profile registrations? (Yes.)
-- **Q47:** For #247:
-  - CommandDotNet's `UseDependencyResolver` injects `ScopeForkFactory<THandler>`.
-  - Command method parameters become seeds.
-  - Tests replace values only through `AddInitialized`/`AddDerived` and run commands through
-    the real host, removing the `virtual` seams and the CR1400 suppression.
-
-  (Yes.)
-- **Q48:** Keyed derived and initialized values, e.g. `PlanSchedule["previous"]` from
-  `SourceArgs["previous"]`? (Yes, deferred until a command compares two schedules.)
+- **Plan footprint:** plans for different handlers share subgraphs; duplication must be bounded.
+- **Open forks when the parent ends:** dispose, error, or allow ownership transfer.
+- **Settings:** `ResolvedSettings` and its private container; the CLI may be rewritten freely.
+- **Keyed seeds and keyed values:** no current use case for either.
 
 ## Next steps (after the open questions and a demo review)
 
