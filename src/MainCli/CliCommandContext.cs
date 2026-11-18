@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
@@ -43,8 +44,7 @@ public readonly record struct StreamedUpdate(
 public sealed class CliCommandContext : IDisposable
 {
     private readonly ConsoleCancelEventHandler _cancel;
-    private readonly CliOutput? _previousOutput;
-    private readonly CliJsonlLoggerProvider _loggers;
+    private IDisposable? _logging;
     private int _streamed;
     private bool _started;
 
@@ -65,9 +65,7 @@ public sealed class CliCommandContext : IDisposable
             command: command,
             runId: runId,
             arguments);
-        _loggers = new CliJsonlLoggerProvider(Output);
         Cancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _previousOutput = CliAmbient.Current;
         _cancel = (_, e) =>
         {
             e.Cancel = true;
@@ -78,7 +76,8 @@ public sealed class CliCommandContext : IDisposable
     public CliOutput Output { get; }
 
     /// <summary>A logger writing to this command's output, for diagnostics outside a service provider.</summary>
-    public ILogger CreateLogger(string category) => _loggers.CreateLogger(category);
+    public ILogger CreateLogger(string category) =>
+        Output.Jsonl ? CliLogging.CreateLogger(category) : NullLogger.Instance;
 
     public CancellationTokenSource Cancellation { get; }
 
@@ -96,6 +95,7 @@ public sealed class CliCommandContext : IDisposable
             Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
             return false;
         }
+        _logging = CliLogging.Use(Output);
         Output.EmitStart();
         Console.CancelKeyPress += _cancel;
         _started = true;
@@ -210,15 +210,6 @@ public sealed class CliCommandContext : IDisposable
             configure,
             settings.ProjectDirectory);
         settings.ConfigureServices(services);
-        if (Output.Jsonl)
-        {
-            CliLogging.ReplaceWithJsonl(services, Output);
-            CliAmbient.Current = Output;
-        }
-        else
-        {
-            CliAmbient.Current = null;
-        }
         return services;
     }
 
@@ -355,9 +346,8 @@ public sealed class CliCommandContext : IDisposable
         {
             Console.CancelKeyPress -= _cancel;
         }
-        CliAmbient.Current = _previousOutput;
+        _logging?.Dispose();
         Artifacts?.Dispose();
-        _loggers.Dispose();
         Cancellation.Dispose();
     }
 }

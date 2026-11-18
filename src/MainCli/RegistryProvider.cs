@@ -125,11 +125,6 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
                 AppConfiguration.ConfigureServices,
                 resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
-            if (CliAmbient.Current is { Jsonl: true } ambient)
-            {
-                CliLogging.ReplaceWithJsonl(services, ambient);
-            }
-
             provider = AppConfiguration.BuildServiceProvider(services);
             scope = await provider.OpenScheduleScope(token);
             const string missingCredentialsMessage =

@@ -446,11 +446,6 @@ public partial class QueryCommands
             return CliExit.InvalidArguments;
         }
         var output = context.Output;
-        if (output.Jsonl)
-        {
-            CliAmbient.Current = output;
-        }
-
         var lessons = new List<LessonResult>();
         var streamed = 0;
         var cancellation = context.Cancellation;

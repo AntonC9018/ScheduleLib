@@ -279,8 +279,8 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            using var provider = new CliJsonlLoggerProvider(output);
-            var logger = provider.CreateLogger("synthetic");
+            using var routing = CliLogging.Use(output);
+            var logger = CliLogging.CreateLogger("synthetic");
             logger.LogInformation("Synthetic information {Value}", 42);
             logger.LogWarning("Synthetic warning");
 
@@ -968,8 +968,8 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            using var provider = new CliJsonlLoggerProvider(output);
-            var logger = provider.CreateLogger("synthetic");
+            using var routing = CliLogging.Use(output);
+            var logger = CliLogging.CreateLogger("synthetic");
             logger.LogDebug("Synthetic debug {Value}", 1);
             using (logger.BeginScope("synthetic-scope"))
             {
@@ -1038,13 +1038,13 @@ public sealed class CliJsonlTests
         Console.SetError(stderr);
         try
         {
-            using var provider = new CliJsonlLoggerProvider(
-                new CliOutput(
-                    command: "synthetic",
-                    runId: "scope-run",
-                    json: false,
-                    jsonl: true));
-            var logger = provider.CreateLogger("synthetic");
+            var output = new CliOutput(
+                command: "synthetic",
+                runId: "scope-run",
+                json: false,
+                jsonl: true);
+            using var routing = CliLogging.Use(output);
+            var logger = CliLogging.CreateLogger("synthetic");
             using var parent = logger.BeginScope(new Dictionary<string, object?>
             {
                 ["Parent"] = "shared",
@@ -1089,17 +1089,15 @@ public sealed class CliJsonlTests
                 .EnumerateArray()
                 .Select(scope => scope.GetString())
                 .ToArray();
-            Assert.Equal(expected: 2, actual: scopes.Length);
-            Assert.Contains(
-                "child-"
-                + properties.GetProperty("Index")
-                    .GetInt32(),
-                scopes);
+            // Dictionary scopes contribute properties only; message scopes are listed.
+            var index = properties.GetProperty("Index")
+                .GetInt32();
+            string[] expectedScopes = ["child-" + index];
+            Assert.Equal(expected: expectedScopes, actual: scopes);
         }
         using var last = JsonDocument.Parse(lines[^1]);
-        var finalScopes = last.RootElement.GetProperty("scopes")
-            .EnumerateArray();
-        Assert.Single(finalScopes);
+        var finalScopes = last.RootElement.GetProperty("scopes");
+        Assert.Equal(expected: JsonValueKind.Null, actual: finalScopes.ValueKind);
     }
 
     [Fact]

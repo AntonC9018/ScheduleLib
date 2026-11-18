@@ -116,15 +116,10 @@ public partial class ExportCommands
             if (preDefense)
             {
                 ConfigureServices(services);
+                CliLogging.Register(services);
             }
 
             resolvedSettings.ConfigureServices(services);
-            if (cli.Jsonl)
-            {
-                CliLogging.ReplaceWithJsonl(services, cli);
-            }
-
-            CliAmbient.Current = cli.Jsonl ? cli : null;
             await using var provider = AppConfiguration.BuildServiceProvider(services);
             await using var scope = provider.CreateAsyncScope();
             if (!preDefense)

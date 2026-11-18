@@ -96,7 +96,6 @@ public partial class RegistryCommands
             return CliExit.InvalidArguments;
         }
         var output = context.Output;
-        CliAmbient.Current = output;
         RegistryDestination? target = null;
         var outcomes = new List<RegistryActionOutcome>();
         IReadOnlyList<RegistrySyncDiagnostic> diagnostics = [];

@@ -56,6 +56,7 @@ public static class CliRuntime
 
         var services = new ServiceCollection();
         configure(services);
+        CliLogging.Register(services);
         GoogleAuthentication.Register(services);
         services.Configure<ScheduleBuilderInitializerOptions>(x =>
         {
