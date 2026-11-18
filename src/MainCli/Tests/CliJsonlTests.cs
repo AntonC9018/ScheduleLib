@@ -1031,6 +1031,42 @@ public sealed class CliJsonlTests
     }
 
     [Fact]
+    public void StructuredLogMessagesRenderStringArgumentsWithoutQuotes()
+    {
+        var output = new CliOutput(
+            command: "synthetic command",
+            runId: "synthetic-run",
+            json: false,
+            jsonl: true);
+        var originalError = Console.Error;
+        using var stderr = new StringWriter();
+        try
+        {
+            Console.SetError(stderr);
+            using var routing = CliLogging.Use(output);
+            var logger = CliLogging.CreateLogger("synthetic");
+            logger.LogInformation("Importing {Course}", "Databases");
+        }
+        finally
+        {
+            Console.SetError(originalError);
+        }
+
+        var line = Assert.Single(stderr.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        using var record = JsonDocument.Parse(line);
+        Assert.Equal(
+            expected: "Importing Databases",
+            actual: record.RootElement.GetProperty("message")
+                .GetString());
+        Assert.Equal(
+            expected: "Databases",
+            actual: record.RootElement.GetProperty("properties")
+                .GetProperty("Course")
+                .GetString());
+    }
+
+    [Fact]
     public async Task ConcurrentLogScopesStayWithinTheirAsyncExecution()
     {
         using var stderr = new SyncCapture();

@@ -6,6 +6,7 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Extensions.Hosting;
 using Serilog.Extensions.Logging;
+using Serilog.Formatting.Display;
 
 namespace ScheduleLib.Cli;
 
@@ -72,6 +73,10 @@ public sealed class CliOutputSink(CliOutput output) : ILogEventSink
     private const string ScopeProperty = "Scope";
     private const string EventIdProperty = "EventId";
 
+    // ":l" renders string values literally, without the quotes RenderMessage adds,
+    // so messages read as they did through Microsoft.Extensions.Logging.
+    private static readonly MessageTemplateTextFormatter MessageFormatter = new("{Message:l}");
+
     public void Emit(LogEvent logEvent)
     {
         var properties = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -85,7 +90,7 @@ public sealed class CliOutputSink(CliOutput output) : ILogEventSink
             properties[name] = ToObject(value);
         }
 
-        var message = logEvent.RenderMessage();
+        var message = RenderMessage(logEvent);
         var structuredProperties = properties.Count > 0 ? properties : null;
         var scopes = Scopes(logEvent);
         var category = Category(logEvent);
@@ -97,6 +102,13 @@ public sealed class CliOutputSink(CliOutput output) : ILogEventSink
             scopes,
             category: category,
             timestamp: logEvent.Timestamp);
+    }
+
+    private static string RenderMessage(LogEvent logEvent)
+    {
+        using var writer = new StringWriter();
+        MessageFormatter.Format(logEvent, writer);
+        return writer.ToString();
     }
 
     private static LogLevel Level(LogEventLevel level)
