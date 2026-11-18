@@ -65,7 +65,7 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   when the scope opens, with nothing initialized.
 - **Shared plan graph** (Q49, implementation detail): plans share nodes per `(type, key)`
   and memoized closures, so a subgraph used by many handlers is stored once.
-- **Verification:** a test builds the plan of every workflow root in the CLI and GUI
+- **Verification:** a test builds the plan of every workflow root that uses scope plans
   and checks that none has errors.
 - **Plans are built on first use and kept** by the `ScopePlan<THandler>` singleton (Q43);
   the verification test covers what eager building would catch.
@@ -138,9 +138,10 @@ consumers that take ordinary constructor parameters, and a graph that can be che
   registration option could run concurrently. Idea only.
 - **Compile-time graph:** a source generator producing the plan statically.
 
-## Open questions
+## Scope
 
-- **GUI adoption:** whether GUI workflows move to scope plans in this work or later.
+- #247 moves the CLI to scope plans. The GUI moves later under [#283](https://github.com/AntonC9018/ScheduleLib/issues/283) (Q53);
+  the verification test covers the workflow roots that already use plans.
 
 ## Next steps (after the open questions and a demo review)
 
