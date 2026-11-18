@@ -111,10 +111,10 @@ public sealed partial class ScopeFilteredScheduleProvider
 /// </summary>
 public sealed class ScheduleScope : IAsyncDisposable
 {
-    private readonly AsyncServiceScope _invocation;
+    private readonly InvocationScope _invocation;
     private readonly PlannedScope<LoadedSchedule> _scope;
 
-    private ScheduleScope(AsyncServiceScope invocation, PlannedScope<LoadedSchedule> scope)
+    private ScheduleScope(InvocationScope invocation, PlannedScope<LoadedSchedule> scope)
     {
         _invocation = invocation;
         _scope = scope;
@@ -124,10 +124,13 @@ public sealed class ScheduleScope : IAsyncDisposable
 
     public static async Task<ScheduleScope> Open(IServiceProvider root, CancellationToken cancellationToken)
     {
-        var invocation = root.CreateAsyncScope();
+        // CA2000 does not see ownership pass to the returned ScheduleScope; failures dispose below.
+#pragma warning disable CA2000
+        var invocation = new InvocationScope(root);
+#pragma warning restore CA2000
         try
         {
-            var forks = invocation.ServiceProvider.GetRequiredService<ScopeForkFactory<LoadedSchedule>>();
+            var forks = invocation.Services.GetRequiredService<ScopeForkFactory<LoadedSchedule>>();
             var scope = await forks.OpenAsync(supply: null, cancellationToken);
             return new(invocation, scope);
         }

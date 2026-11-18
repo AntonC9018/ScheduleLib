@@ -85,7 +85,25 @@ public sealed class ScopePlanGraph
         public bool HasLambdaMember { get; init; }
     }
 
-    private readonly record struct PathEntry(ScopeNode Node, List<ScopePlanIssue> CycleIssues);
+    /// <summary>A node being expanded, at <paramref name="index"/> on the walk path.</summary>
+    private sealed class PathEntry(ScopeNode node, int index)
+    {
+        private readonly int _index = index;
+
+        public ScopeNode Node => node;
+        public List<ScopePlanIssue> CycleIssues { get; } = [];
+
+        /// <summary>The shallowest path index that a cycle found below this node reached back to.</summary>
+        public int LowLink { get; set; } = index;
+
+        /// <summary>
+        /// A cycle reached an ancestor still being expanded, so this node's closure lacks that
+        /// ancestor's contributions and must not be memoized: from another root it would differ.
+        /// </summary>
+        public bool IsTruncated => LowLink < _index;
+    }
+
+    private readonly record struct Expansion(ScopeNodeInfo Info, bool IsTruncated);
 
     /// <summary>One depth-first walk; finished nodes are memoized in the graph.</summary>
     private sealed class Walk(ScopePlanGraph graph)
@@ -106,7 +124,7 @@ public sealed class ScopePlanGraph
                 return Visit(root);
             }
             var activated = new NodeDescription(ScopeNodeKind.Service, ImplementationInputs(root.Type, key: null));
-            return Expand(root, activated, onPath: false).Closure;
+            return Expand(root, activated, onPath: false).Info.Closure;
         }
 
         public ScopeClosure Visit(ScopeNode node)
@@ -124,16 +142,21 @@ public sealed class ScopePlanGraph
             if (cycleStart >= 0)
             {
                 ReportCycle(cycleStart, node);
+                var consumer = _path[^1];
+                consumer.LowLink = Math.Min(consumer.LowLink, cycleStart);
                 return ScopeClosure.Empty;
             }
-            var info = Expand(node, description, onPath: true);
-            graph._nodes[node] = info;
-            return info.Closure;
+            var expansion = Expand(node, description, onPath: true);
+            if (!expansion.IsTruncated)
+            {
+                graph._nodes[node] = expansion.Info;
+            }
+            return expansion.Info.Closure;
         }
 
-        private ScopeNodeInfo Expand(ScopeNode node, NodeDescription description, bool onPath)
+        private Expansion Expand(ScopeNode node, NodeDescription description, bool onPath)
         {
-            var entry = new PathEntry(node, []);
+            var entry = new PathEntry(node, _path.Count);
             if (onPath)
             {
                 _path.Add(entry);
@@ -152,8 +175,14 @@ public sealed class ScopePlanGraph
             if (onPath)
             {
                 _path.RemoveAt(_path.Count - 1);
+                if (_path.Count > 0)
+                {
+                    var consumer = _path[^1];
+                    consumer.LowLink = Math.Min(consumer.LowLink, entry.LowLink);
+                }
             }
-            return new ScopeNodeInfo(node, description.Kind, description.Inputs, builder.Build());
+            var info = new ScopeNodeInfo(node, description.Kind, description.Inputs, builder.Build());
+            return new(info, entry.IsTruncated);
         }
 
         private void ReportCycle(int cycleStart, ScopeNode repeated)

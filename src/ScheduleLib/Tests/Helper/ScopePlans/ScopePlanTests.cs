@@ -268,6 +268,49 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
+    public void RegisteredCycleIsReportedTheSameInEitherOrder()
+    {
+        using var firstFirst = CreateCycleServices().BuildServiceProvider();
+        using var secondFirst = CreateCycleServices().BuildServiceProvider();
+
+        _ = firstFirst.PlanOf<CycleFirst>();
+        var secondPlanLater = firstFirst.PlanOf<CycleSecond>();
+        var secondPlanFirst = secondFirst.PlanOf<CycleSecond>();
+
+        var issues = IssueKinds(secondPlanFirst);
+        Assert.Equal(expected: issues, actual: IssueKinds(secondPlanLater));
+        Assert.Contains(ScopePlanIssueKind.MissingRegistration, issues);
+        Assert.Contains(ScopePlanIssueKind.Cycle, issues);
+
+        static IServiceCollection CreateCycleServices()
+        {
+            var services = new ServiceCollection();
+            services.AddSeed<SourceArgs>();
+            services.AddScoped<CycleFirst>();
+            services.AddScoped<CycleSecond>();
+            return services;
+        }
+
+        static ScopePlanIssueKind[] IssueKinds(ScopePlan plan)
+        {
+            return [.. plan.Errors.Select(e => e.Kind).Order()];
+        }
+    }
+
+    [Fact]
+    public async Task InitializedRegistrationReplacesADerivedOne()
+    {
+        var services = CreateServices();
+        services.AddInitialized<TeacherSettings, InitializedTeacherSettingsInitializer>();
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<ShowSettingsHandler>(supply: null);
+
+        Assert.Equal(expected: "initialized", actual: scope.Handler.Settings.Teacher);
+    }
+
+    [Fact]
     public void ReplacingAnInitializerKeepsAnUnrelatedRegistrationOfItsType()
     {
         var services = CreateServices();

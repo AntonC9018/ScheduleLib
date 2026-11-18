@@ -25,6 +25,23 @@ internal sealed class ScopeRegistrations
     /// <summary>Service, factory or initializer implementation type to what it resolves at run time.</summary>
     public Dictionary<Type, List<ScopeNode>> HiddenNeeds { get; } = [];
 
+    /// <summary>
+    /// Forgets the derived or initialized registration of <paramref name="value"/>, whichever kind
+    /// it was, and returns the service registrations it added.
+    /// </summary>
+    public ImmutableArray<ServiceDescriptor> Unregister(Type value)
+    {
+        if (Derived.Remove(value, out var derived))
+        {
+            return derived.Descriptors;
+        }
+        if (Initialized.Remove(value, out var initialized))
+        {
+            return initialized.Descriptors;
+        }
+        return [];
+    }
+
     public Type SlotTypeOf(ScopeNode node)
     {
         if (Seeds.TryGetValue(node, out var seedSlot))
@@ -62,17 +79,15 @@ public static class ScopePlanServiceCollectionExtensions
 
     /// <summary>
     /// A value built synchronously in each scope by <typeparamref name="TFactory"/>.
-    /// A later registration for the same <typeparamref name="T"/> replaces the earlier one.
+    /// A later derived or initialized registration for the same <typeparamref name="T"/>
+    /// replaces the earlier one.
     /// </summary>
     public static IServiceCollection AddDerived<T, TFactory>(this IServiceCollection services)
         where T : class
         where TFactory : class, IFactory<T>
     {
-        var derived = services.GetScopeRegistrations().Derived;
-        if (derived.TryGetValue(key: typeof(T), value: out var replaced))
-        {
-            services.RemoveDescriptors(replaced.Descriptors);
-        }
+        var registrations = services.GetScopeRegistrations();
+        services.RemoveDescriptors(registrations.Unregister(typeof(T)));
         ImmutableArray<ServiceDescriptor> descriptors =
         [
             ServiceDescriptor.Transient<TFactory, TFactory>(),
@@ -84,23 +99,21 @@ public static class ScopePlanServiceCollectionExtensions
             }),
         ];
         services.AddDescriptors(descriptors);
-        derived[typeof(T)] = new(Factory: typeof(TFactory), Descriptors: descriptors);
+        registrations.Derived[typeof(T)] = new(Factory: typeof(TFactory), Descriptors: descriptors);
         return services;
     }
 
     /// <summary>
     /// A value built asynchronously by <typeparamref name="TInitializer"/> when the scope opens.
-    /// A later registration for the same <typeparamref name="T"/> replaces the earlier one.
+    /// A later derived or initialized registration for the same <typeparamref name="T"/>
+    /// replaces the earlier one.
     /// </summary>
     public static IServiceCollection AddInitialized<T, TInitializer>(this IServiceCollection services)
         where T : class
         where TInitializer : class, IInitializer<T>
     {
-        var initialized = services.GetScopeRegistrations().Initialized;
-        if (initialized.TryGetValue(key: typeof(T), value: out var replaced))
-        {
-            services.RemoveDescriptors(replaced.Descriptors);
-        }
+        var registrations = services.GetScopeRegistrations();
+        services.RemoveDescriptors(registrations.Unregister(typeof(T)));
         ImmutableArray<ServiceDescriptor> descriptors =
         [
             ServiceDescriptor.Transient<TInitializer, TInitializer>(),
@@ -108,7 +121,7 @@ public static class ScopePlanServiceCollectionExtensions
             ServiceDescriptor.Scoped(static sp => sp.GetRequiredService<Slot<T>>().Value),
         ];
         services.AddDescriptors(descriptors);
-        initialized[typeof(T)] = new(
+        registrations.Initialized[typeof(T)] = new(
             Initializer: typeof(TInitializer),
             SlotType: typeof(Slot<T>),
             Descriptors: descriptors);

@@ -48,20 +48,21 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
     public IServiceProvider Services => _scope.ServiceProvider;
 
     /// <summary>
-    /// The registered handler, or else one created from the scope's services. A created handler
-    /// is owned by this scope, since the container does not track it.
+    /// The registered handler, or else one created from the scope's services. It is resolved
+    /// before the scope is returned, so it never races the scope ending. A created handler is
+    /// owned by this scope, since the container does not track it.
     /// </summary>
-    public THandler Handler => _handler ??= ResolveHandler();
+    public THandler Handler => _handler!;
 
-    private THandler ResolveHandler()
+    internal void ResolveHandler()
     {
         if (Services.GetService<THandler>() is { } registered)
         {
-            return registered;
+            _handler = registered;
+            return;
         }
-        var activated = ActivatorUtilities.CreateInstance<THandler>(Services);
+        _handler = ActivatorUtilities.CreateInstance<THandler>(Services);
         _handlerIsActivated = true;
-        return activated;
     }
 
     /// <summary>

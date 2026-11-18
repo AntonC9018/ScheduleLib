@@ -45,9 +45,10 @@ public sealed class ScopeForkFactory<THandler>(
         var scope = scopes.CreateAsyncScope();
         var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
         var planned = new PlannedScope<THandler>(scope, state);
+        state.UseServicesTeardown(planned.DisposeServicesAsync);
         try
         {
-            state.AttachToParent(current, scopePlan.Root, planned.DisposeServicesAsync);
+            state.AttachToParent(current, scopePlan.Root);
         }
         catch
         {
@@ -58,19 +59,38 @@ public sealed class ScopeForkFactory<THandler>(
         try
         {
             await FillAsync(scope.ServiceProvider, state, scopePlan, inputs, cancellationToken);
-            state.MarkOpenSettled();
-            return planned;
+            planned.ResolveHandler();
         }
         catch (Exception openFailure)
         {
-            var ending = state.EndAsync();
-            state.MarkOpenSettled();
-            if (await ending.Completion is not { } cleanupFailure)
+            if (await EndUnpublishedAsync(state) is not { } cleanupFailure)
             {
                 throw;
             }
             throw new AggregateException(openFailure, cleanupFailure);
         }
+
+        // A parent that started ending meanwhile is waiting for this fork to settle. Ending the
+        // fork here, before it settles, keeps the parent from returning a closed scope to us.
+        if (!current.AcceptsForks)
+        {
+            var parentEnded = new ParentScopeEndedException(scopePlan.Root);
+            if (await EndUnpublishedAsync(state) is { } cleanupFailure)
+            {
+                throw new AggregateException(parentEnded, cleanupFailure);
+            }
+            throw parentEnded;
+        }
+        state.MarkOpenSettled();
+        return planned;
+    }
+
+    /// <summary>Ends a fork that is never returned to the caller, then lets a waiting parent continue.</summary>
+    private static async ValueTask<Exception?> EndUnpublishedAsync(ScopeState state)
+    {
+        var ending = state.EndAsync();
+        state.MarkOpenSettled();
+        return await ending.Completion;
     }
 
     private bool IsSupplied(ScopeInputs inputs, ScopeNode seed)

@@ -182,10 +182,31 @@ public sealed class ScopeForkTests
         Assert.False(ending.IsCompleted);
         Assert.False(connection.IsClosed);
         gate.Release();
-        await using var child = await opening;
-        await Assert.ThrowsAsync<ForkLeftOpenException>(() => ending);
+        var exception = await Assert.ThrowsAsync<ParentScopeEndedException>(() => opening);
+        await ending;
 
+        Assert.Equal(expected: typeof(GatedHandler), actual: exception.Fork);
         Assert.True(gate.ConnectionWasOpen);
+        Assert.True(connection.IsClosed);
+    }
+
+    [Fact]
+    public async Task InvocationScopeEndsItsForksWhenAServiceFailsToDispose()
+    {
+        await using var root = CreateServices().Build();
+        // Disposed once below, inside the assertion, because ending it throws.
+#pragma warning disable CA2000
+        var invocation = new InvocationScope(root);
+#pragma warning restore CA2000
+
+        var parent = await invocation.Services.OpenAsync<GradeImportHandler>(SupplySource);
+        var connection = parent.Handler.Session.Connection;
+        _ = invocation.Services.GetRequiredService<FailingDisposable>();
+        var exception = await Assert.ThrowsAsync<ScopeCleanupException>(async () => await invocation.DisposeAsync());
+
+        Type[] forks = [typeof(GradeImportHandler)];
+        Assert.Equal(expected: forks, actual: exception.ForksLeftOpen);
+        Assert.IsType<ResourceCloseFailedException>(Assert.Single(exception.Failures));
         Assert.True(connection.IsClosed);
     }
 

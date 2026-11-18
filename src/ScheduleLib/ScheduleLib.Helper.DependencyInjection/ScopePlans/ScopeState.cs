@@ -10,7 +10,8 @@ internal readonly record struct ScopeEnding(Task<Exception?> Completion, bool St
 /// <summary>
 /// Per-scope bookkeeping: the values a fork can inherit, open forks and resources.
 /// A planned scope ends through <see cref="EndAsync"/>, run once for its owner and its parent
-/// alike. A plain scope, such as the CLI's per-invocation scope, ends when Microsoft DI disposes it.
+/// alike, and so does an <see cref="InvocationScope"/>. A raw scope ends when Microsoft DI
+/// disposes it, which a failing service can prevent.
 /// </summary>
 public sealed class ScopeState : IAsyncDisposable
 {
@@ -28,16 +29,38 @@ public sealed class ScopeState : IAsyncDisposable
     internal ScopeResources Resources { get; } = new();
 
     /// <summary>
+    /// Makes the scope's owner end it through <see cref="EndAsync"/>, which disposes the services
+    /// with <paramref name="disposeServices"/> after the forks and before the resources.
+    /// Microsoft DI disposing the scope then no longer ends it.
+    /// </summary>
+    internal void UseServicesTeardown(Func<CleanupFailures, ValueTask> disposeServices)
+    {
+        _disposeServices = disposeServices;
+    }
+
+    /// <summary>
     /// Registers this planned scope as an open fork of <paramref name="parent"/>, before any
     /// initializer runs. Fails once the parent has started ending.
     /// </summary>
-    /// <param name="disposeServices">Disposes the scope's services when it ends, before its resources.</param>
-    internal void AttachToParent(ScopeState parent, Type root, Func<CleanupFailures, ValueTask> disposeServices)
+    internal void AttachToParent(ScopeState parent, Type root)
     {
         parent.AddFork(this, root);
         _parent = parent;
         _root = root;
-        _disposeServices = disposeServices;
+    }
+
+    /// <summary>Whether this scope has not started ending, so a fork opened from it may be returned.</summary>
+    internal bool AcceptsForks
+    {
+        get
+        {
+            TaskCompletionSource<Exception?>? ending;
+            lock (_lock)
+            {
+                ending = _ending;
+            }
+            return ending is null;
+        }
     }
 
     /// <summary>
@@ -149,8 +172,8 @@ public sealed class ScopeState : IAsyncDisposable
     }
 
     /// <summary>
-    /// Microsoft DI disposing the scope. A planned scope is already ending through its owner, which
-    /// disposes the services as one of its steps, so only a plain scope ends here.
+    /// Microsoft DI disposing the scope. A planned or invocation scope is already ending through
+    /// its owner, which disposes the services as one of its steps, so only a raw scope ends here.
     /// </summary>
     public async ValueTask DisposeAsync()
     {

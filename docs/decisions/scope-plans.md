@@ -36,7 +36,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
   - Each value has a write-once slot; resolving it unfilled fails with "not available".
   - A later registration for the same value replaces the earlier one, removing exactly the
     registrations the earlier one added, so container validation no longer needs its
-    dependencies; tests use this to supply fakes. Derived values are replaced the same way.
+    dependencies; tests use this to supply fakes. Derived values are replaced the same way,
+    and either kind replaces the other.
 - **Bundles:** one initializer produces a value from which factories project others;
   the initializer runs once. `ScheduleBuilder` becomes such an immutable bundle for
   `Schedule`, the lookup module and the teacher remappings.
@@ -54,7 +55,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - **Unregistered roots:** a workflow root may be a concrete type that is not registered.
   It is planned from its constructor without memoizing that node or putting it on the walk
   path, so for every other consumer it stays missing and plans, including cycle reports,
-  never depend on which workflow was planned first.
+  never depend on which workflow was planned first. Likewise, a node whose closure a cycle cut
+  short at an ancestor is not memoized.
   The planned scope creates such a handler itself and disposes it when the scope ends.
 - **Opaque spots are warnings, not errors.** Injected `IServiceProvider`/`IServiceScopeFactory`
   and lambda registrations fail only at run time if something is missing.
@@ -91,8 +93,16 @@ command builds its own container from runtime arguments, and resolving `Schedule
   A scope's `ScopeResources` close after its forks.
   - A planned scope ends once, through one operation shared by its owner and its parent:
     forks left open (waiting for any still opening), then a handler it created and its
-    container scope, then its `ScopeResources`. A plain scope ends when Microsoft DI disposes it.
+    container scope, then its `ScopeResources`.
+  - A plain scope that forks are opened from is an `InvocationScope`, which ends the same way:
+    its forks, then its container scope, then its `ScopeResources`, even when one of its
+    services fails to dispose. A plain Microsoft DI scope still ends its forks when disposed,
+    but a failing service can stop that disposal early.
+  - The handler is resolved while the fork opens, so a failure ends the fork before it is
+    returned.
   - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`.
+    A fork still opening at that moment is ended by the parent, which waits for it, and its
+    opener receives that exception instead of an ended scope.
   - Every step is attempted even when some fail; the failures are reported together in one
     `ScopeCleanupException`, which also lists the forks left open.
 - **Accepted limitation:** inherited values are shared, so a child mutating one affects the

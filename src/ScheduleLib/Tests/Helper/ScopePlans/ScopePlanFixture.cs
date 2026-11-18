@@ -373,6 +373,35 @@ internal sealed class UnresolvableTeacherSettingsFactory(Unregistered missing) :
     }
 }
 
+/// <summary>A scoped service whose disposal fails.</summary>
+internal sealed class FailingDisposable : IAsyncDisposable
+{
+    public ValueTask DisposeAsync()
+    {
+        throw new ResourceCloseFailedException();
+    }
+}
+
+internal sealed class InitializedTeacherSettingsInitializer : IInitializer<TeacherSettings>
+{
+    public ValueTask<TeacherSettings> InitializeAsync(CancellationToken cancellationToken)
+    {
+        return new(new TeacherSettings("initialized"));
+    }
+}
+
+/// <summary>Two registered services that need each other; the first also needs a missing one.</summary>
+internal sealed class CycleFirst(CycleSecond second, Unregistered missing)
+{
+    public CycleSecond Second => second;
+    public Unregistered Missing => missing;
+}
+
+internal sealed class CycleSecond(CycleFirst first)
+{
+    public CycleFirst First => first;
+}
+
 /// <summary>An unregistered root and a registered service that need each other.</summary>
 internal sealed class CycleRoot(CycleService service)
 {
@@ -444,6 +473,7 @@ internal static class ScopePlanFixture
         services.AddInitialized<GatedValue, GatedValueInitializer>();
         services.AddSingleton<InitializerGate>();
         services.AddScoped<FailingDisposeHandler>();
+        services.AddScoped<FailingDisposable>();
         services.AddHiddenNeeds<LegacyPlanner, LessonQuery>();
         services.AddHiddenNeeds<LegacyReportInitializer, LessonQuery>();
         services.AddSingleton<LoadLog>();
