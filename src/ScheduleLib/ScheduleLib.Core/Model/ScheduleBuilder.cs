@@ -112,7 +112,10 @@ public static partial class ScheduleBuilderHelper
         foreach (var t in courseNamesByKey)
         {
             ref var course = ref b.Courses.Ref(t.Key.Id);
-            course.Names = t.Names;
+            course = course with
+            {
+                Names = t.Names,
+            };
         }
     }
 

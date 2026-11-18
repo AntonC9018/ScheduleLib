@@ -20,7 +20,7 @@ public static class LanguageSearch
             var ret = new RetHelper(shouldValidateSameLanguage: true);
             foreach (var lessonId in lessons)
             {
-                ref readonly var groups = ref schedule.Get(lessonId).Lesson.Groups;
+                var groups = schedule.Get(lessonId).Lesson.Groups;
                 schedule.GetLanguageImpl(groups, ref ret);
                 if (ret.ShouldStopAfterFirst)
                 {

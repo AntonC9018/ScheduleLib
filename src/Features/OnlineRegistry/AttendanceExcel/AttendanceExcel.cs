@@ -119,7 +119,7 @@ public sealed partial class AttendanceListsExcelParser
                 throw new AttendanceLessonNotFoundException(sheet.Name);
             }
 
-            ref readonly var g = ref lesson.Groups;
+            var g = lesson.Groups;
             if (!g.IsSingleGroup)
             {
                 Add(g);
@@ -585,10 +585,9 @@ public sealed partial class AttendanceListsExcelParser
                 return null;
             }
             var l = r.Lesson;
-            if (additionallyIgnoredFields.LessonType)
-            {
-                l.Type = LessonType.None;
-            }
+            var effectiveLessonType = additionallyIgnoredFields.LessonType
+                ? LessonType.None
+                : l.Type;
 
             GroupPartitionKey AttendancePartition()
             {
@@ -600,7 +599,7 @@ public sealed partial class AttendanceListsExcelParser
             }
 
             return new(
-                l.Type,
+                effectiveLessonType,
                 l.Groups,
                 AttendancePartition(),
                 l.Course);
@@ -612,33 +611,30 @@ public sealed partial class AttendanceListsExcelParser
             LessonModelDiffMask additionallyIgnoredFields,
             GroupPartitionKey? requiredPartition = null)
         {
-            var diffLesson = default(LessonData);
             var diffMask = new LessonModelDiffMask();
+            if (!key.CourseId.IsInvalid)
             {
-                if (!key.CourseId.IsInvalid)
-                {
-                    diffLesson.Course = key.CourseId;
-                    diffMask.Course = true;
-                }
+                diffMask.Course = true;
             }
+            if (key.Groups.Count > 0)
             {
-                if (key.Groups.Count > 0)
-                {
-                    diffLesson.Groups = key.Groups;
-                    diffMask.AllGroups = true;
-                }
+                diffMask.AllGroups = true;
             }
-            {
-                diffLesson.SubGroup = key.GroupPartition.SubGroup;
-                diffLesson.Specialization = key.GroupPartition.Specialization;
-                diffMask.SubGroup = true;
-            }
+            diffMask.SubGroup = true;
             if (key.LessonType != LessonType.None)
             {
-                diffLesson.Type = key.LessonType;
                 diffMask.LessonType = true;
             }
             diffMask = diffMask.Remove(additionallyIgnoredFields);
+
+            var diffLesson = default(LessonData) with
+            {
+                Course = !key.CourseId.IsInvalid ? key.CourseId : default,
+                Groups = key.Groups.Count > 0 ? key.Groups : default,
+                SubGroup = key.GroupPartition.SubGroup,
+                Specialization = key.GroupPartition.Specialization,
+                Type = key.LessonType != LessonType.None ? key.LessonType : default,
+            };
 
             LessonData result = default;
             AnyLessonId? lessonId = null;

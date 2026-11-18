@@ -157,7 +157,18 @@ public sealed class CombinedGroupMatchingTests
         fixture.Add("DJ2401(ru)");
         fixture.Add("IAFR2405");
         fixture.Add("I2406");
-        fixture.Builder.Groups.Ref(7).QualificationType = QualificationType.Master;
+        ref var lastGroup = ref fixture.Builder.Groups.Ref(7);
+        lastGroup = new()
+        {
+            Name = lastGroup.Name,
+            Grade = lastGroup.Grade,
+            GroupNumber = lastGroup.GroupNumber,
+            QualificationType = QualificationType.Master,
+            Faculty = lastGroup.Faculty,
+            AttendanceMode = lastGroup.AttendanceMode,
+            Specialty = lastGroup.Specialty,
+            Language = lastGroup.Language,
+        };
         var result = Match(fixture, "I_IA24(SAWM)");
         Assert.Equal(
             expected: new[]

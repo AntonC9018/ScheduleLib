@@ -4,15 +4,42 @@ using AngleSharp.Html.Parser;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
+using ScheduleLib.Builders;
 using ScheduleLib.Cli;
 using ScheduleLib.Dates;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Parsing;
+using ScheduleLib.Parsing.GroupParser;
+using Tests.ScheduleCommon;
 
 public sealed class RegistryTests
 {
     [Fact]
     public async Task MissingDestinationDateRangeIsReportedWithoutAbortingPlan()
     {
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2025),
+            }),
+        };
+        builder.EnableLookupModule();
+        var course = builder.Course("Synthetic course");
+        var group = builder.Group("DU-IAFR2501");
+        var teacher = builder.Teacher(NameHelper.Parse(TestProfiles.Owner)
+            .ToNameModel());
+        builder.RegularLesson(item =>
+        {
+            item.Course(course);
+            item.Group(group);
+            item.Teacher(teacher);
+            item.Type(LessonType.Lab);
+            item.DayOfWeek(DayOfWeek.Monday);
+            item.TimeSlot(TimeSlot.First);
+        });
+        var builtSchedule = builder.Build();
+
         using var settings = await CliSettings.Load(new()
         {
             Profile = TestProfiles.Owner,
@@ -25,11 +52,7 @@ public sealed class RegistryTests
             },
             AppConfiguration.ConfigureServices);
         settings.ConfigureServices(services);
-        services.Configure<ScheduleBuilderInitializerOptions>(options =>
-        {
-            var scheduleBuilderInitializerOptions = options;
-            scheduleBuilderInitializerOptions.EnrichWithFullNames = false;
-        });
+        FixedSchedule.Register(services, builtSchedule);
         services.Configure<StudyYearOptions>(options =>
         {
             options.StudyYear = new(2025);
@@ -40,7 +63,6 @@ public sealed class RegistryTests
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(item => item.Lesson.Groups.IsSingleGroup);
-        schedule.Get(lesson.Lesson.Groups[0]).AttendanceMode = AttendanceMode.DualFr;
 
         var navigator = new FixtureNavigator(
             lesson.Lesson.Course,

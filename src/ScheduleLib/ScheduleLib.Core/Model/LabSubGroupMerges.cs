@@ -247,18 +247,20 @@ public static class LabSubGroupMerges
             {
                 suppressed.Remove(item.Id);
                 var lesson = lessons[item.Id.Id];
-                lesson.Base = lesson.Base with
+                lessons[item.Id.Id] = lesson with
                 {
-                    Data = lesson.Base.Data with
+                    Base = lesson.Base with
                     {
-                        SubGroup = SubGroup.All,
+                        Data = lesson.Base.Data with
+                        {
+                            SubGroup = SubGroup.All,
+                        },
+                    },
+                    Date = lesson.Date with
+                    {
+                        Period = PeriodId.Unspecified,
                     },
                 };
-                lesson.Date = lesson.Date with
-                {
-                    Period = PeriodId.Unspecified,
-                };
-                lessons[item.Id.Id] = lesson;
             }
 
             void Diagnose(string reason)
