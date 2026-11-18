@@ -32,6 +32,12 @@ public sealed class ScopeForkFactory<THandler>(
         Action<ScopeInputs>? supply,
         CancellationToken cancellationToken)
     {
+        // Checked again under the parent's lock when attaching; this check also covers a parent
+        // whose container was disposed after it ended.
+        if (!current.AcceptsForks)
+        {
+            throw new ParentScopeEndedException(typeof(THandler));
+        }
         var (planned, state) = await AttachAsync();
         Exception? openFailure = null;
         try

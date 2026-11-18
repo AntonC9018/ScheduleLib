@@ -320,6 +320,20 @@ public sealed class ScopeForkTests
     }
 
     [Fact]
+    public async Task OpeningAfterTheRootIsDisposedReportsTheEndedParent()
+    {
+        var root = CreateServices().Build();
+        var invocation = root.CreateAsyncScope();
+        var parent = await invocation.ServiceProvider.OpenAsync<GradeImportHandler>(SupplySource);
+        var copies = parent.Handler.Copies;
+        await parent.DisposeAsync();
+        await invocation.DisposeAsync();
+        await root.DisposeAsync();
+
+        await Assert.ThrowsAsync<ParentScopeEndedException>(async () => await copies.OpenAsync(supply: null, None));
+    }
+
+    [Fact]
     public async Task SupplyingAValueThatIsNotASeedIsRejected()
     {
         await using var root = CreateServices().Build();
