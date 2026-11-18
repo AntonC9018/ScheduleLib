@@ -4,5 +4,6 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\ScheduleLib.Core\ScheduleLib.Core.csproj" />
+        <ProjectReference Include="..\..\ScheduleLib.Helper.DependencyInjection\ScheduleLib.Helper.DependencyInjection.csproj" />
     </ItemGroup>
 </Project>

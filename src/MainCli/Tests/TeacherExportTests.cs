@@ -3,9 +3,9 @@ using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Builders;
 using ScheduleLib.Cli;
 using ScheduleLib.Dates;
+using ScheduleLib.DependencyInjection.ScopePlans;
 using ScheduleLib.Theses.Parsing;
 
 public sealed class TeacherExportTests
@@ -922,16 +922,14 @@ public sealed class TeacherExportTests
             services.AddSingleton<IThesesFileProvider>(theses);
             if (RejectSourceReads)
             {
-                var iServiceCollection = services;
-                var implementationInstance = new RejectingInitializer(this);
-                IScheduleInitializer implementationInstance2 = implementationInstance;
-                iServiceCollection.AddSingleton(implementationInstance2);
+                services.AddSingleton(this);
+                services.AddInitialized<LoadedSchedule, RejectingInitializer>();
             }
         }
 
-        private sealed class RejectingInitializer(FixtureExport owner) : IScheduleInitializer
+        private sealed class RejectingInitializer(FixtureExport owner) : IInitializer<LoadedSchedule>
         {
-            public Task Initialize(ScheduleBuilder builder, CancellationToken cancellationToken)
+            public ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken)
             {
                 owner.SourceReads++;
                 throw new InvalidOperationException(

@@ -7,5 +7,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Tests/Common/Tests.Common.csproj" />
+    <ProjectReference Include="../../ScheduleLib/Tests/ScheduleCommon/ScheduleCommon.csproj" />
   </ItemGroup>
 </Project>

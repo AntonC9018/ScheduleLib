@@ -36,8 +36,7 @@ public sealed class RegistryTests
             options.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(item => item.Lesson.Groups.IsSingleGroup);
@@ -131,8 +130,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = singleDestination
             ? schedule.EnumerateWeeklyLessons()
@@ -233,8 +231,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
             .EnumerateWeeklyLessons()
             .First();
@@ -392,8 +389,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First();
@@ -489,8 +485,7 @@ public sealed class RegistryTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var lesson = scope.ServiceProvider.GetRequiredService<Schedule>()
             .EnumerateWeeklyLessons()
             .First();

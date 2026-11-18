@@ -914,8 +914,7 @@ public sealed class WebsiteExportTests
                 resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(CancellationToken.None);
-            await using var scope = provider.CreateAsyncScope();
+            await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
             var full = scope.ServiceProvider.GetRequiredService<Schedule>();
             var filtered = scope.ServiceProvider.LatestPeriodSchedule();
             var remapper = scope.ServiceProvider.GetRequiredKeyedService<INameRemapper>(NameMappingKeys.Teacher);
@@ -965,8 +964,7 @@ public sealed class WebsiteExportTests
                 resolved.ProjectDirectory);
             resolved.ConfigureServices(services);
             await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await provider.InitializeSchedule(CancellationToken.None);
-            await using var scope = provider.CreateAsyncScope();
+            await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
             var latest = scope.ServiceProvider.LatestPeriodSchedule()
                 .EnumerateWeeklyLessons()
                 .ToArray();

@@ -2,10 +2,11 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using ConvertDocToDocx;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib;
 using ScheduleLib.Application.Core;
-using ScheduleLib.Builders;
 using ScheduleLib.Cli;
 using ScheduleLib.Dates;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -265,7 +266,7 @@ public sealed class QueryTests
                     beforeFailure = null;
                 }
 
-                var initializer = new FailingInitializer(failure2, beforeFailure);
+                var initializer = new ScheduleLoadFailure(failure2, beforeFailure);
                 var query = new FailingQuery(initializer);
                 var export = new FailingExport(initializer);
                 var source = new SourceArguments
@@ -395,33 +396,44 @@ public sealed class QueryTests
         await Execute(new());
     }
 
-    private sealed class FailingInitializer(Exception failure, Action? beforeFailure) : IScheduleInitializer
+    private sealed class ScheduleLoadFailure(Exception failure, Action? beforeFailure)
     {
         public bool Called { get; private set; }
 
-        public Task Initialize(ScheduleBuilder builder, CancellationToken cancellationToken)
+        public ValueTask<LoadedSchedule> Fail()
         {
             Called = true;
             beforeFailure?.Invoke();
-            return Task.FromException(failure);
+            return ValueTask.FromException<LoadedSchedule>(failure);
+        }
+
+        public void Register(IServiceCollection services)
+        {
+            services.AddSingleton(this);
+            services.AddInitialized<LoadedSchedule, FailingInitializer>();
         }
     }
 
-    private sealed class FailingQuery(IScheduleInitializer initializer) : QueryCommands
+    private sealed class FailingInitializer(ScheduleLoadFailure failure) : IInitializer<LoadedSchedule>
+    {
+        public ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken) => failure.Fail();
+    }
+
+    private sealed class FailingQuery(ScheduleLoadFailure failure) : QueryCommands
     {
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.AddSingleton(initializer);
+            failure.Register(services);
         }
     }
 
-    private sealed class FailingExport(IScheduleInitializer initializer) : ExportCommands
+    private sealed class FailingExport(ScheduleLoadFailure failure) : ExportCommands
     {
         protected override void ConfigureServices(IServiceCollection services)
         {
             base.ConfigureServices(services);
-            services.AddSingleton(initializer);
+            failure.Register(services);
         }
     }
 

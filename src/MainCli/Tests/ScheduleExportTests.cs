@@ -139,8 +139,7 @@ public sealed class ScheduleExportTests
                 });
             });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(CancellationToken.None);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         var count = 0;
 

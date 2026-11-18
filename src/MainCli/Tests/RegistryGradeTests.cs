@@ -423,8 +423,7 @@ public sealed class RegistryGradeTests
             x.Semester = Semester.Sem2;
         });
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(default);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(default);
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
         var lesson = schedule.EnumerateWeeklyLessons()
             .First(x =>

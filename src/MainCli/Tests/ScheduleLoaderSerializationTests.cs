@@ -31,10 +31,9 @@ public sealed class ScheduleLoaderSerializationTests
             Assert.False(
                 string.IsNullOrEmpty((await ScheduleSerializer.Deserialize(input, CancellationToken.None)).Hash));
         }
-        var cached = CreateContext();
-        await loader.Load(cached, CancellationToken.None);
+        var cached = await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 1, actual: component.ApplyCount);
-        Assert.Equal(expected: "Imported course", actual: Assert.Single(cached.Schedule.Build().Courses).FullName);
+        Assert.Equal(expected: "Imported course", actual: Assert.Single(cached.Courses).FullName);
         Assert.Equal(expected: first, actual: await File.ReadAllBytesAsync(CalculateSchedulePath(temp)));
 
         switch (change)
@@ -55,10 +54,9 @@ public sealed class ScheduleLoaderSerializationTests
                 await File.WriteAllTextAsync(path: CalculateSchedulePath(temp), contents: "{corrupt");
                 break;
         }
-        var rebuilt = CreateContext();
-        await loader.Load(rebuilt, CancellationToken.None);
+        var rebuilt = await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
-        Assert.Equal(expected: "Imported course", actual: Assert.Single(rebuilt.Schedule.Build().Courses).FullName);
+        Assert.Equal(expected: "Imported course", actual: Assert.Single(rebuilt.Courses).FullName);
         await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
 

@@ -12,6 +12,7 @@ using ScheduleLib.Dates;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
+using Tests.ScheduleCommon;
 
 public sealed class RegistryLabDestinationTests
 {
@@ -53,7 +54,7 @@ public sealed class RegistryLabDestinationTests
         bool ownLecture,
         bool explicitApply)
     {
-        await using var fixture = new Fixture(ownLecture: ownLecture, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: ownLecture, ownLabs: true);
         var navigator = fixture.Navigator(wildcard: true, combined: combined);
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await fixture.Plan(
@@ -80,7 +81,7 @@ public sealed class RegistryLabDestinationTests
     [Fact]
     public async Task CliPreviewsScopedFallbackLabsWithoutSubmissions()
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(wildcard: true, combined: false);
         var diagnostics = new RegistrySyncDiagnostics();
         using var output = new StringWriter();
@@ -135,7 +136,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task SpecificParentTakesItsLabsWhileOtherParentUsesFallback(bool explicitApply)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: true,
             combined: false,
@@ -249,7 +250,7 @@ public sealed class RegistryLabDestinationTests
         bool failDelete,
         bool uncertainSuccessfulResponse)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: true,
             combined: false,
@@ -380,7 +381,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true, false)]
     public async Task CleanupDoesNotReadExplicitDestinationsOrAnotherTeachersLabs(bool wildcard, bool ownLabs)
     {
-        await using var fixture = new Fixture(ownLecture: true, ownLabs: ownLabs);
+        await using var fixture = await Fixture.Create(ownLecture: true, ownLabs: ownLabs);
         var navigator = fixture.Navigator(wildcard: wildcard, combined: false);
         var diagnostics = new RegistrySyncDiagnostics();
         await fixture.Cleanup(
@@ -401,7 +402,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task CleanupSkipsAConfirmedRefusalAndContinuesWithTheNextLab(bool uncertainResponse)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: true,
             combined: false,
@@ -469,7 +470,7 @@ public sealed class RegistryLabDestinationTests
     [Fact]
     public async Task CleanupRefusesToDeleteAColumnChangedAfterPlanning()
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: true,
             combined: false,
@@ -500,7 +501,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task ExplicitParentDestinationStillPlansOnlyThatParentsLabs(bool combined)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(wildcard: false, combined: combined);
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await fixture.Plan(
@@ -528,7 +529,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task SharedLecturesRemainUsableWhenSeparateLabsBelongToAnotherTeacher(bool ownLecture)
     {
-        await using var fixture = new Fixture(ownLecture: ownLecture, ownLabs: false);
+        await using var fixture = await Fixture.Create(ownLecture: ownLecture, ownLabs: false);
         var navigator = fixture.Navigator(wildcard: true, combined: false);
         var diagnostics = new RegistrySyncDiagnostics();
         var plan = await fixture.Plan(
@@ -564,7 +565,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task CleanupPreservesAnIntakeListStillNeededForFallbackLabs(bool partiallySpecific)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: true,
             combined: false,
@@ -590,7 +591,7 @@ public sealed class RegistryLabDestinationTests
     public async Task FallbackUsesIndependentTopicAndAttendanceSequencesAndPreservesOtherAudienceMarks(
         bool existingOtherMark)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(wildcard: true, combined: false);
         navigator.UseSyntheticRoster = true;
         navigator.OtherAudienceMark = existingOtherMark ? "9" : "";
@@ -626,7 +627,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task SharedAndSoloLectureLabelsRetainOneParentSequenceAndAssessmentRules(bool assessments)
     {
-        await using var fixture = new Fixture(
+        await using var fixture = await Fixture.Create(
             ownLecture: true,
             ownLabs: false,
             separateLectureSources: true);
@@ -664,7 +665,7 @@ public sealed class RegistryLabDestinationTests
     [Fact]
     public async Task AmbiguousAssessmentProtectsItsOrdinaryAudienceRowsEvenUnderDeletePolicy()
     {
-        await using var fixture = new Fixture(
+        await using var fixture = await Fixture.Create(
             ownLecture: false,
             ownLabs: true,
             sameDayLabs: true);
@@ -707,7 +708,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task AdditionalCoursesRostersShareSourceAndReceiveTheirOwnAttendance(bool overlap)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: false,
             combined: false,
@@ -767,7 +768,7 @@ public sealed class RegistryLabDestinationTests
     [InlineData(true)]
     public async Task IncompleteCourseDoesNotReportStudentsAbsentFromUnscannedAdditionalRoster(bool failRead)
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: false,
             combined: false,
@@ -808,7 +809,7 @@ public sealed class RegistryLabDestinationTests
     [Fact]
     public async Task OrdinaryCoverageCannotAuthorizeCleanupOfUnresolvedAdditionalCoursesLabs()
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: false,
             combined: false,
@@ -853,7 +854,7 @@ public sealed class RegistryLabDestinationTests
     [Fact]
     public async Task UnresolvedRosterVariantDefersCourseStudentAbsenceReports()
     {
-        await using var fixture = new Fixture(ownLecture: false, ownLabs: true);
+        await using var fixture = await Fixture.Create(ownLecture: false, ownLabs: true);
         var navigator = fixture.Navigator(
             wildcard: false,
             combined: false,
@@ -897,13 +898,27 @@ public sealed class RegistryLabDestinationTests
 
     private sealed class Fixture : IAsyncDisposable
     {
+        private static readonly GroupPartitionKey Partition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+
         private readonly ServiceProvider _provider;
-        private readonly AsyncServiceScope _scope;
+        private readonly ScheduleScope _scope;
         private readonly CourseId _course;
         private readonly LessonGroups _parents;
-        private readonly GroupPartitionKey _partition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
+        private readonly GroupPartitionKey _partition = Partition;
 
-        public Fixture(
+        private Fixture(
+            ServiceProvider provider,
+            ScheduleScope scope,
+            CourseId course,
+            LessonGroups parents)
+        {
+            _provider = provider;
+            _scope = scope;
+            _course = course;
+            _parents = parents;
+        }
+
+        public static async Task<Fixture> Create(
             bool ownLecture,
             bool ownLabs,
             bool separateLectureSources = false,
@@ -914,40 +929,39 @@ public sealed class RegistryLabDestinationTests
             {
                 CurrentStudyYear = new(2026),
             });
-            builder.EnableLookupModule();
-            _course = builder.Course("Synthetic elective");
-            _parents = [builder.Group("IA2403(ru)"), builder.Group("IA2404(ru)")];
+            var course = builder.Course("Synthetic elective");
+            LessonGroups parents = [builder.Group("IA2403(ru)"), builder.Group("IA2404(ru)")];
             var teacher = builder.Teacher("Anton Curmanschii");
             var other = builder.Teacher("Another Lecturer");
             builder.RegularLesson(lesson =>
             {
-                lesson.Course(_course);
+                lesson.Course(course);
                 if (separateLectureSources)
                 {
-                    lesson.Group(_parents[0]);
+                    lesson.Group(parents[0]);
                 }
                 else
                 {
-                    lesson.Groups([.. _parents]);
+                    lesson.Groups([.. parents]);
                 }
 
-                lesson.Specialization(_partition.Specialization);
+                lesson.Specialization(Partition.Specialization);
                 lesson.Type(LessonType.Curs);
                 lesson.DayOfWeek(DayOfWeek.Tuesday);
                 lesson.TimeSlot(TimeSlot.First);
                 var lectureTeacher = ownLecture ? teacher : other;
                 lesson.Teacher(lectureTeacher);
             });
-            foreach (var group in _parents)
+            foreach (var group in parents)
             {
                 builder.RegularLesson(lesson =>
                 {
-                    lesson.Course(_course);
+                    lesson.Course(course);
                     lesson.Group(group);
-                    lesson.Specialization(_partition.Specialization);
+                    lesson.Specialization(Partition.Specialization);
                     lesson.Type(LessonType.Lab);
-                    var labDay = group == _parents[0] || sameDayLabs ? DayOfWeek.Tuesday : DayOfWeek.Friday;
-                    var labSlotIndex = sameDayLabs && group == _parents[1] ? 2 : 1;
+                    var labDay = group == parents[0] || sameDayLabs ? DayOfWeek.Tuesday : DayOfWeek.Friday;
+                    var labSlotIndex = sameDayLabs && group == parents[1] ? 2 : 1;
                     var labTeacher = ownLabs ? teacher : other;
                     lesson.DayOfWeek(labDay);
                     lesson.TimeSlot(new TimeSlot(labSlotIndex));
@@ -958,15 +972,15 @@ public sealed class RegistryLabDestinationTests
             {
                 foreach (var (group, day) in new[]
                          {
-                             (Group: _parents[1], Day: DayOfWeek.Tuesday),
-                             (Group: _parents[0], Day: DayOfWeek.Wednesday),
+                             (Group: parents[1], Day: DayOfWeek.Tuesday),
+                             (Group: parents[0], Day: DayOfWeek.Wednesday),
                          })
                 {
                     builder.RegularLesson(lesson =>
                     {
-                        lesson.Course(_course);
+                        lesson.Course(course);
                         lesson.Group(group);
-                        lesson.Specialization(_partition.Specialization);
+                        lesson.Specialization(Partition.Specialization);
                         lesson.Type(LessonType.Curs);
                         lesson.DayOfWeek(day);
                         lesson.TimeSlot(TimeSlot.First);
@@ -975,14 +989,18 @@ public sealed class RegistryLabDestinationTests
                 }
             }
             var schedule = builder.Build();
-            builder.RefreshLookup();
             var services = new ServiceCollection();
             AppConfiguration.ConfigureServices(services);
-            services.AddSingleton(builder);
-            services.AddSingleton(schedule);
-            _provider = AppConfiguration.BuildServiceProvider(services);
-            AppConfiguration.ConfigureLayeredConfig(_provider);
-            _scope = _provider.CreateMarkerScope(marker => marker.TeacherName = NameHelper.Parse(TestProfiles.Owner));
+            FixedSchedule.Register(services, schedule);
+            var provider = AppConfiguration.BuildServiceProvider(services);
+            AppConfiguration.ConfigureLayeredConfig(provider);
+            var scope = await provider.OpenScheduleScope(CancellationToken.None);
+            scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName = NameHelper.Parse(TestProfiles.Owner);
+            return new(
+                provider,
+                scope,
+                course,
+                parents);
         }
 
         public Navigator Navigator(

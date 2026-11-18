@@ -247,8 +247,7 @@ public sealed class FreeHoursTests
     {
         var services = CliRuntime.CreateServices(Source(), new FixtureQuery().FixtureServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(CancellationToken.None);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
         var builder = new StringBuilder();
         scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>()
             .Run(new()
@@ -503,8 +502,7 @@ public sealed class FreeHoursTests
     {
         var services = CliRuntime.CreateServices(Source(), new FixtureQuery().FixtureServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
-        await provider.InitializeSchedule(CancellationToken.None);
-        await using var scope = provider.CreateAsyncScope();
+        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
         var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
 
         var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();

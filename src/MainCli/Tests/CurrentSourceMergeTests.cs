@@ -370,8 +370,7 @@ public sealed class CurrentSourceMergeTests
         });
         using var provider = AppConfiguration.BuildServiceProvider(services);
         AppConfiguration.ConfigureLayeredConfig(provider);
-        await provider.InitializeSchedule(CancellationToken.None);
-        using var scope = provider.CreateScope();
+        await using var scope = await provider.OpenScheduleScope(CancellationToken.None);
         return scope.ServiceProvider.GetRequiredService<Schedule>();
     }
 
