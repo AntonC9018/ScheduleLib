@@ -17,6 +17,8 @@ public sealed class ScheduleLoaderSerializationTests
     [InlineData("corrupt-json")]
     [InlineData("teacher-without-contacts")]
     [InlineData("teacher-with-null-contacts")]
+    [InlineData("null-teacher-row")]
+    [InlineData("lesson-without-course")]
     public async Task CacheHitsSkipImportAndChangedIdentityRebuilds(string change)
     {
         using var temp = new TestTempDirectory("schedulelib-tests");
@@ -58,11 +60,27 @@ public sealed class ScheduleLoaderSerializationTests
                 await File.WriteAllTextAsync(path: CalculateSchedulePath(temp), contents: "{corrupt");
                 break;
             case "teacher-without-contacts":
-                await AddCachedTeacher(CalculateSchedulePath(temp), writeNullContacts: false);
+            {
+                var teacher = Teacher();
+                await ReplaceCachedRows(path: CalculateSchedulePath(temp), table: "Teachers", row: teacher);
                 break;
+            }
             case "teacher-with-null-contacts":
-                await AddCachedTeacher(CalculateSchedulePath(temp), writeNullContacts: true);
+            {
+                var teacher = Teacher();
+                teacher["Contacts"] = null;
+                await ReplaceCachedRows(path: CalculateSchedulePath(temp), table: "Teachers", row: teacher);
                 break;
+            }
+            case "null-teacher-row":
+                await ReplaceCachedRows(path: CalculateSchedulePath(temp), table: "Teachers", row: null);
+                break;
+            case "lesson-without-course":
+            {
+                var lesson = LessonWithoutCourse();
+                await ReplaceCachedRows(path: CalculateSchedulePath(temp), table: "RegularLessons", row: lesson);
+                break;
+            }
         }
         var rebuilt = await loader.Load(CreateContext(), CancellationToken.None);
         Assert.Equal(expected: 2, actual: component.ApplyCount);
@@ -193,23 +211,43 @@ public sealed class ScheduleLoaderSerializationTests
     }
 
     /// <summary>
-    /// Adds a malformed teacher to the cache while keeping its hash, so only schema validation
-    /// can reject it: its required contacts are either omitted or null.
+    /// Edits the cache while keeping its hash, so only schema validation can reject the result.
     /// </summary>
-    private static async Task AddCachedTeacher(string path, bool writeNullContacts)
+    /// <summary>Replaces the rows of one cached table with the single <paramref name="row"/>.</summary>
+    private static async Task ReplaceCachedRows(string path, string table, JsonNode? row)
     {
-        var root = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
-        var teacher = new JsonObject
+        var text = await File.ReadAllTextAsync(path);
+        var root = JsonNode.Parse(text)!.AsObject();
+        root[table] = new JsonArray(row);
+        await File.WriteAllTextAsync(path: path, contents: root.ToJsonString());
+    }
+
+    /// <summary>A teacher without the required contacts.</summary>
+    private static JsonObject Teacher()
+    {
+        return new()
         {
             ["FirstName"] = new JsonArray(),
             ["LastName"] = new JsonArray("Popescu"),
         };
-        if (writeNullContacts)
+    }
+
+    /// <summary>A weekly lesson without its required course.</summary>
+    private static JsonObject LessonWithoutCourse()
+    {
+        return new()
         {
-            teacher["Contacts"] = null;
-        }
-        root["Teachers"] = new JsonArray(teacher);
-        await File.WriteAllTextAsync(path: path, contents: root.ToJsonString());
+            ["DayOfWeek"] = "Monday",
+            ["Parity"] = "EveryWeek",
+            ["TimeSlot"] = 0,
+            ["Period"] = 0,
+            ["Groups"] = new JsonArray(),
+            ["Teachers"] = new JsonArray(),
+            ["Room"] = "1",
+            ["Type"] = "Curs",
+            ["SubGroup"] = null,
+            ["Specialization"] = null,
+        };
     }
 
     private static ScheduleImportContext CreateContext()

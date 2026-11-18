@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -11,7 +12,14 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     where T : new()
 {
     /// <summary>A settable property and what the JSON must supply for it.</summary>
-    private sealed record PropertyContract(int Index, PropertyInfo Property, bool IsRequired, bool AllowsNull);
+    /// <param name="IsRequired">Declared <c>required</c> or <see cref="JsonRequiredAttribute"/>.</param>
+    /// <param name="ElementsAllowNull">False for a collection whose elements are non-nullable references.</param>
+    private sealed record PropertyContract(
+        int Index,
+        PropertyInfo Property,
+        bool IsRequired,
+        bool AllowsNull,
+        bool ElementsAllowNull);
 
     // Cache properties with setters
     private static readonly PropertyContract[] _writableProperties = CreateContracts();
@@ -19,23 +27,90 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     private static PropertyContract[] CreateContracts()
     {
         var nullability = new NullabilityInfoContext();
-        return typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite)
-            .Select((p, index) => new PropertyContract(
-                Index: index,
-                Property: p,
-                IsRequired: p.IsDefined(typeof(RequiredMemberAttribute)),
-                AllowsNull: AllowsNull(p, nullability)))
+        var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var writable = properties.Where(p => p.CanWrite);
+        return writable
+            .Select((p, index) => CreateContract(p, index, nullability))
             .ToArray();
+    }
+
+    private static PropertyContract CreateContract(PropertyInfo property, int index, NullabilityInfoContext nullability)
+    {
+        var isRequired = IsRequired(property);
+        var allowsNull = AllowsNull(property, nullability);
+        var elementsAllowNull = ElementsAllowNull(property, nullability);
+        return new PropertyContract(
+            Index: index,
+            Property: property,
+            IsRequired: isRequired,
+            AllowsNull: allowsNull,
+            ElementsAllowNull: elementsAllowNull);
+    }
+
+    private static bool IsRequired(PropertyInfo property)
+    {
+        if (property.IsDefined(typeof(RequiredMemberAttribute)))
+        {
+            return true;
+        }
+        if (property.IsDefined(typeof(JsonRequiredAttribute)))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Reads the element nullability of an array or a single-argument generic collection.
+    /// Other shapes, and value-type elements, are not checked.
+    /// </summary>
+    private static bool ElementsAllowNull(PropertyInfo property, NullabilityInfoContext nullability)
+    {
+        var type = property.PropertyType;
+        if (type == typeof(string) || !typeof(IEnumerable).IsAssignableFrom(type))
+        {
+            return true;
+        }
+        var info = nullability.Create(property);
+        var element = type.IsArray ? info.ElementType : SingleGenericArgument(info);
+        if (element is null || element.Type.IsValueType)
+        {
+            return true;
+        }
+        if (element.ReadState == NullabilityState.NotNull)
+        {
+            return false;
+        }
+        return true;
+
+        static NullabilityInfo? SingleGenericArgument(NullabilityInfo info)
+        {
+            if (info.GenericTypeArguments.Length != 1)
+            {
+                return null;
+            }
+            return info.GenericTypeArguments[0];
+        }
     }
 
     private static bool AllowsNull(PropertyInfo property, NullabilityInfoContext nullability)
     {
-        if (property.PropertyType.IsValueType)
+        var type = property.PropertyType;
+        if (type.IsValueType)
         {
-            return Nullable.GetUnderlyingType(property.PropertyType) is not null;
+            var underlying = Nullable.GetUnderlyingType(type);
+            if (underlying is null)
+            {
+                return false;
+            }
+            return true;
         }
-        return nullability.Create(property).WriteState != NullabilityState.NotNull;
+        var writeState = nullability.Create(property).WriteState;
+        if (writeState == NullabilityState.NotNull)
+        {
+            return false;
+        }
+        return true;
     }
 
     private record struct Key(JsonNamingPolicy? Policy);
@@ -101,10 +176,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
                     ref reader,
                     contract.Property.PropertyType,
                     options);
-                if (value is null && !contract.AllowsNull)
-                {
-                    throw new JsonException($"{typeof(T).Name}.{contract.Property.Name} must not be null");
-                }
+                RejectInvalidValue(contract, value);
                 contract.Property.SetValue(obj: obj, value: value);
                 supplied[contract.Index] = true;
             }
@@ -117,12 +189,50 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         throw new JsonException("Incomplete JSON object");
     }
 
+    private static void RejectInvalidValue(PropertyContract contract, object? value)
+    {
+        if (value is null)
+        {
+            if (!contract.AllowsNull)
+            {
+                throw new InvalidJsonMemberException(typeof(T), contract.Property.Name, JsonMemberProblem.Null);
+            }
+            return;
+        }
+        if (!contract.ElementsAllowNull && ContainsNull(value))
+        {
+            throw new InvalidJsonMemberException(typeof(T), contract.Property.Name, JsonMemberProblem.NullElement);
+        }
+    }
+
+    private static bool ContainsNull(object value)
+    {
+        if (value is not IEnumerable items)
+        {
+            return false;
+        }
+        foreach (object? item in items)
+        {
+            if (item is null)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void RejectMissingRequired(bool[] supplied)
     {
-        var missing = _writableProperties.FirstOrDefault(c => c.IsRequired && !supplied[c.Index]);
-        if (missing is not null)
+        foreach (var contract in _writableProperties)
         {
-            throw new JsonException($"{typeof(T).Name}.{missing.Property.Name} is required");
+            if (!contract.IsRequired)
+            {
+                continue;
+            }
+            if (!supplied[contract.Index])
+            {
+                throw new InvalidJsonMemberException(typeof(T), contract.Property.Name, JsonMemberProblem.Missing);
+            }
         }
     }
 
