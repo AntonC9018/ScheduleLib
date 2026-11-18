@@ -27,18 +27,10 @@ public static class StorageProbe
 
         if (args[0] == "query")
         {
-            return await new FixtureQuery().Lessons(
-                new(),
-                new()
-                {
-                    DataDirectory = args[1],
-                    CacheDirectory = args[2],
-                    NoCache = args.Length > 3,
-                },
-                new()
-                {
-                    Json = true,
-                });
+            string[] noCache = args.Length > 3 ? ["--no-cache"] : [];
+            return await CliTestHost.Run(
+                ["query", "lessons", "--json", "--data-dir", args[1], "--cache-dir", args[2], .. noCache],
+                CliTestHost.FixtureSchedule);
         }
 
         if (args[0] == "lock")
@@ -66,24 +58,6 @@ public static class StorageProbe
                 CancellationToken.None);
         }
         return 0;
-    }
-
-    private sealed class FixtureQuery : QueryCommands
-    {
-        protected override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-            services.Configure<ScheduleSourceLoaderOptions>(x =>
-            {
-                var loaderOptions = x;
-                loaderOptions.EnrichWithFullNames = false;
-            });
-            services.Configure<StudyYearOptions>(x =>
-            {
-                x.StudyYear = new(2025);
-                x.Semester = Semester.Sem2;
-            });
-        }
     }
 
     private sealed class FixtureExport : ExportCommands

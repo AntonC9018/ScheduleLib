@@ -543,9 +543,9 @@ public sealed class SettingsTests
             Console.SetOut(output);
             Assert.Equal(
                 expected: 1,
-                actual: await CliHost.RunCore(
+                actual: await CliTestHost.Run(
                     ["config", "profiles", "--json"],
-                    runner =>
+                    runner: runner =>
                     {
                         runner.Configure(builder =>
                         {

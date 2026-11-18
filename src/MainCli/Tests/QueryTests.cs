@@ -3,9 +3,7 @@ using System.Text.Json;
 using ConvertDocToDocx;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
-using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
-using ScheduleLib.Dates;
 using ScheduleLib.DependencyInjection.ScopePlans;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -105,13 +103,9 @@ public sealed class QueryTests
         using var temp = new TestTempDirectory("schedulelib-tests");
         Assert.Equal(
             expected: 3,
-            actual: await new FixtureQuery().Lessons(
-                new(),
-                new()
-                {
-                    DataDirectory = temp.Path,
-                },
-                new()));
+            actual: await CliTestHost.Run(
+                ["query", "lessons", "--data-dir", temp.Path],
+                CliTestHost.FixtureSchedule));
     }
 
     [Fact]
@@ -176,19 +170,6 @@ public sealed class QueryTests
         {
             Directory.Delete(directory, recursive: true);
         }
-    }
-
-    [Fact]
-    public async Task CancelledQueryReturns130BeforeLoading()
-    {
-        var cancelledExit = await new FixtureQuery().Lessons(
-            new(),
-            new(),
-            new(),
-            new CancellationToken(canceled: true));
-        Assert.Equal(
-            expected: 130,
-            actual: cancelledExit);
     }
 
     [Fact]
@@ -285,10 +266,13 @@ public sealed class QueryTests
                 Console.SetOut(stdout);
                 var exit = command switch
                 {
-                    "lessons" => await query.Lessons(
-                        new(),
-                        source,
-                        result,
+                    "lessons" => await CliTestHost.Run(
+                        ["query", "lessons", "--json", .. CliTestHost.UncachedSource()],
+                        services =>
+                        {
+                            CliTestHost.FixtureSchedule(services);
+                            initializer.Register(services);
+                        },
                         caller.Token),
                     "free-hours" => await query.FreeHours(
                         new()
@@ -445,17 +429,9 @@ public sealed class QueryTests
         try
         {
             Console.SetOut(output);
-            var exit = await new FixtureQuery().Lessons(
-                query,
-                new()
-                {
-                    NoCache = true,
-                    DataDirectory = sourceDirectory ?? Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                },
-                new()
-                {
-                    Json = true,
-                });
+            var exit = await CliTestHost.Run(
+                ["query", "lessons", "--json", .. CliTestHost.UncachedSource(sourceDirectory), .. LessonOptions(query)],
+                CliTestHost.FixtureSchedule);
             Assert.Equal(expected: 0, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
             Assert.Equal(
@@ -482,21 +458,30 @@ public sealed class QueryTests
         }
     }
 
-    private sealed class FixtureQuery : QueryCommands
+    private static IEnumerable<string> LessonOptions(QueryArguments query)
     {
-        protected override void ConfigureServices(IServiceCollection services)
+        if (query.Room is { } room)
         {
-            base.ConfigureServices(services);
-            services.Configure<ScheduleSourceLoaderOptions>(x =>
-            {
-                var loaderOptions = x;
-                loaderOptions.EnrichWithFullNames = false;
-            });
-            services.Configure<StudyYearOptions>(x =>
-            {
-                x.StudyYear = new(2025);
-                x.Semester = Semester.Sem2;
-            });
+            yield return "--room";
+            yield return room;
+        }
+
+        if (query.Day is { } day)
+        {
+            yield return "--day";
+            yield return day.ToString();
+        }
+
+        if (query.Parity is { } parity)
+        {
+            yield return "--parity";
+            yield return parity.ToString();
+        }
+
+        if (query.BeforeSlot is { } slot)
+        {
+            yield return "--before-slot";
+            yield return slot.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }

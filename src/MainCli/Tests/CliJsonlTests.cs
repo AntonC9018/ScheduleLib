@@ -633,9 +633,9 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            var exit = await CliHost.RunCore(
+            var exit = await CliTestHost.Run(
                 ["config", "get", "--project", "--json", "example"],
-                runner =>
+                runner: runner =>
                 {
                     runner.Configure(builder =>
                     {
@@ -668,9 +668,9 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            var exit = await CliHost.RunCore(
+            var exit = await CliTestHost.Run(
                 ["query", "lessons", "--jsonl"],
-                runner =>
+                runner: runner =>
                 {
                     runner.Configure(builder =>
                     {
@@ -704,7 +704,7 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            var exit = await CliHost.RunCore(args, configure);
+            var exit = await CliTestHost.Run(args, runner: configure);
             return (exit, stdout.ToString(), stderr.ToString());
         }
         finally
@@ -1173,17 +1173,9 @@ public sealed class CliJsonlTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            exit = await new FixtureQuery().Lessons(
-                new(),
-                new()
-                {
-                    NoCache = true,
-                    DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-                },
-                new()
-                {
-                    Jsonl = true,
-                },
+            exit = await CliTestHost.Run(
+                ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()],
+                CliTestHost.FixtureSchedule,
                 cancelled.Token);
         }
         finally
@@ -1594,18 +1586,9 @@ public sealed class CliJsonlTests
                 .GetInt32());
         Assert.DoesNotContain(expectedSubstring: "\"outcomes\"", actualString: finalLine);
 
-        var (queryExit, queryStdout, _) = await CaptureJsonl(() => new FixtureQuery().Lessons(
-            new(),
-            new()
-            {
-                NoCache = true,
-                DataDirectory = Path.Combine(AppContext.BaseDirectory, "fixtures"),
-            },
-            new()
-            {
-                Jsonl = true,
-            },
-            default));
+        var (queryExit, queryStdout, _) = await CaptureJsonl(() => CliTestHost.Run(
+            ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()],
+            CliTestHost.FixtureSchedule));
         Assert.Equal(expected: 0, actual: queryExit);
         var queryLines = queryStdout.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var queryFinal = JsonDocument.Parse(queryLines[^1]).RootElement;
@@ -1966,11 +1949,7 @@ public sealed class CliJsonlTests
         {
             new(
                 "query lessons",
-                () => new QueryCommands().Lessons(
-                    new(),
-                    new(),
-                    both,
-                    default)),
+                () => CliTestHost.Run(["query", "lessons", "--json", "--jsonl"])),
             new(
                 "query free-hours",
                 () => new QueryCommands().FreeHours(
@@ -2237,24 +2216,6 @@ public sealed class CliJsonlTests
 
     private static TestTempDirectory NewHistoryDirectory() => new("registry-history-tests");
 
-
-    private sealed class FixtureQuery : QueryCommands
-    {
-        protected override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-            services.Configure<ScheduleSourceLoaderOptions>(x =>
-            {
-                var loaderOptions = x;
-                loaderOptions.EnrichWithFullNames = false;
-            });
-            services.Configure<StudyYearOptions>(x =>
-            {
-                x.StudyYear = new(2025);
-                x.Semester = Semester.Sem2;
-            });
-        }
-    }
 
     private sealed class FixtureCalendar(CalendarFake provider) : CalendarCommands
     {

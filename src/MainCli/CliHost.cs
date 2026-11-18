@@ -4,7 +4,6 @@ using System.Text.Json;
 using CommandDotNet;
 using CommandDotNet.Execution;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Application.Core;
 
 [assembly: InternalsVisibleTo("MainCli.Tests")]
 
@@ -14,8 +13,9 @@ public static class CliHost
 {
     public static Task<int> Run(string[] args) => RunCore(args, null);
 
-    internal static async Task<int> RunCore(string[] args, Action<AppRunner<Commands>>? configure)
+    internal static async Task<int> RunCore(string[] args, CliHostOverrides? overrides)
     {
+        await using var rootServices = new CliRootServices(overrides?.Services);
         var invoked = false;
         var startupRequest = StartupRequest.None;
         string? parseDetail = null;
@@ -28,6 +28,7 @@ public static class CliHost
             },
             DisableDirectives = true,
         });
+        new InvocationScopeResolver(rootServices).Register(runner);
         CapturingConsole? capture = null;
         runner.Configure(builder =>
         {
@@ -85,7 +86,7 @@ public static class CliHost
         });
         try
         {
-            configure?.Invoke(runner);
+            overrides?.Runner?.Invoke(runner);
             var invocationArguments = args.Length == 0 ? ["--help"] : args;
             var result = await runner.RunAsync(invocationArguments);
             if (result == CliExit.Success)
@@ -413,228 +414,18 @@ public static class CliHost
     }
 }
 
+/// <summary>What a test changes about a CLI run.</summary>
+/// <param name="Services">Replaces registrations of the root container after the CLI's own.</param>
+/// <param name="Runner">Configures the runner, for example with extra middleware.</param>
+internal sealed record CliHostOverrides(
+    Action<IServiceCollection>? Services = null,
+    Action<AppRunner<Commands>>? Runner = null);
+
 public sealed partial class Commands
 {
     [Subcommand] public ExportCommands Export { get; set; } = new();
 
     [Subcommand] public QueryCommands Query { get; set; } = new();
-}
-
-[Command("query")]
-public partial class QueryCommands
-{
-    protected virtual void ConfigureServices(IServiceCollection services) =>
-        AppConfiguration.ConfigureServices(services);
-
-    [Command(
-        "lessons",
-        Description =
-            "List latest-period weekly lessons. All predicates are optional; parity includes lessons held every week. No teacher profile is required.")]
-    public async Task<int> Lessons(
-        QueryArguments query,
-        SourceArguments source,
-        ResultArguments outputArgs,
-        CancellationToken cancellationToken = default,
-        SettingsArguments? settings = null)
-    {
-        using var context = new CliCommandContext(
-            "query lessons",
-            outputArgs,
-            cancellationToken);
-        if (!context.Start())
-        {
-            return CliExit.InvalidArguments;
-        }
-        var output = context.Output;
-        var lessons = new List<LessonResult>();
-        var streamed = 0;
-        var cancellation = context.Cancellation;
-        try
-        {
-            cancellation.Token.ThrowIfCancellationRequested();
-
-            bool IsValidQuery()
-            {
-                if (query.BeforeSlot is < 1 or > 7)
-                {
-                    return false;
-                }
-
-                if (query.Day is { } day)
-                {
-                    if (!Enum.IsDefined(day))
-                    {
-                        return false;
-                    }
-                }
-
-                if (query.Parity is { } parity)
-                {
-                    if (!Enum.IsDefined(parity))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            if (!IsValidQuery())
-            {
-                return Finish(
-                    CliExit.InvalidArguments,
-                    [],
-                    ["Invalid day, parity, or slot (slots start at 1)."]);
-            }
-
-            var resolvedSettings = await CliSettings.Load(
-                settings ?? new(),
-                cancellationToken: cancellation.Token);
-            var scheduleSource = CliRuntime.ResolveSource(source);
-            var services = context.CreateServices(
-                resolvedSettings,
-                ConfigureServices);
-            await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
-            var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            if (query.Room is { } room
-                && !schedule.EnumerateWeeklyLessons()
-                    .Any(x => x.Lesson.Room.Id == room))
-            {
-                return Finish(
-                    CliExit.InvalidArguments,
-                    [],
-                    [$"Unknown room: {room}"]);
-            }
-
-            var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            foreach (var lesson in schedule.Filter(FilterHelper.Builder()
-                             .WithLatestPeriod(schedule))
-                         .EnumerateWeeklyLessons())
-            {
-                cancellation.Token.ThrowIfCancellationRequested();
-
-                if (query.Room is { } roomFilter)
-                {
-                    if (lesson.Lesson.Room.Id != roomFilter)
-                    {
-                        continue;
-                    }
-                }
-
-                if (query.Day is { } dayFilter)
-                {
-                    if (lesson.Date.DayOfWeek != dayFilter)
-                    {
-                        continue;
-                    }
-                }
-
-                if (query.Parity is { } parityFilter)
-                {
-                    if (!lesson.Date.Parity.IsMatch(parityFilter))
-                    {
-                        continue;
-                    }
-                }
-
-                if (query.BeforeSlot is { } lastSlot)
-                {
-                    var slotNumber = lesson.Date.TimeSlot.Index + 1;
-                    if (slotNumber > lastSlot)
-                    {
-                        continue;
-                    }
-                }
-
-                var interval = time.GetTimeSlotInterval(lesson.Date.TimeSlot);
-
-                var start = interval.Start.ToString("HH:mm");
-                var end = interval.End.ToString("HH:mm");
-                var courseName = schedule.Get(lesson.Lesson.Course).FullName;
-
-                var item = new LessonResult(
-                    lesson.Date.DayOfWeek.ToString(),
-                    lesson.Date.Parity.ToString(),
-                    lesson.Date.TimeSlot.Index + 1,
-                    start,
-                    end,
-                    lesson.Lesson.Room.Id,
-                    courseName,
-                    lesson.Lesson.Teachers.Select(x => schedule.Get(x).PersonName
-                            .ToString())
-                        .ToArray());
-                lessons.Add(item);
-                var id = streamed.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                Action renderHuman = () =>
-                {
-                    output.WriteHuman(
-                        $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}");
-                };
-                context.StreamItem(
-                    id,
-                    status: ActionState.Completed,
-                    item,
-                    renderHuman: renderHuman);
-                streamed++;
-            }
-            return Finish(
-                CliExit.Success,
-                lessons,
-                []);
-        }
-        catch (Exception error)
-        {
-            var failure = context.ClassifyInputFailure(error);
-            IReadOnlyList<LessonResult> reportedLessons = lessons;
-            if (error is ArgumentException or Application.Config.AuthenticationRequiredException)
-            {
-                reportedLessons = [];
-            }
-            return Finish(
-                failure.ExitCode,
-                reportedLessons,
-                failure.Errors);
-        }
-
-        int Finish(
-            int exit,
-            IReadOnlyList<LessonResult> lessonsForJson,
-            string[] errors)
-        {
-            var status = CliCommandContext.Status(exit);
-            var jsonStatus = CliCommandContext.Status(exit, cancellation: false);
-            return context.Finish(new CliCompletion<IReadOnlyList<LessonResult>>(
-                exit,
-                errors,
-                lessonsForJson)
-            {
-                Summary = new { count = streamed },
-                Status = status,
-                JsonStatus = jsonStatus,
-                RenderHuman = status =>
-                {
-                    string line = $"{status}: {streamed} lessons.";
-                    output.WriteHuman(line);
-                },
-            });
-        }
-    }
-}
-
-public sealed class QueryArguments : IArgumentModel
-{
-    [Option("room", Description = "Exact room identifier, for example 423/4.")]
-    public string? Room { get; set; }
-
-    [Option("day", Description = "Day name, for example Tuesday.")]
-    public DayOfWeek? Day { get; set; }
-
-    [Option("parity", Description = "OddWeek, EvenWeek or EveryWeek.")]
-    public Parity? Parity { get; set; }
-
-    [Option("before-slot", Description = "Inclusive time-slot cutoff, numbered from 1.")]
-    public int? BeforeSlot { get; set; }
 }
 
 public sealed class SourceArguments : IArgumentModel
@@ -663,13 +454,3 @@ public sealed class ResultArguments : IArgumentModel
             "Stream newline-delimited JSON records on stdout (start, items as available, final summary); stderr is JSONL. Mutually exclusive with --json.")]
     public bool Jsonl { get; set; }
 }
-
-public sealed record LessonResult(
-    string Day,
-    string Parity,
-    int Slot,
-    string Start,
-    string End,
-    string? Room,
-    string Course,
-    string[] Teachers);
