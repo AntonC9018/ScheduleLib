@@ -7,12 +7,20 @@ namespace ScheduleLib;
 /// <summary>Immutable indexes over a built schedule. Ids are positions in its lists.</summary>
 public sealed class ScheduleLookup
 {
-    public required CourseNameIndex Courses { get; init; }
-    public required FrozenDictionary<NameParts<string?>, ImmutableArray<int>> TeachersByLastName { get; init; }
-    public required FrozenDictionary<string, GroupId> Groups { get; init; }
+    public readonly CourseNameIndex Courses;
+    public readonly FrozenDictionary<NameParts<string?>, ImmutableArray<int>> TeachersByLastName;
+    public readonly FrozenDictionary<string, GroupId> Groups;
 
     /// <summary>The lessons of each course, indexed by <see cref="CourseId.Id"/>.</summary>
-    public required ImmutableArray<ImmutableArray<AnyLessonId>> LessonsByCourse { get; init; }
+    public readonly ImmutableArray<ImmutableArray<AnyLessonId>> LessonsByCourse;
+
+    private ScheduleLookup(Schedule schedule, CourseNameUnifierConfig courseNames)
+    {
+        Courses = CourseNameIndex.Create(schedule.Courses, courseNames);
+        TeachersByLastName = IndexTeachers(schedule.Teachers);
+        Groups = IndexGroups(schedule.Groups);
+        LessonsByCourse = IndexLessons(schedule);
+    }
 
     public ImmutableArray<AnyLessonId> LessonsOf(CourseId courseId)
     {
@@ -21,13 +29,7 @@ public sealed class ScheduleLookup
 
     public static ScheduleLookup Create(Schedule schedule, CourseNameUnifierConfig courseNames)
     {
-        return new()
-        {
-            Courses = CourseNameIndex.Create(schedule.Courses, courseNames),
-            TeachersByLastName = IndexTeachers(schedule.Teachers),
-            Groups = IndexGroups(schedule.Groups),
-            LessonsByCourse = IndexLessons(schedule),
-        };
+        return new(schedule, courseNames);
     }
 
     private static FrozenDictionary<NameParts<string?>, ImmutableArray<int>> IndexTeachers(
@@ -77,9 +79,22 @@ public sealed class ScheduleLookup
     }
 }
 
-/// <summary>A schedule as workflows see it, with the indexes built from it.</summary>
-public sealed record LoadedSchedule(Schedule Schedule, ScheduleLookup Lookup)
+/// <summary>
+/// A schedule as workflows see it, with the indexes built from it.
+/// The indexes are always built from the schedule they are paired with.
+/// </summary>
+public sealed class LoadedSchedule
 {
+    public readonly Schedule Schedule;
+    public readonly ScheduleLookup Lookup;
+
+    private LoadedSchedule(Schedule schedule, ScheduleLookup lookup)
+    {
+        Schedule = schedule;
+        Lookup = lookup;
+    }
+
+    /// <summary>Builds the indexes of <paramref name="schedule"/>.</summary>
     public static LoadedSchedule Create(Schedule schedule, CourseNameUnifierConfig courseNames)
     {
         var lookup = ScheduleLookup.Create(schedule, courseNames);

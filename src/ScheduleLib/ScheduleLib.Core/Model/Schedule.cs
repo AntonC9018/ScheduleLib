@@ -1318,11 +1318,25 @@ public sealed class Group
 /// The fields that place a group into a category, such as the categories
 /// the specialization registry and the implicit split scopes select.
 /// </summary>
-public readonly record struct GroupCategory(
-    Grade Grade,
-    Faculty Faculty,
-    AttendanceMode AttendanceMode,
-    QualificationType QualificationType);
+public readonly record struct GroupCategory
+{
+    public readonly Grade Grade;
+    public readonly Faculty Faculty;
+    public readonly AttendanceMode AttendanceMode;
+    public readonly QualificationType QualificationType;
+
+    public GroupCategory(
+        Grade grade,
+        Faculty faculty,
+        AttendanceMode attendanceMode,
+        QualificationType qualificationType)
+    {
+        Grade = grade;
+        Faculty = faculty;
+        AttendanceMode = attendanceMode;
+        QualificationType = qualificationType;
+    }
+}
 
 public sealed class Teacher
 {
