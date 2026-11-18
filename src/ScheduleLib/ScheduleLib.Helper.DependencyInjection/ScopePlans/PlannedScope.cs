@@ -35,12 +35,14 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
     where THandler : notnull
 {
     private readonly AsyncServiceScope _scope;
+    private readonly ScopeState _state;
     private THandler? _handler;
     private bool _handlerIsActivated;
 
-    internal PlannedScope(AsyncServiceScope scope)
+    internal PlannedScope(AsyncServiceScope scope, ScopeState state)
     {
         _scope = scope;
+        _state = state;
     }
 
     public IServiceProvider Services => _scope.ServiceProvider;
@@ -62,20 +64,28 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
         return activated;
     }
 
-    /// <summary>Disposes a handler this scope created, then the scope, even when the handler fails.</summary>
+    /// <summary>
+    /// Ends the scope: open forks, then the services, then the resources. When the parent already
+    /// ended this scope as a fork left open, the parent reports its failures instead.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
-        try
+        var ending = _state.EndAsync();
+        var failure = await ending.Completion;
+        if (ending.StartedHere && failure is not null)
         {
-            if (_handlerIsActivated)
-            {
-                await DisposeActivatedHandler(_handler!);
-            }
+            throw failure;
         }
-        finally
+    }
+
+    /// <summary>The services step of ending: a handler this scope created, then the container scope.</summary>
+    internal async ValueTask DisposeServicesAsync(CleanupFailures failures)
+    {
+        if (_handlerIsActivated)
         {
-            await _scope.DisposeAsync();
+            await failures.Run(() => DisposeActivatedHandler(_handler!));
         }
+        await failures.Run(_scope.DisposeAsync);
     }
 
     private static async ValueTask DisposeActivatedHandler(THandler handler)

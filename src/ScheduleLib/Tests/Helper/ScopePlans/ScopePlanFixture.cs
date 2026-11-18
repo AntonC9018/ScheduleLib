@@ -283,13 +283,105 @@ internal sealed class QueryLessonsConsumer(QueryLessonsHandler handler)
 internal sealed class DisposableHandler(LessonQuery query) : IAsyncDisposable
 {
     public LessonQuery Query => query;
-    public bool IsDisposed { get; private set; }
+    public int DisposeCount { get; private set; }
 
     public ValueTask DisposeAsync()
     {
-        IsDisposed = true;
+        DisposeCount++;
         return ValueTask.CompletedTask;
     }
+}
+
+internal sealed class DisposableForkingHandler(ScopeForkFactory<DisposableHandler> children)
+{
+    public ScopeForkFactory<DisposableHandler> Children => children;
+}
+
+/// <summary>A registered handler whose disposal fails after it borrowed a scope resource.</summary>
+internal sealed class FailingDisposeHandler(RegistrySession session) : IAsyncDisposable
+{
+    public RegistrySession Session => session;
+
+    public ValueTask DisposeAsync()
+    {
+        throw new ResourceCloseFailedException();
+    }
+}
+
+/// <summary>An unregistered handler whose disposal fails, over a resource that fails to close.</summary>
+internal sealed class FailingActivatedHandler(FailingSession failing) : IAsyncDisposable
+{
+    public FailingSession Failing => failing;
+
+    public ValueTask DisposeAsync()
+    {
+        throw new ResourceCloseFailedException();
+    }
+}
+
+/// <summary>Holds an initializer inside its run until the test releases it.</summary>
+internal sealed class InitializerGate
+{
+    private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Task Entered => _entered.Task;
+
+    /// <summary>Whether the borrowed registry connection was still open when initialization resumed.</summary>
+    public bool ConnectionWasOpen { get; set; }
+
+    public async Task PassAsync()
+    {
+        _entered.TrySetResult();
+        await _released.Task;
+    }
+
+    public void Release()
+    {
+        _released.TrySetResult();
+    }
+}
+
+internal sealed record GatedValue;
+
+internal sealed class GatedValueInitializer(RegistrySession session, InitializerGate gate) : IInitializer<GatedValue>
+{
+    public async ValueTask<GatedValue> InitializeAsync(CancellationToken cancellationToken)
+    {
+        await gate.PassAsync();
+        gate.ConnectionWasOpen = !session.Connection.IsClosed;
+        return new GatedValue();
+    }
+}
+
+internal sealed class GatedHandler(GatedValue value)
+{
+    public GatedValue Value => value;
+}
+
+internal sealed class GatedParentHandler(RegistrySession session, ScopeForkFactory<GatedHandler> children)
+{
+    public RegistrySession Session => session;
+    public ScopeForkFactory<GatedHandler> Children => children;
+}
+
+internal sealed class UnresolvableTeacherSettingsFactory(Unregistered missing) : IFactory<TeacherSettings>
+{
+    public TeacherSettings Create()
+    {
+        return new(missing.ToString()!);
+    }
+}
+
+/// <summary>An unregistered root and a registered service that need each other.</summary>
+internal sealed class CycleRoot(CycleService service)
+{
+    public CycleService Service => service;
+}
+
+internal sealed class CycleService(CycleRoot root)
+{
+    public CycleRoot Root => root;
 }
 
 internal sealed class ResourceCloseFailedException() : Exception("The resource failed to close");
@@ -349,6 +441,9 @@ internal static class ScopePlanFixture
         services.AddInitialized<LegacyReport, LegacyReportInitializer>();
         services.AddInitialized<DisposableValue, DisposableValueInitializer>();
         services.AddInitialized<FailingSession, FailingSessionInitializer>();
+        services.AddInitialized<GatedValue, GatedValueInitializer>();
+        services.AddSingleton<InitializerGate>();
+        services.AddScoped<FailingDisposeHandler>();
         services.AddHiddenNeeds<LegacyPlanner, LessonQuery>();
         services.AddHiddenNeeds<LegacyReportInitializer, LessonQuery>();
         services.AddSingleton<LoadLog>();

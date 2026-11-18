@@ -217,7 +217,38 @@ public sealed class ScopePlanTests
         var handler = scope.Handler;
         await scope.DisposeAsync();
 
-        Assert.True(handler.IsDisposed);
+        Assert.Equal(expected: 1, actual: handler.DisposeCount);
+    }
+
+    [Fact]
+    public void CycleThroughAnUnregisteredRootIsReportedTheSameInEitherOrder()
+    {
+        using var rootFirst = CreateCycleServices().BuildServiceProvider();
+        using var serviceFirst = CreateCycleServices().BuildServiceProvider();
+
+        var rootPlanFirst = rootFirst.PlanOf<CycleRoot>();
+        var servicePlanSecond = rootFirst.PlanOf<CycleService>();
+        var servicePlanFirst = serviceFirst.PlanOf<CycleService>();
+        var rootPlanSecond = serviceFirst.PlanOf<CycleRoot>();
+
+        var rootIssues = IssueKinds(rootPlanFirst);
+        var serviceIssues = IssueKinds(servicePlanFirst);
+        Assert.Equal(expected: rootIssues, actual: IssueKinds(rootPlanSecond));
+        Assert.Equal(expected: serviceIssues, actual: IssueKinds(servicePlanSecond));
+        Assert.Equal(expected: [ScopePlanIssueKind.MissingRegistration], actual: serviceIssues);
+
+        static IServiceCollection CreateCycleServices()
+        {
+            var services = new ServiceCollection();
+            services.AddSeed<SourceArgs>();
+            services.AddScoped<CycleService>();
+            return services;
+        }
+
+        static ScopePlanIssueKind[] IssueKinds(ScopePlan plan)
+        {
+            return [.. plan.Errors.Select(e => e.Kind)];
+        }
     }
 
     [Fact]
@@ -237,9 +268,36 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
+    public void ReplacingAnInitializerKeepsAnUnrelatedRegistrationOfItsType()
+    {
+        var services = CreateServices();
+        services.AddSingleton<FakeScheduleInitializer>();
+        services.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
+        services.AddInitialized<LoadedSchedule, LoadedScheduleInitializer>();
+
+        var remaining = Assert.Single(services, d => d.ServiceType == typeof(FakeScheduleInitializer));
+        Assert.Equal(expected: ServiceLifetime.Singleton, actual: remaining.Lifetime);
+    }
+
+    [Fact]
+    public async Task ReplacedDerivedValueWinsOverAnOrdinaryRegistrationBetween()
+    {
+        var services = CreateServices();
+        services.AddScoped(_ => new TeacherSettings("ordinary"));
+        services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<ShowSettingsHandler>(supply: null);
+
+        Assert.Equal(expected: "fixed", actual: scope.Handler.Settings.Teacher);
+    }
+
+    [Fact]
     public async Task LaterDerivedRegistrationReplacesEarlierOne()
     {
         var services = CreateServices();
+        services.AddDerived<TeacherSettings, UnresolvableTeacherSettingsFactory>();
         services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();

@@ -1,20 +1,26 @@
 using System.Collections.Immutable;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
+/// <summary>How a request to end a scope relates to the one ending operation it shares.</summary>
+/// <param name="Completion">The scope's failure to end cleanly, or null.</param>
+/// <param name="StartedHere">Whether this request started the ending; later requests only wait.</param>
+internal readonly record struct ScopeEnding(Task<Exception?> Completion, bool StartedHere);
+
 /// <summary>
 /// Per-scope bookkeeping: the values a fork can inherit, open forks and resources.
-/// A planned scope resolves it first, so Microsoft DI disposes it last.
+/// A planned scope ends through <see cref="EndAsync"/>, run once for its owner and its parent
+/// alike. A plain scope, such as the CLI's per-invocation scope, ends when Microsoft DI disposes it.
 /// </summary>
 public sealed class ScopeState : IAsyncDisposable
 {
     private readonly Lock _lock = new();
     private readonly HashSet<ScopeState> _openForks = [];
+    private readonly TaskCompletionSource _openSettled = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ScopeState? _parent;
-    private AsyncServiceScope? _owner;
     private Type? _root;
-    private bool _ending;
+    private Func<CleanupFailures, ValueTask>? _disposeServices;
+    private TaskCompletionSource<Exception?>? _ending;
 
     /// <summary>Seeds and initialized values available in this scope.</summary>
     internal Dictionary<ScopeNode, object> Values { get; } = [];
@@ -22,24 +28,34 @@ public sealed class ScopeState : IAsyncDisposable
     internal ScopeResources Resources { get; } = new();
 
     /// <summary>
-    /// Registers this scope as an open fork of <paramref name="parent"/>, before any initializer
-    /// runs. Fails once the parent has started ending, since the fork would borrow closed values.
+    /// Registers this planned scope as an open fork of <paramref name="parent"/>, before any
+    /// initializer runs. Fails once the parent has started ending.
     /// </summary>
-    internal void AttachToParent(ScopeState parent, AsyncServiceScope owner, Type root)
+    /// <param name="disposeServices">Disposes the scope's services when it ends, before its resources.</param>
+    internal void AttachToParent(ScopeState parent, Type root, Func<CleanupFailures, ValueTask> disposeServices)
     {
-        _owner = owner;
-        _root = root;
-        parent.AddFork(this);
+        parent.AddFork(this, root);
         _parent = parent;
+        _root = root;
+        _disposeServices = disposeServices;
     }
 
-    private void AddFork(ScopeState fork)
+    /// <summary>
+    /// Called by the opener once initialization has finished. A failed opener first starts
+    /// ending the fork, so a parent waiting here never reports that fork as left open.
+    /// </summary>
+    internal void MarkOpenSettled()
+    {
+        _openSettled.TrySetResult();
+    }
+
+    private void AddFork(ScopeState fork, Type root)
     {
         lock (_lock)
         {
-            if (_ending)
+            if (_ending is not null)
             {
-                throw new ParentScopeEndedException(fork._root!);
+                throw new ParentScopeEndedException(root);
             }
             _openForks.Add(fork);
         }
@@ -53,29 +69,65 @@ public sealed class ScopeState : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Disposes forks left open, then closes the resources. Every step is attempted even when an
-    /// earlier one fails; the failures are reported together afterwards.
-    /// </summary>
-    public async ValueTask DisposeAsync()
+    /// <summary>Starts ending the scope, or joins the ending already under way.</summary>
+    internal ScopeEnding EndAsync()
     {
-        ScopeState[] leftOpen;
+        TaskCompletionSource<Exception?> ending;
+        ScopeState[] forks;
         lock (_lock)
         {
-            if (_ending)
+            if (_ending is not null)
             {
-                return;
+                return new(_ending.Task, StartedHere: false);
             }
-            _ending = true;
-            leftOpen = [.. _openForks];
+            ending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _ending = ending;
+            forks = [.. _openForks];
         }
+        return new(EndAndPublishAsync(forks, ending), StartedHere: true);
+    }
 
-        var failures = new List<Exception>();
+    private async Task<Exception?> EndAndPublishAsync(ScopeState[] forks, TaskCompletionSource<Exception?> ending)
+    {
         try
         {
-            foreach (var fork in leftOpen)
+            var failure = await RunEndingAsync(forks);
+            ending.SetResult(failure);
+            return failure;
+        }
+        catch (Exception unexpected)
+        {
+            ending.SetException(unexpected);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Ends forks left open, waiting for any still opening, then disposes the services, then
+    /// closes the resources. Every step is attempted; the failures are reported together.
+    /// </summary>
+    private async Task<Exception?> RunEndingAsync(ScopeState[] forks)
+    {
+        var failures = new CleanupFailures();
+        var leftOpen = new List<Type>();
+        try
+        {
+            foreach (var fork in forks)
             {
-                await CleanupStep.Run(() => fork._owner!.Value.DisposeAsync(), failures);
+                await fork._openSettled.Task;
+                var ending = fork.EndAsync();
+                if (ending.StartedHere)
+                {
+                    leftOpen.Add(fork._root!);
+                }
+                if (await ending.Completion is { } forkFailure)
+                {
+                    failures.Add(forkFailure);
+                }
+            }
+            if (_disposeServices is not null)
+            {
+                await _disposeServices(failures);
             }
             await Resources.CloseAsync(failures);
         }
@@ -84,32 +136,31 @@ public sealed class ScopeState : IAsyncDisposable
             _parent?.RemoveFork(this);
         }
 
-        ImmutableArray<Type> forksLeftOpen = [.. leftOpen.Select(static f => f._root!)];
-        if (failures.Count > 0)
+        ImmutableArray<Type> forksLeftOpen = [.. leftOpen];
+        if (failures.Failures.Count > 0)
         {
-            throw new ScopeCleanupException(forksLeftOpen, [.. failures]);
+            return new ScopeCleanupException(forksLeftOpen, [.. failures.Failures]);
         }
         if (forksLeftOpen.Length > 0)
         {
-            throw new ForkLeftOpenException(forksLeftOpen);
+            return new ForkLeftOpenException(forksLeftOpen);
         }
+        return null;
     }
-}
 
-/// <summary>Runs one cleanup step and records its failure, so the remaining steps still run.</summary>
-internal static class CleanupStep
-{
-    public static async ValueTask Run(Func<ValueTask> step, List<Exception> failures)
+    /// <summary>
+    /// Microsoft DI disposing the scope. A planned scope is already ending through its owner, which
+    /// disposes the services as one of its steps, so only a plain scope ends here.
+    /// </summary>
+    public async ValueTask DisposeAsync()
     {
-        try
+        if (_disposeServices is not null)
         {
-            await step();
+            return;
         }
-#pragma warning disable CA1031 // Every failure is collected and rethrown once cleanup is complete.
-        catch (Exception exception)
-#pragma warning restore CA1031
+        if (await EndAsync().Completion is { } failure)
         {
-            failures.Add(exception);
+            throw failure;
         }
     }
 }

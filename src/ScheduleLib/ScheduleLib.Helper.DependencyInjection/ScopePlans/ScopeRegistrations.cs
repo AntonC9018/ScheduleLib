@@ -1,8 +1,16 @@
+using System.Collections.Immutable;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-internal sealed record InitializedRegistration(Type Initializer, Type SlotType);
+/// <param name="Descriptors">The service registrations this value added, removed when it is replaced.</param>
+internal sealed record DerivedRegistration(Type Factory, ImmutableArray<ServiceDescriptor> Descriptors);
+
+/// <param name="Descriptors">The service registrations this value added, removed when it is replaced.</param>
+internal sealed record InitializedRegistration(
+    Type Initializer,
+    Type SlotType,
+    ImmutableArray<ServiceDescriptor> Descriptors);
 
 /// <summary>Scope-plan metadata kept next to the service collection, so plans can see through factories.</summary>
 internal sealed class ScopeRegistrations
@@ -10,8 +18,7 @@ internal sealed class ScopeRegistrations
     /// <summary>Seed node to its slot type.</summary>
     public Dictionary<ScopeNode, Type> Seeds { get; } = [];
 
-    /// <summary>Derived value type to its factory class.</summary>
-    public Dictionary<Type, Type> Derived { get; } = [];
+    public Dictionary<Type, DerivedRegistration> Derived { get; } = [];
 
     public Dictionary<Type, InitializedRegistration> Initialized { get; } = [];
 
@@ -64,21 +71,20 @@ public static class ScopePlanServiceCollectionExtensions
         var derived = services.GetScopeRegistrations().Derived;
         if (derived.TryGetValue(key: typeof(T), value: out var replaced))
         {
-            services.RemoveImplementation(replaced);
+            services.RemoveDescriptors(replaced.Descriptors);
         }
-        else
-        {
-            // Resolves whichever factory is registered last, so a replacement needs no new slot.
-            services.AddScoped(sp =>
+        ImmutableArray<ServiceDescriptor> descriptors =
+        [
+            ServiceDescriptor.Transient<TFactory, TFactory>(),
+            ServiceDescriptor.Scoped(static sp =>
             {
-                var factory = (IFactory<T>) sp.GetRequiredService(derived[typeof(T)]);
-                var value = factory.Create();
+                var value = sp.GetRequiredService<TFactory>().Create();
                 ScopeValueGuard.RejectDisposable(ScopeNode.Unkeyed(typeof(T)), value);
                 return value;
-            });
-        }
-        derived[typeof(T)] = typeof(TFactory);
-        services.AddTransient<TFactory>();
+            }),
+        ];
+        services.AddDescriptors(descriptors);
+        derived[typeof(T)] = new(Factory: typeof(TFactory), Descriptors: descriptors);
         return services;
     }
 
@@ -91,28 +97,42 @@ public static class ScopePlanServiceCollectionExtensions
         where TInitializer : class, IInitializer<T>
     {
         var initialized = services.GetScopeRegistrations().Initialized;
-        if (initialized.TryGetValue(typeof(T), out var replaced))
+        if (initialized.TryGetValue(key: typeof(T), value: out var replaced))
         {
-            services.RemoveImplementation(replaced.Initializer);
+            services.RemoveDescriptors(replaced.Descriptors);
         }
-        else
-        {
-            services.AddScoped<Slot<T>>();
-            services.AddScoped(static sp => sp.GetRequiredService<Slot<T>>().Value);
-        }
-        initialized[typeof(T)] = new(Initializer: typeof(TInitializer), SlotType: typeof(Slot<T>));
-        services.AddTransient<TInitializer>();
+        ImmutableArray<ServiceDescriptor> descriptors =
+        [
+            ServiceDescriptor.Transient<TInitializer, TInitializer>(),
+            ServiceDescriptor.Scoped<Slot<T>, Slot<T>>(),
+            ServiceDescriptor.Scoped(static sp => sp.GetRequiredService<Slot<T>>().Value),
+        ];
+        services.AddDescriptors(descriptors);
+        initialized[typeof(T)] = new(
+            Initializer: typeof(TInitializer),
+            SlotType: typeof(Slot<T>),
+            Descriptors: descriptors);
         return services;
     }
 
-    /// <summary>
-    /// Removes the transient registration of a replaced factory or initializer, so container
-    /// validation no longer requires its dependencies.
-    /// </summary>
-    private static void RemoveImplementation(this IServiceCollection services, Type implementation)
+    private static void AddDescriptors(this IServiceCollection services, ImmutableArray<ServiceDescriptor> descriptors)
     {
-        var descriptor = services.First(d => d.ServiceType == implementation && !d.IsKeyedService);
-        services.Remove(descriptor);
+        foreach (var descriptor in descriptors)
+        {
+            services.Add(descriptor);
+        }
+    }
+
+    /// <summary>
+    /// Removes exactly the registrations a replaced value added, so container validation no longer
+    /// requires its dependencies and an unrelated registration of the same type stays.
+    /// </summary>
+    private static void RemoveDescriptors(this IServiceCollection services, ImmutableArray<ServiceDescriptor> descriptors)
+    {
+        foreach (var descriptor in descriptors)
+        {
+            services.Remove(descriptor);
+        }
     }
 
     /// <summary>

@@ -138,16 +138,13 @@ public sealed class ScheduleScope : IAsyncDisposable
         }
     }
 
+    /// <summary>Disposes the planned scope, then the invocation scope, reporting both failures.</summary>
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            await _scope.DisposeAsync();
-        }
-        finally
-        {
-            await _invocation.DisposeAsync();
-        }
+        var failures = new CleanupFailures();
+        await failures.Run(_scope.DisposeAsync);
+        await failures.Run(_invocation.DisposeAsync);
+        failures.ThrowIfAny();
     }
 }
 

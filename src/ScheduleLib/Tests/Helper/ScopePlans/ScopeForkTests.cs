@@ -165,4 +165,70 @@ public sealed class ScopeForkTests
         Assert.All(exception.Failures, f => Assert.IsType<ScopeCleanupException>(f));
         Assert.True(connection.IsClosed);
     }
+
+    [Fact]
+    public async Task ParentEndingWaitsForAForkStillOpening()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+        var gate = root.GetRequiredService<InitializerGate>();
+
+        var parent = await invocation.ServiceProvider.OpenAsync<GatedParentHandler>(supply: null);
+        var connection = parent.Handler.Session.Connection;
+        var opening = parent.Handler.Children.OpenAsync(supply: null, None).AsTask();
+        await gate.Entered;
+        var ending = parent.DisposeAsync().AsTask();
+
+        Assert.False(ending.IsCompleted);
+        Assert.False(connection.IsClosed);
+        gate.Release();
+        await using var child = await opening;
+        await Assert.ThrowsAsync<ForkLeftOpenException>(() => ending);
+
+        Assert.True(gate.ConnectionWasOpen);
+        Assert.True(connection.IsClosed);
+    }
+
+    [Fact]
+    public async Task FailingHandlerDisposalStillClosesTheResources()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var scope = await invocation.ServiceProvider.OpenAsync<FailingDisposeHandler>(supply: null);
+        var connection = scope.Handler.Session.Connection;
+        var exception = await Assert.ThrowsAsync<ScopeCleanupException>(async () => await scope.DisposeAsync());
+
+        Assert.IsType<ResourceCloseFailedException>(Assert.Single(exception.Failures));
+        Assert.True(connection.IsClosed);
+    }
+
+    [Fact]
+    public async Task ParentEndsAnAbandonedForkThroughItsOwnTeardown()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var parent = await invocation.ServiceProvider.OpenAsync<DisposableForkingHandler>(supply: null);
+        var child = await parent.Handler.Children.OpenAsync(SupplySource, None);
+        var handler = child.Handler;
+        await Assert.ThrowsAsync<ForkLeftOpenException>(async () => await parent.DisposeAsync());
+        await child.DisposeAsync();
+
+        Assert.Equal(expected: 1, actual: handler.DisposeCount);
+    }
+
+    [Fact]
+    public async Task ActivatedHandlerAndResourceFailuresAreBothReported()
+    {
+        await using var root = CreateServices().Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        var scope = await invocation.ServiceProvider.OpenAsync<FailingActivatedHandler>(supply: null);
+        _ = scope.Handler;
+        var exception = await Assert.ThrowsAsync<ScopeCleanupException>(async () => await scope.DisposeAsync());
+
+        Assert.Equal(expected: 2, actual: exception.Failures.Length);
+        Assert.All(exception.Failures, f => Assert.IsType<ResourceCloseFailedException>(f));
+    }
 }

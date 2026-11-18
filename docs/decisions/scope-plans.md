@@ -34,9 +34,9 @@ command builds its own container from runtime arguments, and resolving `Schedule
     otherwise sequentially in the order constructors list them, so a cheap check that can fail
     (Google auth) can come before an expensive parse.
   - Each value has a write-once slot; resolving it unfilled fails with "not available".
-  - A later registration for the same value replaces the earlier one, removing the earlier
-    initializer so container validation no longer needs its dependencies; tests use this to
-    supply fakes. Derived values are replaced the same way.
+  - A later registration for the same value replaces the earlier one, removing exactly the
+    registrations the earlier one added, so container validation no longer needs its
+    dependencies; tests use this to supply fakes. Derived values are replaced the same way.
 - **Bundles:** one initializer produces a value from which factories project others;
   the initializer runs once. `ScheduleBuilder` becomes such an immutable bundle for
   `Schedule`, the lookup module and the teacher remappings.
@@ -52,8 +52,9 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - **Shared graph:** plans share one node per `(type, key)` and its memoized closure
   (seeds, initializers, warnings, errors), so a subgraph used by many handlers is stored once.
 - **Unregistered roots:** a workflow root may be a concrete type that is not registered.
-  It is planned from its constructor without memoizing that node, so for every other consumer
-  it stays missing and plans never depend on which workflow was planned first.
+  It is planned from its constructor without memoizing that node or putting it on the walk
+  path, so for every other consumer it stays missing and plans, including cycle reports,
+  never depend on which workflow was planned first.
   The planned scope creates such a handler itself and disposes it when the scope ends.
 - **Opaque spots are warnings, not errors.** Injected `IServiceProvider`/`IServiceScopeFactory`
   and lambda registrations fail only at run time if something is missing.
@@ -88,9 +89,12 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - **Whoever opens a fork disposes it.** A parent that ends with a fork still open disposes the
   fork, then throws `ForkLeftOpenException`. Forks never outlive their parent.
   A scope's `ScopeResources` close after its forks.
+  - A planned scope ends once, through one operation shared by its owner and its parent:
+    forks left open (waiting for any still opening), then a handler it created and its
+    container scope, then its `ScopeResources`. A plain scope ends when Microsoft DI disposes it.
   - Once a scope starts ending, opening a fork from it fails with `ParentScopeEndedException`.
-  - Ending a scope attempts every fork and resource even when some fail, then throws one
-    `ScopeCleanupException` listing the failures and the forks left open.
+  - Every step is attempted even when some fail; the failures are reported together in one
+    `ScopeCleanupException`, which also lists the forks left open.
 - **Accepted limitation:** inherited values are shared, so a child mutating one affects the
   parent. Context values should be immutable.
 

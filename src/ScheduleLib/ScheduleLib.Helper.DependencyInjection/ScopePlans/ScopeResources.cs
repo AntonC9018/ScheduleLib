@@ -30,7 +30,7 @@ public sealed class ScopeResources
     }
 
     /// <summary>Closes every resource, the last added first, recording failures without stopping.</summary>
-    internal async ValueTask CloseAsync(List<Exception> failures)
+    internal async ValueTask CloseAsync(CleanupFailures failures)
     {
         IAsyncDisposable[] resources;
         lock (_lock)
@@ -42,7 +42,7 @@ public sealed class ScopeResources
         for (int i = resources.Length - 1; i >= 0; i--)
         {
             var resource = resources[i];
-            await CleanupStep.Run(resource.DisposeAsync, failures);
+            await failures.Run(resource.DisposeAsync);
         }
     }
 }

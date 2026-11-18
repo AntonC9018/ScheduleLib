@@ -43,15 +43,33 @@ public sealed class ScopeForkFactory<THandler>(
         }
 
         var scope = scopes.CreateAsyncScope();
+        var state = scope.ServiceProvider.GetRequiredService<ScopeState>();
+        var planned = new PlannedScope<THandler>(scope, state);
         try
         {
-            await FillAsync(scope, scopePlan, inputs, cancellationToken);
-            return new(scope);
+            state.AttachToParent(current, scopePlan.Root, planned.DisposeServicesAsync);
         }
         catch
         {
             await scope.DisposeAsync();
             throw;
+        }
+
+        try
+        {
+            await FillAsync(scope.ServiceProvider, state, scopePlan, inputs, cancellationToken);
+            state.MarkOpenSettled();
+            return planned;
+        }
+        catch (Exception openFailure)
+        {
+            var ending = state.EndAsync();
+            state.MarkOpenSettled();
+            if (await ending.Completion is not { } cleanupFailure)
+            {
+                throw;
+            }
+            throw new AggregateException(openFailure, cleanupFailure);
         }
     }
 
@@ -61,14 +79,12 @@ public sealed class ScopeForkFactory<THandler>(
     }
 
     private async ValueTask FillAsync(
-        AsyncServiceScope scope,
+        IServiceProvider services,
+        ScopeState state,
         ScopePlan scopePlan,
         ScopeInputs inputs,
         CancellationToken cancellationToken)
     {
-        var services = scope.ServiceProvider;
-        var state = services.GetRequiredService<ScopeState>();
-        state.AttachToParent(current, scope, scopePlan.Root);
         foreach (var (node, value) in Inherited(inputs))
         {
             Fill(services, state, node, value);
