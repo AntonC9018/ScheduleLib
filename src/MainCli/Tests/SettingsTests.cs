@@ -384,6 +384,36 @@ public sealed class SettingsTests
     }
 
     [Fact]
+    public async Task RootLoadsReadTheRootTreeWithoutChangingIt()
+    {
+        static int CountNodes(MutableNode node) => 1 + node.ChildNodes.Sum(CountNodes);
+
+        using var files = new SettingsFixture();
+        await files.Project(
+            """{"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"project"}}}""");
+        await using var services = new CliRootServices(overrides: null);
+        var tree = services.Root.GetRequiredService<TreeBuilder>();
+        var nodes = CountNodes(tree.BaseNode);
+        var loader = services.Root.GetRequiredService<SettingsLoader>();
+        var project = Path.Combine(files.Root, "project");
+
+        var defaults = await loader.Load(new(ProjectPath: project), CancellationToken.None);
+        var teacher = await loader.Load(
+            new(ProjectPath: project, Profile: "Iatasina Tamara", CalendarName: "cli"),
+            CancellationToken.None);
+
+        Assert.Same(expected: tree, actual: defaults.Tree);
+        Assert.Same(expected: tree, actual: teacher.Tree);
+        Assert.Equal(expected: nodes, actual: CountNodes(tree.BaseNode));
+        Assert.Equal(
+            expected: "project",
+            actual: defaults.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        Assert.Equal(
+            expected: "cli",
+            actual: teacher.Get(GoogleCalendarConfig.Key)!.CalendarName);
+    }
+
+    [Fact]
     public async Task InspectionRedactsExistingCodeSecrets()
     {
         using var files = new SettingsFixture();

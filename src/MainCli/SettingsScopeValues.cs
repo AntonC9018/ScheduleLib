@@ -1,3 +1,4 @@
+using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using ScheduleLib.Application.Config;
 using ScheduleLib.DependencyInjection.ScopePlans;
@@ -16,13 +17,16 @@ public sealed record SettingsSelection(string? ProjectPath = null, string? Profi
     }
 }
 
-/// <summary>Loads settings with the layered-data services of the root container.</summary>
-public sealed class SettingsLoader(IServiceProvider services)
+/// <summary>
+/// Loads settings over the code-defined settings tree of the root container, populated once when
+/// the container is built; each load overlays its user, project and CLI values without changing it.
+/// </summary>
+public sealed class SettingsLoader(TreeBuilder tree)
 {
     public Task<ResolvedSettings> Load(SettingsSelection selection, CancellationToken cancellationToken)
     {
         return CliSettings.LoadCore(
-            services,
+            tree,
             selection,
             invocationDirectory: null,
             userFile: null,

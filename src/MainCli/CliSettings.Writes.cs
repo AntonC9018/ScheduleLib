@@ -168,7 +168,7 @@ public static partial class CliSettings
                 unset);
         }
         var candidate = await LoadCore(
-            StandaloneServices.Value,
+            CreateStandaloneTree(),
             SettingsSelection.From(arguments),
             invocationDirectory: cwd,
             userFile: userFile,

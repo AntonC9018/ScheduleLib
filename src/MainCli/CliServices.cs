@@ -72,7 +72,9 @@ internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : I
         var services = new ServiceCollection();
         CliServices.Configure(services);
         overrides?.Invoke(services);
-        return AppConfiguration.BuildServiceProvider(services);
+        var root = AppConfiguration.BuildServiceProvider(services);
+        AppConfiguration.ConfigureLayeredConfig(root);
+        return root;
     }
 }
 

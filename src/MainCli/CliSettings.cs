@@ -45,7 +45,7 @@ public sealed record SettingsValue(JsonNode? Value, IReadOnlyList<SettingsSource
 
 /// <summary>
 /// The resolved settings layers and the actual path consumed by runtime DataProvider.
-/// Values are constructed with the layered-data services of the container that loaded them.
+/// Values are constructed with the layered-data services of the tree they were loaded over.
 /// </summary>
 public sealed class ResolvedSettings : IMarkerDataHelper
 {
@@ -69,7 +69,6 @@ public sealed class ResolvedSettings : IMarkerDataHelper
     public IReadOnlyList<SettingsSource> Sources { get; }
 
     internal ResolvedSettings(
-        IServiceProvider provider,
         TreeBuilder tree,
         NodePath path,
         JsonSerializerOptions json,
@@ -80,7 +79,7 @@ public sealed class ResolvedSettings : IMarkerDataHelper
         IReadOnlyDictionary<string, NodePath> profilePaths,
         NodePath globalPath)
     {
-        _provider = provider;
+        _provider = tree.SingletonServiceProvider;
         Tree = tree;
         Path = path;
         _json = json;
@@ -331,6 +330,17 @@ public static partial class CliSettings
         return services.BuildServiceProvider();
     });
 
+    /// <summary>
+    /// A code-defined settings tree of its own for each load outside the root container, so a
+    /// caller changing its settings' tree affects no other load (#247).
+    /// </summary>
+    private static TreeBuilder CreateStandaloneTree()
+    {
+        var tree = new TreeBuilder(StandaloneServices.Value);
+        tree.AddDefaultConfig();
+        return tree;
+    }
+
     public static async Task<ResolvedSettings> Load(
         SettingsArguments arguments,
         string? invocationDirectory = null,
@@ -339,7 +349,7 @@ public static partial class CliSettings
         ConfigOverrideArguments? overrides = null)
     {
         return await LoadCore(
-            StandaloneServices.Value,
+            CreateStandaloneTree(),
             SettingsSelection.From(arguments, overrides),
             invocationDirectory: invocationDirectory,
             userFile: userFile,
@@ -347,11 +357,12 @@ public static partial class CliSettings
     }
 
     /// <summary>
-    /// Loads the selected settings with <paramref name="provider"/>'s layered-data services, on a
-    /// layer tree of their own.
+    /// Loads the selected settings over the code-defined settings of <paramref name="tree"/>, with
+    /// its layered-data services. The tree is only read: the user, project and CLI overlay nodes
+    /// belong to this load.
     /// </summary>
     internal static async Task<ResolvedSettings> LoadCore(
-        IServiceProvider provider,
+        TreeBuilder tree,
         SettingsSelection selection,
         string? invocationDirectory,
         string? userFile,
@@ -360,8 +371,7 @@ public static partial class CliSettings
     {
         var cwd = Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory);
         var project = DiscoverProject(explicitProject: selection.ProjectPath, invocationDirectory: cwd);
-        var tree = new TreeBuilder(provider);
-        tree.AddDefaultConfig();
+        var provider = tree.SingletonServiceProvider;
         var codeProfiles = tree.GetMarkerNodes()
             .ToDictionary(
                 keySelector: x => x.Config.TeacherName.ToString(),
@@ -466,7 +476,6 @@ public static partial class CliSettings
         var settingsPath = new NodePath(selectedPath);
         var globalPath = new NodePath(defaultsPath.ToImmutable());
         var resolved = new ResolvedSettings(
-            provider,
             tree,
             path: settingsPath,
             json,
