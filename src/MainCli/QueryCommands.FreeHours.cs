@@ -29,7 +29,7 @@ public sealed record FreeHoursResult(string[] Groups, FreeHoursSectionResult[] S
     "free-hours",
     Description =
         "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'WholeGroupAndUnspecializedOptionalLessonsOccupy' - whole-group lessons and lessons with the legacy opțional subgroup marker and no specialization occupy their slot, regardless of alternative; other partitioned lessons leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
-public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflow> workflows)
+public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflow> workflows, CliRun run)
 {
     [DefaultCommand]
     public async Task<int> Run(
@@ -39,7 +39,7 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
     {
-        using var context = new CliCommandContext(
+        using var context = run.CreateContext(
             "query free-hours",
             outputArgs,
             cancellationToken);

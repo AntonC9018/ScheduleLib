@@ -15,8 +15,8 @@ public static class CliHost
 
     internal static async Task<int> RunCore(string[] args, CliHostOverrides? overrides)
     {
-        var run = CliRun.Begin();
-        await using var rootServices = new CliRootServices(overrides?.Services);
+        var run = new CliRun();
+        await using var rootServices = new CliRootServices(run, overrides?.Services);
         var invoked = false;
         var startupRequest = StartupRequest.None;
         string? parseDetail = null;

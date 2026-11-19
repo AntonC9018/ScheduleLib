@@ -17,9 +17,11 @@ public static class CliServices
     /// </summary>
     public static IReadOnlyList<Type> CommandClasses { get; } = [typeof(QueryLessonsCommand), typeof(QueryFreeHoursCommand)];
 
-    public static void Configure(IServiceCollection services)
+    /// <summary>The root container's registrations, with <paramref name="run"/> for the commands resolved there.</summary>
+    public static void Configure(IServiceCollection services, CliRun run)
     {
         AppConfiguration.ConfigureServices(services);
+        services.AddSingleton(run);
         CliRuntime.AddCliServices(services);
         ResolvedSettings.AddScopeValues(services);
         ScheduleSourceSelection.AddScopeValues(services);
@@ -37,7 +39,9 @@ public static class CliServices
 /// so help, parse errors and commands with containers of their own never build it.
 /// <paramref name="overrides"/> replaces registrations after the CLI's own, for tests.
 /// </summary>
-internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : IAsyncDisposable
+/// <param name="run">The host run, registered for the commands resolved from the root container.</param>
+/// <param name="overrides">Registrations applied after the CLI's own.</param>
+internal sealed class CliRootServices(CliRun run, Action<IServiceCollection>? overrides) : IAsyncDisposable
 {
     private ServiceProvider? _root;
     private ExceptionDispatchInfo? _setupFailure;
@@ -92,7 +96,7 @@ internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : I
     private ServiceProvider Build()
     {
         var services = new ServiceCollection();
-        CliServices.Configure(services);
+        CliServices.Configure(services, run);
         overrides?.Invoke(services);
         return AppConfiguration.BuildServiceProvider(services);
     }

@@ -16,7 +16,7 @@ public sealed class QueryCommands
     "lessons",
     Description =
         "List latest-period weekly lessons. All predicates are optional; parity includes lessons held every week. No teacher profile is required.")]
-public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> workflows)
+public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> workflows, CliRun run)
 {
     [DefaultCommand]
     public async Task<int> Run(
@@ -26,7 +26,7 @@ public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> w
         CancellationToken cancellationToken = default,
         SettingsArguments? settings = null)
     {
-        using var context = new CliCommandContext(
+        using var context = run.CreateContext(
             "query lessons",
             outputArgs,
             cancellationToken);

@@ -22,7 +22,7 @@ public sealed class WorkflowPlanTests
     public async Task WorkflowRootPlanHasNoErrors(Type root)
     {
         var services = new ServiceCollection();
-        CliServices.Configure(services);
+        CliServices.Configure(services, new CliRun());
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         var plan = provider.GetRequiredService<ScopePlanGraph>()
             .GetPlan(root);

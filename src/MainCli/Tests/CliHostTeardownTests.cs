@@ -49,6 +49,53 @@ public sealed class CliHostTeardownTests
             actual: message);
     }
 
+    /// <summary>
+    /// Only the command's own context reports to the run: another context started in the same run,
+    /// here just before the command, does not receive the teardown failure.
+    /// </summary>
+    [Fact]
+    public async Task TeardownFailureGoesToTheCommandsOwnOutput()
+    {
+        static void AddFailingTeardown(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddSingleton<FailingTeardown>();
+        }
+
+        static Task<int> StartAnotherContext(CommandContext context, ExecutionDelegate next)
+        {
+            var arguments = new ResultArguments
+            {
+                Jsonl = true,
+            };
+            using (var other = new CliCommandContext("other", arguments, CancellationToken.None))
+            {
+                _ = other.Start();
+            }
+            return next(context);
+        }
+
+        static void ConfigureRunner(AppRunner<Commands> runner)
+        {
+            ResolveFailingTeardownBeforeInvocation(runner);
+            runner.Configure(builder => builder.UseMiddleware(StartAnotherContext, MiddlewareSteps.InvokeCommand - 1));
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, AddFailingTeardown, ConfigureRunner);
+
+        Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: "query lessons",
+            actual: final.GetProperty("command")
+                .GetString());
+        var message = TeardownRecordMessage(final, run.Error);
+        Assert.Equal(
+            expected: $"Ending the CLI's services failed: {FailureMessage}",
+            actual: message);
+    }
+
     [Fact]
     public async Task FailedRootSetupStillEndsTheRootContainer()
     {

@@ -6,36 +6,28 @@ namespace ScheduleLib.Cli;
 /// <c>command</c> and <c>runId</c> and continue its stderr <c>seq</c>.
 /// </summary>
 /// <remarks>
-/// Commands create their <see cref="CliCommandContext"/> themselves, so a context reaches the run
-/// of the host that invoked it through the async flow.
+/// The host registers the run in its root container, and the commands resolved there create
+/// their context through it. Commands that still construct their context directly report such
+/// diagnostics on a host output instead.
 /// </remarks>
-internal sealed class CliRun
+public sealed class CliRun
 {
-    private static readonly AsyncLocal<CliRun?> Current = new();
-
     private readonly Lock _lock = new();
     private CliOutput? _resultOutput;
 
-    private CliRun()
+    internal CliRun()
     {
     }
 
-    /// <summary>Starts a run that the commands invoked from the calling async flow report to.</summary>
-    public static CliRun Begin()
-    {
-        var run = new CliRun();
-        Current.Value = run;
-        return run;
-    }
-
-    /// <summary>Records <paramref name="output"/> as the result output of the current run, if any.</summary>
-    public static void RecordStarted(CliOutput output) => Current.Value?.Record(output);
+    /// <summary>Creates the context of a command whose output receives this run's result.</summary>
+    public CliCommandContext CreateContext(string command, ResultArguments arguments, CancellationToken token) =>
+        new(command, arguments, token, this);
 
     /// <summary>
     /// Records <paramref name="output"/> as where the result goes. The first output stays: a
     /// command started by another command reports to its caller, which reports the result.
     /// </summary>
-    public void Record(CliOutput output)
+    internal void Record(CliOutput output)
     {
         lock (_lock)
         {
@@ -47,7 +39,7 @@ internal sealed class CliRun
     /// The output the result went to. Without one, a host output in the requested format, which
     /// later diagnostics then share.
     /// </summary>
-    public CliOutput ResultOutput(StartupRequest request)
+    internal CliOutput ResultOutput(StartupRequest request)
     {
         lock (_lock)
         {

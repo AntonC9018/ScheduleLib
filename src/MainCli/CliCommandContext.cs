@@ -45,6 +45,7 @@ public readonly record struct StreamedUpdate(
 public sealed class CliCommandContext : IDisposable
 {
     private readonly ConsoleCancelEventHandler _cancel;
+    private readonly CliRun? _run;
     private IDisposable? _logging;
     private int _streamed;
     private bool _started;
@@ -59,7 +60,22 @@ public sealed class CliCommandContext : IDisposable
         string command,
         ResultArguments arguments,
         CancellationToken token)
+        : this(command, arguments, token, run: null)
     {
+    }
+
+    /// <summary>A context created through <paramref name="run"/>, whose result the run reports.</summary>
+    /// <param name="command">The command name of the output's records.</param>
+    /// <param name="arguments">The requested result format.</param>
+    /// <param name="token">The invocation's cancellation, linked to Ctrl+C once started.</param>
+    /// <param name="run">The host run, or none for a context created directly.</param>
+    internal CliCommandContext(
+        string command,
+        ResultArguments arguments,
+        CancellationToken token,
+        CliRun? run)
+    {
+        _run = run;
         var runId = Guid.NewGuid()
             .ToString("N");
         Output = new CliOutput(
@@ -97,7 +113,7 @@ public sealed class CliCommandContext : IDisposable
             return false;
         }
         _logging = CliLogging.Use(Output);
-        CliRun.RecordStarted(Output);
+        _run?.Record(Output);
         Output.EmitStart();
         Console.CancelKeyPress += _cancel;
         _started = true;
