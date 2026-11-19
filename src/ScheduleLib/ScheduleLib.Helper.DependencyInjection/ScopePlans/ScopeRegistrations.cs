@@ -181,6 +181,8 @@ public static class ScopePlanServiceCollectionExtensions
     /// <summary>
     /// Declares what an opaque service, factory or initializer resolves at run time,
     /// until it is converted to constructor injection. The plan warning stays.
+    /// <typeparamref name="TService"/> is the implementation type, or the service type of a
+    /// lambda registration.
     /// </summary>
     public static IServiceCollection AddHiddenNeeds<TService, TNeed>(this IServiceCollection services)
     {

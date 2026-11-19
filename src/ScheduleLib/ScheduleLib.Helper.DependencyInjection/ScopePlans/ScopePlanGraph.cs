@@ -314,7 +314,8 @@ public sealed class ScopePlanGraph
                 case ServiceSource.Singleton:
                     return new(ScopeNodeKind.Singleton, []);
                 case ServiceSource.Lambda:
-                    return new(ScopeNodeKind.Lambda, []);
+                    // A lambda has no implementation type, so its hidden needs are keyed by the service.
+                    return new(ScopeNodeKind.Lambda, HiddenNeeds(node.Type));
                 default:
                     var inputs = ImplementationInputs(recipe.Implementation!, node.Key);
                     return new(ScopeNodeKind.Service, inputs);
@@ -396,8 +397,17 @@ public sealed class ScopePlanGraph
 
         private ImmutableArray<ScopeNode> ImplementationInputs(Type implementation, object? key)
         {
-            var hiddenNeeds = graph.Registrations.HiddenNeeds.GetValueOrDefault(implementation) ?? [];
-            return [.. ConstructorInputs(implementation, key), .. hiddenNeeds];
+            return [.. ConstructorInputs(implementation, key), .. HiddenNeeds(implementation)];
+        }
+
+        private ImmutableArray<ScopeNode> HiddenNeeds(Type service)
+        {
+            if (graph.Registrations.HiddenNeeds.TryGetValue(service, out var needs))
+            {
+                return [.. needs];
+            }
+
+            return [];
         }
 
         // Mirrors Microsoft DI: the constructor with the most parameters it can satisfy.

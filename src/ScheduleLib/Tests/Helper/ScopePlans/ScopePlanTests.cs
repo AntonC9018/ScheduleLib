@@ -171,6 +171,17 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
+    public void LambdaRegistrationsAreWarningsAndTheirHiddenNeedsArePlanned()
+    {
+        using var root = CreateServices().Build();
+        var plan = root.PlanOf<LambdaHandler>();
+
+        var warning = Assert.Single(plan.Warnings);
+        Assert.Equal(expected: ScopePlanIssueKind.LambdaRegistration, actual: warning.Kind);
+        Assert.Equal(expected: [typeof(LoadedSchedule)], actual: plan.Steps.Select(s => s.Value));
+    }
+
+    [Fact]
     public void PlanStopsAtSingletonsAndFollowsOpenGenerics()
     {
         using var root = CreateServices().Build();

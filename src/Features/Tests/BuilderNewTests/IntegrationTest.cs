@@ -45,20 +45,28 @@ public sealed class IntegrationTest
     }
 
     [Fact]
-    public async Task MarkerScopeRejectsAMissingMarker()
+    public Task MarkerScopeRejectsAMissingMarker() => AssertRequiresMarker<DataProvider>();
+
+    /// <summary>A typed provider resolves the untyped one in a lambda, which its plan still follows.</summary>
+    [Fact]
+    public Task TypedProviderScopeRejectsAMissingMarker() =>
+        AssertRequiresMarker<DataProvider<BuiltGoogleCalendarConfig>>();
+
+    private async Task AssertRequiresMarker<THandler>()
+        where THandler : class
     {
         var fixture = Fixture();
         var marker = ScopeNode.Unkeyed(typeof(TeacherLayerConfig));
         var plan = fixture.ServiceProvider.GetRequiredService<ScopePlanGraph>()
-            .GetPlan(typeof(DataProvider));
+            .GetPlan(typeof(THandler));
         Assert.Contains(expected: marker, collection: plan.Seeds);
 
         static void SupplyNothing(ScopeInputs inputs)
         {
         }
 
-        Task<HostScope<DataProvider>> OpenWithoutMarker() =>
-            HostScope<DataProvider>.Open(fixture.ServiceProvider, SupplyNothing, CancellationToken.None);
+        Task<HostScope<THandler>> OpenWithoutMarker() =>
+            HostScope<THandler>.Open(fixture.ServiceProvider, SupplyNothing, CancellationToken.None);
 
         var error = await Assert.ThrowsAsync<MissingSeedsException>(OpenWithoutMarker);
         Assert.Equal(expected: marker, actual: Assert.Single(error.Seeds));

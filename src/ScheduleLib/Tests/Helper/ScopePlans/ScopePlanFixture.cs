@@ -166,6 +166,17 @@ internal sealed class LegacyHandler(LegacyPlanner planner)
     public LegacyPlanner Planner => planner;
 }
 
+/// <summary>Built by a lambda that resolves its need; the need is declared with AddHiddenNeeds.</summary>
+internal sealed class LambdaPlanner(LessonQuery query)
+{
+    public LessonQuery Query => query;
+}
+
+internal sealed class LambdaHandler(LambdaPlanner planner)
+{
+    public LambdaPlanner Planner => planner;
+}
+
 internal sealed record LegacyReport(int Load);
 
 internal sealed class LegacyReportInitializer(IServiceProvider services, LoadLog log) : IInitializer<LegacyReport>
@@ -550,6 +561,8 @@ internal static class ScopePlanFixture
         services.AddScoped<FailingDisposable>();
         services.AddHiddenNeeds<LegacyPlanner, LessonQuery>();
         services.AddHiddenNeeds<LegacyReportInitializer, LessonQuery>();
+        services.AddScoped(static sp => new LambdaPlanner(sp.GetRequiredService<LessonQuery>()));
+        services.AddHiddenNeeds<LambdaPlanner, LessonQuery>();
         services.AddSingleton<LoadLog>();
         services.AddSingleton<SingletonLocator>();
         services.AddTransient<LessonQuery>();

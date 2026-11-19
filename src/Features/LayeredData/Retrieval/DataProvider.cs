@@ -2,6 +2,7 @@ using System.Reflection;
 using Anton.LayeredData.TreeEnumeration;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace Anton.LayeredData.Retrieval;
 
@@ -107,6 +108,8 @@ public static class DataProviderHelper
         {
             var f = Factory(key);
             services.AddScoped(f);
+            // The factory resolves the untyped provider, so scope plans follow it to the marker.
+            services.AddHiddenNeeds<DataProvider<T>, DataProvider>();
         }
     }
 }

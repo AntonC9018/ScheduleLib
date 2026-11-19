@@ -66,6 +66,7 @@ command builds its own container from runtime arguments, and resolving `Schedule
   Each consumer of an opaque or missing node is named. Opaque spots are converted over time.
 - **Hidden needs:** `AddHiddenNeeds<TService, TNeed>()` declares what a service, factory or
   initializer resolves at run time, until it is converted. The warning stays.
+  A lambda registration has no implementation type, so its needs are keyed by its service type.
 - **Errors before any work:** a plan error, a missing seed or a supplied value that is not a
   registered seed is rejected when the scope opens, with nothing initialized.
 - **Disposable values are plan errors:** seeds, derived values and initialized values must not
