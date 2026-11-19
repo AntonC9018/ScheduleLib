@@ -1,17 +1,15 @@
 using System.Globalization;
 using CommandDotNet;
-using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
 [Command("query")]
-public partial class QueryCommands
+public sealed class QueryCommands
 {
     [Subcommand] public QueryLessonsCommand? Lessons { get; set; }
 
-    protected virtual void ConfigureServices(IServiceCollection services) =>
-        AppConfiguration.ConfigureServices(services);
+    [Subcommand] public QueryFreeHoursCommand? FreeHours { get; set; }
 }
 
 [Command(

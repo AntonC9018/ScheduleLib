@@ -248,7 +248,6 @@ public sealed class QueryTests
                 }
 
                 var initializer = new ScheduleLoadFailure(failure2, beforeFailure);
-                var query = new FailingQuery(initializer);
                 var export = new FailingExport(initializer);
                 var source = new SourceArguments
                 {
@@ -274,13 +273,13 @@ public sealed class QueryTests
                             initializer.Register(services);
                         },
                         caller.Token),
-                    "free-hours" => await query.FreeHours(
-                        new()
+                    "free-hours" => await CliTestHost.Run(
+                        ["query", "free-hours", "--json", "--group", "IA2301", .. CliTestHost.UncachedSource()],
+                        services =>
                         {
-                            Groups = ["IA2301"],
+                            CliTestHost.FixtureSchedule(services);
+                            initializer.Register(services);
                         },
-                        source,
-                        result,
                         caller.Token),
                     "free-rooms" => await export.FreeRooms(
                         source,
@@ -401,15 +400,6 @@ public sealed class QueryTests
     private sealed class FailingInitializer(ScheduleLoadFailure failure) : IInitializer<LoadedSchedule>
     {
         public ValueTask<LoadedSchedule> InitializeAsync(CancellationToken cancellationToken) => failure.Fail();
-    }
-
-    private sealed class FailingQuery(ScheduleLoadFailure failure) : QueryCommands
-    {
-        protected override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-            failure.Register(services);
-        }
     }
 
     private sealed class FailingExport(ScheduleLoadFailure failure) : ExportCommands

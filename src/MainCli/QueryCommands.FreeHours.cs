@@ -1,6 +1,6 @@
 using CommandDotNet;
-using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
@@ -25,13 +25,14 @@ public sealed record FreeHoursSectionResult(
 
 public sealed record FreeHoursResult(string[] Groups, FreeHoursSectionResult[] Sections);
 
-public partial class QueryCommands
+[Command(
+    "free-hours",
+    Description =
+        "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'WholeGroupAndUnspecializedOptionalLessonsOccupy' - whole-group lessons and lessons with the legacy opțional subgroup marker and no specialization occupy their slot, regardless of alternative; other partitioned lessons leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
+public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflow> workflows)
 {
-    [Command(
-        "free-hours",
-        Description =
-            "Free time slots of the supplied groups. Existing defaults are preserved and always apply: both parities (even and odd weeks), both occupancy modes, and every weekly period rather than only the latest one. The two modes are 'EveryLessonOccupies' - every lesson the group attends occupies its slot, whichever subgroup, specialization or alternative it addresses - and 'WholeGroupAndUnspecializedOptionalLessonsOccupy' - whole-group lessons and lessons with the legacy opțional subgroup marker and no specialization occupy their slot, regardless of alternative; other partitioned lessons leave their slot free. Days are the Monday-Friday slots of the configured lesson times, and consecutive free slots are merged into one interval. No teacher profile is required.")]
-    public async Task<int> FreeHours(
+    [DefaultCommand]
+    public async Task<int> Run(
         FreeHoursArguments groups,
         SourceArguments source,
         ResultArguments outputArgs,
@@ -71,73 +72,16 @@ public partial class QueryCommands
                 warnings.Add("Repeated group names were reported once.");
             }
 
-            var resolvedSettings = await CliSettings.Load(
-                settings ?? new(),
-                cancellationToken: cancellation.Token);
             var scheduleSource = CliRuntime.ResolveSource(source);
-            var services = context.CreateServices(
-                resolvedSettings,
-                ConfigureServices);
-            await using var provider = AppConfiguration.BuildServiceProvider(services);
-            await using var scope = await provider.OpenScheduleScope(scheduleSource, cancellation.Token);
-            var schedule = scope.ServiceProvider.GetRequiredService<Schedule>();
-            var known = schedule.EnumerateGroups()
-                .Select(x => x.Item.Name)
-                .ToArray();
-            var unknown = names.Where(name => !known.Contains(name, StringComparer.Ordinal))
-                .ToArray();
-            if (unknown.Length > 0)
-            {
-                return Finish(CliExit.InvalidArguments, [UnknownGroups(unknown: unknown, known: known)]);
-            }
-
-            var ambiguous = names.Where(name =>
-                {
-                    return known.Count(x => x == name) > 1;
-                })
-                .ToArray();
-            if (ambiguous.Length > 0)
-            {
-                return Finish(
-                    CliExit.InvalidArguments,
-                    [$"Group name(s) match more than one group: {string.Join(", ", ambiguous)}."]);
-            }
-
+            var settingsSelection = SettingsSelection.From(settings);
+            var query = new FreeHoursQuery(names);
+            await using var scope = await workflows.OpenAsync(
+                inputs => inputs.Add(settingsSelection)
+                    .Add(scheduleSource)
+                    .Add(query),
+                cancellation.Token);
+            var result = scope.Handler.Run(cancellation.Token);
             warnings.Add("Free hours inspect every weekly period, not only the latest one.");
-            var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
-            var sections = handler.Sections(names, cancellation.Token);
-            var time = scope.ServiceProvider.GetRequiredService<LessonTimeConfig>();
-            var resultSections = sections.Select(ToSection)
-                .ToArray();
-            var result = new FreeHoursResult(names, resultSections);
-
-            FreeHoursSectionResult ToSection(FreeHoursSection section)
-            {
-                var days = section.Days.Select(ToDay)
-                    .ToArray();
-                return new(
-                    Group: section.Group,
-                    Parity: section.Parity.ToString(),
-                    Mode: section.Mode.ToString(),
-                    Days: days);
-            }
-
-            FreeHoursDayResult ToDay(FreeHoursDay day)
-            {
-                var intervals = day.Intervals.Select(ToInterval)
-                    .ToArray();
-                return new(day.Day.ToString(), intervals);
-            }
-
-            FreeHoursIntervalResult ToInterval(FreeHoursInterval interval)
-            {
-                var start = time.GetTimeSlotInterval(interval.Start).Start
-                    .ToString("HH:mm");
-                var end = time.GetTimeSlotInterval(interval.EndInclusive).End
-                    .ToString("HH:mm");
-                return new(Start: start, End: end);
-            }
-
             cancellation.Token.ThrowIfCancellationRequested();
             data = result;
             // Sections require full validation, so this batch is atomic; stream each
@@ -150,16 +94,7 @@ public partial class QueryCommands
                     id: sectionId,
                     status: ActionState.Completed,
                     section,
-                    renderHuman: () =>
-                    {
-                        output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
-                        foreach (var day in section.Days)
-                        {
-                            var line =
-                                $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
-                            output.WriteHuman(line);
-                        }
-                    });
+                    renderHuman: () => RenderSection(section));
             }
             return Finish(CliExit.Success, []);
         }
@@ -167,6 +102,17 @@ public partial class QueryCommands
         {
             var failure = context.ClassifyInputFailure(error);
             return Finish(failure.ExitCode, failure.Errors);
+        }
+
+        void RenderSection(FreeHoursSectionResult section)
+        {
+            output.WriteHuman($"{section.Group}, {section.Parity} week, {Describe(section.Mode)}");
+            foreach (var day in section.Days)
+            {
+                var line =
+                    $"  {day.Day}: {string.Join(", ", day.Intervals.Select(x => $"{x.Start}-{x.End}"))}";
+                output.WriteHuman(line);
+            }
         }
 
         int Finish(int exit, string[] errors)
@@ -198,21 +144,6 @@ public partial class QueryCommands
             }
 
             return "whole-group lessons and unspecialized optional lessons occupy their slot";
-        }
-
-        static string UnknownGroups(string[] unknown, string[] known)
-        {
-            return string.Join(
-                " ",
-                unknown.Select(name =>
-                {
-                    var suggestion = known.FirstOrDefault(x => string.Equals(
-                        x,
-                        name,
-                        StringComparison.OrdinalIgnoreCase));
-                    return
-                        $"{$"Unknown group '{name}'."}{(suggestion is null ? "" : $" Did you mean '{suggestion}'?")}";
-                }));
         }
     }
 }

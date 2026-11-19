@@ -14,7 +14,7 @@ public static class CliServices
     /// Command classes resolved from the invocation scope. Commands not listed here are created
     /// by CommandDotNet and build containers of their own until they move to scope plans (#247).
     /// </summary>
-    public static IReadOnlyList<Type> CommandClasses { get; } = [typeof(QueryLessonsCommand)];
+    public static IReadOnlyList<Type> CommandClasses { get; } = [typeof(QueryLessonsCommand), typeof(QueryFreeHoursCommand)];
 
     public static void Configure(IServiceCollection services)
     {
@@ -22,6 +22,7 @@ public static class CliServices
         CliRuntime.AddCliServices(services);
         ResolvedSettings.AddScopeValues(services);
         QueryLessonsWorkflow.Register(services);
+        QueryFreeHoursWorkflow.Register(services);
         foreach (var commandClass in CommandClasses)
         {
             services.AddScoped(commandClass);

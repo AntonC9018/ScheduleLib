@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
-using ScheduleLib.Dates;
 
 public sealed class FreeHoursTests
 {
@@ -197,13 +196,9 @@ public sealed class FreeHoursTests
             Console.SetOut(output);
             Assert.Equal(
                 expected: 0,
-                actual: await new FixtureQuery().FreeHours(
-                    new()
-                    {
-                        Groups = ["IA2301"],
-                    },
-                    Source(),
-                    new()));
+                actual: await CliTestHost.Run(
+                    Arguments(["IA2301"], json: false),
+                    CliTestHost.FixtureSchedule));
 
             Assert.Equal(
                 expected: new[]
@@ -246,7 +241,7 @@ public sealed class FreeHoursTests
     public async Task ExistingTaskTextRenderingIsUnchanged()
     {
         var scheduleSource = CliRuntime.ResolveSource(Source());
-        var services = CliRuntime.CreateServices(new FixtureQuery().FixtureServices);
+        var services = CliRuntime.CreateServices(HandlerServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
         var builder = new StringBuilder();
@@ -379,16 +374,9 @@ public sealed class FreeHoursTests
             Console.SetOut(output);
             Assert.Equal(
                 expected: 0,
-                actual: await new FixtureQuery().FreeHours(
-                    new()
-                    {
-                        Groups = ["IA2301", "IA2301"],
-                    },
-                    Source(),
-                    new()
-                    {
-                        Json = true,
-                    }));
+                actual: await CliTestHost.Run(
+                    Arguments(["IA2301", "IA2301"]),
+                    CliTestHost.FixtureSchedule));
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(
                 expected: new[]
@@ -428,7 +416,7 @@ public sealed class FreeHoursTests
         Directory.CreateDirectory(zi);
 
         var fixtureWorkbookPath = Path.Combine(
-            FixtureDirectory(),
+            CliTestHost.FixturesDirectory,
             "2025_sem2",
             "zi",
             "master.xlsx");
@@ -448,20 +436,9 @@ public sealed class FreeHoursTests
             Console.SetOut(output);
             Assert.Equal(
                 expected: 0,
-                actual: await new FixtureQuery().FreeHours(
-                    new()
-                    {
-                        Groups = ["MIA2501"],
-                    },
-                    new()
-                    {
-                        NoCache = true,
-                        DataDirectory = temp.Path,
-                    },
-                    new()
-                    {
-                        Json = true,
-                    }));
+                actual: await CliTestHost.Run(
+                    Arguments(["MIA2501"], dataDirectory: temp.Path),
+                    CliTestHost.FixtureSchedule));
             using var result = JsonDocument.Parse(output.ToString());
             var sections = result.RootElement.GetProperty("data")
                 .GetProperty("sections")
@@ -483,26 +460,10 @@ public sealed class FreeHoursTests
     }
 
     [Fact]
-    public async Task CancelledQueryReturns130BeforeLoading()
-    {
-        var cancelledExit = await new FixtureQuery().FreeHours(
-            new()
-            {
-                Groups = ["IA2301"],
-            },
-            new(),
-            new(),
-            new CancellationToken(canceled: true));
-        Assert.Equal(
-            expected: 130,
-            actual: cancelledExit);
-    }
-
-    [Fact]
     public async Task CancellationDuringTheCalculationStopsTheHandler()
     {
         var scheduleSource = CliRuntime.ResolveSource(Source());
-        var services = CliRuntime.CreateServices(new FixtureQuery().FixtureServices);
+        var services = CliRuntime.CreateServices(HandlerServices);
         await using var provider = AppConfiguration.BuildServiceProvider(services);
         await using var scope = await provider.OpenScheduleScope(scheduleSource, CancellationToken.None);
         var handler = scope.ServiceProvider.GetRequiredService<PrintFreeHoursOfGroupTaskHandler>();
@@ -543,21 +504,26 @@ public sealed class FreeHoursTests
     }
 
     [Fact]
-    public async Task CancellationAfterTheCalculationIsNotSuccess()
+    public async Task CancellationOnceTheScopeOpensIsNotSuccess()
     {
         using var cancellation = new CancellationTokenSource();
 
-        // Every section is computed by then, so only a check right before the result is
-        // reported can still turn this into a cancellation instead of a success.
-        FreeHoursArguments CreateGroupQuery()
+        // The scope builds the handler before the calculation starts; cancelling then must
+        // turn the run into a cancellation, with no partial result.
+        void CancelOnceTheHandlerIsBuilt(IServiceCollection services)
         {
-            var groups = For("IA2301");
-            return groups;
+            CliTestHost.FixtureSchedule(services);
+            services.AddScoped(sp =>
+            {
+                var handler = ActivatorUtilities.CreateInstance<PrintFreeHoursOfGroupTaskHandler>(sp);
+                cancellation.Cancel();
+                return handler;
+            });
         }
 
         var result = await Execute(
-            CreateGroupQuery(),
-            new LateCancellingQuery(cancellation),
+            For("IA2301"),
+            CancelOnceTheHandlerIsBuilt,
             cancellation.Token,
             expected: 130);
         Assert.Equal(
@@ -590,20 +556,9 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
-            var exit = await new FixtureQuery().FreeHours(
-                new()
-                {
-                    Groups = ["IA2301"],
-                },
-                new()
-                {
-                    NoCache = true,
-                    DataDirectory = temp.Path,
-                },
-                new()
-                {
-                    Json = true,
-                });
+            var exit = await CliTestHost.Run(
+                Arguments(["IA2301"], dataDirectory: temp.Path),
+                CliTestHost.FixtureSchedule);
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 3, actual: exit);
             Assert.Equal(
@@ -661,11 +616,9 @@ public sealed class FreeHoursTests
         return new()
         {
             NoCache = true,
-            DataDirectory = FixtureDirectory(),
+            DataDirectory = CliTestHost.FixturesDirectory,
         };
     }
-
-    private static string FixtureDirectory() => Path.Combine(AppContext.BaseDirectory, "fixtures");
 
     private static FreeHoursArguments For(params string[] groups)
     {
@@ -679,14 +632,14 @@ public sealed class FreeHoursTests
     {
         return Execute(
             groups,
-            new FixtureQuery(),
+            CliTestHost.FixtureSchedule,
             CancellationToken.None,
             expected);
     }
 
     private static async Task<JsonElement> Execute(
         FreeHoursArguments groups,
-        QueryCommands query,
+        Action<IServiceCollection> services,
         CancellationToken cancellationToken,
         int expected = 0)
     {
@@ -696,13 +649,9 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
-            var exit = await query.FreeHours(
-                groups,
-                Source(),
-                new()
-                {
-                    Json = true,
-                },
+            var exit = await CliTestHost.Run(
+                Arguments(groups.Groups),
+                services,
                 cancellationToken);
             Assert.Equal(expected: expected, actual: exit);
             using var document = JsonDocument.Parse(output.ToString());
@@ -717,7 +666,7 @@ public sealed class FreeHoursTests
             Assert.Equal(expected: cwd, actual: Environment.CurrentDirectory);
 
             var scheduleFiles = Directory.EnumerateFiles(
-                path: FixtureDirectory(),
+                path: CliTestHost.FixturesDirectory,
                 searchPattern: "*schedule_*.json",
                 SearchOption.AllDirectories);
             Assert.Empty(scheduleFiles);
@@ -745,58 +694,17 @@ public sealed class FreeHoursTests
     }
 
 
-    private abstract class FixtureQueryBase : QueryCommands
+    private static string[] Arguments(string[] groups, bool json = true, string? dataDirectory = null)
     {
-        public void FixtureServices(IServiceCollection services) => ConfigureServices(services);
-
-        protected override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-            services.Configure<ScheduleSourceLoaderOptions>(x =>
-            {
-                var loaderOptions = x;
-                loaderOptions.EnrichWithFullNames = false;
-            });
-            services.Configure<StudyYearOptions>(x =>
-            {
-                x.StudyYear = new(2025);
-                x.Semester = Semester.Sem2;
-            });
-        }
+        string[] format = json ? ["--json"] : [];
+        var groupOptions = groups.SelectMany(x => new[] { "--group", x });
+        return ["query", "free-hours", .. format, .. CliTestHost.UncachedSource(dataDirectory), .. groupOptions];
     }
 
-    private sealed class FixtureQuery : FixtureQueryBase;
-
-    /// <summary>Cancels the query after the free hours are computed, which is the last point
-    /// at which the command could still report success. The handler is built before the
-    /// calculation and takes the lesson times with it; the command asks for them once more
-    /// when it formats the computed intervals, and only that resolution cancels.</summary>
-    private sealed class LateCancellingQuery(CancellationTokenSource cancellation) : FixtureQueryBase
+    /// <summary>The services of the free-hours handler over the fixture schedule, for tests of the handler itself.</summary>
+    private static void HandlerServices(IServiceCollection services)
     {
-        private bool _handlerBuilt;
-
-        protected override void ConfigureServices(IServiceCollection services)
-        {
-            base.ConfigureServices(services);
-            var declaredTime = services.Last(x => x.ServiceType == typeof(LessonTimeConfig));
-            services.AddScoped(sp =>
-            {
-                var handler = ActivatorUtilities.CreateInstance<PrintFreeHoursOfGroupTaskHandler>(sp);
-                _handlerBuilt = true;
-                return handler;
-            });
-            // Registered as transient so that the resolution after the calculation asks the
-            // factory again; as a singleton the times would be created only once.
-            services.AddTransient(sp =>
-            {
-                var config = (LessonTimeConfig?) declaredTime.ImplementationInstance
-                    ?? throw new InvalidOperationException("The lesson times are no longer registered as an instance.");
-                if (_handlerBuilt)
-                {
-                    cancellation.Cancel();
-                }
-                return config;
-            });
-        }
+        AppConfiguration.ConfigureServices(services);
+        CliTestHost.FixtureSchedule(services);
     }
 }

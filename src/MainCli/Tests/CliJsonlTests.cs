@@ -1952,11 +1952,7 @@ public sealed class CliJsonlTests
                 () => CliTestHost.Run(["query", "lessons", "--json", "--jsonl"])),
             new(
                 "query free-hours",
-                () => new QueryCommands().FreeHours(
-                    new(),
-                    new(),
-                    both,
-                    default)),
+                () => CliTestHost.Run(["query", "free-hours", "--json", "--jsonl"])),
             new(
                 "export teachers-excel",
                 () => new ExportCommands().TeachersExcel(
