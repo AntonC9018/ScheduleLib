@@ -24,7 +24,7 @@
 
     <PropertyGroup>
         <MicrosoftPackagesVersion>10.0.1</MicrosoftPackagesVersion>
-        <AntonCodingRulesVersion>0.1.0-local.20261118.1</AntonCodingRulesVersion>
+        <AntonCodingRulesVersion>0.1.0-local.20261119.1</AntonCodingRulesVersion>
     </PropertyGroup>
 
     <!-- Keep existing CR findings visible while each rule is reviewed against legacy code.
@@ -56,6 +56,8 @@
         <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0204</AntonCodingRulesDiagnosticIds>
         <!-- CR0205: Remove else branches after a terminating return or throw. -->
         <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0205</AntonCodingRulesDiagnosticIds>
+        <!-- CR0206: Move multiline lambdas out of if conditions. -->
+        <AntonCodingRulesDiagnosticIds>$(AntonCodingRulesDiagnosticIds);CR0206</AntonCodingRulesDiagnosticIds>
 
         <!-- Calculation and statement-staging rules: name nested operations and consumed mutations. -->
         <!-- CR0300: Name nested argument operations in intermediate variables. -->
