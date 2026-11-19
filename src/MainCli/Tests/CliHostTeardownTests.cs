@@ -3,6 +3,7 @@ using Anton.LayeredData;
 using CommandDotNet;
 using CommandDotNet.Execution;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using ScheduleLib.DependencyInjection.ScopePlans;
@@ -94,6 +95,42 @@ public sealed class CliHostTeardownTests
         Assert.Equal(
             expected: $"Ending the CLI's services failed: {FailureMessage}",
             actual: message);
+    }
+
+    /// <summary>Services that log as they end, after the result, log to the result's output.</summary>
+    [Fact]
+    public async Task ServicesLogToTheResultsOutputAsTheyEnd()
+    {
+        static void AddLoggingDisposers(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddScoped<InvocationLoggingDisposer>();
+            services.AddSingleton<RootLoggingDisposer>();
+        }
+
+        static Task<int> ResolveLoggingDisposers(CommandContext context, ExecutionDelegate next)
+        {
+            var resolver = context.DependencyResolver!;
+            _ = resolver.Resolve(typeof(InvocationLoggingDisposer));
+            _ = resolver.Resolve(typeof(RootLoggingDisposer));
+            return next(context);
+        }
+
+        static void ConfigureRunner(AppRunner<Commands> runner) =>
+            runner.Configure(builder => builder.UseMiddleware(ResolveLoggingDisposers, MiddlewareSteps.InvokeCommand - 1));
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, AddLoggingDisposers, ConfigureRunner);
+
+        Assert.Equal(expected: CliExit.Success, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        var records = JsonLines(run.Error);
+        AssertContinuesTheResult(final, records);
+        var messages = records.Select(x => x.GetProperty("message").GetString())
+            .ToArray();
+        Assert.Equal(
+            expected: [InvocationLoggingDisposer.Message, RootLoggingDisposer.Message],
+            actual: messages[^2..]);
     }
 
     [Fact]
@@ -319,21 +356,35 @@ public sealed class CliHostTeardownTests
         }
 
         var records = JsonLines(error);
+        AssertContinuesTheResult(final, records);
         Assert.Single(records, ReportsTeardown);
         var teardown = records[^1];
         Assert.True(ReportsTeardown(teardown));
         Assert.Equal(expected: "Error", actual: Text(teardown, "level"));
-        var resultCommand = Text(final, "command");
-        var teardownCommand = Text(teardown, "command");
-        Assert.Equal(expected: resultCommand, actual: teardownCommand);
-        var resultRunId = Text(final, "runId");
-        var teardownRunId = Text(teardown, "runId");
-        Assert.Equal(expected: resultRunId, actual: teardownRunId);
-        Assert.Equal(
-            expected: records.Length - 1,
-            actual: teardown.GetProperty("seq")
-                .GetInt32());
         return Text(teardown, "message");
+    }
+
+    /// <summary>Every stderr record has the result's command and run, in one sequence from 0.</summary>
+    private static void AssertContinuesTheResult(JsonElement final, JsonElement[] records)
+    {
+        var command = final.GetProperty("command")
+            .GetString();
+        var runId = final.GetProperty("runId")
+            .GetString();
+        for (var i = 0; i < records.Length; i++)
+        {
+            var record = records[i];
+            var recordCommand = record.GetProperty("command")
+                .GetString();
+            var recordRunId = record.GetProperty("runId")
+                .GetString();
+            Assert.Equal(expected: command, actual: recordCommand);
+            Assert.Equal(expected: runId, actual: recordRunId);
+            Assert.Equal(
+                expected: i,
+                actual: record.GetProperty("seq")
+                    .GetInt32());
+        }
     }
 
     private static JsonElement[] JsonLines(string text)
@@ -384,6 +435,30 @@ public sealed class CliHostTeardownTests
             cancellation.Cancel();
             cancellationToken.ThrowIfCancellationRequested();
             throw new InvalidOperationException("The command's cancellation should reach the initializer.");
+        }
+    }
+
+    /// <summary>An invocation-scoped service that logs as it ends.</summary>
+    private sealed class InvocationLoggingDisposer(ILogger<InvocationLoggingDisposer> logger) : IAsyncDisposable
+    {
+        public const string Message = "Invocation service ended.";
+
+        public ValueTask DisposeAsync()
+        {
+            logger.LogWarning(Message);
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>A root service that logs as it ends.</summary>
+    private sealed class RootLoggingDisposer(ILogger<RootLoggingDisposer> logger) : IAsyncDisposable
+    {
+        public const string Message = "Root service ended.";
+
+        public ValueTask DisposeAsync()
+        {
+            logger.LogWarning(Message);
+            return ValueTask.CompletedTask;
         }
     }
 }

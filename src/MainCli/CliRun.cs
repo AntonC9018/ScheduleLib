@@ -2,18 +2,20 @@ namespace ScheduleLib.Cli;
 
 /// <summary>
 /// One run of the CLI host and the output its result went to. Diagnostics written after the
-/// result, such as teardown failures, go to the same output, so they share its
-/// <c>command</c> and <c>runId</c> and continue its stderr <c>seq</c>.
+/// result, such as teardown failures and logs of services as they end, go to the same output,
+/// so they share its <c>command</c> and <c>runId</c> and continue its stderr <c>seq</c>.
+/// Logs keep going to that output until the run is disposed, after its services have ended.
 /// </summary>
 /// <remarks>
 /// The host registers the run in its root container, and the commands resolved there create
 /// their context through it. Commands that still construct their context directly report such
 /// diagnostics on a host output instead.
 /// </remarks>
-public sealed class CliRun
+public sealed class CliRun : IDisposable
 {
     private readonly Lock _lock = new();
     private CliOutput? _resultOutput;
+    private IDisposable? _logging;
 
     internal CliRun()
     {
@@ -24,14 +26,21 @@ public sealed class CliRun
         new(command, arguments, token, this);
 
     /// <summary>
-    /// Records <paramref name="output"/> as where the result goes. The first output stays: a
-    /// command started by another command reports to its caller, which reports the result.
+    /// Takes <paramref name="output"/> as where the result goes and routes logs to it, unless an
+    /// output was taken already: a command started by another command reports to its caller,
+    /// which reports the result. Returns whether it was taken.
     /// </summary>
-    internal void Record(CliOutput output)
+    internal bool Adopt(CliOutput output)
     {
         lock (_lock)
         {
-            _resultOutput ??= output;
+            if (_resultOutput is not null)
+            {
+                return false;
+            }
+
+            Take(output);
+            return true;
         }
     }
 
@@ -43,18 +52,36 @@ public sealed class CliRun
     {
         lock (_lock)
         {
-            if (_resultOutput is null)
+            if (_resultOutput is { } taken)
             {
-                var runId = Guid.NewGuid()
-                    .ToString("N");
-                _resultOutput = new CliOutput(
-                    command: "cli",
-                    runId: runId,
-                    json: false,
-                    jsonl: request.UsesJsonlOutput);
+                return taken;
             }
 
-            return _resultOutput;
+            var runId = Guid.NewGuid()
+                .ToString("N");
+            var output = new CliOutput(
+                command: "cli",
+                runId: runId,
+                json: false,
+                jsonl: request.UsesJsonlOutput);
+            Take(output);
+            return output;
+        }
+    }
+
+    private void Take(CliOutput output)
+    {
+        _resultOutput = output;
+        _logging = CliLogging.Use(output);
+    }
+
+    /// <summary>Routes logs back to where they went before the run took an output.</summary>
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            _logging?.Dispose();
+            _logging = null;
         }
     }
 }

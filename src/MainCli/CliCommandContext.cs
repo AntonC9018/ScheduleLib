@@ -112,8 +112,11 @@ public sealed class CliCommandContext : IDisposable
             Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
             return false;
         }
-        _logging = CliLogging.Use(Output);
-        _run?.Record(Output);
+        // The run keeps routing logs to its result's output until its services have ended.
+        if (_run?.Adopt(Output) != true)
+        {
+            _logging = CliLogging.Use(Output);
+        }
         Output.EmitStart();
         Console.CancelKeyPress += _cancel;
         _started = true;

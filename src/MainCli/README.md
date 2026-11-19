@@ -41,7 +41,8 @@ If the command's or the CLI's shared services fail to shut down after a command
 has reported its result, that result stands and no second one follows: the
 failure goes to stderr (with `--jsonl`, a `log` record with the result's
 `command` and `runId`, continuing its stderr `seq`), and the process exits 1 if
-the command succeeded, otherwise with the command's code.
+the command succeeded, otherwise with the command's code. Logs written while those
+services shut down go to the same output.
 
 `--jsonl` streams newline-delimited JSON on stdout and is mutually exclusive
 with `--json` (both together exit 2). Human output remains the default; result

@@ -15,7 +15,8 @@ public static class CliHost
 
     internal static async Task<int> RunCore(string[] args, CliHostOverrides? overrides)
     {
-        var run = new CliRun();
+        // Disposed last, after the root container, so services log to the result's output as they end.
+        using var run = new CliRun();
         await using var rootServices = new CliRootServices(run, overrides?.Services);
         var invoked = false;
         var startupRequest = StartupRequest.None;
@@ -199,7 +200,7 @@ public static class CliHost
                         .ToString("N"),
                     false,
                     true);
-                run.Record(output);
+                run.Adopt(output);
                 output.EmitStart();
                 foreach (var detail in details)
                 {

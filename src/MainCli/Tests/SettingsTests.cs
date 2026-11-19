@@ -396,7 +396,8 @@ public sealed class SettingsTests
         using var files = new SettingsFixture();
         await files.Project(
             """{"schemaVersion":1,"defaults":{"GoogleCalendarConfig":{"calendarName":"project"}}}""");
-        await using var services = new CliRootServices(new CliRun(), overrides: null);
+        using var run = new CliRun();
+        await using var services = new CliRootServices(run, overrides: null);
         var tree = services.Root.GetRequiredService<TreeBuilder>();
         var nodes = CountNodes(tree.BaseNode);
         var loader = services.Root.GetRequiredService<SettingsLoader>();
