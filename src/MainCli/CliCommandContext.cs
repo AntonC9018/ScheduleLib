@@ -318,6 +318,18 @@ public sealed class CliCommandContext : IDisposable
             }
             return new(ioExit, [message]);
         }
+        if (error is WorkflowTeardownException teardown)
+        {
+            // The workflow's failure decides the outcome; the teardown failure is reported with it.
+            var primary = ClassifyInputFailure(
+                teardown.Failure,
+                export: export,
+                originalTimeoutMessage: originalTimeoutMessage);
+            return primary with
+            {
+                Errors = [.. primary.Errors, teardown.Message],
+            };
+        }
         var exit = error switch
         {
             CliOutputStreamingException => unexpectedExit,

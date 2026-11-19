@@ -72,12 +72,6 @@ public sealed class CliHostTeardownTests
     [Fact]
     public async Task FailingWorkflowTeardownIsTheOnlyFinal()
     {
-        static void HoldFailingResource(IServiceCollection services)
-        {
-            CliTestHost.FixtureSchedule(services);
-            services.AddInitialized<ScheduleSource, ResourceHoldingSourceInitializer>();
-        }
-
         string[] args = ["query", "free-hours", "--jsonl", .. CliTestHost.UncachedSource(), "--group", "IA2301"];
         var run = await RunCapturing(args, HoldFailingResource);
 
@@ -90,6 +84,32 @@ public sealed class CliHostTeardownTests
         var error = Assert.Single(final.GetProperty("errors")
             .EnumerateArray());
         Assert.StartsWith(expectedStartString: ScopeEndFailurePrefix, actualString: error.GetString());
+    }
+
+    /// <summary>A failed workflow whose scope then fails to end reports both, with the workflow's exit.</summary>
+    [Theory]
+    [InlineData("lessons", "--room", "NO-SUCH-ROOM")]
+    [InlineData("free-hours", "--group", "NO-SUCH-GROUP")]
+    public async Task FailingWorkflowTeardownKeepsTheCommandFailure(string command, string option, string unknown)
+    {
+        string[] args = ["query", command, "--jsonl", .. CliTestHost.UncachedSource(), option, unknown];
+        var run = await RunCapturing(args, HoldFailingResource);
+
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: CliExit.InvalidArguments,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+        var errors = final.GetProperty("errors")
+            .EnumerateArray()
+            .Select(x => x.GetString()!)
+            .ToArray();
+        Assert.Equal(expected: 2, actual: errors.Length);
+        Assert.Contains(expectedSubstring: unknown, actualString: errors[0]);
+        Assert.StartsWith(
+            expectedStartString: $"Ending the workflow failed: {ScopeEndFailurePrefix}",
+            actualString: errors[1]);
     }
 
     [Fact]
@@ -114,6 +134,13 @@ public sealed class CliHostTeardownTests
         Assert.StartsWith(
             expectedStartString: $"Ending the command's services failed: {ScopeEndFailurePrefix}",
             actualString: message);
+    }
+
+    /// <summary>The fixture schedule, loaded by a workflow that holds a resource failing to close.</summary>
+    private static void HoldFailingResource(IServiceCollection services)
+    {
+        CliTestHost.FixtureSchedule(services);
+        services.AddInitialized<ScheduleSource, ResourceHoldingSourceInitializer>();
     }
 
     private static Task<CapturedRun> RunWithFailingTeardown(string format)
