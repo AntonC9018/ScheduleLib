@@ -21,6 +21,7 @@ public static class CliServices
         AppConfiguration.ConfigureServices(services);
         CliRuntime.AddCliServices(services);
         ResolvedSettings.AddScopeValues(services);
+        ScheduleSourceSelection.AddScopeValues(services);
         QueryLessonsWorkflow.Register(services);
         QueryFreeHoursWorkflow.Register(services);
         foreach (var commandClass in CommandClasses)

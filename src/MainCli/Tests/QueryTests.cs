@@ -108,6 +108,35 @@ public sealed class QueryTests
                 CliTestHost.FixtureSchedule));
     }
 
+    [Theory]
+    [InlineData("lessons")]
+    [InlineData("free-hours")]
+    public async Task SettingsErrorsAreReportedBeforeSourceErrors(string command)
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var missingProject = Path.Combine(temp.Path, "missing");
+        string[] groups = command == "free-hours" ? ["--group", "IA2301"] : [];
+        string[] invalidInputs = ["--project", missingProject, "--data-dir", " ", "--json"];
+        var original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            var exit = await CliTestHost.Run(["query", command, .. groups, .. invalidInputs]);
+            using var result = JsonDocument.Parse(output.ToString());
+            Assert.Equal(expected: CliExit.InvalidConfiguration, actual: exit);
+            var error = Assert.Single(result.RootElement.GetProperty("errors")
+                .EnumerateArray());
+            Assert.Equal(
+                expected: $"Project directory does not exist: {missingProject}",
+                actual: error.GetString());
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+    }
+
     [Fact]
     public async Task LegacyWordCapabilityPreservesOriginalOnLinux()
     {

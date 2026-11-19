@@ -50,11 +50,11 @@ public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> w
                     ["Invalid day, parity, or slot (slots start at 1)."]);
             }
 
-            var scheduleSource = CliRuntime.ResolveSource(source);
+            var sourceSelection = ScheduleSourceSelection.From(source);
             var settingsSelection = SettingsSelection.From(settings);
             await using var scope = await workflows.OpenAsync(
                 inputs => inputs.Add(settingsSelection)
-                    .Add(scheduleSource)
+                    .Add(sourceSelection)
                     .Add(lessonQuery),
                 cancellation.Token);
             foreach (var item in scope.Handler.Run(cancellation.Token))

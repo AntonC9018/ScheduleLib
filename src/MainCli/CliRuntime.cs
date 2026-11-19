@@ -7,14 +7,17 @@ namespace ScheduleLib.Cli;
 /// invocation directory.</summary>
 public static class CliRuntime
 {
-    public static string ResolvePath(string path)
+    public static string ResolvePath(string path) => ResolvePath(path: path, basePath: Environment.CurrentDirectory);
+
+    /// <summary>The full path of <paramref name="path"/>, relative to <paramref name="basePath"/>.</summary>
+    public static string ResolvePath(string path, string basePath)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new EmptyDirectoryPathException(path);
         }
 
-        return Path.GetFullPath(path);
+        return Path.GetFullPath(path: path, basePath: basePath);
     }
 
     /// <summary>
@@ -23,39 +26,8 @@ public static class CliRuntime
     /// </summary>
     public static ScheduleSource ResolveSource(SourceArguments source)
     {
-        string ResolveDataDirectory()
-        {
-            if (source.DataDirectory is { } path)
-            {
-                return ResolvePath(path);
-            }
-
-            return Path.Combine(AppContext.BaseDirectory, "data");
-        }
-
-        string ResolveCacheDirectory()
-        {
-            if (source.CacheDirectory is { } path)
-            {
-                return ResolvePath(path);
-            }
-
-            var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return Path.Combine(
-                localApplicationData,
-                "ScheduleLib",
-                "cache");
-        }
-
-        var dataDirectory = ResolveDataDirectory();
-        var cacheDirectory = ResolveCacheDirectory();
-
-        if (!Directory.Exists(dataDirectory))
-        {
-            throw new ScheduleSourceDirectoryNotFoundException(dataDirectory);
-        }
-
-        return new(DataDirectory: dataDirectory, CacheDirectory: cacheDirectory, UseCache: !source.NoCache);
+        return ScheduleSourceSelection.From(source)
+            .Resolve();
     }
 
     /// <summary>A container of its own, for commands that do not run through the root container yet.</summary>

@@ -72,12 +72,12 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
                 warnings.Add("Repeated group names were reported once.");
             }
 
-            var scheduleSource = CliRuntime.ResolveSource(source);
+            var sourceSelection = ScheduleSourceSelection.From(source);
             var settingsSelection = SettingsSelection.From(settings);
             var query = new FreeHoursQuery(names);
             await using var scope = await workflows.OpenAsync(
                 inputs => inputs.Add(settingsSelection)
-                    .Add(scheduleSource)
+                    .Add(sourceSelection)
                     .Add(query),
                 cancellation.Token);
             var result = scope.Handler.Run(cancellation.Token);
