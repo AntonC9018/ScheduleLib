@@ -123,6 +123,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - `ResolvedSettings` is an initialized value built from it.
 - Derived from it: an immutable `TeacherLayerConfig`, a plain `ScheduleDerivationOptions`
   (no `IOptions`) and `IMarkerDataHelper`. Profile-specific behaviour is data.
+- Hosts without settings register `TeacherLayerConfig` as a seed and supply it when a scope
+  opens. Choosing another teacher means another marker in another scope; markers never change.
 
 ### CLI integration (#247)
 

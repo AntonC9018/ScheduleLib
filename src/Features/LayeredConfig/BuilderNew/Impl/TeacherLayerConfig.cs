@@ -6,10 +6,14 @@ using ScheduleLib.Parsing;
 
 namespace ScheduleLib.Application.Config;
 
+/// <summary>
+/// The teacher marker: which teacher's layer a scope's settings come from. Immutable; a scope that
+/// selects another teacher receives another marker.
+/// </summary>
 public sealed record class TeacherLayerConfig : INodeData<TeacherLayerConfig>
 {
     public static NodeDataKey<TeacherLayerConfig> Key { get; } = NodeDataKey.Registry.Register<TeacherLayerConfig>();
-    public Name TeacherName { get; set; } = null!;
+    public Name TeacherName { get; init; } = null!;
 
     public static void Register(IServiceCollection services)
     {
@@ -33,8 +37,13 @@ public partial class Extensions
         {
             var name = NameHelper.Parse(nameStr);
             var layerBuilder = builder.AddLayer(LayerKeys.TeacherLayerKey);
-            var teacherBuilder = layerBuilder.Builder<TeacherLayerConfig>();
-            teacherBuilder.Value().TeacherName = name;
+            var marker = new TeacherLayerConfig
+            {
+                TeacherName = name,
+            };
+            layerBuilder.Builder<TeacherLayerConfig>()
+                .Enable()
+                .SetValue(marker);
             configure?.Invoke(layerBuilder);
             return layerBuilder;
         }

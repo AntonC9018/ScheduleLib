@@ -30,9 +30,8 @@ public sealed class IntegrationTest
                      .GetAllMarkers()
                      .OrderBy(x => x.TeacherName.ToString()))
         {
-            await using var scope = fixture.ServiceProvider.CreateMarkerScope(marker);
-            var provider = scope.ServiceProvider.GetRequiredService<DataProvider>();
-            var config = provider.Get(LessonTopicsConfig.Key);
+            await using var scope = await fixture.ServiceProvider.OpenMarkerScope(marker, CancellationToken.None);
+            var config = scope.Handler.Get(LessonTopicsConfig.Key);
             list.Add(config);
         }
 
@@ -51,12 +50,17 @@ public sealed class IntegrationTest
         var fixture = Fixture();
         using var cancellationTokenSource = IntegrationTestHelper.CreateCts();
         var cancellationToken = cancellationTokenSource.Token;
-        await using var scope = await fixture.ServiceProvider.OpenScheduleScope(
-            new ScheduleSource(DataDirectory: "data"),
+        var source = new ScheduleSource(DataDirectory: "data");
+        var teacher = new TeacherLayerConfig
+        {
+            TeacherName = NameHelper.Parse("Curmanschii Anton"),
+        };
+        await using var scope = await HostScope<LoadedSchedule>.Open(
+            fixture.ServiceProvider,
+            inputs => inputs.Add(source)
+                .Add(teacher),
             cancellationToken);
         var serviceProvider = scope.ServiceProvider;
-        serviceProvider.GetRequiredService<TeacherLayerConfig>()
-            .TeacherName = NameHelper.Parse("Curmanschii Anton");
 
         var filteredSchedule = serviceProvider.GetRequiredService<LatestPeriodFilteredScheduleProvider>()
             .Get();

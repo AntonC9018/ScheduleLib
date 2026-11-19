@@ -58,7 +58,7 @@ public sealed class IntegrationTestHelper : IAsyncDisposable
     private readonly ServiceProvider _rootServiceProvider;
     public CancellationToken CancellationToken;
     private readonly CancellationTokenSource _cts;
-    private ScheduleScope? _scope;
+    private HostScope<LoadedSchedule>? _scope;
 
     public IServiceProvider ServiceProvider
     {

@@ -191,11 +191,16 @@ public sealed class SettingsTests
         Assert.Equal(
             expected: expected3,
             actual: actual2);
-        var services = new ServiceCollection();
-        services.AddConfigsServices();
-        services.AddOnlineRegistry();
-        teacher.ConfigureServices(services);
-        using var provider = services.BuildServiceProvider();
+        static ServiceProvider BuildProvider(ResolvedSettings settings)
+        {
+            var services = new ServiceCollection();
+            services.AddConfigsServices();
+            services.AddOnlineRegistry();
+            settings.ConfigureServices(services);
+            return services.BuildServiceProvider();
+        }
+
+        using var provider = BuildProvider(teacher);
         using var scope = provider.CreateScope();
         string expected8 = "project-profile";
         var get5 = scope.ServiceProvider.GetRequiredService<DataProvider>()
@@ -212,13 +217,13 @@ public sealed class SettingsTests
             expected: TestProfiles.Owner,
             actual: scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName
                 .ToString());
-        // Switching teacher scopes uses that teacher's path, rather than reusing the selected teacher's settings.
-        await using var other = provider.CreateMarkerScope(x =>
+        // Selecting another teacher uses that teacher's path, rather than reusing the first teacher's settings.
+        var otherTeacher = await files.Load(new()
         {
-            var teacherLayerConfig = x;
-            var parse = ScheduleLib.Parsing.NameHelper.Parse(TestProfiles.OtherTeacher);
-            teacherLayerConfig.TeacherName = parse;
+            Profile = TestProfiles.OtherTeacher,
         });
+        using var otherProvider = BuildProvider(otherTeacher);
+        using var other = otherProvider.CreateScope();
 
         Assert.Null(other.ServiceProvider
             .GetRequiredService<DataProvider>()

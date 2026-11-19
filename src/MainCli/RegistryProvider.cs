@@ -117,7 +117,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
     {
         var resolved = await CliSettings.Load(settings, cancellationToken: token);
         ServiceProvider? provider = null;
-        ScheduleScope? scope = null;
+        HostScope<LoadedSchedule>? scope = null;
         try
         {
             var scheduleSource = CliRuntime.ResolveSource(source);
@@ -191,7 +191,7 @@ public sealed class ConfiguredRegistryProvider : IRegistryProvider
 
     private sealed class Session(
         ServiceProvider provider,
-        ScheduleScope scope,
+        HostScope<LoadedSchedule> scope,
         RegistryScrapingContext context,
         RegistryDestination target) : IConfiguredRegistrySession
     {

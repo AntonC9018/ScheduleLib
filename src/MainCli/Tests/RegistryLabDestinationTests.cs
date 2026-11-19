@@ -901,14 +901,14 @@ public sealed class RegistryLabDestinationTests
         private static readonly GroupPartitionKey Partition = new(SubGroup.All, Specialization.DezvoltareaAplicatiilor);
 
         private readonly ServiceProvider _provider;
-        private readonly ScheduleScope _scope;
+        private readonly HostScope<LoadedSchedule> _scope;
         private readonly CourseId _course;
         private readonly LessonGroups _parents;
         private readonly GroupPartitionKey _partition = Partition;
 
         private Fixture(
             ServiceProvider provider,
-            ScheduleScope scope,
+            HostScope<LoadedSchedule> scope,
             CourseId course,
             LessonGroups parents)
         {
@@ -996,8 +996,15 @@ public sealed class RegistryLabDestinationTests
             AppConfiguration.ConfigureLayeredConfig(provider);
             // The fixed schedule reads no source; the bridge still takes one.
             var unusedSource = new ScheduleSource(DataDirectory: AppContext.BaseDirectory);
-            var scope = await provider.OpenScheduleScope(unusedSource, CancellationToken.None);
-            scope.ServiceProvider.GetRequiredService<TeacherLayerConfig>().TeacherName = NameHelper.Parse(TestProfiles.Owner);
+            var owner = new TeacherLayerConfig
+            {
+                TeacherName = NameHelper.Parse(TestProfiles.Owner),
+            };
+            var scope = await HostScope<LoadedSchedule>.Open(
+                provider,
+                inputs => inputs.Add(unusedSource)
+                    .Add(owner),
+                CancellationToken.None);
             return new(
                 provider,
                 scope,

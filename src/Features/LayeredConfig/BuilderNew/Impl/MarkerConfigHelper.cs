@@ -4,6 +4,7 @@ using Anton.LayeredData.Retrieval;
 using Anton.LayeredData.TreeEnumeration;
 using Anton.LayeredData.TreeEnumeration.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Application.Config;
 
@@ -17,36 +18,6 @@ public static class MarkerConfigExtension
         MarkerDataHelper.Register(services);
         services.AddLayeredData();
         TeacherLayerConfig.Register(services);
-    }
-
-    public static AsyncServiceScope CreateMarkerScope(
-        this IServiceProvider sp,
-        Action<TeacherLayerConfig> configure)
-    {
-        var ret = sp.CreateAsyncScope();
-        // Doesn't have to be an option snapshot, actually.
-        var config = ret.ServiceProvider.GetRequiredService<TeacherLayerConfig>();
-        try
-        {
-            configure(config);
-        }
-        catch
-        {
-            ret.Dispose();
-            throw;
-        }
-        return ret;
-    }
-
-    public static AsyncServiceScope CreateMarkerScope(
-        this IServiceProvider sp,
-        TeacherLayerConfig marker)
-    {
-        var ret = sp.CreateMarkerScope(x =>
-        {
-            x.TeacherName = marker.TeacherName;
-        });
-        return ret;
     }
 
     /// <summary>A node to be deleted together with its parent.</summary>
@@ -126,8 +97,8 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
     public static void Register(IServiceCollection services)
     {
         services.AddSingleton<IMarkerDataHelper, MarkerDataHelper>();
-        // Used as ambient context.
-        services.AddScoped<TeacherLayerConfig>();
+        // Hosts without settings supply the teacher marker when they open a scope.
+        services.AddSeed<TeacherLayerConfig>();
     }
 
     public override TeacherLayerConfig GetMarkerData(IServiceProvider sp)

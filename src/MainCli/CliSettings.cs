@@ -119,8 +119,8 @@ public sealed class ResolvedSettings : IMarkerDataHelper
 
     private static void AddDerivedValues(IServiceCollection services)
     {
-        // The marker services registered without settings are replaced, not shadowed.
-        services.RemoveAll<TeacherLayerConfig>();
+        // The marker helper registered without settings is replaced, not shadowed; the derived
+        // marker replaces the marker seed by itself.
         services.RemoveAll<IMarkerDataHelper>();
         services.AddDerived<TeacherLayerConfig, SettingsTeacherLayerFactory>();
         services.AddDerived<IMarkerDataHelper, SettingsMarkerDataHelperFactory>();

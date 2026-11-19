@@ -106,15 +106,17 @@ public sealed partial class ScopeFilteredScheduleProvider
 }
 
 /// <summary>
-/// Opens a scope with the schedule loaded, for commands that still resolve services from a scope.
+/// A planned scope opened straight from a root container, through an invocation scope of its own,
+/// for hosts and commands that still resolve services from a scope.
 /// Removed once every command runs through a scope plan (#247).
 /// </summary>
-public sealed class ScheduleScope : IAsyncDisposable
+public sealed class HostScope<THandler> : IAsyncDisposable
+    where THandler : notnull
 {
     private readonly InvocationScope _invocation;
-    private readonly PlannedScope<LoadedSchedule> _scope;
+    private readonly PlannedScope<THandler> _scope;
 
-    private ScheduleScope(InvocationScope invocation, PlannedScope<LoadedSchedule> scope)
+    private HostScope(InvocationScope invocation, PlannedScope<THandler> scope)
     {
         _invocation = invocation;
         _scope = scope;
@@ -122,19 +124,22 @@ public sealed class ScheduleScope : IAsyncDisposable
 
     public IServiceProvider ServiceProvider => _scope.Services;
 
-    public static async Task<ScheduleScope> Open(
+    public THandler Handler => _scope.Handler;
+
+    /// <summary>Opens the scope with the seeds <paramref name="supply"/> adds.</summary>
+    public static async Task<HostScope<THandler>> Open(
         IServiceProvider root,
-        ScheduleSource source,
+        Action<ScopeInputs> supply,
         CancellationToken cancellationToken)
     {
-        // CA2000 does not see ownership pass to the returned ScheduleScope; failures dispose below.
+        // CA2000 does not see ownership pass to the returned HostScope; failures dispose below.
 #pragma warning disable CA2000
         var invocation = await InvocationScope.OpenAsync(root);
 #pragma warning restore CA2000
         try
         {
-            var forks = invocation.Services.GetRequiredService<ScopeForkFactory<LoadedSchedule>>();
-            var scope = await forks.OpenAsync(inputs => inputs.Add(source), cancellationToken);
+            var forks = invocation.Services.GetRequiredService<ScopeForkFactory<THandler>>();
+            var scope = await forks.OpenAsync(supply, cancellationToken);
             return new(invocation, scope);
         }
         catch (Exception openFailure)
@@ -156,13 +161,26 @@ public sealed class ScheduleScope : IAsyncDisposable
     }
 }
 
-public static class ScheduleScopeHelper
+public static class HostScopeHelper
 {
-    public static Task<ScheduleScope> OpenScheduleScope(
+    /// <summary>Opens a scope with the schedule of <paramref name="source"/> loaded.</summary>
+    public static Task<HostScope<LoadedSchedule>> OpenScheduleScope(
         this IServiceProvider root,
         ScheduleSource source,
         CancellationToken cancellationToken)
     {
-        return ScheduleScope.Open(root, source, cancellationToken);
+        return HostScope<LoadedSchedule>.Open(root, inputs => inputs.Add(source), cancellationToken);
+    }
+
+    /// <summary>
+    /// Opens a scope whose settings come from the layer of <paramref name="marker"/>, for hosts
+    /// without settings that look up configuration per teacher.
+    /// </summary>
+    public static Task<HostScope<DataProvider>> OpenMarkerScope(
+        this IServiceProvider root,
+        TeacherLayerConfig marker,
+        CancellationToken cancellationToken)
+    {
+        return HostScope<DataProvider>.Open(root, inputs => inputs.Add(marker), cancellationToken);
     }
 }
