@@ -85,7 +85,11 @@ public static class CliHost
                 MiddlewareSteps.Help.PrintHelpOnExit + 1);
         });
         var commandExit = await RunCommand();
-        return await EndRootServices(rootServices, commandExit, startupRequest);
+        return await CliTeardown.EndAfterResult(
+            rootServices,
+            description: "the CLI's services",
+            commandExit,
+            startupRequest.UsesJsonlOutput);
 
         async Task<int> RunCommand()
         {
@@ -233,43 +237,6 @@ public static class CliHost
         }
     }
 
-    /// <summary>
-    /// Ends the root container once the command has reported its outcome, before the enclosing
-    /// <c>await using</c> would, which then has nothing left to end. A teardown failure
-    /// cannot change a result already written, so no second result follows: the failure goes to
-    /// stderr (a JSONL log record with <c>--jsonl</c>), and a successful exit becomes
-    /// <see cref="CliExit.Unexpected"/> while a failed exit keeps the command's code.
-    /// </summary>
-    private static async Task<int> EndRootServices(CliRootServices rootServices, int exit, StartupRequest request)
-    {
-        try
-        {
-            await rootServices.DisposeAsync();
-            return exit;
-        }
-        catch (Exception e)
-        {
-            var message = $"Ending the CLI's services failed: {e.Message}";
-            if (request.UsesJsonlOutput)
-            {
-                var runId = Guid.NewGuid()
-                    .ToString("N");
-                new CliOutput("cli", runId, json: false, jsonl: true).WriteError(message);
-            }
-            else
-            {
-                Console.Error.WriteLine(message);
-            }
-
-            if (exit == CliExit.Success)
-            {
-                return CliExit.Unexpected;
-            }
-
-            return exit;
-        }
-    }
-
     private static bool IsStartupInputFailure(int exit, string? parseDetail)
     {
         if (exit == ExitCodes.ValidationError)
@@ -283,115 +250,6 @@ public static class CliHost
         }
 
         return false;
-    }
-
-    private readonly record struct StartupRequest(bool Json, bool Jsonl, bool HelpRequested)
-    {
-        public static StartupRequest None => default;
-
-        public bool HasFormat => Json || Jsonl;
-
-        public bool ConflictingFormats => Json && Jsonl;
-
-        public bool CapturesDiagnostics
-        {
-            get
-            {
-                if (HelpRequested)
-                {
-                    return false;
-                }
-
-                if (ConflictingFormats)
-                {
-                    return true;
-                }
-
-                if (Jsonl)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        public bool UsesJsonlOutput
-        {
-            get
-            {
-                if (HelpRequested)
-                {
-                    return false;
-                }
-
-                if (Json)
-                {
-                    return false;
-                }
-
-                if (Jsonl)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        public bool RejectsFormatConflict
-        {
-            get
-            {
-                if (HelpRequested)
-                {
-                    return false;
-                }
-
-                if (ConflictingFormats)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-        }
-
-        public bool ShouldSuppressFailureHelp(bool commandInvoked, int exit)
-        {
-            if (commandInvoked)
-            {
-                return false;
-            }
-
-            if (exit == CliExit.Success)
-            {
-                return false;
-            }
-
-            if (HelpRequested)
-            {
-                return false;
-            }
-
-            if (HasFormat)
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        public static StartupRequest FromParsedInput(CommandDotNet.Parsing.ParseResult? parseResult)
-        {
-            var json = parseResult?.TargetCommand.HasInputValues("json") == true;
-            var jsonl = parseResult?.TargetCommand.HasInputValues("jsonl") == true;
-            var helpRequested = parseResult?.HelpWasRequested() == true;
-            return new(
-                Json: json,
-                Jsonl: jsonl,
-                HelpRequested: helpRequested);
-        }
     }
 
     private sealed class CapturingConsole : CommandDotNet.Rendering.SystemConsole

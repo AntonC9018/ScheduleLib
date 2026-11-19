@@ -3,12 +3,17 @@ using Anton.LayeredData;
 using CommandDotNet;
 using CommandDotNet.Execution;
 using Microsoft.Extensions.DependencyInjection;
+using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>How the CLI reports a root container that fails to end after the command has run.</summary>
+/// <summary>How the CLI reports services that fail to end once the command has reported its result.</summary>
 public sealed class CliHostTeardownTests
 {
     private const string FailureMessage = "teardown failure";
+
+    /// <summary>How a planned scope reports resources that failed to close.</summary>
+    private const string ScopeEndFailurePrefix = "Ending a scope failed";
 
     [Fact]
     public async Task JsonResultStandsAndTheExitReportsTheFailure()
@@ -30,21 +35,15 @@ public sealed class CliHostTeardownTests
         var run = await RunWithFailingTeardown("--jsonl");
 
         Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
-        var finals = JsonLines(run.Output)
-            .Where(x => x.GetProperty("event").GetString() == "final")
-            .ToArray();
-        var final = Assert.Single(finals);
+        var final = Assert.Single(Finals(run.Output));
         Assert.Equal(
             expected: CliExit.Success,
             actual: final.GetProperty("exitCode")
                 .GetInt32());
-        var errors = JsonLines(run.Error)
-            .Where(x => x.GetProperty("level").GetString() == "Error")
-            .ToArray();
-        var error = Assert.Single(errors);
-        var message = error.GetProperty("message")
-            .GetString();
-        Assert.Contains(expectedSubstring: FailureMessage, actualString: message);
+        var message = Assert.Single(TeardownRecordMessages(run.Error));
+        Assert.Equal(
+            expected: $"Ending the CLI's services failed: {FailureMessage}",
+            actual: message);
     }
 
     [Fact]
@@ -64,28 +63,60 @@ public sealed class CliHostTeardownTests
             });
         }
 
-        var originalOut = Console.Out;
-        var originalError = Console.Error;
-        using var stdout = new StringWriter();
-        using var stderr = new StringWriter();
-        int exit;
-        try
-        {
-            Console.SetOut(stdout);
-            Console.SetError(stderr);
-            exit = await CliTestHost.Run(["query", "lessons", "--json", .. CliTestHost.UncachedSource()], FailTreeSetup);
-        }
-        finally
-        {
-            Console.SetOut(originalOut);
-            Console.SetError(originalError);
-        }
+        var run = await RunCapturing(["query", "lessons", "--json", .. CliTestHost.UncachedSource()], FailTreeSetup);
 
-        Assert.Equal(expected: CliExit.Unexpected, actual: exit);
+        Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
         Assert.True(probe.Disposed);
     }
 
-    private static async Task<CapturedRun> RunWithFailingTeardown(string format)
+    [Fact]
+    public async Task FailingWorkflowTeardownIsTheOnlyFinal()
+    {
+        static void HoldFailingResource(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddInitialized<ScheduleSource, ResourceHoldingSourceInitializer>();
+        }
+
+        string[] args = ["query", "free-hours", "--jsonl", .. CliTestHost.UncachedSource(), "--group", "IA2301"];
+        var run = await RunCapturing(args, HoldFailingResource);
+
+        Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: CliExit.Unexpected,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+        var error = Assert.Single(final.GetProperty("errors")
+            .EnumerateArray());
+        Assert.StartsWith(expectedStartString: ScopeEndFailurePrefix, actualString: error.GetString());
+    }
+
+    [Fact]
+    public async Task FailingInvocationTeardownKeepsTheCommandsExit()
+    {
+        static void AddScopedFailingTeardown(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddScoped<FailingTeardown>();
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", "--before-slot", "0", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, AddScopedFailingTeardown, ResolveFailingTeardownBeforeInvocation);
+
+        Assert.Equal(expected: CliExit.InvalidArguments, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: CliExit.InvalidArguments,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+        var message = Assert.Single(TeardownRecordMessages(run.Error));
+        Assert.StartsWith(
+            expectedStartString: $"Ending the command's services failed: {ScopeEndFailurePrefix}",
+            actualString: message);
+    }
+
+    private static Task<CapturedRun> RunWithFailingTeardown(string format)
     {
         static void AddFailingTeardown(IServiceCollection services)
         {
@@ -94,15 +125,26 @@ public sealed class CliHostTeardownTests
         }
 
         // The root container owns a singleton resolved through the invocation scope.
+        string[] args = ["query", "lessons", format, .. CliTestHost.UncachedSource()];
+        return RunCapturing(args, AddFailingTeardown, ResolveFailingTeardownBeforeInvocation);
+    }
+
+    private static void ResolveFailingTeardownBeforeInvocation(AppRunner<Commands> runner)
+    {
         static Task<int> ResolveFailingTeardown(CommandContext context, ExecutionDelegate next)
         {
             _ = context.DependencyResolver!.Resolve(typeof(FailingTeardown));
             return next(context);
         }
 
-        static void ConfigureRunner(AppRunner<Commands> runner) =>
-            runner.Configure(builder => builder.UseMiddleware(ResolveFailingTeardown, MiddlewareSteps.InvokeCommand - 1));
+        runner.Configure(builder => builder.UseMiddleware(ResolveFailingTeardown, MiddlewareSteps.InvokeCommand - 1));
+    }
 
+    private static async Task<CapturedRun> RunCapturing(
+        string[] args,
+        Action<IServiceCollection> services,
+        Action<AppRunner<Commands>>? runner = null)
+    {
         var originalOut = Console.Out;
         var originalError = Console.Error;
         using var stdout = new StringWriter();
@@ -111,8 +153,7 @@ public sealed class CliHostTeardownTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            string[] args = ["query", "lessons", format, .. CliTestHost.UncachedSource()];
-            var exit = await CliTestHost.Run(args, AddFailingTeardown, runner: ConfigureRunner);
+            var exit = await CliTestHost.Run(args, services, runner: runner);
             return new(Exit: exit, Output: stdout.ToString(), Error: stderr.ToString());
         }
         finally
@@ -120,6 +161,37 @@ public sealed class CliHostTeardownTests
             Console.SetOut(originalOut);
             Console.SetError(originalError);
         }
+    }
+
+    private static JsonElement[] Finals(string output)
+    {
+        return JsonLines(output)
+            .Where(x => x.GetProperty("event").GetString() == "final")
+            .ToArray();
+    }
+
+    /// <summary>The error records of the host itself, which reports teardown failures.</summary>
+    private static string?[] TeardownRecordMessages(string error)
+    {
+        static bool IsHostError(JsonElement record)
+        {
+            if (record.GetProperty("command").GetString() != "cli")
+            {
+                return false;
+            }
+
+            if (record.GetProperty("level").GetString() != "Error")
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        return JsonLines(error)
+            .Where(IsHostError)
+            .Select(x => x.GetProperty("message").GetString())
+            .ToArray();
     }
 
     private static JsonElement[] JsonLines(string text)
@@ -138,8 +210,23 @@ public sealed class CliHostTeardownTests
         public void Dispose() => Disposed = true;
     }
 
-    private sealed class FailingTeardown : IDisposable
+    /// <summary>Asynchronous only: the CLI ends its containers and scope resources asynchronously.</summary>
+    private sealed class FailingTeardown : IAsyncDisposable
     {
-        public void Dispose() => throw new InvalidOperationException(FailureMessage);
+        public ValueTask DisposeAsync() => throw new InvalidOperationException(FailureMessage);
+    }
+
+    /// <summary>Resolves the schedule source as usual, holding a resource that fails to close.</summary>
+    private sealed class ResourceHoldingSourceInitializer(ScopeResources resources, ScheduleSourceSelection selection)
+        : IInitializer<ScheduleSource>
+    {
+        public ValueTask<ScheduleSource> InitializeAsync(CancellationToken cancellationToken)
+        {
+#pragma warning disable CA2000 // ScopeResources closes the resource when the scope ends.
+            resources.Add(new FailingTeardown());
+#pragma warning restore CA2000
+            var source = selection.Resolve();
+            return ValueTask.FromResult(source);
+        }
     }
 }

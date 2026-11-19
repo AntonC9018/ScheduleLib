@@ -52,23 +52,28 @@ public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> w
 
             var sourceSelection = ScheduleSourceSelection.From(source);
             var settingsSelection = SettingsSelection.From(settings);
-            await using var scope = await workflows.OpenAsync(
+            // The workflow scope ends before the final result, so a teardown failure is reported
+            // as this command's only result.
+            await using (var scope = await workflows.OpenAsync(
                 inputs => inputs.Add(settingsSelection)
                     .Add(sourceSelection)
                     .Add(lessonQuery),
-                cancellation.Token);
-            foreach (var item in scope.Handler.Run(cancellation.Token))
+                cancellation.Token))
             {
-                var id = streamed.ToString(CultureInfo.InvariantCulture);
-                lessons.Add(item);
-                context.StreamItem(
-                    id,
-                    status: ActionState.Completed,
-                    item,
-                    renderHuman: () => output.WriteHuman(
-                        $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}"));
-                streamed++;
+                foreach (var item in scope.Handler.Run(cancellation.Token))
+                {
+                    var id = streamed.ToString(CultureInfo.InvariantCulture);
+                    lessons.Add(item);
+                    context.StreamItem(
+                        id,
+                        status: ActionState.Completed,
+                        item,
+                        renderHuman: () => output.WriteHuman(
+                            $"{item.Day} {item.Start}-{item.End} ({item.Parity}) room {item.Room}: {item.Course}; {string.Join(", ", item.Teachers)}"));
+                    streamed++;
+                }
             }
+
             return Finish(
                 CliExit.Success,
                 lessons,

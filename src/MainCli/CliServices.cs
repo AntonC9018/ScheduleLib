@@ -129,16 +129,26 @@ internal sealed class InvocationScopeResolver(CliRootServices services) : IDepen
             return await next(context);
         }
 
+        // The scope ends once the command has reported its result; the using only ends it when the
+        // command throws instead.
         await using var scope = await InvocationScope.OpenAsync(services.Root);
         _scope = scope;
+        int exit;
         try
         {
-            return await next(context);
+            exit = await next(context);
         }
         finally
         {
             _scope = null;
         }
+
+        var request = StartupRequest.FromParsedInput(context.ParseResult);
+        return await CliTeardown.EndAfterResult(
+            scope,
+            description: "the command's services",
+            exit,
+            request.UsesJsonlOutput);
     }
 
     private static bool IsResolvedFromScope(InvocationStep step)

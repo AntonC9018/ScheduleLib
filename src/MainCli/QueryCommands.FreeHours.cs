@@ -75,12 +75,18 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
             var sourceSelection = ScheduleSourceSelection.From(source);
             var settingsSelection = SettingsSelection.From(settings);
             var query = new FreeHoursQuery(names);
-            await using var scope = await workflows.OpenAsync(
+            // The workflow scope ends before the final result, so a teardown failure is reported
+            // as this command's only result.
+            FreeHoursResult result;
+            await using (var scope = await workflows.OpenAsync(
                 inputs => inputs.Add(settingsSelection)
                     .Add(sourceSelection)
                     .Add(query),
-                cancellation.Token);
-            var result = scope.Handler.Run(cancellation.Token);
+                cancellation.Token))
+            {
+                result = scope.Handler.Run(cancellation.Token);
+            }
+
             warnings.Add("Free hours inspect every weekly period, not only the latest one.");
             cancellation.Token.ThrowIfCancellationRequested();
             data = result;
