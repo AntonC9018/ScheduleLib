@@ -27,10 +27,12 @@ public sealed class QueryFreeHoursWorkflow(
             .ToArray();
         if (unknown.Length > 0)
         {
-            throw new UnknownGroupsException(unknown, known);
+            throw new UnknownGroupsException(unknown: unknown, known: known);
         }
 
-        var ambiguous = names.Where(name => known.Count(x => x == name) > 1)
+        bool IsAmbiguous(string name) => known.Count(x => x == name) > 1;
+
+        var ambiguous = names.Where(IsAmbiguous)
             .ToArray();
         if (ambiguous.Length > 0)
         {
@@ -73,7 +75,7 @@ public sealed class QueryFreeHoursWorkflow(
 
 /// <summary>A free-hours query names groups the schedule does not have.</summary>
 public sealed class UnknownGroupsException(IReadOnlyList<string> unknown, IReadOnlyList<string> known)
-    : ArgumentException(Describe(unknown, known))
+    : ArgumentException(Describe(unknown: unknown, known: known))
 {
     public IReadOnlyList<string> Unknown { get; } = unknown;
 
