@@ -75,7 +75,10 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
             var sourceSelection = ScheduleSourceSelection.From(source);
             var settingsSelection = SettingsSelection.From(settings);
             var query = new FreeHoursQuery(names);
-            FreeHoursResult Compute(QueryFreeHoursWorkflow workflow) => workflow.Run(cancellation.Token);
+
+            void WarnOfEveryPeriod() => warnings.Add("Free hours inspect every weekly period, not only the latest one.");
+
+            FreeHoursResult Compute(QueryFreeHoursWorkflow workflow) => workflow.Run(WarnOfEveryPeriod, cancellation.Token);
 
             var result = await workflows.RunAsync(
                 inputs => inputs.Add(settingsSelection)
@@ -83,7 +86,6 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
                     .Add(query),
                 Compute,
                 cancellation.Token);
-            warnings.Add("Free hours inspect every weekly period, not only the latest one.");
             cancellation.Token.ThrowIfCancellationRequested();
             data = result;
             // Sections require full validation, so this batch is atomic; stream each

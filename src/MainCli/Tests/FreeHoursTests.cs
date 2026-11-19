@@ -533,6 +533,16 @@ public sealed class FreeHoursTests
                 .GetString());
         var cancelledDataKind = result.GetProperty("data").ValueKind;
         Assert.Equal(expected: JsonValueKind.Null, actual: cancelledDataKind);
+        // The groups were validated before the calculation was cancelled.
+        Assert.Equal(
+            expected: new[]
+            {
+                "Free hours inspect every weekly period, not only the latest one.",
+            },
+            actual: result.GetProperty("warnings")
+                .EnumerateArray()
+                .Select(x => x.GetString())
+                .ToArray());
         Assert.Equal(
             expected: new[]
             {

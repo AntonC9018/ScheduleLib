@@ -16,8 +16,11 @@ public sealed class QueryFreeHoursWorkflow(
 {
     public static void Register(IServiceCollection services) => services.AddSeed<FreeHoursQuery>();
 
-    /// <summary>Computes every section. Unknown or ambiguous group names fail before any is computed.</summary>
-    public FreeHoursResult Run(CancellationToken cancellationToken)
+    /// <summary>
+    /// Computes every section. Unknown or ambiguous group names fail before any is computed;
+    /// <paramref name="groupsValidated"/> runs once they have passed, before the calculation.
+    /// </summary>
+    public FreeHoursResult Run(Action groupsValidated, CancellationToken cancellationToken)
     {
         var names = query.Groups.ToArray();
         var known = schedule.EnumerateGroups()
@@ -39,6 +42,7 @@ public sealed class QueryFreeHoursWorkflow(
             throw new AmbiguousGroupsException(ambiguous);
         }
 
+        groupsValidated();
         var sections = handler.Sections(names, cancellationToken)
             .Select(ToSection)
             .ToArray();
