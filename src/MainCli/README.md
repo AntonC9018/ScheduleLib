@@ -34,8 +34,9 @@ unexpected failures, 2 for invalid arguments, 3 for missing/invalid input, 4 for
 destination, 8 for unsupported capabilities and 130 for cancellation.
 Ctrl+C cancels initialization and query enumeration.
 A command shuts down the services of its own work before it reports its result,
-so a failure there is part of that result: after an earlier failure it is added to
-that failure's errors, which keep their exit code.
+so a failure there is part of that result: after an earlier failure, including
+one while those services start, it is added to that failure's errors, which keep
+their exit code.
 If the command's or the CLI's shared services fail to shut down after a command
 has reported its result, that result stands and no second one follows: the
 failure goes to stderr (with `--jsonl`, a `log` record with the result's

@@ -67,7 +67,7 @@ public sealed class QueryLessonsCommand(ScopeForkFactory<QueryLessonsWorkflow> w
         {
             var failure = context.ClassifyInputFailure(error);
             IReadOnlyList<LessonResult> reportedLessons = lessons;
-            var outcomeFailure = WorkflowTeardownException.FailureOf(error);
+            var outcomeFailure = CleanupAfterFailureException.FailureOf(error);
             if (outcomeFailure is ArgumentException or Application.Config.AuthenticationRequiredException)
             {
                 reportedLessons = [];

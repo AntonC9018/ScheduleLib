@@ -12,6 +12,9 @@ public sealed class CliHostTeardownTests
 {
     private const string FailureMessage = "teardown failure";
 
+    /// <summary>How a command reports a failure to clean up after its own failure.</summary>
+    private const string CleanupFailurePrefix = "Cleaning up after the failure failed: ";
+
     /// <summary>How a planned scope reports resources that failed to close.</summary>
     private const string ScopeEndFailurePrefix = "Ending a scope failed";
 
@@ -108,8 +111,37 @@ public sealed class CliHostTeardownTests
         Assert.Equal(expected: 2, actual: errors.Length);
         Assert.Contains(expectedSubstring: unknown, actualString: errors[0]);
         Assert.StartsWith(
-            expectedStartString: $"Ending the workflow failed: {ScopeEndFailurePrefix}",
+            expectedStartString: $"{CleanupFailurePrefix}{ScopeEndFailurePrefix}",
             actualString: errors[1]);
+    }
+
+    [Fact]
+    public async Task FailingCleanupWhenOpeningKeepsTheSourceError()
+    {
+        using var temp = new TestTempDirectory("schedulelib-tests");
+        var missing = Path.Combine(temp.Path, "missing");
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource(missing)];
+        var run = await RunCapturing(args, HoldFailingResource);
+
+        AssertPairedFailure(run, CliExit.InvalidConfiguration, missing);
+    }
+
+    [Fact]
+    public async Task FailingCleanupWhenOpeningKeepsTheCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+
+        void CancelWhileHoldingFailingResource(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddSingleton(cancellation);
+            services.AddInitialized<ScheduleSource, CancellingSourceInitializer>();
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, CancelWhileHoldingFailingResource, cancellationToken: cancellation.Token);
+
+        AssertPairedFailure(run, CliExit.Cancelled, "Cancelled.");
     }
 
     [Fact]
@@ -134,6 +166,29 @@ public sealed class CliHostTeardownTests
         Assert.StartsWith(
             expectedStartString: $"Ending the command's services failed: {ScopeEndFailurePrefix}",
             actualString: message);
+    }
+
+    /// <summary>
+    /// A single final with the primary failure's exit and its error, followed by the failure to
+    /// clean up after it.
+    /// </summary>
+    private static void AssertPairedFailure(CapturedRun run, int exit, string primaryError)
+    {
+        Assert.Equal(expected: exit, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: exit,
+            actual: final.GetProperty("exitCode")
+                .GetInt32());
+        var errors = final.GetProperty("errors")
+            .EnumerateArray()
+            .Select(x => x.GetString()!)
+            .ToArray();
+        Assert.Equal(expected: 2, actual: errors.Length);
+        Assert.Contains(expectedSubstring: primaryError, actualString: errors[0]);
+        Assert.StartsWith(
+            expectedStartString: $"{CleanupFailurePrefix}{ScopeEndFailurePrefix}",
+            actualString: errors[1]);
     }
 
     /// <summary>The fixture schedule, loaded by a workflow that holds a resource failing to close.</summary>
@@ -170,7 +225,8 @@ public sealed class CliHostTeardownTests
     private static async Task<CapturedRun> RunCapturing(
         string[] args,
         Action<IServiceCollection> services,
-        Action<AppRunner<Commands>>? runner = null)
+        Action<AppRunner<Commands>>? runner = null,
+        CancellationToken cancellationToken = default)
     {
         var originalOut = Console.Out;
         var originalError = Console.Error;
@@ -180,7 +236,7 @@ public sealed class CliHostTeardownTests
         {
             Console.SetOut(stdout);
             Console.SetError(stderr);
-            var exit = await CliTestHost.Run(args, services, runner: runner);
+            var exit = await CliTestHost.Run(args, services, cancellationToken, runner);
             return new(Exit: exit, Output: stdout.ToString(), Error: stderr.ToString());
         }
         finally
@@ -266,6 +322,21 @@ public sealed class CliHostTeardownTests
 #pragma warning restore CA2000
             var source = selection.Resolve();
             return ValueTask.FromResult(source);
+        }
+    }
+
+    /// <summary>Holds a resource that fails to close, then cancels the command and stops.</summary>
+    private sealed class CancellingSourceInitializer(ScopeResources resources, CancellationTokenSource cancellation)
+        : IInitializer<ScheduleSource>
+    {
+        public ValueTask<ScheduleSource> InitializeAsync(CancellationToken cancellationToken)
+        {
+#pragma warning disable CA2000 // ScopeResources closes the resource when the scope ends.
+            resources.Add(new FailingTeardown());
+#pragma warning restore CA2000
+            cancellation.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("The command's cancellation should reach the initializer.");
         }
     }
 }

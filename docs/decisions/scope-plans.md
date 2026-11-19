@@ -114,6 +114,9 @@ command builds its own container from runtime arguments, and resolving `Schedule
   - Each ending reports its failures once, to whoever started it; anyone joining it only waits.
   - Every step is attempted even when some fail; the failures are reported together in one
     `ScopeCleanupException`, which also lists the forks left open.
+  - When cleaning up after a failure fails too, as when a fork fails to open or work in it
+    fails, one `CleanupAfterFailureException` pairs the failure, which decides the outcome,
+    with the cleanup failures.
 - **Accepted limitation:** inherited values are shared, so a child mutating one affects the
   parent. Context values should be immutable.
 

@@ -32,14 +32,15 @@ public sealed class CleanupFailures
     }
 
     /// <summary>
-    /// After a failure, <paramref name="primary"/>, led to cleanup: throws it together with the
-    /// cleanup failures, if any. Otherwise returns, and the caller rethrows the primary failure.
+    /// After a failure, <paramref name="primary"/>, led to cleanup: throws a
+    /// <see cref="CleanupAfterFailureException"/> pairing it with the cleanup failures, if any.
+    /// Otherwise returns, and the caller rethrows the primary failure.
     /// </summary>
     public void ThrowIfAnyAlongside(Exception primary)
     {
         if (_failures.Count > 0)
         {
-            throw new AggregateException([primary, .. _failures]);
+            throw CleanupAfterFailureException.Create(primary, [.. _failures]);
         }
     }
 

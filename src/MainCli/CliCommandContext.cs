@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
@@ -319,16 +320,17 @@ public sealed class CliCommandContext : IDisposable
             }
             return new(ioExit, [message]);
         }
-        if (error is WorkflowTeardownException teardown)
+        if (error is CleanupAfterFailureException paired)
         {
-            // The workflow's failure decides the outcome; the teardown failure is reported with it.
+            // The primary failure decides the outcome; the cleanup failures are reported with it.
             var primary = ClassifyInputFailure(
-                teardown.Failure,
+                paired.Failure,
                 export: export,
                 originalTimeoutMessage: originalTimeoutMessage);
+            var cleanup = paired.CleanupExceptions.Select(x => $"Cleaning up after the failure failed: {x.Message}");
             return primary with
             {
-                Errors = [.. primary.Errors, teardown.Message],
+                Errors = [.. primary.Errors, .. cleanup],
             };
         }
         var exit = error switch

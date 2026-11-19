@@ -10,8 +10,8 @@ internal static class WorkflowRun
 {
     /// <summary>
     /// Opens a workflow scope, runs <paramref name="work"/> on its handler and ends the scope.
-    /// A failure to end it after the work failed is thrown as a <see cref="WorkflowTeardownException"/>
-    /// that keeps the work's failure.
+    /// When opening or the work fails and cleaning up then fails too, both are thrown as one
+    /// <see cref="CleanupAfterFailureException"/> that keeps the primary failure.
     /// </summary>
     public static async Task<T> RunAsync<THandler, T>(
         this ScopeForkFactory<THandler> workflows,
@@ -62,28 +62,7 @@ internal static class WorkflowRun
         }
         catch (Exception teardown)
         {
-            throw new WorkflowTeardownException(failure: failure, teardown: teardown);
+            throw CleanupAfterFailureException.Create(failure, [teardown]);
         }
-    }
-}
-
-/// <summary>A workflow failed, and ending its scope afterwards failed too.</summary>
-public sealed class WorkflowTeardownException(Exception failure, Exception teardown)
-    : Exception($"Ending the workflow failed: {teardown.Message}", failure)
-{
-    /// <summary>The workflow's own failure, which decides the command's outcome.</summary>
-    public Exception Failure { get; } = failure;
-
-    public Exception Teardown { get; } = teardown;
-
-    /// <summary>The failure that decides a command's outcome: the workflow's own, if this wraps it.</summary>
-    public static Exception FailureOf(Exception error)
-    {
-        if (error is WorkflowTeardownException teardown)
-        {
-            return teardown.Failure;
-        }
-
-        return error;
     }
 }

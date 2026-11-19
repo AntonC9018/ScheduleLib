@@ -49,12 +49,12 @@ public sealed class ScopeForkFactory<THandler>(
             openFailure = failure;
         }
 
-        var failures = await EndUnpublishedAsync(state, openFailure);
-        if (failures is [var only])
+        var reported = await EndUnpublishedAsync(state, openFailure);
+        if (ReferenceEquals(objA: reported, objB: openFailure))
         {
-            ExceptionDispatchInfo.Throw(only);
+            ExceptionDispatchInfo.Throw(reported);
         }
-        throw new AggregateException(failures);
+        throw reported;
     }
 
     /// <summary>
@@ -118,9 +118,10 @@ public sealed class ScopeForkFactory<THandler>(
     /// <summary>
     /// Ends a fork that is never returned to the caller, then lets a waiting parent continue.
     /// Returns what to report: that the parent ended, when it started ending before the fork
-    /// settled, then <paramref name="openFailure"/>, then any failure to end the fork.
+    /// settled, and <paramref name="openFailure"/>; paired with any failure to end the fork as a
+    /// <see cref="CleanupAfterFailureException"/>.
     /// </summary>
-    private static async ValueTask<Exception[]> EndUnpublishedAsync(ScopeState state, Exception? openFailure)
+    private static async ValueTask<Exception> EndUnpublishedAsync(ScopeState state, Exception? openFailure)
     {
         var ending = state.EndAsync();
         Debug.Assert(ending.StartedHere, "Nothing else ends a fork before it is returned or settled.");
@@ -137,11 +138,12 @@ public sealed class ScopeForkFactory<THandler>(
         {
             failures.Add(openFailure);
         }
-        if (cleanupFailure is not null)
+        Exception failure = failures is [var only] ? only : new AggregateException(failures);
+        if (cleanupFailure is null)
         {
-            failures.Add(cleanupFailure);
+            return failure;
         }
-        return [.. failures];
+        return CleanupAfterFailureException.Create(failure, [cleanupFailure]);
     }
 
     private bool IsSupplied(ScopeInputs inputs, ScopeNode seed)

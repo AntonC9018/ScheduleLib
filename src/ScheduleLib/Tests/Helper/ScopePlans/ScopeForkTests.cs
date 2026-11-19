@@ -224,12 +224,11 @@ public sealed class ScopeForkTests
         var ending = parent.DisposeAsync().AsTask();
         gate.Release();
 
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => opening);
+        var exception = await Assert.ThrowsAsync<CleanupAfterFailureException>(() => opening);
         await ending;
 
-        Assert.Equal(expected: 2, actual: exception.InnerExceptions.Count);
-        Assert.IsType<ParentScopeEndedException>(exception.InnerExceptions[0]);
-        var cleanup = Assert.IsType<ScopeCleanupException>(exception.InnerExceptions[1]);
+        Assert.IsType<ParentScopeEndedException>(exception.Failure);
+        var cleanup = Assert.IsType<ScopeCleanupException>(Assert.Single(exception.CleanupExceptions));
         Assert.IsType<ResourceCloseFailedException>(Assert.Single(cleanup.Failures));
     }
 

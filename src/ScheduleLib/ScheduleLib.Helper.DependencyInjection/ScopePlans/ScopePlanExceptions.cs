@@ -107,3 +107,41 @@ public sealed class ScopeResourcesClosedException(Type resourceType)
 {
     public Type ResourceType { get; } = resourceType;
 }
+
+/// <summary>
+/// An operation failed, and cleaning up after it failed too. <see cref="Failure"/> is the
+/// operation's own failure, which decides the outcome; <see cref="CleanupExceptions"/> are reported
+/// alongside it, in the order they happened.
+/// </summary>
+public sealed class CleanupAfterFailureException(Exception failure, ImmutableArray<Exception> cleanupExceptions)
+    : Exception($"{failure.Message} Cleaning up afterwards failed {cleanupExceptions.Length} time(s).", failure)
+{
+    public Exception Failure { get; } = failure;
+
+    public ImmutableArray<Exception> CleanupExceptions { get; } = cleanupExceptions;
+
+    /// <summary>
+    /// Pairs <paramref name="failure"/> with <paramref name="cleanupExceptions"/>. A failure that
+    /// already carries cleanup failures keeps its own failure and gains the new ones after its own.
+    /// </summary>
+    public static CleanupAfterFailureException Create(Exception failure, ImmutableArray<Exception> cleanupExceptions)
+    {
+        if (failure is CleanupAfterFailureException paired)
+        {
+            return new(paired.Failure, [.. paired.CleanupExceptions, .. cleanupExceptions]);
+        }
+
+        return new(failure, cleanupExceptions);
+    }
+
+    /// <summary>The failure that decides the outcome of <paramref name="error"/>: its own unless it pairs one with cleanup failures.</summary>
+    public static Exception FailureOf(Exception error)
+    {
+        if (error is CleanupAfterFailureException paired)
+        {
+            return paired.Failure;
+        }
+
+        return error;
+    }
+}
