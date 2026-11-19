@@ -40,7 +40,7 @@ public sealed class CliHostTeardownTests
             expected: CliExit.Success,
             actual: final.GetProperty("exitCode")
                 .GetInt32());
-        var message = Assert.Single(TeardownRecordMessages(run.Error));
+        var message = TeardownRecordMessage(final, run.Error);
         Assert.Equal(
             expected: $"Ending the CLI's services failed: {FailureMessage}",
             actual: message);
@@ -130,7 +130,7 @@ public sealed class CliHostTeardownTests
             expected: CliExit.InvalidArguments,
             actual: final.GetProperty("exitCode")
                 .GetInt32());
-        var message = Assert.Single(TeardownRecordMessages(run.Error));
+        var message = TeardownRecordMessage(final, run.Error);
         Assert.StartsWith(
             expectedStartString: $"Ending the command's services failed: {ScopeEndFailurePrefix}",
             actualString: message);
@@ -197,28 +197,40 @@ public sealed class CliHostTeardownTests
             .ToArray();
     }
 
-    /// <summary>The error records of the host itself, which reports teardown failures.</summary>
-    private static string?[] TeardownRecordMessages(string error)
+    /// <summary>
+    /// The teardown failure: the last stderr record, of the result's command and run, continuing
+    /// its stderr sequence, and the only one reporting a teardown.
+    /// </summary>
+    private static string TeardownRecordMessage(JsonElement final, string error)
     {
-        static bool IsHostError(JsonElement record)
+        static string Text(JsonElement record, string property)
         {
-            if (record.GetProperty("command").GetString() != "cli")
-            {
-                return false;
-            }
-
-            if (record.GetProperty("level").GetString() != "Error")
-            {
-                return false;
-            }
-
-            return true;
+            var value = record.GetProperty(property);
+            return value.GetString()!;
         }
 
-        return JsonLines(error)
-            .Where(IsHostError)
-            .Select(x => x.GetProperty("message").GetString())
-            .ToArray();
+        static bool ReportsTeardown(JsonElement record)
+        {
+            var message = Text(record, "message");
+            return message.StartsWith("Ending ", StringComparison.Ordinal);
+        }
+
+        var records = JsonLines(error);
+        Assert.Single(records, ReportsTeardown);
+        var teardown = records[^1];
+        Assert.True(ReportsTeardown(teardown));
+        Assert.Equal(expected: "Error", actual: Text(teardown, "level"));
+        var resultCommand = Text(final, "command");
+        var teardownCommand = Text(teardown, "command");
+        Assert.Equal(expected: resultCommand, actual: teardownCommand);
+        var resultRunId = Text(final, "runId");
+        var teardownRunId = Text(teardown, "runId");
+        Assert.Equal(expected: resultRunId, actual: teardownRunId);
+        Assert.Equal(
+            expected: records.Length - 1,
+            actual: teardown.GetProperty("seq")
+                .GetInt32());
+        return Text(teardown, "message");
     }
 
     private static JsonElement[] JsonLines(string text)

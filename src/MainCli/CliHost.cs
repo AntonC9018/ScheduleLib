@@ -15,6 +15,7 @@ public static class CliHost
 
     internal static async Task<int> RunCore(string[] args, CliHostOverrides? overrides)
     {
+        var run = CliRun.Begin();
         await using var rootServices = new CliRootServices(overrides?.Services);
         var invoked = false;
         var startupRequest = StartupRequest.None;
@@ -28,7 +29,7 @@ public static class CliHost
             },
             DisableDirectives = true,
         });
-        new InvocationScopeResolver(rootServices).Register(runner);
+        new InvocationScopeResolver(rootServices, run).Register(runner);
         CapturingConsole? capture = null;
         runner.Configure(builder =>
         {
@@ -89,7 +90,7 @@ public static class CliHost
             rootServices,
             description: "the CLI's services",
             commandExit,
-            startupRequest.UsesJsonlOutput);
+            run.ResultOutput(startupRequest));
 
         async Task<int> RunCommand()
         {
@@ -198,6 +199,7 @@ public static class CliHost
                         .ToString("N"),
                     false,
                     true);
+                run.Record(output);
                 output.EmitStart();
                 foreach (var detail in details)
                 {

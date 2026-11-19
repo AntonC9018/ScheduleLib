@@ -38,9 +38,9 @@ so a failure there is part of that result: after an earlier failure it is added 
 that failure's errors, which keep their exit code.
 If the command's or the CLI's shared services fail to shut down after a command
 has reported its result, that result stands and no second one follows: the
-failure goes to stderr (a JSONL `log` record under command `cli` with `--jsonl`),
-and the process exits 1 if the command succeeded, otherwise with the command's
-code.
+failure goes to stderr (with `--jsonl`, a `log` record with the result's
+`command` and `runId`, continuing its stderr `seq`), and the process exits 1 if
+the command succeeded, otherwise with the command's code.
 
 `--jsonl` streams newline-delimited JSON on stdout and is mutually exclusive
 with `--json` (both together exit 2). Human output remains the default; result
@@ -86,8 +86,8 @@ schedulelib query lessons --jsonl | head -n 3
   `runId`.
 - When `--jsonl` is selected, every stderr warning/error/log is also JSONL
   (`event: "log"` with `level` and `message`, same `command`/`runId`, stderr
-  `seq`), including errors before the command starts. Plain `--json` keeps the
-  existing stderr text. Explicit `--help` stays ordinary text in all modes.
+  `seq`), including errors before the command starts and failures to shut down
+  services after the result. Plain `--json` keeps the existing stderr text. Explicit `--help` stays ordinary text in all modes.
 - Existing Serilog information logs keep their content and levels; registry
   per-action logs now appear under both preview and `--apply` when the
   configured processing flags select log/dry-run. History readers keep their

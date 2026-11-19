@@ -96,6 +96,7 @@ public sealed class CliCommandContext : IDisposable
             return false;
         }
         _logging = CliLogging.Use(Output);
+        CliRun.RecordStarted(Output);
         Output.EmitStart();
         Console.CancelKeyPress += _cancel;
         _started = true;

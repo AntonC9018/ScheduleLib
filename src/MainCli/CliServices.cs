@@ -104,7 +104,7 @@ internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : I
 /// command runs. Outside it nothing resolves, so CommandDotNet creates the other classes and
 /// argument models itself.
 /// </summary>
-internal sealed class InvocationScopeResolver(CliRootServices services) : IDependencyResolver
+internal sealed class InvocationScopeResolver(CliRootServices services, CliRun run) : IDependencyResolver
 {
     private InvocationScope? _scope;
 
@@ -148,7 +148,7 @@ internal sealed class InvocationScopeResolver(CliRootServices services) : IDepen
             scope,
             description: "the command's services",
             exit,
-            request.UsesJsonlOutput);
+            run.ResultOutput(request));
     }
 
     private static bool IsResolvedFromScope(InvocationStep step)
