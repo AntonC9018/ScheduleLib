@@ -177,6 +177,11 @@ internal sealed class LambdaHandler(LambdaPlanner planner)
     public LambdaPlanner Planner => planner;
 }
 
+internal sealed class LambdaCollectionHandler(IEnumerable<LambdaPlanner> planners)
+{
+    public IEnumerable<LambdaPlanner> Planners => planners;
+}
+
 internal sealed record LegacyReport(int Load);
 
 internal sealed class LegacyReportInitializer(IServiceProvider services, LoadLog log) : IInitializer<LegacyReport>

@@ -170,11 +170,14 @@ public sealed class ScopePlanTests
         Assert.True(plan.Closure.IsOpaque);
     }
 
-    [Fact]
-    public void LambdaRegistrationsAreWarningsAndTheirHiddenNeedsArePlanned()
+    [Theory]
+    [InlineData(typeof(LambdaHandler))]
+    [InlineData(typeof(LambdaCollectionHandler))]
+    public void LambdaRegistrationsAreWarningsAndTheirHiddenNeedsArePlanned(Type handler)
     {
         using var root = CreateServices().Build();
-        var plan = root.PlanOf<LambdaHandler>();
+        var plan = root.GetRequiredService<ScopePlanGraph>()
+            .GetPlan(handler);
 
         var warning = Assert.Single(plan.Warnings);
         Assert.Equal(expected: ScopePlanIssueKind.LambdaRegistration, actual: warning.Kind);

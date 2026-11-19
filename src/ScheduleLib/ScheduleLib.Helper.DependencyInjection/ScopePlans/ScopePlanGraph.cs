@@ -331,6 +331,7 @@ public sealed class ScopePlanGraph
                 if (recipe.Source == ServiceSource.Lambda)
                 {
                     hasLambdaMember = true;
+                    inputs.AddRange(HiddenNeeds(element.Type));
                 }
                 else if (recipe.Source == ServiceSource.Type)
                 {
