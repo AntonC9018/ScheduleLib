@@ -410,12 +410,10 @@ public sealed class SettingsTests
         Assert.Same(expected: tree, actual: defaults.Tree);
         Assert.Same(expected: tree, actual: teacher.Tree);
         Assert.Equal(expected: nodes, actual: CountNodes(tree.BaseNode));
-        Assert.Equal(
-            expected: "project",
-            actual: defaults.Get(GoogleCalendarConfig.Key)!.CalendarName);
-        Assert.Equal(
-            expected: "cli",
-            actual: teacher.Get(GoogleCalendarConfig.Key)!.CalendarName);
+        var defaultCalendar = defaults.Get(GoogleCalendarConfig.Key)!.CalendarName;
+        var teacherCalendar = teacher.Get(GoogleCalendarConfig.Key)!.CalendarName;
+        Assert.Equal(expected: "project", actual: defaultCalendar);
+        Assert.Equal(expected: "cli", actual: teacherCalendar);
     }
 
     [Fact]

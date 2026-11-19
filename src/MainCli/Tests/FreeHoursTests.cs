@@ -194,11 +194,10 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
+            var args = Arguments(["IA2301"], json: false);
             Assert.Equal(
                 expected: 0,
-                actual: await CliTestHost.Run(
-                    Arguments(["IA2301"], json: false),
-                    CliTestHost.FixtureSchedule));
+                actual: await CliTestHost.Run(args, CliTestHost.FixtureSchedule));
 
             Assert.Equal(
                 expected: new[]
@@ -372,11 +371,10 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
+            var args = Arguments(["IA2301", "IA2301"]);
             Assert.Equal(
                 expected: 0,
-                actual: await CliTestHost.Run(
-                    Arguments(["IA2301", "IA2301"]),
-                    CliTestHost.FixtureSchedule));
+                actual: await CliTestHost.Run(args, CliTestHost.FixtureSchedule));
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(
                 expected: new[]
@@ -434,11 +432,10 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
+            var args = Arguments(["MIA2501"], dataDirectory: temp.Path);
             Assert.Equal(
                 expected: 0,
-                actual: await CliTestHost.Run(
-                    Arguments(["MIA2501"], dataDirectory: temp.Path),
-                    CliTestHost.FixtureSchedule));
+                actual: await CliTestHost.Run(args, CliTestHost.FixtureSchedule));
             using var result = JsonDocument.Parse(output.ToString());
             var sections = result.RootElement.GetProperty("data")
                 .GetProperty("sections")
@@ -556,9 +553,8 @@ public sealed class FreeHoursTests
         try
         {
             Console.SetOut(output);
-            var exit = await CliTestHost.Run(
-                Arguments(["IA2301"], dataDirectory: temp.Path),
-                CliTestHost.FixtureSchedule);
+            var args = Arguments(["IA2301"], dataDirectory: temp.Path);
+            var exit = await CliTestHost.Run(args, CliTestHost.FixtureSchedule);
             using var result = JsonDocument.Parse(output.ToString());
             Assert.Equal(expected: 3, actual: exit);
             Assert.Equal(
