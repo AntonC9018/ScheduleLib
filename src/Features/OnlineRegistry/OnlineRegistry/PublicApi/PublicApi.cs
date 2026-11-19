@@ -699,21 +699,37 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                     return false;
                 }
 
-                if (expectedAttendance.All(input =>
+                bool MatchesSavedAttendanceInput(ExpectedFormValue input)
+                {
+                    if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
                     {
-                        if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
+                        return false;
+                    }
+
+                    bool MatchesNameAndValue(IHtmlInputElement actual)
+                    {
+                        if (actual.Name != input.Name)
                         {
                             return false;
                         }
 
-                        if (!savedInputs.Any(actual =>
-                                actual.Name == input.Name && actual.Value == input.Value))
+                        if (actual.Value == input.Value)
                         {
-                            return false;
+                            return true;
                         }
 
+                        return false;
+                    }
+
+                    if (savedInputs.Any(MatchesNameAndValue))
+                    {
                         return true;
-                    }))
+                    }
+
+                    return false;
+                }
+
+                if (expectedAttendance.All(MatchesSavedAttendanceInput))
                 {
                     return true;
                 }
@@ -888,30 +904,36 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
 
                 var table = list.QuerySelector<IHtmlTableElement>("table")
                     ?? throw new IOException("Registry deletion confirmation table is missing.");
-                if (list.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
-                        .All(anchor =>
-                            !anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal))
-                    || table.Rows.Length == 0)
+                static bool IsCreateLessonLink(IHtmlAnchorElement anchor)
+                {
+                    return anchor.Href.Contains("/LessonAttendance/CreateLesson/", StringComparison.Ordinal);
+                }
+
+                var hasCreateLessonLink = list.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Any(IsCreateLessonLink);
+                if (!hasCreateLessonLink || table.Rows.Length == 0)
                 {
                     throw new IOException("Registry deletion confirmation page is unrecognized.");
                 }
 
-                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
-                    .Any(anchor =>
+                bool TargetsDeletedLesson(IHtmlAnchorElement anchor)
+                {
+                    var path = new Uri(anchor.Href).AbsolutePath;
+                    if (path.EndsWith($"/LessonDetail/{lessonId}", StringComparison.Ordinal))
                     {
-                        var path = new Uri(anchor.Href).AbsolutePath;
-                        if (path.EndsWith($"/LessonDetail/{lessonId}", StringComparison.Ordinal))
-                        {
-                            return true;
-                        }
+                        return true;
+                    }
 
-                        if (path.EndsWith($"/Edit/{lessonId}", StringComparison.Ordinal))
-                        {
-                            return true;
-                        }
+                    if (path.EndsWith($"/Edit/{lessonId}", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
 
-                        return false;
-                    }))
+                    return false;
+                }
+
+                if (table.QuerySelectorAll<IHtmlAnchorElement>("a[href]")
+                    .Any(TargetsDeletedLesson))
                 {
                     throw new RegistryDeletionRefusedException();
                 }
@@ -1049,20 +1071,22 @@ public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IR
                 return true;
             }
 
-            if (expected.Any(input =>
+            bool MatchesSavedGradeInput(ExpectedFormValue input)
+            {
+                if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
                 {
-                    if (savedInputs.Count(actual => actual.Name == input.Name) != 1)
-                    {
-                        return true;
-                    }
+                    return false;
+                }
 
-                    if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
-                    {
-                        return false;
-                    }
-
+                if (savedInputs.Any(actual => actual.Name == input.Name && actual.Value == input.Value))
+                {
                     return true;
-                }))
+                }
+
+                return false;
+            }
+
+            if (!expected.All(MatchesSavedGradeInput))
             {
                 return true;
             }

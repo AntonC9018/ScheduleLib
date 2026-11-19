@@ -169,22 +169,22 @@ public static class TeacherLookupHelper
                                 return false;
                             }
 
-                            if (teacherName.EachEquals(
-                                    name,
-                                    (existingPart, newPart) =>
-                                    {
-                                        if (existingPart.Full is not { } full)
-                                        {
-                                            return true;
-                                        }
+                            static bool FullPartsMatch(OptionalNamePart existingPart, Word newPart)
+                            {
+                                if (existingPart.Full is not { } full)
+                                {
+                                    return true;
+                                }
 
-                                        if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: full, y: newPart.Value))
-                                        {
-                                            return true;
-                                        }
+                                if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(x: full, y: newPart.Value))
+                                {
+                                    return true;
+                                }
 
-                                        return false;
-                                    }))
+                                return false;
+                            }
+
+                            if (teacherName.EachEquals(name, FullPartsMatch))
                             {
                                 return true;
                             }
@@ -224,40 +224,40 @@ public static class TeacherLookupHelper
                         }
                     case FirstNameComparison.MatchFullAgainstShort:
                         {
-                            if (teacherName.EachEquals(
-                                    name,
-                                    (existingPart, newPart) =>
+                            static bool FullPartMatchesExisting(OptionalNamePart existingPart, Word newPart)
+                            {
+                                if (existingPart.IsNull)
+                                {
+                                    return true;
+                                }
+
+                                Debug.Assert(newPart.Span.LooksFull, "The new name part must be a full name.");
+
+                                var newFull = newPart.Span.Value;
+                                if (existingPart.Full is { } full)
+                                {
+                                    if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, full))
                                     {
-                                        if (existingPart.IsNull)
-                                        {
-                                            return true;
-                                        }
+                                        return true;
+                                    }
 
-                                        Debug.Assert(newPart.Span.LooksFull);
+                                    return false;
+                                }
+                                if (existingPart.Short is { } shortName)
+                                {
+                                    if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
+                                            x: newFull,
+                                            y: new Word(shortName).Span.Shortened.Value))
+                                    {
+                                        return true;
+                                    }
 
-                                        var newFull = newPart.Span.Value;
-                                        if (existingPart.Full is { } f)
-                                        {
-                                            if (IgnoreDiacriticsAndCaseComparer.Instance.Equals(newFull, f))
-                                            {
-                                                return true;
-                                            }
+                                    return false;
+                                }
+                                throw Unreachable();
+                            }
 
-                                            return false;
-                                        }
-                                        if (existingPart.Short is { } s)
-                                        {
-                                            if (IgnoreDiacriticsAndCaseComparer.Instance.StartsWith(
-                                                    x: newFull,
-                                                    y: new Word(s).Span.Shortened.Value))
-                                            {
-                                                return true;
-                                            }
-
-                                            return false;
-                                        }
-                                        throw Unreachable();
-                                    }))
+                            if (teacherName.EachEquals(name, FullPartMatchesExisting))
                             {
                                 return true;
                             }

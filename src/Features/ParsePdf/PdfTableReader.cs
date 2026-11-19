@@ -432,10 +432,16 @@ public static class PdfTableReader
         {
             return "";
         }
+        static bool HasVerticalBaseline(Letter letter)
+        {
+            var verticalRun = Math.Abs(letter.EndBaseLine.Y - letter.StartBaseLine.Y);
+            var horizontalRun = Math.Abs(letter.EndBaseLine.X - letter.StartBaseLine.X);
+            return verticalRun > horizontalRun;
+        }
+
         // Rotated day labels read from the bottom of the page towards the top.
-        if (letters.Count(l =>
-                Math.Abs(l.EndBaseLine.Y - l.StartBaseLine.Y) > Math.Abs(l.EndBaseLine.X - l.StartBaseLine.X))
-            > letters.Length / 2)
+        var verticalLetters = letters.Count(HasVerticalBaseline);
+        if (verticalLetters > letters.Length / 2)
         {
             return string.Concat(letters.OrderBy(l => l.StartBaseLine.Y)
                     .Select(l => l.Value))

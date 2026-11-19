@@ -81,20 +81,22 @@ public sealed class FmiScheduleUpdater(
                     return true;
                 }
 
-                if (previous.Sources.Any(s =>
+                static bool HasInvalidHash(ScheduleSourceHash source)
+                {
+                    if (source.Sha256 is not { Length: 64 })
                     {
-                        if (s.Sha256 is not { Length: 64 })
-                        {
-                            return true;
-                        }
+                        return true;
+                    }
 
-                        if (s.Sha256.Any(c => !char.IsAsciiHexDigit(c)))
-                        {
-                            return true;
-                        }
+                    if (source.Sha256.Any(c => !char.IsAsciiHexDigit(c)))
+                    {
+                        return true;
+                    }
 
-                        return false;
-                    }))
+                    return false;
+                }
+
+                if (previous.Sources.Any(HasInvalidHash))
                 {
                     return true;
                 }

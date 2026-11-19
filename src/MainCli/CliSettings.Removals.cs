@@ -275,16 +275,18 @@ public static partial class CliSettings
         ResolvePaths(descriptor, settingsDirectory);
         var item = descriptor.Deserialize(element, settings.Json)!;
         var values = settings.Inspect(action["key"]!.GetValue<string>()).Value as JsonArray;
-        if (values is null
-            || !values.Any(x =>
-            {
-                var resolvedValue = x!.Deserialize(element, settings.Json)!;
-                return KeyMatches(
-                    element,
-                    comparer: comparer,
-                    item: item,
-                    value: resolvedValue);
-            }))
+
+        bool MatchesItemKey(JsonNode? entry)
+        {
+            var resolvedValue = entry!.Deserialize(element, settings.Json)!;
+            return KeyMatches(
+                element,
+                comparer: comparer,
+                item: item,
+                value: resolvedValue);
+        }
+
+        if (values is null || !values.Any(MatchesItemKey))
         {
             throw new JsonException("Unknown collection item key; no resolved entry matches --item.");
         }

@@ -516,8 +516,23 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         return true;
                     }
 
-                    if (lessons.Any(id => _schedule.Get(id).Lesson.Type == LessonType.Lab
-                            && AttendancePartition(_schedule.Get(id).Lesson) != group.GroupPartition))
+                    bool HasMismatchedLabPartition(AnyLessonId id)
+                    {
+                        var lesson = _schedule.Get(id).Lesson;
+                        if (lesson.Type != LessonType.Lab)
+                        {
+                            return false;
+                        }
+
+                        if (AttendancePartition(lesson) != group.GroupPartition)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    if (lessons.Any(HasMismatchedLabPartition))
                     {
                         return true;
                     }
@@ -628,42 +643,57 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     })
                         .Select(lesson => lesson.DateTime)
                         .ToHashSet();
-                // Protect only labs demonstrably routed elsewhere, including their existing attendance.
-                var remoteInstances = scanResult.Lessons.Where(remote =>
+                bool IsProtectedRemoteLesson(RemoteLessonInstance remote)
+                {
+                    if (remote.LessonType != LessonType.Lab)
                     {
-                        if (remote.LessonType != LessonType.Lab)
-                        {
-                            return true;
-                        }
+                        return true;
+                    }
 
-                        if (RegistryTopicScope.TrySplit(
-                                topic: remote.Topic,
-                                knownScopes,
-                                baseTopic: out _,
-                                scope: out var scope))
-                        {
-                            if (ResolveScope(remote, scope!) is not null)
-                            {
-                                return true;
-                            }
-
-                            return false;
-                        }
-
-                        if (!movedTimes.Contains(remote.DateTime))
-                        {
-                            return true;
-                        }
-
-                        if (localInstances.Any(local =>
-                                local.RegistryLessonType == LessonType.Lab
-                                && local.DateTime == remote.DateTime))
+                    if (RegistryTopicScope.TrySplit(
+                            topic: remote.Topic,
+                            knownScopes,
+                            baseTopic: out _,
+                            scope: out var scope))
+                    {
+                        if (ResolveScope(remote, scope!) is not null)
                         {
                             return true;
                         }
 
                         return false;
-                    })
+                    }
+
+                    if (!movedTimes.Contains(remote.DateTime))
+                    {
+                        return true;
+                    }
+
+                    bool MatchesLocalLabTime(LessonInstance local)
+                    {
+                        if (local.RegistryLessonType != LessonType.Lab)
+                        {
+                            return false;
+                        }
+
+                        if (local.DateTime == remote.DateTime)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    if (localInstances.Any(MatchesLocalLabTime))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                // Protect only labs demonstrably routed elsewhere, including their existing attendance.
+                var remoteInstances = scanResult.Lessons.Where(IsProtectedRemoteLesson)
                     .OrderBy(remote => remote.DateTime)
                     .ToArray();
                 var unresolvedAssessments = new List<RemoteLessonInstance>();
@@ -719,25 +749,29 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                         consumedRemote.Add(existing.ViewUri);
                     }
 
-                    if (unresolvedAssessments.Any(assessment => audience.Any(lesson =>
+                    bool HasUnresolvedAssessmentConflict()
+                    {
+                        foreach (var assessment in unresolvedAssessments)
                         {
-                            if (assessment.DateTime.Date != lesson.DateTime.Date)
+                            foreach (var lesson in audience)
                             {
-                                return false;
-                            }
+                                if (assessment.DateTime.Date != lesson.DateTime.Date)
+                                {
+                                    continue;
+                                }
 
-                            if (assessment.LessonType == LessonType.Unspecified)
-                            {
-                                return true;
+                                if (assessment.LessonType == LessonType.Unspecified
+                                    || assessment.LessonType == lesson.RegistryLessonType)
+                                {
+                                    return true;
+                                }
                             }
+                        }
 
-                            if (assessment.LessonType == lesson.RegistryLessonType)
-                            {
-                                return true;
-                            }
+                        return false;
+                    }
 
-                            return false;
-                        })))
+                    if (HasUnresolvedAssessmentConflict())
                     {
                         continue;
                     }

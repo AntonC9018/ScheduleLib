@@ -309,11 +309,13 @@ public static class RegistryHistoryHtml
             return false;
         }
 
-        if (!document.QuerySelectorAll("a[href]")
-                .Any(anchor =>
-                    anchor.GetAttribute("href")
-                        ?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase)
-                    == true))
+        static bool IsLessonsListLink(IElement anchor)
+        {
+            return anchor.GetAttribute("href")
+                ?.Contains("/LessonAttendance/LessonsList/", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        if (!document.QuerySelectorAll("a[href]").Any(IsLessonsListLink))
         {
             return true;
         }
@@ -838,11 +840,15 @@ public sealed class RegistryHistoryReader(HttpClient client, Uri index)
 
         await using var stream = await response.Content.ReadAsStreamAsync(token);
         var document = await new HtmlParser().ParseDocumentAsync(stream, token);
+
+        static bool IsLogoutLink(IElement anchor)
+        {
+            return anchor.GetAttribute("href")
+                ?.EndsWith("/Account/Logout", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
         if (document.QuerySelector("input[type='password']") is not null
-            || !document.QuerySelectorAll("a[href]")
-                .Any(x => x.GetAttribute("href")
-                        ?.EndsWith("/Account/Logout", StringComparison.OrdinalIgnoreCase)
-                    == true))
+            || !document.QuerySelectorAll("a[href]").Any(IsLogoutLink))
         {
             document.Dispose();
             throw new RegistryHistoryException(

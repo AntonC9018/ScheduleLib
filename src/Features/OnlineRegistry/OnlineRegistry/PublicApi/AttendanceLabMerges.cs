@@ -85,57 +85,61 @@ public static class AttendanceLabMerges
             return false;
         }
 
+        bool HasMatchingWeeklySourceLab(WeeklyLesson item)
+        {
+            if (item.Base.Data.Course != source.CourseId)
+            {
+                return false;
+            }
+            if (!item.Base.Data.Groups.IsSingleGroup)
+            {
+                return false;
+            }
+            if (item.Base.Data.Groups[0] != group)
+            {
+                return false;
+            }
+            if (item.Base.Data.Type != LessonType.Lab)
+            {
+                return false;
+            }
+            if (item.Base.Data.GroupPartitionKey == partition)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        bool IsSurvivingAutomaticLabMerge(DetectedLabSubGroupMerge merge)
+        {
+            if (merge.Course != source.CourseId)
+            {
+                return false;
+            }
+            if (merge.Group != group)
+            {
+                return false;
+            }
+            if (merge.Specialization != partition.Specialization)
+            {
+                return false;
+            }
+            if (merge.Alternative != partition.Alternative)
+            {
+                return false;
+            }
+            if (merge.SurvivingSubGroup == partition.SubGroup)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         // Do not invent a source partition merely because a merge exists.
-        if (schedule.WeeklyLessons.Any(item =>
-            {
-                if (item.Base.Data.Course != source.CourseId)
-                {
-                    return false;
-                }
-                if (!item.Base.Data.Groups.IsSingleGroup)
-                {
-                    return false;
-                }
-                if (item.Base.Data.Groups[0] != group)
-                {
-                    return false;
-                }
-                if (item.Base.Data.Type != LessonType.Lab)
-                {
-                    return false;
-                }
-                if (item.Base.Data.GroupPartitionKey == partition)
-                {
-                    return true;
-                }
-
-                return false;
-            })
-            || schedule.AutomaticLabSubGroupMerges.Any(merge =>
-            {
-                if (merge.Course != source.CourseId)
-                {
-                    return false;
-                }
-                if (merge.Group != group)
-                {
-                    return false;
-                }
-                if (merge.Specialization != partition.Specialization)
-                {
-                    return false;
-                }
-                if (merge.Alternative != partition.Alternative)
-                {
-                    return false;
-                }
-                if (merge.SurvivingSubGroup == partition.SubGroup)
-                {
-                    return true;
-                }
-
-                return false;
-            }))
+        if (schedule.WeeklyLessons.Any(HasMatchingWeeklySourceLab)
+            || schedule.AutomaticLabSubGroupMerges.Any(IsSurvivingAutomaticLabMerge))
         {
             return true;
         }

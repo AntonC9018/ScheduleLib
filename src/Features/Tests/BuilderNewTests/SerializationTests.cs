@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
 using ScheduleLib.OnlineRegistry;
+using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace Anton.LayeredData.Tests;
@@ -100,44 +101,7 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
         {
             return false;
         }
-        if (!x.Credentials.ValueEquals(
-                y.Credentials,
-                (a, b) =>
-                {
-                    if (a.GetType() != b.GetType())
-                    {
-                        return false;
-                    }
-                    // only supporting this currently
-                    if (a is not ValueCredentialsSource va)
-                    {
-                        return true;
-                    }
-                    if (b is not ValueCredentialsSource vb)
-                    {
-                        return true;
-                    }
-
-                    if (va.Value.ValueEquals(
-                            vb.Value,
-                            (ca, cb) =>
-                            {
-                                if (ca.Login != cb.Login)
-                                {
-                                    return false;
-                                }
-                                if (ca.Password != cb.Password)
-                                {
-                                    return false;
-                                }
-                                return true;
-                            }))
-                    {
-                        return true;
-                    }
-
-                    return false;
-                }))
+        if (!x.Credentials.ValueEquals(y.Credentials, CredentialsSourcesMatch))
         {
             return false;
         }
@@ -149,6 +113,36 @@ file sealed class Comparer : IEqualityComparer<RegistryConfig?>
         }
 
         if (x.ExtraLessonInstanceAction == y.ExtraLessonInstanceAction)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool CredentialsSourcesMatch(CredentialsSource expected, CredentialsSource actual)
+    {
+        if (expected.GetType() != actual.GetType())
+        {
+            return false;
+        }
+
+        // Other sources are compared by type alone.
+        if (expected is not ValueCredentialsSource expectedValue)
+        {
+            return true;
+        }
+        if (actual is not ValueCredentialsSource actualValue)
+        {
+            return true;
+        }
+
+        static bool CredentialsMatch(Credentials expected, Credentials actual)
+        {
+            return expected.Login == actual.Login && expected.Password == actual.Password;
+        }
+
+        if (expectedValue.Value.ValueEquals(actualValue.Value, CredentialsMatch))
         {
             return true;
         }

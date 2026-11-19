@@ -145,23 +145,29 @@ internal static class MatchLessonHelper
         }
         // The ordinary registry destination represents the parent's teaching language;
         // another language subgroup has its own destination.
-        if (lesson.SubGroup.IsLanguageSubGroup()
-            && lesson.Groups.All(group =>
+        if (!lesson.SubGroup.IsLanguageSubGroup())
+        {
+            return false;
+        }
+
+        bool MatchesParentLanguageSubGroup(GroupId group)
+        {
+            var groupLanguage = schedule.Get(group).Language;
+            if (groupLanguage is not (Language.Ro or Language.Ru or Language.En))
             {
-                var groupLanguage = schedule.Get(group).Language;
-                if (groupLanguage is not (Language.Ro or Language.Ru or Language.En))
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                var expectedSubGroup = SpecialSubGroups.FromLanguage(groupLanguage);
-                if (expectedSubGroup != lesson.SubGroup)
-                {
-                    return false;
-                }
-
+            var expectedSubGroup = SpecialSubGroups.FromLanguage(groupLanguage);
+            if (expectedSubGroup == lesson.SubGroup)
+            {
                 return true;
-            }))
+            }
+
+            return false;
+        }
+
+        if (lesson.Groups.All(MatchesParentLanguageSubGroup))
         {
             return true;
         }

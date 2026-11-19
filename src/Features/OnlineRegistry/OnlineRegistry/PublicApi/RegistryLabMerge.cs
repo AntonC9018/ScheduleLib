@@ -53,30 +53,33 @@ internal static class RegistryLabMerges
         }
 
         var group = groups[0];
-        if (schedule.AutomaticLabSubGroupMerges.Any(merge =>
+
+        bool IsAutomaticLabMerge(DetectedLabSubGroupMerge merge)
+        {
+            if (merge.Course != course)
             {
-                if (merge.Course != course)
-                {
-                    return false;
-                }
-
-                if (merge.Group != group)
-                {
-                    return false;
-                }
-
-                if (merge.Specialization != partition.Specialization)
-                {
-                    return false;
-                }
-
-                if (merge.Alternative == partition.Alternative)
-                {
-                    return true;
-                }
-
                 return false;
-            }))
+            }
+
+            if (merge.Group != group)
+            {
+                return false;
+            }
+
+            if (merge.Specialization != partition.Specialization)
+            {
+                return false;
+            }
+
+            if (merge.Alternative == partition.Alternative)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (schedule.AutomaticLabSubGroupMerges.Any(IsAutomaticLabMerge))
         {
             return null;
         }

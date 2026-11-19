@@ -1279,20 +1279,22 @@ public static class LessonParsingHelper
 
                     static void ValidateNotShort(NameParts<ReadOnlyMemory<char>> name)
                     {
-                        if (name.Any(x =>
+                        static bool IsShortened(ReadOnlyMemory<char> part)
+                        {
+                            if (part.IsEmpty)
                             {
-                                if (x.IsEmpty)
-                                {
-                                    return false;
-                                }
-
-                                if (x.Span[^1] == WordHelper.ShortenedWordCharacter)
-                                {
-                                    return true;
-                                }
-
                                 return false;
-                            }))
+                            }
+
+                            if (part.Span[^1] == WordHelper.ShortenedWordCharacter)
+                            {
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        if (name.Any(IsShortened))
                         {
                             WrongFormatException.InvalidLastName();
                         }

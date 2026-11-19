@@ -72,53 +72,78 @@ public static class LabSubGroupMerges
                 Diagnose("At least two dated schedule periods are required.");
                 continue;
             }
-            if (candidate.Any(x =>
+
+            static bool HasUndatedSubGroupEvidence(WeeklyLessonAccessor lab)
+            {
+                if (lab.Date.Period.IsSpecified)
                 {
-                    if (!x.Date.Period.IsUnspecified)
-                    {
-                        return false;
-                    }
-
-                    if (IsNumeric(x.Lesson.SubGroup) || x.Lesson.SubGroup == SubGroup.All)
-                    {
-                        return true;
-                    }
-
                     return false;
-                })
-                || applicable.Zip(applicable.Skip(1))
+                }
+
+                var subGroup = lab.Lesson.SubGroup;
+                if (IsNumeric(subGroup) || subGroup == SubGroup.All)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            bool HasDiscontinuousPeriods()
+            {
+                return applicable.Zip(applicable.Skip(1))
                     .Any(pair =>
-                        source.Get(pair.First).End != source.Get(pair.Second).Start
-                        || source.Get(pair.First).Start >= source.Get(pair.Second).Start))
+                    {
+                        var previousPeriod = source.Get(pair.First);
+                        var nextPeriod = source.Get(pair.Second);
+                        if (previousPeriod.End != nextPeriod.Start)
+                        {
+                            return true;
+                        }
+
+                        if (previousPeriod.Start >= nextPeriod.Start)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+            }
+
+            if (candidate.Any(HasUndatedSubGroupEvidence) || HasDiscontinuousPeriods())
             {
                 Diagnose("Period evidence is undated, overlapping, or incomplete.");
                 continue;
             }
-            if (labs.Any(x =>
+
+            bool IsSharedLabInPartition(WeeklyLessonAccessor lab)
+            {
+                if (lab.Lesson.Groups.IsSingleGroup)
                 {
-                    if (x.Lesson.Groups.IsSingleGroup)
-                    {
-                        return false;
-                    }
-
-                    if (!x.Lesson.Groups.Contains(key.Group))
-                    {
-                        return false;
-                    }
-
-                    if (x.Lesson.Course == key.Course
-                        && x.Lesson.Specialization == key.Specialization
-                        && x.Lesson.Alternative == key.Alternative)
-                    {
-                        return true;
-                    }
-
                     return false;
-                }))
+                }
+
+                if (!lab.Lesson.Groups.Contains(key.Group))
+                {
+                    return false;
+                }
+
+                if (lab.Lesson.Course == key.Course
+                    && lab.Lesson.Specialization == key.Specialization
+                    && lab.Lesson.Alternative == key.Alternative)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (labs.Any(IsSharedLabInPartition))
             {
                 Diagnose("Shared lab lessons require separate evidence for each parent group.");
                 continue;
             }
+
             var latest = applicable[^1];
             var current = candidate.Where(x => x.Date.Period == latest)
                 .ToArray();

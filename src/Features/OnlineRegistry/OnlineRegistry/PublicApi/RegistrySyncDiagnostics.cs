@@ -508,35 +508,37 @@ internal sealed class RegistryTargetCoverage(
                     return true;
                 }
 
-                if (!rules.Any(rule =>
+                bool IsMatchingLanguageRule(RegistryGroupMatchRule rule)
+                {
+                    if (!rule.MatchByLanguage)
                     {
-                        if (!rule.MatchByLanguage)
-                        {
-                            return false;
-                        }
-                        if (!rule.AllowParentGroup)
-                        {
-                            return false;
-                        }
-                        if (!rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return false;
-                        }
-                        if (rule.Language != audience.Language)
-                        {
-                            return false;
-                        }
-                        if (rule.Language == host.Language)
-                        {
-                            return false;
-                        }
-                        if (rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)
-                        {
-                            return true;
-                        }
-
                         return false;
-                    }))
+                    }
+                    if (!rule.AllowParentGroup)
+                    {
+                        return false;
+                    }
+                    if (!rule.Faculty.Equals(audience.Faculty.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                    if (rule.Language != audience.Language)
+                    {
+                        return false;
+                    }
+                    if (rule.Language == host.Language)
+                    {
+                        return false;
+                    }
+                    if (rule.SubGroup == SpecialSubGroups.FromLanguage(audience.Language).Value)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                if (!rules.Any(IsMatchingLanguageRule))
                 {
                     return true;
                 }

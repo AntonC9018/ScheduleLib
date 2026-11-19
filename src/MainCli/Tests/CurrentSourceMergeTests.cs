@@ -54,10 +54,9 @@ public sealed class CurrentSourceMergeTests
                         return false;
                     }
 
-                    if (raw.Get(x.Lesson.Course).Names
-                        .Any(name => name.Contains(
-                            "Cloud",
-                            StringComparison.OrdinalIgnoreCase)))
+                    var course = raw.Get(x.Lesson.Course);
+                    if (course.Names
+                        .Any(name => name.Contains("Cloud", StringComparison.OrdinalIgnoreCase)))
                     {
                         return true;
                     }

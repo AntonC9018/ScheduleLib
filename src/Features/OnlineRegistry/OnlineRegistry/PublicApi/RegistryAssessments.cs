@@ -331,23 +331,25 @@ internal static class RegistryAssessments
                         return false;
                     }
 
-                    if (remote.Any(existing =>
+                    bool IsMatchingExistingAssessment(RemoteLessonInstance existing)
+                    {
+                        if (existing.DateTime.Date != lesson.DateTime.Date)
                         {
-                            if (existing.DateTime.Date != lesson.DateTime.Date)
-                            {
-                                return false;
-                            }
-                            if (existing.LessonType != lesson.RegistryLessonType)
-                            {
-                                return false;
-                            }
-                            if (RegistryAssessmentTopics.IsAssessment(existing.Topic))
-                            {
-                                return true;
-                            }
-
                             return false;
-                        }))
+                        }
+                        if (existing.LessonType != lesson.RegistryLessonType)
+                        {
+                            return false;
+                        }
+                        if (RegistryAssessmentTopics.IsAssessment(existing.Topic))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    if (remote.Any(IsMatchingExistingAssessment))
                     {
                         return true;
                     }
