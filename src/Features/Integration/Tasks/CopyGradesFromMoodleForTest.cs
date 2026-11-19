@@ -74,12 +74,11 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             }
 
             // They go in different order on moodle.
+            name = name with
             {
-                var f = name.FirstName;
-                var l = name.LastName;
-                name.FirstName = l;
-                name.LastName = f;
-            }
+                FirstName = name.LastName,
+                LastName = name.FirstName,
+            };
 
             if (q.Grade is not { } grade1)
             {

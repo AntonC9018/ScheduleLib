@@ -722,7 +722,7 @@ public sealed class WebsiteExportTests
     }
 
     [Fact]
-    public async Task DuplicateTeacherSlugConflictSnapshotsTeacherNameFields()
+    public async Task DuplicateTeacherSlugConflictReportsTeacherNameFields()
     {
         TeacherIdentity[] teachers =
         [
@@ -747,17 +747,9 @@ public sealed class WebsiteExportTests
         var error = await Assert.ThrowsAsync<ConflictingTeacherSlugException>(() =>
             provider.SlugMap(CancellationToken.None).AsTask());
 
-        var expectedFields = cached[0].Name.Fields;
-        var originalMessage = error.Message;
-        var mutatedFirstName = new NameParts<string?>();
-        mutatedFirstName[0] = "Mutated";
-        cached[0].Name.FirstName = mutatedFirstName;
-
-        Assert.Equal(expected: expectedFields, actual: error.TeacherName);
-        Assert.NotEqual(expected: cached[0].Name.Fields, actual: error.TeacherName);
+        Assert.Equal(expected: cached[0].Name.Fields, actual: error.TeacherName);
         Assert.Equal(expected: "ion-popescu-1", actual: error.ExistingSlug);
         Assert.Equal(expected: "ion-popescu-2", actual: error.NewSlug);
-        Assert.Equal(expected: originalMessage, actual: error.Message);
     }
 
     private sealed class IdentityNameRemapper : INameRemapper

@@ -119,15 +119,16 @@ public record struct NameFields
     }
 }
 
+/// <summary>A person's name. Immutable: a changed name is a new instance, made with <c>with</c>.</summary>
 public sealed record Name
 {
-    private NameFields _fields;
+    private readonly NameFields _fields;
     public ref readonly NameFields Fields => ref _fields;
 
     public NameParts<string?> FirstName
     {
         get => _fields.FirstName;
-        set
+        init
         {
             AssertValid(value);
             _fields.FirstName = value;
@@ -137,7 +138,7 @@ public sealed record Name
     public NameParts<string?> LastName
     {
         get => _fields.LastName;
-        set
+        init
         {
             AssertValid(value);
             _fields.LastName = value;
@@ -147,7 +148,7 @@ public sealed record Name
     public NameParts<string?> Patronymic
     {
         get => _fields.Patronymic;
-        set
+        init
         {
             AssertValid(value);
             _fields.Patronymic = value;
@@ -178,8 +179,6 @@ public sealed record Name
         F(LastName);
         F(Patronymic);
     }
-
-    public Name Copy() => (Name) MemberwiseClone();
 
     public string ToString(NameToStringParams p)
     {

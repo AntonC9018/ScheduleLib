@@ -1,6 +1,9 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Anton.LayeredData.Retrieval;
 using Anton.LayeredData.TreeEnumeration;
 using ScheduleLib.Application.Config;
+using ScheduleLib.Parsing;
 
 namespace Anton.LayeredData.Tests;
 
@@ -35,5 +38,34 @@ public sealed class MarkerDataTests
         Assert.Equal(expected: typeof(TeacherLayerConfig), actual: exception.ExpectedType);
         Assert.Equal(expected: typeof(string), actual: exception.ActualType);
         Assert.Contains(expectedSubstring: nameof(String), actualString: exception.Message);
+    }
+
+    /// <summary>A marker shared through the settings tree cannot be changed by whoever reads it.</summary>
+    [Theory]
+    [InlineData(typeof(TeacherLayerConfig))]
+    [InlineData(typeof(Name))]
+    public void MarkerStateIsInitOnly(Type type)
+    {
+        static bool IsMutable(PropertyInfo property)
+        {
+            if (property.SetMethod is not { IsPublic: true } setter)
+            {
+                return false;
+            }
+
+            var modifiers = setter.ReturnParameter.GetRequiredCustomModifiers();
+            if (modifiers.Contains(typeof(IsExternalInit)))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        var mutable = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(IsMutable)
+            .Select(x => x.Name);
+
+        Assert.Empty(mutable);
     }
 }
