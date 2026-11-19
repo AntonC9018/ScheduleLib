@@ -1,6 +1,5 @@
 using ScheduleLib.DependencyInjection.ScopePlans;
 using ScheduleLib.Parsing;
-using System.Reflection;
 using System.Text;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
@@ -264,16 +263,11 @@ public static class Registration
             }
         }
 
-        public IConfiguration AddGlobalConfiguration()
+        /// <summary>The global configuration, read when a service first reads it.</summary>
+        public void AddGlobalConfiguration()
         {
-            IConfiguration config;
-            {
-                var builder = new ConfigurationBuilder();
-                builder.AddUserSecrets(Assembly.GetEntryAssembly()!);
-                config = builder.Build();
-            }
-            services.AddSingleton(config);
-            return config;
+            services.AddOptions<GlobalConfigurationOptions>();
+            services.AddSingleton<IConfiguration, GlobalConfiguration>();
         }
     }
 }
