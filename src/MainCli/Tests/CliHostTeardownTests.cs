@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Anton.LayeredData;
 using CommandDotNet;
 using CommandDotNet.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,44 @@ public sealed class CliHostTeardownTests
         Assert.Contains(expectedSubstring: FailureMessage, actualString: message);
     }
 
+    [Fact]
+    public async Task FailedRootSetupStillEndsTheRootContainer()
+    {
+        // The root container should dispose it; the using only guards a failing test.
+        using var probe = new DisposalProbe();
+
+        void FailTreeSetup(IServiceCollection services)
+        {
+            CliTestHost.FixtureSchedule(services);
+            services.AddSingleton(_ => probe);
+            services.AddSingleton<TreeBuilder>(root =>
+            {
+                _ = root.GetRequiredService<DisposalProbe>();
+                throw new InvalidOperationException("tree setup failure");
+            });
+        }
+
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        int exit;
+        try
+        {
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+            exit = await CliTestHost.Run(["query", "lessons", "--json", .. CliTestHost.UncachedSource()], FailTreeSetup);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+
+        Assert.Equal(expected: CliExit.Unexpected, actual: exit);
+        Assert.True(probe.Disposed);
+    }
+
     private static async Task<CapturedRun> RunWithFailingTeardown(string format)
     {
         static void AddFailingTeardown(IServiceCollection services)
@@ -91,6 +130,13 @@ public sealed class CliHostTeardownTests
     }
 
     private readonly record struct CapturedRun(int Exit, string Output, string Error);
+
+    private sealed class DisposalProbe : IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
+    }
 
     private sealed class FailingTeardown : IDisposable
     {

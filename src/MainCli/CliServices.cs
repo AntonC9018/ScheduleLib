@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.ExceptionServices;
 using CommandDotNet;
 using CommandDotNet.Builders;
 using CommandDotNet.Execution;
@@ -39,14 +40,35 @@ public static class CliServices
 internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : IAsyncDisposable
 {
     private ServiceProvider? _root;
+    private ExceptionDispatchInfo? _setupFailure;
     private bool _ended;
 
+    /// <summary>
+    /// The root container, built and its settings tree populated on first use. The container is
+    /// owned from the moment it is built, so a failed setup still ends it; later uses rethrow.
+    /// </summary>
     public IServiceProvider Root
     {
         get
         {
             ObjectDisposedException.ThrowIf(_ended, this);
-            return _root ??= Build();
+            _setupFailure?.Throw();
+            if (_root is not null)
+            {
+                return _root;
+            }
+
+            _root = Build();
+            try
+            {
+                AppConfiguration.ConfigureLayeredConfig(_root);
+            }
+            catch (Exception failure)
+            {
+                _setupFailure = ExceptionDispatchInfo.Capture(failure);
+                throw;
+            }
+            return _root;
         }
     }
 
@@ -72,9 +94,7 @@ internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : I
         var services = new ServiceCollection();
         CliServices.Configure(services);
         overrides?.Invoke(services);
-        var root = AppConfiguration.BuildServiceProvider(services);
-        AppConfiguration.ConfigureLayeredConfig(root);
-        return root;
+        return AppConfiguration.BuildServiceProvider(services);
     }
 }
 
