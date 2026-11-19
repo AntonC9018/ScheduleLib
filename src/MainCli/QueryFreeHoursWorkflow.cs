@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Core;
 using ScheduleLib.DependencyInjection.ScopePlans;
@@ -5,7 +6,7 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 namespace ScheduleLib.Cli;
 
 /// <summary>The distinct, non-empty group names of one <c>query free-hours</c> invocation. A seed.</summary>
-public sealed record FreeHoursQuery(IReadOnlyList<string> Groups);
+public sealed record FreeHoursQuery(ImmutableArray<string> Groups);
 
 /// <summary>The free hours of the groups of a <see cref="FreeHoursQuery"/>, over every weekly period. A workflow root.</summary>
 public sealed class QueryFreeHoursWorkflow(

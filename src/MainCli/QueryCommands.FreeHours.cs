@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using CommandDotNet;
 using ScheduleLib.Application.Core;
 using ScheduleLib.DependencyInjection.ScopePlans;
@@ -66,7 +67,7 @@ public sealed class QueryFreeHoursCommand(ScopeForkFactory<QueryFreeHoursWorkflo
             }
 
             var names = requested.Distinct(StringComparer.Ordinal)
-                .ToArray();
+                .ToImmutableArray();
             if (names.Length != requested.Length)
             {
                 warnings.Add("Repeated group names were reported once.");
