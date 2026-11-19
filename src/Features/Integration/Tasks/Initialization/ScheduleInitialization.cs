@@ -2,7 +2,6 @@ using System.Diagnostics;
 using AutoConstructor.Attributes;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ScheduleLib.DependencyInjection.ScopePlans;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Builders;

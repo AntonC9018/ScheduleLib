@@ -1,7 +1,6 @@
 using Anton.LayeredData;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.ScheduleDefaults;
 using Tests.ScheduleCommon;
 

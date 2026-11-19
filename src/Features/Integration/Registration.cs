@@ -20,7 +20,6 @@ using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Scraping.Common.Config;
 using ScheduleLib.Theses.Parsing;
 using Serilog;

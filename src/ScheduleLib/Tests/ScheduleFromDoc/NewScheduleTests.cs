@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib;
-using ScheduleLib.Builders;
 
 namespace ScheduleFromDoc.Tests;
 

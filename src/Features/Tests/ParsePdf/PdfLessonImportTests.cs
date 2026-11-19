@@ -3,7 +3,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.Import.Pdf;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 public sealed class PdfLessonImportTests

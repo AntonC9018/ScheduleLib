@@ -1,4 +1,3 @@
-using ScheduleLib.Parsing;
 using System.Diagnostics;
 using System.Text;
 using ClosedXML.Excel;
@@ -7,7 +6,6 @@ using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing.Excel;
 

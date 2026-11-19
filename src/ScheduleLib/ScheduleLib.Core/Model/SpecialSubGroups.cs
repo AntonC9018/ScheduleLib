@@ -1,6 +1,5 @@
 using ScheduleLib.Parsing;
 using System.Collections.Immutable;
-using ScheduleLib.Helper;
 
 namespace ScheduleLib;
 

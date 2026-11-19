@@ -8,7 +8,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Builders;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
 

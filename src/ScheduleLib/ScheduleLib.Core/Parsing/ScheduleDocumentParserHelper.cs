@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Globalization;
 using ScheduleLib.Builders;
 using ScheduleLib.Helper.Parsing;
-using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Parsing;
 

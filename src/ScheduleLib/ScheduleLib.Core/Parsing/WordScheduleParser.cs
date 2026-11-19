@@ -1,13 +1,10 @@
-using ScheduleLib.Parsing;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ScheduleLib.Builders;
-using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;

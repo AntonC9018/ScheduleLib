@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;

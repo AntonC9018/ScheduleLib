@@ -2,7 +2,6 @@ using ScheduleLib.Parsing;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
 using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;

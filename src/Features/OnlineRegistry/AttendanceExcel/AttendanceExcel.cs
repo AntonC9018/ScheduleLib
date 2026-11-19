@@ -8,7 +8,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;

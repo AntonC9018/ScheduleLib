@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using Anton.LayeredData.Retrieval;

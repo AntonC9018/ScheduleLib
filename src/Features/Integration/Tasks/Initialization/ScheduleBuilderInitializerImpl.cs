@@ -9,7 +9,6 @@ using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Dates;
-using ScheduleLib.Parsing.WordDoc;
 
 namespace ScheduleLib.Application.Core;
 

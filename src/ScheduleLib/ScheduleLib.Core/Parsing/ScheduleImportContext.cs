@@ -2,8 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using ScheduleLib.Builders;
 using ScheduleLib.Generation;
-using ScheduleLib.Helper;
-using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 

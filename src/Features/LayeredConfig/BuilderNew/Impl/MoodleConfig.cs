@@ -1,7 +1,6 @@
 using Anton.LayeredData;
 using Anton.LayeredData.Retrieval;
 using Microsoft.Extensions.DependencyInjection;
-using ScheduleLib.Scraping.Common;
 using ScheduleLib.Scraping.Common.Config;
 
 namespace ScheduleLib.Application.Config;

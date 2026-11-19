@@ -3,7 +3,6 @@ using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.GroupParser;
-using Xunit;
 
 public sealed class RegistryStudentCoverageTests
 {

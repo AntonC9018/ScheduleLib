@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ScheduleLib.Parsing;
-using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib.Builders;
 

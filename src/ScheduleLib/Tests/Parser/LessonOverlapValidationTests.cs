@@ -1,4 +1,3 @@
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 

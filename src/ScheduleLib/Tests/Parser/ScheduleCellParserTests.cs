@@ -3,7 +3,6 @@ using System.Text;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;

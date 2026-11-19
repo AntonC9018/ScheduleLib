@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Parsing;
 

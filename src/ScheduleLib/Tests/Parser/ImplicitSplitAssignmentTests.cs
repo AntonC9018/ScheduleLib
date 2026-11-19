@@ -1,7 +1,5 @@
-using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.ScheduleDefaults;
 
 namespace ScheduleLib.ParserTests;
 

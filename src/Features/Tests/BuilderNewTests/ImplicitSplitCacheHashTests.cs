@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using ScheduleLib;
 using ScheduleLib.Application.Core;
-using ScheduleLib.ScheduleDefaults;
 
 public sealed class ImplicitSplitCacheHashTests
 {

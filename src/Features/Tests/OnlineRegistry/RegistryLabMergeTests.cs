@@ -2,7 +2,6 @@ using ClosedXML.Excel;
 using OnlineRegistry.AttendanceExcel;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.Lesson;
 using ScheduleLib.ScheduleDefaults;
 using Tests.ScheduleCommon;

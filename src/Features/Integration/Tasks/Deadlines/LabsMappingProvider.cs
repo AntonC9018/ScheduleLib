@@ -3,7 +3,6 @@ using Anton.LayeredData.Retrieval;
 using AutoConstructor.Attributes;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Application.Config;
-using ScheduleLib.Builders;
 
 namespace ScheduleLib.Application.Core;
 

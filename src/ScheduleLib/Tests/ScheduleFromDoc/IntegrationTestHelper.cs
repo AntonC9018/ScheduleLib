@@ -5,7 +5,6 @@ using System.Text.Unicode;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Config;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.WebEncoders.Testing;
 using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;

@@ -4,16 +4,13 @@ using System.Security.Cryptography;
 using System.Text;
 using ClosedXML.Excel;
 using FmiWebsiteInterop.Teachers;
-using FmiScheduleImport;
 using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Excel.Helper;
-using ScheduleLib.Helper;
 using ScheduleLib.Helper.Excel;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing;
 using ScheduleLib.Parsing.Excel;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.Theses.Parsing;
 using TruePath;
 

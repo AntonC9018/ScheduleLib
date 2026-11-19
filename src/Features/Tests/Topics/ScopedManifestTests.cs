@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ScheduleLib.Application.Core.Topics;
 using ScheduleLib.Builders;
 using ScheduleLib.OnlineRegistry;
-using ScheduleLib.Parsing.CourseName;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.ScheduleDefaults;
 using Tests.ScheduleCommon;

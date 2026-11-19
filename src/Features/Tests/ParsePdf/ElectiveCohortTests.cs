@@ -5,7 +5,6 @@ using ScheduleLib;
 using ScheduleLib.Builders;
 using ScheduleLib.Parsing.GroupParser;
 using ScheduleLib.Parsing.Lesson;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 public sealed class ElectiveCohortTests

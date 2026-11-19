@@ -2,7 +2,6 @@ using ScheduleLib.Import.Pdf;
 using ScheduleLib.Parsing;
 using ScheduleLib;
 using ScheduleLib.Builders;
-using ScheduleLib.Parsing.WordDoc;
 using ScheduleLib.ScheduleDefaults;
 
 namespace FmiScheduleImport;

@@ -1,4 +1,3 @@
-using ScheduleLib;
 using ScheduleLib.Builders;
 
 namespace OnlineRegistry.AttendanceExcel;

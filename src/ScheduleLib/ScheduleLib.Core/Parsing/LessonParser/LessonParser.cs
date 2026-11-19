@@ -10,7 +10,6 @@ using ScheduleLib.Generation;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Lesson.Internal;
-using InvalidOperationException = System.InvalidOperationException;
 
 namespace ScheduleLib.Parsing.Lesson;
 

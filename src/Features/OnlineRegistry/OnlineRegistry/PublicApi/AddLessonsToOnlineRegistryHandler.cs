@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper;
-using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
 

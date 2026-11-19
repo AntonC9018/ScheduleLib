@@ -1,4 +1,3 @@
-using ScheduleLib;
 using ScheduleLib.Dates;
 
 namespace ScheduleLib.Application.Core;

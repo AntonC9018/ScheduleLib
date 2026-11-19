@@ -1,22 +1,16 @@
-using System.Net;
 using Anton.LayeredData;
 using Anton.LayeredData.Options;
 using AutoConstructor.Attributes;
-using Google;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
-using Google.Apis.Core;
 using Google.Apis.Http;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Polly;
-using Polly.Extensions.Http;
 using ScheduleLib.Helper;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
