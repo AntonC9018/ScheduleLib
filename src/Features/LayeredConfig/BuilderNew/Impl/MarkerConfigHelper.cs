@@ -99,6 +99,9 @@ public sealed class MarkerDataHelper : MarkerDataHelperBase<TeacherLayerConfig>
         services.AddSingleton<IMarkerDataHelper, MarkerDataHelper>();
         // Hosts without settings supply the teacher marker when they open a scope.
         services.AddSeed<TeacherLayerConfig>();
+        // DataProvider reads the marker through its marker helper and the scope's provider,
+        // so opening a scope for it requires the marker.
+        services.AddHiddenNeeds<DataProvider, TeacherLayerConfig>();
     }
 
     public override TeacherLayerConfig GetMarkerData(IServiceProvider sp)

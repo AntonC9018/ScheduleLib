@@ -45,6 +45,26 @@ public sealed class IntegrationTest
     }
 
     [Fact]
+    public async Task MarkerScopeRejectsAMissingMarker()
+    {
+        var fixture = Fixture();
+        var marker = ScopeNode.Unkeyed(typeof(TeacherLayerConfig));
+        var plan = fixture.ServiceProvider.GetRequiredService<ScopePlanGraph>()
+            .GetPlan(typeof(DataProvider));
+        Assert.Contains(expected: marker, collection: plan.Seeds);
+
+        static void SupplyNothing(ScopeInputs inputs)
+        {
+        }
+
+        Task<HostScope<DataProvider>> OpenWithoutMarker() =>
+            HostScope<DataProvider>.Open(fixture.ServiceProvider, SupplyNothing, CancellationToken.None);
+
+        var error = await Assert.ThrowsAsync<MissingSeedsException>(OpenWithoutMarker);
+        Assert.Equal(expected: marker, actual: Assert.Single(error.Seeds));
+    }
+
+    [Fact]
     public async Task TopicsLoaderTest()
     {
         var fixture = Fixture();
