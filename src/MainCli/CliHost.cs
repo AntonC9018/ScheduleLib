@@ -84,90 +84,96 @@ public static class CliHost
                 },
                 MiddlewareSteps.Help.PrintHelpOnExit + 1);
         });
-        try
+        var commandExit = await RunCommand();
+        return await EndRootServices(rootServices, commandExit, startupRequest);
+
+        async Task<int> RunCommand()
         {
-            overrides?.Runner?.Invoke(runner);
-            var invocationArguments = args.Length == 0 ? ["--help"] : args;
-            var result = await runner.RunAsync(invocationArguments);
-            if (result == CliExit.Success)
+            try
             {
-                return result;
-            }
-
-            if (invoked)
-            {
-                return result;
-            }
-
-            if (startupRequest.RejectsFormatConflict)
-            {
-                Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
-                return CliExit.InvalidArguments;
-            }
-            var inputFailure = IsStartupInputFailure(result, parseDetail);
-            var exit = inputFailure ? CliExit.InvalidArguments : CliExit.Unexpected;
-            // Preserve actionable parser diagnostics on stderr without dumping argv
-            // or credentials: CommandDotNet's captured human error plus ParseError.
-            var details = new List<string>();
-            if (capture is not null)
-            {
-                foreach (var line in capture.GetError()
-                             .Split('\n'))
+                overrides?.Runner?.Invoke(runner);
+                var invocationArguments = args.Length == 0 ? ["--help"] : args;
+                var result = await runner.RunAsync(invocationArguments);
+                if (result == CliExit.Success)
                 {
-                    var trimmed = line.Trim();
-                    if (trimmed.Length > 0)
+                    return result;
+                }
+
+                if (invoked)
+                {
+                    return result;
+                }
+
+                if (startupRequest.RejectsFormatConflict)
+                {
+                    Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
+                    return CliExit.InvalidArguments;
+                }
+                var inputFailure = IsStartupInputFailure(result, parseDetail);
+                var exit = inputFailure ? CliExit.InvalidArguments : CliExit.Unexpected;
+                // Preserve actionable parser diagnostics on stderr without dumping argv
+                // or credentials: CommandDotNet's captured human error plus ParseError.
+                var details = new List<string>();
+                if (capture is not null)
+                {
+                    foreach (var line in capture.GetError()
+                                 .Split('\n'))
                     {
-                        details.Add(trimmed);
+                        var trimmed = line.Trim();
+                        if (trimmed.Length > 0)
+                        {
+                            details.Add(trimmed);
+                        }
+                    }
+                    foreach (var line in capture.GetOut()
+                                 .Split('\n'))
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.Length > 0)
+                        {
+                            details.Add(trimmed);
+                        }
                     }
                 }
-                foreach (var line in capture.GetOut()
-                             .Split('\n'))
+                if (parseDetail is { Length: > 0 } parsed)
                 {
-                    var trimmed = line.Trim();
-                    if (trimmed.Length > 0)
+                    if (!details.Contains(parsed))
                     {
-                        details.Add(trimmed);
+                        details.Add(parsed);
                     }
                 }
-            }
-            if (parseDetail is { Length: > 0 } parsed)
-            {
-                if (!details.Contains(parsed))
+
+                var summary = inputFailure
+                    ? "Invalid command or arguments. See stderr for details."
+                    : "Unexpected CLI startup failure. See stderr for details.";
+                if (details.Count == 0)
                 {
-                    details.Add(parsed);
+                    details.Add(summary);
                 }
-            }
 
-            var summary = inputFailure
-                ? "Invalid command or arguments. See stderr for details."
-                : "Unexpected CLI startup failure. See stderr for details.";
-            if (details.Count == 0)
-            {
-                details.Add(summary);
+                WriteStartupResult(
+                    exit,
+                    summary,
+                    details);
+                return exit;
             }
-
-            WriteStartupResult(
-                exit,
-                summary,
-                details);
-            return exit;
-        }
-        catch (Exception e)
-        {
-            if (startupRequest.RejectsFormatConflict)
+            catch (Exception e)
             {
-                Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
-                return CliExit.InvalidArguments;
+                if (startupRequest.RejectsFormatConflict)
+                {
+                    Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
+                    return CliExit.InvalidArguments;
+                }
+                WriteStartupResult(
+                    1,
+                    "Unexpected CLI startup failure. See stderr for details.",
+                    [e.Message]);
+                if (!startupRequest.UsesJsonlOutput)
+                {
+                    Console.Error.WriteLine(e.Message);
+                }
+                return CliExit.Unexpected;
             }
-            WriteStartupResult(
-                1,
-                "Unexpected CLI startup failure. See stderr for details.",
-                [e.Message]);
-            if (!startupRequest.UsesJsonlOutput)
-            {
-                Console.Error.WriteLine(e.Message);
-            }
-            return CliExit.Unexpected;
         }
 
         void WriteStartupResult(
@@ -224,6 +230,43 @@ public static class CliHost
                             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                         }));
             }
+        }
+    }
+
+    /// <summary>
+    /// Ends the root container once the command has reported its outcome, before the enclosing
+    /// <c>await using</c> would, which then has nothing left to end. A teardown failure
+    /// cannot change a result already written, so no second result follows: the failure goes to
+    /// stderr (a JSONL log record with <c>--jsonl</c>), and a successful exit becomes
+    /// <see cref="CliExit.Unexpected"/> while a failed exit keeps the command's code.
+    /// </summary>
+    private static async Task<int> EndRootServices(CliRootServices rootServices, int exit, StartupRequest request)
+    {
+        try
+        {
+            await rootServices.DisposeAsync();
+            return exit;
+        }
+        catch (Exception e)
+        {
+            var message = $"Ending the CLI's services failed: {e.Message}";
+            if (request.UsesJsonlOutput)
+            {
+                var runId = Guid.NewGuid()
+                    .ToString("N");
+                new CliOutput("cli", runId, json: false, jsonl: true).WriteError(message);
+            }
+            else
+            {
+                Console.Error.WriteLine(message);
+            }
+
+            if (exit == CliExit.Success)
+            {
+                return CliExit.Unexpected;
+            }
+
+            return exit;
         }
     }
 

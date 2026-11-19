@@ -33,6 +33,10 @@ unexpected failures, 2 for invalid arguments, 3 for missing/invalid input, 4 for
 5 for I/O or remote operation failures, 6 for partial outputs, 7 for a busy explicit output
 destination, 8 for unsupported capabilities and 130 for cancellation.
 Ctrl+C cancels initialization and query enumeration.
+If the CLI's shared services fail to shut down after a command has reported its
+result, that result stands and no second one follows: the failure goes to
+stderr (a JSONL `log` record under command `cli` with `--jsonl`), and the
+process exits 1 if the command succeeded, otherwise with the command's code.
 
 `--jsonl` streams newline-delimited JSON on stdout and is mutually exclusive
 with `--json` (both together exit 2). Human output remains the default; result

@@ -39,10 +39,33 @@ public static class CliServices
 internal sealed class CliRootServices(Action<IServiceCollection>? overrides) : IAsyncDisposable
 {
     private ServiceProvider? _root;
+    private bool _ended;
 
-    public IServiceProvider Root => _root ??= Build();
+    public IServiceProvider Root
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_ended, this);
+            return _root ??= Build();
+        }
+    }
 
-    public ValueTask DisposeAsync() => _root?.DisposeAsync() ?? ValueTask.CompletedTask;
+    /// <summary>Ends the root container the first time; later calls do nothing, even after a failure.</summary>
+    public ValueTask DisposeAsync()
+    {
+        if (_ended)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        _ended = true;
+        if (_root is null)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        return _root.DisposeAsync();
+    }
 
     private ServiceProvider Build()
     {
