@@ -41,7 +41,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
   registers the replacement, of the same kind or another; tests use this to supply fakes.
 - **Metadata lives in the service collection.** Each value is described by a singleton record
   next to the registrations it owns, and `AddHiddenNeeds` appends one too, so `RemoveAll` or
-  `Replace` on the collection is what the plan sees. The `Add*` calls only append.
+  `Replace` on the collection is what the plan sees: a value whose registration is no longer
+  the one DI resolves is planned as an ordinary service. The `Add*` calls only append.
 - **`AddScopePlans()` registers the infrastructure:** the graph, plans, fork factories and scope
   state. A host calls it once; repeated calls are harmless, and order relative to `Add*` does
   not matter. The graph indexes the collection when the container first builds it and does not

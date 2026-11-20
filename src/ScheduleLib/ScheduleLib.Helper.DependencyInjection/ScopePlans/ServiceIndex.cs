@@ -16,10 +16,25 @@ internal enum ServiceSource
 
 internal readonly record struct ServiceRecipe(ServiceSource Source, Type? Implementation);
 
-/// <summary>Registrations by service type and key, built once from the read-only service collection.</summary>
+/// <summary>What planning needs from one registration; an open generic keeps its open implementation.</summary>
+internal readonly record struct IndexedService(ServiceLifetime Lifetime, Type? Implementation)
+{
+    public static IndexedService Of(ServiceDescriptor descriptor)
+    {
+        var implementation = descriptor.IsKeyedService
+            ? descriptor.KeyedImplementationType
+            : descriptor.ImplementationType;
+        return new(descriptor.Lifetime, implementation);
+    }
+}
+
+/// <summary>
+/// Registrations by service type and key, built once from the read-only service collection.
+/// It keeps no descriptors, so it never holds what their factories capture.
+/// </summary>
 internal sealed class ServiceIndex
 {
-    private readonly Dictionary<ScopeNode, List<ServiceDescriptor>> _descriptors = [];
+    private readonly Dictionary<ScopeNode, List<IndexedService>> _services = [];
     private readonly Dictionary<ScopeNode, int> _positions = [];
 
     public ServiceIndex(IServiceCollection services)
@@ -28,24 +43,24 @@ internal sealed class ServiceIndex
         {
             var node = new ScopeNode(descriptor.ServiceType, descriptor.ServiceKey);
             _positions.TryAdd(node, _positions.Count);
-            if (!_descriptors.TryGetValue(node, out var list))
+            if (!_services.TryGetValue(node, out var list))
             {
                 list = [];
-                _descriptors[node] = list;
+                _services[node] = list;
             }
-            list.Add(descriptor);
+            list.Add(IndexedService.Of(descriptor));
         }
     }
 
     /// <summary>The registration Microsoft DI resolves for a single service: the last one.</summary>
     public ServiceRecipe Find(ScopeNode node)
     {
-        var descriptors = FindAll(node);
-        if (descriptors.Count == 0)
+        var registrations = FindAll(node);
+        if (registrations.Count == 0)
         {
             return new(ServiceSource.Missing, Implementation: null);
         }
-        return RecipeOf(descriptors[^1], node.Type);
+        return RecipeOf(registrations[^1], node.Type);
     }
 
     /// <summary>
@@ -72,9 +87,9 @@ internal sealed class ServiceIndex
         return FindAll(node).Select(d => RecipeOf(d, node.Type));
     }
 
-    private List<ServiceDescriptor> FindAll(ScopeNode node)
+    private List<IndexedService> FindAll(ScopeNode node)
     {
-        if (_descriptors.TryGetValue(node, out var exact))
+        if (_services.TryGetValue(node, out var exact))
         {
             return exact;
         }
@@ -84,22 +99,20 @@ internal sealed class ServiceIndex
         }
         var genericDefinition = node.Type.GetGenericTypeDefinition();
         var open = new ScopeNode(genericDefinition, node.Key);
-        if (_descriptors.TryGetValue(open, out var openDescriptors))
+        if (_services.TryGetValue(open, out var openRegistrations))
         {
-            return openDescriptors;
+            return openRegistrations;
         }
         return [];
     }
 
-    private static ServiceRecipe RecipeOf(ServiceDescriptor descriptor, Type serviceType)
+    private static ServiceRecipe RecipeOf(IndexedService registration, Type serviceType)
     {
-        if (descriptor.Lifetime == ServiceLifetime.Singleton)
+        if (registration.Lifetime == ServiceLifetime.Singleton)
         {
             return new(ServiceSource.Singleton, Implementation: null);
         }
-        var implementation = descriptor.IsKeyedService
-            ? descriptor.KeyedImplementationType
-            : descriptor.ImplementationType;
+        var implementation = registration.Implementation;
         if (implementation is null)
         {
             return new(ServiceSource.Lambda, Implementation: null);

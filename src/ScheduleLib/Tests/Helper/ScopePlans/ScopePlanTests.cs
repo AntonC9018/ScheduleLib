@@ -436,8 +436,10 @@ public sealed class ScopePlanTests
         var services = CreateServices();
 
         services.RemoveScopeValue<SourceArgs>("previous");
-        services.AddKeyedSeed<SourceArgs>("previous");
 
+        Assert.DoesNotContain(services, d => Equals(d.ServiceKey, "previous"));
+        Assert.Single(services, d => d.ServiceType == typeof(Slot<SourceArgs>) && d.ServiceKey is null);
+        services.AddKeyedSeed<SourceArgs>("previous");
         using var root = services.Build();
         using var scope = root.CreateScope();
         var slot = scope.ServiceProvider.GetKeyedService<Slot<SourceArgs>>("previous");
@@ -564,6 +566,35 @@ public sealed class ScopePlanTests
         await using var scope = await invocation.ServiceProvider.OpenAsync<QueryLessonsHandler>(SupplySource);
 
         Assert.Equal(expected: "fake", actual: scope.Handler.Schedule.DataDir);
+    }
+
+    public static TheoryData<Action<IServiceCollection>> OrdinaryEditsOfAValue()
+    {
+        var preloaded = ServiceDescriptor.Scoped(static _ => new LoadedSchedule("preloaded", Load: 0));
+        return new()
+        {
+            s => s.Replace(preloaded),
+            s =>
+            {
+                s.RemoveAll<LoadedSchedule>();
+                s.Add(preloaded);
+            },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(OrdinaryEditsOfAValue))]
+    public async Task ValueEditedLikeAnOrdinaryServiceIsPlannedAsOne(Action<IServiceCollection> edit)
+    {
+        var services = CreateServices();
+        edit(services);
+        await using var root = services.Build();
+        await using var invocation = root.CreateAsyncScope();
+
+        await using var scope = await invocation.ServiceProvider.OpenAsync<QueryLessonsHandler>(supply: null);
+
+        Assert.Empty(root.PlanOf<QueryLessonsHandler>().Steps);
+        Assert.Equal(expected: "preloaded", actual: scope.Handler.Schedule.DataDir);
     }
 
     [Fact]

@@ -42,14 +42,45 @@ public sealed class ScopePlanGraph
     private readonly Dictionary<Type, ScopePlan> _plans = [];
     private readonly Lock _lock = new();
 
-    /// <summary>Indexes <paramref name="services"/> now and does not keep the collection.</summary>
+    /// <summary>
+    /// Indexes <paramref name="services"/> now and does not keep the collection. A value whose
+    /// registration was removed or replaced by ordinary collection edits is planned as whatever
+    /// now provides it.
+    /// </summary>
     internal ScopePlanGraph(
         IServiceCollection services,
         IEnumerable<ScopeValueRegistration> values,
         IEnumerable<HiddenNeed> hiddenNeeds)
     {
         _index = new(services);
-        Values = new(values, hiddenNeeds);
+        var effective = EffectiveDescriptors(services);
+        Values = new(values.Where(v => IsEffective(v, effective)), hiddenNeeds);
+    }
+
+    /// <summary>The descriptor Microsoft DI resolves for each service: the last one registered.</summary>
+    private static Dictionary<ScopeNode, ServiceDescriptor> EffectiveDescriptors(IServiceCollection services)
+    {
+        var effective = new Dictionary<ScopeNode, ServiceDescriptor>();
+        foreach (var descriptor in services)
+        {
+            effective[new(descriptor.ServiceType, descriptor.ServiceKey)] = descriptor;
+        }
+        return effective;
+    }
+
+    private static bool IsEffective(
+        ScopeValueRegistration value,
+        Dictionary<ScopeNode, ServiceDescriptor> effective)
+    {
+        if (!effective.TryGetValue(value.Node, out var descriptor))
+        {
+            return false;
+        }
+        if (value.OwnedDescriptors.Contains(descriptor))
+        {
+            return true;
+        }
+        return false;
     }
 
     internal ScopeValueCatalog Values { get; }
