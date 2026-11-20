@@ -219,6 +219,7 @@ public sealed class CliHostTeardownTests
         {
             CliTestHost.FixtureSchedule(services);
             services.AddSingleton(cancellation);
+            services.RemoveScopeValue<ScheduleSource>();
             services.AddInitialized<ScheduleSource, CancellingSourceInitializer>();
         }
 
@@ -279,6 +280,7 @@ public sealed class CliHostTeardownTests
     private static void HoldFailingResource(IServiceCollection services)
     {
         CliTestHost.FixtureSchedule(services);
+        services.RemoveScopeValue<ScheduleSource>();
         services.AddInitialized<ScheduleSource, ResourceHoldingSourceInitializer>();
     }
 

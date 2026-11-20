@@ -72,6 +72,7 @@ public sealed record ScheduleSourceSelection(
     public static void AddScopeValues(IServiceCollection services)
     {
         services.AddSeed<ScheduleSourceSelection>();
+        services.RemoveScopeValue<ScheduleSource>();
         services.AddDerived<ScheduleSource, ScheduleSourceFactory>();
     }
 }

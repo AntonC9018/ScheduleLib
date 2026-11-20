@@ -547,6 +547,7 @@ internal static class ScopePlanFixture
     public static IServiceCollection CreateServices()
     {
         var services = new ServiceCollection();
+        services.AddScopePlans();
         services.AddSeed<SourceArgs>();
         services.AddSeed<SettingsArgs>();
         services.AddSeed<QuizArgs>();

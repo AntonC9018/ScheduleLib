@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScheduleLib.DependencyInjection.ScopePlans;
 using static ScheduleLib.Tests.ScopePlans.ScopePlanFixture;
 
@@ -254,6 +255,7 @@ public sealed class ScopePlanTests
         static IServiceCollection CreateCycleServices()
         {
             var services = new ServiceCollection();
+            services.AddScopePlans();
             services.AddSeed<SourceArgs>();
             services.AddScoped<CycleService>();
             return services;
@@ -269,9 +271,11 @@ public sealed class ScopePlanTests
     public async Task ReplacedInitializerIsNoLongerValidated()
     {
         var services = new ServiceCollection();
+        services.AddScopePlans();
         services.AddSeed<SourceArgs>();
         services.AddTransient<LessonQuery>();
         services.AddInitialized<LoadedSchedule, UnresolvableScheduleInitializer>();
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();
@@ -306,6 +310,7 @@ public sealed class ScopePlanTests
         static IServiceCollection CreateCycleServices()
         {
             var services = new ServiceCollection();
+            services.AddScopePlans();
             services.AddSeed<SourceArgs>();
             services.AddScoped<CycleFirst>();
             services.AddScoped<CycleSecond>();
@@ -317,6 +322,7 @@ public sealed class ScopePlanTests
     public void CycleReachedThroughSeveralPathsReportsEachProblemOnce()
     {
         var services = new ServiceCollection();
+        services.AddScopePlans();
         services.AddSeed<SourceArgs>();
         services.AddScoped<DiamondTop>();
         services.AddScoped<DiamondLeft>();
@@ -355,6 +361,7 @@ public sealed class ScopePlanTests
         static IServiceCollection CreateKeyedCycleServices()
         {
             var services = new ServiceCollection();
+            services.AddScopePlans();
             services.AddSeed<SourceArgs>();
             services.AddKeyedScoped<ILink, IntKeyLink>(1);
             services.AddKeyedScoped<ILink, StringKeyLink>("1");
@@ -366,6 +373,7 @@ public sealed class ScopePlanTests
     public void EachSeparateCycleIsReported()
     {
         var services = new ServiceCollection();
+        services.AddScopePlans();
         services.AddSeed<SourceArgs>();
         services.AddScoped<CycleFirst>();
         services.AddScoped<CycleSecond>();
@@ -379,14 +387,74 @@ public sealed class ScopePlanTests
         Assert.Equal(expected: 2, actual: cycles.Count);
     }
 
+    public static TheoryData<Action<IServiceCollection>> AddsOfEveryKind()
+    {
+        return new()
+        {
+            static s => s.AddSeed<TeacherSettings>(),
+            static s => s.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>(),
+            static s => s.AddInitialized<TeacherSettings, InitializedTeacherSettingsInitializer>(),
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(AddsOfEveryKind))]
+    public void AddingARegisteredValueAgainThrows(Action<IServiceCollection> add)
+    {
+        var services = CreateServices();
+
+        var duplicate = Assert.Throws<DuplicateScopeValueException>(() => add(services));
+
+        Assert.Equal(expected: ScopeNode.Unkeyed(typeof(TeacherSettings)), actual: duplicate.Value);
+    }
+
+    [Fact]
+    public void KeyedSeedsAreDuplicatesOnlyUnderTheSameKey()
+    {
+        var services = CreateServices();
+
+        services.AddKeyedSeed<SourceArgs>("next");
+
+        Assert.Throws<DuplicateScopeValueException>(() => services.AddKeyedSeed<SourceArgs>("previous"));
+    }
+
+    [Fact]
+    public void RemovingAnUnregisteredValueThrows()
+    {
+        var services = CreateServices();
+
+        var unkeyed = Assert.Throws<ScopeValueNotRegisteredException>(services.RemoveScopeValue<LessonQuery>);
+        var keyed = Assert.Throws<ScopeValueNotRegisteredException>(() => services.RemoveScopeValue<SourceArgs>("next"));
+
+        Assert.Equal(expected: ScopeNode.Unkeyed(typeof(LessonQuery)), actual: unkeyed.Value);
+        Assert.Equal(expected: new ScopeNode(typeof(SourceArgs), "next"), actual: keyed.Value);
+    }
+
+    [Fact]
+    public void RemovedKeyedSeedCanBeAddedAgain()
+    {
+        var services = CreateServices();
+
+        services.RemoveScopeValue<SourceArgs>("previous");
+        services.AddKeyedSeed<SourceArgs>("previous");
+
+        using var root = services.Build();
+        using var scope = root.CreateScope();
+        var slot = scope.ServiceProvider.GetKeyedService<Slot<SourceArgs>>("previous");
+        Assert.NotNull(slot);
+    }
+
     [Fact]
     public void SeedAndInitializedRegistrationsReplaceEachOther()
     {
         var asSeed = CreateServices();
+        asSeed.RemoveScopeValue<LoadedSchedule>();
         asSeed.AddSeed<LoadedSchedule>();
         using var seedRoot = asSeed.Build();
         var asInitialized = CreateServices();
+        asInitialized.RemoveScopeValue<LoadedSchedule>();
         asInitialized.AddSeed<LoadedSchedule>();
+        asInitialized.RemoveScopeValue<LoadedSchedule>();
         asInitialized.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
         using var initializedRoot = asInitialized.Build();
 
@@ -399,6 +467,7 @@ public sealed class ScopePlanTests
     public async Task SeedReplacesADerivedRegistration()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddSeed<TeacherSettings>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();
@@ -415,7 +484,9 @@ public sealed class ScopePlanTests
     public void DerivedRegistrationReplacesASeed()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddSeed<TeacherSettings>();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
         using var root = services.Build();
 
@@ -426,6 +497,7 @@ public sealed class ScopePlanTests
     public async Task InitializedRegistrationReplacesADerivedOne()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddInitialized<TeacherSettings, InitializedTeacherSettingsInitializer>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();
@@ -436,12 +508,13 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
-    public void ReplacingAnInitializerKeepsAnUnrelatedRegistrationOfItsType()
+    public void RemovingAnInitializerKeepsAnUnrelatedRegistrationOfItsType()
     {
         var services = CreateServices();
         services.AddSingleton<FakeScheduleInitializer>();
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
-        services.AddInitialized<LoadedSchedule, LoadedScheduleInitializer>();
+        services.RemoveScopeValue<LoadedSchedule>();
 
         var remaining = Assert.Single(services, d => d.ServiceType == typeof(FakeScheduleInitializer));
         Assert.Equal(expected: ServiceLifetime.Singleton, actual: remaining.Lifetime);
@@ -451,6 +524,7 @@ public sealed class ScopePlanTests
     public async Task ReplacedDerivedValueWinsOverAnOrdinaryRegistrationBetween()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddScoped(_ => new TeacherSettings("ordinary"));
         services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
         await using var root = services.Build();
@@ -462,10 +536,12 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
-    public async Task LaterDerivedRegistrationReplacesEarlierOne()
+    public async Task RemoveThenAddReplacesADerivedValue()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddDerived<TeacherSettings, UnresolvableTeacherSettingsFactory>();
+        services.RemoveScopeValue<TeacherSettings>();
         services.AddDerived<TeacherSettings, FixedTeacherSettingsFactory>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();
@@ -477,9 +553,10 @@ public sealed class ScopePlanTests
     }
 
     [Fact]
-    public async Task LaterInitializedRegistrationReplacesEarlierOne()
+    public async Task RemoveThenAddReplacesAnInitializedValue()
     {
         var services = CreateServices();
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, FakeScheduleInitializer>();
         await using var root = services.Build();
         await using var invocation = root.CreateAsyncScope();
@@ -487,5 +564,29 @@ public sealed class ScopePlanTests
         await using var scope = await invocation.ServiceProvider.OpenAsync<QueryLessonsHandler>(SupplySource);
 
         Assert.Equal(expected: "fake", actual: scope.Handler.Schedule.DataDir);
+    }
+
+    [Fact]
+    public void PlanReadsScopeValuesFromTheCollectionItIsBuiltFrom()
+    {
+        var services = CreateServices();
+        services.RemoveAll<ScopeValueRegistration>();
+        using var root = services.Build();
+
+        var plan = root.PlanOf<QueryLessonsHandler>();
+
+        Assert.Empty(plan.Seeds);
+        Assert.Empty(plan.Steps);
+    }
+
+    [Fact]
+    public void AddingScopePlansAgainChangesNothing()
+    {
+        var services = CreateServices();
+        int count = services.Count;
+
+        services.AddScopePlans();
+
+        Assert.Equal(expected: count, actual: services.Count);
     }
 }

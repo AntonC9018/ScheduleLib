@@ -101,8 +101,7 @@ public sealed class ScopeForkFactory<THandler>(
         }
         var inputs = new ScopeInputs();
         supply?.Invoke(inputs);
-        var seeds = graph.Registrations.Seeds;
-        ImmutableArray<ScopeNode> unregistered = [.. inputs.Seeds.Keys.Where(n => !seeds.ContainsKey(n))];
+        ImmutableArray<ScopeNode> unregistered = [.. inputs.Seeds.Keys.Where(n => !graph.Values.IsSeed(n))];
         if (unregistered.Length > 0)
         {
             throw new UnregisteredSeedsException(scopePlan.Root, unregistered);
@@ -189,7 +188,7 @@ public sealed class ScopeForkFactory<THandler>(
 
     private bool CanInherit(ScopeNode node, HashSet<ScopeNode> replacedSeeds)
     {
-        if (graph.Registrations.Seeds.ContainsKey(node))
+        if (graph.Values.IsSeed(node))
         {
             if (replacedSeeds.Contains(node))
             {
@@ -211,7 +210,7 @@ public sealed class ScopeForkFactory<THandler>(
 
     private void Fill(IServiceProvider services, ScopeState state, ScopeNode node, object value)
     {
-        var slotType = graph.Registrations.SlotTypeOf(node);
+        var slotType = graph.Values.SlotTypeOf(node);
         var slot = node.Key is null
             ? services.GetRequiredService(slotType)
             : services.GetRequiredKeyedService(slotType, node.Key);

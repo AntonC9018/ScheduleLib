@@ -145,3 +145,28 @@ public sealed class CleanupAfterFailureException(Exception failure, ImmutableArr
         return error;
     }
 }
+
+/// <summary>
+/// A seed, derived or initialized value was registered twice. Remove the earlier registration
+/// with <c>RemoveScopeValue</c> to replace it.
+/// </summary>
+public sealed class DuplicateScopeValueException(ScopeNode value)
+    : ScopePlanException($"{value} is already registered as a scope value; remove it with RemoveScopeValue first")
+{
+    public ScopeNode Value { get; } = value;
+}
+
+/// <summary>A scope value to remove was never registered as a seed, derived or initialized value.</summary>
+public sealed class ScopeValueNotRegisteredException(ScopeNode value)
+    : ScopePlanException($"{value} is not registered as a scope value")
+{
+    public ScopeNode Value { get; } = value;
+}
+
+/// <summary>A scope value lacks the slot or initializer its use requires; a bug in scope plans.</summary>
+internal sealed class MissingScopeValuePartException(ScopeNode value, string part)
+    : ScopePlanException($"{value} has no registered {part}")
+{
+    public ScopeNode Value { get; } = value;
+    public string Part { get; } = part;
+}

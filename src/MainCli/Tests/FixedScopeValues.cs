@@ -16,11 +16,12 @@ public sealed class FixedFactory<T>(Fixed<T> value) : IFactory<T>
 
 public static class FixedScopeValues
 {
-    /// <summary>Replaces the seed, derived or initialized registration of <typeparamref name="T"/> with <paramref name="value"/>.</summary>
+    /// <summary>Removes the seed, derived or initialized registration of <typeparamref name="T"/> and fixes it to <paramref name="value"/>.</summary>
     public static IServiceCollection AddFixed<T>(this IServiceCollection services, T value)
         where T : class
     {
         services.AddSingleton(new Fixed<T>(value));
+        services.RemoveScopeValue<T>();
         return services.AddDerived<T, FixedFactory<T>>();
     }
 }

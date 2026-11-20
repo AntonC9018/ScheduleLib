@@ -182,6 +182,8 @@ public static class Registration
 
             void AddScheduleLifetimeServices()
             {
+                // Hosts open schedule scopes through scope plans.
+                services.AddScopePlans();
                 services.AddSingleton<ScheduleSourceLoader>();
                 services.AddSeed<ScheduleSource>();
                 services.AddInitialized<LoadedSchedule, LoadedScheduleInitializer>();

@@ -128,6 +128,7 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, TestScheduleInitializer>();
 
         var serviceProvider = services.BuildServiceProvider(options: new()
