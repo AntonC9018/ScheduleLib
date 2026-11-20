@@ -78,7 +78,6 @@ public static class ItUsmWebsiteApi
                 {
                     Name = name,
                     Slug = remoteTeacher.Slug,
-                    UserId = remoteTeacher.UserId,
                     DidacticTitle = remoteTeacher.DidacticTitle,
                     ScientificGrade = remoteTeacher.ScientificGrade,
                 };
@@ -152,7 +151,6 @@ public sealed class TeachersResponseModel
 
 public sealed class ItUsmTeacherResponseModel
 {
-    public required int UserId { get; set; }
     public required string FirstName { get; set; }
     public required string LastName { get; set; }
     public string? ProfileImageUrl { get; set; }
@@ -163,7 +161,6 @@ public sealed class ItUsmTeacherResponseModel
 
 public sealed class ItUsmTeacherModel
 {
-    public required int UserId { get; set; }
     public required string Slug { get; set; }
     public required Name Name { get; set; }
     public string? DidacticTitle { get; set; }
