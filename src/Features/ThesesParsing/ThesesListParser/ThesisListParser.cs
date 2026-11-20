@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Core.Services;
-using ScheduleLib.Curriculum;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
