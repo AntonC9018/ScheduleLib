@@ -12,16 +12,19 @@ public static class ScheduleDirectoryDiscovery
     public static IEnumerable<ScheduleDirectoryDescriptor> DiscoverDirectories(
         LocalPath path)
     {
-        foreach (var dir in Directory.EnumerateDirectories(path.Value))
+        var rootPath = Path.TrimEndingDirectorySeparator(path.Value);
+        foreach (var dir in Directory.EnumerateDirectories(rootPath))
         {
-            var relativePath = dir.AsMemory(path.Value.Length + 1);
+            var trimmedDir = Path.TrimEndingDirectorySeparator(dir);
+            var relativePath = Path.GetFileName(trimmedDir).AsMemory();
             if (ParseFirst(relativePath) is not { } t)
             {
                 continue;
             }
-            foreach (var subdir in Directory.EnumerateDirectories(dir))
+            foreach (var subdir in Directory.EnumerateDirectories(trimmedDir))
             {
-                var subdirName = subdir.AsMemory(dir.Length + 1).Span;
+                var trimmedSubdir = Path.TrimEndingDirectorySeparator(subdir);
+                var subdirName = Path.GetFileName(trimmedSubdir.AsSpan());
 
                 AttendanceMode attendanceMode;
                 if (subdirName.Equals("zi", StringComparison.OrdinalIgnoreCase))
