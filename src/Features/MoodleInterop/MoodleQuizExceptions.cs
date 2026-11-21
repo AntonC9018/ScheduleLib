@@ -19,7 +19,7 @@ public sealed class MoodleAttemptsTableNotFoundException()
     : InvalidOperationException("Attempts table not found");
 
 public sealed class MoodleAttemptsTableHeaderNotFoundException()
-    : InvalidOperationException("Failed to find table in html.");
+    : InvalidOperationException("Attempts table header row not found.");
 
 public sealed class MoodleAttemptReviewLinkMissingException(string attemptId)
     : InvalidOperationException($"Review link is missing for attempt '{attemptId}'.")

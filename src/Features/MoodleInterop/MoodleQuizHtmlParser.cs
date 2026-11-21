@@ -96,6 +96,10 @@ public static class MoodleQuizHtmlParser
         }
 
         var trimmed = dateTime.Trim();
+        if (trimmed is "-" or "–")
+        {
+            return null;
+        }
         if (DateTime.TryParseExact(
                 trimmed,
                 DateTimeFormats,
@@ -125,8 +129,9 @@ public static class MoodleQuizHtmlParser
             return null;
         }
 
-        // Moodle formats durations like "1 oră 52 min 41 secunde" or "12 min 5 sec".
+        // Moodle formats durations like "1 zi 2 ore", "1 oră 52 min 41 secunde", or "12 min 5 sec".
         var parts = duration.Split((char[]?) null, StringSplitOptions.RemoveEmptyEntries);
+        int days = 0;
         int hours = 0;
         int minutes = 0;
         int seconds = 0;
@@ -140,20 +145,29 @@ public static class MoodleQuizHtmlParser
             }
 
             var unit = parts[i + 1];
-            if (IsHourUnit(unit))
+            if (IsDayUnit(unit))
+            {
+                days = value;
+                parsedAny = true;
+                i++;
+            }
+            else if (IsHourUnit(unit))
             {
                 hours = value;
                 parsedAny = true;
+                i++;
             }
             else if (unit.StartsWith("min", StringComparison.OrdinalIgnoreCase))
             {
                 minutes = value;
                 parsedAny = true;
+                i++;
             }
             else if (unit.StartsWith("sec", StringComparison.OrdinalIgnoreCase))
             {
                 seconds = value;
                 parsedAny = true;
+                i++;
             }
         }
 
@@ -163,6 +177,7 @@ public static class MoodleQuizHtmlParser
         }
 
         return new TimeSpan(
+            days: days,
             hours: hours,
             minutes: minutes,
             seconds: seconds);
@@ -187,6 +202,23 @@ public static class MoodleQuizHtmlParser
         }
 
         return result;
+    }
+
+    private static bool IsDayUnit(string unit)
+    {
+        if (unit.Equals("zi", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (unit.Equals("zile", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (unit.StartsWith("day", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
     }
 
     private static bool IsHourUnit(string unit)
@@ -331,11 +363,19 @@ public static class MoodleQuizHtmlParser
 
     private static string? ExtractUserName(IHtmlTableCellElement nameCell)
     {
-        if (nameCell.ChildNodes.Length == 0)
+        foreach (var node in nameCell.ChildNodes)
         {
-            return null;
+            if (node is IElement element && element.ClassList.Contains("reviewlink"))
+            {
+                continue;
+            }
+            var text = node.TextContent.Trim();
+            if (!string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
         }
-        return nameCell.ChildNodes[0].TextContent.Trim();
+        return null;
     }
 
     private static string ExtractAttemptId(IElement cell)

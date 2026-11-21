@@ -13,8 +13,10 @@ public static class MoodleQuizScraper
         int pageSize = 2000,
         CancellationToken cancellationToken = default)
     {
-        string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
-        var page = await context.Browser.OpenAsync(url, cancellationToken);
+        var url = new Uri(
+            MoodleScrapingContext.Names.BaseUrl,
+            $"mod/quiz/report.php?id={Uri.EscapeDataString(quizId)}&mode=overview");
+        var page = await context.Browser.OpenAsync(url.AbsoluteUri, cancellationToken);
 
         var path = MoodleQuizHtmlParser.ParseBreadcrumbs(page);
 
@@ -31,9 +33,22 @@ public static class MoodleQuizScraper
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        // AngleSharp's SubmitAsync has no cancellation parameter; WaitAsync bounds the await.
-        page = await form.SubmitAsync()
-            .WaitAsync(cancellationToken);
+        // AngleSharp's SubmitAsync has no cancellation parameter; WaitAsync bounds the await
+        // and observes any late transport fault if the caller cancels and disposes the browser.
+        var submission = form.SubmitAsync();
+        try
+        {
+            page = await submission.WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _ = submission.ContinueWith(
+                task => _ = task.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+            throw;
+        }
 
         if (page.QuerySelector("table#attempts") is not IHtmlTableElement attemptsTable)
         {
