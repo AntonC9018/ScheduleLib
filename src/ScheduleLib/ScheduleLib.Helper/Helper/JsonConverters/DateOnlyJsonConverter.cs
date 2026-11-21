@@ -16,10 +16,15 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        if (reader.GetString() is not { } dateStr)
+        if (reader.TokenType == JsonTokenType.Null)
         {
             return DateOnly.MinValue;
         }
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            throw new JsonException($"Expected a date string token, got {reader.TokenType}.");
+        }
+        var dateStr = reader.GetString()!;
         return DateOnly.ParseExact(
             dateStr,
             AcceptedFormats,
