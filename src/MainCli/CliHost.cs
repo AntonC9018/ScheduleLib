@@ -165,11 +165,20 @@ public static class CliHost
             }
             catch (OperationCanceledException)
             {
+                if (startupRequest.RejectsFormatConflict)
+                {
+                    Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
+                    return CliExit.InvalidArguments;
+                }
                 WriteStartupResult(
                     CliExit.Cancelled,
-                    "Operation cancelled.",
+                    "Cancelled.",
                     [],
                     RunStatus.Cancelled);
+                if (!startupRequest.UsesJsonlOutput)
+                {
+                    Console.Error.WriteLine("Cancelled.");
+                }
                 return CliExit.Cancelled;
             }
             catch (Exception e)
@@ -202,7 +211,7 @@ public static class CliHost
                 return;
             }
 
-            if (startupRequest.Jsonl)
+            if (startupRequest.UsesJsonlOutput)
             {
                 var output = new CliOutput(
                     "cli",
