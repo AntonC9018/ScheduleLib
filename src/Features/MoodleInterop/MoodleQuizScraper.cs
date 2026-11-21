@@ -28,11 +28,8 @@ public static class MoodleQuizScraper
         int pageSize = 2000,
         CancellationToken cancellationToken = default)
     {
-        // Navigate to the quiz overview page
         string url = $"{MoodleScrapingContext.Names.BaseUrl}/mod/quiz/report.php?id={quizId}&mode=overview";
         var page = await context.Browser.OpenAsync(url, cancellationToken);
-
-        // await page.SaveForDebug();
 
         var pathItems = page.QuerySelectorAll<IHtmlListItemElement>("nav > ol.breadcrumb > li");
 
@@ -54,24 +51,20 @@ public static class MoodleQuizScraper
         var path = pathItems.Select(ReadBreadcrumb)
             .ToList();
 
-        // Set page size
         var pageSizeInput = (IHtmlInputElement) page.QuerySelector("#id_pagesize")!;
         pageSizeInput.Value = pageSize.ToString();
 
-        // Submit the form
         var submitButton = (IHtmlInputElement) page.QuerySelector("#id_submitbutton")!;
         cancellationToken.ThrowIfCancellationRequested();
         page = await submitButton.Form!.SubmitAsync()
             .WaitAsync(cancellationToken);
 
-        // Find the attempts table
         var attemptsElement = page.QuerySelector("table#attempts");
         if (attemptsElement is not IHtmlTableElement attemptsTable)
         {
             throw new MoodleAttemptsTableNotFoundException();
         }
 
-        // Parse the table
         var attempts = ParseAttemptsTable(attemptsTable, cancellationToken);
         return new()
         {
@@ -88,7 +81,6 @@ public static class MoodleQuizScraper
             throw new MoodleAttemptsTableHeaderNotFoundException();
         }
 
-        // Parse data rows
         var rows = table.QuerySelectorAll("tbody tr")
             .Cast<IHtmlTableRowElement>()
             .ToList();
@@ -184,7 +176,6 @@ public static class MoodleQuizScraper
 
         public static MappedTableHelper? Create(IHtmlTableElement table)
         {
-            // Find header row to map columns
             var headerRow = table.QuerySelector("thead tr");
             if (headerRow == null)
             {
@@ -583,7 +574,7 @@ public static class MoodleQuizScraper
             return null;
         }
 
-        // Replace comma with period for decimal separator
+        // Moodle renders decimals with a comma.
         value = value.Replace(',', '.');
 
         if (!float.TryParse(
@@ -611,7 +602,6 @@ public static class MoodleQuizScraper
             Questions = [],
         };
 
-        // Parse summary table
         var summaryTable = page.QuerySelector("table.quizreviewsummary");
         if (summaryTable != null)
         {
@@ -659,7 +649,6 @@ public static class MoodleQuizScraper
             }
         }
 
-        // Parse questions
         var questionDivs = page.QuerySelectorAll("div.que");
         foreach (var questionDiv in questionDivs)
         {
@@ -705,40 +694,31 @@ public static class MoodleQuizScraper
 
     private static QuestionDetail? ParseQuestionDetail(IElement questionDiv)
     {
-        // Question number
         var qnoSpan = questionDiv.QuerySelector(".qno");
         var qnoText = qnoSpan?.TextContent.Trim() ?? "";
         var questionNumber = int.TryParse(qnoText, out int qno) ? qno : 0;
 
-        // Question type (from class)
         var classes = questionDiv.GetAttribute("class");
         var questionType = ParseQuestionType(classes);
 
-        // State
         var stateDiv = questionDiv.QuerySelector(".state");
         var state = ParseQuestionState(stateDiv?.TextContent.Trim());
 
-        // Grade
         var gradeDiv = questionDiv.QuerySelector(".grade");
         var grade = ParseQuestionGrade(gradeDiv?.TextContent.Trim());
 
-        // Version badge
         var badge = questionDiv.QuerySelector(".badge");
         var version = badge?.TextContent.Trim() ?? "";
 
-        // Question text
         var qtextDiv = questionDiv.QuerySelector(".qtext");
         var questionText = qtextDiv?.TextContent.Trim() ?? "";
 
-        // Edit link
         var editLink = questionDiv.QuerySelector(".editquestion a");
         var editQuestionLink = editLink?.GetAttribute("href") ?? "";
 
-        // Answer (for essay questions)
         var answerTextarea = questionDiv.QuerySelector("textarea");
         var answer = answerTextarea?.TextContent.Trim();
 
-        // Multiple choice answers
         var answerDivs = questionDiv.QuerySelectorAll(".answer > div");
         List<ChoiceDetail>? choices = null;
         if (answerDivs.Any())
@@ -764,7 +744,6 @@ public static class MoodleQuizScraper
             }
         }
 
-        // Comment
         var commentDiv = questionDiv.QuerySelector(".comment");
         var comment = commentDiv?.QuerySelector("p")
                 ?.TextContent.Trim()
@@ -773,7 +752,6 @@ public static class MoodleQuizScraper
                 ?.GetAttribute("href")
             ?? "";
 
-        // Feedback
         var feedbackDiv = questionDiv.QuerySelector(".feedback");
         var feedback = feedbackDiv?.QuerySelector(".specificfeedback")
                 ?.TextContent.Trim()
@@ -782,7 +760,6 @@ public static class MoodleQuizScraper
                 ?.TextContent.Trim()
             ?? "";
 
-        // Response history
         var historyTable = questionDiv.QuerySelector(".history table");
         List<ResponseHistoryEntry> responseHistory;
         if (historyTable != null)
@@ -860,7 +837,6 @@ public static class MoodleQuizScraper
     }
 }
 
-// Models
 public sealed class QuizAttempt
 {
     public string AttemptId { get; set; } = "";
@@ -929,7 +905,6 @@ public sealed class ResponseHistoryEntry
     public string? Answer { get; set; }
 }
 
-// Enums converted to record structs
 public readonly record struct AttemptState(string Value)
 {
     public static AttemptState Unknown => new("unknown");

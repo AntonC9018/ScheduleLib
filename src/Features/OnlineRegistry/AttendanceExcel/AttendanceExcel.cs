@@ -967,7 +967,6 @@ public sealed partial class AttendanceListsExcelParser
                     {
                         if (TryLessonType())
                         {
-                            // Select the type
                             context.Format = HeaderFormatType.LessonType;
                             continue;
                         }
@@ -1306,7 +1305,6 @@ public sealed partial class AttendanceListsExcelParser
         int maxLen = 0;
         while (!rowE.IsDone)
         {
-            // find the last cell that has any value.
             var c = rowE.Current;
             var lastNonEmpty = c.Cells()
                 .WithIndex()
@@ -1362,7 +1360,6 @@ public sealed partial class AttendanceListsExcelParser
 
         var value = cell.Value;
         var isBlank = IsEmptyCell(cell);
-        // Handle empty cells
         if (c.FirstOffset is null)
         {
             var columnNumber = cell.AsRange()
@@ -1409,7 +1406,6 @@ public sealed partial class AttendanceListsExcelParser
         }
 
         {
-            // Some sanity checks.
             Debug.Assert(!c.IsInEmptyStreak);
             Debug.Assert(c.FirstOffset.HasValue);
             var colNumber = range.FirstColumn()
@@ -1634,7 +1630,6 @@ public readonly struct ParseAttendanceListsExcelParams
     public FilteredSchedule Schedule { get; }
     public XLWorkbook Workbook { get; }
 
-    // Like this is nonsense honestly. Why do I have to care about this so much?
     public readonly /* ref readonly */ WorksheetParseParameters ParseParameters;
 
     public ParseAttendanceListsExcelParams(

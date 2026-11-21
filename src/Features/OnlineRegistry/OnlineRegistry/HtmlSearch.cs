@@ -394,7 +394,6 @@ internal static class HtmlSearch
             public required Uri EditUri { get; init; }
         }
 
-        /// <summary>The lesson identification parsed from the first cell of a lesson row.</summary>
         public readonly record struct LessonHeader(LessonType LessonType, DateTime DateTime, Uri ViewUri);
 
         public Lesson GetLesson(int i)
@@ -535,7 +534,6 @@ internal static class HtmlSearch
 
         public readonly record struct LessonAttendance(IEnumerable<IHtmlTableCellElement> Cells);
 
-        /// <summary>The lesson an attendance column belongs to, parsed from its header cell.</summary>
         public readonly record struct AttendanceLessonHeader(LessonType LessonType, DateTime DateTime);
 
         public LessonAttendance DayCells(int index)
@@ -715,7 +713,6 @@ internal static class HtmlSearch
             }
             var actualStudents = FindStudents(table);
 
-            // Find column with name frecvența/nota
             var headerRow = table.Rows[0];
             int attendanceColumnIndex = FindIndexOfAttendance();
             for (int i = 0; i < attendance.Length; i++)
@@ -931,8 +928,6 @@ internal readonly struct SendUpdatedFormParams
 
     public required LessonInstance Lesson { get; init; }
 
-    // public required HttpClient HttpClient { get; init; }
-    // public required Uri Target { get; init; }
     public required Schedule Schedule { get; init; }
     public required HtmlStudent[]? ExpectedStudents { get; init; }
 }

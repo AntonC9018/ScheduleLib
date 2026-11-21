@@ -62,7 +62,6 @@ public static class RegistryAssessmentTopics
 
 internal static class RegistryAssessments
 {
-    /// <summary>Local lessons and remote instances after assessment topics were arranged.</summary>
     internal readonly record struct ArrangedAssessments(LessonInstance[] Local, RemoteLessonInstance[] Remote);
 
     internal static IReadOnlyList<RegistryAssessmentRule> Find(

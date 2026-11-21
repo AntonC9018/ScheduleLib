@@ -46,10 +46,7 @@ public readonly record struct CommandProcessingConfig : IEquatable<CommandProces
     public static CommandProcessingConfig DryRun => None.WithDryRun(LessonEquationCommandTypes.All);
     public static CommandProcessingConfig Log => None.WithLog(LessonEquationCommandTypes.All);
 
-    /// <summary>
-    /// Masks out the "process" that are also on "dry run".
-    /// </summary>
-    /// <value></value>
+    // A command that is on dry run must not also be processed.
     public readonly CommandProcessingConfig Normalized
     {
         get

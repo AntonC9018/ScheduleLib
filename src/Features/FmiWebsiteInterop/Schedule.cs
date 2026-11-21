@@ -36,7 +36,6 @@ public static class WebsiteJsonScheduleHelper
         public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
     }
 
-    // Key for grouping lessons that can be merged
     private readonly record struct LessonGroupKey(
         CourseId Course,
         LessonType Type,
@@ -71,7 +70,6 @@ public static class WebsiteJsonScheduleHelper
                 var timeSlot = timeSlotGroup.Key;
                 var romanTimeSlot = NumberHelper.ToRoman(timeSlot.Index + 1);
 
-                // Group lessons by course, type, and room
                 var lessonGroups = timeSlotGroup
                     .GroupBy(lesson =>
                     {
@@ -83,8 +81,8 @@ public static class WebsiteJsonScheduleHelper
                     })
                     .ToList();
 
-                // Build per-lesson-group DTOs first, then merge those sharing (PairTime, WeekType)
-                // so that two different courses in the same room/slot produce one concatenated entry.
+                // Different courses in the same slot with the same week type must end up as one
+                // concatenated entry, so merge only after building per-group DTOs.
                 var slotDtos = new List<SchedulePairsDto>();
                 foreach (var lessonGroup in lessonGroups)
                 {
@@ -103,7 +101,6 @@ public static class WebsiteJsonScheduleHelper
                     });
                 }
 
-                // Merge entries that share the same time slot and week type
                 foreach (var mergeGroup in slotDtos.GroupBy(d => (d.PairTime, d.WeekType)))
                 {
                     daysBuilder.Add(new SchedulePairsDto
@@ -136,7 +133,6 @@ public static class WebsiteJsonScheduleHelper
 
     private static string DetermineWeekType(List<WeeklyLessonAccessor> lessons)
     {
-        // If all lessons have the same parity, use that
         var firstParity = lessons[0].Date.Parity;
         if (!lessons.All(l => l.Date.Parity == firstParity))
         {
@@ -162,7 +158,6 @@ public static class WebsiteJsonScheduleHelper
         var firstLesson = lessons[0];
         var listBuilder = new ListStringBuilder(sb, ", ");
 
-        // Course name
         var course = schedule.Get(firstLesson.Lesson.Course);
         listBuilder.Append(course.FullName);
 
@@ -171,7 +166,6 @@ public static class WebsiteJsonScheduleHelper
                 .Count()
             > 1;
 
-        // Lesson type and details in parentheses
         {
             ListStringBuilder detailListBuilder = default;
             bool hasDetails = false;
@@ -203,7 +197,6 @@ public static class WebsiteJsonScheduleHelper
                 detailListBuilder.Append(lessonType);
             }
 
-            // Check if we need to add merged parity info
             if (!hasMixedParity)
             {
                 var parity = services.ParityDisplay.Get(firstLesson.Date.Parity);
@@ -218,7 +211,6 @@ public static class WebsiteJsonScheduleHelper
         }
         listBuilder.MaybeAppendSeparator();
 
-        // Groups - handle merged groups with parity suffixes
         var groupsWithParity = new Dictionary<GroupId, List<Parity>>();
         foreach (var lesson in lessons)
         {
@@ -238,7 +230,6 @@ public static class WebsiteJsonScheduleHelper
             var groupSb = new StringBuilder();
             groupSb.Append(group.Name);
 
-            // Add parity suffix if this is a merged lesson with different parities
             if (hasMixedParity)
             {
                 var firstParity = parityList[0];
@@ -266,7 +257,6 @@ public static class WebsiteJsonScheduleHelper
             listBuilder.Append($"s.{partitionDisplay}");
         }
 
-        // Room
         if (firstLesson.Lesson.Room.IsValid)
         {
             var room = schedule.Get(firstLesson.Lesson.Room);

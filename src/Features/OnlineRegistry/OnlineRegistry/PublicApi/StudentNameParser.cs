@@ -3,14 +3,9 @@ using ScheduleLib.Parsing;
 
 namespace ScheduleLib.OnlineRegistry;
 
-/// <summary>
-/// Parses student names for attendance matching, discarding the patronymic.
-/// </summary>
-/// <remarks>
-/// Attendance workbooks and registry rosters record patronymics inconsistently
-/// (present on one side, absent or misspelled on the other), so students are
-/// identified by last and first name only.
-/// </remarks>
+// Attendance workbooks and registry rosters record patronymics inconsistently
+// (present on one side, absent or misspelled on the other), so students are
+// identified by last and first name only.
 public static class StudentNameParser
 {
     public static Name Parse(string text)

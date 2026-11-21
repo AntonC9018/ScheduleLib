@@ -18,7 +18,6 @@ public sealed class ParsedMoodlePath
 // AI generated, all of the below.
 // TODO: Do this well.
 
-// Tokenizer for Moodle paths
 public static class MoodlePathTokenType
 {
     public const TokenType Text = TokenType.Invalid + 1;
@@ -36,13 +35,11 @@ public sealed class MoodlePathTokenReader : ITokenReader
 
     public TokenType Read(ref SequenceReader reader)
     {
-        // Skip whitespace
         if (reader.SkipWhitespace().SkippedAny)
         {
             return TokenType.Whitespace;
         }
 
-        // Check for keywords
         if (reader.ConsumeExactString("Ciclul", StringComparison.OrdinalIgnoreCase))
         {
             return MoodlePathTokenType.Ciclul;
@@ -58,21 +55,18 @@ public sealed class MoodlePathTokenReader : ITokenReader
             return MoodlePathTokenType.Atestare;
         }
 
-        // Check for numbers (Arabic numerals)
         var numResult = reader.ConsumePositiveIntWithMaxLength(3);
         if (numResult.HasValue)
         {
             return MoodlePathTokenType.Number;
         }
 
-        // Check for Roman numerals
         var romanResult = reader.ReadRoman();
         if (romanResult.Status == ReadRomanStatus.Ok)
         {
             return MoodlePathTokenType.RomanNumeral;
         }
 
-        // Read any other text (words, special characters, etc.)
         if (!reader.IsEmpty)
         {
             reader.Skip(new SkipTextImpl());
@@ -86,7 +80,6 @@ public sealed class MoodlePathTokenReader : ITokenReader
     {
         public bool ShouldSkip(char ch)
         {
-            // Stop at whitespace
             return !char.IsWhiteSpace(ch);
         }
     }
@@ -116,7 +109,6 @@ public static class MoodlePathParser
         var baseSegment = segments[0];
         var faculty = new Faculty(segments[1]);
 
-        // Parse "Ciclul X QualificationType"
         var qualificationSegment = segments[2];
         var qualification = ParseQualificationSegment(qualificationSegment);
 
@@ -127,12 +119,10 @@ public static class MoodlePathParser
 
         var specialty = new Specialty(segments[3]);
 
-        // Parse "Anul Grade"
         var gradeSegment = segments[4];
         var grade = ParseGradeSegment(gradeSegment);
         var courseName = segments[5];
 
-        // Parse "Atestare TestNumber" or just section name
         var sectionSegment = segments[6];
         var section = ParseSectionSegment(sectionSegment);
 
@@ -149,10 +139,8 @@ public static class MoodlePathParser
         };
     }
 
-    /// <summary>The parsed "Ciclul &lt;number&gt; &lt;qualification type&gt;" segment.</summary>
     private readonly record struct ParsedQualification(int? Cycle, QualificationType? QualificationType);
 
-    /// <summary>The parsed "Atestare &lt;number&gt;" segment, or a plain section name.</summary>
     private readonly record struct ParsedSection(string SectionName, int TestNumber);
 
     private static ParsedQualification ParseQualificationSegment(string segment)
@@ -163,7 +151,6 @@ public static class MoodlePathParser
 
         var scope = lexer.Scope();
 
-        // Expect: Ciclul <number> <text>
         if (!scope.TryConsume(MoodlePathTokenType.Ciclul))
         {
             return new(null, null);
@@ -199,7 +186,6 @@ public static class MoodlePathParser
 
         scope.ConsumeAllConsecutive([TokenType.Whitespace]);
 
-        // Read qualification type text
         var qualificationText = "";
         while (scope.CanPeek(1))
         {
@@ -229,7 +215,6 @@ public static class MoodlePathParser
 
         var scope = lexer.Scope();
 
-        // Expect: Anul <roman/number>
         if (!scope.TryConsume(MoodlePathTokenType.Anul))
         {
             return Grade.Invalid;
@@ -272,7 +257,6 @@ public static class MoodlePathParser
 
         var scope = lexer.Scope();
 
-        // Check if starts with "Atestare"
         if (scope.TryConsume(MoodlePathTokenType.Atestare))
         {
             scope.ConsumeAllConsecutive([TokenType.Whitespace]);
@@ -290,7 +274,6 @@ public static class MoodlePathParser
             return new(segment, testNumber);
         }
 
-        // Otherwise just return the segment as-is
         return new(segment, 0);
     }
 
@@ -304,7 +287,6 @@ public static class MoodlePathParser
         if (!text.AsSpan()
                 .StartsWith("Master", StringComparison.OrdinalIgnoreCase))
         {
-            // Add more as needed
             return null;
         }
 

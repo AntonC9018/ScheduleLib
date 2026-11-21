@@ -1,13 +1,7 @@
 namespace ScheduleLib.OnlineRegistry;
 
-/// <summary>
-/// Classifies the subgroup suffix of a registry group link (e.g. "Spring", "I", or empty)
-/// into a <see cref="GroupPartitionKey"/>: empty means whole group; a known
-/// specialization (built-in <see cref="Specializations"/> or custom registry) means
-/// a specialization partition; anything else means a numeric subgroup (e.g. "I" is subgroup 1).
-/// The custom specialization registry is injected via the constructor; pass
-/// <c>null</c> when only built-in <see cref="Specializations"/> apply.
-/// </summary>
+// Registry suffix semantics: empty is the whole group, a known specialization names a
+// specialization partition, and anything else is a numeric subgroup ("I" is subgroup 1).
 internal sealed class GroupPartitionResolver
 {
     private readonly SpecializationRegistry? _specializationRegistry;

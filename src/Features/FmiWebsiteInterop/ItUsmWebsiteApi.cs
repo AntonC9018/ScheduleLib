@@ -29,18 +29,6 @@ public static class ItUsmWebsiteApi
         public async Task<ItUsmTeacherModel[]> GetAllTeachers(CancellationToken cancellationToken)
         {
             Uri uri;
-            // {
-            //     var urib = new UriBuilder(c.HttpClient.BaseAddress!)
-            //     {
-            //         Path = "teachers/paginated-teachers",
-            //     };
-            //     var query = HttpUtility.ParseQueryString("");
-            //     query.Add("page", "1");
-            //     query.Add("size", "1000");
-            //     query.Add("sortDirection", "ASC");
-            //     urib.Query = query.ToString();
-            //     uri = urib.Uri;
-            // }
             uri = new("teachers/paginated-teachers?page=1&size=1000&sortDirection=ASC", UriKind.Relative);
 
             using var response = await c.HttpClient.GetAsync(uri, cancellationToken);

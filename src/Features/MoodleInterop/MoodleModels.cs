@@ -2,10 +2,6 @@ using System.Xml.Serialization;
 
 namespace QuizModels;
 
-// ============================================================================
-// XML Models (Immutable, for serialization)
-// ============================================================================
-
 [XmlRoot("quiz")]
 public sealed class Quiz
 {
@@ -137,10 +133,6 @@ public sealed class ShownumCorrect
 {
 }
 
-// ============================================================================
-// Mutable Builder Models
-// ============================================================================
-
 public sealed class MutableEssayQuestion
 {
     public string Name { get; set; } = string.Empty;
@@ -195,10 +187,6 @@ public sealed class AnswerBuilder
     }
 }
 
-// ============================================================================
-// Builders
-// ============================================================================
-
 public sealed class QuizBuilder
 {
     private readonly List<object> _questionBuilders = new();
@@ -237,7 +225,7 @@ public sealed class QuizBuilder
     {
         var questions = new List<QuestionBase>();
 
-        // Add category question first
+        // The category entry applies to the questions that follow it.
         questions.Add(new CategoryQuestion
         {
             Type = "category",
@@ -253,7 +241,6 @@ public sealed class QuizBuilder
             IdNumber = string.Empty,
         });
 
-        // Build all stored question builders
         foreach (var builder in _questionBuilders)
         {
             if (builder is EssayQuestionBuilder essayBuilder)
@@ -383,22 +370,17 @@ public sealed class MultiChoiceQuestionBuilder
 
     internal MultiChoiceQuestion Build()
     {
-        // Separate positive and negative fractions
         var positiveFractions = _question.Answers.Where(a => a.Fraction > 0);
-        // var negativeFractions = _question.Answers.Where(a => a.Fraction < 0).ToList();
-        // var zeroFractions = _question.Answers.Where(a => a.Fraction == 0).ToList();
 
-        // Calculate scaling factor for positive fractions to sum to 100
+        // Moodle accepts only standard percentages, with the positive ones summing to 100.
         var totalPositive = positiveFractions.Sum(a => a.Fraction);
         var scale = totalPositive > 0 ? 100m / totalPositive : 1m;
 
-        // Helper function to round to standard percentages
         decimal RoundToStandardPercentage(decimal value)
         {
             var absValue = Math.Abs(value);
             var sign = value >= 0 ? 1 : -1;
 
-            // Define standard percentage values
             var standards = new[]
             {
                 100m,
@@ -422,7 +404,6 @@ public sealed class MultiChoiceQuestionBuilder
                 10m,
             };
 
-            // Find closest standard percentage
             var closest = standards.OrderBy(s => Math.Abs(s - absValue))
                 .First();
             return closest * sign;
@@ -435,12 +416,10 @@ public sealed class MultiChoiceQuestionBuilder
             decimal fraction;
             if (answer.Fraction > 0)
             {
-                // Scale positive fractions to sum to 100
                 fraction = RoundToStandardPercentage(answer.Fraction * scale);
             }
             else if (answer.Fraction < 0)
             {
-                // Scale negative fractions by the same factor, capped at -100
                 var scaledNegative = answer.Fraction * scale;
                 decimal roundedNegative = RoundToStandardPercentage(scaledNegative);
                 fraction = Math.Max(-100m, roundedNegative);
@@ -509,10 +488,6 @@ public sealed class MultiChoiceQuestionBuilder
     }
 }
 
-// ============================================================================
-// Example Usage
-// ============================================================================
-
 public sealed class Example
 {
     public static void Demo()
@@ -545,7 +520,6 @@ public sealed class Example
             })
             .Build();
 
-        // Serialize to XML
         var serializer = new XmlSerializer(typeof(Quiz));
         using var writer = new StringWriter();
         serializer.Serialize(writer, quiz);

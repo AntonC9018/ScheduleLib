@@ -278,7 +278,6 @@ public sealed partial class AddLessonsToOnlineRegistryTaskHandler
                     }
                 }
 
-                // Figure out the exact dates the lessons will occur on.
                 LessonWithDate[] datedLessons;
                 try
                 {

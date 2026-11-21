@@ -387,8 +387,6 @@ public sealed class GroupsNavigator
         {
             return ret;
         }
-        // TODO: reuse
-        // var subGroup = HtmlSearch.SubGroupFromString(g);
         foreach (var g1 in schedule.EnumerateGroups())
         {
             if (IsMatch(g1.Item, g))
@@ -539,7 +537,6 @@ public sealed class GroupsNavigator
 [AutoConstructor]
 public sealed partial class OnlineRegistryNavigator : IRegistrySyncNavigator, IRegistryGradeNavigator
 {
-    /// <summary>A form field name and the value the registry is expected to keep for it.</summary>
     private readonly record struct ExpectedFormValue(string? Name, string? Value);
 
     public readonly IRegistryErrorHandler ErrorHandler;
@@ -1317,7 +1314,6 @@ public readonly record struct AttendanceLookupKey
     public readonly CourseId CourseId;
     public LessonType LessonType { get; init; }
 
-    // The program may use any of this info to get the right data.
     public int DayIndex { get; init; }
     public LessonGroups? ActiveGroups { get; init; }
     public readonly DateTime DateTime;

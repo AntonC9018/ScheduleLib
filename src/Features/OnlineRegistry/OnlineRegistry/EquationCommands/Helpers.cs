@@ -128,8 +128,6 @@ internal interface IDateTime
 
 public static class MissingLessonDetection
 {
-    // Could be made to rely on a T1 : IDateTime, T2 : IDateTime,
-    // and take a custom diff impl.
     internal static DateOnly GetDateOnly<T>(this T item) where T : struct, IDateTime
     {
         return DateOnly.FromDateTime(item.DateTime);

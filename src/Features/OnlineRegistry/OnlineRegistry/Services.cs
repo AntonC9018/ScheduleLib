@@ -6,7 +6,6 @@ namespace ScheduleLib.OnlineRegistry;
 
 public interface IRegistryLessonParserErrorHandler
 {
-    // May want to pull this out.
     void CustomLessonType(ReadOnlySpan<char> ch);
 }
 
