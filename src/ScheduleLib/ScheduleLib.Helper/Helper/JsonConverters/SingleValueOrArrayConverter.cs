@@ -116,10 +116,15 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         TCollection value,
         JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(
-            writer,
-            value,
-            options);
+        writer.WriteStartArray();
+        foreach (var item in value)
+        {
+            JsonSerializer.Serialize(
+                writer,
+                item,
+                options);
+        }
+        writer.WriteEndArray();
     }
 
     private static TCollection ConvertToCollectionType(TElement[] items, Type targetType)
