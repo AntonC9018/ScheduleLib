@@ -681,12 +681,12 @@ public static class WordScheduleParser
             return new(Count: 1, Size: skippedWidth);
         }
 
-        // Returns the size of the column.
         int TrySecondFormatUpperLeftMostHeader()
         {
             var cell = cellEnumerator.Current;
             using var paragraphs = cell
                 .ChildElements
+                .OfType<Paragraph>()
                 .GetEnumerator();
             if (!paragraphs.MoveNext())
             {
@@ -787,12 +787,12 @@ public static class WordprocessingHelper
     }
 }
 
-/// <summary>A table cell together with the grid column it starts at.</summary>
 public readonly record struct TableCellWithPosition(TableCell Cell, int Position);
 
 internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
 {
     public static SkippedHeaderColumnsInfo NotMatch() => default;
+    public bool IsNotMatch => Count == 0;
 }
 
 internal enum ColumnType
