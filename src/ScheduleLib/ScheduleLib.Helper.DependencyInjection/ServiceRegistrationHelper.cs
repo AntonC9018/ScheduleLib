@@ -5,11 +5,6 @@ namespace ScheduleLib.DependencyInjection;
 
 public static class ServiceRegistrationHelper
 {
-    /// <summary>
-    /// Registers the given implementation type under all implementations of a generic service,
-    /// implemented by the given implementation type.
-    /// </summary>
-    /// <returns>True if at least one implementation has been registered</returns>
     public static bool RegisterImplementationsOfGenericService<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
     TImplementation>(
@@ -30,7 +25,6 @@ public static class ServiceRegistrationHelper
 
         var firstImpl = implementedServices.Current;
 
-        // Register only a single implementation.
         if (!implementedServices.MoveNext())
         {
             var descriptor = new ServiceDescriptor(
@@ -41,7 +35,7 @@ public static class ServiceRegistrationHelper
             return true;
         }
 
-        // Multiple implementations in one class.
+        // Every service forwards to the class's own registration, so one instance serves them all.
         {
             var descriptor = new ServiceDescriptor(
                 serviceType: implementationType,

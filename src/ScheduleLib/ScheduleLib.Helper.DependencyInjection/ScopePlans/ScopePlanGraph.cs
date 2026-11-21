@@ -10,13 +10,11 @@ public enum ScopeNodeKind
     Derived,
     Initialized,
 
-    /// <summary>A scoped or transient service built from its constructor.</summary>
     Service,
 
-    /// <summary>A singleton: it cannot depend on scoped values, so the plan does not walk into it.</summary>
+    /// <summary>A singleton cannot depend on scoped values, so the plan does not walk into it.</summary>
     Singleton,
 
-    /// <summary><see cref="IEnumerable{T}"/> of every registration of a service.</summary>
     Collection,
 
     /// <summary>Scope-plan or container infrastructure that needs nothing from the scope.</summary>
@@ -30,10 +28,8 @@ public enum ScopeNodeKind
 public sealed record ScopeNodeInfo(ScopeNode Node, ScopeNodeKind Kind, ImmutableArray<ScopeNode> Inputs, ScopeClosure Closure);
 
 /// <summary>
-/// The dependency graph of one root container, derived from its registrations by walking
-/// constructors. Holds one node per (type, key) with a memoized closure, so plans of different
-/// workflows share common subgraphs. Nodes and plans are built on first use and kept.
-/// Assumes scope validation: singletons never depend on scoped services.
+/// One node per (type, key) with a memoized closure, so plans of different workflows share common
+/// subgraphs. Assumes scope validation: singletons never depend on scoped services.
 /// </summary>
 public sealed class ScopePlanGraph
 {
@@ -117,7 +113,6 @@ public sealed class ScopePlanGraph
         public bool HasLambdaMember { get; init; }
     }
 
-    /// <summary>A node of the current walk, numbered in visiting order.</summary>
     private sealed class WalkEntry(ScopeNode node, NodeDescription description, int index)
     {
         public ScopeNode Node => node;
@@ -258,7 +253,6 @@ public sealed class ScopePlanGraph
             AddOwn(node, description, builder);
         }
 
-        /// <summary>The shortest cycle through <paramref name="start"/>, following inputs in order.</summary>
         private ScopePlanIssue CycleIssue(ScopeNode start, HashSet<ScopeNode> members)
         {
             var previous = new Dictionary<ScopeNode, ScopeNode>();

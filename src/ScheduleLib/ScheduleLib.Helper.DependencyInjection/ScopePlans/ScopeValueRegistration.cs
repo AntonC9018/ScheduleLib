@@ -28,7 +28,6 @@ internal sealed record ScopeValueRegistration(
 /// <param name="Service">The implementation type, or the service type of a lambda registration.</param>
 internal sealed record HiddenNeed(Type Service, ScopeNode Need);
 
-/// <summary>The scope-value and hidden-need records of one container, indexed for planning.</summary>
 internal sealed class ScopeValueCatalog
 {
     private readonly Dictionary<ScopeNode, ScopeValueRegistration> _values = [];

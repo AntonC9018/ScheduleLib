@@ -7,8 +7,7 @@ namespace ScheduleLib.DependencyInjection.ScopePlans;
 public static class ScopePlanServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the scope-plan infrastructure. Call it once from the composition root; repeated
-    /// calls are harmless, and it may come before or after the scope values.
+    /// Repeated calls are harmless, and it may come before or after the scope values.
     /// </summary>
     public static IServiceCollection AddScopePlans(this IServiceCollection services)
     {
@@ -25,7 +24,7 @@ public static class ScopePlanServiceCollectionExtensions
     }
 
     /// <summary>
-    /// A raw input supplied when a scope opens. The caller owns it; the scope never disposes it.
+    /// The caller owns the value; the scope never disposes it.
     /// Throws when <typeparamref name="T"/> is already a scope value.
     /// </summary>
     public static IServiceCollection AddSeed<T>(this IServiceCollection services)
@@ -69,10 +68,7 @@ public static class ScopePlanServiceCollectionExtensions
         return services.AddScopeValue(registration);
     }
 
-    /// <summary>
-    /// A value built synchronously in each scope by <typeparamref name="TFactory"/>.
-    /// Throws when <typeparamref name="T"/> is already a scope value.
-    /// </summary>
+    /// <summary>Throws when <typeparamref name="T"/> is already a scope value.</summary>
     public static IServiceCollection AddDerived<T, TFactory>(this IServiceCollection services)
         where T : class
         where TFactory : class, IFactory<T>
@@ -96,10 +92,7 @@ public static class ScopePlanServiceCollectionExtensions
         return services.AddScopeValue(registration);
     }
 
-    /// <summary>
-    /// A value built asynchronously by <typeparamref name="TInitializer"/> when the scope opens.
-    /// Throws when <typeparamref name="T"/> is already a scope value.
-    /// </summary>
+    /// <summary>Throws when <typeparamref name="T"/> is already a scope value.</summary>
     public static IServiceCollection AddInitialized<T, TInitializer>(this IServiceCollection services)
         where T : class
         where TInitializer : class, IInitializer<T>
@@ -143,7 +136,7 @@ public static class ScopePlanServiceCollectionExtensions
         return services.RemoveScopeValue(ScopeNode.Unkeyed(typeof(T)));
     }
 
-    /// <summary>Removes the keyed seed <typeparamref name="T"/>. Throws when it is not registered.</summary>
+    /// <summary>Throws when it is not registered.</summary>
     public static IServiceCollection RemoveScopeValue<T>(this IServiceCollection services, object key)
         where T : class
     {

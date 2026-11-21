@@ -5,10 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>
-/// Opens a child scope of the scope that resolved it, for the workflow rooted at
-/// <typeparamref name="THandler"/>. Resolved from a plain scope, there is nothing to inherit.
-/// </summary>
+/// <summary>Resolved from a plain scope, there is nothing to inherit.</summary>
 /// <remarks>
 /// A fork inherits the parent's seeds and initialized values by reference. Seeds the caller
 /// supplies replace inherited ones; an initialized value is rebuilt when one of its seeds was
@@ -24,9 +21,8 @@ public sealed class ScopeForkFactory<THandler>(
     public ScopePlan Plan => plan.Plan;
 
     /// <summary>
-    /// Registers the fork with its parent, checks the plan and the seeds before any initializer
-    /// runs, fills the seeds, runs the initializers the fork does not inherit, and only then
-    /// returns the scope. A parent that starts ending meanwhile waits for the fork to settle.
+    /// The fork is registered with its parent first, so a parent that starts ending meanwhile
+    /// waits for it to settle. The plan and the seeds are checked before any initializer runs.
     /// </summary>
     public async ValueTask<PlannedScope<THandler>> OpenAsync(
         Action<ScopeInputs>? supply,
@@ -91,7 +87,6 @@ public sealed class ScopeForkFactory<THandler>(
         }
     }
 
-    /// <summary>Rejects plan errors, values that are not seeds and missing seeds, before any initializer runs.</summary>
     private ScopeInputs CheckInputs(Action<ScopeInputs>? supply)
     {
         var scopePlan = plan.Plan;

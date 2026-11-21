@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>Values the caller supplies explicitly when opening a scope.</summary>
 public sealed class ScopeInputs
 {
     internal Dictionary<ScopeNode, object> Seeds { get; } = [];
@@ -27,10 +26,7 @@ public sealed class ScopeInputs
     }
 }
 
-/// <summary>
-/// An opened scope whose seeds are filled and initializers have run.
-/// Whoever opens it disposes it.
-/// </summary>
+/// <summary>Whoever opens the scope disposes it.</summary>
 public sealed class PlannedScope<THandler> : IAsyncDisposable
     where THandler : notnull
 {
@@ -48,9 +44,8 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
     public IServiceProvider Services => _scope.ServiceProvider;
 
     /// <summary>
-    /// The registered handler, or else one created from the scope's services. It is resolved
-    /// before the scope is returned, so it never races the scope ending. A created handler is
-    /// owned by this scope, since the container does not track it.
+    /// Resolved before the scope is returned, so it never races the scope ending. A handler the
+    /// scope created is owned by it, since the container does not track it.
     /// </summary>
     public THandler Handler => _handler!;
 
@@ -74,7 +69,6 @@ public sealed class PlannedScope<THandler> : IAsyncDisposable
         await _state.EndAsync().ThrowIfStartedHereAndFailed();
     }
 
-    /// <summary>The services step of ending: a handler this scope created, then the container scope.</summary>
     internal async ValueTask DisposeServicesAsync(CleanupFailures failures)
     {
         if (_handlerIsActivated)

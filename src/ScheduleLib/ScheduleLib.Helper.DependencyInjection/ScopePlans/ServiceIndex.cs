@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>How Microsoft DI would build a service, as far as the plan can tell.</summary>
 internal enum ServiceSource
 {
     Missing,
@@ -16,7 +15,7 @@ internal enum ServiceSource
 
 internal readonly record struct ServiceRecipe(ServiceSource Source, Type? Implementation);
 
-/// <summary>What planning needs from one registration; an open generic keeps its open implementation.</summary>
+/// <summary>An open generic keeps its open implementation.</summary>
 internal readonly record struct IndexedService(ServiceLifetime Lifetime, Type? Implementation)
 {
     public static IndexedService Of(ServiceDescriptor descriptor)
@@ -28,10 +27,7 @@ internal readonly record struct IndexedService(ServiceLifetime Lifetime, Type? I
     }
 }
 
-/// <summary>
-/// Registrations by service type and key, built once from the read-only service collection.
-/// It keeps no descriptors, so it never holds what their factories capture.
-/// </summary>
+/// <summary>It keeps no descriptors, so it never holds what their factories capture.</summary>
 internal sealed class ServiceIndex
 {
     private readonly Dictionary<ScopeNode, List<IndexedService>> _services = [];

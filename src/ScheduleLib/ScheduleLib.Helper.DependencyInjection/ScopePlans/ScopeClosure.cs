@@ -3,8 +3,8 @@ using System.Collections.Immutable;
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
 /// <summary>
-/// Everything a node needs transitively. Nodes share closures: a node that adds nothing to its
-/// first contributing input reuses that input's instance.
+/// Nodes share closures: a node that adds nothing to its first contributing input reuses that
+/// input's instance.
 /// </summary>
 public sealed class ScopeClosure
 {

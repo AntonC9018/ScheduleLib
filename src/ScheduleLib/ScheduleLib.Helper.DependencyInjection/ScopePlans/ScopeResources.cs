@@ -1,9 +1,9 @@
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
 /// <summary>
-/// Resources opened by the initializers of one scope. They close when that scope ends, after its
-/// forks, so forks that borrowed values built on them never see them closed.
-/// An initializer adds its resource here and returns a non-disposable value that uses it.
+/// Resources close when their scope ends, after its forks, so forks that borrowed values built on
+/// them never see them closed. An initializer adds its resource here and returns a non-disposable
+/// value that uses it.
 /// </summary>
 public sealed class ScopeResources
 {
@@ -29,7 +29,6 @@ public sealed class ScopeResources
         return resource;
     }
 
-    /// <summary>Closes every resource, the last added first, recording failures without stopping.</summary>
     internal async ValueTask CloseAsync(CleanupFailures failures)
     {
         IAsyncDisposable[] resources;

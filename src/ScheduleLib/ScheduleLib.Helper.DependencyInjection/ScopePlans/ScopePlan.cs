@@ -4,7 +4,6 @@ namespace ScheduleLib.DependencyInjection.ScopePlans;
 
 public sealed record ScopePlanStep(Type Value, Type Initializer);
 
-/// <summary>What one workflow needs: the seeds it takes and the initializers it runs, in order.</summary>
 public sealed class ScopePlan
 {
     internal ScopePlan(Type root, ScopeClosure closure, ScopeValueCatalog values)
@@ -33,7 +32,6 @@ public sealed class ScopePlan
     }
 }
 
-/// <summary>The plan of the workflow rooted at <typeparamref name="THandler"/>, built on first use.</summary>
 public sealed class ScopePlan<THandler>(ScopePlanGraph graph)
 {
     private ScopePlan? _plan;
