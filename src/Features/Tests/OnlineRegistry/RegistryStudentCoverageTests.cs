@@ -436,7 +436,6 @@ public sealed class RegistryStudentCoverageTests
 
     private sealed class Fixture
     {
-        /// <summary>One attendance list passed to the coverage fixture, with its student names.</summary>
         internal readonly record struct AttendanceSource(StudentsLookupKey Key, string[] Names);
 
         internal Schedule Schedule { get; }

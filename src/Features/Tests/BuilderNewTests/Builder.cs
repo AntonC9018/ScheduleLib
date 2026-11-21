@@ -14,8 +14,6 @@ public static class TestBuilderHelper
     // (so that running tasks are never affected).
     public static TreeBuilder Configure(TreeBuilder b)
     {
-        // Allows to configure the defaults at this level.
-        // they will take effect if later they are not overriden.
         b.Defaults.Configure(defaults =>
         {
             defaults.Registry()
@@ -28,8 +26,6 @@ public static class TestBuilderHelper
                         .WithLog(LessonEquationCommandTypes.All));
                 });
 
-            // Adds default source.
-            // b.LessonTopics.AddSource<ManifestLessonTopicSource>(topics => ...)
             defaults.LessonTopics()
                 .Manifest(topics =>
                 {
@@ -45,13 +41,6 @@ public static class TestBuilderHelper
                 .Credentials()
                 .FromConfig();
         });
-
-        // As an idea (ignore for now)
-        // var scope = defaults.Scope(scope =>
-        // {
-        //     // This will always be added to all, even if not overridden.
-        //     scope.LessonTopics.Manifest();
-        // });
 
         b.Defaults.TeacherLayer(
             "Anton Curmanschii",

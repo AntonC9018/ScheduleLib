@@ -5,7 +5,6 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class RegistryTopicScopeTests
 {
-    /// <summary>A built schedule with the group set the test asked for.</summary>
     private readonly record struct ScheduleWithGroups(Schedule Schedule, LessonGroups Groups);
 
     private static ScheduleWithGroups ScheduleWith(params string[] groupNames)

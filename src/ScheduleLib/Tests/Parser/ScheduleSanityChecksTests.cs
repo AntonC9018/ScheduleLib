@@ -8,7 +8,6 @@ namespace ScheduleLib.ParserTests;
 
 public sealed class ScheduleSanityChecksTests
 {
-    /// <summary>A schedule import context together with the group it created.</summary>
     private readonly record struct DocContext(ScheduleImportContext Context, GroupId Group);
 
     [Fact]

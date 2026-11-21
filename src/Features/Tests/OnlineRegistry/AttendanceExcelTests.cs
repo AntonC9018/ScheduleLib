@@ -10,7 +10,6 @@ namespace ScheduleLib.OnlineRegistry.Tests;
 
 public sealed class AttendanceExcelTests
 {
-    /// <summary>A schedule with one lab course and group, filtered for date binding.</summary>
     private readonly record struct DateBindingFixture(
         ScheduleBuilder Builder,
         FilteredSchedule Filtered,

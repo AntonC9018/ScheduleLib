@@ -295,7 +295,6 @@ internal record struct LessonConfig()
 
 file sealed class TestContext
 {
-    /// <summary>A weekday and time slot recovered from a concrete date and time.</summary>
     internal readonly record struct TimetableSlot(DayOfWeek Day, TimeSlot Slot);
 
     private const int Year = 2024;
@@ -447,7 +446,6 @@ file sealed class TestContext
         foreach (var lesson in schedule.EnumerateWeeklyLessons())
         {
             var d = lesson.Date;
-            // We only do a single week.
             var date = GetDate(d.DayOfWeek);
             var time = TimeConfig.Base.GetTimeSlotInterval(d.TimeSlot).Start;
             scheduled.Add(new()

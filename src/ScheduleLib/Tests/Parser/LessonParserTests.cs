@@ -761,8 +761,6 @@ public sealed class LessonParserTests
     [Fact]
     public void TeacherNameCommaRoomNameSupported_EvenWithTerribleFormatting()
     {
-        // Managementul proiectelor (sem)
-        // Iu.Drăgălina ,  213a/4
         var lessons = ParseLessons([
             "Managementul proiectelor (sem)",
             "Iu.Drăgălina ,  213a/4",
@@ -825,7 +823,7 @@ public sealed class LessonParserTests
                     c.Lexer.Move();
 
                     Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
-                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
+                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word));
                     return c.DontInsertAll();
                 }
                 return c.DefaultAll();
@@ -851,7 +849,7 @@ public sealed class LessonParserTests
                     c.Lexer.Move();
 
                     Assert.True(c.Lexer.TryConsume(TokenType.Whitespace));
-                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word)); // One
+                    Assert.True(c.Lexer.TryConsume(LessonTokenType.Word));
                     return c.DontInsertAll(inclusive: inclusive);
                 }
                 return c.DefaultAll();
@@ -873,7 +871,6 @@ public sealed class LessonParserTests
 
     [Theory]
     [InlineData("Node.JS")]
-    // [InlineData("Node . JS")]
     [InlineData("Node. JS")]
     public void LessonName_NodeJsFromConfig(string nodejs)
     {

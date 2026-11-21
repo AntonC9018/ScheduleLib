@@ -7,14 +7,11 @@ public sealed class TreeIterationTests
     [Fact]
     public void MoveNext_SingleLayer_VisitsAllStates()
     {
-        // Arrange
         var root = CreateLayer("Root");
 
-        // Act
         DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
-        // Assert
         Assert.Collection(
             states,
             s1 =>
@@ -41,7 +38,6 @@ public sealed class TreeIterationTests
     [Fact]
     public void MoveNext_TwoLevelHierarchy_VisitsInCorrectOrder()
     {
-        // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
         var root = CreateLayer(
@@ -49,11 +45,9 @@ public sealed class TreeIterationTests
             child1,
             child2);
 
-        // Act
         DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
-        // Assert
         var expected = new VisitRecord[]
         {
             new("Root", DfsVisitationState.BeforeProcess),
@@ -72,7 +66,6 @@ public sealed class TreeIterationTests
     [Fact]
     public void MoveNext_ThreeLevelHierarchy_VisitsInDepthFirstOrder()
     {
-        // Arrange
         var grandChild = CreateLayer("GrandChild");
         var child1 = CreateLayer("Child1", grandChild);
         var child2 = CreateLayer("Child2");
@@ -81,11 +74,9 @@ public sealed class TreeIterationTests
             child1,
             child2);
 
-        // Act
         DfsEnumerable e = new(root);
         var states = CollectStates(e);
 
-        // Assert
         var expected = new VisitRecord[]
         {
             new("Root", DfsVisitationState.BeforeProcess),
@@ -107,7 +98,6 @@ public sealed class TreeIterationTests
     [Fact]
     public void PreventRecursionOnce_SkipsChildrenOnce()
     {
-        // Arrange
         var child1 = CreateLayer("Child1");
         var child2 = CreateLayer("Child2");
         var root = CreateLayer(
@@ -118,17 +108,14 @@ public sealed class TreeIterationTests
         var e = new DfsEnumerable(root)
             .AddRecorder(out var recorder);
 
-        // Act
         foreach (var x in e)
         {
-            // Skip children when we process Root
             if (x.LayerName == "Root" && x.State == DfsVisitationState.Process)
             {
                 x.Controller.Action = DfsAction.PreventRecursionOnce;
             }
         }
 
-        // Assert - Should skip to AfterProcess without visiting children
         var expected = new VisitRecord[]
         {
             new("Root", DfsVisitationState.BeforeProcess),
@@ -141,7 +128,6 @@ public sealed class TreeIterationTests
     [Fact]
     public void KeepPreventingRecursion_SkipsAllSubsequentChildren()
     {
-        // Arrange
         var root = CreateLayer(
             "Root",
             CreateLayer(
@@ -152,7 +138,6 @@ public sealed class TreeIterationTests
         var e = new DfsEnumerable(root)
             .AddRecorder(out var recorder);
 
-        // Act
         foreach (var x in e)
         {
             if (x.LayerName == "Child1" && x.State == DfsVisitationState.BeforeProcess)
@@ -161,7 +146,6 @@ public sealed class TreeIterationTests
             }
         }
 
-        // Assert
         var expected = new VisitRecord[]
         {
             new("Root", DfsVisitationState.BeforeProcess),
@@ -175,7 +159,6 @@ public sealed class TreeIterationTests
     [Fact]
     public void MultipleChildren_AllVisited()
     {
-        // Arrange
         var children = Enumerable.Range(start: 1, count: 5)
             .Select(i =>
             {
@@ -185,14 +168,12 @@ public sealed class TreeIterationTests
         var root = CreateLayer("Root", children);
         var enumerable = new DfsEnumerable(root);
 
-        // Act
         var visitedLayers = new HashSet<string>();
         foreach (var x in enumerable)
         {
             visitedLayers.Add(x.LayerName);
         }
 
-        // Assert
         Assert.Equal(expected: 6, actual: visitedLayers.Count); // Root + 5 children
         for (int i = 1; i <= 5; i++)
         {
@@ -205,17 +186,14 @@ public sealed class TreeIterationTests
     [Fact]
     public void SkipCurrentChildren_WhenNoChildrenExist_CompletesNormally()
     {
-        // Arrange
         var leaf = CreateLayer("Leaf");
 
         using var enumerator = new DfsEnumerator(leaf, new EnumerationContextCollection([]));
 
-        // Act
         enumerator.MoveNext(); // BeforeProcess
         enumerator.MoveNext(); // Process
         var result = enumerator.SkipCurrentChildren();
 
-        // Assert
         Assert.True(result);
         Assert.Equal(expected: DfsVisitationState.AfterProcess, actual: enumerator.Current.State);
     }

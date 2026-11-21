@@ -1,6 +1,5 @@
 namespace Tests.Common;
 
-/// <summary>External services that opt-in live tests may contact.</summary>
 public static class ExternalServices
 {
     public const string UsmStudentRegistry = "crd.usm.md/studregistry";
