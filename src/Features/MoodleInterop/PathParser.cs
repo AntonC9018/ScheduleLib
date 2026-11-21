@@ -1,3 +1,4 @@
+using System.Globalization;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
 
@@ -15,281 +16,174 @@ public sealed class ParsedMoodlePath
     public required int TestNumber { get; init; }
 }
 
-// AI generated, all of the below.
-// TODO: Do this well.
-
-public static class MoodlePathTokenType
-{
-    public const TokenType Text = TokenType.Invalid + 1;
-    public const TokenType Ciclul = Text + 1;
-    public const TokenType Anul = Ciclul + 1;
-    public const TokenType Atestare = Anul + 1;
-    public const TokenType Number = Atestare + 1;
-    public const TokenType RomanNumeral = Number + 1;
-}
-
-public sealed class MoodlePathTokenReader : ITokenReader
-{
-    public static readonly MoodlePathTokenReader Instance = new();
-    public TokenTypeLabels Labels { get; } = LexerHelper.CreateLabels(typeof(MoodlePathTokenType));
-
-    public TokenType Read(ref SequenceReader reader)
-    {
-        if (reader.SkipWhitespace().SkippedAny)
-        {
-            return TokenType.Whitespace;
-        }
-
-        if (reader.ConsumeExactString("Ciclul", StringComparison.OrdinalIgnoreCase))
-        {
-            return MoodlePathTokenType.Ciclul;
-        }
-
-        if (reader.ConsumeExactString("Anul", StringComparison.OrdinalIgnoreCase))
-        {
-            return MoodlePathTokenType.Anul;
-        }
-
-        if (reader.ConsumeExactString("Atestare", StringComparison.OrdinalIgnoreCase))
-        {
-            return MoodlePathTokenType.Atestare;
-        }
-
-        var numResult = reader.ConsumePositiveIntWithMaxLength(3);
-        if (numResult.HasValue)
-        {
-            return MoodlePathTokenType.Number;
-        }
-
-        var romanResult = reader.ReadRoman();
-        if (romanResult.Status == ReadRomanStatus.Ok)
-        {
-            return MoodlePathTokenType.RomanNumeral;
-        }
-
-        if (!reader.IsEmpty)
-        {
-            reader.Skip(new SkipTextImpl());
-            return MoodlePathTokenType.Text;
-        }
-
-        return TokenType.Invalid;
-    }
-
-    private struct SkipTextImpl : IShouldSkip
-    {
-        public bool ShouldSkip(char ch)
-        {
-            return !char.IsWhiteSpace(ch);
-        }
-    }
-}
-
 public static class MoodlePathParser
 {
+    // Expected breadcrumb layout:
+    // 0: Base (e.g., "Cursuri USM")
+    // 1: Faculty (e.g., "Matematică și Informatică")
+    // 2: "Ciclul <roman|int> <qualification>" (e.g., "Ciclul I Licență")
+    // 3: Specialty (e.g., "Informatică aplicată")
+    // 4: "Anul <roman|int>" (e.g., "Anul III")
+    // 5: CourseName (e.g., "Modele de design software")
+    // 6: SectionName (e.g., "Atestare 1")
+    private const int MinimumSegmentCount = 7;
+
     public static ParsedMoodlePath? TryParse(IEnumerable<string> pathSegments)
     {
-        var segments = pathSegments.ToList();
-
-        // Expected pattern:
-        // 0: Base (e.g., "Cursuri USM")
-        // 1: Faculty (e.g., "Matematică și Informatică")
-        // 2: Ciclul X QualificationType (e.g., "Ciclul I Licență")
-        // 3: Specialty (e.g., "Informatică aplicată")
-        // 4: Anul Grade (e.g., "Anul III")
-        // 5: CourseName (e.g., "Modele de design software")
-        // 6: SectionName (e.g., "Atestare 1")
-        // 7: Rezultate or Note
-
-        if (segments.Count < 7)
+        var segments = pathSegments as IReadOnlyList<string> ?? [.. pathSegments];
+        if (segments.Count < MinimumSegmentCount)
         {
             return null;
         }
 
-        var baseSegment = segments[0];
-        var faculty = new Faculty(segments[1]);
-
-        var qualificationSegment = segments[2];
-        var qualification = ParseQualificationSegment(qualificationSegment);
-
-        if (qualification.QualificationType is not { } qualificationType)
+        if (ParseQualificationSegment(segments[2]) is not { } qualificationType)
         {
             return null;
         }
 
-        var specialty = new Specialty(segments[3]);
-
-        var gradeSegment = segments[4];
-        var grade = ParseGradeSegment(gradeSegment);
-        var courseName = segments[5];
-
-        var sectionSegment = segments[6];
-        var section = ParseSectionSegment(sectionSegment);
+        var grade = ParseGradeSegment(segments[4]);
+        var testNumber = ParseTestNumber(segments[6]);
 
         return new ParsedMoodlePath
         {
-            Base = baseSegment,
-            Faculty = faculty,
+            Base = segments[0],
+            Faculty = new Faculty(segments[1]),
             QualificationType = qualificationType,
-            Specialty = specialty,
+            Specialty = new Specialty(segments[3]),
             Grade = grade,
-            CourseName = courseName,
-            SectionName = section.SectionName,
-            TestNumber = section.TestNumber,
+            CourseName = segments[5],
+            SectionName = segments[6],
+            TestNumber = testNumber,
         };
     }
 
-    private readonly record struct ParsedQualification(int? Cycle, QualificationType? QualificationType);
-
-    private readonly record struct ParsedSection(string SectionName, int TestNumber);
-
-    private static ParsedQualification ParseQualificationSegment(string segment)
+    private static QualificationType? ParseQualificationSegment(string segment)
     {
-        var lexer = new Lexer(MoodlePathTokenReader.Instance);
-        using var e = SingleItemEnumerator.Create(segment.AsMemory());
-        lexer.Reset(e);
-
-        var scope = lexer.Scope();
-
-        if (!scope.TryConsume(MoodlePathTokenType.Ciclul))
+        var reader = new SequenceReader(segment);
+        reader.SkipWhitespace();
+        if (!ConsumeKeyword(ref reader, "Ciclul"))
         {
-            return new(null, null);
+            return null;
+        }
+        if (ConsumePositiveIntOrRoman(ref reader) is null)
+        {
+            return null;
+        }
+        if (!reader.SkipWhitespace().SkippedAny)
+        {
+            return null;
         }
 
-        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
-
-        if (!scope.CanPeek(1))
-        {
-            return new(null, null);
-        }
-
-        int? cycleNumber = null;
-        var token = scope.Current;
-        if (token.Type == MoodlePathTokenType.RomanNumeral)
-        {
-            cycleNumber = NumberHelper.FromRoman(token.Value.Span);
-            scope.Move();
-        }
-        else if (token.Type == MoodlePathTokenType.Number)
-        {
-            if (int.TryParse(token.Value.Span, out int num))
-            {
-                cycleNumber = num;
-            }
-            scope.Move();
-        }
-
-        if (cycleNumber == null)
-        {
-            return new(null, null);
-        }
-
-        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
-
-        var qualificationText = "";
-        while (scope.CanPeek(1))
-        {
-            var t = scope.Current;
-            if (t.Type == TokenType.Whitespace)
-            {
-                qualificationText += " ";
-            }
-            else
-            {
-                qualificationText += t.Value.ToString();
-            }
-            scope.Move();
-        }
-
-        qualificationText = qualificationText.Trim();
-        var qualType = ParseQualificationType(qualificationText);
-
-        return new(cycleNumber, qualType);
+        var remaining = reader.PeekSpanUntilEnd().Trim();
+        return ParseQualificationType(remaining);
     }
 
     private static Grade ParseGradeSegment(string segment)
     {
-        var lexer = new Lexer(MoodlePathTokenReader.Instance);
-        using var e = SingleItemEnumerator.Create(segment.AsMemory());
-        lexer.Reset(e);
-
-        var scope = lexer.Scope();
-
-        if (!scope.TryConsume(MoodlePathTokenType.Anul))
+        var reader = new SequenceReader(segment);
+        reader.SkipWhitespace();
+        if (!ConsumeKeyword(ref reader, "Anul"))
+        {
+            return Grade.Invalid;
+        }
+        if (ConsumePositiveIntOrRoman(ref reader) is not { } gradeNumber)
         {
             return Grade.Invalid;
         }
 
-        scope.ConsumeAllConsecutive([TokenType.Whitespace]);
-
-        if (!scope.CanPeek(1))
+        reader.SkipWhitespace();
+        if (!reader.IsEmpty)
         {
             return Grade.Invalid;
         }
 
-        int? gradeNumber = null;
-        var token = scope.Current;
-        if (token.Type == MoodlePathTokenType.RomanNumeral)
-        {
-            gradeNumber = NumberHelper.FromRoman(token.Value.Span);
-        }
-        else if (token.Type == MoodlePathTokenType.Number)
-        {
-            if (int.TryParse(token.Value.Span, out int num))
-            {
-                gradeNumber = num;
-            }
-        }
-
-        if (gradeNumber == null)
-        {
-            return Grade.Invalid;
-        }
-
-        return new((int) gradeNumber);
+        return new Grade(gradeNumber);
     }
 
-    private static ParsedSection ParseSectionSegment(string segment)
+    private static int ParseTestNumber(string segment)
     {
-        var lexer = new Lexer(MoodlePathTokenReader.Instance);
-        using var e = SingleItemEnumerator.Create(segment.AsMemory());
-        lexer.Reset(e);
-
-        var scope = lexer.Scope();
-
-        if (scope.TryConsume(MoodlePathTokenType.Atestare))
+        var reader = new SequenceReader(segment);
+        reader.SkipWhitespace();
+        if (!ConsumeKeyword(ref reader, "Atestare"))
         {
-            scope.ConsumeAllConsecutive([TokenType.Whitespace]);
-
-            int testNumber = 0;
-            if (scope.CanPeek(1))
-            {
-                var token = scope.Current;
-                if (token.Type == MoodlePathTokenType.Number)
-                {
-                    int.TryParse(token.Value.Span, out testNumber);
-                }
-            }
-
-            return new(segment, testNumber);
+            return 0;
+        }
+        if (ConsumePositiveInt(ref reader) is not { } testNumber)
+        {
+            return 0;
         }
 
-        return new(segment, 0);
+        return testNumber;
     }
 
-    private static QualificationType? ParseQualificationType(string text)
+    private static bool ConsumeKeyword(ref SequenceReader reader, string keyword)
     {
-        if (text.AsSpan()
-            .StartsWith("Licen", StringComparison.OrdinalIgnoreCase))
+        if (!reader.ConsumeExactString(keyword, StringComparison.OrdinalIgnoreCase))
         {
-            return QualificationType.Licenta;
+            return false;
         }
-        if (!text.AsSpan()
-                .StartsWith("Master", StringComparison.OrdinalIgnoreCase))
+        return reader.SkipWhitespace().SkippedAny;
+    }
+
+    private static int? ConsumePositiveIntOrRoman(ref SequenceReader reader)
+    {
+        if (ConsumePositiveInt(ref reader) is { } number)
+        {
+            return number;
+        }
+
+        var buffered = reader.BufferedView();
+        var romanResult = buffered.ReadRoman();
+        if (romanResult.Status != ReadRomanStatus.Ok)
+        {
+            return null;
+        }
+        if (!buffered.IsEmpty && !char.IsWhiteSpace(buffered.Current))
         {
             return null;
         }
 
-        return QualificationType.Master;
+        var romanSpan = reader.PeekSpanUntilPosition(buffered.Position);
+        reader.MoveTo(buffered.Position);
+        return NumberHelper.FromRoman(romanSpan);
+    }
+
+    private static int? ConsumePositiveInt(ref SequenceReader reader)
+    {
+        var buffered = reader.BufferedView();
+        if (!buffered.SkipNumbers().SkippedAny)
+        {
+            return null;
+        }
+        if (!buffered.IsEmpty && !char.IsWhiteSpace(buffered.Current))
+        {
+            return null;
+        }
+
+        var digits = reader.PeekSpanUntilPosition(buffered.Position);
+        if (!int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out int value))
+        {
+            return null;
+        }
+        if (value <= 0)
+        {
+            return null;
+        }
+
+        reader.MoveTo(buffered.Position);
+        return value;
+    }
+
+    private static QualificationType? ParseQualificationType(ReadOnlySpan<char> text)
+    {
+        if (text.StartsWith("Licen", StringComparison.OrdinalIgnoreCase))
+        {
+            return QualificationType.Licenta;
+        }
+        if (text.StartsWith("Master", StringComparison.OrdinalIgnoreCase))
+        {
+            return QualificationType.Master;
+        }
+        return null;
     }
 }
