@@ -27,6 +27,12 @@ public sealed class MoodleAttemptReviewLinkMissingException(string attemptId)
     public string AttemptId { get; } = attemptId;
 }
 
+public sealed class MoodleAttemptUserNameMissingException(string attemptId)
+    : InvalidOperationException($"User name is missing for attempt '{attemptId}'.")
+{
+    public string AttemptId { get; } = attemptId;
+}
+
 public sealed class MoodleQuestionReviewLinkMissingException(int questionNumber)
     : InvalidOperationException($"Expecting a review link for question {questionNumber}.")
 {

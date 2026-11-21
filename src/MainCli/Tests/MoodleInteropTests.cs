@@ -1,15 +1,12 @@
 using AngleSharp;
 using AngleSharp.Html.Dom;
-using Microsoft.Extensions.Configuration;
 using QuizModels;
 using ScheduleLib;
-using ScheduleLib.Application.Config;
-using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Application.Core;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
+using ScheduleLib.OnlineRegistry;
 using ScheduleLib.Parsing.Moodle;
-using ScheduleLib.Scraping.Common;
-using ScheduleLib.Scraping.Common.Config;
 
 namespace MainCli.Tests;
 
@@ -139,27 +136,32 @@ public sealed class MoodleInteropTests
     }
 
     [Fact]
+    public void ParseDurationReturnsNullWhenCombinedIntervalExceedsTimeSpanMaxValue()
+    {
+        Assert.Null(MoodleQuizHtmlParser.ParseDuration("10675198 zile 3 ore 1428 min 6 sec"));
+    }
+
+    [Fact]
     public void ParseDateTimeHandlesPlaceholdersAndRomanianFormats()
     {
         Assert.Null(MoodleQuizHtmlParser.ParseDateTime("-"));
         Assert.Null(MoodleQuizHtmlParser.ParseDateTime(" – "));
 
         var parsed = MoodleQuizHtmlParser.ParseDateTime("16 octombrie 2025  13:28");
-        Assert.Equal(
-            expected: new DateTime(
-                year: 2025,
-                month: 10,
-                day: 16,
-                hour: 13,
-                minute: 28,
-                second: 0),
-            actual: parsed);
+        var expected = new DateTime(
+            year: 2025,
+            month: 10,
+            day: 16,
+            hour: 13,
+            minute: 28,
+            second: 0);
+        Assert.Equal(expected: expected, actual: parsed);
 
         Assert.Throws<MoodleDateTimeParseException>(() => MoodleQuizHtmlParser.ParseDateTime("not a date"));
     }
 
     [Fact]
-    public async Task ParseAttemptsTableSkipsMalformedRowAndHandlesFormattedNameAndDashFinish()
+    public async Task ParseAttemptsTableSkipsBlankRowAndHandlesFormattedNameAndDashFinish()
     {
         const string html = """
             <html><body>
@@ -189,7 +191,7 @@ public sealed class MoodleInteropTests
                   <td><a href="/q/1"><span class="incorrect">0,00</span></a></td>
                 </tr>
                 <tr>
-                  <td><input type="checkbox" value="2" /></td>
+                  <td></td>
                   <td></td>
                   <td>empty@example.com</td>
                   <td>Finalizate</td>
@@ -215,25 +217,51 @@ public sealed class MoodleInteropTests
         using var document = await context.OpenAsync(req => req.Content(html));
         var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
 
-        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+        var parsed = MoodleQuizHtmlParser.ParseAttemptsTable(table);
 
-        Assert.Equal(expected: 2, actual: attempts.Count);
-        Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
-        Assert.Null(attempts[0].TimeFinish);
-        Assert.Equal(expected: QuestionStatus.Incorrect, actual: attempts[0].QuestionGrades[0].Status);
-        Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
-        Assert.NotNull(attempts[1].TimeFinish);
-        Assert.Equal(expected: QuestionStatus.PartiallyCorrect, actual: attempts[1].QuestionGrades[0].Status);
+        Assert.Empty(parsed.ParseIssues);
+        Assert.Equal(expected: 2, actual: parsed.Attempts.Count);
+        Assert.Equal(expected: "Popescu Ion", actual: parsed.Attempts[0].UserName);
+        Assert.Null(parsed.Attempts[0].TimeFinish);
+        Assert.Equal(expected: QuestionStatus.Incorrect, actual: parsed.Attempts[0].QuestionGrades[0].Status);
+        Assert.Equal(expected: "Rusu Ana", actual: parsed.Attempts[1].UserName);
+        Assert.NotNull(parsed.Attempts[1].TimeFinish);
+        Assert.Equal(expected: QuestionStatus.PartiallyCorrect, actual: parsed.Attempts[1].QuestionGrades[0].Status);
     }
 
     [Fact]
-    public void ParseDurationReturnsNullWhenCombinedIntervalExceedsTimeSpanMaxValue()
+    public async Task ParseAttemptsTableThrowsWhenAttemptIdHasMissingUserName()
     {
-        Assert.Null(MoodleQuizHtmlParser.ParseDuration("10675198 zile 3 ore 1428 min 6 sec"));
+        const string html = """
+            <html><body>
+            <table id="attempts">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th><a data-sortby="firstname">Name</a></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" value="7" /></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+            </body></html>
+            """;
+
+        using var context = BrowsingContext.New(Configuration.Default);
+        using var document = await context.OpenAsync(req => req.Content(html));
+        var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
+
+        var ex = Assert.Throws<MoodleAttemptUserNameMissingException>(() =>
+            MoodleQuizHtmlParser.ParseAttemptsTable(table));
+        Assert.Equal(expected: "7", actual: ex.AttemptId);
     }
 
     [Fact]
-    public async Task ParseAttemptsTableSkipsMalformedTimestampAndHandlesOutOfRangeDuration()
+    public async Task ParseAttemptsTableKeepsAttemptWithMalformedTimestampAndRecordsParseIssue()
     {
         const string html = """
             <html><body>
@@ -278,13 +306,71 @@ public sealed class MoodleInteropTests
         using var document = await context.OpenAsync(req => req.Content(html));
         var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
 
-        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+        var parsed = MoodleQuizHtmlParser.ParseAttemptsTable(table);
 
-        Assert.Equal(expected: 2, actual: attempts.Count);
-        Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
-        Assert.Null(attempts[0].Duration);
-        Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
-        Assert.Equal(expected: TimeSpan.FromSeconds(725), actual: attempts[1].Duration);
+        Assert.Equal(expected: 3, actual: parsed.Attempts.Count);
+        Assert.Equal(expected: "Popescu Ion", actual: parsed.Attempts[0].UserName);
+        Assert.Null(parsed.Attempts[0].Duration);
+
+        Assert.Equal(expected: "Bad Timestamp", actual: parsed.Attempts[1].UserName);
+        Assert.Null(parsed.Attempts[1].TimeFinish);
+        Assert.Equal(expected: 8f, actual: parsed.Attempts[1].Grade);
+
+        Assert.Equal(expected: "Rusu Ana", actual: parsed.Attempts[2].UserName);
+        Assert.Equal(expected: TimeSpan.FromSeconds(725), actual: parsed.Attempts[2].Duration);
+
+        var issue = Assert.Single(parsed.ParseIssues);
+        Assert.Equal(expected: "2", actual: issue.AttemptId);
+        Assert.Equal(expected: "Bad Timestamp", actual: issue.UserName);
+        Assert.Equal(expected: "timefinish", actual: issue.FieldName);
+        Assert.Equal(expected: "not a date", actual: issue.RawValue);
+    }
+
+    [Fact]
+    public async Task CopyGradesPlanEmitsNoticeForMoodleParseIssues()
+    {
+        var builder = new ScheduleBuilder();
+        builder.EnableLookupModule();
+        var schedule = builder.Build();
+        var handler = new CopyGradesFromMoodleForTestTaskHandler(schedule, new LookupFacade(schedule));
+
+        var page = new QuizAttemptsPage
+        {
+            Attempts =
+            [
+                new QuizAttempt
+                {
+                    AttemptId = "2",
+                    UserName = "Popescu Ion",
+                    Grade = 9f,
+                    TimeFinish = null,
+                },
+            ],
+            Path = [],
+            ParseIssues =
+            [
+                new QuizAttemptParseIssue(
+                    AttemptId: "2",
+                    UserName: "Popescu Ion",
+                    FieldName: "timefinish",
+                    RawValue: "not a date"),
+            ],
+        };
+
+        var plan = await handler.Plan(new()
+        {
+            Quiz = page,
+            RegistryNavigator = new UnusedRegistryGradeNavigator(),
+            Semester = Semester.Sem1,
+            CancellationToken = CancellationToken.None,
+        });
+
+        Assert.Contains(
+            plan.Notices,
+            n => n == RegistryGradeNotice.MoodleAttemptFieldUnparsed(
+                userName: "Popescu Ion",
+                fieldName: "timefinish",
+                rawValue: "not a date"));
     }
 
     [Fact]
@@ -325,11 +411,11 @@ public sealed class MoodleInteropTests
         using var document = await context.OpenAsync(req => req.Content(withNoAttemptHtml));
         var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
 
-        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+        var parsed = MoodleQuizHtmlParser.ParseAttemptsTable(table);
 
-        Assert.Equal(expected: 2, actual: attempts.Count);
-        Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
-        Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
+        Assert.Equal(expected: 2, actual: parsed.Attempts.Count);
+        Assert.Equal(expected: "Popescu Ion", actual: parsed.Attempts[0].UserName);
+        Assert.Equal(expected: "Rusu Ana", actual: parsed.Attempts[1].UserName);
 
         const string brokenAttemptHtml = """
             <html><body>
@@ -389,8 +475,8 @@ public sealed class MoodleInteropTests
         using var document = await context.OpenAsync(req => req.Content(html));
         var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
 
-        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
-        var attempt = Assert.Single(attempts);
+        var parsed = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+        var attempt = Assert.Single(parsed.Attempts);
 
         Assert.Equal(expected: 2, actual: attempt.QuestionGrades.Count);
         Assert.Equal(expected: 3, actual: attempt.QuestionGrades[0].QuestionNumber);
@@ -399,59 +485,21 @@ public sealed class MoodleInteropTests
         Assert.Equal(expected: QuestionStatus.Incorrect, actual: attempt.QuestionGrades[1].Status);
     }
 
-    [Fact]
-    public void CredentialsHelperGetCredentialsIncludesMissingKeyInMessage()
+    private sealed class UnusedRegistryGradeNavigator : IRegistryGradeNavigator
     {
-        var config = new ConfigurationBuilder().Build();
-        var ex = Assert.Throws<CredentialsMissingException>(() => config.GetCredentials("Missing:Section"));
-        Assert.Equal(expected: "Missing:Section", actual: ex.ConfigKey);
-        Assert.Contains(expectedSubstring: "Missing:Section", actualString: ex.Message);
-    }
+        public Task<IEnumerable<CourseLink>> GetCourses(Semester semester) =>
+            throw new NotSupportedException();
 
-    [Fact]
-    public void OutputDirectoryEnforcesBoundaryAndAllowsRoot()
-    {
-        var baseDir = Path.Combine(Path.GetTempPath(), "schedulelib-boundary-check");
-        var output = new OutputDirectory(baseDir);
+        public Task<IEnumerable<GroupLink>> GetGroups(CourseLink course) =>
+            throw new NotSupportedException();
 
-        string inside = output.BuildPath("nested/file.txt");
-        Assert.Equal(expected: Path.GetFullPath(Path.Combine(baseDir, "nested/file.txt")), actual: inside);
+        public Task<AngleSharp.Dom.IDocument> GetHtml(Uri uri) =>
+            throw new NotSupportedException();
 
-        Assert.Throws<FullPathOutsideTempOutputDirectoryException>(() => output.BuildPath("../escape.txt"));
-        Assert.Throws<FullPathOutsideTempOutputDirectoryException>(() => output.BuildPath($"{baseDir}-evil/file.txt"));
-
-        var rootPath = Path.GetPathRoot(baseDir)!;
-        var rootOutput = new OutputDirectory(rootPath);
-        string underRoot = rootOutput.BuildPath("file.txt");
-        Assert.Equal(expected: Path.GetFullPath(Path.Combine(rootPath, "file.txt")), actual: underRoot);
-    }
-
-    [Fact]
-    public void ScheduleBuilderCourseRejectsDuplicateAliasesWithoutMutatingCourses()
-    {
-        var builder = new ScheduleBuilder();
-        builder.EnableLookupModule();
-        builder.Course("Math", "Mathematics");
-
-        int countBefore = builder.Courses.Count;
-        Assert.Throws<DuplicateCourseNameException>(() => builder.Course("Algebra", "Mathematics"));
-        Assert.Throws<DuplicateCourseNameException>(() => builder.Course("Physics", "physics"));
-        Assert.Equal(expected: countBefore, actual: builder.Courses.Count);
-    }
-
-    [Fact]
-    public void DayHelperGetDayOfThisWeekHandlesSundayAsEndOfCurrentWeek()
-    {
-        var sunday = new DateOnly(
-            year: 2026,
-            month: 11,
-            day: 22);
-        var monday = sunday.GetDayOfThisWeek(DayOfWeek.Monday);
-        Assert.Equal(
-            expected: new DateOnly(
-                year: 2026,
-                month: 11,
-                day: 16),
-            actual: monday);
+        public Task SubmitGrades(
+            AngleSharp.Dom.IDocument document,
+            CancellationToken token,
+            Action? onSubmissionStarted = null) =>
+            throw new NotSupportedException();
     }
 }

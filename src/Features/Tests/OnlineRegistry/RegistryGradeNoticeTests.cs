@@ -30,6 +30,14 @@ public sealed class RegistryGradeNoticeTests
                     RegistryGradeNoticeKind.Omitted, "Earlier attempt replaced by the last graded attempt: Pop Ion"
                 },
                 {
+                    () => RegistryGradeNotice.MoodleAttemptFieldUnparsed(
+                        userName: "Ion Pop",
+                        fieldName: "timefinish",
+                        rawValue: "not a date"),
+                    RegistryGradeNoticeKind.Unsupported,
+                    "Moodle attempt field 'timefinish' could not be parsed for Ion Pop: not a date"
+                },
+                {
                     RegistryGradeNotice.MoodlePathUnparsed, RegistryGradeNoticeKind.Unsupported,
                     "Moodle course/test path could not be parsed."
                 },

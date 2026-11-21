@@ -33,7 +33,7 @@ public static class MoodleQuizHtmlParser
         return path;
     }
 
-    public static List<QuizAttempt> ParseAttemptsTable(
+    public static ParsedAttemptsTable ParseAttemptsTable(
         IHtmlTableElement table,
         CancellationToken cancellationToken = default)
     {
@@ -45,6 +45,7 @@ public static class MoodleQuizHtmlParser
 
         var questionColumns = ReadQuestionColumns(columnIndices);
         var attempts = new List<QuizAttempt>();
+        var parseIssues = new List<QuizAttemptParseIssue>();
         foreach (var row in table.QuerySelectorAll<IHtmlTableRowElement>("tbody tr"))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -53,21 +54,13 @@ public static class MoodleQuizHtmlParser
                 continue;
             }
 
-            try
+            if (TryParseAttemptRow(row, columnIndices, questionColumns, parseIssues) is { } attempt)
             {
-                if (TryParseAttemptRow(row, columnIndices, questionColumns) is { } attempt)
-                {
-                    attempts.Add(attempt);
-                }
-            }
-            catch (MoodleDateTimeParseException)
-            {
-                // Skip rows with malformed timestamps so remaining attempts still parse.
-                continue;
+                attempts.Add(attempt);
             }
         }
 
-        return attempts;
+        return new ParsedAttemptsTable(Attempts: attempts, ParseIssues: parseIssues);
     }
 
     public static QuestionStatus ParseQuestionStatus(string? classAttribute)
@@ -325,23 +318,24 @@ public static class MoodleQuizHtmlParser
     private static QuizAttempt? TryParseAttemptRow(
         IHtmlTableRowElement row,
         Dictionary<string, int> columnIndices,
-        List<QuestionColumn> questionColumns)
+        List<QuestionColumn> questionColumns,
+        List<QuizAttemptParseIssue> parseIssues)
     {
         var cells = row.Cells;
+        var attemptId = ExtractAttemptId(cells[0]);
         var nameCell = FindCell(cells, columnIndices, "firstname", "lastname");
-        if (nameCell is null)
-        {
-            return null;
-        }
-
-        var userName = ExtractUserName(nameCell);
+        var userName = nameCell is null ? null : ExtractUserName(nameCell);
         if (string.IsNullOrEmpty(userName))
         {
-            return null;
+            if (string.IsNullOrEmpty(attemptId))
+            {
+                return null;
+            }
+
+            throw new MoodleAttemptUserNameMissingException(attemptId);
         }
 
-        var attemptId = ExtractAttemptId(cells[0]);
-        var reviewLink = nameCell.QuerySelector("a.reviewlink")?.GetAttribute("href");
+        var reviewLink = nameCell!.QuerySelector("a.reviewlink")?.GetAttribute("href");
         if (reviewLink is null)
         {
             // Enrolled users with no quiz attempt have a name cell, no attempt checkbox, and no review link.
@@ -358,19 +352,61 @@ public static class MoodleQuizHtmlParser
             ? AttemptState.Unknown
             : AttemptState.Create(stateText);
 
+        var timeStartText = ExtractCellText(FindCell(cells, columnIndices, "timestart"));
+        var timeStart = ParseRowDateTime(
+            value: timeStartText,
+            attemptId: attemptId,
+            userName: userName,
+            fieldName: "timestart",
+            parseIssues: parseIssues);
+        var timeFinishText = ExtractCellText(FindCell(cells, columnIndices, "timefinish"));
+        var timeFinish = ParseRowDateTime(
+            value: timeFinishText,
+            attemptId: attemptId,
+            userName: userName,
+            fieldName: "timefinish",
+            parseIssues: parseIssues);
+
         return new QuizAttempt
         {
             AttemptId = attemptId,
             UserName = userName,
             Email = ExtractCellText(FindCell(cells, columnIndices, "email")),
             State = state,
-            TimeStart = ParseDateTime(ExtractCellText(FindCell(cells, columnIndices, "timestart"))),
-            TimeFinish = ParseDateTime(ExtractCellText(FindCell(cells, columnIndices, "timefinish"))),
+            TimeStart = timeStart,
+            TimeFinish = timeFinish,
             Duration = ParseDuration(ExtractCellText(FindCell(cells, columnIndices, "duration"))),
             Grade = ParseFloatOrNull(ExtractCellText(FindCell(cells, columnIndices, "sumgrades"))),
             ReviewLink = reviewLink,
             QuestionGrades = ExtractQuestionGrades(cells, questionColumns),
         };
+    }
+
+    private static DateTime? ParseRowDateTime(
+        string? value,
+        string attemptId,
+        string userName,
+        string fieldName,
+        List<QuizAttemptParseIssue> parseIssues)
+    {
+        try
+        {
+            var parsed = ParseDateTime(value);
+            if (parsed is { } dateTime)
+            {
+                return dateTime;
+            }
+            return null;
+        }
+        catch (MoodleDateTimeParseException ex)
+        {
+            parseIssues.Add(new QuizAttemptParseIssue(
+                AttemptId: attemptId,
+                UserName: userName,
+                FieldName: fieldName,
+                RawValue: ex.DateTimeText));
+            return null;
+        }
     }
 
     private static IHtmlTableCellElement? FindCell(

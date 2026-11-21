@@ -80,6 +80,16 @@ public sealed record RegistryGradeNotice
     public static RegistryGradeNotice MoodleAttemptSuperseded(Name name) =>
         new(RegistryGradeNoticeKind.Omitted, $"Earlier attempt replaced by the last graded attempt: {name}");
 
+    public static RegistryGradeNotice MoodleAttemptFieldUnparsed(
+        string userName,
+        string fieldName,
+        string rawValue)
+    {
+        return new(
+            RegistryGradeNoticeKind.Unsupported,
+            $"Moodle attempt field '{fieldName}' could not be parsed for {userName}: {rawValue}");
+    }
+
     public static RegistryGradeNotice MoodlePathUnparsed() =>
         new(RegistryGradeNoticeKind.Unsupported, "Moodle course/test path could not be parsed.");
 

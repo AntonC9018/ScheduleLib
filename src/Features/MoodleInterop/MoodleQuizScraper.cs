@@ -55,11 +55,12 @@ public static class MoodleQuizScraper
             throw new MoodleAttemptsTableNotFoundException();
         }
 
-        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(attemptsTable, cancellationToken);
+        var parsed = MoodleQuizHtmlParser.ParseAttemptsTable(attemptsTable, cancellationToken);
         return new QuizAttemptsPage
         {
-            Attempts = attempts,
+            Attempts = parsed.Attempts,
             Path = path,
+            ParseIssues = parsed.ParseIssues,
         };
     }
 }

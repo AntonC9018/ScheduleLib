@@ -6,10 +6,21 @@ namespace QuizModels;
 /// </summary>
 public readonly record struct MoodleBreadcrumbItem(string Name, string? Href);
 
+public readonly record struct QuizAttemptParseIssue(
+    string AttemptId,
+    string UserName,
+    string FieldName,
+    string RawValue);
+
+public readonly record struct ParsedAttemptsTable(
+    List<QuizAttempt> Attempts,
+    List<QuizAttemptParseIssue> ParseIssues);
+
 public sealed class QuizAttemptsPage
 {
     public required List<QuizAttempt> Attempts { get; init; }
     public required List<MoodleBreadcrumbItem> Path { get; init; }
+    public List<QuizAttemptParseIssue> ParseIssues { get; init; } = [];
 }
 
 public sealed class QuizAttempt

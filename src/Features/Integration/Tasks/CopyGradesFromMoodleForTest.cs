@@ -59,6 +59,13 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         var actions = new List<RegistryGradeAction>();
         var notices = new List<RegistryGradeNotice>();
         p.CancellationToken.ThrowIfCancellationRequested();
+        foreach (var issue in quiz.ParseIssues)
+        {
+            notices.Add(RegistryGradeNotice.MoodleAttemptFieldUnparsed(
+                userName: issue.UserName,
+                fieldName: issue.FieldName,
+                rawValue: issue.RawValue));
+        }
         Dictionary<Name, float> gradeByName = new(Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer.Instance);
         foreach (var q in quiz.Attempts)
         {
