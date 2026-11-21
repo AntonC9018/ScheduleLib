@@ -59,19 +59,6 @@ public sealed class CliOutput
 
     public static bool GetJsonl(ResultArguments result) => result.Jsonl;
 
-    public static string? ExclusiveError(ResultArguments result)
-    {
-        if (!result.Json)
-        {
-            return null;
-        }
-        if (!result.Jsonl)
-        {
-            return null;
-        }
-        return ConflictingResultFormatsMessage;
-    }
-
     public void EmitStart()
     {
         if (!Jsonl)
@@ -202,26 +189,6 @@ public sealed class CliOutput
         }
     }
 
-    public void WriteLog(
-        LogLevel level,
-        string message,
-        string? exception = null)
-    {
-        if (!Jsonl)
-        {
-            return;
-        }
-
-        WriteStructuredLog(
-            level,
-            message: message,
-            exception: exception,
-            null,
-            null,
-            category: null,
-            DateTimeOffset.UtcNow);
-    }
-
     public void WriteStructuredLog(
         LogLevel level,
         string message,
@@ -293,8 +260,9 @@ public sealed class CliOutput
     {
         lock (_gate)
         {
-            var seq = _stdoutSeq++;
+            var seq = _stdoutSeq;
             var line = format(seq);
+            _stdoutSeq = seq + 1;
             Console.Out.WriteLine(line);
             Console.Out.Flush();
         }
@@ -304,8 +272,9 @@ public sealed class CliOutput
     {
         lock (_gate)
         {
-            var seq = _stderrSeq++;
+            var seq = _stderrSeq;
             var line = format(seq);
+            _stderrSeq = seq + 1;
             Console.Error.WriteLine(line);
             Console.Error.Flush();
         }
