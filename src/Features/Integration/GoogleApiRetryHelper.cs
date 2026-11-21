@@ -12,7 +12,7 @@ public static class GoogleApiRetryHelper
     // The SDK exposes no single interception point, so each call has to be wrapped.
     public static async Task ExecuteWithRetryAsync(
         Func<Task> action,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await ExecuteWithRetryAsync(
             async () =>
@@ -25,7 +25,7 @@ public static class GoogleApiRetryHelper
 
     public static async Task<T> ExecuteWithRetryAsync<T>(
         Func<Task<T>> action,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         for (int attempt = 0; ; attempt++)
         {
