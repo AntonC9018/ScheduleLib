@@ -58,6 +58,12 @@ public sealed class DuplicateCourseNameException(string courseName)
     public string CourseName { get; } = courseName;
 }
 
+public sealed class DuplicateGroupNameException(string groupName)
+    : ScheduleBuildException($"Group name '{groupName}' is already registered.")
+{
+    public string GroupName { get; } = groupName;
+}
+
 public sealed class InvalidPeriodException : ScheduleBuildException
 {
     private InvalidPeriodException(string message)

@@ -275,13 +275,18 @@ public static partial class ScheduleBuilderHelper
             {
                 return val;
             }
-            var seen = new HashSet<string>(existingLookup.Courses.Comparer);
-            foreach (var name in names)
+        }
+
+        var seen = new HashSet<string>(LookupModule.CourseNameComparer);
+        foreach (var name in names)
+        {
+            if (!seen.Add(name))
             {
-                if (existingLookup.Courses.ContainsKey(name) || !seen.Add(name))
-                {
-                    throw new DuplicateCourseNameException(name);
-                }
+                throw new DuplicateCourseNameException(name);
+            }
+            if (s.LookupModule is { } lookup && lookup.Courses.ContainsKey(name))
+            {
+                throw new DuplicateCourseNameException(name);
             }
         }
 
