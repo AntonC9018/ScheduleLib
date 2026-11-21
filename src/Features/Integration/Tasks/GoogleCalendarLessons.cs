@@ -226,20 +226,22 @@ internal static class GoogleCalendarServiceExtensions
         string calendarName,
         CancellationToken cancellationToken)
     {
-        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-        {
-            try
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+            async () =>
             {
-                var response = await service.CalendarList.Get(calendarName)
-                    .ExecuteAsync(cancellationToken);
-                _ = response;
-                return true;
-            }
-            catch (GoogleApiException)
-            {
-                return false;
-            }
-        });
+                try
+                {
+                    var response = await service.CalendarList.Get(calendarName)
+                        .ExecuteAsync(cancellationToken);
+                    _ = response;
+                    return true;
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return false;
+                }
+            },
+            cancellationToken);
     }
 
     public static async Task<string> MakeSureCleanCalendarWithSummary(
