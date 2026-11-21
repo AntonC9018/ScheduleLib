@@ -46,7 +46,7 @@ public static partial class ScheduleBuilderHelper
             return s.LookupModule;
         }
 
-        var lookupModule = s.LookupModule = new();
+        var lookupModule = new LookupModule();
         s.InitLookup(lookupModule);
         s.LookupModule = lookupModule;
         return lookupModule;
