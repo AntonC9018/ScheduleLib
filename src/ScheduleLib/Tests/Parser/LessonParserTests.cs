@@ -1184,7 +1184,7 @@ public sealed class LessonParserTests
             {
                 Assert.Equal(expected: new TimeOnly(hour: 8, minute: 0), actual: first.StartTime);
                 Assert.Equal(expected: "încep.", actual: first.GroupName.Span);
-                Assert.True(SpecialSubGroups.TryFromNamePrefix(first.GroupName.Span, out var subGroup));
+                Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix(first.GroupName.Span, out var subGroup));
                 Assert.Equal(expected: SpecialSubGroups.Beginners, actual: subGroup);
                 AssertEqualName("G. Ciudin", Assert.Single(first.TeacherNames));
                 Assert.Equal(expected: "222/4", actual: first.RoomName.Span);
@@ -1206,36 +1206,36 @@ public sealed class LessonParserTests
     [InlineData("a.")]
     public void SpecialSubGroupPrefixRequiresAtLeastTwoCharacters(string value)
     {
-        bool condition = SpecialSubGroups.TryFromNamePrefix(value, out _);
+        bool condition = SubGroupPrefixMatcher.Default.TryFromNamePrefix(value, out _);
         Assert.False(condition);
     }
 
     [Fact]
     public void SpecialSubGroupPrefixAcceptsTwoCharactersAndLongerAbbreviations()
     {
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("ro", out var ro));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("ro", out var ro));
         Assert.Equal(expected: SpecialSubGroups.Ro, actual: ro);
 
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("ru", out var ru));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("ru", out var ru));
         Assert.Equal(expected: SpecialSubGroups.Ru, actual: ru);
 
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("AG", out var ag));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("AG", out var ag));
         Assert.Equal(expected: new SubGroup(Specialization.AG.Value!), actual: ag);
 
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("ui", out var ui));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("ui", out var ui));
         Assert.Equal(expected: new SubGroup(Specialization.UI.Value!), actual: ui);
 
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("în", out var beginners));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("în", out var beginners));
         Assert.Equal(expected: SpecialSubGroups.Beginners, actual: beginners);
 
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("încep.", out beginners));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("încep.", out beginners));
         Assert.Equal(expected: SpecialSubGroups.Beginners, actual: beginners);
     }
 
     [Fact]
     public void SpecialSubGroupPrefixPrefersExactLegacyMatchOverLongerSpecialization()
     {
-        Assert.True(SpecialSubGroups.TryFromNamePrefix("GA", out var ga));
+        Assert.True(SubGroupPrefixMatcher.Default.TryFromNamePrefix("GA", out var ga));
         Assert.Equal(expected: new SubGroup("GA"), actual: ga);
     }
 
