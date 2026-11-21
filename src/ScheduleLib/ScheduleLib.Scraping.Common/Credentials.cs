@@ -30,8 +30,12 @@ public static class CredentialsHelper
         this IConfiguration config,
         string key)
     {
-        var ret = config.GetRequiredSection(key)
-            .Get<Credentials>();
+        var section = config.GetSection(key);
+        if (!section.Exists())
+        {
+            return null;
+        }
+        var ret = section.Get<Credentials>();
         if (ret == null)
         {
             return null;
