@@ -19,7 +19,7 @@ public sealed class OutputDirectory
             path: _directory,
             searchPattern: pattern,
             enumerationOptions: options);
-        var ret = files.Select(x => new RelativeFilePath(Path.GetRelativePath(_directory, x)));
+        var ret = files.Select(x => new RelativeFilePath(Path.GetRelativePath(relativeTo: _directory, path: x)));
         return ret;
     }
 

@@ -13,9 +13,9 @@ public static class MoodleQuizScraper
         int pageSize = 2000,
         CancellationToken cancellationToken = default)
     {
-        var url = new Uri(
-            MoodleScrapingContext.Names.BaseUrl,
-            $"mod/quiz/report.php?id={Uri.EscapeDataString(quizId)}&mode=overview");
+        var escapedQuizId = Uri.EscapeDataString(quizId);
+        var relativeUrl = $"mod/quiz/report.php?id={escapedQuizId}&mode=overview";
+        var url = new Uri(MoodleScrapingContext.Names.BaseUrl, relativeUrl);
         var page = await context.Browser.OpenAsync(url.AbsoluteUri, cancellationToken);
 
         var path = MoodleQuizHtmlParser.ParseBreadcrumbs(page);
