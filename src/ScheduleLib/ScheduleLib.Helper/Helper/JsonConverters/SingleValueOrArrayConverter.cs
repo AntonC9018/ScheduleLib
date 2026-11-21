@@ -101,7 +101,17 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
 
         if (reader.TokenType == JsonTokenType.StartArray)
         {
-            items = JsonSerializer.Deserialize<TElement[]>(ref reader, options)!;
+            var list = new List<TElement>();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndArray)
+                {
+                    break;
+                }
+                var item = JsonSerializer.Deserialize<TElement>(ref reader, options);
+                list.Add(item!);
+            }
+            items = [.. list];
         }
         else
         {
