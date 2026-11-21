@@ -1,3 +1,4 @@
+using QuestPDF.Fluent;
 using ScheduleLib.Application.Core;
 using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
@@ -237,6 +238,91 @@ public sealed class GroupPdfTests
             "IA2401.pdf",
         }.SequenceEqual(files);
         Assert.True(condition);
+    }
+
+    [Fact]
+    public void SharedLayoutGeneratesPdfWithSpannedLessonsAndRowGaps()
+    {
+        var builder = new ScheduleBuilder
+        {
+            GroupParseContext = GroupParseContext.Create(new()
+            {
+                CurrentStudyYear = new(2025),
+            }),
+        };
+        builder.EnableLookupModule();
+
+        var group1 = builder.Group("IA2401").Id;
+        var group2 = builder.Group("IA2402").Id;
+        var course = builder.Course("Course");
+
+        // Group 1 has two single-group lessons on Monday slot 1 before a shared lesson across both groups.
+        // Group 2 has no single-group lessons there, leaving a vertical gap above the spanned lesson.
+        for (int i = 0; i < 2; i++)
+        {
+            var single = builder.RegularLesson();
+            single.Group(group1);
+            single.Course(course);
+            single.DayOfWeek(DayOfWeek.Monday);
+            single.TimeSlot(TimeSlot.First);
+            var subGroup = SubGroup.CreateNumeric(i + 1);
+            single.SubGroup(subGroup);
+        }
+
+        var mondayShared = builder.RegularLesson();
+        mondayShared.Group(group1);
+        mondayShared.Group(group2);
+        mondayShared.Course(course);
+        mondayShared.DayOfWeek(DayOfWeek.Monday);
+        mondayShared.TimeSlot(TimeSlot.First);
+
+        // Tuesday slot 1 has fewer lessons (1) than MaxRowsInOneCell (3) and spans both columns.
+        var tuesdayShared = builder.RegularLesson();
+        tuesdayShared.Group(group1);
+        tuesdayShared.Group(group2);
+        tuesdayShared.Course(course);
+        tuesdayShared.DayOfWeek(DayOfWeek.Tuesday);
+        tuesdayShared.TimeSlot(TimeSlot.First);
+
+        var schedule = builder.Build();
+        var filtered = schedule.Filter(new());
+
+        var columnOrderBuilder = new ColumnOrderBuilder<GroupId>();
+        columnOrderBuilder.Add(group1, 0);
+        columnOrderBuilder.Add(group2, 1);
+        var columnOrder = columnOrderBuilder.Build();
+        var layout = SharedLayout.Create(filtered.EnumerateWeeklyLessons(), columnOrder);
+        var mappingByCell = MappingsCreationHelper.CreateCellMappings(
+            filtered.EnumerateWeeklyLessons(),
+            l => l.Lesson.Groups);
+        var cache = new GeneratorCache
+        {
+            ColumnOrder = columnOrder,
+            Mappings = new()
+            {
+                MappingByCell = mappingByCell,
+            },
+            MaxRowsInOneCell = 3,
+            SharedLayout = layout,
+        };
+
+        var displayServices = new LessonTextDisplayHandler.Services(
+            new SubGroupNumberDisplayHandler(),
+            new ParityDisplayHandler(),
+            new LessonTypeDisplayHandler());
+        var documentServices = new GroupColumnScheduleTableDocument.Services
+        {
+            LessonTimeConfig = LessonTimeConfig.CreateDefault(),
+            DayNameProvider = new DayNameProvider(),
+            TimeSlotDisplay = new TimeSlotDisplayHandler(),
+            LessonTextDisplayHandler = new LessonTextDisplayHandler(displayServices, new()),
+            StringBuilder = new StringBuilder(),
+        };
+        var document = new GroupColumnScheduleTableDocument(filtered, in documentServices, cache);
+
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+        byte[] pdfBytes = document.GeneratePdf();
+        Assert.NotEmpty(pdfBytes);
     }
 
     private static Schedule Build(bool withSplits)

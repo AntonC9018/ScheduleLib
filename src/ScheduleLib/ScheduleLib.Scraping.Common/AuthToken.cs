@@ -93,11 +93,10 @@ public sealed class PasswordTokenRetriever : ITokenRetriever
             new(key: _services.FieldNames.Password, value: _services.Credentials.Password),
         ]);
 
-        var response = await _services.HttpClient.PostAsync(
+        using var response = await _services.HttpClient.PostAsync(
             uri,
             content: content,
             cancellationToken: cancellationToken);
-        _ = response;
         return response.StatusCode == HttpStatusCode.Redirect;
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
@@ -88,7 +89,11 @@ public sealed class ConfigurableEnumConverter<T> : DefaultTypeConverter
                 typeof(T));
         }
 
-        if (int.TryParse(text, out _))
+        if (int.TryParse(
+                text,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out _))
         {
             throw InvalidEnumConfigurationValueException.ForNumericValue(
                 this,

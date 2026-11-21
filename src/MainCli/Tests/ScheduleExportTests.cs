@@ -60,7 +60,7 @@ public sealed class ScheduleExportTests
             .ToArray();
         Assert.True(names.Length > 5);
         Assert.Contains(names, x => x!.Contains('_')); // Existing partition artifacts.
-        Assert.Contains(names, x => x!.StartsWith("IA"));
+        Assert.Contains(names, x => x!.StartsWith("IA", StringComparison.Ordinal));
         var calendarNames = Directory.GetFiles(path: calendars, searchPattern: "*.ics")
             .Select(Path.GetFileNameWithoutExtension)
             .Order()
@@ -69,7 +69,7 @@ public sealed class ScheduleExportTests
         var skipped = calendarResult.GetProperty("warnings")
             .EnumerateArray()
             .Select(x => x.GetString()!)
-            .Where(x => x.StartsWith("Skipping calendar "))
+            .Where(x => x.StartsWith("Skipping calendar ", StringComparison.Ordinal))
             .Select(x => x["Skipping calendar ".Length..x.IndexOf(".ics:")])
             .ToArray();
         Assert.Equal(
@@ -77,10 +77,10 @@ public sealed class ScheduleExportTests
                 .Order(),
             actual: calendarNames);
         Assert.Contains(calendarNames, x => x!.Contains('_'));
-        Assert.Contains(calendarNames, x => x!.StartsWith("IA"));
+        Assert.Contains(calendarNames, x => x!.StartsWith("IA", StringComparison.Ordinal));
         var pdf = Directory.GetFiles(path: pdfs, searchPattern: "*.pdf")
             .First(x => Path.GetFileName(x)
-                .StartsWith("IA"));
+                .StartsWith("IA", StringComparison.Ordinal));
         Assert.StartsWith(
             expectedStartString: "%PDF-",
             actualString: System.Text.Encoding.ASCII.GetString(await File.ReadAllBytesAsync(pdf)));
@@ -201,7 +201,7 @@ public sealed class ScheduleExportTests
             result.GetProperty("warnings")
                 .EnumerateArray(),
             x => x.GetString()!
-                .StartsWith("Skipping calendar"));
+                .StartsWith("Skipping calendar", StringComparison.Ordinal));
 
         Assert.Empty(Directory.GetFiles(path: temp.Path, searchPattern: "*.ics"));
         Assert.Equal(expected: "caller data", actual: await File.ReadAllTextAsync(notes));

@@ -148,11 +148,13 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         {
             runner.Add([SuppressMessage(category: "ReSharper", checkId: "AccessToDisposedClosure")] async (token) =>
             {
-                await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-                {
-                    await service.Events.Insert(ev, calendarId)
-                        .ExecuteAsync(token);
-                });
+                await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+                    async () =>
+                    {
+                        await service.Events.Insert(ev, calendarId)
+                            .ExecuteAsync(token);
+                    },
+                    token);
             });
         }
         await runner.WhenDone();
@@ -226,20 +228,22 @@ internal static class GoogleCalendarServiceExtensions
         string calendarName,
         CancellationToken cancellationToken)
     {
-        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-        {
-            try
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+            async () =>
             {
-                var response = await service.CalendarList.Get(calendarName)
-                    .ExecuteAsync(cancellationToken);
-                _ = response;
-                return true;
-            }
-            catch (GoogleApiException)
-            {
-                return false;
-            }
-        });
+                try
+                {
+                    var response = await service.CalendarList.Get(calendarName)
+                        .ExecuteAsync(cancellationToken);
+                    _ = response;
+                    return true;
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return false;
+                }
+            },
+            cancellationToken);
     }
 
     public static async Task<string> MakeSureCleanCalendarWithSummary(
@@ -247,25 +251,31 @@ internal static class GoogleCalendarServiceExtensions
         Calendar calendar,
         CancellationToken cancellationToken)
     {
-        var calendars = await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-        {
-            var calendars = await service.CalendarList.List()
-                .ExecuteAsync(cancellationToken);
-            return calendars;
-        });
+        var calendars = await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+            async () =>
+            {
+                var calendars = await service.CalendarList.List()
+                    .ExecuteAsync(cancellationToken);
+                return calendars;
+            },
+            cancellationToken);
         if (calendars.Items.FirstOrDefault(x => x.Summary == calendar.Summary) is { } c)
         {
-            await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-            {
-                await service.Calendars.Delete(c.Id)
-                    .ExecuteAsync(cancellationToken);
-            });
+            await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+                async () =>
+                {
+                    await service.Calendars.Delete(c.Id)
+                        .ExecuteAsync(cancellationToken);
+                },
+                cancellationToken);
         }
-        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(async () =>
-        {
-            var result = await service.Calendars.Insert(calendar)
-                .ExecuteAsync(cancellationToken);
-            return result.Id;
-        });
+        return await GoogleApiRetryHelper.ExecuteWithRetryAsync(
+            async () =>
+            {
+                var result = await service.Calendars.Insert(calendar)
+                    .ExecuteAsync(cancellationToken);
+                return result.Id;
+            },
+            cancellationToken);
     }
 }

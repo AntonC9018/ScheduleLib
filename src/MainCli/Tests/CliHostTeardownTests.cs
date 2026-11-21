@@ -248,6 +248,86 @@ public sealed class CliHostTeardownTests
             actualString: message);
     }
 
+    [Fact]
+    public async Task StartupUserCancellationEmitsCancelledFinalUnderJsonl()
+    {
+        using var cancellation = new CancellationTokenSource();
+
+        void CancelDuringStartup(AppRunner<Commands> runner)
+        {
+            runner.Configure(builder => builder.UseMiddleware(
+                (context, _) =>
+                {
+                    context.CancellationToken = cancellation.Token;
+                    cancellation.Cancel();
+                    context.CancellationToken.ThrowIfCancellationRequested();
+                    throw new InvalidOperationException("Expected cancellation.");
+                },
+                MiddlewareSteps.ParseInput + 2));
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, CliTestHost.FixtureSchedule, CancelDuringStartup);
+
+        Assert.Equal(expected: CliExit.Cancelled, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: CliExit.Cancelled,
+            actual: final.GetProperty("exitCode").GetInt32());
+        Assert.Equal(
+            expected: "cancelled",
+            actual: final.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task StartupTimeoutOperationCanceledExceptionIsReportedAsUnexpected()
+    {
+        static void ThrowTimeout(AppRunner<Commands> runner)
+        {
+            runner.Configure(builder => builder.UseMiddleware(
+                (_, _) => throw new TaskCanceledException("Simulated HTTP timeout."),
+                MiddlewareSteps.ParseInput + 2));
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, CliTestHost.FixtureSchedule, ThrowTimeout);
+
+        Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: CliExit.Unexpected,
+            actual: final.GetProperty("exitCode").GetInt32());
+        Assert.Equal(
+            expected: "failed",
+            actual: final.GetProperty("status").GetString());
+        Assert.Contains(expectedSubstring: "Simulated HTTP timeout.", actualString: run.Error);
+    }
+
+    [Fact]
+    public async Task ExceptionAfterCommandFinalDoesNotEmitSecondFinalRecord()
+    {
+        static void ThrowAfterInvoke(AppRunner<Commands> runner)
+        {
+            runner.Configure(builder => builder.UseMiddleware(
+                async (context, next) =>
+                {
+                    _ = await next(context);
+                    throw new InvalidOperationException("post-final middleware failure");
+                },
+                MiddlewareSteps.InvokeCommand - 1));
+        }
+
+        string[] args = ["query", "lessons", "--jsonl", .. CliTestHost.UncachedSource()];
+        var run = await RunCapturing(args, CliTestHost.FixtureSchedule, ThrowAfterInvoke);
+
+        Assert.Equal(expected: CliExit.Unexpected, actual: run.Exit);
+        var final = Assert.Single(Finals(run.Output));
+        Assert.Equal(
+            expected: "query lessons",
+            actual: final.GetProperty("command").GetString());
+        Assert.Contains(expectedSubstring: "post-final middleware failure", actualString: run.Error);
+    }
+
     private static void AssertPairedFailure(CapturedRun run, int exit, string primaryError)
     {
         Assert.Equal(expected: exit, actual: run.Exit);

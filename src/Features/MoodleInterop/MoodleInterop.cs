@@ -86,8 +86,10 @@ public static class MoodleInterop
         this MoodleScrapingContext context,
         string quizId)
     {
-        var url = $"{MoodleScrapingContext.Names.BaseUrl}/question/bank/exportquestions/export.php?cmid={quizId}";
-        var questionList = await context.Browser.OpenAsync(url);
+        var escapedQuizId = Uri.EscapeDataString(quizId);
+        var relativeUrl = $"question/bank/exportquestions/export.php?cmid={escapedQuizId}";
+        var url = new Uri(MoodleScrapingContext.Names.BaseUrl, relativeUrl);
+        var questionList = await context.Browser.OpenAsync(url.AbsoluteUri);
         var xmlFormatCheck = (IHtmlInputElement) questionList.QuerySelector("#id_format_xml")!;
         xmlFormatCheck.IsChecked = true;
         var downloadPage = await xmlFormatCheck.Form!.SubmitAsync();

@@ -136,7 +136,7 @@ public static class ScopePlanServiceCollectionExtensions
         return services.RemoveScopeValue(ScopeNode.Unkeyed(typeof(T)));
     }
 
-    /// <summary>Throws when it is not registered.</summary>
+    /// <summary>Throws when the keyed scope value is not registered.</summary>
     public static IServiceCollection RemoveScopeValue<T>(this IServiceCollection services, object key)
         where T : class
     {

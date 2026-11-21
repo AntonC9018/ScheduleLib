@@ -24,6 +24,18 @@ public sealed class CliOutput
     private readonly object _gate = new();
     private int _stdoutSeq;
     private int _stderrSeq;
+    private bool _finalEmitted;
+
+    public bool FinalEmitted
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _finalEmitted;
+            }
+        }
+    }
 
     public string Command { get; }
 
@@ -59,19 +71,6 @@ public sealed class CliOutput
 
     public static bool GetJsonl(ResultArguments result) => result.Jsonl;
 
-    public static string? ExclusiveError(ResultArguments result)
-    {
-        if (!result.Json)
-        {
-            return null;
-        }
-        if (!result.Jsonl)
-        {
-            return null;
-        }
-        return ConflictingResultFormatsMessage;
-    }
-
     public void EmitStart()
     {
         if (!Jsonl)
@@ -101,6 +100,12 @@ public sealed class CliOutput
             return;
         }
 
+        // Serialize caller payloads before taking _gate so reentrant writes finish
+        // and reserve their sequence numbers before this record does.
+        JsonElement? serializedItem = item is null
+            ? null
+            : JsonSerializer.SerializeToElement(item, JsonOptions);
+
         WriteStdoutRecord((seq) => JsonSerializer.Serialize(
             new
             {
@@ -111,7 +116,7 @@ public sealed class CliOutput
                 @event = "item",
                 id,
                 status,
-                item,
+                item = serializedItem,
             },
             JsonOptions));
     }
@@ -128,21 +133,27 @@ public sealed class CliOutput
             return;
         }
 
-        WriteStdoutRecord((seq) => JsonSerializer.Serialize(
-            new
-            {
-                schemaVersion = 1,
-                command = Command,
-                runId = RunId,
-                seq,
-                @event = "final",
-                status,
-                exitCode,
-                warnings,
-                errors,
-                data,
-            },
-            JsonOptions));
+        JsonElement? serializedData = data is null
+            ? null
+            : JsonSerializer.SerializeToElement(data, JsonOptions);
+
+        WriteStdoutRecord(
+            (seq) => JsonSerializer.Serialize(
+                new
+                {
+                    schemaVersion = 1,
+                    command = Command,
+                    runId = RunId,
+                    seq,
+                    @event = "final",
+                    status,
+                    exitCode,
+                    warnings,
+                    errors,
+                    data = serializedData,
+                },
+                JsonOptions),
+            markFinal: true);
     }
 
     public void WriteHuman(string line)
@@ -202,26 +213,6 @@ public sealed class CliOutput
         }
     }
 
-    public void WriteLog(
-        LogLevel level,
-        string message,
-        string? exception = null)
-    {
-        if (!Jsonl)
-        {
-            return;
-        }
-
-        WriteStructuredLog(
-            level,
-            message: message,
-            exception: exception,
-            null,
-            null,
-            category: null,
-            DateTimeOffset.UtcNow);
-    }
-
     public void WriteStructuredLog(
         LogLevel level,
         string message,
@@ -270,6 +261,10 @@ public sealed class CliOutput
         string? category,
         DateTimeOffset timestamp)
     {
+        JsonElement? serializedProperties = properties is null
+            ? null
+            : JsonSerializer.SerializeToElement(properties, JsonOptions);
+
         WriteStderrRecord((seq) => JsonSerializer.Serialize(
             new
             {
@@ -281,7 +276,7 @@ public sealed class CliOutput
                 level,
                 message,
                 timestamp = timestamp.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
-                properties,
+                properties = serializedProperties,
                 scopes,
                 category,
                 exception,
@@ -289,12 +284,17 @@ public sealed class CliOutput
             JsonOptions));
     }
 
-    private void WriteStdoutRecord(Func<int, string> format)
+    private void WriteStdoutRecord(Func<int, string> format, bool markFinal = false)
     {
         lock (_gate)
         {
-            var seq = _stdoutSeq++;
+            var seq = _stdoutSeq;
             var line = format(seq);
+            _stdoutSeq = seq + 1;
+            if (markFinal)
+            {
+                _finalEmitted = true;
+            }
             Console.Out.WriteLine(line);
             Console.Out.Flush();
         }
@@ -304,8 +304,9 @@ public sealed class CliOutput
     {
         lock (_gate)
         {
-            var seq = _stderrSeq++;
+            var seq = _stderrSeq;
             var line = format(seq);
+            _stderrSeq = seq + 1;
             Console.Error.WriteLine(line);
             Console.Error.Flush();
         }

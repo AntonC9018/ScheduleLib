@@ -54,7 +54,7 @@ public static class ScheduleDocumentParserHelper
 
             DateTime ParseDateTime(ReadOnlySpan<char> s, DateIntervalEndpoint endpoint)
             {
-                var culture = CultureInfo.CurrentCulture;
+                var culture = CultureInfo.InvariantCulture;
                 Debug.Assert(
                     culture.Calendar.TwoDigitYearMax == 2049,
                     "Fix this if you want to parse older docs");
@@ -140,6 +140,8 @@ public static class ScheduleDocumentParserHelper
             bool parsed = DateOnly.TryParseExact(
                 s: dateSpan,
                 format: format,
+                provider: CultureInfo.InvariantCulture,
+                style: DateTimeStyles.None,
                 out var date);
             if (!parsed)
             {

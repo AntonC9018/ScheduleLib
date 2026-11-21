@@ -85,6 +85,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
 }
 
 public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonConverter<TCollection>
+    where TCollection : IEnumerable<TElement>
 {
     public override TCollection? Read(
         ref Utf8JsonReader reader,
@@ -100,7 +101,17 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
 
         if (reader.TokenType == JsonTokenType.StartArray)
         {
-            items = JsonSerializer.Deserialize<TElement[]>(ref reader, options)!;
+            var list = new List<TElement>();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndArray)
+                {
+                    break;
+                }
+                var item = JsonSerializer.Deserialize<TElement>(ref reader, options);
+                list.Add(item!);
+            }
+            items = [.. list];
         }
         else
         {
@@ -116,10 +127,15 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
         TCollection value,
         JsonSerializerOptions options)
     {
-        JsonSerializer.Serialize(
-            writer,
-            value,
-            options);
+        writer.WriteStartArray();
+        foreach (var item in value)
+        {
+            JsonSerializer.Serialize(
+                writer,
+                item,
+                options);
+        }
+        writer.WriteEndArray();
     }
 
     private static TCollection ConvertToCollectionType(TElement[] items, Type targetType)

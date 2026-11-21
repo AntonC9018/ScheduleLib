@@ -21,6 +21,13 @@ public static class CliHost
         var invoked = false;
         var startupRequest = StartupRequest.None;
         string? parseDetail = null;
+        CommandContext? commandContext = null;
+        using var startupCancellation = new CancellationTokenSource();
+        ConsoleCancelEventHandler cancelHandler = (_, e) =>
+        {
+            e.Cancel = true;
+            startupCancellation.Cancel();
+        };
         var runner = new AppRunner<Commands>(new AppSettings
         {
             Help =
@@ -38,6 +45,7 @@ public static class CliHost
             appConfigBuilder.UseMiddleware(
                 (context, next) =>
                 {
+                    commandContext = context;
                     var parseResult = context.ParseResult;
                     startupRequest = StartupRequest.FromParsedInput(parseResult);
 
@@ -95,6 +103,7 @@ public static class CliHost
 
         async Task<int> RunCommand()
         {
+            Console.CancelKeyPress += cancelHandler;
             try
             {
                 overrides?.Runner?.Invoke(runner);
@@ -163,6 +172,24 @@ public static class CliHost
                     details);
                 return exit;
             }
+            catch (OperationCanceledException ex) when (IsUserCancellation(ex))
+            {
+                if (startupRequest.RejectsFormatConflict)
+                {
+                    Console.Error.WriteLine(CliOutput.ConflictingResultFormatsMessage);
+                    return CliExit.InvalidArguments;
+                }
+                WriteStartupResult(
+                    CliExit.Cancelled,
+                    "Cancelled.",
+                    [],
+                    RunStatus.Cancelled);
+                if (!startupRequest.UsesJsonlOutput)
+                {
+                    Console.Error.WriteLine("Cancelled.");
+                }
+                return CliExit.Cancelled;
+            }
             catch (Exception e)
             {
                 if (startupRequest.RejectsFormatConflict)
@@ -171,7 +198,7 @@ public static class CliHost
                     return CliExit.InvalidArguments;
                 }
                 WriteStartupResult(
-                    1,
+                    CliExit.Unexpected,
                     "Unexpected CLI startup failure. See stderr for details.",
                     [e.Message]);
                 if (!startupRequest.UsesJsonlOutput)
@@ -180,19 +207,43 @@ public static class CliHost
                 }
                 return CliExit.Unexpected;
             }
+            finally
+            {
+                Console.CancelKeyPress -= cancelHandler;
+            }
+
+            bool IsUserCancellation(OperationCanceledException ex)
+            {
+                if (startupCancellation.IsCancellationRequested)
+                {
+                    return true;
+                }
+                if (commandContext is { CancellationToken.IsCancellationRequested: true })
+                {
+                    return true;
+                }
+                if (ex.CancellationToken.CanBeCanceled
+                    && commandContext is not null
+                    && ex.CancellationToken == commandContext.CancellationToken)
+                {
+                    return true;
+                }
+                return false;
+            }
         }
 
         void WriteStartupResult(
             int exit,
             string error,
-            IReadOnlyList<string> details)
+            IReadOnlyList<string> details,
+            RunStatus status = RunStatus.Failed)
         {
             if (startupRequest.HelpRequested)
             {
                 return;
             }
 
-            if (startupRequest.Jsonl)
+            if (startupRequest.UsesJsonlOutput)
             {
                 var output = new CliOutput(
                     "cli",
@@ -200,15 +251,30 @@ public static class CliHost
                         .ToString("N"),
                     false,
                     true);
-                run.Adopt(output);
-                output.EmitStart();
+                if (run.Adopt(output))
+                {
+                    output.EmitStart();
+                }
+                else
+                {
+                    output = run.ResultOutput(startupRequest);
+                }
                 foreach (var detail in details)
                 {
                     output.WriteError(detail);
                 }
 
+                if (output.FinalEmitted)
+                {
+                    if (details.Count == 0)
+                    {
+                        output.WriteError(error);
+                    }
+                    return;
+                }
+
                 output.EmitFinal(
-                    RunStatus.Failed,
+                    status,
                     exit,
                     [],
                     [error],
@@ -222,7 +288,7 @@ public static class CliHost
                     1,
                     "cli",
                     Guid.NewGuid().ToString("N"),
-                    RunStatus.Failed,
+                    status,
                     exit,
                     [],
                     [],

@@ -117,13 +117,31 @@ public enum CredentialsField
     Password,
 }
 
-public sealed class CredentialsMissingException(
-    string message,
-    string? configKey = null,
-    CredentialsField? missingField = null) : InvalidOperationException(message)
+public sealed class CredentialsMissingException : InvalidOperationException
 {
-    public string? ConfigKey { get; } = configKey;
-    public CredentialsField? MissingField { get; } = missingField;
+    public CredentialsMissingException(
+        string message,
+        string? configKey = null,
+        CredentialsField? missingField = null)
+        : base(message)
+    {
+        ConfigKey = configKey;
+        MissingField = missingField;
+    }
+
+    private CredentialsMissingException(string configKey)
+        : base($"Credentials not found for '{configKey}'.")
+    {
+        ConfigKey = configKey;
+    }
+
+    public string? ConfigKey { get; }
+    public CredentialsField? MissingField { get; }
+
+    public static CredentialsMissingException ForMissingCredentials(string configKey)
+    {
+        return new(configKey);
+    }
 }
 
 [AutoConstructor]

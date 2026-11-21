@@ -438,7 +438,7 @@ internal static class HtmlSearch
                 bool success = DateTime.TryParseExact(
                     format: format,
                     s: span,
-                    provider: null,
+                    provider: CultureInfo.InvariantCulture,
                     style: DateTimeStyles.AssumeLocal,
                     result: out dateTime);
                 if (!success)
@@ -563,7 +563,7 @@ internal static class HtmlSearch
                 bool success = DateTime.TryParseExact(
                     format: format,
                     s: dateTimeSpan,
-                    provider: null,
+                    provider: CultureInfo.InvariantCulture,
                     style: DateTimeStyles.AssumeLocal,
                     result: out dateTime);
                 if (!success)
@@ -658,7 +658,7 @@ internal static class HtmlSearch
     {
         {
             var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
-            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
+            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
             Debug.Assert(lessonDateBox.Value is not null and not "");
         }
 

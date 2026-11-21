@@ -13,7 +13,7 @@ public static class LanguageHelper
         {
             var lang = (Language) i;
             names[i] = lang.ToString()
-                .ToLower();
+                .ToLowerInvariant();
         }
         return names;
     }

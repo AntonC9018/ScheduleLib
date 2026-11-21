@@ -142,10 +142,6 @@ public sealed class IntegrationTest
     }
 }
 
-public sealed class GoogleDriveUploadHandler
-{
-}
-
 /// <summary>Loads the saved test schedule instead of the schedule sources.</summary>
 [AutoConstructor]
 public sealed partial class TestScheduleInitializer : IInitializer<LoadedSchedule>

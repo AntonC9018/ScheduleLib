@@ -268,13 +268,22 @@ public sealed class ConsultationsLoaderComponent(
     {
         if (_docStream is null)
         {
-            _docStream = new();
-            var progress = await _driveFileLoader.Load(
-                _docStream,
-                fileId,
-                DriveFileType.Excel,
-                cancellationToken);
-            progress.ThrowIfNotComplete();
+            var downloaded = new MemoryStream();
+            try
+            {
+                var progress = await _driveFileLoader.Load(
+                    downloaded,
+                    fileId,
+                    DriveFileType.Excel,
+                    cancellationToken);
+                progress.ThrowIfNotComplete();
+                _docStream = downloaded;
+            }
+            catch
+            {
+                downloaded.Dispose();
+                throw;
+            }
         }
         _docStream.Seek(0, SeekOrigin.Begin);
         return _docStream;

@@ -266,19 +266,23 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
 {
     public override bool CanConvert(Type typeToConvert)
     {
-        if (typeToConvert.IsPrimitive)
+        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum || typeToConvert.IsGenericType)
         {
             return false;
         }
 
-        if (typeToConvert.IsEnum)
+        if (typeToConvert.IsAbstract || typeToConvert.IsInterface)
         {
             return false;
         }
 
-        if (typeToConvert == typeof(string))
+        if (typeToConvert.Namespace is { } ns)
         {
-            return false;
+            if (ns.Equals(nameof(System), StringComparison.Ordinal)
+                || ns.StartsWith($"{nameof(System)}.", StringComparison.Ordinal))
+            {
+                return false;
+            }
         }
 
         if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
@@ -286,7 +290,12 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
             return false;
         }
 
-        if (!typeToConvert.IsGenericType)
+        if (typeToConvert.IsValueType)
+        {
+            return true;
+        }
+
+        if (typeToConvert.GetConstructor(Type.EmptyTypes) is not null)
         {
             return true;
         }

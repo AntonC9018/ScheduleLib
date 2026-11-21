@@ -23,18 +23,12 @@ public sealed class LessonsByCourseMap : List<List<AnyLessonId>>
 
 public sealed class LookupModule()
 {
+    internal static readonly StringComparer CourseNameComparer = StringComparer.CurrentCultureIgnoreCase;
+
     public readonly LessonsByCourseMap LessonsByCourse = new();
-    public readonly Dictionary<string, CourseId> Courses = new(StringComparer.CurrentCultureIgnoreCase);
+    public readonly Dictionary<string, CourseId> Courses = new(CourseNameComparer);
     public readonly TeachersByLastName TeachersByLastName = new();
     public readonly Dictionary<string, GroupId> Groups = new(StringComparer.OrdinalIgnoreCase);
-
-    public void Clear()
-    {
-        Courses.Clear();
-        TeachersByLastName.Clear();
-        Groups.Clear();
-        LessonsByCourse.Clear();
-    }
 }
 
 public static partial class ScheduleBuilderHelper
@@ -46,7 +40,7 @@ public static partial class ScheduleBuilderHelper
             return s.LookupModule;
         }
 
-        var lookupModule = s.LookupModule = new();
+        var lookupModule = new LookupModule();
         s.InitLookup(lookupModule);
         s.LookupModule = lookupModule;
         return lookupModule;
@@ -60,8 +54,9 @@ public static partial class ScheduleBuilderHelper
             return;
         }
 
-        s.LookupModule.Clear();
-        s.InitLookup(s.LookupModule);
+        var lookupModule = new LookupModule();
+        s.InitLookup(lookupModule);
+        s.LookupModule = lookupModule;
     }
 
     private static void InitLookup(this ScheduleBuilder s, LookupModule lookup)
@@ -73,7 +68,10 @@ public static partial class ScheduleBuilderHelper
                 ref var course = ref s.Courses.Ref(i);
                 foreach (var name in course.Names)
                 {
-                    coursesMap.Add(name, new(i));
+                    if (!coursesMap.TryAdd(name, new(i)))
+                    {
+                        throw new DuplicateCourseNameException(name);
+                    }
                 }
             }
         }
@@ -95,7 +93,10 @@ public static partial class ScheduleBuilderHelper
             for (int i = 0; i < s.Groups.Count; i++)
             {
                 ref var group = ref s.Groups.Ref(i);
-                groupsMap.Add(group.Name, new(i));
+                if (!groupsMap.TryAdd(group.Name, new(i)))
+                {
+                    throw new DuplicateGroupNameException(group.Name);
+                }
             }
         }
         {

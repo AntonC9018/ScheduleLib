@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -35,6 +37,8 @@ public static class IcsCalendarWriter
     public static void Write(Stream output, IcsCalendar calendar)
     {
         // No BOM: some importers treat one as part of the first property name.
+
+        ValidateTimeZone(calendar.TimeZoneId);
 
         using var writer = new StreamWriter(
             output,
@@ -163,12 +167,12 @@ public static class IcsCalendarWriter
 
     private static string FormatLocal(DateTime time)
     {
-        return time.ToString("yyyyMMdd'T'HHmmss");
+        return time.ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture);
     }
 
     private static string FormatUtc(DateTime time)
     {
-        return time.ToString("yyyyMMdd'T'HHmmss'Z'");
+        return time.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -260,12 +264,17 @@ public static class IcsCalendarWriter
         return sb.ToString();
     }
 
-    private static void WriteVTimeZone(StreamWriter writer, string timeZoneId)
+    private static void ValidateTimeZone(string timeZoneId)
     {
         if (timeZoneId != "Europe/Chisinau")
         {
             throw new MissingVTimeZoneDefinitionException(timeZoneId);
         }
+    }
+
+    private static void WriteVTimeZone(StreamWriter writer, string timeZoneId)
+    {
+        Debug.Assert(timeZoneId == "Europe/Chisinau", "Write must validate TimeZoneId before writing VTIMEZONE.");
 
         writer.WriteLine("BEGIN:VTIMEZONE");
         writer.WriteLine($"TZID:{timeZoneId}");

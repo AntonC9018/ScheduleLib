@@ -27,7 +27,7 @@ internal readonly record struct IndexedService(ServiceLifetime Lifetime, Type? I
     }
 }
 
-/// <summary>It keeps no descriptors, so it never holds what their factories capture.</summary>
+/// <summary>Keeps no descriptors, so it never retains objects captured by factory lambdas.</summary>
 internal sealed class ServiceIndex
 {
     private readonly Dictionary<ScopeNode, List<IndexedService>> _services = [];

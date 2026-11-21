@@ -19,9 +19,7 @@ public static class CredentialsHelper
         var ret = config.MaybeGetCredentials(key);
         if (ret == null)
         {
-            throw new CredentialsMissingException(
-                message: "Credentials not found.",
-                configKey: key);
+            throw CredentialsMissingException.ForMissingCredentials(key);
         }
         return ret;
     }
@@ -30,8 +28,12 @@ public static class CredentialsHelper
         this IConfiguration config,
         string key)
     {
-        var ret = config.GetRequiredSection(key)
-            .Get<Credentials>();
+        var section = config.GetSection(key);
+        if (!section.Exists())
+        {
+            return null;
+        }
+        var ret = section.Get<Credentials>();
         if (ret == null)
         {
             return null;
@@ -67,9 +69,7 @@ public static class CredentialsHelper
         var ret = MaybeGetCredentials(userSecretsAssembly, key);
         if (ret == null)
         {
-            throw new CredentialsMissingException(
-                message: "Credentials not found.",
-                configKey: key);
+            throw CredentialsMissingException.ForMissingCredentials(key);
         }
         return ret;
     }

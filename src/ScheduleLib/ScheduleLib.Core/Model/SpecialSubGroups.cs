@@ -129,11 +129,6 @@ public static class SpecialSubGroups
     public static SubGroup Ro => new("ro");
     public static SubGroup Eng => new("eng");
 
-    public static bool TryFromNamePrefix(ReadOnlySpan<char> value, out SubGroup subGroup)
-    {
-        return SubGroupPrefixMatcher.Default.TryFromNamePrefix(value, out subGroup);
-    }
-
     public static SubGroup FromLanguage(Language lang)
     {
         return lang switch

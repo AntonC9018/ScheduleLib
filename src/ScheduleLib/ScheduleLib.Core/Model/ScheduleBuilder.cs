@@ -269,29 +269,37 @@ public static partial class ScheduleBuilderHelper
     {
         Debug.Assert(names.Length > 0, "Must provide a course name");
 
+        if (s.LookupModule is { } existingLookup)
         {
-            if (s.LookupModule is { } lookupModule)
+            if (existingLookup.Courses.TryGetValue(names[0], out var val))
             {
-                if (lookupModule.Courses.TryGetValue(names[0], out var val))
-                {
-                    return val;
-                }
+                return val;
+            }
+        }
+
+        var seen = new HashSet<string>(LookupModule.CourseNameComparer);
+        foreach (var name in names)
+        {
+            if (!seen.Add(name))
+            {
+                throw new DuplicateCourseNameException(name);
+            }
+            if (s.LookupModule is { } lookup && lookup.Courses.ContainsKey(name))
+            {
+                throw new DuplicateCourseNameException(name);
             }
         }
 
         var r = s.Courses.New();
         r.Value = new(names);
 
+        if (s.LookupModule is { } lookupModule)
         {
-            if (s.LookupModule is { } lookupModule)
+            foreach (var name in names)
             {
-                foreach (var name in names)
-                {
-                    // Let it throw on duplicates here for now.
-                    lookupModule.Courses.Add(name, new(r.Id));
-                }
-                UpdateLookupAfterCourseAdded(s);
+                lookupModule.Courses.Add(name, new(r.Id));
             }
+            UpdateLookupAfterCourseAdded(s);
         }
 
         return new(r.Id);

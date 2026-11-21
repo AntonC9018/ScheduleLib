@@ -9,8 +9,8 @@ public static class DiacriticsHelper
     // https://stackoverflow.com/a/249126/9731532
     public static string RemoveDiacritics(string s)
     {
-        using var buffer = new RentedBuffer<char>(s.Length);
         var normalizedString = s.Normalize(NormalizationForm.FormD);
+        using var buffer = new RentedBuffer<char>(normalizedString.Length);
 
         int writePos = 0;
         for (int i = 0; i < normalizedString.Length; i++)

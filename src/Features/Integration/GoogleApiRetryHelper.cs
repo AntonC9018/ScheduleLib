@@ -1,3 +1,4 @@
+using System.Net;
 using Google;
 
 namespace ScheduleLib.Application.Core;
@@ -6,21 +7,26 @@ public static class GoogleApiRetryHelper
 {
     private const int MaxRetries = 5;
     private const double MaxJitterSeconds = 1.0;
+    private const double MaxBackoffSeconds = 32.0;
 
     // The SDK exposes no single interception point, so each call has to be wrapped.
-    public static async Task ExecuteWithRetryAsync(Func<Task> action)
+    public static async Task ExecuteWithRetryAsync(
+        Func<Task> action,
+        CancellationToken cancellationToken)
     {
-        await ExecuteWithRetryAsync(async () =>
-        {
-            await action();
-            return true;
-        });
+        await ExecuteWithRetryAsync(
+            async () =>
+            {
+                await action();
+                return true;
+            },
+            cancellationToken);
     }
 
-    public static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> action)
+    public static async Task<T> ExecuteWithRetryAsync<T>(
+        Func<Task<T>> action,
+        CancellationToken cancellationToken)
     {
-        var random = new Random();
-
         for (int attempt = 0; ; attempt++)
         {
             try
@@ -30,17 +36,22 @@ public static class GoogleApiRetryHelper
             catch (GoogleApiException ex) when (IsRetryable(ex) && attempt < MaxRetries)
             {
                 // Exponential backoff with jitter.
-                double jitterSeconds = random.NextDouble() * MaxJitterSeconds;
-                double backoffSeconds = Math.Pow(x: 2, y: attempt);
+                double jitterSeconds = Random.Shared.NextDouble() * MaxJitterSeconds;
+                double backoffSeconds = Math.Min(Math.Pow(x: 2, y: attempt), MaxBackoffSeconds);
                 double delaySeconds = jitterSeconds + backoffSeconds;
                 var delay = TimeSpan.FromSeconds(delaySeconds);
-                await Task.Delay(delay);
+                await Task.Delay(delay, cancellationToken);
             }
         }
     }
 
     private static bool IsRetryable(GoogleApiException ex)
     {
+        if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+        {
+            return true;
+        }
+
         if (ex.Error?.Errors == null)
         {
             return false;

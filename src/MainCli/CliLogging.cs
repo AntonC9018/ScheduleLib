@@ -57,7 +57,17 @@ public static class CliLogging
 
     private sealed class Restore(CliOutput? previous) : IDisposable
     {
-        public void Dispose() => Apply(previous);
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            Apply(previous);
+        }
     }
 }
 

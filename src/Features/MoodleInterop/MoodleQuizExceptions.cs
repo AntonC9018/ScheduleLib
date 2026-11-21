@@ -6,10 +6,10 @@ public sealed class MoodleDateTimeParseException(string dateTimeText)
     public string DateTimeText { get; } = dateTimeText;
 }
 
-public sealed class UnknownMoodleSummaryTableHeaderException(string header)
-    : InvalidOperationException($"Unknown summary table header: {header}")
+public sealed class MoodleQuizPageLayoutException(string missingElement)
+    : InvalidOperationException($"Expected Moodle quiz page element '{missingElement}' was not found.")
 {
-    public string Header { get; } = header;
+    public string MissingElement { get; } = missingElement;
 }
 
 public sealed class InvalidMoodleBreadcrumbException()
@@ -19,10 +19,16 @@ public sealed class MoodleAttemptsTableNotFoundException()
     : InvalidOperationException("Attempts table not found");
 
 public sealed class MoodleAttemptsTableHeaderNotFoundException()
-    : InvalidOperationException("Failed to find table in html.");
+    : InvalidOperationException("Attempts table header row not found.");
 
 public sealed class MoodleAttemptReviewLinkMissingException(string attemptId)
     : InvalidOperationException($"Review link is missing for attempt '{attemptId}'.")
+{
+    public string AttemptId { get; } = attemptId;
+}
+
+public sealed class MoodleAttemptUserNameMissingException(string attemptId)
+    : InvalidOperationException($"User name is missing for attempt '{attemptId}'.")
 {
     public string AttemptId { get; } = attemptId;
 }
