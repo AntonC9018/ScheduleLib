@@ -237,7 +237,6 @@ public record struct BitArray32
         return true;
     }
 
-    // These would wrap custom enumerable structs if needed
     [Pure] public readonly SetBitIndicesEnumerable SetBitIndicesLowToHigh => new(_array.Bits);
     [Pure] public readonly ReverseSetBitIndicesEnumerable SetBitIndicesHighToLow => new(_array.Bits);
     [Pure] public readonly SetBitIndicesEnumerable UnsetBitIndicesLowToHigh => new(Flipped._array.Bits);

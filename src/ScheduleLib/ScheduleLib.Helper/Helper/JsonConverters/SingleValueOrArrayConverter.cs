@@ -2,22 +2,15 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// Claude
-/// <summary>
-/// Converts JSON that can be either a single item or an array into T[], ImmutableArray&lt;T&gt;, List&lt;T&gt;, or IEnumerable&lt;T&gt;.
-/// During serialization, uses the default behavior for the collection type.
-/// </summary>
 public sealed class SingleValueOrArrayConverter : JsonConverterFactory
 {
     public override bool CanConvert(Type typeToConvert)
     {
-        // Handle arrays
         if (typeToConvert.IsArray && typeToConvert.GetArrayRank() == 1)
         {
             return true;
         }
 
-        // Handle generic collections
         if (typeToConvert.IsGenericType)
         {
             var genericTypeDef = typeToConvert.GetGenericTypeDefinition();
@@ -115,7 +108,6 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
             items = [item!];
         }
 
-        // Convert to target collection type
         return ConvertToCollectionType(items, typeToConvert);
     }
 
@@ -132,13 +124,11 @@ public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonCon
 
     private static TCollection ConvertToCollectionType(TElement[] items, Type targetType)
     {
-        // Handle arrays
         if (targetType.IsArray)
         {
             return (TCollection) (object) items;
         }
 
-        // Handle generic types
         if (targetType.IsGenericType)
         {
             var genericTypeDef = targetType.GetGenericTypeDefinition();

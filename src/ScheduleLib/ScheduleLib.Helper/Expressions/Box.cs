@@ -2,13 +2,8 @@ using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
-/// <summary>
-/// Represents a scope needed to capture values in an expression.
-/// </summary>
-/// <typeparam name="T">The captured value type</typeparam>
 public sealed record class Box<T>(T Value)
 {
-    /// <summary>The constant that holds this box and the member access that reads its value.</summary>
     public readonly record struct Expressions(ConstantExpression Constant, MemberExpression Member);
 
     public Expressions MakeExpressions()
@@ -23,7 +18,6 @@ public sealed record class Box<T>(T Value)
 
 public sealed record class Box<T, U>(T Value1, U Value2)
 {
-    /// <summary>The constant that holds this box and the member accesses that read its values.</summary>
     public readonly record struct Expressions(
         ConstantExpression Constant,
         MemberExpression Member1,

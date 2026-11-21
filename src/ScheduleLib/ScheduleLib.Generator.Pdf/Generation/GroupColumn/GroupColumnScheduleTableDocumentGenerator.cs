@@ -194,7 +194,6 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                     continue;
                 }
 
-                // Shared layout
                 {
                     var lessonCountThisDay = layout.SharedMaxOrder[cellKey] + 1;
                     var sizeComputer = SizeComputer(lessonCountThisDay);
@@ -259,7 +258,6 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                         {
                             {
                                 var key = (lesson.Id, _cache.ColumnOrder[columnKey]);
-                                // We're not the cell that defines this.
                                 if (!layout.SharedCellStart.Contains(key))
                                 {
                                     continue;

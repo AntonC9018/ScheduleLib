@@ -228,12 +228,6 @@ public readonly struct SizedItemArray<T>
             existingItemRef = existingItemRef.WithSize(offset);
             var newItem = existingItemRef.WithSize(remainingSizeEnd);
 
-            // Just trying to insert in one operation.
-            // using var tempBuffer = new RentedBuffer<SizedItem<T>>(items.Length + 1);
-            // var s = tempBuffer.Span;
-            // items.CopyTo(s[.. ^1]);
-            // s[^1] = existingItemRef.WithSize(remainingSizeEnd);
-            // _items.InsertRange(existing.Index + 1, s);
             int x = existing.Index + 1;
             _items.InsertRange(x, items);
             x += items.Length;

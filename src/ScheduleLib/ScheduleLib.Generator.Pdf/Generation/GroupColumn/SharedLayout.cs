@@ -94,7 +94,6 @@ public sealed class SharedLayout
 
 public static class ColumnArrangementHelper
 {
-    /// <summary>The chosen column order and the layout computed for it, when one was searched for.</summary>
     public readonly record struct OptimizedColumnArrangement(ColumnOrder<GroupId> ColumnOrder, SharedLayout? Layout);
 
     // TODO: Integrate the max columns per page feature.
@@ -201,9 +200,6 @@ public static class ColumnArrangementHelper
         var (idSet, idArray) = context.Current;
         _ = idSet;
 
-        // Try to apply one set
-        // Backtrack if can't apply
-        // Recurse if can't
         var existingMask = BitArray32.Empty(idArray.Length);
         {
             for (int index = 0; index < idArray.Length; index++)

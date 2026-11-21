@@ -129,18 +129,6 @@ public static partial class BitArrayExtensions
             length: len);
     }
 
-    // Compute bounds
-    // public static SizedOffsetBitArray32Ref PortionRef(
-    //     ref this SizedOffsetBitArray32Ref arr,
-    //     int offset,
-    //     int len)
-    // {
-    //     Debug.Assert(offset >= arr.Offset);
-    //     Debug.Assert(len <= arr.Length);
-    //
-    //     return new(ref arr, offset, len);
-    // }
-
     public static SizedBitArray32Ref PortionRef(ref this BitArray32 arr, int len)
     {
         return SizedBitArray32Ref.Create(ref arr, len);

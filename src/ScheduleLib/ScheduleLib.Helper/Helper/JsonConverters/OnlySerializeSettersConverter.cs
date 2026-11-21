@@ -7,13 +7,9 @@ using System.Text.Json.Serialization;
 
 namespace ScheduleLib.Helper.JsonConverters;
 
-// mostly ChatGPT
 public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
     where T : new()
 {
-    /// <summary>A settable property and what the JSON must supply for it.</summary>
-    /// <param name="IsRequired">Declared <c>required</c> or <see cref="JsonRequiredAttribute"/>.</param>
-    /// <param name="ElementsAllowNull">False for a collection whose elements are non-nullable references.</param>
     private sealed record PropertyContract(
         int Index,
         PropertyInfo Property,
@@ -21,7 +17,6 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         bool AllowsNull,
         bool ElementsAllowNull);
 
-    // Cache properties with setters
     private static readonly PropertyContract[] _writableProperties = CreateContracts();
 
     private static PropertyContract[] CreateContracts()
@@ -47,7 +42,6 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             ElementsAllowNull: elementsAllowNull);
     }
 
-    /// <summary>Readable and settable, and not an indexer.</summary>
     private static bool IsSerialized(PropertyInfo property)
     {
         if (!property.CanRead || !property.CanWrite)
@@ -129,7 +123,6 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
 
     private record struct Key(JsonNamingPolicy? Policy);
 
-    // Cache property name -> contract mapping per naming policy
     private static readonly ConcurrentDictionary<Key, Dictionary<string, PropertyContract>> _propertyCache = new();
 
     private static Dictionary<string, PropertyContract> GetPropertyMap(JsonNamingPolicy? namingPolicy)
@@ -149,10 +142,6 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
         return _propertyCache.GetOrAdd(key, valueFactory);
     }
 
-    /// <summary>
-    /// Reads an object, rejecting a missing <c>required</c> property and a null value for a
-    /// non-nullable one, so malformed input fails as a <see cref="JsonException"/>.
-    /// </summary>
     public override T Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
@@ -181,7 +170,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             }
 
             string propertyName = reader.GetString()!;
-            reader.Read(); // move to value
+            reader.Read();
 
             // TODO: remove reflection
             if (props.TryGetValue(propertyName, out var contract))
@@ -196,7 +185,7 @@ public sealed class OnlySerializeSettersConverter<T> : JsonConverter<T>
             }
             else
             {
-                reader.Skip(); // unknown property
+                reader.Skip();
             }
         }
 
@@ -277,7 +266,6 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
 {
     public override bool CanConvert(Type typeToConvert)
     {
-        // Check if the type is a user-defined type (not a primitive, enum, string, or built-in collection)
         if (typeToConvert.IsPrimitive)
         {
             return false;
@@ -308,7 +296,6 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
     {
-        // Create a converter for user-defined types
         var converterType = typeof(OnlySerializeSettersConverter<>).MakeGenericType(typeToConvert);
         return (JsonConverter) Activator.CreateInstance(converterType)!;
     }

@@ -6,7 +6,6 @@ namespace ScheduleLib;
 
 public readonly record struct Indexed<T>(int Index, T Item);
 
-/// <summary>Two items taken from a sequence, in sequence order.</summary>
 public readonly record struct ItemPair<T>(T First, T Second);
 
 public static class EnumerableExtensionsClass

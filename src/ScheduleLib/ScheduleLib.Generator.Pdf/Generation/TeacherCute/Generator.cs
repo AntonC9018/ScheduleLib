@@ -65,7 +65,6 @@ public sealed class Generator : IDocument
                 long max = Math.Max(lessons.Count, maxSize);
                 maxSize = (uint) max;
             }
-            // Skip the row?
             if (maxSize == 0)
             {
                 return 0;
@@ -86,7 +85,6 @@ public sealed class Generator : IDocument
             {
                 table.ColumnsDefinition(cols =>
                 {
-                    // Time
                     cols.RelativeColumn(1);
 
                     foreach (var day in _schedule.Days)
