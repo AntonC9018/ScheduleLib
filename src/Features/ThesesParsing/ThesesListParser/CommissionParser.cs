@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ScheduleLib.Helper;
@@ -92,7 +93,10 @@ public static class CommissionParser
                                 var bparser = parser.BufferedView();
                                 bparser.SkipNumbers();
                                 var span = parser.PeekSpanUntilPosition(bparser.Position);
-                                int days = int.Parse(span);
+                                int days = int.Parse(
+                                    span,
+                                    NumberStyles.None,
+                                    CultureInfo.InvariantCulture);
 
                                 var date = excelEpoch.AddDays(days);
                                 return date;

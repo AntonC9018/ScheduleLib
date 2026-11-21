@@ -1,3 +1,4 @@
+using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
@@ -193,7 +194,14 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         }
 
                         var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                        var number = int.Parse(numberSpan);
+                        if (!int.TryParse(
+                                numberSpan,
+                                NumberStyles.None,
+                                CultureInfo.InvariantCulture,
+                                out var number))
+                        {
+                            return false;
+                        }
                         if (parsedPath.TestNumber == number)
                         {
                             return true;
