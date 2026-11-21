@@ -275,9 +275,10 @@ public static partial class ScheduleBuilderHelper
             {
                 return val;
             }
+            var seen = new HashSet<string>(existingLookup.Courses.Comparer);
             foreach (var name in names)
             {
-                if (existingLookup.Courses.ContainsKey(name))
+                if (existingLookup.Courses.ContainsKey(name) || !seen.Add(name))
                 {
                     throw new DuplicateCourseNameException(name);
                 }

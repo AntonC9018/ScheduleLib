@@ -60,8 +60,9 @@ public static partial class ScheduleBuilderHelper
             return;
         }
 
-        s.LookupModule.Clear();
-        s.InitLookup(s.LookupModule);
+        var lookupModule = new LookupModule();
+        s.InitLookup(lookupModule);
+        s.LookupModule = lookupModule;
     }
 
     private static void InitLookup(this ScheduleBuilder s, LookupModule lookup)
