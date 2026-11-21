@@ -26,7 +26,6 @@ public sealed class SchedulePairsDto
     public required string WeekType { get; set; }
 }
 
-// Most of this code is AI generated.
 public static class WebsiteJsonScheduleHelper
 {
     public struct Services
@@ -41,106 +40,122 @@ public static class WebsiteJsonScheduleHelper
         LessonType Type,
         RoomId Room);
 
-    public static async Task Serialize(RootObject obj, Stream outputStream)
+    public static async Task Serialize(
+        RootObject obj,
+        Stream outputStream,
+        CancellationToken cancellationToken = default)
     {
         await JsonSerializer.SerializeAsync(
             outputStream,
             obj,
-            options: ItUsmWebsiteApi.JsonOptions);
+            options: ItUsmWebsiteApi.JsonOptions,
+            cancellationToken: cancellationToken);
     }
 
     public static RootObject CreateSerializationModel(
         FilteredSchedule schedule,
         Services services)
     {
-        var ret = ImmutableArray.CreateBuilder<ScheduleDaysDto>();
-        var groupedLessons = schedule.EnumerateWeeklyLessons()
+        var days = ImmutableArray.CreateBuilder<ScheduleDaysDto>();
+        var groupedByDay = schedule.EnumerateWeeklyLessons()
             .GroupBy(x => x.Date.DayOfWeek)
             .OrderBy(x => x.Key);
 
-        foreach (var dayGroup in groupedLessons)
+        foreach (var dayGroup in groupedByDay)
         {
-            var daysBuilder = ImmutableArray.CreateBuilder<SchedulePairsDto>();
-            var timeSlotGroups = dayGroup
-                .GroupBy(x => x.Date.TimeSlot)
-                .OrderBy(g => g.Key.Index);
-
-            foreach (var timeSlotGroup in timeSlotGroups)
+            var pairs = BuildDayPairs(schedule.Source, dayGroup, services);
+            days.Add(new ScheduleDaysDto
             {
-                var timeSlot = timeSlotGroup.Key;
-                var romanTimeSlot = NumberHelper.ToRoman(timeSlot.Index + 1);
-
-                var lessonGroups = timeSlotGroup
-                    .GroupBy(lesson =>
-                    {
-                        var r = lesson.Ref;
-                        return new LessonGroupKey(
-                            r.Lesson.Course,
-                            r.Lesson.Type,
-                            r.Lesson.Room);
-                    })
-                    .ToList();
-
-                // Different courses in the same slot with the same week type must end up as one
-                // concatenated entry, so merge only after building per-group DTOs.
-                var slotDtos = new List<SchedulePairsDto>();
-                foreach (var lessonGroup in lessonGroups)
-                {
-                    var lessons = lessonGroup.ToList();
-                    var weekType = DetermineWeekType(lessons);
-                    var pairInfo = BuildPairInfo(
-                        schedule.Source,
-                        lessons,
-                        services);
-
-                    slotDtos.Add(new SchedulePairsDto
-                    {
-                        PairInfo = pairInfo,
-                        PairTime = romanTimeSlot,
-                        WeekType = weekType,
-                    });
-                }
-
-                foreach (var mergeGroup in slotDtos.GroupBy(d => (d.PairTime, d.WeekType)))
-                {
-                    daysBuilder.Add(new SchedulePairsDto
-                    {
-                        PairInfo = string.Join("\n", mergeGroup.Select(d => d.PairInfo)),
-                        PairTime = mergeGroup.Key.PairTime,
-                        WeekType = mergeGroup.Key.WeekType,
-                    });
-                }
-            }
-
-            var day = dayGroup.Key;
-            var weekdayLabel = day.ToString()
-                .ToUpper();
-
-            var daysDto = new ScheduleDaysDto
-            {
-                Weekday = weekdayLabel,
-                SchedulePairsDto = daysBuilder.DrainToImmutable(),
-            };
-
-            ret.Add(daysDto);
+                Weekday = dayGroup.Key.ToString().ToUpperInvariant(),
+                SchedulePairsDto = pairs,
+            });
         }
 
         return new()
         {
-            ScheduleDaysDto = ret.ToImmutable(),
+            ScheduleDaysDto = days.ToImmutable(),
         };
     }
 
-    private static string DetermineWeekType(List<WeeklyLessonAccessor> lessons)
+    private static ImmutableArray<SchedulePairsDto> BuildDayPairs(
+        ScheduleLib.Schedule source,
+        IEnumerable<WeeklyLessonAccessor> dayLessons,
+        Services services)
     {
-        var firstParity = lessons[0].Date.Parity;
-        if (!lessons.All(l => l.Date.Parity == firstParity))
+        var pairs = ImmutableArray.CreateBuilder<SchedulePairsDto>();
+        var timeSlotGroups = dayLessons
+            .GroupBy(x => x.Date.TimeSlot)
+            .OrderBy(g => g.Key.Index);
+
+        foreach (var timeSlotGroup in timeSlotGroups)
         {
-            // Mixed parities default to GENERAL
+            var romanTimeSlot = NumberHelper.ToRoman(timeSlotGroup.Key.Index + 1);
+            var lessonGroups = timeSlotGroup.GroupBy(lesson =>
+            {
+                var r = lesson.Ref;
+                return new LessonGroupKey(
+                    r.Lesson.Course,
+                    r.Lesson.Type,
+                    r.Lesson.Room);
+            });
+
+            // Different courses in the same slot with the same week type must end up as one
+            // concatenated entry, so merge only after building per-group DTOs.
+            var slotDtos = new List<SchedulePairsDto>();
+            foreach (var lessonGroup in lessonGroups)
+            {
+                var lessons = lessonGroup.ToList();
+                var uniformParity = GetUniformParity(lessons);
+                var weekType = FormatWeekType(uniformParity);
+                var pairInfo = BuildPairInfo(
+                    source,
+                    lessons,
+                    uniformParity,
+                    services);
+
+                slotDtos.Add(new SchedulePairsDto
+                {
+                    PairInfo = pairInfo,
+                    PairTime = romanTimeSlot,
+                    WeekType = weekType,
+                });
+            }
+
+            foreach (var mergeGroup in slotDtos.GroupBy(d => d.WeekType))
+            {
+                pairs.Add(new SchedulePairsDto
+                {
+                    PairInfo = string.Join("\n", mergeGroup.Select(d => d.PairInfo)),
+                    PairTime = romanTimeSlot,
+                    WeekType = mergeGroup.Key,
+                });
+            }
+        }
+
+        return pairs.DrainToImmutable();
+    }
+
+    private static Parity? GetUniformParity(List<WeeklyLessonAccessor> lessons)
+    {
+        var first = lessons[0].Date.Parity;
+        for (int i = 1; i < lessons.Count; i++)
+        {
+            if (lessons[i].Date.Parity != first)
+            {
+                return null;
+            }
+        }
+        return first;
+    }
+
+    private static string FormatWeekType(Parity? uniformParity)
+    {
+        if (uniformParity is null)
+        {
             return "GENERAL";
         }
 
-        return firstParity switch
+        return uniformParity.Value switch
         {
             Parity.EvenWeek => "PAR",
             Parity.EveryWeek => "GENERAL",
@@ -152,6 +167,7 @@ public static class WebsiteJsonScheduleHelper
     private static string BuildPairInfo(
         ScheduleLib.Schedule schedule,
         List<WeeklyLessonAccessor> lessons,
+        Parity? uniformParity,
         Services services)
     {
         var sb = new StringBuilder();
@@ -161,97 +177,15 @@ public static class WebsiteJsonScheduleHelper
         var course = schedule.Get(firstLesson.Lesson.Course);
         listBuilder.Append(course.FullName);
 
-        var hasMixedParity = lessons.Select(l => l.Date.Parity)
-                .Distinct()
-                .Count()
-            > 1;
-
-        {
-            ListStringBuilder detailListBuilder = default;
-            bool hasDetails = false;
-
-            void MaybeStartDetails()
-            {
-                if (hasDetails)
-                {
-                    return;
-                }
-                hasDetails = true;
-                sb.Append(" (");
-                detailListBuilder = new(sb, ", ");
-            }
-
-            void EndDetails()
-            {
-                if (!hasDetails)
-                {
-                    return;
-                }
-                sb.Append(')');
-            }
-
-            var lessonType = services.LessonTypeDisplay.Get(firstLesson.Lesson.Type);
-            if (lessonType != null)
-            {
-                MaybeStartDetails();
-                detailListBuilder.Append(lessonType);
-            }
-
-            if (!hasMixedParity)
-            {
-                var parity = services.ParityDisplay.Get(firstLesson.Date.Parity);
-                if (parity != null)
-                {
-                    MaybeStartDetails();
-                    detailListBuilder.Append(parity);
-                }
-            }
-
-            EndDetails();
-        }
+        AppendDetails(sb, firstLesson, uniformParity, services);
         listBuilder.MaybeAppendSeparator();
 
-        var groupsWithParity = new Dictionary<GroupId, List<Parity>>();
-        foreach (var lesson in lessons)
-        {
-            foreach (var groupId in lesson.Lesson.Groups)
-            {
-                if (!groupsWithParity.ContainsKey(groupId))
-                {
-                    groupsWithParity[groupId] = new();
-                }
-                groupsWithParity[groupId].Add(lesson.Date.Parity);
-            }
-        }
+        AppendGroups(sb, ref listBuilder, schedule, lessons, uniformParity is null, services);
 
-        foreach (var (groupId, parityList) in groupsWithParity)
-        {
-            var group = schedule.Get(groupId);
-            var groupSb = new StringBuilder();
-            groupSb.Append(group.Name);
-
-            if (hasMixedParity)
-            {
-                var firstParity = parityList[0];
-                if (parityList.All(p => p == firstParity) && firstParity != Parity.EveryWeek)
-                {
-                    var paritySuffix = services.ParityDisplay.Get(firstParity);
-                    if (paritySuffix != null)
-                    {
-                        groupSb.Append('-');
-                        groupSb.Append(paritySuffix);
-                    }
-                }
-            }
-
-            listBuilder.Append(groupSb.ToString());
-        }
-
-        // Split - only if all lessons share the same subgroup and specialization.
         // Lessons are grouped by course/type/room, so mixed partitions are possible;
-        // then no single suffix applies and none is shown.
-        var firstPartition = lessons[0].Lesson.GroupPartitionKey;
-        if (lessons.All(l => l.Lesson.GroupPartitionKey.Equals(firstPartition))
+        // when they differ, no single suffix applies and none is shown.
+        var firstPartition = firstLesson.Lesson.GroupPartitionKey;
+        if (HasUniformPartition(lessons, firstPartition)
             && firstPartition.ToDisplayString() is { } partitionDisplay)
         {
             listBuilder.Append($"s.{partitionDisplay}");
@@ -266,11 +200,97 @@ public static class WebsiteJsonScheduleHelper
         return sb.ToString();
     }
 
-    private static int MondayBasedIndex(DayOfWeek day)
+    private static void AppendDetails(
+        StringBuilder sb,
+        WeeklyLessonAccessor firstLesson,
+        Parity? uniformParity,
+        Services services)
     {
-        const int weekDayCount = 7;
-        var offsetFromMonday = (int) day - (int) DayOfWeek.Monday;
-        var nonNegativeOffset = offsetFromMonday + weekDayCount;
-        return nonNegativeOffset % weekDayCount;
+        var lessonType = services.LessonTypeDisplay.Get(firstLesson.Lesson.Type);
+        string? parity = null;
+        if (uniformParity is { } p)
+        {
+            parity = services.ParityDisplay.Get(p);
+        }
+
+        if (lessonType is null && parity is null)
+        {
+            return;
+        }
+
+        sb.Append(" (");
+        var details = new ListStringBuilder(sb, ", ");
+        if (lessonType is not null)
+        {
+            details.Append(lessonType);
+        }
+        if (parity is not null)
+        {
+            details.Append(parity);
+        }
+        sb.Append(')');
+    }
+
+    private static void AppendGroups(
+        StringBuilder sb,
+        ref ListStringBuilder listBuilder,
+        ScheduleLib.Schedule schedule,
+        List<WeeklyLessonAccessor> lessons,
+        bool hasMixedParity,
+        Services services)
+    {
+        // Track each group's parity while preserving insertion order; null marks mixed parities.
+        var groupParities = new Dictionary<GroupId, Parity?>();
+        foreach (var lesson in lessons)
+        {
+            var lessonParity = lesson.Date.Parity;
+            foreach (var groupId in lesson.Lesson.Groups)
+            {
+                if (!groupParities.TryGetValue(groupId, out var existing))
+                {
+                    groupParities.Add(groupId, lessonParity);
+                }
+                else if (existing != lessonParity)
+                {
+                    groupParities[groupId] = null;
+                }
+            }
+        }
+
+        foreach (var (groupId, groupParity) in groupParities)
+        {
+            var group = schedule.Get(groupId);
+            listBuilder.Append(group.Name);
+
+            if (!hasMixedParity)
+            {
+                continue;
+            }
+            if (groupParity is not { } parity || parity == Parity.EveryWeek)
+            {
+                continue;
+            }
+            if (services.ParityDisplay.Get(parity) is not { } paritySuffix)
+            {
+                continue;
+            }
+
+            sb.Append('-');
+            sb.Append(paritySuffix);
+        }
+    }
+
+    private static bool HasUniformPartition(
+        List<WeeklyLessonAccessor> lessons,
+        GroupPartitionKey expected)
+    {
+        for (int i = 1; i < lessons.Count; i++)
+        {
+            if (!lessons[i].Lesson.GroupPartitionKey.Equals(expected))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
