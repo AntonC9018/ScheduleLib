@@ -2,6 +2,9 @@ using AngleSharp;
 using AngleSharp.Html.Dom;
 using QuizModels;
 using ScheduleLib;
+using ScheduleLib.Application.Config;
+using ScheduleLib.Application.Core.Helper;
+using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Parsing.Moodle;
 
@@ -74,6 +77,27 @@ public sealed class MoodleInteropTests
         Assert.Null(MoodlePathParser.TryParse(segments));
     }
 
+    [Fact]
+    public void PathParserAcceptsTrailingPunctuationAndGradeSuffix()
+    {
+        string[] segments =
+        [
+            "Cursuri USM",
+            "FMI",
+            "Ciclul I Licență",
+            "IA",
+            "Anul III (2025-2026)",
+            "Algoritmi",
+            "Atestare 1: Grafuri",
+        ];
+
+        var parsed = MoodlePathParser.TryParse(segments);
+
+        Assert.NotNull(parsed);
+        Assert.Equal(expected: new Grade(3), actual: parsed.Grade);
+        Assert.Equal(expected: 1, actual: parsed.TestNumber);
+    }
+
     [Theory]
     [InlineData("correct", "correct")]
     [InlineData("incorrect", "incorrect")]
@@ -90,17 +114,21 @@ public sealed class MoodleInteropTests
     }
 
     [Theory]
-    [InlineData("52 min 41 secunde", 0, 52, 41)]
-    [InlineData("1 oră 15 min 3 secunde", 1, 15, 3)]
-    [InlineData("2 ore 5 min", 2, 5, 0)]
-    public void ParseDurationIncludesHoursMinutesAndSeconds(
+    [InlineData("52 min 41 secunde", 0, 0, 52, 41)]
+    [InlineData("1 oră 15 min 3 secunde", 0, 1, 15, 3)]
+    [InlineData("2 ore 5 min", 0, 2, 5, 0)]
+    [InlineData("1 zi 2 ore", 1, 2, 0, 0)]
+    [InlineData("2 zile 3 ore 5 min", 2, 3, 5, 0)]
+    public void ParseDurationIncludesDaysHoursMinutesAndSeconds(
         string text,
+        int days,
         int hours,
         int minutes,
         int seconds)
     {
         var actual = MoodleQuizHtmlParser.ParseDuration(text);
         var expected = new TimeSpan(
+            days: days,
             hours: hours,
             minutes: minutes,
             seconds: seconds);
@@ -108,7 +136,27 @@ public sealed class MoodleInteropTests
     }
 
     [Fact]
-    public async Task ParseAttemptsTableSkipsMalformedRowWithoutTruncatingLaterAttempts()
+    public void ParseDateTimeHandlesPlaceholdersAndRomanianFormats()
+    {
+        Assert.Null(MoodleQuizHtmlParser.ParseDateTime("-"));
+        Assert.Null(MoodleQuizHtmlParser.ParseDateTime(" – "));
+
+        var parsed = MoodleQuizHtmlParser.ParseDateTime("16 octombrie 2025  13:28");
+        Assert.Equal(
+            expected: new DateTime(
+                year: 2025,
+                month: 10,
+                day: 16,
+                hour: 13,
+                minute: 28,
+                second: 0),
+            actual: parsed);
+
+        Assert.Throws<MoodleDateTimeParseException>(() => MoodleQuizHtmlParser.ParseDateTime("not a date"));
+    }
+
+    [Fact]
+    public async Task ParseAttemptsTableSkipsMalformedRowAndHandlesFormattedNameAndDashFinish()
     {
         const string html = """
             <html><body>
@@ -119,6 +167,7 @@ public sealed class MoodleInteropTests
                   <th><a data-sortby="firstname">Name</a></th>
                   <th><a data-sortby="email">Email</a></th>
                   <th><a data-sortby="state">State</a></th>
+                  <th><a data-sortby="timefinish">Finish</a></th>
                   <th><a data-sortby="sumgrades">Grade</a></th>
                   <th><a data-sortby="qsgrade1">Q1</a></th>
                 </tr>
@@ -126,9 +175,13 @@ public sealed class MoodleInteropTests
               <tbody>
                 <tr>
                   <td><input type="checkbox" value="1" /></td>
-                  <td>Popescu Ion<a class="reviewlink" href="/review/1">Review</a></td>
+                  <td>
+                    <a href="/user/1">Popescu Ion</a>
+                    <a class="reviewlink" href="/review/1">Review</a>
+                  </td>
                   <td>ion@example.com</td>
-                  <td>Finalizate</td>
+                  <td>În progres</td>
+                  <td>-</td>
                   <td>9,50</td>
                   <td><a href="/q/1"><span class="incorrect">0,00</span></a></td>
                 </tr>
@@ -137,6 +190,7 @@ public sealed class MoodleInteropTests
                   <td></td>
                   <td>empty@example.com</td>
                   <td>Finalizate</td>
+                  <td>-</td>
                   <td>0,00</td>
                   <td></td>
                 </tr>
@@ -145,6 +199,7 @@ public sealed class MoodleInteropTests
                   <td>Rusu Ana<a class="reviewlink" href="/review/3">Review</a></td>
                   <td>ana@example.com</td>
                   <td>Finalizate</td>
+                  <td>16 octombrie 2025  13:28</td>
                   <td>10,00</td>
                   <td><a href="/q/3"><span class="partiallycorrect">1,50</span></a></td>
                 </tr>
@@ -161,9 +216,42 @@ public sealed class MoodleInteropTests
 
         Assert.Equal(expected: 2, actual: attempts.Count);
         Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
+        Assert.Null(attempts[0].TimeFinish);
         Assert.Equal(expected: QuestionStatus.Incorrect, actual: attempts[0].QuestionGrades[0].Status);
         Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
+        Assert.NotNull(attempts[1].TimeFinish);
         Assert.Equal(expected: QuestionStatus.PartiallyCorrect, actual: attempts[1].QuestionGrades[0].Status);
+    }
+
+    [Fact]
+    public void OutputDirectoryEnforcesBoundaryAndAllowsRoot()
+    {
+        var baseDir = Path.Combine(Path.GetTempPath(), "schedulelib-boundary-check");
+        var output = new OutputDirectory(baseDir);
+
+        string inside = output.BuildPath("nested/file.txt");
+        Assert.Equal(expected: Path.GetFullPath(Path.Combine(baseDir, "nested/file.txt")), actual: inside);
+
+        Assert.Throws<FullPathOutsideTempOutputDirectoryException>(() => output.BuildPath("../escape.txt"));
+        Assert.Throws<FullPathOutsideTempOutputDirectoryException>(() => output.BuildPath($"{baseDir}-evil/file.txt"));
+
+        var rootPath = Path.GetPathRoot(baseDir)!;
+        var rootOutput = new OutputDirectory(rootPath);
+        string underRoot = rootOutput.BuildPath("file.txt");
+        Assert.Equal(expected: Path.GetFullPath(Path.Combine(rootPath, "file.txt")), actual: underRoot);
+    }
+
+    [Fact]
+    public void ScheduleBuilderCourseRejectsDuplicateAliasesWithoutMutatingCourses()
+    {
+        var builder = new ScheduleBuilder();
+        builder.EnableLookupModule();
+        builder.Course("Math", "Mathematics");
+
+        int countBefore = builder.Courses.Count;
+        Assert.Throws<DuplicateCourseNameException>(() => builder.Course("Algebra", "Mathematics"));
+        Assert.Throws<DuplicateCourseNameException>(() => builder.Course("Physics", "physics"));
+        Assert.Equal(expected: countBefore, actual: builder.Courses.Count);
     }
 
     [Fact]
