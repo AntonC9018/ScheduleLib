@@ -1,5 +1,6 @@
 using AngleSharp;
 using AngleSharp.Html.Dom;
+using Microsoft.Extensions.Configuration;
 using QuizModels;
 using ScheduleLib;
 using ScheduleLib.Application.Config;
@@ -7,6 +8,8 @@ using ScheduleLib.Application.Core.Helper;
 using ScheduleLib.Builders;
 using ScheduleLib.Dates;
 using ScheduleLib.Parsing.Moodle;
+using ScheduleLib.Scraping.Common;
+using ScheduleLib.Scraping.Common.Config;
 
 namespace MainCli.Tests;
 
@@ -221,6 +224,188 @@ public sealed class MoodleInteropTests
         Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
         Assert.NotNull(attempts[1].TimeFinish);
         Assert.Equal(expected: QuestionStatus.PartiallyCorrect, actual: attempts[1].QuestionGrades[0].Status);
+    }
+
+    [Fact]
+    public void ParseDurationReturnsNullWhenCombinedIntervalExceedsTimeSpanMaxValue()
+    {
+        Assert.Null(MoodleQuizHtmlParser.ParseDuration("10675198 zile 3 ore 1428 min 6 sec"));
+    }
+
+    [Fact]
+    public async Task ParseAttemptsTableSkipsMalformedTimestampAndHandlesOutOfRangeDuration()
+    {
+        const string html = """
+            <html><body>
+            <table id="attempts">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th><a data-sortby="firstname">Name</a></th>
+                  <th><a data-sortby="timefinish">Finish</a></th>
+                  <th><a data-sortby="duration">Duration</a></th>
+                  <th><a data-sortby="sumgrades">Grade</a></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" value="1" /></td>
+                  <td>Popescu Ion<a class="reviewlink" href="/review/1">Review</a></td>
+                  <td>16 octombrie 2025  13:28</td>
+                  <td>10675198 zile 3 ore 1428 min 6 sec</td>
+                  <td>9,00</td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" value="2" /></td>
+                  <td>Bad Timestamp<a class="reviewlink" href="/review/2">Review</a></td>
+                  <td>not a date</td>
+                  <td>5 min</td>
+                  <td>8,00</td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" value="3" /></td>
+                  <td>Rusu Ana<a class="reviewlink" href="/review/3">Review</a></td>
+                  <td>16 octombrie 2025  14:00</td>
+                  <td>12 min 5 sec</td>
+                  <td>10,00</td>
+                </tr>
+              </tbody>
+            </table>
+            </body></html>
+            """;
+
+        using var context = BrowsingContext.New(Configuration.Default);
+        using var document = await context.OpenAsync(req => req.Content(html));
+        var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
+
+        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+
+        Assert.Equal(expected: 2, actual: attempts.Count);
+        Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
+        Assert.Null(attempts[0].Duration);
+        Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
+        Assert.Equal(expected: TimeSpan.FromSeconds(725), actual: attempts[1].Duration);
+    }
+
+    [Fact]
+    public async Task ParseAttemptsTableSkipsNoAttemptUsersAndRejectsBrokenAttemptLinks()
+    {
+        const string withNoAttemptHtml = """
+            <html><body>
+            <table id="attempts">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th><a data-sortby="firstname">Name</a></th>
+                  <th><a data-sortby="sumgrades">Grade</a></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" value="1" /></td>
+                  <td>Popescu Ion<a class="reviewlink" href="/review/1">Review</a></td>
+                  <td>9,00</td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td><a href="/user/2">No Attempt User</a></td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" value="3" /></td>
+                  <td>Rusu Ana<a class="reviewlink" href="/review/3">Review</a></td>
+                  <td>10,00</td>
+                </tr>
+              </tbody>
+            </table>
+            </body></html>
+            """;
+
+        using var context = BrowsingContext.New(Configuration.Default);
+        using var document = await context.OpenAsync(req => req.Content(withNoAttemptHtml));
+        var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
+
+        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+
+        Assert.Equal(expected: 2, actual: attempts.Count);
+        Assert.Equal(expected: "Popescu Ion", actual: attempts[0].UserName);
+        Assert.Equal(expected: "Rusu Ana", actual: attempts[1].UserName);
+
+        const string brokenAttemptHtml = """
+            <html><body>
+            <table id="attempts">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th><a data-sortby="firstname">Name</a></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" value="42" /></td>
+                  <td>Broken Attempt</td>
+                </tr>
+              </tbody>
+            </table>
+            </body></html>
+            """;
+
+        using var brokenDoc = await context.OpenAsync(req => req.Content(brokenAttemptHtml));
+        var brokenTable = Assert.IsAssignableFrom<IHtmlTableElement>(brokenDoc.QuerySelector("table#attempts"));
+        var ex = Assert.Throws<MoodleAttemptReviewLinkMissingException>(() =>
+            MoodleQuizHtmlParser.ParseAttemptsTable(brokenTable));
+        Assert.Equal(expected: "42", actual: ex.AttemptId);
+    }
+
+    [Fact]
+    public async Task ParseAttemptsTableHandlesQuestionSlotGapsAndDashPlaceholders()
+    {
+        const string html = """
+            <html><body>
+            <table id="attempts">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th><a data-sortby="firstname">Name</a></th>
+                  <th><a data-sortby="qsgrade1">Q1</a></th>
+                  <th><a data-sortby="qsgrade3">Q3</a></th>
+                  <th><a data-sortby="qsgrade4">Q4</a></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" value="1" /></td>
+                  <td>Popescu Ion<a class="reviewlink" href="/review/1">Review</a></td>
+                  <td>-</td>
+                  <td><a href="/q/3"><span class="correct">2,00</span></a></td>
+                  <td><a href="/q/4"><span class="incorrect">0,00</span></a></td>
+                </tr>
+              </tbody>
+            </table>
+            </body></html>
+            """;
+
+        using var context = BrowsingContext.New(Configuration.Default);
+        using var document = await context.OpenAsync(req => req.Content(html));
+        var table = Assert.IsAssignableFrom<IHtmlTableElement>(document.QuerySelector("table#attempts"));
+
+        var attempts = MoodleQuizHtmlParser.ParseAttemptsTable(table);
+        var attempt = Assert.Single(attempts);
+
+        Assert.Equal(expected: 2, actual: attempt.QuestionGrades.Count);
+        Assert.Equal(expected: 3, actual: attempt.QuestionGrades[0].QuestionNumber);
+        Assert.Equal(expected: QuestionStatus.Correct, actual: attempt.QuestionGrades[0].Status);
+        Assert.Equal(expected: 4, actual: attempt.QuestionGrades[1].QuestionNumber);
+        Assert.Equal(expected: QuestionStatus.Incorrect, actual: attempt.QuestionGrades[1].Status);
+    }
+
+    [Fact]
+    public void CredentialsHelperGetCredentialsIncludesMissingKeyInMessage()
+    {
+        var config = new ConfigurationBuilder().Build();
+        var ex = Assert.Throws<CredentialsMissingException>(() => config.GetCredentials("Missing:Section"));
+        Assert.Equal(expected: "Missing:Section", actual: ex.ConfigKey);
+        Assert.Contains(expectedSubstring: "Missing:Section", actualString: ex.Message);
     }
 
     [Fact]
