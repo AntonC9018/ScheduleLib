@@ -314,6 +314,121 @@ public sealed class CliJsonlTests
     }
 
     [Fact]
+    public void JsonlSequencePreservesReentrantReservationsAndRollsBackFailedFormatting()
+    {
+        var output = new CliOutput(
+            command: "synthetic command",
+            runId: "synthetic-run",
+            json: false,
+            jsonl: true);
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        try
+        {
+            Console.SetOut(stdout);
+            Console.SetError(stderr);
+
+            output.EmitItem(
+                id: "outer",
+                status: ActionState.Completed,
+                item: new ReentrantPayload(() =>
+                {
+                    output.EmitItem(id: "nested", status: ActionState.Completed, item: "ok");
+                    return "outer-ok";
+                }));
+            output.EmitItem(id: "after-reentrant", status: ActionState.Completed, item: "ok");
+
+            Assert.Throws<InvalidOperationException>(() => output.EmitItem(
+                id: "fail-simple",
+                status: ActionState.Failed,
+                item: new ReentrantPayload(() => throw new InvalidOperationException("boom"))));
+            output.EmitItem(id: "after-simple-fail", status: ActionState.Completed, item: "ok");
+
+            Assert.Throws<InvalidOperationException>(() => output.EmitItem(
+                id: "fail-after-nested",
+                status: ActionState.Failed,
+                item: new ReentrantPayload(() =>
+                {
+                    output.EmitItem(id: "nested-before-fail", status: ActionState.Completed, item: "ok");
+                    throw new InvalidOperationException("boom-after-nested");
+                })));
+            output.EmitItem(id: "after-nested-fail", status: ActionState.Completed, item: "ok");
+
+            output.WriteStructuredLog(
+                LogLevel.Information,
+                message: "outer-log",
+                exception: null,
+                properties: new Dictionary<string, object?>
+                {
+                    ["nested"] = new ReentrantPayload(() =>
+                    {
+                        output.WriteWarning("nested-log");
+                        return "outer-log-ok";
+                    }),
+                },
+                scopes: null,
+                category: "synthetic",
+                timestamp: DateTimeOffset.UnixEpoch);
+            output.WriteWarning("after-reentrant-log");
+
+            Assert.Throws<InvalidOperationException>(() => output.WriteStructuredLog(
+                LogLevel.Error,
+                message: "fail-log",
+                exception: null,
+                properties: new Dictionary<string, object?>
+                {
+                    ["bad"] = new ReentrantPayload(() => throw new InvalidOperationException("stderr-boom")),
+                },
+                scopes: null,
+                category: "synthetic",
+                timestamp: DateTimeOffset.UnixEpoch));
+            output.WriteWarning("after-failed-log");
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+
+        var stdoutSeqs = stdout.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => JsonDocument.Parse(l).RootElement.GetProperty("seq").GetInt32())
+            .ToArray();
+        Assert.Equal(
+            expected: new[]
+            {
+                1,
+                0,
+                2,
+                3,
+                5,
+                6,
+            },
+            actual: stdoutSeqs);
+
+        var stderrSeqs = stderr.ToString()
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => JsonDocument.Parse(l).RootElement.GetProperty("seq").GetInt32())
+            .ToArray();
+        Assert.Equal(
+            expected: new[]
+            {
+                1,
+                0,
+                2,
+                3,
+            },
+            actual: stderrSeqs);
+    }
+
+    private sealed class ReentrantPayload(Func<string> getValue)
+    {
+        public string Value => getValue();
+    }
+
+    [Fact]
     public async Task PlanLogsMatchUnderPreviewAndApply()
     {
         var previewLogs = await PlanLogs(explicitApply: false);

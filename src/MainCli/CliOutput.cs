@@ -261,8 +261,20 @@ public sealed class CliOutput
         lock (_gate)
         {
             var seq = _stdoutSeq;
-            var line = format(seq);
             _stdoutSeq = seq + 1;
+            string line;
+            try
+            {
+                line = format(seq);
+            }
+            catch
+            {
+                if (_stdoutSeq == seq + 1)
+                {
+                    _stdoutSeq = seq;
+                }
+                throw;
+            }
             Console.Out.WriteLine(line);
             Console.Out.Flush();
         }
@@ -273,8 +285,20 @@ public sealed class CliOutput
         lock (_gate)
         {
             var seq = _stderrSeq;
-            var line = format(seq);
             _stderrSeq = seq + 1;
+            string line;
+            try
+            {
+                line = format(seq);
+            }
+            catch
+            {
+                if (_stderrSeq == seq + 1)
+                {
+                    _stderrSeq = seq;
+                }
+                throw;
+            }
             Console.Error.WriteLine(line);
             Console.Error.Flush();
         }
