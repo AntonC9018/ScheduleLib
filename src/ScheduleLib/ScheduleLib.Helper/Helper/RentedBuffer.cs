@@ -51,20 +51,14 @@ public static class RentedEnumerableExtensions
     {
         public RentedBuffer<T> ToRentedBuffer()
         {
-            if (e.TryGetNonEnumeratedCount(out var count))
+            bool clearArray = RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+            int initialCapacity = 16;
+            if (e.TryGetNonEnumeratedCount(out var count) && count > 0)
             {
-                var buffer = new RentedBuffer<T>(count);
-                var i = 0;
-                foreach (var item in e)
-                {
-                    buffer.Array[i] = item;
-                    i++;
-                }
-
-                return buffer;
+                initialCapacity = count;
             }
 
-            var arr = ArrayPool<T>.Shared.Rent(16);
+            var arr = ArrayPool<T>.Shared.Rent(initialCapacity);
             var written = 0;
             try
             {
@@ -75,7 +69,7 @@ public static class RentedEnumerableExtensions
                         var bigger = ArrayPool<T>.Shared.Rent(arr.Length * 2);
                         arr.AsSpan(start: 0, length: written)
                             .CopyTo(bigger);
-                        ArrayPool<T>.Shared.Return(arr);
+                        ArrayPool<T>.Shared.Return(arr, clearArray: clearArray);
                         arr = bigger;
                     }
                     arr[written] = item;
@@ -85,7 +79,7 @@ public static class RentedEnumerableExtensions
             }
             catch
             {
-                ArrayPool<T>.Shared.Return(arr);
+                ArrayPool<T>.Shared.Return(arr, clearArray: clearArray);
                 throw;
             }
         }
