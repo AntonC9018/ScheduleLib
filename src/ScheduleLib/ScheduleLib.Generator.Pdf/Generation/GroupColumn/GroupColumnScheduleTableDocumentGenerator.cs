@@ -224,29 +224,29 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
                     void HandleMissingBorders()
                     {
-                        uint lastOrderNeedingBorder = 0;
+                        uint nextOrderNeedingBorder = 0;
 
                         foreach (var t in OwnedLessons())
                         {
                             Handle(t.LessonOrder);
-                            lastOrderNeedingBorder = t.LessonOrder + t.RowSpan - 1;
+                            nextOrderNeedingBorder = t.LessonOrder + t.RowSpan;
                         }
-                        Handle(s.CellsPerTimeSlot - 1);
+                        Handle(s.CellsPerTimeSlot);
 
                         void Handle(uint lessonOrder)
                         {
-                            if (lastOrderNeedingBorder <= lessonOrder)
+                            if (lessonOrder <= nextOrderNeedingBorder)
                             {
                                 return;
                             }
 
                             var cell = table.Cell();
                             cell.ColumnSpan(1);
-                            var rowSpan = lessonOrder - lastOrderNeedingBorder;
+                            var rowSpan = lessonOrder - nextOrderNeedingBorder;
                             cell.RowSpan(rowSpan);
                             cell.Column(columnNumber);
 
-                            var x = BorderedRow(cell, s.TimeSlotRow + lastOrderNeedingBorder);
+                            var x = BorderedRow(cell, s.TimeSlotRow + nextOrderNeedingBorder);
                             x = x.Centered();
                             _ = x;
                         }
