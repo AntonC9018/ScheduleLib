@@ -85,6 +85,7 @@ public sealed class SingleValueOrArrayConverter : JsonConverterFactory
 }
 
 public sealed class SingleValueOrArrayConverter<TElement, TCollection> : JsonConverter<TCollection>
+    where TCollection : IEnumerable<TElement>
 {
     public override TCollection? Read(
         ref Utf8JsonReader reader,

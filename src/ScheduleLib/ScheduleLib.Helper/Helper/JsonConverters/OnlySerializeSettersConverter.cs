@@ -291,7 +291,12 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
             return true;
         }
 
-        return typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
+        if (typeToConvert.GetConstructor(Type.EmptyTypes) is not null)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)

@@ -52,6 +52,12 @@ public sealed class UninitializedScheduleModelException : ScheduleBuildException
     }
 }
 
+public sealed class DuplicateCourseNameException(string courseName)
+    : ScheduleBuildException($"Course name '{courseName}' is already registered.")
+{
+    public string CourseName { get; } = courseName;
+}
+
 public sealed class InvalidPeriodException : ScheduleBuildException
 {
     private InvalidPeriodException(string message)

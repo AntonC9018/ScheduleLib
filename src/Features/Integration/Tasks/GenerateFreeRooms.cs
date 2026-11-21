@@ -86,12 +86,12 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                         return (Block: (string?) block, Room: room);
                     }, Comparer<(string? Block, string Room)>.Create((a, b) =>
                     {
-                        int blockComparison = string.CompareOrdinal(a.Block, b.Block);
+                        int blockComparison = string.CompareOrdinal(strA: a.Block, strB: b.Block);
                         if (blockComparison != 0)
                         {
                             return blockComparison;
                         }
-                        return string.CompareOrdinal(a.Room, b.Room);
+                        return string.CompareOrdinal(strA: a.Room, strB: b.Room);
                     }));
                     foreach (var freeRoom in orderedFreeRooms)
                     {

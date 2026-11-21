@@ -75,7 +75,12 @@ public static class MoodlePathParser
         }
 
         var remaining = reader.PeekSpanUntilEnd().Trim();
-        return ParseQualificationType(remaining);
+        var qualificationType = ParseQualificationType(remaining);
+        if (qualificationType is not null)
+        {
+            return qualificationType;
+        }
+        return null;
     }
 
     private static Grade ParseGradeSegment(string segment)
@@ -145,7 +150,12 @@ public static class MoodlePathParser
 
         var romanSpan = reader.PeekSpanUntilPosition(buffered.Position);
         reader.MoveTo(buffered.Position);
-        return NumberHelper.FromRoman(romanSpan);
+        var romanValue = NumberHelper.FromRoman(romanSpan);
+        if (romanValue is not null)
+        {
+            return romanValue;
+        }
+        return null;
     }
 
     private static int? ConsumePositiveInt(ref SequenceReader reader)

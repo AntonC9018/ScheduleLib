@@ -53,9 +53,12 @@ public static class RentedEnumerableExtensions
         {
             bool clearArray = RuntimeHelpers.IsReferenceOrContainsReferences<T>();
             int initialCapacity = 16;
-            if (e.TryGetNonEnumeratedCount(out var count) && count > 0)
+            if (e.TryGetNonEnumeratedCount(out var count))
             {
-                initialCapacity = count;
+                if (count > 0)
+                {
+                    initialCapacity = count;
+                }
             }
 
             var arr = ArrayPool<T>.Shared.Rent(initialCapacity);

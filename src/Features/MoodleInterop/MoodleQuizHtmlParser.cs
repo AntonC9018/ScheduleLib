@@ -203,7 +203,11 @@ public static class MoodleQuizHtmlParser
         {
             return true;
         }
-        return unit.StartsWith("hour", StringComparison.OrdinalIgnoreCase);
+        if (unit.StartsWith("hour", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
     }
 
     private static MoodleBreadcrumbItem ReadBreadcrumb(IHtmlListItemElement element)
@@ -235,7 +239,8 @@ public static class MoodleQuizHtmlParser
         var headers = headerRow.QuerySelectorAll("th");
         for (int i = 0; i < headers.Length; i++)
         {
-            var sortBy = headers[i].QuerySelector("a[data-sortby]")?.GetAttribute("data-sortby");
+            var sortBy = headers[i].QuerySelector("a[data-sortby]")
+                ?.GetAttribute("data-sortby");
             if (!string.IsNullOrEmpty(sortBy))
             {
                 mapping[sortBy] = i;
@@ -255,7 +260,11 @@ public static class MoodleQuizHtmlParser
         {
             return true;
         }
-        return row.TextContent.Contains("Medie generală", StringComparison.Ordinal);
+        if (row.TextContent.Contains("Medie generală", StringComparison.Ordinal))
+        {
+            return true;
+        }
+        return false;
     }
 
     private static QuizAttempt? TryParseAttemptRow(
@@ -309,9 +318,12 @@ public static class MoodleQuizHtmlParser
     {
         foreach (var key in keys)
         {
-            if (columnIndices.TryGetValue(key, out int index) && index < cells.Length)
+            if (columnIndices.TryGetValue(key, out int index))
             {
-                return cells[index];
+                if (index < cells.Length)
+                {
+                    return cells[index];
+                }
             }
         }
         return null;

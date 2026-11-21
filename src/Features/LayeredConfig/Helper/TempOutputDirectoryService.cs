@@ -107,7 +107,11 @@ public sealed class OutputDirectory
         {
             return true;
         }
-        return separator == Path.AltDirectorySeparatorChar;
+        if (separator == Path.AltDirectorySeparatorChar)
+        {
+            return true;
+        }
+        return false;
     }
 
     public bool TryOpenFileInExplorer(string file)

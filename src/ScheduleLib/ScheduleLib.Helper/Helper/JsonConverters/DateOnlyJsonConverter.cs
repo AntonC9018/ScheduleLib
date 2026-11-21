@@ -22,7 +22,7 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
         }
         if (reader.TokenType != JsonTokenType.String)
         {
-            throw new JsonException($"Expected a date string token, got {reader.TokenType}.");
+            throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.String);
         }
         var dateStr = reader.GetString()!;
         return DateOnly.ParseExact(

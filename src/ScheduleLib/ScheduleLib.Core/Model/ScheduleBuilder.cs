@@ -279,7 +279,7 @@ public static partial class ScheduleBuilderHelper
             {
                 if (existingLookup.Courses.ContainsKey(name))
                 {
-                    throw new ArgumentException($"Course name '{name}' is already registered.", nameof(names));
+                    throw new DuplicateCourseNameException(name);
                 }
             }
         }
