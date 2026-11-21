@@ -10,7 +10,7 @@ public sealed class OutputDirectory
 
     public OutputDirectory(string directory)
     {
-        _directory = Path.GetFullPath(directory);
+        _directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
     }
 
     public IEnumerable<RelativeFilePath> FilePaths(string pattern, EnumerationOptions options)
@@ -71,19 +71,43 @@ public sealed class OutputDirectory
 
     private string NormalizePath(string path)
     {
+        string candidate;
         if (Path.IsPathFullyQualified(path))
         {
-            var normalized = Path.GetFullPath(path);
-            if (!normalized.StartsWith(_directory))
-            {
-                throw new FullPathOutsideTempOutputDirectoryException(path: path, expectedDirectory: _directory);
-            }
-            return path;
+            candidate = path;
         }
+        else
         {
-            var ret = Path.Combine(_directory, path);
-            return ret;
+            candidate = Path.Combine(_directory, path);
         }
+
+        var normalized = Path.GetFullPath(candidate);
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!IsWithinDirectory(normalized, comparison))
+        {
+            throw new FullPathOutsideTempOutputDirectoryException(path: path, expectedDirectory: _directory);
+        }
+        return normalized;
+    }
+
+    private bool IsWithinDirectory(string normalizedPath, StringComparison comparison)
+    {
+        if (normalizedPath.Equals(_directory, comparison))
+        {
+            return true;
+        }
+        if (!normalizedPath.StartsWith(_directory, comparison))
+        {
+            return false;
+        }
+        char separator = normalizedPath[_directory.Length];
+        if (separator == Path.DirectorySeparatorChar)
+        {
+            return true;
+        }
+        return separator == Path.AltDirectorySeparatorChar;
     }
 
     public bool TryOpenFileInExplorer(string file)
