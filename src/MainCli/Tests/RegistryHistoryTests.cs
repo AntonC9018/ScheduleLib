@@ -443,9 +443,9 @@ public sealed class RegistryHistoryTests
         async Task<HttpResponseMessage> Respond(HttpRequestMessage request, CancellationToken token)
         {
             var current = Interlocked.Increment(ref active);
-            maximum = Math.Max(maximum, current);
             lock (startsLock)
             {
+                maximum = Math.Max(maximum, current);
                 starts.Add(DateTimeOffset.UtcNow);
             }
             await Task.Delay(20, token);
