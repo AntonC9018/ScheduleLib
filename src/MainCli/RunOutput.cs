@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using ScheduleLib.Application.Core;
+using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
@@ -122,7 +123,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             }
             catch (Exception cleanupFailure)
             {
-                throw new AggregateException(failure, cleanupFailure);
+                throw CleanupAfterFailureException.Create(failure, [cleanupFailure]);
             }
             throw;
         }
@@ -150,10 +151,7 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             destination,
             generate,
             token);
-        if (!PublishedPaths.Contains(destination, StringComparer.Ordinal))
-        {
-            PublishedPaths.Add(destination);
-        }
+        RecordPublishedPath(destination);
         _owned[name] = await Fingerprint(destination, CancellationToken.None);
     }
 
@@ -173,7 +171,15 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                 manifest,
                 cancellationToken: ct),
             token);
-        PublishedPaths.Add(ManifestPath);
+        RecordPublishedPath(ManifestPath);
+    }
+
+    private void RecordPublishedPath(string path)
+    {
+        if (!PublishedPaths.Contains(path, StringComparer.Ordinal))
+        {
+            PublishedPaths.Add(path);
+        }
     }
 
     private static void ValidateName(string name)
