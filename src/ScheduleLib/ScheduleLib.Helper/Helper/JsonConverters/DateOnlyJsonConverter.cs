@@ -25,10 +25,16 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
             throw new UnexpectedJsonTokenException(reader.TokenType, JsonTokenExpectation.String);
         }
         var dateStr = reader.GetString()!;
-        return DateOnly.ParseExact(
-            dateStr,
-            AcceptedFormats,
-            CultureInfo.InvariantCulture);
+        if (!DateOnly.TryParseExact(
+                dateStr,
+                AcceptedFormats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var result))
+        {
+            throw new InvalidJsonDateException(dateStr);
+        }
+        return result;
     }
 
     public override void Write(
@@ -39,4 +45,10 @@ public sealed class DateOnlyJsonConverter : JsonConverter<DateOnly>
         var formatted = value.ToString(WrittenFormat, CultureInfo.InvariantCulture);
         writer.WriteStringValue(formatted);
     }
+}
+
+public sealed class InvalidJsonDateException(string value)
+    : JsonException($"Invalid date value '{value}'.")
+{
+    public string Value { get; } = value;
 }
