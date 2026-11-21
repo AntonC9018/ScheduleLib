@@ -162,10 +162,6 @@ public enum StylesheetResource
     CellFormat,
 }
 
-/// <summary>
-/// A stylesheet resource that was appended to its collection, together with the
-/// index the stylesheet uses to refer to it.
-/// </summary>
 public readonly record struct StylesheetResourceEntry<TElement>(uint Id, TElement Element)
     where TElement : OpenXmlElement;
 

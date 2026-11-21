@@ -43,7 +43,6 @@ public sealed partial class CurrentTeacherIdProvider
     }
 }
 
-/// <summary>Resolves a profile marker to its schedule teacher without changing the profile identity.</summary>
 public static class TeacherProfileScheduleLookup
 {
     public static TeacherId? Find(LookupFacade lookup, Name profileName)
@@ -125,7 +124,6 @@ public sealed class HostScope<THandler> : IAsyncDisposable
 
     public THandler Handler => _scope.Handler;
 
-    /// <summary>Opens the scope with the seeds <paramref name="supply"/> adds.</summary>
     public static async Task<HostScope<THandler>> Open(
         IServiceProvider root,
         Action<ScopeInputs> supply,
@@ -150,7 +148,6 @@ public sealed class HostScope<THandler> : IAsyncDisposable
         }
     }
 
-    /// <summary>Disposes the planned scope, then the invocation scope, reporting both failures.</summary>
     public async ValueTask DisposeAsync()
     {
         var failures = new CleanupFailures();
@@ -162,7 +159,6 @@ public sealed class HostScope<THandler> : IAsyncDisposable
 
 public static class HostScopeHelper
 {
-    /// <summary>Opens a scope with the schedule of <paramref name="source"/> loaded.</summary>
     public static Task<HostScope<LoadedSchedule>> OpenScheduleScope(
         this IServiceProvider root,
         ScheduleSource source,
@@ -171,10 +167,6 @@ public static class HostScopeHelper
         return HostScope<LoadedSchedule>.Open(root, inputs => inputs.Add(source), cancellationToken);
     }
 
-    /// <summary>
-    /// Opens a scope whose settings come from the layer of <paramref name="marker"/>, for hosts
-    /// without settings that look up configuration per teacher.
-    /// </summary>
     public static Task<HostScope<DataProvider>> OpenMarkerScope(
         this IServiceProvider root,
         TeacherLayerConfig marker,

@@ -54,9 +54,6 @@ public sealed partial class PrintFreeHoursOfGroupTaskHandler
         }
     }
 
-    /// <summary>The sections <see cref="Run"/> prints: both parities, both occupancy modes,
-    /// for every supplied group, over all weekly periods. Cancellation is observed while
-    /// the lessons are enumerated and before the result is handed back.</summary>
     public FreeHoursSection[] Sections(string[] groups, CancellationToken cancellationToken = default)
     {
         return Sections(

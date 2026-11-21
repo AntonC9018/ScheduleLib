@@ -29,7 +29,6 @@ public sealed partial class UpdateLessonsInGoogleCalendarTaskHandler
         CalendarService.Scope.Calendar,
     ];
 
-    /// <summary>Builds the same recurring events used by replacement synchronization, without remote access.</summary>
     public IReadOnlyList<Event> BuildDesiredEvents(CancellationToken cancellationToken)
     {
         var lessonDisplay = new LessonTextDisplayHandler(

@@ -71,8 +71,7 @@ public sealed class LocalOperationBusyException : IOException
     }
 }
 
-/// <summary>Publishes files atomically using the shared filesystem helper.
-/// Callers coordinate writers with <see cref="LocalFileLock"/>.</summary>
+// Atomic publication does not serialize writers; callers coordinate them with LocalFileLock.
 public static class AtomicFile
 {
     public static Task Publish(

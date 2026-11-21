@@ -1,6 +1,5 @@
 namespace ScheduleLib.Import.Pdf;
 
-/// <summary>Coordinate comparisons with an explicit tolerance measured in PDF points.</summary>
 internal readonly record struct PdfCoordinateTolerance(double Distance)
 {
     // Alignment is strict, unlike the inclusive coverage comparisons below.

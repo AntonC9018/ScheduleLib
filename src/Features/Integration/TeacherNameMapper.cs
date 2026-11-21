@@ -6,7 +6,6 @@ using ScheduleLib.Theses.Parsing;
 
 namespace ScheduleLib.Application.Config;
 
-// don't know where to put this.
 public sealed class TeacherNameMapper(Remappings remappings) : INameRemapper
 {
     public static void Register(IServiceCollection services)

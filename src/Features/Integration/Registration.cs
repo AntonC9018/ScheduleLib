@@ -72,9 +72,7 @@ public static class Registration
             RegistryLessonFilterConfig.Register(services);
             ScheduleDerivationConfig.Register(services);
 
-            // Credentials
             services.AddScoped<ICredentialsResolver, CredentialsResolver>();
-            // Binding config from IConfiguration
             services.AddDynamicConfigurationBinders();
             services.AddCredentialsResolver<MoodleConfig>(serviceKey: "Moodle", x => x.Credentials!);
             services.AddCredentialsResolver<BuiltRegistryConfig>(serviceKey: "Registry", x => x.Credentials);
@@ -257,14 +255,12 @@ public static class Registration
                 services.AddScoped<ListsForPredzashitaTaskHandler>();
                 ThesesListProvider.Register(services);
                 LocalThesesFileProvider.Register(services);
-                // OnlineThesesFileProvider.Register(services);
             }
             {
                 StudentAttendanceLoader.Register(services);
             }
         }
 
-        /// <summary>The global configuration, read when a service first reads it.</summary>
         public void AddGlobalConfiguration()
         {
             services.AddOptions<GlobalConfigurationOptions>();

@@ -12,13 +12,8 @@ using ScheduleLib.Dates;
 
 namespace ScheduleLib.Application.Core;
 
-/// <summary>
-/// Where a scope's schedule is read from and the cache it may use. A seed supplied when the scope
-/// opens; the cache defaults to the data directory.
-/// </summary>
 public sealed record ScheduleSource(string DataDirectory, string? CacheDirectory = null, bool UseCache = true);
 
-/// <summary>How the loader builds a schedule, independently of where it reads it from.</summary>
 public sealed class ScheduleSourceLoaderOptions
 {
     public bool BypassCache { get; set; } = false;
@@ -27,10 +22,6 @@ public sealed class ScheduleSourceLoaderOptions
     public SubGroupValidationMode SubGroupValidation { get; set; } = SubGroupValidationMode.Strict;
 }
 
-/// <summary>
-/// Builds the schedule of a source in a local builder, or reads it from the source's cache.
-/// The builder is never shared: the result is an immutable <see cref="Schedule"/>.
-/// </summary>
 [AutoConstructor]
 public sealed partial class ScheduleSourceLoader
 {
@@ -102,11 +93,6 @@ public sealed partial class ScheduleSourceLoader
 
         if (opts.EnrichWithFullNames)
         {
-            // loader.Components.Add(new EnrichWithTeacherFullNamesFromWordScheduleLoaderComponent
-            // {
-            //     FilePath = Path.Combine(opts.DataDirectory, "Cadre didactice DI 2024-2025.xlsx"),
-            // });
-
             var websiteLoader = sp.GetRequiredService<EnrichWithTeacherFullNamesFromWebsite>();
             loader.Components.Add(websiteLoader);
         }
@@ -172,7 +158,6 @@ public sealed partial class ScheduleSourceLoader
     }
 }
 
-/// <summary>Loads the schedule of a scope and derives what workflows read from it.</summary>
 [AutoConstructor]
 public sealed partial class LoadedScheduleInitializer : IInitializer<LoadedSchedule>
 {

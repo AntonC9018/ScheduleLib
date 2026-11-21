@@ -95,9 +95,6 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         await spreadsheet.FinishAsync();
         return;
 
-        // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
-        // var group = room.Select(x => schedule.Get(x.Lesson.Group)).ToArray();
-        // _ = group;
         RoomId S(RoomId r)
         {
             if (!r.IsValid)

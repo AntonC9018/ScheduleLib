@@ -84,7 +84,6 @@ public static class DefaultConfig
             defaults.Builder(RegistryLessonFilterConfig.Key)
                 .ConfigureValue(x =>
                 {
-                    // x.SkipAttendance = AttendanceMode.Zi;
                 });
         });
 

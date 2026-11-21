@@ -23,7 +23,6 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
 
     // Maybe make a builder, make it possible to override default stuff,
     // then execute from builder (so it's not forced for the current teacher only).
-    // Do the same thing for
     public async Task<IReadOnlyList<RegistrySyncAction>> Plan(
         IRegistrySyncNavigator navigator,
         CancellationToken cancellationToken)
@@ -102,7 +101,6 @@ public sealed partial class AddLessonsToOnlineRegistryForCurrentTeacherTaskHandl
     }
 }
 
-// Make a simple abstraction for now, because I don't know what I'm going to want to do.
 public sealed class ContextProvider(IServiceProvider sp) : IDisposable
 {
     // Don't even reuse for now.

@@ -49,7 +49,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         public required CancellationToken CancellationToken { get; init; }
     }
 
-    /// <summary>A grade form input field and the grade that will be submitted through it.</summary>
     private readonly record struct GradeFormInput(IHtmlInputElement Element, int Grade);
 
     public async Task<RegistryGradePlan> Plan(PlanParams p)
@@ -116,7 +115,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             gradeByName[name] = grade1;
         }
 
-        // determine course from path
         RegistryGradePlan UnsupportedPath()
         {
             notices.Add(RegistryGradeNotice.MoodlePathUnparsed());
@@ -173,7 +171,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 p.CancellationToken.ThrowIfCancellationRequested();
                 var evaluareDoc = await registryNav.GetHtml(group.EvaluationUri);
 
-                // Find anchor with text Testarea X
                 IHtmlAnchorElement? TestAnchor()
                 {
                     var tables = evaluareDoc.QuerySelectorAll<IHtmlAnchorElement>("table a");

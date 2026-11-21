@@ -4,7 +4,6 @@ using ScheduleLib.Helper;
 
 namespace ScheduleLib.Theses.Parsing;
 
-/// <summary>Builds arrays indexed by an enum, with one entry per member.</summary>
 public static class StringSearchHelper
 {
     public struct SearchArrayBuilder<T, U> where T : struct, Enum

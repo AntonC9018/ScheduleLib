@@ -834,7 +834,6 @@ public sealed partial class AllLessonTopicsDatabaseBuilder
         return foundLessonTypes;
     }
 
-    /// <summary>The lesson-name providers built for a topic builder, and the lesson types still to process.</summary>
     private readonly record struct ProviderSetup(
         SparseArray<LessonType, ILessonNameProvider> Providers,
         LessonTypesToProcess LessonTypesToProcess);

@@ -83,23 +83,6 @@ public sealed class ThesisListParser(
         Count,
     }
 
-    // public enum Token
-    // {
-    //     QuotationMark = '\"',
-    //     Separator = '/',
-    //     Semicolor = ':',
-    //     Word,
-    // }
-    //
-    // public sealed class TokenReader : ITokenReader
-    // {
-    //     private static readonly TokenTypeLabels Labels = LexerHelper.CreateLabels(typeof(Token));
-    //
-    //     public TokenType Read(ref Parser parser)
-    //     {
-    //     }
-    // }
-
     public ThesisList Parse(Stream file, ThesisType targetThesisType)
     {
         using var excel = new XLWorkbook(file);

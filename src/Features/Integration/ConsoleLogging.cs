@@ -6,7 +6,6 @@ namespace ScheduleLib.Application.Config;
 
 public static class ConsoleLogging
 {
-    /// <summary>Writes every log event to stderr in the human-readable format.</summary>
     public static LoggerConfiguration WriteToConsole(this LoggerConfiguration configuration)
     {
         configuration.Enrich.FromLogContext();

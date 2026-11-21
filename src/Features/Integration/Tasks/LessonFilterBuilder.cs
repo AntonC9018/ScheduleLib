@@ -130,7 +130,6 @@ public sealed partial class CurrentTeacherLessonFilter : ILessonFilter
             });
         }
         {
-            // Remove lessons for other teachers.
             c.Lessons.RemoveAll(x => !s.Get(x).Lesson.Teachers
                 .Contains(teacherId));
         }

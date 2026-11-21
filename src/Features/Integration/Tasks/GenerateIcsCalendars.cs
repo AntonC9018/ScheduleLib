@@ -11,21 +11,9 @@ using ScheduleLib.Generation.Ics;
 
 namespace ScheduleLib.Application.Core;
 
-/// <summary>
-/// Generates an .ics calendar file per group, per group-partition combination
-/// and per teacher, mirroring the PDF set produced by
-/// <see cref="GeneratePdfsForGroupsAndTeachersTaskHandler"/>: same filters
-/// (latest period, weekly lessons only) and the same file names with the .ics
-/// extension.
-/// </summary>
-/// <remarks>
-/// Each weekly lesson is expanded to concrete VEVENTs for the whole semester
-/// (no RRULE), so importers need no recurrence support. The text mirrors the
-/// PDF cell: the partition prefix and course name with the lesson type in the
-/// summary, teacher names (group calendars) or group names (teacher calendars)
-/// in the description, and the room as the location. Parity is not printed:
-/// concrete dates already encode it.
-/// </remarks>
+// Mirrors the PDF set of GeneratePdfsForGroupsAndTeachersTaskHandler: same filters and file names.
+// Each weekly lesson is expanded to concrete VEVENTs for the whole semester (no RRULE), so importers
+// need no recurrence support. Parity is not printed: concrete dates already encode it.
 [AutoConstructor]
 public sealed partial class GenerateIcsCalendarsTaskHandler
 {

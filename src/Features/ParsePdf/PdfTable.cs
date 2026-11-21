@@ -50,7 +50,6 @@ public sealed record PdfTableCell(PdfBox Bounds, string Text);
 
 public sealed record PdfScheduleTable(int Page, IReadOnlyList<PdfBorder> Borders, IReadOnlyList<PdfTableCell> Cells);
 
-/// <summary>A cell with the table's merged groups and inherited row labels resolved.</summary>
 public sealed record PdfScheduleCell(
     string Source,
     int Page,

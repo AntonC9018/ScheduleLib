@@ -10,7 +10,6 @@ public delegate void ImportedLessonHandler(ImportedLessonInput input);
 
 public static class PdfScheduleImporter
 {
-    /// <summary>A group column header and its horizontal center within the table.</summary>
     private readonly record struct ColumnHeader(string Name, double Center);
 
     private static readonly Regex Group = new(@"^(?:DU-)?[A-Z]+\d{4}\((?:ro|ru|en)\)$");

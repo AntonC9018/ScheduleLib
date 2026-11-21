@@ -189,8 +189,6 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
         void TopHeader()
         {
             var row = cells.NextRow();
-            // row.Height = 28;
-            // row.CustomHeight = true;
             _ = row;
 
             _ = cells.NextCell();
@@ -623,10 +621,7 @@ public sealed partial class GenerateAllTeachersExcelTaskHandler
                     return;
                 }
 
-                // b.MaybeAppendSeparator();
-
                 var group = p.Schedule.Source.Get(groups.Group0);
-                // LessonTextDisplayHelper.AppendGroupNameWithLanguage(b.StringBuilder, group);
                 b.Append(group.Name);
 
                 if (appendSubgroup
