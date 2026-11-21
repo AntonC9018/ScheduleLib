@@ -34,11 +34,8 @@ public abstract class ConflictingImplicitAssignmentException : ScheduleBuildExce
             assignedValue: assignedValue);
     }
 
-    /// <summary>
-    /// Builds the shared "conflicting assignment" error for the implicit split pass.
-    /// One factory keeps the four resolution sites (per-group and per-name, for both
-    /// dimensions) worded identically.
-    /// </summary>
+    /// <summary>One factory keeps the four resolution sites (per-group and per-name, for both
+    /// dimensions) worded identically.</summary>
     public static ConflictingImplicitAssignmentException ForConflictingAssignment(
         string dimension,
         string? prev,

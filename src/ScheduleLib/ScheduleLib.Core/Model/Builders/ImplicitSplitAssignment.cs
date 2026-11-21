@@ -6,8 +6,7 @@ namespace ScheduleLib.Builders;
 public static partial class ScheduleBuilderHelper
 {
     /// <summary>
-    /// Assigns implicit specializations and alternatives, splitting lessons whose
-    /// groups resolve differently (one lesson stores one value).
+    /// One lesson stores one value, so lessons whose groups resolve differently are split.
     /// Assumes <c>LessonBuilderHelper.ValidateLessons</c> has been called.
     /// </summary>
     private static void AssignImplicitSplits(this ScheduleBuilder s)
@@ -96,8 +95,6 @@ public static partial class ScheduleBuilderHelper
         }
         return;
 
-        // Resolves one lesson against the captured config and study year, splitting
-        // it when its groups resolve to distinct values.
         void Split(ILessonBuilderModel lesson)
         {
             if (lesson.Base.General.Course is not { } courseId
@@ -364,12 +361,6 @@ public static partial class ScheduleBuilderHelper
     }
 }
 
-/// <summary>
-/// Tracks the per-lesson split state while its groups resolve: one <see cref="Part"/>
-/// per distinct (specialization, alternative) resolution, the groups covered by no
-/// entry, and the single values seen so far (used to reject conflicting assignments
-/// to the same course).
-/// </summary>
 file sealed class SplitAccumulator
 {
     public readonly List<Part> Parts = new();

@@ -2,15 +2,11 @@ using System.Diagnostics;
 
 namespace ScheduleLib;
 
-/// <summary>The whole span a schedule covers, with an exclusive end.</summary>
 public readonly record struct ScheduleDateRange(DateOnly Start, DateOnly EndExclusive);
 
 public readonly record struct Period
 {
-    /// <summary>
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="end">Exclusive</param>
+    /// <param name="end">Exclusive. The default value means the period has no end.</param>
     public Period(DateOnly start, DateOnly end = default)
     {
         if (end != default)

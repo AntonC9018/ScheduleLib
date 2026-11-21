@@ -44,7 +44,6 @@ public sealed class GroupParseContext
 
 public static class GroupHelper
 {
-    /// <summary>The parsed label of a group name and the flags that were recognized next to it.</summary>
     private readonly record struct GroupLabel(string Label, bool IsFR, bool IsMaster);
 
     public static GroupBuilderModel? TryParse(this GroupParseContext context, ReadOnlyMemory<char> name)
@@ -210,7 +209,6 @@ public static class GroupHelper
 
         if (!isFr)
         {
-            // Skip until the label is ending.
             var skip = new SkipLabelUntilFR();
             bparser.SkipWindow(
                 ref skip,

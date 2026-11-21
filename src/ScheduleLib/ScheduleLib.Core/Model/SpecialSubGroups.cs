@@ -4,13 +4,10 @@ using System.Collections.Immutable;
 namespace ScheduleLib;
 
 /// <summary>
-/// Injectable prefix matcher over subgroup/specialization labels.
-/// Follows the <see cref="Parsing.Lesson.RoomParser"/> precedent: a concrete
-/// sealed class with a <see cref="Default"/> instance, taken via ctor/param
-/// (<see cref="ScheduleImportContext"/>). The parser uses the
-/// injected instance, so it no longer depends on the exact
-/// <see cref="Specializations.AllKnown"/> list; callers with their own labels
-/// supply their own candidate set.
+/// Follows the <see cref="Parsing.Lesson.RoomParser"/> precedent: a concrete sealed class with a
+/// <see cref="Default"/> instance, taken via ctor/param (<see cref="ScheduleImportContext"/>).
+/// The parser does not depend on the exact <see cref="Specializations.AllKnown"/> list;
+/// callers with their own labels supply their own candidate set.
 /// </summary>
 public sealed class SubGroupPrefixMatcher
 {
@@ -132,10 +129,6 @@ public static class SpecialSubGroups
     public static SubGroup Ro => new("ro");
     public static SubGroup Eng => new("eng");
 
-    /// <summary>
-    /// Back-compat forward to <see cref="SubGroupPrefixMatcher.Default"/>.
-    /// Parser paths take an injected <see cref="SubGroupPrefixMatcher"/> instead.
-    /// </summary>
     public static bool TryFromNamePrefix(ReadOnlySpan<char> value, out SubGroup subGroup)
     {
         return SubGroupPrefixMatcher.Default.TryFromNamePrefix(value, out subGroup);

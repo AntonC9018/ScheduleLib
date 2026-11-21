@@ -48,11 +48,9 @@ public sealed partial class ScheduleBuilder()
     private GroupParseContext? _groupParseContext;
 
     /// <summary>
-    /// Whether <see cref="GroupParseContext"/> was supplied explicitly by the
-    /// caller rather than defaulted from the wall clock in
-    /// <c>GroupBuilderHelper.ParseGroup</c>. A clock-derived year silently stops
-    /// matching year-pinned implicit split scopes once the clock moves past
-    /// them, so <c>AssignImplicitSplits</c> fails loudly instead in that case.
+    /// A clock-derived year silently stops matching year-pinned implicit split scopes once the clock
+    /// moves past them, so <c>AssignImplicitSplits</c> fails loudly when <see cref="GroupParseContext"/>
+    /// was not supplied explicitly.
     /// </summary>
     internal bool GroupParseContextIsExplicit { get; private set; }
 

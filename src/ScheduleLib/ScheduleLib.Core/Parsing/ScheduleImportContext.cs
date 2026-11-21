@@ -313,7 +313,6 @@ public sealed class ScheduleImportContext
         }
     }
 
-    /// <summary>Adds a parsed cell using the same group, time and merge rules for every document format.</summary>
     public void AddOrMergeLesson(ImportedLessonInput input)
     {
         var lesson = input.Lesson;
@@ -374,8 +373,7 @@ public sealed class ScheduleImportContext
                     Room = true,
                     LessonType = true,
                     Period = true,
-                    // Already checked because we look up by it.
-                    // Course = true,
+                    // Course is not compared: it is already matched by the lookup.
                 };
                 var diff = LessonBuilderHelper.Diff(
                     a: builder.Model.Data,

@@ -45,7 +45,6 @@ public readonly struct TeachersByLastName()
 
 public static class TeacherLookupHelper
 {
-    /// <summary>Returns the index into <paramref name="ids"/> of the best match, or -1.</summary>
     public static int FindIndexOfBestBuilderMatch(
         IReadOnlyList<TeacherBuilderModel> teachers,
         ReadOnlySpan<int> ids,
@@ -54,7 +53,6 @@ public static class TeacherLookupHelper
         return FindIndexOfBestMatch(new BuilderTeachers(teachers), ids, name);
     }
 
-    /// <summary>Returns the index into <paramref name="ids"/> of the best match, or -1.</summary>
     public static int FindIndexOfBestMatch(
         ImmutableArray<Teacher> teachers,
         ReadOnlySpan<int> ids,
@@ -412,7 +410,6 @@ public static class TeacherBuilderHelper
             };
             builder.FullName(name, updateLookup: false);
 
-            // Update the lookup manually.
             list?.Add(ret.Id);
 
             return builder;
@@ -486,9 +483,6 @@ public readonly struct TeacherBuilder
     public ref TeacherBuilderModel Model => ref Schedule.Teachers.Ref(Id.Id);
     public static implicit operator TeacherId(TeacherBuilder r) => r.Id;
 
-    /// <summary>
-    /// Allowed syntax: <see cref="TeacherNameHelper.ParseName"/>
-    /// </summary>
     public void FullName(string fullName, bool updateLookup = true)
     {
         var name = TeacherNameHelper.ParseName(fullName);
@@ -563,8 +557,6 @@ public readonly struct TeacherBuilder
 
     private void InternalLastName(LastName lastName, bool updateLookup = true)
     {
-        // lastName = Schedule.RemapTeacherName(lastName);
-
         var prevLastName = Model.Name.LastName;
         Model.Name.LastName = lastName;
 

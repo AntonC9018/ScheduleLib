@@ -17,9 +17,6 @@ public sealed class ConflictingTeacherNameRemapException : ScheduleBuildExceptio
     }
 }
 
-/// <summary>
-/// A teacher name carries more parts than the model can store.
-/// </summary>
 public sealed class InvalidTeacherNameException : ScheduleBuildException
 {
     private InvalidTeacherNameException(string message)

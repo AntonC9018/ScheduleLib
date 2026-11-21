@@ -18,7 +18,6 @@ internal readonly record struct SlowCourse(
 
 internal readonly record struct ColumnCounts(SkippedHeaderColumnsInfo Skipped, int Good)
 {
-    // public int SkippedCount => Skipped.Count;
     public int SkippedSize => Skipped.Size;
     public int Total => Skipped.Size + Good;
 }
@@ -117,10 +116,6 @@ public static class WordScheduleParser
                     }
                 case HeaderRowParseStatus.NoHeaderParsed:
                     {
-                        // if (state.Format != 0)
-                        // {
-                        //     throw new NotImplementedException("Format other than 1 not supported this");
-                        // }
                         if (!UpdateSizesByInspectingFutureCells())
                         {
                             throw new UnsupportedWordTableWidthLayoutException(state.ColumnCounts?.Total);
@@ -144,7 +139,6 @@ public static class WordScheduleParser
                                                 var size = cell.ColSpan;
                                                 int pos = cell.ColumnSizeCounter - skippedSize;
 
-                                                // Add an invalid id, just to set up the breakpoints
                                                 var result = newGroupsArr.ReplaceAt(
                                                     pos,
                                                     new SizedItem<GroupId>(GroupId.Invalid, size),
@@ -693,7 +687,6 @@ public static class WordScheduleParser
             var cell = cellEnumerator.Current;
             using var paragraphs = cell
                 .ChildElements
-                .OfType<Paragraph>()
                 .GetEnumerator();
             if (!paragraphs.MoveNext())
             {
@@ -800,7 +793,6 @@ public readonly record struct TableCellWithPosition(TableCell Cell, int Position
 internal readonly record struct SkippedHeaderColumnsInfo(int Count, int Size)
 {
     public static SkippedHeaderColumnsInfo NotMatch() => default;
-    public bool IsNotMatch => Count == 0;
 }
 
 internal enum ColumnType

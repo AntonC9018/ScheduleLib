@@ -46,9 +46,6 @@ public sealed class IncompleteSemesterDateRangeException : ScheduleBuildExceptio
     }
 }
 
-/// <summary>
-/// A semester date-range configuration ends before it starts.
-/// </summary>
 public sealed class InvalidSemesterDateRangeException : ScheduleBuildException
 {
     private InvalidSemesterDateRangeException(string message)
@@ -62,9 +59,6 @@ public sealed class InvalidSemesterDateRangeException : ScheduleBuildException
     }
 }
 
-/// <summary>
-/// Two semester date-range configurations cover the same key.
-/// </summary>
 public sealed class DuplicateSemesterDateRangeException : ScheduleBuildException
 {
     private DuplicateSemesterDateRangeException(string key)
@@ -102,9 +96,6 @@ public sealed class MissingSemesterDateRangeException : ScheduleBuildException
     }
 }
 
-/// <summary>
-/// The study-week parity document has no usable document or body.
-/// </summary>
 public sealed class InvalidParityDocumentException : ScheduleBuildException
 {
     private InvalidParityDocumentException(string message)

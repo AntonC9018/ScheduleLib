@@ -14,7 +14,6 @@ namespace ScheduleLib.ScheduleDefaults;
 
 public static class Config
 {
-    /// <summary>The user-secrets key under which the registry credentials are stored.</summary>
     public const string RegistryCredentialsConfigKey = "Curmanschii Anton:Registry";
 
     /// <summary>Restores parity markers missing from the 2026 first-semester source PDFs.</summary>
@@ -46,10 +45,7 @@ public static class Config
                 Parity: "imp"),
         ]);
 
-    /// <summary>
-    /// Selects the parity repairs verified for the source period starting at <paramref name="periodStart"/>.
-    /// Other periods are imported unchanged.
-    /// </summary>
+    /// <summary>Only periods whose source PDFs were verified get repairs; others are imported unchanged.</summary>
     public static PdfParityRepairs PdfParityRepairsForPeriod(DateOnly? periodStart)
     {
         if (periodStart
@@ -266,10 +262,7 @@ public static class Config
 
     public static ReadOnlySet<string> GroupLabelsThatAreMaster => ["IASD", "MIA"];
 
-    /// <summary>
-    /// The initial specialization registry. Uses the canonical extension
-    /// accessors on Specialization (only visible in this config layer).
-    /// </summary>
+    /// <summary>Uses the canonical extension accessors on Specialization (only visible in this config layer).</summary>
     public static SpecializationRegistry SpecializationRegistry { get; } = CreateSpecializationRegistry();
 
     private static SpecializationRegistry CreateSpecializationRegistry()

@@ -67,7 +67,6 @@ public struct CourseNameSegmentFlags()
     public bool CanBeIgnored = false;
 }
 
-/// <summary>A course name the unifier maps to its canonical name.</summary>
 public readonly record struct CourseNameMapping(string From, string To);
 
 public sealed class CourseNameParserConfig
@@ -119,9 +118,6 @@ public sealed class CourseNameParserConfig
 
 public struct CourseNameParseOptions()
 {
-    /// <summary>
-    /// If this is false, punctuation is considered an error.
-    /// </summary>
     public bool IgnorePunctuation = false;
 }
 
@@ -139,7 +135,6 @@ public static class CourseNameParsing
         foreach (var word in words)
         {
             // Need a string to be able to look up in the hash sets.
-            // kinda yikes.
             var wordString = word.ToString();
             buffer.Array[i] = wordString;
             i++;
@@ -202,7 +197,6 @@ public static class CourseNameParsing
                     return true;
                 }
 
-                // Regular word.
                 return true;
             }
 
@@ -633,7 +627,6 @@ internal readonly ref struct WordEnumerable
 
         public bool MoveNext()
         {
-            // Skip until the first non-separator at the start
             if (_currentIndex == 0)
             {
                 while (true)
@@ -661,7 +654,6 @@ internal readonly ref struct WordEnumerable
             _startIndex = _currentIndex;
             _count = 0;
 
-            // Find first separator.
             while (true)
             {
                 _currentIndex++;
@@ -679,7 +671,6 @@ internal readonly ref struct WordEnumerable
                 }
             }
 
-            // Skip consecutive separators.
             while (true)
             {
                 _currentIndex++;

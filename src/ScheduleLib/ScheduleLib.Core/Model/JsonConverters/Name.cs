@@ -4,7 +4,6 @@ using ScheduleLib.Parsing;
 
 namespace ScheduleLib.JsonConverters;
 
-// Claude
 public sealed class NameJsonConverter : JsonConverter<Name>
 {
     public override Name Read(

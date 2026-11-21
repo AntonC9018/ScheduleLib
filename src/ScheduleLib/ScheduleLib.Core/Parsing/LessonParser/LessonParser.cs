@@ -262,10 +262,8 @@ public static class LessonParsingHelper
     }
 
     /// <summary>
-    /// Consumes a `Word '-' Number` triple when it exactly matches a configured
-    /// dashed legacy label (e.g. UI-1), whose hyphen the normal modifier syntax
-    /// would otherwise treat as a separator. See <see cref="SpecialSubGroups.Legacy"/>.
-    /// Returns false without consuming anything otherwise.
+    /// The hyphen of a dashed legacy label (e.g. UI-1) is otherwise treated as a separator.
+    /// See <see cref="SpecialSubGroups.Legacy"/>. Returns false without consuming anything otherwise.
     /// </summary>
     public static bool TryConsumeDashedLegacySubGroup<T>(ref T lexer, out SubGroup subGroup)
         where T : struct, ILexer
@@ -691,10 +689,6 @@ public static class LessonParsingHelper
                                 i++;
                                 continue;
                             }
-                            // if (l.Lexer.IsEmpty
-                            //     && subGroup != default)
-                            // {
-                            // }
                             if (IsParsingInsideSubgroupAlready(c))
                             {
                                 throw new GeneralWrongFormatException(
@@ -814,7 +808,6 @@ public static class LessonParsingHelper
                             c.StateStack.Pop(apply: false);
                         }
 
-                        // Default to another lesson name.
                         c.State.Step = ParsingStep.OptionalStarBeforeLessonName;
                         return true;
                     }
@@ -1016,7 +1009,6 @@ public static class LessonParsingHelper
                         // This handles the case where there are multiple subgroups.
                         if (c.Lexer.TryConsume(','))
                         {
-                            // Skip whitespace
                             break;
                         }
 
@@ -1186,7 +1178,6 @@ public static class LessonParsingHelper
                         }
                         if (c.Lexer.TryConsume(','))
                         {
-                            // Continue the list.
                             c.State.Step = ParsingStep.RequiredTeacherNameOrRoomName;
                             break;
                         }
@@ -1418,7 +1409,6 @@ public static class LessonParsingHelper
                             }
 
                             var copy = lexer;
-                            // Skip whitespace
                             copy.Move();
                             // If the next token is a room, it's not last name.
                             if (c.Params.RoomParser.TryParseRoom(ref copy))
@@ -1426,7 +1416,6 @@ public static class LessonParsingHelper
                                 return true;
                             }
 
-                            // Apply skip whitespace
                             lexer.MoveTo(copy.Position);
 
                             return false;
@@ -1950,8 +1939,6 @@ public sealed class RoomParser
                     return true;
                 }
                 var t = lexer.Current;
-
-                // Move this out of here?
 
                 if (t.Is(','))
                 {
@@ -2484,11 +2471,9 @@ internal enum ParsingStep
     // Star is used for notes.
     OptionalStarBeforeLessonName,
 
-    // May appear.
     OptionalSubGroupBeforeLessonName,
     LessonName,
 
-    // Lesson modifiers.
     OptionalParens,
 
     // Subgroup may be specified before the teacher-room pair.
@@ -2508,7 +2493,6 @@ internal enum ParsingStep
     // a full list of teachers to do a context-sensitive grammar
     OptionalFullTeacherNameOrRoomNameOrSubGroup,
 
-    // Room modifiers.
     OptionalParensBeforeRoom,
 
     // Only room allowed after room modifiers.
@@ -2566,10 +2550,6 @@ internal struct ListWithCapacity<T>() : IBasic<ListWithCapacity<T>>
         CollectionsMarshal.SetCount(other._items, count);
         var fromSpan = Items;
         var toSpan = other.Items;
-        // for (int i = 0; i < countBefore; i++)
-        // {
-        //     toSpan[i].Clear();
-        // }
         for (int i = countBefore; i < count; i++)
         {
             toSpan[i] = new();

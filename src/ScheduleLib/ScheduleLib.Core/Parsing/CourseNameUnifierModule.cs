@@ -117,7 +117,6 @@ public sealed class CourseNameUnifierModule
             var fullName = courses.Ref(i).FullName;
             // Only adding a single instance of this because they are all equivalent.
             SlowCourses.Add(_config.UnifiedCourse(fullName, courseId));
-            // Also adding lookup for the future.
             lookup.Courses.TryAdd(fullName, courseId);
         }
     }

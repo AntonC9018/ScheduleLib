@@ -52,9 +52,6 @@ public sealed class UninitializedScheduleModelException : ScheduleBuildException
     }
 }
 
-/// <summary>
-/// A teaching period ends before it starts.
-/// </summary>
 public sealed class InvalidPeriodException : ScheduleBuildException
 {
     private InvalidPeriodException(string message)

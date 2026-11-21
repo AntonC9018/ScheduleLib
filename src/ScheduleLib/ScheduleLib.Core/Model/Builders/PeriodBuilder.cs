@@ -49,9 +49,4 @@ public static class PeriodBuilderHelper
             }
         }
     }
-    //
-    // public static void End(this PeriodBuilder b, DateOnly end)
-    // {
-    //     b.Model.EndExclusive = end;
-    // }
 }

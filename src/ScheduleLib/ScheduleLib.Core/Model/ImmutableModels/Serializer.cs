@@ -12,8 +12,6 @@ namespace ScheduleLib;
 
 public static class ScheduleSerializer
 {
-    /// <summary>Creates a reusable serialization operation. Configure Input and Output
-    /// before execution; Hash is optional and defaults to empty.</summary>
     public static ScheduleSerializationBuilder Serialize() => new();
 
     internal static Task SerializeModelAsync(
@@ -310,10 +308,7 @@ public static class SerializationModels
         return model;
     }
 
-    /// <summary>
-    /// Restores a built schedule without building it again. Every value is restored as saved:
-    /// names are not parsed, remapped or merged again.
-    /// </summary>
+    /// <summary>Every value is restored as saved: names are not parsed, remapped or merged again.</summary>
     public static Schedule ConvertToSchedule(ScheduleModel schedule)
     {
         ImmutableArray<WeeklyLesson> weeklyLessons = [.. schedule.RegularLessons.Select(ToWeeklyLesson)];
@@ -391,8 +386,8 @@ public static class SerializationModels
     // NOTE: the issue is that multiple serialized things can't be merged easily.
     // need to do some id remaps and value merges for this to work.
     /// <summary>
-    /// Fills an empty builder with a saved schedule. Like the courses, groups and teachers are
-    /// added as saved, without parsing, remapping or merging their names, so ids stay positions.
+    /// Courses, groups and teachers are added as saved, without parsing, remapping or merging their
+    /// names, so ids stay positions.
     /// </summary>
     public static void ConvertToScheduleBuilder(
         ScheduleBuilder builder,
