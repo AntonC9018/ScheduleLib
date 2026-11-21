@@ -266,17 +266,17 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
 {
     public override bool CanConvert(Type typeToConvert)
     {
-        if (typeToConvert.IsPrimitive)
+        if (typeToConvert.IsPrimitive || typeToConvert.IsEnum || typeToConvert.IsGenericType)
         {
             return false;
         }
 
-        if (typeToConvert.IsEnum)
+        if (typeToConvert.IsAbstract || typeToConvert.IsInterface)
         {
             return false;
         }
 
-        if (typeToConvert == typeof(string))
+        if (typeToConvert.Namespace == nameof(System))
         {
             return false;
         }
@@ -286,12 +286,12 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
             return false;
         }
 
-        if (!typeToConvert.IsGenericType)
+        if (typeToConvert.IsValueType)
         {
             return true;
         }
 
-        return false;
+        return typeToConvert.GetConstructor(Type.EmptyTypes) is not null;
     }
 
     public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options)
