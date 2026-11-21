@@ -15,7 +15,6 @@ using ScheduleLib.Dates;
 
 public sealed class GoogleCalendarProviderTests
 {
-    /// <summary>One HTTP request observed by the test transport.</summary>
     private readonly record struct CalendarRequest(string Method, string Host, string Path);
 
     [Theory]

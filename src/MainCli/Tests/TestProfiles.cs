@@ -1,4 +1,3 @@
-/// <summary>Teacher profiles used by CLI tests.</summary>
 public static class TestProfiles
 {
     /// <summary>The maintainer's profile; the default for tests that need any teacher.</summary>

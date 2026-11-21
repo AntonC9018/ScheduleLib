@@ -707,7 +707,6 @@ public sealed class FreeHoursTests
         return ["query", "free-hours", .. format, .. CliTestHost.UncachedSource(dataDirectory), .. groupOptions];
     }
 
-    /// <summary>The services of the free-hours handler over the fixture schedule, for tests of the handler itself.</summary>
     private static void HandlerServices(IServiceCollection services)
     {
         AppConfiguration.ConfigureServices(services);

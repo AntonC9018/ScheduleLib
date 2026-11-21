@@ -222,7 +222,6 @@ public sealed class ScheduleLoaderSerializationTests
         await File.WriteAllTextAsync(path: path, contents: root.ToJsonString());
     }
 
-    /// <summary>A teacher without the required contacts.</summary>
     private static JsonObject Teacher()
     {
         return new()
@@ -232,7 +231,6 @@ public sealed class ScheduleLoaderSerializationTests
         };
     }
 
-    /// <summary>A weekly lesson without its required course.</summary>
     private static JsonObject LessonWithoutCourse()
     {
         return new()
@@ -274,7 +272,6 @@ public sealed class ScheduleLoaderSerializationTests
         return context;
     }
 
-    /// <summary>Imports one lesson of a remapped group, a teacher with contacts and an elective.</summary>
     private sealed class PopulatedComponent : IScheduleLoaderComponent
     {
         public int ApplyCount { get; private set; }
