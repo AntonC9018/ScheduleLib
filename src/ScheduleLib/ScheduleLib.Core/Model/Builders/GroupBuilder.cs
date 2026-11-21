@@ -24,7 +24,7 @@ public sealed class GroupBuilderModel
 
     public GroupCategory Category => new(Grade, Faculty, AttendanceMode, QualificationType);
 
-    /// <summary>The name is checked as well, because a model may be filled in without the parser.</summary>
+    /// <summary>Checks the name as well as the grade, because a model may be populated without the parser.</summary>
     public void Validate()
     {
         if (Name is null)

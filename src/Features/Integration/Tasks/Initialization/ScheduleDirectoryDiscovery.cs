@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using ScheduleLib.Dates;
 using ScheduleLib.Helper.Parsing;
 using ScheduleLib.Parsing.Excel;
@@ -97,7 +98,7 @@ public static class ScheduleDirectoryDiscovery
                 return null;
             }
             var yearSpan = parser.PeekSpanUntilPosition(bparser.Position);
-            if (!int.TryParse(yearSpan, out int ret))
+            if (!int.TryParse(yearSpan, NumberStyles.None, CultureInfo.InvariantCulture, out int ret))
             {
                 return null;
             }
@@ -115,7 +116,7 @@ public static class ScheduleDirectoryDiscovery
 
             parser.MoveTo(bparser.Position);
             var semSpan = parser.PeekSpanUntilEnd();
-            if (!int.TryParse(semSpan, out int sem))
+            if (!int.TryParse(semSpan, NumberStyles.None, CultureInfo.InvariantCulture, out int sem))
             {
                 throw Error(bparser.Position, "Expected a sem number.");
             }

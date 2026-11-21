@@ -658,7 +658,7 @@ internal static class HtmlSearch
     {
         {
             var lessonDateBox = (IHtmlInputElement) p.Document.GetElementById("LessonDate")!;
-            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm");
+            lessonDateBox.Value = p.Lesson.DateTime.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
             Debug.Assert(lessonDateBox.Value is not null and not "");
         }
 

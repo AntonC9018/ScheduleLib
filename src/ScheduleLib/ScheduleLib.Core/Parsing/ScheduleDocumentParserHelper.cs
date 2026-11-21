@@ -140,6 +140,8 @@ public static class ScheduleDocumentParserHelper
             bool parsed = DateOnly.TryParseExact(
                 s: dateSpan,
                 format: format,
+                provider: CultureInfo.InvariantCulture,
+                style: DateTimeStyles.None,
                 out var date);
             if (!parsed)
             {
