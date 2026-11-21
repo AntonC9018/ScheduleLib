@@ -96,12 +96,6 @@ public static class MoodlePathParser
             return Grade.Invalid;
         }
 
-        reader.SkipWhitespace();
-        if (!reader.IsEmpty)
-        {
-            return Grade.Invalid;
-        }
-
         return new Grade(gradeNumber);
     }
 
@@ -143,19 +137,13 @@ public static class MoodlePathParser
         {
             return null;
         }
-        if (!buffered.IsEmpty && !char.IsWhiteSpace(buffered.Current))
+        if (!buffered.IsEmpty && char.IsLetterOrDigit(buffered.Current))
         {
             return null;
         }
 
-        var romanSpan = reader.PeekSpanUntilPosition(buffered.Position);
         reader.MoveTo(buffered.Position);
-        var romanValue = NumberHelper.FromRoman(romanSpan);
-        if (romanValue is not null)
-        {
-            return romanValue;
-        }
-        return null;
+        return romanResult.Number;
     }
 
     private static int? ConsumePositiveInt(ref SequenceReader reader)
@@ -165,7 +153,7 @@ public static class MoodlePathParser
         {
             return null;
         }
-        if (!buffered.IsEmpty && !char.IsWhiteSpace(buffered.Current))
+        if (!buffered.IsEmpty && char.IsLetterOrDigit(buffered.Current))
         {
             return null;
         }
