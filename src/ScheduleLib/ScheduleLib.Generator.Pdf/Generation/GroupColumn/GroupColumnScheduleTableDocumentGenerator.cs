@@ -30,10 +30,18 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
     private readonly SchedulePdfSizesConfig _sizesConfig = new();
 
     public GroupColumnScheduleTableDocument(FilteredSchedule schedule, in Services p)
+        : this(schedule, in p, GeneratorCache.Create(schedule))
+    {
+    }
+
+    public GroupColumnScheduleTableDocument(
+        FilteredSchedule schedule,
+        in Services p,
+        GeneratorCache cache)
     {
         _schedule = schedule;
         _services = p;
-        _cache = GeneratorCache.Create(schedule);
+        _cache = cache;
     }
 
     private GroupId[] Columns() => _cache.ColumnOrder.Columns;

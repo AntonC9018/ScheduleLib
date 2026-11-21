@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -273,7 +274,7 @@ public static class IcsCalendarWriter
 
     private static void WriteVTimeZone(StreamWriter writer, string timeZoneId)
     {
-        ValidateTimeZone(timeZoneId);
+        Debug.Assert(timeZoneId == "Europe/Chisinau", "Write must validate TimeZoneId before writing VTIMEZONE.");
 
         writer.WriteLine("BEGIN:VTIMEZONE");
         writer.WriteLine($"TZID:{timeZoneId}");
