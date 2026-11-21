@@ -6,6 +6,10 @@ namespace QuizModels;
 
 public static class MoodleQuizHtmlParser
 {
+    private readonly record struct QuestionColumn(int SlotNumber, int ColumnIndex);
+
+    private static readonly long MaxTimeSpanSeconds = TimeSpan.MaxValue.Ticks / TimeSpan.TicksPerSecond;
+
     private static readonly CultureInfo RomanianCulture = CultureInfo.GetCultureInfo("ro-RO");
 
     private static readonly string[] DateTimeFormats =
@@ -39,6 +43,7 @@ public static class MoodleQuizHtmlParser
             throw new MoodleAttemptsTableHeaderNotFoundException();
         }
 
+        var questionColumns = ReadQuestionColumns(columnIndices);
         var attempts = new List<QuizAttempt>();
         foreach (var row in table.QuerySelectorAll<IHtmlTableRowElement>("tbody tr"))
         {
@@ -48,9 +53,17 @@ public static class MoodleQuizHtmlParser
                 continue;
             }
 
-            if (TryParseAttemptRow(row, columnIndices) is { } attempt)
+            try
             {
-                attempts.Add(attempt);
+                if (TryParseAttemptRow(row, columnIndices, questionColumns) is { } attempt)
+                {
+                    attempts.Add(attempt);
+                }
+            }
+            catch (MoodleDateTimeParseException)
+            {
+                // Skip rows with malformed timestamps so remaining attempts still parse.
+                continue;
             }
         }
 
@@ -176,11 +189,21 @@ public static class MoodleQuizHtmlParser
             return null;
         }
 
-        return new TimeSpan(
-            days: days,
-            hours: hours,
-            minutes: minutes,
-            seconds: seconds);
+        const long SecondsPerDay = 86_400;
+        const long SecondsPerHour = 3_600;
+        const long SecondsPerMinute = 60;
+
+        long totalSeconds =
+            ((long) days * SecondsPerDay)
+            + ((long) hours * SecondsPerHour)
+            + ((long) minutes * SecondsPerMinute)
+            + seconds;
+        if (totalSeconds > MaxTimeSpanSeconds)
+        {
+            return null;
+        }
+
+        return TimeSpan.FromTicks(totalSeconds * TimeSpan.TicksPerSecond);
     }
 
     public static float? ParseFloatOrNull(string? value)
@@ -301,7 +324,8 @@ public static class MoodleQuizHtmlParser
 
     private static QuizAttempt? TryParseAttemptRow(
         IHtmlTableRowElement row,
-        Dictionary<string, int> columnIndices)
+        Dictionary<string, int> columnIndices,
+        List<QuestionColumn> questionColumns)
     {
         var cells = row.Cells;
         var nameCell = FindCell(cells, columnIndices, "firstname", "lastname");
@@ -320,6 +344,12 @@ public static class MoodleQuizHtmlParser
         var reviewLink = nameCell.QuerySelector("a.reviewlink")?.GetAttribute("href");
         if (reviewLink is null)
         {
+            // Enrolled users with no quiz attempt have a name cell, no attempt checkbox, and no review link.
+            if (string.IsNullOrEmpty(attemptId))
+            {
+                return null;
+            }
+
             throw new MoodleAttemptReviewLinkMissingException(attemptId);
         }
 
@@ -339,7 +369,7 @@ public static class MoodleQuizHtmlParser
             Duration = ParseDuration(ExtractCellText(FindCell(cells, columnIndices, "duration"))),
             Grade = ParseFloatOrNull(ExtractCellText(FindCell(cells, columnIndices, "sumgrades"))),
             ReviewLink = reviewLink,
-            QuestionGrades = ExtractQuestionGrades(cells, columnIndices),
+            QuestionGrades = ExtractQuestionGrades(cells, questionColumns),
         };
     }
 
@@ -393,27 +423,68 @@ public static class MoodleQuizHtmlParser
         return element.TextContent.Trim();
     }
 
-    private static List<QuestionGrade> ExtractQuestionGrades(
-        IHtmlCollection<IHtmlTableCellElement> cells,
+    private static List<QuestionColumn> ReadQuestionColumns(
         Dictionary<string, int> columnIndices)
     {
-        var grades = new List<QuestionGrade>();
-        for (int questionNum = 1; ; questionNum++)
+        const string Prefix = "qsgrade";
+        var columns = new List<QuestionColumn>();
+        foreach (var (key, columnIndex) in columnIndices)
         {
-            var cell = FindCell(cells, columnIndices, $"qsgrade{questionNum}");
-            if (cell is null)
+            if (!key.StartsWith(Prefix, StringComparison.Ordinal))
             {
-                break;
+                continue;
             }
 
+            var suffix = key.AsSpan(Prefix.Length);
+            if (!int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out int slotNumber))
+            {
+                continue;
+            }
+            if (slotNumber <= 0)
+            {
+                continue;
+            }
+
+            columns.Add(new QuestionColumn(
+                SlotNumber: slotNumber,
+                ColumnIndex: columnIndex));
+        }
+
+        columns.Sort(static (left, right) => left.SlotNumber.CompareTo(right.SlotNumber));
+        return columns;
+    }
+
+    private static List<QuestionGrade> ExtractQuestionGrades(
+        IHtmlCollection<IHtmlTableCellElement> cells,
+        List<QuestionColumn> questionColumns)
+    {
+        var grades = new List<QuestionGrade>(questionColumns.Count);
+        foreach (var column in questionColumns)
+        {
+            if (column.ColumnIndex >= cells.Length)
+            {
+                continue;
+            }
+
+            var cell = cells[column.ColumnIndex];
             var link = cell.QuerySelector("a");
-            var reviewLink = link?.GetAttribute("href")
-                ?? throw new MoodleQuestionReviewLinkMissingException(questionNum);
+            var reviewLink = link?.GetAttribute("href");
+            if (reviewLink is null)
+            {
+                var text = cell.TextContent.Trim();
+                if (text is "" or "-" or "–")
+                {
+                    continue;
+                }
+
+                throw new MoodleQuestionReviewLinkMissingException(column.SlotNumber);
+            }
+
             var gradeSpan = cell.QuerySelector(".correct, .incorrect, .partiallycorrect, .requiresgrading");
 
             grades.Add(new QuestionGrade
             {
-                QuestionNumber = questionNum,
+                QuestionNumber = column.SlotNumber,
                 Grade = ParseFloatOrNull(ExtractCellText(gradeSpan)),
                 Status = ParseQuestionStatus(gradeSpan?.GetAttribute("class")),
                 ReviewLink = reviewLink,
