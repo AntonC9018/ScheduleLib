@@ -47,8 +47,7 @@ public static class GoogleApiRetryHelper
 
     private static bool IsRetryable(GoogleApiException ex)
     {
-        int statusCode = (int) ex.HttpStatusCode;
-        if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests || statusCode >= 500)
+        if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
         {
             return true;
         }
