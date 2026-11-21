@@ -197,26 +197,46 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
                 {
                     var lessonCountThisDay = layout.SharedMaxOrder[cellKey] + 1;
                     var sizeComputer = SizeComputer(lessonCountThisDay);
+                    var columnOrder = _cache.ColumnOrder[columnKey];
+                    var entries = new List<CellLessonSpan>(lessons.Count);
+                    foreach (var lesson in lessons)
+                    {
+                        var order = layout.LessonVerticalOrder[lesson.Id];
+                        var rowOffset = (uint) sizeComputer.ComputeRowOffsetOf((int) order);
+                        var rowSpan = sizeComputer.ComputeRowSpan((int) order);
+                        var isOwned = layout.SharedCellStart.Contains((lesson.Id, columnOrder));
+                        entries.Add(new(
+                            lesson,
+                            RowOffset: rowOffset,
+                            RowSpan: rowSpan,
+                            IsOwned: isOwned));
+                    }
+                    entries.Sort((a, b) => a.RowOffset.CompareTo(b.RowOffset));
                     HandleLessons();
                     HandleMissingBorders();
 
                     void HandleLessons()
                     {
-                        foreach (var t in OwnedLessons())
+                        foreach (var entry in entries)
                         {
-                            uint size = (uint) t.Lesson.Lesson.Groups.Count;
+                            if (!entry.IsOwned)
+                            {
+                                continue;
+                            }
+
+                            uint size = (uint) entry.Lesson.Lesson.Groups.Count;
                             var cell = table.Cell();
-                            cell.RowSpan(t.RowSpan);
+                            cell.RowSpan(entry.RowSpan);
                             cell.ColumnSpan(size);
                             cell.Column(columnNumber);
 
-                            var x = BorderedRow(cell, s.TimeSlotRow + t.LessonOrder);
+                            var x = BorderedRow(cell, s.TimeSlotRow + entry.RowOffset);
                             x = x.Centered();
                             x.Text(text =>
                             {
                                 LessonText(
                                     text,
-                                    t.Lesson,
+                                    entry.Lesson,
                                     columnWidth: size);
                             });
                         }
@@ -224,52 +244,35 @@ public sealed class GroupColumnScheduleTableDocument : IDocument
 
                     void HandleMissingBorders()
                     {
-                        uint nextOrderNeedingBorder = 0;
+                        uint nextFreeRow = 0;
 
-                        foreach (var t in OwnedLessons())
+                        foreach (var entry in entries)
                         {
-                            Handle(t.LessonOrder);
-                            nextOrderNeedingBorder = t.LessonOrder + t.RowSpan;
+                            FillGap(entry.RowOffset);
+                            var entryEnd = entry.RowOffset + entry.RowSpan;
+                            if (entryEnd > nextFreeRow)
+                            {
+                                nextFreeRow = entryEnd;
+                            }
                         }
-                        Handle(s.CellsPerTimeSlot);
+                        FillGap(s.CellsPerTimeSlot);
 
-                        void Handle(uint lessonOrder)
+                        void FillGap(uint targetRowOffset)
                         {
-                            if (lessonOrder <= nextOrderNeedingBorder)
+                            if (targetRowOffset <= nextFreeRow)
                             {
                                 return;
                             }
 
                             var cell = table.Cell();
                             cell.ColumnSpan(1);
-                            var rowSpan = lessonOrder - nextOrderNeedingBorder;
+                            var rowSpan = targetRowOffset - nextFreeRow;
                             cell.RowSpan(rowSpan);
                             cell.Column(columnNumber);
 
-                            var x = BorderedRow(cell, s.TimeSlotRow + nextOrderNeedingBorder);
+                            var x = BorderedRow(cell, s.TimeSlotRow + nextFreeRow);
                             x = x.Centered();
                             _ = x;
-                        }
-                    }
-
-                    IEnumerable<OwnedLesson> OwnedLessons()
-                    {
-                        foreach (var lesson in lessons)
-                        {
-                            {
-                                var key = (lesson.Id, _cache.ColumnOrder[columnKey]);
-                                if (!layout.SharedCellStart.Contains(key))
-                                {
-                                    continue;
-                                }
-                            }
-
-                            var order = layout.LessonVerticalOrder[lesson.Id];
-                            var rowSpan = sizeComputer.ComputeRowSpan((int) order);
-                            yield return new(
-                                lesson,
-                                LessonOrder: order,
-                                RowSpan: rowSpan);
                         }
                     }
                 }
@@ -548,4 +551,8 @@ public struct SchedulePdfSizesConfig()
     }
 }
 
-file record struct OwnedLesson(WeeklyLessonAccessor Lesson, uint LessonOrder, uint RowSpan);
+file record struct CellLessonSpan(
+    WeeklyLessonAccessor Lesson,
+    uint RowOffset,
+    uint RowSpan,
+    bool IsOwned);
