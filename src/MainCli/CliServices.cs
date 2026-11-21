@@ -57,9 +57,9 @@ internal sealed class CliRootServices(CliRun run, Action<IServiceCollection>? ov
                 return _root;
             }
 
-            _root = Build();
             try
             {
+                _root = Build();
                 AppConfiguration.ConfigureLayeredConfig(_root);
             }
             catch (Exception failure)
