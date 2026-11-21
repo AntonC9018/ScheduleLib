@@ -314,7 +314,7 @@ public sealed class CliJsonlTests
     }
 
     [Fact]
-    public void JsonlSequencePreservesReentrantReservationsAndRollsBackFailedFormatting()
+    public void JsonlSequenceStaysMonotonicAcrossReentrantAndFailedFormatting()
     {
         var output = new CliOutput(
             command: "synthetic command",
@@ -330,57 +330,55 @@ public sealed class CliJsonlTests
             Console.SetOut(stdout);
             Console.SetError(stderr);
 
-            output.EmitItem(
-                id: "outer",
-                status: ActionState.Completed,
-                item: new ReentrantPayload(() =>
-                {
-                    output.EmitItem(id: "nested", status: ActionState.Completed, item: "ok");
-                    return "outer-ok";
-                }));
+            var reentrantStdoutPayload = new ReentrantPayload(() =>
+            {
+                output.EmitItem(id: "nested", status: ActionState.Completed, item: "ok");
+                return "outer-ok";
+            });
+            output.EmitItem(id: "outer", status: ActionState.Completed, item: reentrantStdoutPayload);
             output.EmitItem(id: "after-reentrant", status: ActionState.Completed, item: "ok");
 
-            Assert.Throws<InvalidOperationException>(() => output.EmitItem(
-                id: "fail-simple",
-                status: ActionState.Failed,
-                item: new ReentrantPayload(() => throw new InvalidOperationException("boom"))));
+            var simpleFailPayload = new ReentrantPayload(() => throw new InvalidOperationException("boom"));
+            Assert.Throws<InvalidOperationException>(() =>
+                output.EmitItem(id: "fail-simple", status: ActionState.Failed, item: simpleFailPayload));
             output.EmitItem(id: "after-simple-fail", status: ActionState.Completed, item: "ok");
 
-            Assert.Throws<InvalidOperationException>(() => output.EmitItem(
-                id: "fail-after-nested",
-                status: ActionState.Failed,
-                item: new ReentrantPayload(() =>
-                {
-                    output.EmitItem(id: "nested-before-fail", status: ActionState.Completed, item: "ok");
-                    throw new InvalidOperationException("boom-after-nested");
-                })));
+            var failAfterNestedPayload = new ReentrantPayload(() =>
+            {
+                output.EmitItem(id: "nested-before-fail", status: ActionState.Completed, item: "ok");
+                throw new InvalidOperationException("boom-after-nested");
+            });
+            Assert.Throws<InvalidOperationException>(() =>
+                output.EmitItem(id: "fail-after-nested", status: ActionState.Failed, item: failAfterNestedPayload));
             output.EmitItem(id: "after-nested-fail", status: ActionState.Completed, item: "ok");
 
+            var reentrantStderrProps = new Dictionary<string, object?>
+            {
+                ["nested"] = new ReentrantPayload(() =>
+                {
+                    output.WriteWarning("nested-log");
+                    return "outer-log-ok";
+                }),
+            };
             output.WriteStructuredLog(
                 LogLevel.Information,
                 message: "outer-log",
                 exception: null,
-                properties: new Dictionary<string, object?>
-                {
-                    ["nested"] = new ReentrantPayload(() =>
-                    {
-                        output.WriteWarning("nested-log");
-                        return "outer-log-ok";
-                    }),
-                },
+                properties: reentrantStderrProps,
                 scopes: null,
                 category: "synthetic",
                 timestamp: DateTimeOffset.UnixEpoch);
             output.WriteWarning("after-reentrant-log");
 
+            var failingStderrProps = new Dictionary<string, object?>
+            {
+                ["bad"] = new ReentrantPayload(() => throw new InvalidOperationException("stderr-boom")),
+            };
             Assert.Throws<InvalidOperationException>(() => output.WriteStructuredLog(
                 LogLevel.Error,
                 message: "fail-log",
                 exception: null,
-                properties: new Dictionary<string, object?>
-                {
-                    ["bad"] = new ReentrantPayload(() => throw new InvalidOperationException("stderr-boom")),
-                },
+                properties: failingStderrProps,
                 scopes: null,
                 category: "synthetic",
                 timestamp: DateTimeOffset.UnixEpoch));
@@ -392,31 +390,37 @@ public sealed class CliJsonlTests
             Console.SetError(originalError);
         }
 
+        static int ReadSeq(string line)
+        {
+            using var document = JsonDocument.Parse(line);
+            return document.RootElement.GetProperty("seq").GetInt32();
+        }
+
         var stdoutSeqs = stdout.ToString()
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(l => JsonDocument.Parse(l).RootElement.GetProperty("seq").GetInt32())
+            .Select(ReadSeq)
             .ToArray();
         Assert.Equal(
             expected: new[]
             {
-                1,
                 0,
+                1,
                 2,
                 3,
+                4,
                 5,
-                6,
             },
             actual: stdoutSeqs);
 
         var stderrSeqs = stderr.ToString()
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(l => JsonDocument.Parse(l).RootElement.GetProperty("seq").GetInt32())
+            .Select(ReadSeq)
             .ToArray();
         Assert.Equal(
             expected: new[]
             {
-                1,
                 0,
+                1,
                 2,
                 3,
             },
