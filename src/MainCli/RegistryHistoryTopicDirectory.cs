@@ -2,7 +2,6 @@ using ScheduleLib.OnlineRegistry;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>Validated private output location for registry-history topic candidates.</summary>
 public sealed class RegistryHistoryTopicDirectory
 {
     private readonly string _path;

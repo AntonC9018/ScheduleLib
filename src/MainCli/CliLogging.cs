@@ -10,10 +10,6 @@ using Serilog.Formatting.Display;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>
-/// One process-wide logger. Each command reloads it to write to its own output: JSONL records
-/// for <c>--jsonl</c>, otherwise human-readable lines on stderr.
-/// </summary>
 public static class CliLogging
 {
     private static readonly ReloadableLogger Logger = new LoggerConfiguration().WriteToConsole()
@@ -36,7 +32,6 @@ public static class CliLogging
     public static Microsoft.Extensions.Logging.ILogger CreateLogger(string category) =>
         LoggerFactory.CreateLogger(category);
 
-    /// <summary>Routes logs to <paramref name="output"/> until the result is disposed.</summary>
     public static IDisposable Use(CliOutput output)
     {
         var previous = _output;
@@ -66,7 +61,6 @@ public static class CliLogging
     }
 }
 
-/// <summary>Writes log events as JSONL records of a command's output.</summary>
 public sealed class CliOutputSink(CliOutput output) : ILogEventSink
 {
     private const string CategoryProperty = "SourceContext";

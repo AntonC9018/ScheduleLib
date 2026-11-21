@@ -2,7 +2,6 @@ using CommandDotNet;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The output format and help request the parsed command line asks for.</summary>
 internal readonly record struct StartupRequest(bool Json, bool Jsonl, bool HelpRequested)
 {
     public static StartupRequest None => default;

@@ -34,14 +34,12 @@ public static class CliExit
 
 public sealed record CliFailure(int ExitCode, string[] Errors);
 
-/// <summary>One streamed progress update, with pre-rendered text for human output.</summary>
 public readonly record struct StreamedUpdate(
     string Id,
     ActionState Status,
     object? Item,
     string Human);
 
-/// <summary>Owns one invocation's output, cancellation, warnings and published artifacts.</summary>
 public sealed class CliCommandContext : IDisposable
 {
     private readonly ConsoleCancelEventHandler _cancel;
@@ -64,11 +62,6 @@ public sealed class CliCommandContext : IDisposable
     {
     }
 
-    /// <summary>A context created through <paramref name="run"/>, whose result the run reports.</summary>
-    /// <param name="command">The command name of the output's records.</param>
-    /// <param name="arguments">The requested result format.</param>
-    /// <param name="token">The invocation's cancellation, linked to Ctrl+C once started.</param>
-    /// <param name="run">The host run, or none for a context created directly.</param>
     internal CliCommandContext(
         string command,
         ResultArguments arguments,
@@ -92,7 +85,6 @@ public sealed class CliCommandContext : IDisposable
 
     public CliOutput Output { get; }
 
-    /// <summary>A logger writing to this command's output, for diagnostics outside a service provider.</summary>
     public ILogger CreateLogger(string category) =>
         Output.Jsonl ? CliLogging.CreateLogger(category) : NullLogger.Instance;
 

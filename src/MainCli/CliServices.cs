@@ -8,7 +8,6 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The registrations of the CLI's root container.</summary>
 public static class CliServices
 {
     /// <summary>
@@ -17,7 +16,6 @@ public static class CliServices
     /// </summary>
     public static IReadOnlyList<Type> CommandClasses { get; } = [typeof(QueryLessonsCommand), typeof(QueryFreeHoursCommand)];
 
-    /// <summary>The root container's registrations, with <paramref name="run"/> for the commands resolved there.</summary>
     public static void Configure(IServiceCollection services, CliRun run)
     {
         AppConfiguration.ConfigureServices(services);
@@ -35,12 +33,9 @@ public static class CliServices
 }
 
 /// <summary>
-/// The root container of one CLI run, built the first time a command resolved from it runs,
-/// so help, parse errors and commands with containers of their own never build it.
-/// <paramref name="overrides"/> replaces registrations after the CLI's own, for tests.
+/// Built the first time a command resolved from it runs, so help, parse errors and commands with
+/// containers of their own never build it.
 /// </summary>
-/// <param name="run">The host run, registered for the commands resolved from the root container.</param>
-/// <param name="overrides">Registrations applied after the CLI's own.</param>
 internal sealed class CliRootServices(CliRun run, Action<IServiceCollection>? overrides) : IAsyncDisposable
 {
     private ServiceProvider? _root;
@@ -76,7 +71,6 @@ internal sealed class CliRootServices(CliRun run, Action<IServiceCollection>? ov
         }
     }
 
-    /// <summary>Ends the root container the first time; later calls do nothing, even after a failure.</summary>
     public ValueTask DisposeAsync()
     {
         if (_ended)
@@ -103,9 +97,7 @@ internal sealed class CliRootServices(CliRun run, Action<IServiceCollection>? ov
 }
 
 /// <summary>
-/// Resolves command classes from the invocation scope: one <see cref="InvocationScope"/> of the
-/// root container, opened before CommandDotNet resolves the command classes and ended after the
-/// command runs. Outside it nothing resolves, so CommandDotNet creates the other classes and
+/// Outside the scope nothing resolves, so CommandDotNet creates the other command classes and
 /// argument models itself.
 /// </summary>
 internal sealed class InvocationScopeResolver(CliRootServices services, CliRun run) : IDependencyResolver

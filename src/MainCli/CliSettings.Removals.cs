@@ -9,7 +9,6 @@ namespace ScheduleLib.Cli;
 
 public static partial class CliSettings
 {
-    /// <summary>A setting path resolved to the configuration block and value it addresses.</summary>
     private readonly record struct OperationTarget(Type Block, PropertyInfo[] Members, Type Value);
 
     // Operations belong to the CLI envelope; desktop TreeSerializer remains values-only.

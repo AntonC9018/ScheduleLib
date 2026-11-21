@@ -3,7 +3,6 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The lesson predicates of one <c>query lessons</c> invocation. A seed; each predicate is optional.</summary>
 public sealed record LessonQuery(
     string? Room = null,
     DayOfWeek? Day = null,
@@ -19,7 +18,6 @@ public sealed record LessonQuery(
             BeforeSlot: arguments.BeforeSlot);
     }
 
-    /// <summary>Whether the day and parity are defined and the slot cutoff is a slot number.</summary>
     public bool IsValid
     {
         get
@@ -44,12 +42,10 @@ public sealed record LessonQuery(
     }
 }
 
-/// <summary>The latest-period weekly lessons that match a <see cref="LessonQuery"/>. A workflow root.</summary>
 public sealed class QueryLessonsWorkflow(Schedule schedule, LessonTimeConfig time, LessonQuery query)
 {
     public static void Register(IServiceCollection services) => services.AddSeed<LessonQuery>();
 
-    /// <summary>Streams the matching lessons. An unknown room fails before the first lesson.</summary>
     public IEnumerable<LessonResult> Run(CancellationToken cancellationToken)
     {
         if (query.Room is { } room && !schedule.EnumerateWeeklyLessons()
@@ -121,7 +117,6 @@ public sealed class QueryLessonsWorkflow(Schedule schedule, LessonTimeConfig tim
     }
 }
 
-/// <summary>A lesson query names a room no lesson of the schedule uses.</summary>
 public sealed class UnknownRoomException(string room) : ArgumentException($"Unknown room: {room}")
 {
     public string Room { get; } = room;

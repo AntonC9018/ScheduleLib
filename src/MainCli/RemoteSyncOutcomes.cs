@@ -2,17 +2,13 @@ using System.Net;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>
-/// Outcome classification shared by the replace-style Google syncs (Calendar and Drive).
-/// Each sync still decides which outcome it records for a given failure; this type only
-/// names the shared predicates, states and exit codes.
-/// </summary>
+// Each sync still decides which outcome it records for a given failure; this type only
+// names the shared predicates and exit codes.
 internal static class RemoteSyncOutcomes
 {
     public const string CredentialRefreshTransportError =
         "Google credential refresh failed; the action was not sent. Completed actions remain applied.";
 
-    /// <summary>A cancellation surfaced as a transport failure once the token is cancelled.</summary>
     public static bool IsCancellationTransportError(CancellationToken token, Exception error)
     {
         if (!token.IsCancellationRequested)
@@ -31,7 +27,6 @@ internal static class RemoteSyncOutcomes
     public static bool IsUnauthorized(Google.GoogleApiException error)
         => error.HttpStatusCode == HttpStatusCode.Unauthorized;
 
-    /// <summary>A definitive rejection of the request other than missing authorization.</summary>
     public static bool IsRejected(Google.GoogleApiException error)
     {
         return error.HttpStatusCode is HttpStatusCode.BadRequest
@@ -56,7 +51,6 @@ internal static class RemoteSyncOutcomes
     public static bool AnyCompleted(IEnumerable<ActionState> states)
         => states.Contains(ActionState.Completed);
 
-    /// <summary>Whether any action completed or may have reached the provider.</summary>
     public static bool AnyRemoteEffect(IEnumerable<ActionState> states)
         => states.Any(x => x is ActionState.Completed or ActionState.Uncertain);
 

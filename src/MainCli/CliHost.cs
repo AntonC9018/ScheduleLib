@@ -318,9 +318,6 @@ public static class CliHost
     }
 }
 
-/// <summary>What a test changes about a CLI run.</summary>
-/// <param name="Services">Replaces registrations of the root container after the CLI's own.</param>
-/// <param name="Runner">Configures the runner, for example with extra middleware.</param>
 internal sealed record CliHostOverrides(
     Action<IServiceCollection>? Services = null,
     Action<AppRunner<Commands>>? Runner = null);

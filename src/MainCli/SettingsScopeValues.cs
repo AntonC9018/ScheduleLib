@@ -5,7 +5,6 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The settings an invocation selects through its CLI options. A seed.</summary>
 public sealed record SettingsSelection(string? ProjectPath = null, string? Profile = null, string? CalendarName = null)
 {
     public static SettingsSelection From(SettingsArguments? settings, ConfigOverrideArguments? overrides = null)
@@ -17,10 +16,7 @@ public sealed record SettingsSelection(string? ProjectPath = null, string? Profi
     }
 }
 
-/// <summary>
-/// Loads settings over the code-defined settings tree of the root container, populated once when
-/// the container is built; each load overlays its user, project and CLI values without changing it.
-/// </summary>
+// The tree is populated once when the root container is built; each load only overlays its own nodes.
 public sealed class SettingsLoader(TreeBuilder tree)
 {
     public Task<ResolvedSettings> Load(SettingsSelection selection, CancellationToken cancellationToken)

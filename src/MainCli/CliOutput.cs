@@ -4,12 +4,6 @@ using Microsoft.Extensions.Logging;
 namespace ScheduleLib.Cli;
 
 /// <summary>
-/// Shared stdout/stderr contract for all CLI commands.
-/// Human output remains the default. <c>--json</c> keeps the existing single
-/// complete versioned envelope on stdout with plain-text stderr. <c>--jsonl</c>
-/// streams newline-delimited JSON records on stdout (start, items as they become
-/// available, final summary) and renders every stderr warning/error/log as JSONL.
-///
 /// Sequence scope: stdout <c>seq</c> orders records within the stdout stream
 /// starting at 0 (start is 0, final is last); stderr <c>seq</c> independently
 /// orders records within the stderr stream starting at 0. Both streams share
