@@ -21,7 +21,6 @@ public sealed class FmiWebsiteInteropTests
             {
                 ParityDisplay = new(),
                 LessonTypeDisplay = new(),
-                SubGroupNumberDisplay = new(),
             });
         var stream = new MemoryStream();
         await WebsiteJsonScheduleHelper.Serialize(model, stream);

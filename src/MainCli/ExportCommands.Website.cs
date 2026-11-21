@@ -99,7 +99,6 @@ public partial class ExportCommands
             {
                 ParityDisplay = new(),
                 LessonTypeDisplay = new(),
-                SubGroupNumberDisplay = new(),
             };
             foreach (var (teacher, filteredSchedule) in grouping.Filter(full))
             {
@@ -119,7 +118,7 @@ public partial class ExportCommands
                     continue;
                 }
                 using var buffer = new MemoryStream();
-                await WebsiteJsonScheduleHelper.Serialize(model, buffer);
+                await WebsiteJsonScheduleHelper.Serialize(model, buffer, cancellation.Token);
                 var key = $"{slug}.json";
                 var value = buffer.ToArray();
                 if (!files.TryAdd(key, value))

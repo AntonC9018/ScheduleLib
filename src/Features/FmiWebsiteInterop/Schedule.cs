@@ -32,7 +32,6 @@ public static class WebsiteJsonScheduleHelper
     {
         public required LessonTypeDisplayHandler LessonTypeDisplay;
         public required ParityDisplayHandler ParityDisplay;
-        public required SubGroupNumberDisplayHandler SubGroupNumberDisplay;
     }
 
     private readonly record struct LessonGroupKey(
@@ -178,9 +177,7 @@ public static class WebsiteJsonScheduleHelper
         listBuilder.Append(course.FullName);
 
         AppendDetails(sb, firstLesson, uniformParity, services);
-        listBuilder.MaybeAppendSeparator();
-
-        AppendGroups(sb, ref listBuilder, schedule, lessons, uniformParity is null, services);
+        AppendGroups(sb, listBuilder, schedule, lessons, uniformParity is null, services);
 
         // Lessons are grouped by course/type/room, so mixed partitions are possible;
         // when they differ, no single suffix applies and none is shown.
@@ -233,7 +230,7 @@ public static class WebsiteJsonScheduleHelper
 
     private static void AppendGroups(
         StringBuilder sb,
-        ref ListStringBuilder listBuilder,
+        ListStringBuilder listBuilder,
         ScheduleLib.Schedule schedule,
         List<WeeklyLessonAccessor> lessons,
         bool hasMixedParity,
