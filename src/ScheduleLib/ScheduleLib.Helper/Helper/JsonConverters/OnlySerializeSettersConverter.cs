@@ -276,9 +276,13 @@ public sealed class OnlySerializeSettersForUserDefinedTypesConverterFactory : Js
             return false;
         }
 
-        if (typeToConvert.Namespace == nameof(System))
+        if (typeToConvert.Namespace is { } ns)
         {
-            return false;
+            if (ns.Equals(nameof(System), StringComparison.Ordinal)
+                || ns.StartsWith($"{nameof(System)}.", StringComparison.Ordinal))
+            {
+                return false;
+            }
         }
 
         if (typeof(System.Collections.IEnumerable).IsAssignableFrom(typeToConvert))
