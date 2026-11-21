@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Cli;
 using ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>The plans of the CLI's workflow roots, the handlers its commands open scopes for.</summary>
 public sealed class WorkflowPlanTests
 {
     public static TheoryData<Type> WorkflowRoots()

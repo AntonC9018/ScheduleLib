@@ -22,9 +22,6 @@ public sealed class Schedule
     public readonly ImmutableArray<LabSubGroupMergeDiagnostic> LabSubGroupMergeDiagnostics;
     public readonly ImmutableHashSet<WeeklyLessonId> SuppressedWeeklyLessons;
 
-    /// <summary>
-    /// The lab subgroup merge results are empty when not given.
-    /// </summary>
     public Schedule(
         ImmutableArray<WeeklyLesson> weeklyLessons,
         ImmutableArray<OneTimeLesson> oneTimeLessons,
@@ -429,12 +426,10 @@ internal struct LessonGroupsImpl
     public GroupId _value;
 }
 
-// [StructLayout(LayoutKind.Sequential)]
 public struct LessonGroups : IEnumerable<GroupId>, IEquatable<LessonGroups>
 {
     private LessonGroupsImpl _impl;
 
-    // indexer
     public GroupId this[int index]
     {
         readonly get => _impl[index];
@@ -664,9 +659,6 @@ public readonly record struct LessonData
     public readonly Specialization Specialization;
     public readonly Alternative Alternative;
 
-    /// <summary>
-    /// The default subgroup, specialization and alternative are <c>All</c>.
-    /// </summary>
     public LessonData(
         LessonGroups groups,
         CourseId course,
@@ -690,9 +682,6 @@ public readonly record struct LessonData
     public ImmutableArray<TeacherId> Teachers => _teachers.Array;
     public GroupId Group => Groups.Group0;
 
-    /// <summary>
-    /// The same lesson given to other groups or another subgroup.
-    /// </summary>
     public LessonData WithGroupsAndSubGroup(LessonGroups groups, SubGroup subGroup)
     {
         return new(
@@ -708,7 +697,6 @@ public readonly record struct LessonData
 }
 
 /// <summary>
-/// One student-partition axis of a <see cref="GroupPartitionKey"/>.
 /// Closed set on purpose: no extensible-dimension support, just an abstraction
 /// so the per-site dimension loops stay unified.
 /// </summary>
@@ -720,8 +708,8 @@ public enum PartitionDimension
 }
 
 /// <summary>
-/// The value on one <see cref="PartitionDimension"/>. Wraps a string for now;
-/// every dimension type converts implicitly. A null value means "all".
+/// Wraps a string for now; every dimension type converts implicitly.
+/// A null value means "all".
 /// </summary>
 public readonly record struct PartitionKey
 {
@@ -740,9 +728,6 @@ public readonly record struct PartitionKey
 
 public static class PartitionDimensions
 {
-    /// <summary>
-    /// Every dimension in storage order.
-    /// </summary>
     public static ReadOnlySpan<PartitionDimension> All
     {
         get
@@ -756,9 +741,6 @@ public static class PartitionDimensions
         }
     }
 
-    /// <summary>
-    /// Alternative first, then specialization, then subgroup.
-    /// </summary>
     public static ReadOnlySpan<PartitionDimension> DisplayOrder
     {
         get
@@ -774,9 +756,7 @@ public static class PartitionDimensions
 }
 
 /// <summary>
-/// Combines the subgroup, specialization and alternative values a lesson targets
-/// into one identity. Used wherever equality or grouping must consider all fields.
-/// Not serialized.
+/// Used wherever equality or grouping must consider all fields. Not serialized.
 /// </summary>
 public readonly record struct GroupPartitionKey(
     SubGroup SubGroup,
@@ -813,9 +793,6 @@ public static class LessonDataExtensions
 
     extension(in GroupPartitionKey key)
     {
-        /// <summary>
-        /// The key's value on one partition dimension.
-        /// </summary>
         public PartitionKey GetPartitionDimension(PartitionDimension dimension)
         {
             return dimension switch
@@ -827,10 +804,7 @@ public static class LessonDataExtensions
             };
         }
 
-        /// <summary>
-        /// Alternative first, then the specialization, then the subgroup.
-        /// Null when the key targets everything.
-        /// </summary>
+        /// <summary>Null when the key targets everything.</summary>
         public string? ToDisplayString(string separator = ", ")
         {
             var parts = new List<string>(3);
@@ -1002,7 +976,6 @@ public readonly record struct SubGroup
 }
 
 /// <summary>
-/// A restriction of a lesson to one specialization of study.
 /// <see cref="All"/> means the lesson carries no specialization restriction.
 /// Backed by a string, because schedule sources may add new names over time.
 /// Known values live as extension properties on this type in ScheduleDefaults;
@@ -1088,9 +1061,7 @@ public static class Specializations
     }
 
     /// <summary>
-    /// Resolves a raw label against the built-in values, falling back to the
-    /// configured registry (which may be null). Chained built-in
-    /// <c>||</c> registry <c>TryFromValue</c> checks stay here so call sites
+    /// Chained built-in <c>||</c> registry <c>TryFromValue</c> checks stay here so call sites
     /// don't inline the double disjunction.
     /// </summary>
     public static bool TryResolveSpecialization(
@@ -1314,10 +1285,6 @@ public sealed class Group
     public GroupCategory Category => new(Grade, Faculty, AttendanceMode, QualificationType);
 }
 
-/// <summary>
-/// The fields that place a group into a category, such as the categories
-/// the specialization registry and the implicit split scopes select.
-/// </summary>
 public readonly record struct GroupCategory
 {
     public readonly Grade Grade;

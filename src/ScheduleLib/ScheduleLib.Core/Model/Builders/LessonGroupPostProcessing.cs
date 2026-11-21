@@ -5,7 +5,6 @@ namespace ScheduleLib.Builders;
 public static partial class ScheduleBuilderHelper
 {
     /// <summary>
-    /// Moves registered specialization labels out of the subgroup field into the specialization field.
     /// Raw sources and remapped aliases both store their label in the subgroup field during parsing;
     /// only here, once the lesson groups are known, does the value get classified.
     /// </summary>
@@ -48,10 +47,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    /// <summary>
-    /// Resolves a raw label using the built-in values and the configured registry.
-    /// The registry supports future values without making them enum members.
-    /// </summary>
+    /// <summary>The registry supports future values without making them enum members.</summary>
     internal static bool TryGetSpecialization(
         this ScheduleBuilder s,
         SubGroup label,
@@ -64,10 +60,9 @@ public static partial class ScheduleBuilderHelper
     }
 
     /// <summary>
-    /// Derives the non-beginner language proficiency state. Sources only annotate the beginner
-    /// lessons; the unannotated counterpart lessons of the same group and course become
-    /// <see cref="SpecialSubGroups.NonBeginners"/>. Already normalized data is left alone, so
-    /// building over deserialized schedules is idempotent.
+    /// Sources only annotate the beginner lessons; the unannotated counterpart lessons of the same
+    /// group and course become <see cref="SpecialSubGroups.NonBeginners"/>. Already normalized data
+    /// is left alone, so building over deserialized schedules is idempotent.
     /// </summary>
     internal static void NormalizeLanguageProficiency(this ScheduleBuilder s)
     {
@@ -208,10 +203,7 @@ public static partial class ScheduleBuilderHelper
         }
     }
 
-    /// <summary>
-    /// Groups the subgroup values observed per participating group.
-    /// The <c>opțional</c> marker and <see cref="SubGroup.All"/> are ignored.
-    /// </summary>
+    /// <summary>The <c>opțional</c> marker and <see cref="SubGroup.All"/> are ignored.</summary>
     private static void CollectObservedSubGroups(
         ScheduleBuilder s,
         Dictionary<GroupId, HashSet<SubGroup>> observed)

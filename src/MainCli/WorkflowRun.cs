@@ -20,8 +20,7 @@ internal static class WorkflowRun
         CancellationToken cancellationToken)
         where THandler : notnull
     {
-        // Ends the scope only when the work throws and ending it then fails as well.
-        await using var scope = await workflows.OpenAsync(inputs, cancellationToken);
+        var scope = await workflows.OpenAsync(inputs, cancellationToken);
         T result;
         try
         {

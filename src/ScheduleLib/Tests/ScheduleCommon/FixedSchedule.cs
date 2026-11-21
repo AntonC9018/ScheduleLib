@@ -13,6 +13,7 @@ public sealed class FixedSchedule(Schedule schedule)
     public static void Register(IServiceCollection services, Schedule schedule)
     {
         services.AddSingleton(new FixedSchedule(schedule));
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, FixedScheduleInitializer>();
     }
 }

@@ -6,14 +6,13 @@ using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using ScheduleLib.Dates;
 
-/// <summary>Runs commands through the real CLI host, with test replacements in its root container.</summary>
 internal static class CliTestHost
 {
     public static string FixturesDirectory { get; } = Path.Combine(AppContext.BaseDirectory, "fixtures");
 
     /// <summary>
-    /// Runs <paramref name="args"/>. <paramref name="services"/> replaces root registrations after the
-    /// CLI's own; <paramref name="cancellationToken"/> stands in for the console's cancellation once the
+    /// <paramref name="services"/> replaces root registrations after the CLI's own;
+    /// <paramref name="cancellationToken"/> stands in for the console's cancellation once the
     /// command is invoked. CommandDotNet skips a command whose token is already cancelled at that point.
     /// </summary>
     public static Task<int> Run(
@@ -41,7 +40,6 @@ internal static class CliTestHost
         return CliHost.RunCore(args, new CliHostOverrides(services, ConfigureRunner));
     }
 
-    /// <summary>Configures the services for the packaged fixture schedule: its study year, without name enrichment.</summary>
     public static void FixtureSchedule(IServiceCollection services)
     {
         services.Configure<ScheduleSourceLoaderOptions>(x =>
@@ -56,7 +54,6 @@ internal static class CliTestHost
         });
     }
 
-    /// <summary>The source options of an uncached load from <paramref name="dataDirectory"/>, the fixtures by default.</summary>
     public static string[] UncachedSource(string? dataDirectory = null) =>
         ["--no-cache", "--data-dir", dataDirectory ?? FixturesDirectory];
 }

@@ -23,10 +23,6 @@ public readonly record struct GroupCombination(
     SubGroup? Numeric = null,
     Alternative? Alternative = null)
 {
-    /// <summary>
-    /// The subgroup values the combination selects. A lesson's subgroup must be
-    /// <see cref="SubGroup.All"/> or equal one of these to be included.
-    /// </summary>
     public IEnumerable<SubGroup> SelectedSubGroups()
     {
         if (Proficiency is { } p)
@@ -44,11 +40,9 @@ public readonly record struct GroupCombination(
     }
 
     /// <summary>
-    /// Builds the <see cref="GroupFilter"/> selecting exactly this combination's
-    /// lessons. A null selection means the partition is inactive for the
-    /// group, so no restriction is applied: this keeps the filter consistent
-    /// with <see cref="GroupPartitionInfo.IncludesLesson"/>, where an inactive
-    /// partition (including a registry-deactivated one) behaves as shared.
+    /// A null selection means the partition is inactive for the group, so no restriction is applied:
+    /// this keeps the filter consistent with <see cref="GroupPartitionInfo.IncludesLesson"/>, where an
+    /// inactive partition (including a registry-deactivated one) behaves as shared.
     /// Passing an empty array instead would wrongly drop those lessons,
     /// because <c>FilteredSchedule</c> counts raw observed values.
     /// </summary>
@@ -72,10 +66,7 @@ public readonly record struct GroupCombination(
         };
     }
 
-    /// <summary>
-    /// Appends the selected values in the canonical name order:
-    /// alternative-specialization-proficiency-language-numeric.
-    /// </summary>
+    /// <summary>Canonical name order: alternative-specialization-proficiency-language-numeric.</summary>
     public void AppendFileNamePart(ListStringBuilder lb)
     {
         if (Alternative is { } a)
@@ -102,9 +93,8 @@ public readonly record struct GroupCombination(
 }
 
 /// <summary>
-/// The partition state of one group: the observed specializations and every generated
-/// student combination. Matching uses this context, because the same stored lesson
-/// may behave differently per group (a singleton specialization behaves as shared).
+/// Matching uses this context, because the same stored lesson may behave differently per group
+/// (a singleton specialization behaves as shared).
 /// </summary>
 public sealed class GroupPartitionInfo
 {
@@ -419,10 +409,7 @@ public sealed class GroupPartitionInfoByGroup : Dictionary<GroupId, GroupPartiti
 
 public static class GroupPartitionInfoHelper
 {
-    /// <summary>
-    /// Discovers the active partitions and generated combinations of every group.
-    /// A null registry permits every observed specialization value.
-    /// </summary>
+    /// <summary>A null registry permits every observed specialization value.</summary>
     public static GroupPartitionInfoByGroup GetGroupPartitionInfo(
         this Schedule schedule,
         SpecializationRegistry? registry = null)

@@ -10,8 +10,7 @@ namespace ScheduleLib.Application.Config;
 /// </summary>
 public static partial class TranslatedFailureLog
 {
-    /// <summary>Logs the cause of <paramref name="translated"/> at debug level and returns it for throwing.</summary>
-    /// <param name="causeCode">A provider error code known not to contain private data, such as an OAuth error.</param>
+    // causeCode must be a provider error code known not to contain private data, such as an OAuth error.
     public static TException Translated<TException>(
         ILogger logger,
         TException translated,
@@ -29,7 +28,6 @@ public static partial class TranslatedFailureLog
         return translated;
     }
 
-    /// <summary>Logs a failure whose cause is classified but deliberately not echoed to the user.</summary>
     public static void Unreported(
         ILogger logger,
         string operation,
@@ -45,7 +43,6 @@ public static partial class TranslatedFailureLog
         }
     }
 
-    /// <summary>Lists the inner exception types, outermost first.</summary>
     public static string DescribeCauses(Exception exception)
     {
         var names = new List<string>();

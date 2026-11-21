@@ -17,7 +17,6 @@ public struct IndexedRow
     public required uint Index;
     public required bool IsJump;
 
-    // implicit cast to Indexed<Row>
     public static implicit operator Indexed<Row>(IndexedRow indexedRow)
     {
         return new Indexed<Row>

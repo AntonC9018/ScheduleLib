@@ -34,7 +34,6 @@ public sealed class ScopeState : IAsyncDisposable
     private Func<CleanupFailures, ValueTask>? _disposeServices;
     private TaskCompletionSource<Exception?>? _ending;
 
-    /// <summary>Seeds and initialized values available in this scope.</summary>
     internal Dictionary<ScopeNode, object> Values { get; } = [];
 
     internal ScopeResources Resources { get; } = new();
@@ -119,7 +118,6 @@ public sealed class ScopeState : IAsyncDisposable
         }
     }
 
-    /// <summary>Starts ending the scope, or joins the ending already under way.</summary>
     internal ScopeEnding EndAsync()
     {
         TaskCompletionSource<Exception?> ending;

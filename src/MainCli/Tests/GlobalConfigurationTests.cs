@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Application.Config;
 using ScheduleLib.Cli;
 
-/// <summary>The global configuration (user secrets) is read only by the services that need it.</summary>
 public sealed class GlobalConfigurationTests
 {
     private const string FailureMessage = "Access to the user-secrets file is denied.";

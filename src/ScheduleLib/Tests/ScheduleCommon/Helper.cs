@@ -11,11 +11,7 @@ public static class ScheduleTestHelper
         new CourseNameParserConfig(new()),
         []);
 
-    /// <summary>
-    /// The lookup a loaded schedule provides for <paramref name="schedule"/>, built from
-    /// <paramref name="builder"/>. Without a course name configuration, names only match exactly
-    /// or after parsing.
-    /// </summary>
+    /// <summary>Without a course name configuration, names only match exactly or after parsing.</summary>
     public static LookupFacade CreateLookup(
         this ScheduleBuilder builder,
         Schedule schedule,

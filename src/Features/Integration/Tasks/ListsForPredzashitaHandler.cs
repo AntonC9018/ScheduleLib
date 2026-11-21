@@ -22,14 +22,12 @@ public sealed class CommissionMember
     public bool IsPresident { get; init; }
 }
 
-/// <summary>Optional C# configuration; null values retain the existing coded data.</summary>
 public sealed class PreDefenseOptions
 {
     public Commission<CommissionMember>[]? Commissions { get; set; }
     public AvrStudent[]? AvrStudents { get; set; }
 }
 
-/// <summary>A student that is listed for pre-defense by their own group.</summary>
 public readonly record struct AvrStudent(string Student, string Group);
 
 public sealed partial class ListsForPredzashitaTaskHandler
@@ -287,7 +285,6 @@ public sealed partial class ListsForPredzashitaTaskHandler
             options: null,
             cancellationToken);
 
-        // Header
         Cell HeaderCell(string s) => new(s, headerStyle);
         await spreadsheet.AddRowAsync(
             [

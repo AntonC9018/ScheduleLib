@@ -10,7 +10,6 @@ namespace ScheduleLib.Application.Config;
 
 public static class MarkerConfigExtension
 {
-    /// <summary>A teacher configuration found on a layer together with the builder for its node.</summary>
     public readonly record struct MarkerNode(TeacherLayerConfig Config, NodeBuilder Builder);
 
     public static void AddMarkerServices(this IServiceCollection services)
@@ -20,7 +19,6 @@ public static class MarkerConfigExtension
         TeacherLayerConfig.Register(services);
     }
 
-    /// <summary>A node to be deleted together with its parent.</summary>
     private readonly record struct NodeDeletion(MutableNode Parent, MutableNode Node);
 
     extension(TreeBuilder b)

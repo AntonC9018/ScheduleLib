@@ -147,11 +147,8 @@ internal static class RegistryTopicScope
         return $"/sub:{value}";
     }
 
-    /// <summary>
-    /// Appends <c> (scope)</c> to a non-blank topic, replacing an already-recognized
-    /// trailing scope suffix (canonical or alias) so re-emitting the same scope is idempotent.
-    /// Null/empty/whitespace topics are returned unchanged to avoid concealing missing topics.
-    /// </summary>
+    // Replacing a recognized trailing scope keeps re-emission idempotent. Blank topics stay
+    // unchanged so that missing topics are not concealed.
     internal static string? Append(
         string? topic,
         string scope,
@@ -182,12 +179,7 @@ internal static class RegistryTopicScope
         return $"{baseTopic} ({scope})";
     }
 
-    /// <summary>
-    /// Splits a terminal balanced <c>(scope)</c> only when its complete contents match a
-    /// supplied known audience string (case-insensitive) or a safe alias of one.
-    /// Topic-internal parentheses and unknown trailing parentheses leave the topic intact
-    /// (<c>false</c> with null outputs). Alias matches return the canonical known scope.
-    /// </summary>
+    // Unknown trailing parentheses such as "Feature (optional)" are topic text and stay intact.
     internal static bool TrySplit(
         string? topic,
         IReadOnlyCollection<string> knownScopes,

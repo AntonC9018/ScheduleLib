@@ -43,10 +43,6 @@ public sealed record SettingsSource(string Name, string? File, IReadOnlyList<str
 
 public sealed record SettingsValue(JsonNode? Value, IReadOnlyList<SettingsSource> Sources);
 
-/// <summary>
-/// The resolved settings layers and the actual path consumed by runtime DataProvider.
-/// Values are constructed with the layered-data services of the tree they were loaded over.
-/// </summary>
 public sealed class ResolvedSettings : IMarkerDataHelper
 {
     private readonly IServiceProvider _provider;
@@ -94,10 +90,7 @@ public sealed class ResolvedSettings : IMarkerDataHelper
     public T? Get<T>(NodeDataKey<T> key) where T : class => Path.ConstructValue(key, _provider);
     public T? GetGlobal<T>(NodeDataKey<T> key) where T : class => _globalPath.ConstructValue(key, _provider);
 
-    /// <summary>
-    /// Registers these settings in a container of their own, for commands that do not run
-    /// through the root container yet (#247).
-    /// </summary>
+    // For commands that do not run through the root container yet (#247).
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton(Tree);
@@ -105,10 +98,6 @@ public sealed class ResolvedSettings : IMarkerDataHelper
         AddDerivedValues(services);
     }
 
-    /// <summary>
-    /// Settings as scope values: the selection is a seed, the settings are initialized from it,
-    /// and the teacher marker, marker helper and derivation options derive from them.
-    /// </summary>
     public static void AddScopeValues(IServiceCollection services)
     {
         services.AddSingleton<SettingsLoader>();
@@ -119,15 +108,16 @@ public sealed class ResolvedSettings : IMarkerDataHelper
 
     private static void AddDerivedValues(IServiceCollection services)
     {
-        // The marker helper registered without settings is replaced, not shadowed; the derived
-        // marker replaces the marker seed by itself.
+        // The marker helper registered without settings is replaced, not shadowed; the marker
+        // seed and the code-defined derivation options give way to values derived from settings.
         services.RemoveAll<IMarkerDataHelper>();
+        services.RemoveScopeValue<TeacherLayerConfig>();
         services.AddDerived<TeacherLayerConfig, SettingsTeacherLayerFactory>();
         services.AddDerived<IMarkerDataHelper, SettingsMarkerDataHelperFactory>();
+        services.RemoveScopeValue<ScheduleDerivationOptions>();
         services.AddDerived<ScheduleDerivationOptions, SettingsScheduleDerivationFactory>();
     }
 
-    /// <summary>The teacher marker of the selected profile; empty without a profile.</summary>
     public TeacherLayerConfig CreateTeacherLayer()
     {
         if (Profile is not { } teacher)
@@ -356,11 +346,7 @@ public static partial class CliSettings
             cancellationToken);
     }
 
-    /// <summary>
-    /// Loads the selected settings over the code-defined settings of <paramref name="tree"/>, with
-    /// its layered-data services. The tree is only read: the user, project and CLI overlay nodes
-    /// belong to this load.
-    /// </summary>
+    // The tree is only read: the user, project and CLI overlay nodes belong to this load.
     internal static async Task<ResolvedSettings> LoadCore(
         TreeBuilder tree,
         SettingsSelection selection,

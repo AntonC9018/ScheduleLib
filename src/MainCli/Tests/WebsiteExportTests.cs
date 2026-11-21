@@ -16,10 +16,8 @@ using ScheduleLib.Theses.Parsing;
 
 public sealed class WebsiteExportTests
 {
-    /// <summary>One thesis row written to the export workbook.</summary>
     private readonly record struct ThesisRow(string Mentor, string Student, string Group);
 
-    /// <summary>A teacher identity served by the fake website API.</summary>
     private readonly record struct TeacherIdentity(string FirstName, string LastName, string Slug);
 
     private static string Fixtures => Path.Combine(AppContext.BaseDirectory, "fixtures");

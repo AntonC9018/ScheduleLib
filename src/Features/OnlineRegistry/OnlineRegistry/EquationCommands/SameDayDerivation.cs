@@ -377,7 +377,6 @@ internal struct MatchingContext
         {
             var unusedAllIndex = _context._matches.AllMapped.GetUnsetAtOrAfter(_allIndex);
 
-            // There's no more available bits to iterate
             if (unusedAllIndex == -1)
             {
                 return false;
@@ -387,7 +386,6 @@ internal struct MatchingContext
                 return false;
             }
 
-            // The current All index is unused.
             if (unusedAllIndex != _allIndex)
             {
                 _allIndex = unusedAllIndex;
@@ -397,7 +395,6 @@ internal struct MatchingContext
 
             var nextUnusedExistingIndex = _context._matches.ExistingMapped.GetUnsetAfter(_existingIndex);
 
-            // There's no more unused existing indices.
             if (nextUnusedExistingIndex == -1)
             {
                 int nextAll = _context._matches.AllMapped.GetUnsetAfter(_allIndex);

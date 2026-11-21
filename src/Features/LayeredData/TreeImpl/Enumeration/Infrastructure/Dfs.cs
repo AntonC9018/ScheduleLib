@@ -218,7 +218,6 @@ public interface IDfsEnumerationContext : IEnumerationContext
 
 public readonly struct DfsEnumerable : IDfsEnumerable
 {
-    /// <summary>A context key with the factory that creates a context for it.</summary>
     private readonly record struct ContextFactory(EnumerationContextKey Key, Func<IDfsEnumerationContext> Factory);
 
     private readonly MutableNode _root;

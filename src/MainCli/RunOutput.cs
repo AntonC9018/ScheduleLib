@@ -114,9 +114,16 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
                 runId: runId,
                 owned);
         }
-        catch
+        catch (Exception failure)
         {
-            await lease.DisposeAsync();
+            try
+            {
+                await lease.DisposeAsync();
+            }
+            catch (Exception cleanupFailure)
+            {
+                throw new AggregateException(failure, cleanupFailure);
+            }
             throw;
         }
     }
@@ -143,7 +150,10 @@ public sealed class RunOutput : IAsyncDisposable, IDisposable
             destination,
             generate,
             token);
-        PublishedPaths.Add(destination);
+        if (!PublishedPaths.Contains(destination, StringComparer.Ordinal))
+        {
+            PublishedPaths.Add(destination);
+        }
         _owned[name] = await Fingerprint(destination, CancellationToken.None);
     }
 

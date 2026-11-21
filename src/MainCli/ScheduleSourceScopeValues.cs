@@ -4,17 +4,13 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>
-/// The schedule source options of an invocation, unvalidated, with the directory their relative
-/// paths resolve from. A seed.
-/// </summary>
+// Unvalidated; InvocationDirectory is captured so later directory changes do not move relative paths.
 public sealed record ScheduleSourceSelection(
     string? DataDirectory,
     string? CacheDirectory,
     bool NoCache,
     string InvocationDirectory)
 {
-    /// <summary>The options of <paramref name="source"/>, relative to the current directory.</summary>
     public static ScheduleSourceSelection From(SourceArguments source)
     {
         return new(
@@ -24,10 +20,6 @@ public sealed record ScheduleSourceSelection(
             InvocationDirectory: Environment.CurrentDirectory);
     }
 
-    /// <summary>
-    /// Validates the options and resolves their paths. Without a data directory the packaged
-    /// resources are used, without a cache directory the ScheduleLib user cache.
-    /// </summary>
     public ScheduleSource Resolve()
     {
         string ResolveDataDirectory()
@@ -65,13 +57,10 @@ public sealed record ScheduleSourceSelection(
         return new(DataDirectory: dataDirectory, CacheDirectory: cacheDirectory, UseCache: !NoCache);
     }
 
-    /// <summary>
-    /// The selection as a seed, replacing the <see cref="ScheduleSource"/> seed with a value
-    /// derived from it.
-    /// </summary>
     public static void AddScopeValues(IServiceCollection services)
     {
         services.AddSeed<ScheduleSourceSelection>();
+        services.RemoveScopeValue<ScheduleSource>();
         services.AddDerived<ScheduleSource, ScheduleSourceFactory>();
     }
 }
@@ -84,10 +73,7 @@ public sealed class ScheduleSourceFactory : IFactory<ScheduleSource>
 {
     private readonly ScheduleSourceSelection _selection;
 
-    /// <param name="selection">The source options to resolve.</param>
-    /// <param name="settings">
-    /// Not read: requiring it orders the source after the settings initializer in the plan.
-    /// </param>
+    // settings is not read: requiring it orders the source after the settings initializer in the plan.
     public ScheduleSourceFactory(ScheduleSourceSelection selection, ResolvedSettings settings) =>
         _selection = selection;
 

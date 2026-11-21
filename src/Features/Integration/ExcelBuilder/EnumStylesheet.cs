@@ -26,9 +26,6 @@ public readonly struct StyleIds<TEnum, TId> where TEnum : struct, Enum
 
 public static partial class StylesheetBuilderHelper
 {
-    /// <summary>
-    /// Creates one Border for each enum member of <c>TEnum</c>
-    /// </summary>
     public static StyleIds<TEnum, BorderId> Borders<TEnum>(
         this StylesheetBuilder builder,
         Action<Border, TEnum> configure)
@@ -40,9 +37,6 @@ public static partial class StylesheetBuilderHelper
             configure);
     }
 
-    /// <summary>
-    /// Creates one CellFormat for each enum member of <c>TEnum</c>
-    /// </summary>
     public static StyleIds<TEnum, CellFormatId> CellFormats<TEnum>(
         this StylesheetBuilder builder,
         Action<CellFormat, TEnum> configure)
@@ -54,9 +48,6 @@ public static partial class StylesheetBuilderHelper
             configure);
     }
 
-    /// <summary>
-    /// Creates one resource for each enum member of <c>TEnum</c>.
-    /// </summary>
     private static StyleIds<TEnum, TId> Create<TEnum, TId, TResource>(
         StylesheetBuilder builder,
         StylesheetResource resource,

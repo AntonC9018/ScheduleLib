@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -128,7 +129,10 @@ public static class ExcelRangeHelper
         {
             throw InvalidExcelCellPositionException.ForMissingRowNumber(reader.ToString());
         }
-        uint row = uint.Parse(reader.PeekSpanUntilPosition(bparser.Position));
+        uint row = uint.Parse(
+            reader.PeekSpanUntilPosition(bparser.Position),
+            NumberStyles.None,
+            CultureInfo.InvariantCulture);
         reader.MoveTo(bparser.Position);
 
         return new(Col: col, Row: row);

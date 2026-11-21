@@ -1,3 +1,4 @@
+using System.Globalization;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AutoConstructor.Attributes;
@@ -49,7 +50,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
         public required CancellationToken CancellationToken { get; init; }
     }
 
-    /// <summary>A grade form input field and the grade that will be submitted through it.</summary>
     private readonly record struct GradeFormInput(IHtmlInputElement Element, int Grade);
 
     public async Task<RegistryGradePlan> Plan(PlanParams p)
@@ -116,7 +116,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
             gradeByName[name] = grade1;
         }
 
-        // determine course from path
         RegistryGradePlan UnsupportedPath()
         {
             notices.Add(RegistryGradeNotice.MoodlePathUnparsed());
@@ -173,7 +172,6 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                 p.CancellationToken.ThrowIfCancellationRequested();
                 var evaluareDoc = await registryNav.GetHtml(group.EvaluationUri);
 
-                // Find anchor with text Testarea X
                 IHtmlAnchorElement? TestAnchor()
                 {
                     var tables = evaluareDoc.QuerySelectorAll<IHtmlAnchorElement>("table a");
@@ -196,7 +194,14 @@ public sealed partial class CopyGradesFromMoodleForTestTaskHandler
                         }
 
                         var numberSpan = parser.PeekSpanUntilPosition(bparser.Position);
-                        var number = int.Parse(numberSpan);
+                        if (!int.TryParse(
+                                numberSpan,
+                                NumberStyles.None,
+                                CultureInfo.InvariantCulture,
+                                out var number))
+                        {
+                            return false;
+                        }
                         if (parsedPath.TestNumber == number)
                         {
                             return true;

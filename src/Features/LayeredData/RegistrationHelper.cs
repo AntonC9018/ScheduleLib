@@ -21,7 +21,6 @@ public static class RegistrationHelper
             .Configure(opts =>
             {
                 _ = opts;
-                // opts.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWriting;
             });
         services.ConfigureOptions<ConfigureSerializationOptions>();
     }
@@ -164,7 +163,6 @@ public static class RegistrationHelper
         }
     }
 
-    // why tf doesn't this return bool by default???
     internal static bool TryAddSingleton(
         this IServiceCollection collection,
         Type service,
@@ -211,10 +209,6 @@ public static class RegistrationHelper
     public static void AddMapper<T>(this IServiceCollection collection)
         where T : class, IDataMapperBase
     {
-        // collection.RegisterRequiredImplementationsOfGenericService<T>(
-        //     typeof(IConfigMapperBase),
-        //     typeof(IConfigMapper<,>),
-        //     ServiceLifetime.Singleton);
         collection.AddSingleton<IDataMapperBase, T>();
     }
 

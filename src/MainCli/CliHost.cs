@@ -163,6 +163,15 @@ public static class CliHost
                     details);
                 return exit;
             }
+            catch (OperationCanceledException)
+            {
+                WriteStartupResult(
+                    CliExit.Cancelled,
+                    "Operation cancelled.",
+                    [],
+                    RunStatus.Cancelled);
+                return CliExit.Cancelled;
+            }
             catch (Exception e)
             {
                 if (startupRequest.RejectsFormatConflict)
@@ -171,7 +180,7 @@ public static class CliHost
                     return CliExit.InvalidArguments;
                 }
                 WriteStartupResult(
-                    1,
+                    CliExit.Unexpected,
                     "Unexpected CLI startup failure. See stderr for details.",
                     [e.Message]);
                 if (!startupRequest.UsesJsonlOutput)
@@ -185,7 +194,8 @@ public static class CliHost
         void WriteStartupResult(
             int exit,
             string error,
-            IReadOnlyList<string> details)
+            IReadOnlyList<string> details,
+            RunStatus status = RunStatus.Failed)
         {
             if (startupRequest.HelpRequested)
             {
@@ -200,15 +210,21 @@ public static class CliHost
                         .ToString("N"),
                     false,
                     true);
-                run.Adopt(output);
-                output.EmitStart();
+                if (run.Adopt(output))
+                {
+                    output.EmitStart();
+                }
+                else
+                {
+                    output = run.ResultOutput(startupRequest);
+                }
                 foreach (var detail in details)
                 {
                     output.WriteError(detail);
                 }
 
                 output.EmitFinal(
-                    RunStatus.Failed,
+                    status,
                     exit,
                     [],
                     [error],
@@ -222,7 +238,7 @@ public static class CliHost
                     1,
                     "cli",
                     Guid.NewGuid().ToString("N"),
-                    RunStatus.Failed,
+                    status,
                     exit,
                     [],
                     [],
@@ -318,9 +334,6 @@ public static class CliHost
     }
 }
 
-/// <summary>What a test changes about a CLI run.</summary>
-/// <param name="Services">Replaces registrations of the root container after the CLI's own.</param>
-/// <param name="Runner">Configures the runner, for example with extra middleware.</param>
 internal sealed record CliHostOverrides(
     Action<IServiceCollection>? Services = null,
     Action<AppRunner<Commands>>? Runner = null);

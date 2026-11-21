@@ -22,7 +22,6 @@ public sealed class ScheduleLoader
     public string ConfigurationIdentity { get; set; } = "";
     public List<IScheduleLoaderComponent> Components { get; set; } = new();
 
-    /// <summary>Returns the built schedule, from the cache when it is current.</summary>
     public async ValueTask<Schedule> Load(
         ScheduleImportContext context,
         CancellationToken cancellationToken,
@@ -269,13 +268,22 @@ public sealed class ConsultationsLoaderComponent(
     {
         if (_docStream is null)
         {
-            _docStream = new();
-            var progress = await _driveFileLoader.Load(
-                _docStream,
-                fileId,
-                DriveFileType.Excel,
-                cancellationToken);
-            progress.ThrowIfNotComplete();
+            var downloaded = new MemoryStream();
+            try
+            {
+                var progress = await _driveFileLoader.Load(
+                    downloaded,
+                    fileId,
+                    DriveFileType.Excel,
+                    cancellationToken);
+                progress.ThrowIfNotComplete();
+                _docStream = downloaded;
+            }
+            catch
+            {
+                downloaded.Dispose();
+                throw;
+            }
         }
         _docStream.Seek(0, SeekOrigin.Begin);
         return _docStream;
@@ -485,13 +493,8 @@ public static class HashHelper
             return Convert.ToHexStringLower(hash.Span);
         }
 
-        /// <summary>
-        /// Feeds an <see cref="ImplicitSplitConfig"/> into the schedule cache hash
-        /// member by member, without a string round-trip. Scope and course order
-        /// carry no meaning, so both are normalized: the same configuration
-        /// produces the same hash regardless of how it was written down.
-        /// A null config hashes distinctly from an empty one.
-        /// </summary>
+        // Scope and course order carry no meaning, so both are normalized: the same configuration
+        // hashes the same however it was written down. A null config hashes distinctly from an empty one.
         public void AppendImplicitSplitConfig(ImplicitSplitConfig? config)
         {
             if (config is null)
@@ -584,7 +587,6 @@ public static class HashHelper
                         static a => a.Value));
             }
 
-            // Evaluates comparisons in order and stops at the first that tells the operands apart.
             static int FirstDifference(params ReadOnlySpan<Func<int>> comparisons)
             {
                 foreach (var compare in comparisons)

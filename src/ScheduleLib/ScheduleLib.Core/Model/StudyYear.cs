@@ -21,9 +21,6 @@ public readonly record struct StudyYear : IComparable<StudyYear>
         Value = value;
     }
 
-    /// <summary>
-    /// The two-digit form the group labels use.
-    /// </summary>
     public int Mod100 => Value % 100;
 
     public int CompareTo(StudyYear other) => Value.CompareTo(other.Value);

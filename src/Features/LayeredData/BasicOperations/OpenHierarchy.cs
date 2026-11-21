@@ -242,7 +242,6 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
             var ret = CallCopyHelper.CopyUsingService(_sp, from);
             return ret;
         }
-        // Types match.
         {
             var ret = CallMergerHelper.MergeUsingService(
                 _sp,
@@ -253,7 +252,6 @@ public sealed class OpenHierarchyMerger<T> : IMerger<T>
     }
 }
 
-// This code is so shit I'm losing my mind.
 internal static class KeyEqualityCallHelper
 {
     public static bool CompareUsingService(

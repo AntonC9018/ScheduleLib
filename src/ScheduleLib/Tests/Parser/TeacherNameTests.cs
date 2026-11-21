@@ -59,7 +59,6 @@ public sealed class TeacherNameTests
     [Fact]
     public void CanMixShortAndFullInDoubleNames()
     {
-        // "F.-Firstb Last"
         var model = new TeacherBuilderModel.NameModel();
         model.LastName[0] = "Last";
         model.FirstName[0].Short = "F.";

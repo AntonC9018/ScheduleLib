@@ -25,7 +25,6 @@ public sealed record RegistryGradeChange(
     int RoundedGrade,
     string? PreviousGrade);
 
-/// <summary>The category of one preflight grade-mapping result.</summary>
 [JsonConverter(typeof(RegistryGradeNoticeKindJsonConverter))]
 public enum RegistryGradeNoticeKind
 {

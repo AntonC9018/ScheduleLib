@@ -19,7 +19,6 @@ public sealed record RegistryHistoryTopicFileSource(
     IReadOnlyList<DateTime> Dates,
     string CourseMapping = "requires-group-mapping");
 
-/// <summary>Private topic CSV candidates and their inventory; no import manifest is emitted.</summary>
 internal static class RegistryHistoryTopicFiles
 {
     private readonly record struct TopicExport(

@@ -61,7 +61,6 @@ public sealed class Name_IgnoreDiacritics_AllowNoPatronymic_EqualityComparer : I
     {
         var a = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.FirstName);
         var b = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.LastName);
-        // var c = IgnoreDiacriticsAndCase_Name_Comparer.Instance.GetHashCode(obj.Patronymic);
         return HashCode.Combine(value1: a, value2: b);
     }
 }
@@ -119,7 +118,6 @@ public record struct NameFields
     }
 }
 
-/// <summary>A person's name. Immutable: a changed name is a new instance, made with <c>with</c>.</summary>
 public sealed record Name
 {
     private readonly NameFields _fields;

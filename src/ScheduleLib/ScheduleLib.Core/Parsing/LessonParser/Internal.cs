@@ -179,7 +179,6 @@ public ref struct ListEnumerator
 
     public bool MoveNext()
     {
-        // Skip separator
         _end = new(_end.Value + 1);
         if (_lexer.Position != _end)
         {

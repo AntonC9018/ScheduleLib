@@ -356,7 +356,6 @@ public sealed class GroupCombinationTests
         bool includesRomanian = info.IncludesLesson(djCombination, djLesson.Lesson);
         Assert.True(includesRomanian);
 
-        // The numeric lesson matches both combinations.
         var numericLesson = GetLessonBySubGroup(schedule, "I");
         Assert.All(
             info.Combinations,
@@ -470,7 +469,6 @@ public sealed class GroupCombinationTests
         bool includesRomanian = info.IncludesLesson(a2Combination, a2Lesson.Lesson);
         Assert.True(includesRomanian);
 
-        // The numeric lesson matches both combinations.
         Assert.All(
             info.Combinations,
             c =>
@@ -634,8 +632,6 @@ public sealed class GroupCombinationTests
         Assert.All(
             rebuiltLegacy.EnumerateAllLessons(),
             l => Assert.Equal(expected: Alternative.All, actual: l.Lesson.Alternative));
-
-        // Fresh serialize→deserialize preserves Alternative (and siblings).
 
         using var freshStream = new MemoryStream(Encoding.UTF8.GetBytes(json));
         var freshModel = await ScheduleSerializer.Deserialize(freshStream, CancellationToken.None);

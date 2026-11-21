@@ -9,7 +9,6 @@ namespace ScheduleLib.Import.Pdf;
 
 public static class PdfTableReader
 {
-    /// <summary>The point where a vertical and a horizontal border cross.</summary>
     private readonly record struct BorderIntersection(double X, double Y);
 
     private static readonly PdfCoordinateTolerance BorderTolerance = new(3);

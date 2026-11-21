@@ -6,7 +6,7 @@ using ScheduleLib.Parsing.GroupParser;
 
 namespace ScheduleLib;
 
-/// <summary>Finds schedule objects by the names used outside the schedule. Never changes the lookup.</summary>
+/// <summary>Never changes the lookup.</summary>
 public sealed class LookupFacade(
     Schedule schedule,
     ScheduleLookup lookup,
@@ -60,7 +60,6 @@ public sealed class LookupFacade(
         return BestTeacherMatch(lastName, firstNameParts);
     }
 
-    /// <summary>Applies the teacher name remappings, as imported names are resolved.</summary>
     public TeacherNameRemapStatus RemapTeacherName(ref TeacherBuilderModel.NameModel name)
     {
         return remappings.RemapTeacherName(ref name);

@@ -32,7 +32,6 @@ public sealed class LessonOverlapAllowlistEntry
     public required string CourseA { get; init; }
     public required string CourseB { get; init; }
 
-    /// <summary>Constrains the entry to conflicts whose shared group is this one.</summary>
     public string? GroupName { get; init; }
 
     public DayOfWeek? Day { get; init; }

@@ -62,10 +62,6 @@ public static class BaseExtensions
     {
         public void MutableGuard()
         {
-            // if (builder.IsReadOnly)
-            // {
-            //     throw new MutatingOperationCalledOnReadOnlyBuilder();
-            // }
         }
 
         public T ConfigureValue(Action<T> configure)
@@ -132,10 +128,3 @@ public static class BaseExtensions
         }
     }
 }
-
-// public sealed class MutatingOperationCalledOnReadOnlyBuilder : Exception
-// {
-//     public MutatingOperationCalledOnReadOnlyBuilder() : base("Mutating operation called on read only builder")
-//     {
-//     }
-// }

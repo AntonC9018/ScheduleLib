@@ -19,7 +19,6 @@ public enum Attendance
     Grade, // left alone if this is found
 }
 
-/// <summary>How attendance-column dates in the header row are used.</summary>
 public enum AttendanceDateMode
 {
     /// <summary>Dates only bound the attendance columns; lessons map by column order.</summary>
@@ -29,7 +28,7 @@ public enum AttendanceDateMode
     ValidateAndBind,
 }
 
-/// <summary>An attendance-column date. Year-less dates (dd.MM) match by month/day.</summary>
+/// <summary>Year-less dates (dd.MM) match by month/day.</summary>
 public readonly record struct AttendanceDate
 {
     public required int Month { get; init; }
@@ -340,7 +339,6 @@ public sealed class StudentAttendanceListBuilder()
     }
 }
 
-/// <summary>The list builder registered for a lookup key, and whether it existed before this lookup.</summary>
 public readonly record struct AttendanceListEntry(StudentAttendanceListBuilder Builder, bool Existed);
 
 public readonly struct AllStudentAttendanceListBuilder()
@@ -452,7 +450,6 @@ public readonly struct AllStudentAttendanceListBuilder()
     }
 }
 
-/// <summary>One lookup key that supplies student names, and the names it supplies.</summary>
 internal readonly record struct StudentNameSource(StudentsLookupKey Key, NamesInDb Names);
 
 public readonly struct StudentAttendanceList
@@ -463,7 +460,6 @@ public readonly struct StudentAttendanceList
         NamesInDb StudentNames,
         ImmutableArray<AttendanceDate>? Dates = null);
 
-    /// <summary>A parent group and the attendance list registered for it.</summary>
     private readonly record struct ParentAttendance(GroupId Parent, BetterAttendances Attendance);
 
     private readonly Dictionary<StudentsLookupKey, BetterAttendances> _map;

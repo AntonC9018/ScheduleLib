@@ -16,7 +16,6 @@ using Tests.ScheduleCommon;
 
 public sealed class IntegrationTest
 {
-    /// <summary>The service provider and layered tree builder shared by one integration fixture.</summary>
     private readonly record struct FixtureSetup(ServiceProvider ServiceProvider, TreeBuilder ConfigBuilder);
 
     [Fact]
@@ -128,6 +127,7 @@ public sealed class IntegrationTest
             x.Time = new(hour: 15, minute: 00);
         });
 
+        services.RemoveScopeValue<LoadedSchedule>();
         services.AddInitialized<LoadedSchedule, TestScheduleInitializer>();
 
         var serviceProvider = services.BuildServiceProvider(options: new()
@@ -140,11 +140,6 @@ public sealed class IntegrationTest
 
         return new(serviceProvider, builder);
     }
-}
-
-public sealed class GoogleDriveUploadHandler
-{
-    // private readonly RegularSeminarDateProvider _seminarDateProvider;
 }
 
 /// <summary>Loads the saved test schedule instead of the schedule sources.</summary>

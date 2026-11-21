@@ -1,6 +1,5 @@
 namespace ScheduleLib.Cli;
 
-/// <summary>The data and presentation of a completed invocation. The context owns emission.</summary>
 public sealed record CliCompletion<T>(int ExitCode, string[] Errors, T Data)
 {
     public object? Summary { get; init; }

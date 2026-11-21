@@ -568,7 +568,6 @@ public static class FilterHelper
             }
         }
 
-        // Find out which groups have regular lessons.
         GroupId[] GroupsFromLessons()
         {
             HashSet<GroupId> groupSet = new();
@@ -682,7 +681,6 @@ public static class FilterHelper
     }
 }
 
-/// <summary>One item from a grouping together with the schedule it was filtered into.</summary>
 public readonly record struct FilteredItem<T>(T Item, FilteredSchedule Schedule);
 
 // TODO: O(n^2), make this linear

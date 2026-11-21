@@ -9,7 +9,6 @@ internal sealed record SettingsArgs(string Profile);
 
 internal sealed record QuizArgs(int Quiz);
 
-/// <summary>Counts expensive loads and records their order.</summary>
 internal sealed class LoadLog
 {
     public List<string> Order { get; } = [];
@@ -343,10 +342,8 @@ internal sealed class InitializerGate
 
     public Task Entered => _entered.Task;
 
-    /// <summary>Whether the borrowed registry connection was still open when initialization resumed.</summary>
     public bool ConnectionWasOpen { get; set; }
 
-    /// <summary>What the gated initializer throws once released, if anything.</summary>
     public Exception? FailureOnRelease { get; set; }
 
     public async Task PassAsync()
@@ -398,7 +395,6 @@ internal sealed class UnresolvableTeacherSettingsFactory(Unregistered missing) :
     }
 }
 
-/// <summary>A scoped service whose disposal fails.</summary>
 internal sealed class FailingDisposable : IAsyncDisposable
 {
     public ValueTask DisposeAsync()
@@ -547,6 +543,7 @@ internal static class ScopePlanFixture
     public static IServiceCollection CreateServices()
     {
         var services = new ServiceCollection();
+        services.AddScopePlans();
         services.AddSeed<SourceArgs>();
         services.AddSeed<SettingsArgs>();
         services.AddSeed<QuizArgs>();

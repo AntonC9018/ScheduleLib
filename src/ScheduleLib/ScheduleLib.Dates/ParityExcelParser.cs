@@ -31,8 +31,8 @@ public static class DayHelper
 
     public static DateOnly GetDayOfThisWeek(this DateOnly d, DayOfWeek day)
     {
-        int offsetToMonday = -(int) d.DayOfWeek + (int) DayOfWeek.Monday;
-        var monday = d.AddDays(offsetToMonday);
+        int daysSinceMonday = ((int) d.DayOfWeek - (int) DayOfWeek.Monday + weekdayCount) % weekdayCount;
+        var monday = d.AddDays(-daysSinceMonday);
         return GetDayOfWeekFromMonday(monday, day);
     }
 

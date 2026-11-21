@@ -6,7 +6,6 @@ internal interface ISlot
     void Fill(object value);
 }
 
-/// <summary>Write-once holder of a seed or an initialized value, filled only when the scope opens.</summary>
 internal sealed class Slot<T> : ISlot
     where T : class
 {

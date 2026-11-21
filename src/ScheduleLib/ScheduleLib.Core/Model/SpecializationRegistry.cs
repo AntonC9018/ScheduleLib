@@ -2,10 +2,7 @@ using System.Collections.Immutable;
 
 namespace ScheduleLib;
 
-/// <summary>
-/// The group category fields a registry selector may constrain.
-/// A field left null matches every value in that category.
-/// </summary>
+/// <summary>A field left null matches every value in that category.</summary>
 public sealed class GroupSelectorBuilder
 {
     public Grade? Grade { get; set; }
@@ -55,7 +52,6 @@ public readonly record struct GroupCategorySelector(
 /// </summary>
 public sealed class SpecializationRegistry
 {
-    /// <summary>A category selector together with the specialization values it permits.</summary>
     internal readonly record struct Entry(GroupCategorySelector Selector, ImmutableArray<Specialization> Values);
 
     private readonly ImmutableArray<Entry> _entries;
@@ -67,10 +63,7 @@ public sealed class SpecializationRegistry
 
     public static SpecializationRegistry Empty { get; } = new([]);
 
-    /// <summary>
-    /// The union of the sets of every selector matching the group.
-    /// No matching entry means no specialization values are allowed.
-    /// </summary>
+    /// <summary>No matching entry means no specialization values are allowed.</summary>
     public ImmutableArray<Specialization> PermittedFor(GroupCategory group)
     {
         var builder = ImmutableArray.CreateBuilder<Specialization>();
@@ -122,8 +115,7 @@ public sealed class SpecializationRegistry
     }
 
     /// <summary>
-    /// Describes the selectors that apply to a group. This is intended for source
-    /// validation errors, where seeing the exact registry context is more useful
+    /// Used for source validation errors, where seeing the exact registry context is more useful
     /// than a bare "unknown subgroup" message.
     /// </summary>
     public string DescribeMatches(GroupCategory group)

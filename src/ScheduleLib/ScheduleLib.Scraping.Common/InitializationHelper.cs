@@ -86,7 +86,6 @@ public sealed class ScrapingContextBuilder
         _services
             .AddSingleton(static services =>
             {
-                // get and validate
                 var options = services.GetRequiredService<IOptions<T>>();
                 var val = options.Value;
                 return val;
@@ -116,10 +115,6 @@ public sealed class ScrapingContextBuilder
             });
         }
 
-        /// <summary>
-        /// Makes it call the login by filling up a form on the login page and submitting it.
-        /// Should be used when there are additional hidden fields that need to be filled in.
-        /// </summary>
         public void PasswordLoginForm(
             Credentials? credentials = null,
             PasswordLoginFormConfig? formConfig = null)
@@ -132,9 +127,6 @@ public sealed class ScrapingContextBuilder
             _password = true;
         }
 
-        /// <summary>
-        /// Makes it call the login with a regular POST call.
-        /// </summary>
         public void PasswordLoginCall(
             Credentials? credentials = null,
             PasswordLoginFieldNames? fieldNames = null)
@@ -196,9 +188,7 @@ public sealed class ScrapingContextBuilder
         serviceCollection.Replace(descriptor);
     }
 
-    // Add more stuff here.
-
-    /// <summary>Builds an authenticated session, taking ownership of an optional supplied transport.</summary>
+    /// <summary>Takes ownership of <paramref name="httpContext"/> when supplied.</summary>
     public async Task<ScrapingContext> Build(CancellationToken cancellationToken, HttpClientContext? httpContext = null)
     {
         if (httpContext is not null)
@@ -220,10 +210,7 @@ public sealed class ScrapingContextBuilder
             var lazyBrowser = sp.GetRequiredService<BrowsingContextProvider>();
             lazyBrowser.Value = ret.Browser;
 
-            // if (auth != null)
-            {
-                await auth.Authenticate(cancellationToken);
-            }
+            await auth.Authenticate(cancellationToken);
 
             return ret;
         }

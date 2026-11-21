@@ -2,9 +2,6 @@ using ScheduleLib.Helper.Parsing;
 
 namespace ScheduleLib.Builders;
 
-/// <summary>
-/// A group name does not follow the expected label/year/number/language shape.
-/// </summary>
 public abstract class InvalidGroupNameException : ScheduleBuildException
 {
     protected InvalidGroupNameException(string message)
@@ -116,10 +113,6 @@ public abstract class InvalidGroupNameException : ScheduleBuildException
     }
 }
 
-/// <summary>
-/// A schedule document header or cell does not follow the expected
-/// day/date/time/semester shape.
-/// </summary>
 public abstract class InvalidScheduleDocumentException : ScheduleBuildException
 {
     protected InvalidScheduleDocumentException(string message)

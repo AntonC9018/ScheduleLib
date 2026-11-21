@@ -1,9 +1,6 @@
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>
-/// Builds a derived value synchronously. The constructor lists the inputs,
-/// so the scope plan can see them.
-/// </summary>
+/// <summary>The constructor lists the inputs, so the scope plan can see them.</summary>
 public interface IFactory<out T>
 {
     T Create();
@@ -15,10 +12,7 @@ public interface IInitializer
     ValueTask<object> InitializeUntypedAsync(CancellationToken cancellationToken);
 }
 
-/// <summary>
-/// Builds an initialized value asynchronously when a scope opens, before its handler is resolved.
-/// The constructor lists the inputs, so the scope plan can see them.
-/// </summary>
+/// <summary>The constructor lists the inputs, so the scope plan can see them.</summary>
 public interface IInitializer<T> : IInitializer
     where T : class
 {

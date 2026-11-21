@@ -10,13 +10,11 @@ public enum ScopeNodeKind
     Derived,
     Initialized,
 
-    /// <summary>A scoped or transient service built from its constructor.</summary>
     Service,
 
-    /// <summary>A singleton: it cannot depend on scoped values, so the plan does not walk into it.</summary>
+    /// <summary>A singleton cannot depend on scoped values, so the plan does not walk into it.</summary>
     Singleton,
 
-    /// <summary><see cref="IEnumerable{T}"/> of every registration of a service.</summary>
     Collection,
 
     /// <summary>Scope-plan or container infrastructure that needs nothing from the scope.</summary>
@@ -30,28 +28,58 @@ public enum ScopeNodeKind
 public sealed record ScopeNodeInfo(ScopeNode Node, ScopeNodeKind Kind, ImmutableArray<ScopeNode> Inputs, ScopeClosure Closure);
 
 /// <summary>
-/// The dependency graph of one root container, derived from its registrations by walking
-/// constructors. Holds one node per (type, key) with a memoized closure, so plans of different
-/// workflows share common subgraphs. Nodes and plans are built on first use and kept.
-/// Assumes scope validation: singletons never depend on scoped services.
+/// One node per (type, key) with a memoized closure, so plans of different workflows share common
+/// subgraphs. Assumes scope validation: singletons never depend on scoped services.
 /// </summary>
 public sealed class ScopePlanGraph
 {
-    private readonly IServiceCollection _services;
+    private readonly ServiceIndex _index;
     private readonly Dictionary<ScopeNode, ScopeNodeInfo> _nodes = [];
     private readonly Dictionary<Type, ScopePlan> _plans = [];
     private readonly Lock _lock = new();
-    private ServiceIndex? _index;
 
-    internal ScopePlanGraph(IServiceCollection services, ScopeRegistrations registrations)
+    /// <summary>
+    /// Indexes <paramref name="services"/> now and does not keep the collection. A value whose
+    /// registration was removed or replaced by ordinary collection edits is planned as whatever
+    /// now provides it.
+    /// </summary>
+    internal ScopePlanGraph(
+        IServiceCollection services,
+        IEnumerable<ScopeValueRegistration> values,
+        IEnumerable<HiddenNeed> hiddenNeeds)
     {
-        _services = services;
-        Registrations = registrations;
+        _index = new(services);
+        var effective = EffectiveDescriptors(services);
+        Values = new(values.Where(v => IsEffective(v, effective)), hiddenNeeds);
     }
 
-    internal ScopeRegistrations Registrations { get; }
+    /// <summary>The descriptor Microsoft DI resolves for each service: the last one registered.</summary>
+    private static Dictionary<ScopeNode, ServiceDescriptor> EffectiveDescriptors(IServiceCollection services)
+    {
+        var effective = new Dictionary<ScopeNode, ServiceDescriptor>();
+        foreach (var descriptor in services)
+        {
+            effective[new(descriptor.ServiceType, descriptor.ServiceKey)] = descriptor;
+        }
+        return effective;
+    }
 
-    private ServiceIndex Index => _index ??= new(_services);
+    private static bool IsEffective(
+        ScopeValueRegistration value,
+        Dictionary<ScopeNode, ServiceDescriptor> effective)
+    {
+        if (!effective.TryGetValue(value.Node, out var descriptor))
+        {
+            return false;
+        }
+        if (value.OwnedDescriptors.Contains(descriptor))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    internal ScopeValueCatalog Values { get; }
 
     public ScopePlan GetPlan(Type root)
     {
@@ -62,7 +90,7 @@ public sealed class ScopePlanGraph
                 return existing;
             }
             var closure = new Walk(this).VisitRoot(ScopeNode.Unkeyed(root));
-            var plan = new ScopePlan(root, closure, Registrations);
+            var plan = new ScopePlan(root, closure, Values);
             _plans[root] = plan;
             return plan;
         }
@@ -85,7 +113,6 @@ public sealed class ScopePlanGraph
         public bool HasLambdaMember { get; init; }
     }
 
-    /// <summary>A node of the current walk, numbered in visiting order.</summary>
     private sealed class WalkEntry(ScopeNode node, NodeDescription description, int index)
     {
         public ScopeNode Node => node;
@@ -186,7 +213,7 @@ public sealed class ScopePlanGraph
             var only = component[0];
             var isCycle = component.Count > 1 || only.Description.Inputs.Contains(only.Node);
             var ordered = component
-                .OrderBy(m => graph.Index.PositionOf(m.Node))
+                .OrderBy(m => graph._index.PositionOf(m.Node))
                 .ThenBy(m => CanonicalName(m.Node), StringComparer.Ordinal)
                 .ToList();
             var builder = new ScopeClosureBuilder();
@@ -226,7 +253,6 @@ public sealed class ScopePlanGraph
             AddOwn(node, description, builder);
         }
 
-        /// <summary>The shortest cycle through <paramref name="start"/>, following inputs in order.</summary>
         private ScopePlanIssue CycleIssue(ScopeNode start, HashSet<ScopeNode> members)
         {
             var previous = new Dictionary<ScopeNode, ScopeNode>();
@@ -272,30 +298,17 @@ public sealed class ScopePlanGraph
 
         private NodeDescription Describe(ScopeNode node)
         {
-            var registrations = graph.Registrations;
-            var type = node.Type;
-            if (registrations.Seeds.ContainsKey(node))
+            if (graph.Values.Find(node) is { } value)
             {
-                return new(ScopeNodeKind.Seed, []);
+                return DescribeValue(value);
             }
-            if (IsInfrastructure(type))
+            if (IsInfrastructure(node.Type))
             {
                 return new(ScopeNodeKind.Infrastructure, []);
             }
-            if (IsServiceLocator(type))
+            if (IsServiceLocator(node.Type))
             {
                 return new(ScopeNodeKind.ServiceLocator, []);
-            }
-            if (node.Key is null)
-            {
-                if (registrations.Derived.TryGetValue(key: type, value: out var derived))
-                {
-                    return new(ScopeNodeKind.Derived, ImplementationInputs(derived.Factory, key: null));
-                }
-                if (registrations.Initialized.TryGetValue(type, out var initialized))
-                {
-                    return new(ScopeNodeKind.Initialized, ImplementationInputs(initialized.Initializer, key: null));
-                }
             }
             if (TryGetCollectionElement(node: node, element: out var element))
             {
@@ -304,9 +317,23 @@ public sealed class ScopePlanGraph
             return DescribeService(node);
         }
 
+        private NodeDescription DescribeValue(ScopeValueRegistration value)
+        {
+            var kind = value.Kind switch
+            {
+                ScopeValueKind.Seed => ScopeNodeKind.Seed,
+                ScopeValueKind.Derived => ScopeNodeKind.Derived,
+                _ => ScopeNodeKind.Initialized,
+            };
+            ImmutableArray<ScopeNode> inputs = value.FactoryOrInitializer is { } producer
+                ? ImplementationInputs(producer, key: null)
+                : [];
+            return new(kind, inputs);
+        }
+
         private NodeDescription DescribeService(ScopeNode node)
         {
-            var recipe = graph.Index.Find(node);
+            var recipe = graph._index.Find(node);
             switch (recipe.Source)
             {
                 case ServiceSource.Missing:
@@ -326,7 +353,7 @@ public sealed class ScopePlanGraph
         {
             var inputs = new List<ScopeNode>();
             bool hasLambdaMember = false;
-            foreach (var recipe in graph.Index.FindEach(element))
+            foreach (var recipe in graph._index.FindEach(element))
             {
                 if (recipe.Source == ServiceSource.Lambda)
                 {
@@ -403,12 +430,7 @@ public sealed class ScopePlanGraph
 
         private ImmutableArray<ScopeNode> HiddenNeeds(Type service)
         {
-            if (graph.Registrations.HiddenNeeds.TryGetValue(service, out var needs))
-            {
-                return [.. needs];
-            }
-
-            return [];
+            return graph.Values.HiddenNeedsOf(service);
         }
 
         // Mirrors Microsoft DI: the constructor with the most parameters it can satisfy.
@@ -470,8 +492,7 @@ public sealed class ScopePlanGraph
 
         private bool CanResolve(ScopeNode node)
         {
-            var registrations = graph.Registrations;
-            if (registrations.Seeds.ContainsKey(node))
+            if (graph.Values.Find(node) is not null)
             {
                 return true;
             }
@@ -483,37 +504,15 @@ public sealed class ScopePlanGraph
             {
                 return true;
             }
-            if (IsUnkeyedValue(node))
-            {
-                return true;
-            }
             if (TryGetCollectionElement(node: node, element: out _))
             {
                 return true;
             }
-            if (graph.Index.Find(node).Source == ServiceSource.Missing)
+            if (graph._index.Find(node).Source == ServiceSource.Missing)
             {
                 return false;
             }
             return true;
-        }
-
-        private bool IsUnkeyedValue(ScopeNode node)
-        {
-            if (node.Key is not null)
-            {
-                return false;
-            }
-            var registrations = graph.Registrations;
-            if (registrations.Derived.ContainsKey(node.Type))
-            {
-                return true;
-            }
-            if (registrations.Initialized.ContainsKey(node.Type))
-            {
-                return true;
-            }
-            return false;
         }
 
         // Mirrors how Microsoft DI reads [FromKeyedServices] on a constructor parameter.

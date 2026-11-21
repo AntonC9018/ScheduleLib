@@ -5,10 +5,8 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The distinct, non-empty group names of one <c>query free-hours</c> invocation. A seed.</summary>
 public sealed record FreeHoursQuery(ImmutableArray<string> Groups);
 
-/// <summary>The free hours of the groups of a <see cref="FreeHoursQuery"/>, over every weekly period. A workflow root.</summary>
 public sealed class QueryFreeHoursWorkflow(
     Schedule schedule,
     LessonTimeConfig time,
@@ -17,10 +15,7 @@ public sealed class QueryFreeHoursWorkflow(
 {
     public static void Register(IServiceCollection services) => services.AddSeed<FreeHoursQuery>();
 
-    /// <summary>
-    /// Computes every section. Unknown or ambiguous group names fail before any is computed;
-    /// <paramref name="groupsValidated"/> runs once they have passed, before the calculation.
-    /// </summary>
+    // groupsValidated runs once every group name has passed, before any section is computed.
     public FreeHoursResult Run(Action groupsValidated, CancellationToken cancellationToken)
     {
         var names = query.Groups.ToArray();
@@ -78,7 +73,6 @@ public sealed class QueryFreeHoursWorkflow(
     }
 }
 
-/// <summary>A free-hours query names groups the schedule does not have.</summary>
 public sealed class UnknownGroupsException(IReadOnlyList<string> unknown, IReadOnlyList<string> known)
     : ArgumentException(Describe(unknown: unknown, known: known))
 {
@@ -101,7 +95,6 @@ public sealed class UnknownGroupsException(IReadOnlyList<string> unknown, IReadO
     }
 }
 
-/// <summary>A free-hours query names groups that match more than one group of the schedule.</summary>
 public sealed class AmbiguousGroupsException(IReadOnlyList<string> ambiguous)
     : ArgumentException($"Group name(s) match more than one group: {string.Join(", ", ambiguous)}.")
 {

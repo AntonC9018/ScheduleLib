@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 
 namespace ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>Base type of failures raised while opening or closing planned scopes.</summary>
 public abstract class ScopePlanException : InvalidOperationException
 {
     protected ScopePlanException(string message)
@@ -16,7 +15,6 @@ public abstract class ScopePlanException : InvalidOperationException
     }
 }
 
-/// <summary>A seed or initialized value was resolved in a scope that was not opened through its plan.</summary>
 public sealed class ScopeValueNotAvailableException(Type valueType)
     : ScopePlanException($"{valueType.Name} is not available: open the scope through ScopeForkFactory")
 {
@@ -29,7 +27,6 @@ public sealed class ScopeValueAlreadyFilledException(Type valueType)
     public Type ValueType { get; } = valueType;
 }
 
-/// <summary>The workflow's plan has errors; nothing was initialized.</summary>
 public sealed class ScopePlanErrorsException(Type root, ImmutableArray<ScopePlanIssue> errors)
     : ScopePlanException($"The plan for {root.Name} has errors: {string.Join("; ", errors)}")
 {
@@ -37,7 +34,6 @@ public sealed class ScopePlanErrorsException(Type root, ImmutableArray<ScopePlan
     public ImmutableArray<ScopePlanIssue> Errors { get; } = errors;
 }
 
-/// <summary>Neither the caller nor the parent scope supplied these seeds; nothing was initialized.</summary>
 public sealed class MissingSeedsException(Type root, ImmutableArray<ScopeNode> seeds)
     : ScopePlanException($"{root.Name} needs seeds [{string.Join(", ", seeds)}]; nothing was initialized")
 {
@@ -46,8 +42,8 @@ public sealed class MissingSeedsException(Type root, ImmutableArray<ScopeNode> s
 }
 
 /// <summary>
-/// A seed, derived or initialized value was disposable at run time.
-/// Microsoft DI would dispose it in every scope that resolves it, including borrowing forks.
+/// Microsoft DI would dispose a disposable value in every scope that resolves it, including
+/// borrowing forks.
 /// </summary>
 public sealed class DisposableScopeValueException(ScopeNode node)
     : ScopePlanException($"{node} is disposable; register its resource with ScopeResources instead")
@@ -55,7 +51,6 @@ public sealed class DisposableScopeValueException(ScopeNode node)
     public ScopeNode Node { get; } = node;
 }
 
-/// <summary>A scope ended while forks it opened were still open. They were disposed first.</summary>
 public sealed class ForkLeftOpenException(ImmutableArray<Type> forks)
     : ScopePlanException(
         $"A scope ended with open forks [{string.Join(", ", forks.Select(f => f.Name))}]; dispose each fork you open")
@@ -63,23 +58,17 @@ public sealed class ForkLeftOpenException(ImmutableArray<Type> forks)
     public ImmutableArray<Type> Forks { get; } = forks;
 }
 
-/// <summary>
-/// Ending a scope failed: ending a fork left open, disposing a handler the scope created or its
-/// container services, or closing a resource. Every step was still attempted;
-/// <see cref="Failures"/> holds each failure, in the order it happened.
-/// </summary>
+/// <summary>Every ending step was still attempted; <see cref="Failures"/> holds each failure.</summary>
 public sealed class ScopeCleanupException(ImmutableArray<Type> forksLeftOpen, ImmutableArray<Exception> failures)
     : ScopePlanException(
         $"Ending a scope failed {failures.Length} time(s); forks left open: [{string.Join(", ", forksLeftOpen.Select(f => f.Name))}]",
         new AggregateException(failures))
 {
-    /// <summary>Forks that were still open when the scope ended, and were disposed by it.</summary>
     public ImmutableArray<Type> ForksLeftOpen { get; } = forksLeftOpen;
 
     public ImmutableArray<Exception> Failures { get; } = failures;
 }
 
-/// <summary>The caller supplied values that are not registered as seeds; nothing was initialized.</summary>
 public sealed class UnregisteredSeedsException(Type root, ImmutableArray<ScopeNode> seeds)
     : ScopePlanException($"{root.Name} was supplied [{string.Join(", ", seeds)}], which are not registered seeds")
 {
@@ -94,14 +83,13 @@ internal sealed class CyclePathNotFoundException(ScopeNode start)
     public ScopeNode Start { get; } = start;
 }
 
-/// <summary>A fork was opened from a scope that had already started ending.</summary>
 public sealed class ParentScopeEndedException(Type fork)
     : ScopePlanException($"Cannot open a fork for {fork.Name}: its parent scope has started ending")
 {
     public Type Fork { get; } = fork;
 }
 
-/// <summary>A resource was added after its scope had started ending; the caller still owns it.</summary>
+/// <summary>The caller still owns the rejected resource.</summary>
 public sealed class ScopeResourcesClosedException(Type resourceType)
     : ScopePlanException($"Cannot add {resourceType.Name}: the scope's resources are already closed")
 {
@@ -144,4 +132,24 @@ public sealed class CleanupAfterFailureException(Exception failure, ImmutableArr
 
         return error;
     }
+}
+
+public sealed class DuplicateScopeValueException(ScopeNode value)
+    : ScopePlanException($"{value} is already registered as a scope value; remove it with RemoveScopeValue first")
+{
+    public ScopeNode Value { get; } = value;
+}
+
+public sealed class ScopeValueNotRegisteredException(ScopeNode value)
+    : ScopePlanException($"{value} is not registered as a scope value")
+{
+    public ScopeNode Value { get; } = value;
+}
+
+/// <summary>A scope value lacks the slot or initializer its use requires; a bug in scope plans.</summary>
+internal sealed class MissingScopeValuePartException(ScopeNode value, string part)
+    : ScopePlanException($"{value} has no registered {part}")
+{
+    public ScopeNode Value { get; } = value;
+    public string Part { get; } = part;
 }

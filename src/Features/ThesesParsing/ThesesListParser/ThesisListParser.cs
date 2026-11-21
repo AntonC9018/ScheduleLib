@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using ClosedXML.Excel;
 using Microsoft.Extensions.DependencyInjection;
 using ScheduleLib.Core.Services;
-using ScheduleLib.Curriculum;
 using ScheduleLib.Excel.Helper;
 using ScheduleLib.Helper;
 using ScheduleLib.Helper.Parsing;
@@ -83,23 +82,6 @@ public sealed class ThesisListParser(
         ThesisNameEn,
         Count,
     }
-
-    // public enum Token
-    // {
-    //     QuotationMark = '\"',
-    //     Separator = '/',
-    //     Semicolor = ':',
-    //     Word,
-    // }
-    //
-    // public sealed class TokenReader : ITokenReader
-    // {
-    //     private static readonly TokenTypeLabels Labels = LexerHelper.CreateLabels(typeof(Token));
-    //
-    //     public TokenType Read(ref Parser parser)
-    //     {
-    //     }
-    // }
 
     public ThesisList Parse(Stream file, ThesisType targetThesisType)
     {

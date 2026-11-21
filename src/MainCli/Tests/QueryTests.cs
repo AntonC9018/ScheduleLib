@@ -422,6 +422,7 @@ public sealed class QueryTests
         public void Register(IServiceCollection services)
         {
             services.AddSingleton(this);
+            services.RemoveScopeValue<LoadedSchedule>();
             services.AddInitialized<LoadedSchedule, FailingInitializer>();
         }
     }

@@ -74,7 +74,6 @@ public sealed class HttpClientContext : IDisposable
 
     public void Dispose()
     {
-        // Because it might be null
         Client?.Dispose();
         Handler?.Dispose();
     }
@@ -151,7 +150,6 @@ public interface IAuthHandler
     Task Authenticate(CancellationToken cancellationToken);
 }
 
-// Just an abstraction over the token context.
 public sealed class TokenAuthHandler : IAuthHandler
 {
     private readonly ITokenRetriever _tokenContext;
@@ -259,7 +257,6 @@ internal sealed class HttpClientRequester : BaseRequester
                 return false;
             }
 
-            // if invalid token
             if (!_suppressAuthenticationReplay.Value && ShouldAuthenticate())
             {
                 if (failedOnce)
@@ -367,8 +364,6 @@ internal sealed class HttpClientRequester : BaseRequester
     }
 }
 
-/// <summary>A mutation redirect whose destination was deliberately not requested.</summary>
-/// <summary>The site rejected the configured credentials or its login form could not be used.</summary>
 public sealed class ScrapingAuthenticationException(
     string message,
     HttpStatusCode? statusCode = null,

@@ -5,7 +5,6 @@ using ScheduleLib.Cli;
 
 public sealed class SettingsWriteTests
 {
-    /// <summary>The exit code and captured output of a finished CLI process.</summary>
     internal readonly record struct ProcessResult(int Exit, string Output, string Error);
 
     [Fact]

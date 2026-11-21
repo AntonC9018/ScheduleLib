@@ -8,15 +8,12 @@ using ScheduleLib.Application.Core;
 using ScheduleLib.Cli;
 using ScheduleLib.DependencyInjection.ScopePlans;
 
-/// <summary>How the CLI reports services that fail to end once the command has reported its result.</summary>
 public sealed class CliHostTeardownTests
 {
     private const string FailureMessage = "teardown failure";
 
-    /// <summary>How a command reports a failure to clean up after its own failure.</summary>
     private const string CleanupFailurePrefix = "Cleaning up after the failure failed: ";
 
-    /// <summary>How a planned scope reports resources that failed to close.</summary>
     private const string ScopeEndFailurePrefix = "Ending a scope failed";
 
     [Fact]
@@ -97,7 +94,6 @@ public sealed class CliHostTeardownTests
             actual: message);
     }
 
-    /// <summary>Services that log as they end, after the result, log to the result's output.</summary>
     [Fact]
     public async Task ServicesLogToTheResultsOutputAsTheyEnd()
     {
@@ -173,7 +169,6 @@ public sealed class CliHostTeardownTests
         Assert.StartsWith(expectedStartString: ScopeEndFailurePrefix, actualString: error.GetString());
     }
 
-    /// <summary>A failed workflow whose scope then fails to end reports both, with the workflow's exit.</summary>
     [Theory]
     [InlineData("lessons", "--room", "NO-SUCH-ROOM")]
     [InlineData("free-hours", "--group", "NO-SUCH-GROUP")]
@@ -219,6 +214,7 @@ public sealed class CliHostTeardownTests
         {
             CliTestHost.FixtureSchedule(services);
             services.AddSingleton(cancellation);
+            services.RemoveScopeValue<ScheduleSource>();
             services.AddInitialized<ScheduleSource, CancellingSourceInitializer>();
         }
 
@@ -252,10 +248,6 @@ public sealed class CliHostTeardownTests
             actualString: message);
     }
 
-    /// <summary>
-    /// A single final with the primary failure's exit and its error, followed by the failure to
-    /// clean up after it.
-    /// </summary>
     private static void AssertPairedFailure(CapturedRun run, int exit, string primaryError)
     {
         Assert.Equal(expected: exit, actual: run.Exit);
@@ -275,10 +267,10 @@ public sealed class CliHostTeardownTests
             actualString: errors[1]);
     }
 
-    /// <summary>The fixture schedule, loaded by a workflow that holds a resource failing to close.</summary>
     private static void HoldFailingResource(IServiceCollection services)
     {
         CliTestHost.FixtureSchedule(services);
+        services.RemoveScopeValue<ScheduleSource>();
         services.AddInitialized<ScheduleSource, ResourceHoldingSourceInitializer>();
     }
 
@@ -337,10 +329,6 @@ public sealed class CliHostTeardownTests
             .ToArray();
     }
 
-    /// <summary>
-    /// The teardown failure: the last stderr record, of the result's command and run, continuing
-    /// its stderr sequence, and the only one reporting a teardown.
-    /// </summary>
     private static string TeardownRecordMessage(JsonElement final, string error)
     {
         static string Text(JsonElement record, string property)
@@ -364,7 +352,6 @@ public sealed class CliHostTeardownTests
         return Text(teardown, "message");
     }
 
-    /// <summary>Every stderr record has the result's command and run, in one sequence from 0.</summary>
     private static void AssertContinuesTheResult(JsonElement final, JsonElement[] records)
     {
         var command = final.GetProperty("command")
@@ -409,7 +396,6 @@ public sealed class CliHostTeardownTests
         public ValueTask DisposeAsync() => throw new InvalidOperationException(FailureMessage);
     }
 
-    /// <summary>Resolves the schedule source as usual, holding a resource that fails to close.</summary>
     private sealed class ResourceHoldingSourceInitializer(ScopeResources resources, ScheduleSourceSelection selection)
         : IInitializer<ScheduleSource>
     {
@@ -423,7 +409,6 @@ public sealed class CliHostTeardownTests
         }
     }
 
-    /// <summary>Holds a resource that fails to close, then cancels the command and stops.</summary>
     private sealed class CancellingSourceInitializer(ScopeResources resources, CancellationTokenSource cancellation)
         : IInitializer<ScheduleSource>
     {
@@ -438,7 +423,6 @@ public sealed class CliHostTeardownTests
         }
     }
 
-    /// <summary>An invocation-scoped service that logs as it ends.</summary>
     private sealed class InvocationLoggingDisposer(ILogger<InvocationLoggingDisposer> logger) : IAsyncDisposable
     {
         public const string Message = "Invocation service ended.";
@@ -450,7 +434,6 @@ public sealed class CliHostTeardownTests
         }
     }
 
-    /// <summary>A root service that logs as it ends.</summary>
     private sealed class RootLoggingDisposer(ILogger<RootLoggingDisposer> logger) : IAsyncDisposable
     {
         public const string Message = "Root service ended.";

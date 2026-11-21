@@ -4,14 +4,12 @@ using ScheduleLib.Parsing.CourseName;
 
 namespace ScheduleLib;
 
-/// <summary>Immutable indexes over a built schedule. Ids are positions in its lists.</summary>
 public sealed class ScheduleLookup
 {
     public readonly CourseNameIndex Courses;
     public readonly FrozenDictionary<NameParts<string?>, ImmutableArray<int>> TeachersByLastName;
     public readonly FrozenDictionary<string, GroupId> Groups;
 
-    /// <summary>The lessons of each course, indexed by <see cref="CourseId.Id"/>.</summary>
     public readonly ImmutableArray<ImmutableArray<AnyLessonId>> LessonsByCourse;
 
     private ScheduleLookup(Schedule schedule, CourseNameUnifierConfig courseNames)
@@ -79,10 +77,7 @@ public sealed class ScheduleLookup
     }
 }
 
-/// <summary>
-/// A schedule as workflows see it, with the indexes built from it.
-/// The indexes are always built from the schedule they are paired with.
-/// </summary>
+/// <summary>The indexes are always built from the schedule they are paired with.</summary>
 public sealed class LoadedSchedule
 {
     public readonly Schedule Schedule;
@@ -94,7 +89,6 @@ public sealed class LoadedSchedule
         Lookup = lookup;
     }
 
-    /// <summary>Builds the indexes of <paramref name="schedule"/>.</summary>
     public static LoadedSchedule Create(Schedule schedule, CourseNameUnifierConfig courseNames)
     {
         var lookup = ScheduleLookup.Create(schedule, courseNames);

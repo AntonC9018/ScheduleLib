@@ -2,9 +2,6 @@ using System.Linq.Expressions;
 
 namespace ScheduleLib.Helper.Expressions;
 
-/// <summary>
-/// A wrapper for expressions of type `parameter.(whatever)`.
-/// </summary>
 public readonly struct AccessExpression
 {
     public readonly ParameterExpression Parameter;
@@ -36,9 +33,6 @@ public readonly struct AccessExpression
     }
 }
 
-/// <summary>
-/// A typed wrapper for expressions of type `parameter.(whatever)`.
-/// </summary>
 public readonly struct AccessExpression<TObject, TFieldOrProperty>
 {
     public ParameterExpression Parameter => _underlyingExpression.Parameter;
@@ -79,10 +73,8 @@ public static class AccessExpressionExtensions
         {
             var param = Expression.Parameter(typeof(TFieldOrProperty), "value");
 
-            // parent.X  ->   parent.X = value
             var assignment = Expression.Assign(left: access.Access, right: param);
 
-            // parent, parent.X = value   ->  (parent, value) => parent.X = value
             var parameters = new[]
             {
                 access.Parameter,
@@ -100,13 +92,10 @@ public static class AccessExpressionExtensions
         {
             var param = Expression.Parameter(typeof(TFieldOrProperty), "value");
 
-            // value  ->  map(value)
             var mappedValue = map.ReplaceParameterAndGetBody(param);
 
-            // parent.X  ->   parent.X = map(value)
             var assignment = Expression.Assign(left: access.Access, right: mappedValue);
 
-            // parent, parent.X = map(value)   ->  (parent, value) => parent.X = map(value)
             var parameters = new[]
             {
                 access.Parameter,

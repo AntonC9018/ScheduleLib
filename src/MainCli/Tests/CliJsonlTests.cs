@@ -14,7 +14,6 @@ using Event = Google.Apis.Calendar.v3.Data.Event;
 
 public sealed class CliJsonlTests
 {
-    /// <summary>A command invocation that must reject combined JSON and JSONL output.</summary>
     private readonly record struct Case(string Name, Func<Task<int>> Run);
 
     private static JsonSerializerOptions JsonOptions
@@ -64,7 +63,6 @@ public sealed class CliJsonlTests
             Console.SetError(originalError);
         }
 
-        // CliHost routing also rejects the pair.
         Assert.Equal(expected: 2, actual: await CliHost.Run(["query", "lessons", "--json", "--jsonl"]));
     }
 
@@ -149,7 +147,6 @@ public sealed class CliJsonlTests
                 actual: final.GetProperty("status")
                     .GetString());
 
-            // Final must not repeat the full outcomes array.
             var hasOutcomes = final.TryGetProperty("outcomes", out _);
             Assert.False(hasOutcomes, "Final JSONL must not repeat emitted items.");
         }
@@ -221,7 +218,6 @@ public sealed class CliJsonlTests
             expected: "final",
             actual: finalRecord.GetProperty("event")
                 .GetString());
-        // Stable identity: each action id appears, preview emits planned once.
         var ids = lines.Skip(1)
             .Take(lines.Length - 2)
             .Select(l => JsonDocument.Parse(l).RootElement
@@ -236,7 +232,6 @@ public sealed class CliJsonlTests
                 "2",
             },
             actual: ids);
-        // Stderr warnings are JSONL with independent seq starting at 0 and same runId.
         var errLines = stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.NotEmpty(errLines);
         for (var i = 0; i < errLines.Length; i++)
@@ -256,7 +251,6 @@ public sealed class CliJsonlTests
                 actual: root.GetProperty("runId")
                     .GetString());
         }
-        // Stdout contains no human text.
         foreach (var line in lines)
         {
             Assert.StartsWith(expectedStartString: "{", actualString: line.TrimStart());
@@ -392,7 +386,6 @@ public sealed class CliJsonlTests
     [Fact]
     public async Task EarlyArgumentFailuresEmitJsonlStartAndFinal()
     {
-        // Missing profile fails before any provider work.
         var (exit, stdout, stderr) = await CaptureJsonl(() => new TestCommands(new FakeProvider()).Sync(
             new(),
             new(),
@@ -430,7 +423,6 @@ public sealed class CliJsonlTests
             actual: err.RootElement.GetProperty("event")
                 .GetString());
 
-        // Invalid quiz id is an argument error before planning.
         var (gradeExit, gradeStdout, _) = await CaptureJsonl(() =>
             new TestGradeCommands(new FakeGradeProvider()).ImportGrades(
                 new()
@@ -847,7 +839,6 @@ public sealed class CliJsonlTests
                 actual: doc.RootElement.GetProperty("data")
                     .GetProperty("outcomes")
                     .GetArrayLength());
-            // Plain --json keeps existing stderr format (human warning text, not JSONL).
             Assert.Contains(expectedSubstring: "positional", actualString: stderr.ToString());
             Assert.DoesNotContain(expectedSubstring: "\"event\":\"log\"", actualString: stderr.ToString());
         }
@@ -1279,8 +1270,6 @@ public sealed class CliJsonlTests
             onOutcome: (update) => previewUpdates.Add(update));
         Assert.Empty(preview.Outcomes);
         Assert.Empty(previewProvider.Writes);
-        // Planned action ids are plan-order indexes; the read selection
-        // streams as items with the deleted/desired payloads.
         Assert.Equal(
             expected: ["0", "1", "2", "3"],
             actual: previewUpdates.Where((update) => update.Status.ToWire() == "planned")
@@ -1324,7 +1313,6 @@ public sealed class CliJsonlTests
         Assert.Equal(expected: 0, actual: applied.ExitCode);
         Assert.Equal(expected: ["delete old", "calendar", "event new", "event new"], actual: applyProvider.Writes);
         Assert.All(applied.Outcomes, (outcome) => Assert.Equal(expected: "completed", actual: outcome.State.ToWire()));
-        // Each action id transitions from planned to completed with the same id.
         foreach (var id in new[]
                  {
                      "0",
@@ -1378,7 +1366,6 @@ public sealed class CliJsonlTests
                 .GetResult();
         });
         Assert.IsAssignableFrom<CliOutputStreamingException>(failure);
-        // Rendering stopped further mutations without retrying or reclassifying.
         Assert.Equal(expected: ["delete old"], actual: provider.Writes);
         var outcome = Assert.Single(failure.PartialResult.Outcomes);
         Assert.Equal(expected: "completed", actual: outcome.State.ToWire());

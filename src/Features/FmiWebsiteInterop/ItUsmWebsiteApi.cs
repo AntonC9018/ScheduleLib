@@ -29,18 +29,6 @@ public static class ItUsmWebsiteApi
         public async Task<ItUsmTeacherModel[]> GetAllTeachers(CancellationToken cancellationToken)
         {
             Uri uri;
-            // {
-            //     var urib = new UriBuilder(c.HttpClient.BaseAddress!)
-            //     {
-            //         Path = "teachers/paginated-teachers",
-            //     };
-            //     var query = HttpUtility.ParseQueryString("");
-            //     query.Add("page", "1");
-            //     query.Add("size", "1000");
-            //     query.Add("sortDirection", "ASC");
-            //     urib.Query = query.ToString();
-            //     uri = urib.Uri;
-            // }
             uri = new("teachers/paginated-teachers?page=1&size=1000&sortDirection=ASC", UriKind.Relative);
 
             using var response = await c.HttpClient.GetAsync(uri, cancellationToken);
@@ -78,7 +66,6 @@ public static class ItUsmWebsiteApi
                 {
                     Name = name,
                     Slug = remoteTeacher.Slug,
-                    UserId = remoteTeacher.UserId,
                     DidacticTitle = remoteTeacher.DidacticTitle,
                     ScientificGrade = remoteTeacher.ScientificGrade,
                 };
@@ -152,7 +139,6 @@ public sealed class TeachersResponseModel
 
 public sealed class ItUsmTeacherResponseModel
 {
-    public required int UserId { get; set; }
     public required string FirstName { get; set; }
     public required string LastName { get; set; }
     public string? ProfileImageUrl { get; set; }
@@ -163,7 +149,6 @@ public sealed class ItUsmTeacherResponseModel
 
 public sealed class ItUsmTeacherModel
 {
-    public required int UserId { get; set; }
     public required string Slug { get; set; }
     public required Name Name { get; set; }
     public string? DidacticTitle { get; set; }

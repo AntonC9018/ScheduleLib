@@ -12,7 +12,6 @@ public static class ExpressionHelper
         var contextParameter = originalPredicate.Parameters[1];
         var body = originalPredicate.Body;
 
-        // x + u  -->   x + box.value
         var lambda = CurryParameter<T, TReturn>(
             body: body,
             queryParameter: queryParameter,
@@ -38,7 +37,6 @@ public static class ExpressionHelper
         var contextParameter = originalFunc.Parameters[0];
         var body = originalFunc.Body;
 
-        // x + u  -->   box.value + u
         var lambda = CurryParameter<T, TReturn>(
             body: body,
             queryParameter: queryParameter,

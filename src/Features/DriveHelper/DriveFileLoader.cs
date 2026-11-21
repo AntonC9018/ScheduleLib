@@ -64,14 +64,13 @@ public sealed class DriveFileLoader : IDisposable
 
         if (meta.MimeType == nativeGoogleSheetTypeString)
         {
-            // do conversion
+            // Native Google Sheets have no binary content to download; they can only be exported.
             var exportRequest = _driveService.Files.Export(fileId: fileId, mimeType: uploadedFileTypeString);
             var progress = await exportRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;
         }
         if (meta.MimeType == uploadedFileTypeString)
         {
-            // don't do conversion
             var downloadRequest = _driveService.Files.Get(fileId);
             var progress = await downloadRequest.DownloadAsync(outputStream, cancellationToken);
             return progress;

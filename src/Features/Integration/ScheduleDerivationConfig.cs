@@ -6,7 +6,6 @@ using ScheduleLib.DependencyInjection.ScopePlans;
 
 namespace ScheduleLib.Application.Config;
 
-/// <summary>Global derivation settings shared by every teacher and output.</summary>
 public sealed class ScheduleDerivationConfig : INodeData<ScheduleDerivationConfig>
 {
     public static NodeDataKey<ScheduleDerivationConfig> Key { get; } =
@@ -22,7 +21,6 @@ public sealed class ScheduleDerivationConfig : INodeData<ScheduleDerivationConfi
     }
 }
 
-/// <summary>The derivation options of the code-defined defaults, for hosts without settings files.</summary>
 public sealed class CodeScheduleDerivationFactory(TreeBuilder tree) : IFactory<ScheduleDerivationOptions>
 {
     public ScheduleDerivationOptions Create()
@@ -36,7 +34,6 @@ public sealed class CodeScheduleDerivationFactory(TreeBuilder tree) : IFactory<S
     }
 }
 
-/// <summary>How a loaded schedule is derived from its sources. A scope value.</summary>
 public sealed class ScheduleDerivationOptions
 {
     public bool AutoMergeLabSubGroups { get; init; }

@@ -13,7 +13,6 @@ using ScheduleLib.Cli;
 
 public sealed class GoogleDriveProviderTests
 {
-    /// <summary>One HTTP request observed by the test transport.</summary>
     private readonly record struct DriveRequest(string Method, string Uri, string Body);
 
     [Theory]

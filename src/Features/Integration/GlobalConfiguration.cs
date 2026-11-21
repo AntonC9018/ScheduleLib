@@ -5,7 +5,6 @@ using Microsoft.Extensions.Primitives;
 
 namespace ScheduleLib.Application.Config;
 
-/// <summary>The sources of the global configuration: the entry assembly's user secrets by default.</summary>
 public sealed class GlobalConfigurationOptions
 {
     public Action<IConfigurationBuilder> AddSources { get; set; } = AddUserSecrets;

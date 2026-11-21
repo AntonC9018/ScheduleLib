@@ -6,10 +6,10 @@ public sealed class MoodleDateTimeParseException(string dateTimeText)
     public string DateTimeText { get; } = dateTimeText;
 }
 
-public sealed class UnknownMoodleSummaryTableHeaderException(string header)
-    : InvalidOperationException($"Unknown summary table header: {header}")
+public sealed class MoodleQuizPageLayoutException(string missingElement)
+    : InvalidOperationException($"Expected Moodle quiz page element '{missingElement}' was not found.")
 {
-    public string Header { get; } = header;
+    public string MissingElement { get; } = missingElement;
 }
 
 public sealed class InvalidMoodleBreadcrumbException()

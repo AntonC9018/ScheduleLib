@@ -7,7 +7,6 @@ namespace ScheduleLib.Parsing;
 
 public static class ScheduleDocumentParserHelper
 {
-    /// <summary>A date interval from a schedule document.</summary>
     public readonly record struct DateInterval(DateTime Start, DateTime End);
 
     private static bool HasTimeRangeSeparator(ref SequenceReader reader)
@@ -55,7 +54,7 @@ public static class ScheduleDocumentParserHelper
 
             DateTime ParseDateTime(ReadOnlySpan<char> s, DateIntervalEndpoint endpoint)
             {
-                var culture = CultureInfo.CurrentCulture;
+                var culture = CultureInfo.InvariantCulture;
                 Debug.Assert(
                     culture.Calendar.TwoDigitYearMax == 2049,
                     "Fix this if you want to parse older docs");

@@ -4,7 +4,6 @@ namespace ScheduleLib.OnlineRegistry;
 
 public static class RegistryCourseNameLookup
 {
-    /// <summary>A registry course display name split into the course name and its elective classifications.</summary>
     public readonly record struct ParsedRegistryCourseName(string Name, IReadOnlyList<string> ElectiveClassifications);
 
     public static ParsedRegistryCourseName Parse(string registryName)
@@ -30,7 +29,6 @@ public static class RegistryCourseNameLookup
         return new(name[..start].TrimEnd(), classifications);
     }
 
-    /// <summary>A course name reduced to its comparison form, with the course it belongs to.</summary>
     private readonly record struct NormalizedCourseName(string Name, CourseId Id);
 
     /// <summary>Explicit aliases override lookup. Approximate matches must identify exactly one course.</summary>

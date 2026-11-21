@@ -22,7 +22,6 @@
         <ProjectReference Include="$(FeaturesPath)FmiWebsiteInterop\FmiWebsiteInterop.csproj" />
         <ProjectReference Include="$(FeaturesPath)ParsePdf\ParsePdf.csproj" />
         <ProjectReference Include="$(FeaturesPath)OnlineRegistry\OnlineRegistry.csproj" />
-        <ProjectReference Include="$(FeaturesPath)CurriculumShared\CurriculumShared.csproj" />
         <ProjectReference Include="$(FeaturesPath)ConvertDocToDocxLibrary\ConvertDocToDocxLibrary.csproj" />
         <ProjectReference Include="$(FeaturesPath)MoodleInterop\MoodleInterop.csproj" />
         <ProjectReference Include="$(FeaturesPath)LayeredData\Anton.LayeredData.csproj" />

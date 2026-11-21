@@ -29,7 +29,6 @@ public sealed class CourseNameIndex
         _unifiedNames = unifiedNames;
     }
 
-    /// <summary>Every name and alias of every course.</summary>
     public FrozenDictionary<string, CourseId> Names { get; }
 
     public static CourseNameIndex Create(ImmutableArray<Course> courses, CourseNameUnifierConfig config)

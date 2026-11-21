@@ -17,7 +17,6 @@ public sealed record AuthAccountStatus(string AccountId, AuthAccountState State,
 
 public sealed record AuthStatus(string Provider, string Profile, IReadOnlyList<AuthAccountStatus> Accounts);
 
-/// <summary>The client, account and granted scope set shared by all token operations.</summary>
 public readonly record struct GoogleTokenContext(ClientSecrets Secrets, string Teacher, string[] Scopes);
 
 /// <summary>Only Login can call Consent. Fake implementations exercise the boundary without browser/network activity.</summary>

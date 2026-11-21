@@ -33,7 +33,6 @@ internal readonly record struct SettingsEditRequest(
 
 public static partial class CliSettings
 {
-    /// <summary>A parent object on a settings path, and the member name under it.</summary>
     private readonly record struct SettingsParent(JsonObject Parent, string Key);
 
     // The candidate is resolved through the same engine as a fresh invocation before publication.

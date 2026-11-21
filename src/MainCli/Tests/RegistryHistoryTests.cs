@@ -437,13 +437,17 @@ public sealed class RegistryHistoryTests
     {
         var active = 0;
         var maximum = 0;
+        var startsLock = new Lock();
         var starts = new List<DateTimeOffset>();
 
         async Task<HttpResponseMessage> Respond(HttpRequestMessage request, CancellationToken token)
         {
             var current = Interlocked.Increment(ref active);
             maximum = Math.Max(maximum, current);
-            starts.Add(DateTimeOffset.UtcNow);
+            lock (startsLock)
+            {
+                starts.Add(DateTimeOffset.UtcNow);
+            }
             await Task.Delay(20, token);
             Interlocked.Decrement(ref active);
             return new(HttpStatusCode.OK)

@@ -43,16 +43,10 @@ public sealed class ImplicitSplitScope
     public AttendanceMode? AttendanceMode { get; }
     public QualificationType? Qualification { get; }
 
-    /// <summary>
-    /// Course name to the specialization its lessons implicitly belong to.
-    /// A course matches when any of its names equals the key.
-    /// </summary>
+    /// <summary>A course matches when any of its names equals the key.</summary>
     public IReadOnlyDictionary<string, Specialization> SpecializationCourses { get; }
 
-    /// <summary>
-    /// Course name to the alternative its lessons implicitly belong to.
-    /// A course matches when any of its names equals the key.
-    /// </summary>
+    /// <summary>A course matches when any of its names equals the key.</summary>
     public IReadOnlyDictionary<string, Alternative> AlternativeCourses { get; }
 
     /// <summary>
@@ -90,8 +84,7 @@ public sealed class ImplicitSplitScope
 }
 
 /// <summary>
-/// Builds an <see cref="ImplicitSplitConfig"/>. Mirrors
-/// <see cref="SpecializationRegistryBuilder"/>: one <c>Scope</c> call per group
+/// Mirrors <see cref="SpecializationRegistryBuilder"/>: one <c>Scope</c> call per group
 /// category, with the course mappings declared inside the scope.
 /// </summary>
 public sealed class ImplicitSplitConfigBuilder
@@ -112,8 +105,7 @@ public sealed class ImplicitSplitConfigBuilder
 }
 
 /// <summary>
-/// Configures one scope of an <see cref="ImplicitSplitConfig"/>. Fields left
-/// null match every value in that category, like
+/// Fields left null match every value in that category, like
 /// <see cref="GroupSelectorBuilder"/>.
 /// </summary>
 public sealed class ImplicitSplitScopeBuilder

@@ -48,11 +48,9 @@ public sealed partial class ScheduleBuilder()
     private GroupParseContext? _groupParseContext;
 
     /// <summary>
-    /// Whether <see cref="GroupParseContext"/> was supplied explicitly by the
-    /// caller rather than defaulted from the wall clock in
-    /// <c>GroupBuilderHelper.ParseGroup</c>. A clock-derived year silently stops
-    /// matching year-pinned implicit split scopes once the clock moves past
-    /// them, so <c>AssignImplicitSplits</c> fails loudly instead in that case.
+    /// A clock-derived year silently stops matching year-pinned implicit split scopes once the clock
+    /// moves past them, so <c>AssignImplicitSplits</c> fails loudly when <see cref="GroupParseContext"/>
+    /// was not supplied explicitly.
     /// </summary>
     internal bool GroupParseContextIsExplicit { get; private set; }
 
@@ -271,12 +269,17 @@ public static partial class ScheduleBuilderHelper
     {
         Debug.Assert(names.Length > 0, "Must provide a course name");
 
+        if (s.LookupModule is { } existingLookup)
         {
-            if (s.LookupModule is { } lookupModule)
+            if (existingLookup.Courses.TryGetValue(names[0], out var val))
             {
-                if (lookupModule.Courses.TryGetValue(names[0], out var val))
+                return val;
+            }
+            foreach (var name in names)
+            {
+                if (existingLookup.Courses.ContainsKey(name))
                 {
-                    return val;
+                    throw new DuplicateCourseNameException(name);
                 }
             }
         }
@@ -284,16 +287,13 @@ public static partial class ScheduleBuilderHelper
         var r = s.Courses.New();
         r.Value = new(names);
 
+        if (s.LookupModule is { } lookupModule)
         {
-            if (s.LookupModule is { } lookupModule)
+            foreach (var name in names)
             {
-                foreach (var name in names)
-                {
-                    // Let it throw on duplicates here for now.
-                    lookupModule.Courses.Add(name, new(r.Id));
-                }
-                UpdateLookupAfterCourseAdded(s);
+                lookupModule.Courses.Add(name, new(r.Id));
             }
+            UpdateLookupAfterCourseAdded(s);
         }
 
         return new(r.Id);

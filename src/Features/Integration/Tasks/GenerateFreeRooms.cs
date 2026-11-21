@@ -77,10 +77,22 @@ public sealed partial class GenerateFreeRoomsTaskHandler
                         var id = roomId.Id!;
                         // TODO: Maybe store this in the model?
                         var blockIndex = id.IndexOf('/');
-                        var block = blockIndex >= 0 ? id[(blockIndex + 1)..] : null;
+                        if (blockIndex < 0)
+                        {
+                            return (Block: (string?) null, Room: id);
+                        }
+                        var block = id[(blockIndex + 1)..];
                         var room = id[..blockIndex];
-                        return (block, room);
-                    });
+                        return (Block: (string?) block, Room: room);
+                    }, Comparer<(string? Block, string Room)>.Create((a, b) =>
+                    {
+                        int blockComparison = string.CompareOrdinal(strA: a.Block, strB: b.Block);
+                        if (blockComparison != 0)
+                        {
+                            return blockComparison;
+                        }
+                        return string.CompareOrdinal(strA: a.Room, strB: b.Room);
+                    }));
                     foreach (var freeRoom in orderedFreeRooms)
                     {
                         dataCells.Add(new DataCell(freeRoom.Id!));
@@ -95,9 +107,6 @@ public sealed partial class GenerateFreeRoomsTaskHandler
         await spreadsheet.FinishAsync();
         return;
 
-        // var room = schedule.RegularLessons.Where(x => x.Lesson.Room.Id == "15:00").ToArray();
-        // var group = room.Select(x => schedule.Get(x.Lesson.Group)).ToArray();
-        // _ = group;
         RoomId S(RoomId r)
         {
             if (!r.IsValid)

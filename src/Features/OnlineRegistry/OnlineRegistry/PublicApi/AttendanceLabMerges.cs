@@ -6,7 +6,6 @@ namespace ScheduleLib.OnlineRegistry;
 /// <summary>Projects canonical subgroup attendance onto confirmed whole-group labs.</summary>
 public static class AttendanceLabMerges
 {
-    /// <summary>One dated attendance column of a source list.</summary>
     private readonly record struct AttendanceDateColumn(AttendanceDate Date, int Position);
 
     internal static bool TryDestination(

@@ -309,7 +309,6 @@ public sealed partial class GoogleApiHelper
     }
 }
 
-/// <summary>Inputs needed to resolve an account without initiating interactive consent.</summary>
 public readonly record struct GoogleCredentialRequest(
     BuiltGoogleCredentialsConfig Config,
     string[] Scopes,

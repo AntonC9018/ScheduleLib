@@ -1,6 +1,5 @@
 namespace ScheduleLib.Import.Pdf;
 
-/// <summary>A known source cell whose week-parity marker is missing.</summary>
 public sealed record PdfParityRepairRule(
     string Group,
     string Day,
@@ -31,7 +30,6 @@ public sealed record PdfParityRepairRule(
     }
 }
 
-/// <summary>Parity repairs verified against the source PDFs of one schedule period.</summary>
 /// <param name="Reference">Where the repair decisions are documented; reported on repaired cells.</param>
 public sealed record PdfParityRepairs(string Reference, IReadOnlyList<PdfParityRepairRule> Rules)
 {

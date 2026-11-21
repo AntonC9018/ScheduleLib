@@ -289,7 +289,6 @@ public record struct UnsizedBitArray64
         return new(otherArray.Bits | Bits);
     }
 
-    // These would wrap custom enumerable structs if needed
     [Pure] public readonly SetBitIndicesEnumerable64 SetBitIndicesLowToHigh => new(Bits);
     [Pure] public readonly ReverseSetBitIndicesEnumerable64 SetBitIndicesHighToLow => new(Bits);
     [Pure] public readonly SetBitIndicesEnumerable64 UnsetBitIndicesLowToHigh => new(Flipped().Bits);

@@ -8,7 +8,6 @@ using ScheduleLib.Cli;
 
 public sealed class StorageTests
 {
-    /// <summary>The exit code and captured output of a finished CLI process.</summary>
     private readonly record struct ProcessResult(int Exit, string Output, string Error);
 
     [Theory]

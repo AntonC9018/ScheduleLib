@@ -20,7 +20,6 @@ public sealed class ScheduleTeacherNamesTests
             Short = "F.",
         });
 
-        // Doesn't throw
         t.FirstName(newName);
 
         var expected = CreateSinglePartName(new()
@@ -52,7 +51,6 @@ public sealed class ScheduleTeacherNamesTests
         var s = new ScheduleBuilder();
         var t = s.Teacher("First Last");
         var name = CreateSinglePartNameWord("Fi.");
-        // Doesn't throw
         t.ShortFirstName(name);
 
         Assert.Equal(expected: "Fi.", actual: t.Model.Name.FirstName[0].Short);

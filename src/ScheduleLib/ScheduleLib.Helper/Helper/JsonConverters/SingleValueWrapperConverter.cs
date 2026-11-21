@@ -1,5 +1,3 @@
-// Most of the below is ChatGPT, refactored manually.
-
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -37,13 +35,10 @@ public sealed class SingleValueWrapperConverter<T, TValue> : JsonConverter<T>
 
 public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
 {
-    // Cache of created converters per wrapped type
     private static readonly ConcurrentDictionary<Type, JsonConverter> _converterCache = new();
 
     public override bool CanConvert(Type typeToConvert)
     {
-        // Skip primitives and enums
-
         if (typeToConvert.IsPrimitive || typeToConvert.IsEnum)
         {
             return false;
@@ -78,13 +73,10 @@ public sealed class SingleValueWrapperConverterFactory : JsonConverterFactory
     }
 }
 
-// mostly Chat GPT
 file static class Accessors
 {
-    /// <summary>A single-parameter constructor with the parameter list it was found with.</summary>
     private readonly record struct ConstructorCandidate(ParameterInfo[] Parameters, ConstructorInfo Constructor);
 
-    /// <summary>The constructor and member through which a single-value wrapper exposes its value.</summary>
     private readonly record struct WrapperMemberMatch(ConstructorInfo Constructor, MemberInfo Member, Type ValueType);
 
     private static ConcurrentDictionary<Type, AccessorsBase?> _accessors = new();
@@ -126,14 +118,12 @@ file static class Accessors
     private static WrapperMemberMatch FindInfo(
         Type type)
     {
-        // Get all public instance constructors with exactly one parameter
         var constructors = type
             .GetConstructors(BindingFlags.Public | BindingFlags.Instance)
             .Select(c => new ConstructorCandidate(c.GetParameters(), c))
             .Where(x => x.Parameters.Length == 1)
             .ToArray();
 
-        // Candidate public instance properties (declared only) and fields
         var properties = type
             .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
@@ -143,14 +133,12 @@ file static class Accessors
             .GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .ToArray();
 
-        // We'll collect (constructor, matchingMember) pairs where matchingMember.Type == constructor param type
         WrapperMemberMatch wholeMatch = default;
 
         foreach (var (paramArr, ctor) in constructors)
         {
             var paramType = paramArr[0].ParameterType;
 
-            // find members whose type equals the constructor parameter type
             var matchingProps = properties.Where(p => p.PropertyType == paramType)
                 .Cast<MemberInfo>();
             var matchingFields = fields.Where(f => f.FieldType == paramType)
@@ -188,13 +176,11 @@ file static class Accessors
         ConstructorInfo constructor,
         MemberInfo getterPropOrField)
     {
-        // Compile: (TValue v) => new T(v)
         var valueParam = Expression.Parameter(typeof(TValue), "value");
         var newExpr = Expression.New(constructor, valueParam);
         var creator = Expression.Lambda<Func<TValue?, T>>(newExpr, valueParam)
             .Compile();
 
-        // Compile: (T t) => t.Value
         var tParam = Expression.Parameter(typeof(T), "t");
         Expression memberAccess = getterPropOrField is PropertyInfo prop
             ? Expression.Property(tParam, prop)

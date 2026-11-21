@@ -95,12 +95,6 @@ public static class MoodleInterop
 
         var downloadAnchor = downloadPage.QuerySelector("div[role=main] > div.generalbox > a")!;
         var downloadLink = downloadAnchor.GetAttribute("href")!;
-        // await using var stream = await httpClient.GetStreamAsync(downloadLink);
-
-        // var requester = browser.GetService<ILoader>()!;
-        // var downloads = requester.GetDownloads();
-        //
-        // var download = await downloads.First().Task;
 
         var xml = await context.Browser.OpenAsync(downloadLink);
         await xml.SaveForDebug();

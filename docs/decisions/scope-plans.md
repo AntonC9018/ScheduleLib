@@ -34,10 +34,19 @@ command builds its own container from runtime arguments, and resolving `Schedule
     otherwise sequentially in the order constructors list them, so a cheap check that can fail
     (Google auth) can come before an expensive parse.
   - Each value has a write-once slot; resolving it unfilled fails with "not available".
-  - A later registration for the same value replaces the earlier one, removing exactly the
-    registrations the earlier one added, so container validation no longer needs its
-    dependencies; tests use this to supply fakes. Seeds and derived values are replaced the
-    same way, and each kind replaces the others.
+- **Replacement is explicit.** Registering a seed, derived or initialized value that is already
+  registered throws. `RemoveScopeValue<T>()` (or its keyed overload) removes the value and
+  exactly the registrations it added, so container validation no longer needs its dependencies
+  and an unrelated registration of the same factory or initializer type stays. Then any `Add*`
+  registers the replacement, of the same kind or another; tests use this to supply fakes.
+- **Metadata lives in the service collection.** Each value is described by a singleton record
+  next to the registrations it owns, and `AddHiddenNeeds` appends one too, so `RemoveAll` or
+  `Replace` on the collection is what the plan sees: a value whose registration is no longer
+  the one DI resolves is planned as an ordinary service. The `Add*` calls only append.
+- **`AddScopePlans()` registers the infrastructure:** the graph, plans, fork factories and scope
+  state. A host calls it once; repeated calls are harmless, and order relative to `Add*` does
+  not matter. The graph indexes the collection when the container first builds it and does not
+  keep it.
 - **Bundles:** one initializer produces a value from which factories project others;
   the initializer runs once. `ScheduleBuilder` becomes such an immutable bundle for
   `Schedule`, the lookup module and the teacher remappings.
@@ -135,8 +144,8 @@ command builds its own container from runtime arguments, and resolving `Schedule
 - CommandDotNet's `UseDependencyResolver` resolves command classes in a per-invocation scope;
   they inject `ScopeForkFactory<THandler>`.
 - Command method parameters become seeds.
-- Tests replace values through `AddInitialized`/`AddDerived` and run commands through the real
-  host, removing the `virtual` seams and the CR1400 suppression.
+- Tests replace values through `RemoveScopeValue` then `AddInitialized`/`AddDerived`, and run
+  commands through the real host, removing the `virtual` seams and the CR1400 suppression.
 - The GUI is removed from the solution until it moves to scope plans under [#283][283];
   reverting the removal commit restores it.
 

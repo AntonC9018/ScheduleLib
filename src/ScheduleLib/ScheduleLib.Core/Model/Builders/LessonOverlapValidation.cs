@@ -5,14 +5,9 @@ namespace ScheduleLib.Builders;
 public static partial class ScheduleBuilderHelper
 {
     /// <summary>
-    /// Fails when two weekly lessons occupy the same period, day and time slot, share a
-    /// group, and their student populations are not separated on any split dimension:
-    /// week parity, subgroup, specialization or alternative. One-time lessons are not
-    /// checked.
-    /// <para>
-    /// Pairs listed in <see cref="ScheduleBuilder.OverlapValidationConfig"/>'s allowlist
-    /// are tolerated; every other offending pair ends up in a single error.
-    /// </para>
+    /// One-time lessons are not checked. Pairs in the allowlist of
+    /// <see cref="ScheduleBuilder.OverlapValidationConfig"/> are tolerated; every other offending
+    /// pair ends up in a single error.
     /// </summary>
     private static void ValidateLessonOverlaps(this ScheduleBuilder s)
     {

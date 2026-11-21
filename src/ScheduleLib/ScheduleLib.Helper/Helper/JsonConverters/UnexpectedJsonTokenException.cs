@@ -6,6 +6,7 @@ public enum JsonTokenExpectation
 {
     StartObject,
     PropertyName,
+    String,
 }
 
 public sealed class UnexpectedJsonTokenException(JsonTokenType actualToken, JsonTokenExpectation expectation)
@@ -20,6 +21,7 @@ public sealed class UnexpectedJsonTokenException(JsonTokenType actualToken, Json
         {
             JsonTokenExpectation.StartObject => $"Expected StartObject token, got {actualToken}",
             JsonTokenExpectation.PropertyName => $"Unexpected token {actualToken}",
+            JsonTokenExpectation.String => $"Expected String token, got {actualToken}",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(expectation),
                 expectation,

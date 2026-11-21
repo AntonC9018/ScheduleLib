@@ -923,6 +923,7 @@ public sealed class TeacherExportTests
             if (RejectSourceReads)
             {
                 services.AddSingleton(this);
+                services.RemoveScopeValue<LoadedSchedule>();
                 services.AddInitialized<LoadedSchedule, RejectingInitializer>();
             }
         }

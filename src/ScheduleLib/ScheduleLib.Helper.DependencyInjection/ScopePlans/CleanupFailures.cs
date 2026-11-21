@@ -44,7 +44,6 @@ public sealed class CleanupFailures
         }
     }
 
-    /// <summary>Rethrows a single failure unchanged, or several as one <see cref="AggregateException"/>.</summary>
     public void ThrowIfAny()
     {
         if (_failures.Count == 1)

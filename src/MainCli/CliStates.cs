@@ -3,7 +3,6 @@ using ScheduleLib.Helper.JsonConverters;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>The state of one streamed item or remote action.</summary>
 [JsonConverter(typeof(ActionStateJsonConverter))]
 public enum ActionState
 {
@@ -16,7 +15,6 @@ public enum ActionState
     Cancelled,
 }
 
-/// <summary>The status of a whole invocation, reported in final records and manifests.</summary>
 [JsonConverter(typeof(RunStatusJsonConverter))]
 public enum RunStatus
 {
@@ -30,7 +28,6 @@ public enum RunStatus
     Downloaded,
 }
 
-/// <summary>The local authorization state of one stored provider account.</summary>
 [JsonConverter(typeof(AuthAccountStateJsonConverter))]
 public enum AuthAccountState
 {
@@ -39,7 +36,6 @@ public enum AuthAccountState
     Expired,
 }
 
-/// <summary>Maps the CLI state enums to their stable wire strings.</summary>
 public static class CliWireNames
 {
     public static string ToWire(this ActionState state)

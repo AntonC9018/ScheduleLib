@@ -170,7 +170,6 @@ public static class RegistryHistoryTopicsHtml
 /// <summary>Exact course-name matching except surrounding whitespace, a trailing comma and letter case. Raw names remain in provenance.</summary>
 public static class RegistryHistoryTopicSelection
 {
-    /// <summary>An offered academic year that precedes the current one, ordered by its start.</summary>
     private readonly record struct PrecedingYear(string Year, int Start);
 
     public static string NormalizeCourseName(string name)
@@ -323,7 +322,6 @@ public static class RegistryHistoryTopicSelection
 /// <summary>Sequential acquisition through the history transport guard. This reader does not resolve group meanings or build import mappings.</summary>
 public sealed class RegistryHistoryTopicsReader(HttpClient client, Uri index)
 {
-    /// <summary>An index year link that precedes the current academic year, ordered by its start.</summary>
     private readonly record struct PrecedingYearLink(RegistryHistoryYear Year, int Start);
 
     public async Task<RegistryHistoryTopicsAnalysis> Discover(CancellationToken token)

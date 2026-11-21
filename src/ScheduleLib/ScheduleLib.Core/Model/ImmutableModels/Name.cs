@@ -27,10 +27,7 @@ public record struct OptionalNamePart
         }
     }
 
-    /// <summary>
-    /// The short form for display: the imported one, or else the initial of the full form.
-    /// Matching uses <see cref="Short"/>, because a generated initial is not part of the source.
-    /// </summary>
+    /// <summary>Matching uses <see cref="Short"/>, because a generated initial is not part of the source.</summary>
     public readonly string? DisplayShort
     {
         get
@@ -380,7 +377,6 @@ public static class NamePartHelper
         NameParts<U> b,
         Func<T, U, bool> pred)
     {
-        // Pass the predicate itself as state.
         return a.EachEquals(
             b,
             pred,

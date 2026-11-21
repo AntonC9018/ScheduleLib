@@ -27,7 +27,6 @@ public sealed partial class GeneratePdfsForGroupsAndTeachersTaskHandler
         public Func<string, Func<Stream, CancellationToken, Task>, CancellationToken, Task>? PublishArtifact { get; init; }
     }
 
-    /// <summary>A PDF file to produce: its name, its lesson text display, and the schedule it shows.</summary>
     private readonly record struct PdfArtifact(
         string Name,
         LessonTextDisplayHandler Display,

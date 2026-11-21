@@ -7,8 +7,6 @@ public sealed class LayerPathTests
     [Fact]
     public void Test()
     {
-        // var services = new ServiceCollection();
-        // var sp = services.BuildServiceProvider();
         var tree = new TreeBuilder(null!);
 
         var a = tree.Defaults.AddLayer(new Layer("A"));

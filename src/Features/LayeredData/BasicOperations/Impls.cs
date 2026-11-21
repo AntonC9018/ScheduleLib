@@ -39,7 +39,6 @@ public sealed class ListMerger<T> : IMerger<List<T>>
     }
 }
 
-// string
 public sealed class ImmutableClassBasicOperations<T> : IBasicOperations<T>
 {
     public T? Empty() => default;
@@ -83,7 +82,6 @@ public sealed class ReflectionMerger<T> : IMerger<T>
 
     static ReflectionMerger()
     {
-        // Get all writable properties
         _writableProperties = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p =>
@@ -180,7 +178,6 @@ public sealed class ReflectionMerger<T> : IMerger<T>
 }
 
 // TODO: Source generate these for all types.
-// claude
 public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
 {
     private readonly IServiceProvider _serviceProvider;
@@ -190,7 +187,6 @@ public sealed class ReflectionBasicOperations<T> : IBasicOperations<T>
     {
         _serviceProvider = serviceProvider;
 
-        // Get the parameterless constructor
         _parameterlessConstructor = typeof(T).GetConstructor(
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
             null,

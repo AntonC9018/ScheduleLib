@@ -3,13 +3,10 @@ using ScheduleLib.Application.Core;
 
 namespace ScheduleLib.Cli;
 
-/// <summary>Shared source/cache setup for query and export slices. CLI paths resolve from the
-/// invocation directory.</summary>
 public static class CliRuntime
 {
     public static string ResolvePath(string path) => ResolvePath(path: path, basePath: Environment.CurrentDirectory);
 
-    /// <summary>The full path of <paramref name="path"/>, relative to <paramref name="basePath"/>.</summary>
     public static string ResolvePath(string path, string basePath)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -20,10 +17,7 @@ public static class CliRuntime
         return Path.GetFullPath(path: path, basePath: basePath);
     }
 
-    /// <summary>
-    /// The schedule source an invocation selects. Relative paths resolve from the invocation
-    /// directory now, so later directory changes do not move them.
-    /// </summary>
+    // Relative paths resolve from the invocation directory now, so later directory changes do not move them.
     public static ScheduleSource ResolveSource(SourceArguments source)
     {
         return ScheduleSourceSelection.From(source)
@@ -39,7 +33,6 @@ public static class CliRuntime
         return services;
     }
 
-    /// <summary>The CLI's logging and Google authorization, replacing the defaults of <paramref name="services"/>.</summary>
     public static void AddCliServices(IServiceCollection services)
     {
         CliLogging.Register(services);

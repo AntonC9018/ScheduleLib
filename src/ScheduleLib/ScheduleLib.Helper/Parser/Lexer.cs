@@ -327,10 +327,6 @@ public static class StructLexerExtensions
                     {
                         maybeUsedStringBuilder!.Append(defaultNewLine);
                     }
-                    else
-                    {
-                        // empty token
-                    }
                 }
             }
         }
@@ -415,9 +411,6 @@ public struct LexerScope : ILexer
         return false;
     }
 
-    /// <summary>
-    /// Actually consumes the tokens.
-    /// </summary>
     public void Apply()
     {
         if (PositionIndex > 0)
@@ -829,7 +822,6 @@ public struct LimitedLexerScope : ILexer
 
     public readonly bool CanPeek(int offset = 1)
     {
-        // Check doesn't exceed end
         int i = _lexer.Position.Value + offset - 1;
         if (i >= _endPosition.Value)
         {
