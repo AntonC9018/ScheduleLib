@@ -19,17 +19,7 @@ public sealed class OutputDirectory
             path: _directory,
             searchPattern: pattern,
             enumerationOptions: options);
-        var ret = files.Select(x =>
-        {
-            RelativeFilePath ProjectValue()
-            {
-                var separatorLen = 1;
-                var ret = x[(_directory.Length + separatorLen)..];
-                return new RelativeFilePath(ret);
-            }
-
-            return ProjectValue();
-        });
+        var ret = files.Select(x => new RelativeFilePath(Path.GetRelativePath(_directory, x)));
         return ret;
     }
 
@@ -101,6 +91,10 @@ public sealed class OutputDirectory
         if (!normalizedPath.StartsWith(_directory, comparison))
         {
             return false;
+        }
+        if (Path.EndsInDirectorySeparator(_directory))
+        {
+            return true;
         }
         char separator = normalizedPath[_directory.Length];
         if (separator == Path.DirectorySeparatorChar)
